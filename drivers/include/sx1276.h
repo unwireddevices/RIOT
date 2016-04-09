@@ -35,27 +35,25 @@ extern "C" {
 /**
  * Radio driver supported modems
  */
-typedef enum
-{
-    MODEM_FSK = 0,
-    MODEM_LORA,
+typedef enum {
+	MODEM_FSK = 0, MODEM_LORA,
 } sx1276_radio_modems_t;
 
 typedef struct {
-	uint8_t 				power;
-	uint32_t 				bandwidth;
-	uint32_t 				datarate;
-	bool					low_datarate_optimize;
-	uint8_t					coderate;
-	uint16_t				preamble_len;
-	bool					fix_len;
-	uint8_t					payload_len;
-	bool					crc_on;
-	bool					freq_hop_on;
-	uint8_t					hop_period;
-	bool					iq_inverted;
-	bool					rx_continuous;
-	uint32_t				tx_timeout;
+	uint8_t power;
+	uint32_t bandwidth;
+	uint32_t datarate;
+	bool low_datarate_optimize;
+	uint8_t coderate;
+	uint16_t preamble_len;
+	bool fix_len;
+	uint8_t payload_len;
+	bool crc_on;
+	bool freq_hop_on;
+	uint8_t hop_period;
+	bool iq_inverted;
+	bool rx_continuous;
+	uint32_t tx_timeout;
 
 } sx1276_lora_settings_t;
 
@@ -63,21 +61,17 @@ typedef struct {
  * LoRa packet handler state.
  */
 typedef struct {
-	uint8_t		snr_value;
-	uint16_t	rssi_value;
-	uint8_t		size;
+	uint8_t snr_value;
+	uint16_t rssi_value;
+	uint8_t size;
 
 } sx1276_lora_packet_handler_t;
 
 /**
  * Radio driver internal state machine states definition.
  */
-typedef enum
-{
-    RF_IDLE = 0,
-    RF_RX_RUNNING,
-    RF_TX_RUNNING,
-    RF_CAD,
+typedef enum {
+	RF_IDLE = 0, RF_RX_RUNNING, RF_TX_RUNNING, RF_CAD,
 
 } sx1276_radio_state_t;
 
@@ -85,11 +79,11 @@ typedef enum
  * Radio settings.
  */
 typedef struct {
-	sx1276_radio_state_t			state;
-	uint32_t						channel;
-	sx1276_lora_settings_t			lora;
-	sx1276_lora_packet_handler_t	lora_packet_handler;
-	sx1276_radio_modems_t			modem;
+	sx1276_radio_state_t state;
+	uint32_t channel;
+	sx1276_lora_settings_t lora;
+	sx1276_lora_packet_handler_t lora_packet_handler;
+	sx1276_radio_modems_t modem;
 
 } sx1276_settings_t;
 
@@ -97,69 +91,69 @@ typedef struct {
  * SX1276 hardware and global parameters.
  */
 typedef struct sx1276_s {
-	spi_t				spi;		/**< SPI instance */
+	spi_t spi; /**< SPI instance */
 
-	gpio_t				reset_pin;	/**< Reset pin instance */
-	gpio_t				dio0_pin;
-	gpio_t				dio1_pin;
-	gpio_t				dio2_pin;
-	gpio_t				dio3_pin;
-	gpio_t				dio4_pin;
-	gpio_t				dio5_pin;
+	gpio_t reset_pin; /**< Reset pin instance */
+	gpio_t dio0_pin;
+	gpio_t dio1_pin;
+	gpio_t dio2_pin;
+	gpio_t dio3_pin;
+	gpio_t dio4_pin;
+	gpio_t dio5_pin;
 
-	uint8_t				rxtx;
-	sx1276_settings_t	settings;
+	uint8_t rxtx;
+	sx1276_settings_t settings;
 
-	sx_1276_events_t	events;							/**< Radio events callbacks */
+	sx_1276_events_t events; /**< Radio events callbacks */
 
-	uint8_t 			rx_tx_buffer[RX_BUFFER_SIZE];	/**< Reception/Transmission buffer */
+	uint8_t rx_tx_buffer[RX_BUFFER_SIZE]; /**< Reception/Transmission buffer */
 
 } sx1276_t;
 
 typedef struct {
-    /**
-     * @brief  Tx Done callback prototype.
-     */
-    void    ( *tx_done )( void );
+	/**
+	 * @brief  Tx Done callback prototype.
+	 */
+	void (*tx_done)(void);
 
-    /**
-     * @brief  Tx Timeout callback prototype.
-     */
-    void    ( *tx_timeout )( void );
+	/**
+	 * @brief  Tx Timeout callback prototype.
+	 */
+	void (*tx_timeout)(void);
 
-    /**
-     * @brief Rx Done callback prototype.
-     *
-     * @param [IN] payload Received buffer pointer
-     * @param [IN] size    Received buffer size
-     * @param [IN] rssi    RSSI value computed while receiving the frame [dBm]
-     * @param [IN] snr     Raw SNR value given by the radio hardware [dB]
-     */
-    void    ( *rx_done )( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr );
+	/**
+	 * @brief Rx Done callback prototype.
+	 *
+	 * @param [IN] payload Received buffer pointer
+	 * @param [IN] size    Received buffer size
+	 * @param [IN] rssi    RSSI value computed while receiving the frame [dBm]
+	 * @param [IN] snr     Raw SNR value given by the radio hardware [dB]
+	 */
+	void (*rx_done)(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr);
 
-    /**
-     * @brief  Rx Timeout callback prototype.
-     */
-    void    ( *rx_timeout )( void );
+	/**
+	 * @brief  Rx Timeout callback prototype.
+	 */
+	void (*rx_timeout)(void);
 
-    /**
-     * @brief Rx Error callback prototype.
-     */
-    void    ( *rx_error )( void );
+	/**
+	 * @brief Rx Error callback prototype.
+	 */
+	void (*rx_error)(void);
 
-    /**
-     * @brief  FHSS Change Channel callback prototype.
-     *
-     * @param [IN] current_channel   Index number of the current channel
-     */
-    void 	( *fhss_change_channel )( uint8_t currnet_channel );
+	/**
+	 * @brief  FHSS Change Channel callback prototype.
+	 *
+	 * @param [IN] current_channel   Index number of the current channel
+	 */
+	void (*fhss_change_channel)(uint8_t currnet_channel);
 
-    /**
-     * @brief CAD Done callback prototype.
-     *
-     * @param [IN] activity_detected    Channel Activity detected during the CAD
-     */
-    void 	( *cad_done ) ( bool activity_detected );
+	/**
+	 * @brief CAD Done callback prototype.
+	 *
+	 * @param [IN] activity_detected    Channel Activity detected during the CAD
+	 */
+	void (*cad_done)(bool activity_detected);
 
 } sx_1276_events_t;
 
@@ -167,7 +161,7 @@ typedef struct {
  * Hardware IO IRQ callback function definition.
  */
 
-typedef void (sx1276_dio_irq_handler) (void);
+typedef void (sx1276_dio_irq_handler)(void);
 
 /**
  * SX1276 definitions.
@@ -187,7 +181,7 @@ typedef void (sx1276_dio_irq_handler) (void);
  * @param	[IN]	events	Events structure containing callback functions
  */
 
-void sx1276_init( sx1276_t *dev, sx1276_events_t *events );
+void sx1276_init(sx1276_t *dev, sx1276_events_t *events);
 
 /**
  * @brief Gets current status of transceiver.
@@ -196,16 +190,14 @@ void sx1276_init( sx1276_t *dev, sx1276_events_t *events );
  *
  * @return radio status [RF_IDLE, RF_RX_RUNNING, RF_TX_RUNNING]
  */
-sx1276_radio_state_t sx1276_get_status( sx1276_t *dev );
-
+sx1276_radio_state_t sx1276_get_status(sx1276_t *dev);
 
 /**
  * @brief Sets the channel frequency
  *
  * @param	[IN]	dev		The sx1276 device structure pointer
  */
-void sx1276_set_channel( sx1276_t *dev, uint32_t freq );
-
+void sx1276_set_channel(sx1276_t *dev, uint32_t freq);
 
 /**
  * @brief Checks that channel is free with specified RSSI threshold
@@ -216,7 +208,7 @@ void sx1276_set_channel( sx1276_t *dev, uint32_t freq );
  *
  * @return channel is free or not [true: channel is free, false: channel is not free]
  */
-bool sx1276_is_channel_free( sx1276_t *dev, uint32_t freq, uint16_t rssi_thresh );
+bool sx1276_is_channel_free(sx1276_t *dev, uint32_t freq, uint16_t rssi_thresh);
 
 /**
  * @brief generates 32 bits random value based on the RSSI readings
@@ -228,8 +220,7 @@ bool sx1276_is_channel_free( sx1276_t *dev, uint32_t freq, uint16_t rssi_thresh 
  *
  * @return random 32 bits value
  */
-uint32_t sx1276_random( sx1276_t *dev );
-
+uint32_t sx1276_random(sx1276_t *dev);
 
 /**
  * @brief Sets the reception parameters
@@ -270,12 +261,10 @@ uint32_t sx1276_random( sx1276_t *dev );
  * @param	[IN] 	rx_continuous	Sets the reception in continuous mode
  *                          		[false: single mode, true: continuous mode]
  */
-void sx1276_set_rx_config ( sx1276_t *dev, uint32_t bandwidth,
-                         uint32_t datarate, uint8_t coderate,
-						 uint16_t preamble_len, uint16_t symb_timeout,
-						 bool fix_len, uint8_t payload_len,
-                         bool crc_on, bool FreqHopOn, uint8_t hop_period,
-                         bool iq_inverted, bool rx_continuous );
+void sx1276_set_rx_config(sx1276_t *dev, uint32_t bandwidth, uint32_t datarate,
+		uint8_t coderate, uint16_t preamble_len, uint16_t symb_timeout,
+		bool fix_len, uint8_t payload_len, bool crc_on, bool FreqHopOn,
+		uint8_t hop_period, bool iq_inverted, bool rx_continuous);
 
 /**
  * @brief Sets the transmission parameters
@@ -313,11 +302,10 @@ void sx1276_set_rx_config ( sx1276_t *dev, uint32_t bandwidth,
  *
  * @param	[IN]	timeout			Transmission timeout [us]
  */
-void sx1276_set_tx_config ( sx1276_t *dev, int8_t power,
-                        uint32_t bandwidth, uint32_t datarate,
-                        uint8_t coderate, uint16_t preamble_len,
-                        bool fix_len, bool crc_on, bool freq_hop_on,
-                        uint8_t hop_period, bool iq_inverted, uint32_t timeout );
+void sx1276_set_tx_config(sx1276_t *dev, int8_t power, uint32_t bandwidth,
+		uint32_t datarate, uint8_t coderate, uint16_t preamble_len,
+		bool fix_len, bool crc_on, bool freq_hop_on, uint8_t hop_period,
+		bool iq_inverted, uint32_t timeout);
 
 /**
  * @brief Computes the packet time on air in us for the given payload
@@ -329,7 +317,7 @@ void sx1276_set_tx_config ( sx1276_t *dev, int8_t power,
  *
  * @return computed air time (us) for the given packet payload length
  */
-uint32_t sx1276_get_time_on_air ( sx1276_t *dev, uint8_t pkt_len );
+uint32_t sx1276_get_time_on_air(sx1276_t *dev, uint8_t pkt_len);
 
 /**
  * @brief Sends the buffer of size. Prepares the packet to be sent and sets
@@ -341,21 +329,21 @@ uint32_t sx1276_get_time_on_air ( sx1276_t *dev, uint8_t pkt_len );
  *
  * @param	[IN]	size		Buffer size
  */
-void sx1276_send( sx1276_t *dev, uint8_t *buffer, uint8_t size );
+void sx1276_send(sx1276_t *dev, uint8_t *buffer, uint8_t size);
 
 /**
  * @brief Sets the radio in sleep mode
  *
  * @param	[IN]	dev		The sx1276 device structure pointer
  */
-void sx1276_set_sleep( sx1276_t *dev );
+void sx1276_set_sleep(sx1276_t *dev);
 
 /**
  * @brief Sets the radio in stand-by mode
  *
  * @param	[IN]	dev		The sx1276 device structure pointer
  */
-void sx1276_set_standby( sx1276_t *dev );
+void sx1276_set_standby(sx1276_t *dev);
 
 /**
  * @brief Sets the radio in reception mode for given amount of time
@@ -364,7 +352,7 @@ void sx1276_set_standby( sx1276_t *dev );
  *
  * @param	[IN]	timeout	reception timeout [us] [0: continuous, others: timeout]
  */
-void sx1276_set_rx( sx1276_t *dev, uint32_t timeout );
+void sx1276_set_rx(sx1276_t *dev, uint32_t timeout);
 
 /**
  * @brief Start a channel activity detection
@@ -372,7 +360,7 @@ void sx1276_set_rx( sx1276_t *dev, uint32_t timeout );
  * @param	[IN]	dev		The sx1276 device structure pointer
  */
 
-void sx1276_start_cad( sx1276_t *dev );
+void sx1276_start_cad(sx1276_t *dev);
 
 /**
  * @brief Reads the current RSSI value
@@ -381,7 +369,7 @@ void sx1276_start_cad( sx1276_t *dev );
  *
  * @return current value of RSSI in [dBm]
  */
-int16_t sx1276_read_rssi( sx1276_t *dev );
+int16_t sx1276_read_rssi(sx1276_t *dev);
 
 /**
  * @brief Writes the radio register at specified address
@@ -392,7 +380,7 @@ int16_t sx1276_read_rssi( sx1276_t *dev );
  *
  * @param	[IN]	data New register value
  */
-void sx1276_reg_write( sx1276_t *dev, uint8_t addr, uint8_t data );
+void sx1276_reg_write(sx1276_t *dev, uint8_t addr, uint8_t data);
 
 /**
  * @brief Reads the radio register at specified address
@@ -403,7 +391,7 @@ void sx1276_reg_write( sx1276_t *dev, uint8_t addr, uint8_t data );
  *
  * @return	Register value
  */
-uint8_t	sx1276_reg_read( sx1276_t *dev, uint8_t addr );
+uint8_t sx1276_reg_read(sx1276_t *dev, uint8_t addr);
 
 /**
  * @brief Writes multiple radio registers starting at address (burst-mode)
@@ -416,7 +404,8 @@ uint8_t	sx1276_reg_read( sx1276_t *dev, uint8_t addr );
  *
  * @param	[IN]	size	Number of registers to be written
  */
-void sx1276_reg_write_burst( sx1276_t *dev, uint8_t addr, uint8_t *buffer, uint8_t size );
+void sx1276_reg_write_burst(sx1276_t *dev, uint8_t addr, uint8_t *buffer,
+		uint8_t size);
 
 /**
  * @brief Reads multiple radio registers starting at address
@@ -429,7 +418,8 @@ void sx1276_reg_write_burst( sx1276_t *dev, uint8_t addr, uint8_t *buffer, uint8
  *
  * @param	[IN]	size	Number of registers to be read
  */
-void sx1276_reg_read_burst( sx1276_t *dev, uint8_t addr, uint8_t *buffer, uint8_t size );
+void sx1276_reg_read_burst(sx1276_t *dev, uint8_t addr, uint8_t *buffer,
+		uint8_t size);
 
 /**
  * @brief Sets the maximum payload length
@@ -438,7 +428,7 @@ void sx1276_reg_read_burst( sx1276_t *dev, uint8_t addr, uint8_t *buffer, uint8_
  *
  * @param	[IN]	maxlen	Maximum payload length in bytes
  */
-void sx1276_set_max_payload_len( sx1276_t *dev, uint8_t maxlen );
+void sx1276_set_max_payload_len(sx1276_t *dev, uint8_t maxlen);
 
 #ifdef __cplusplus
 }

@@ -258,10 +258,10 @@ void sx1276_set_modem(sx1276_t *dev, sx1276_radio_modems_t modem)
         case MODEM_LORA:
             sx1276_set_op_mode(dev, RF_OPMODE_SLEEP);
             sx1276_reg_write(dev,
-                REG_OPMODE,
-                (sx1276_reg_read(dev, REG_OPMODE)
-                 & RFLR_OPMODE_LONGRANGEMODE_MASK)
-                | RFLR_OPMODE_LONGRANGEMODE_ON);
+                             REG_OPMODE,
+                             (sx1276_reg_read(dev, REG_OPMODE)
+                              & RFLR_OPMODE_LONGRANGEMODE_MASK)
+                             | RFLR_OPMODE_LONGRANGEMODE_ON);
 
             sx1276_reg_write(dev, REG_DIOMAPPING1, 0x00);
             sx1276_reg_write(dev, REG_DIOMAPPING2, 0x00);
@@ -356,8 +356,8 @@ void sx1276_set_rx_config(sx1276_t *dev, sx1276_radio_modems_t modem,
     sx1276_set_modem(dev, modem);
 
     switch (modem) {
-    case MODEM_FSK:
-    	break;
+        case MODEM_FSK:
+            break;
 
         case MODEM_LORA:
         {
@@ -484,12 +484,10 @@ void sx1276_set_rx_config(sx1276_t *dev, sx1276_radio_modems_t modem,
 
 uint8_t sx1276_get_pa_select( uint32_t channel )
 {
-    if( channel < RF_MID_BAND_THRESH )
-    {
+    if (channel < RF_MID_BAND_THRESH) {
         return RF_PACONFIG_PASELECT_PABOOST;
     }
-    else
-    {
+    else {
         return RF_PACONFIG_PASELECT_RFO;
     }
 }
@@ -557,8 +555,8 @@ void sx1276_set_tx_config(sx1276_t *dev, sx1276_radio_modems_t modem,
     sx1276_reg_write(dev, REG_PADAC, pa_dac);
 
     switch (modem) {
-    case MODEM_FSK:
-    	break;
+        case MODEM_FSK:
+            break;
 
         case MODEM_LORA:
         {
@@ -655,8 +653,8 @@ uint32_t sx1276_get_time_on_air(sx1276_t *dev, sx1276_radio_modems_t modem,
     uint32_t air_time = 0;
 
     switch (modem) {
-    case MODEM_FSK:
-    	break;
+        case MODEM_FSK:
+            break;
 
         case MODEM_LORA:
         {
@@ -712,8 +710,8 @@ void sx1276_send(sx1276_t *dev, uint8_t *buffer, uint8_t size)
     uint32_t tx_timeout = 0;
 
     switch (dev->settings.modem) {
-    case MODEM_FSK:
-    	break;
+        case MODEM_FSK:
+            break;
 
         case MODEM_LORA:
         {
@@ -787,8 +785,8 @@ void sx1276_set_rx(sx1276_t *dev, uint32_t timeout)
     bool rx_continuous = false;
 
     switch (dev->settings.modem) {
-    case MODEM_FSK:
-    	break;
+        case MODEM_FSK:
+            break;
 
         case MODEM_LORA:
         {
@@ -924,8 +922,8 @@ void sx1276_set_tx(sx1276_t *dev, uint32_t timeout)
     //TimerSetValue( &TxTimeoutTimer, timeout );
 
     switch (dev->settings.modem) {
-    case MODEM_FSK:
-    	break;
+        case MODEM_FSK:
+            break;
 
         case MODEM_LORA:
         {
@@ -1062,9 +1060,9 @@ void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode)
             // sx1276_set_ant_sw_low_power(true); // XXX: must be implemented in BOARD
         }
         else {
-        	//sx1276_set_ant_sw_low_power(false); // XXX: must be implemented in BOARD
+            //sx1276_set_ant_sw_low_power(false); // XXX: must be implemented in BOARD
             if (op_mode == RF_OPMODE_TRANSMITTER) {
-            	//sx1276_set_ant_sw(1); // XXX: must be implemented in BOARD
+                //sx1276_set_ant_sw(1); // XXX: must be implemented in BOARD
             }
             else {
                 //sx1276_set_ant_sw(0); // XXX: must be implemented in BOARD
@@ -1081,8 +1079,8 @@ void sx1276_set_max_payload_len(sx1276_t *dev, sx1276_radio_modems_t modem, uint
     sx1276_set_modem(dev, modem);
 
     switch (modem) {
-    case MODEM_FSK:
-    	break;
+        case MODEM_FSK:
+            break;
 
         case MODEM_LORA:
             sx1276_reg_write(dev, REG_LR_PAYLOADMAXLENGTH, maxlen);
@@ -1117,7 +1115,7 @@ void sx1276_reg_write_burst(sx1276_t *dev, uint8_t addr, uint8_t *buffer,
     cpsr = irq_disable();
 
     gpio_clear(dev->nss_pin);
-    spi_transfer_regs(dev->spi, addr | 0x80, (char*) buffer, NULL, size);
+    spi_transfer_regs(dev->spi, addr | 0x80, (char *) buffer, NULL, size);
     gpio_set(dev->nss_pin);
 
     irq_restore(cpsr);
@@ -1133,7 +1131,7 @@ void sx1276_reg_read_burst(sx1276_t *dev, uint8_t addr, uint8_t *buffer,
     cpsr = irq_disable();
 
     gpio_clear(dev->nss_pin);
-    spi_transfer_regs(dev->spi, addr & 0x7F, NULL, (char*) buffer, size);
+    spi_transfer_regs(dev->spi, addr & 0x7F, NULL, (char *) buffer, size);
     gpio_set(dev->nss_pin);
 
     irq_restore(cpsr);

@@ -33,12 +33,16 @@
 static char stack[_STACKSIZE];
 static kernel_pid_t _recv_pid;
 
-void test1(int argc, char **argv) {
+int test1(int argc, char **argv) {
 	puts("test 1 called");
+
+	return 0;
 }
 
-void test2(int argc, char **argv) {
+int test2(int argc, char **argv) {
 	puts("test 2 called");
+
+	return 0;
 }
 
 static const shell_command_t shell_commands[] = {
@@ -47,13 +51,9 @@ static const shell_command_t shell_commands[] = {
     { NULL, NULL, NULL }
 };
 
-static void _event_cb(netdev2_t *dev, netdev2_event_t event, void *data)
-{
-    (void) data;
-}
-
 void *_recv_thread(void *arg)
 {
+	return NULL;
 }
 
 int main(void)

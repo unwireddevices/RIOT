@@ -32,7 +32,6 @@ extern "C" {
  * @{
  */
 
-void recv(netdev2_t *dev);
 int test1(int argc, char **argv);
 int test2(int argc, char **argv);
 /**

@@ -172,7 +172,7 @@ typedef struct sx1276_s {
 	uint8_t rxtx;
 	sx1276_settings_t settings;
 
-	sx1276_events_t events; /**< Radio events callbacks */
+	sx1276_events_t *events; /**< Radio events callbacks */
 
 	uint8_t rx_tx_buffer[RX_BUFFER_SIZE]; /**< Reception/Transmission buffer */
 
@@ -212,6 +212,13 @@ void sx1276_init(sx1276_t *dev, sx1276_events_t *events);
  * @return radio status [RF_IDLE, RF_RX_RUNNING, RF_TX_RUNNING]
  */
 sx1276_radio_state_t sx1276_get_status(sx1276_t *dev);
+
+/**
+ * @brief Configures the radio with the given modem
+ *
+ * @param [IN] modem Modem to be used [0: FSK, 1: LoRa]
+ */
+void sx1276_set_modem(sx1276_t *dev, sx1276_radio_modems_t modem);
 
 /**
  * @brief Sets the channel frequency

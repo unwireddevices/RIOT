@@ -16,13 +16,16 @@
  * @}
  */
 #include <stdbool.h>
-#include <math.>
+#include <math.h>
 
 #include "periph/gpio.h"
 #include "periph/spi.h"
 
 #include "xtimer.h"
+
 #include "sx1276.h"
+#include "../sx1276/include/sx1276_regs_fsk.h"
+#include "../sx1276/include/sx1276_regs_lora.h"
 
 /*
  * Local types definition

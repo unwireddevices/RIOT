@@ -16,11 +16,11 @@
  * @author      Cr0s
  */
 
+#include "periph/gpio.h"
+#include "periph/spi.h"
+
 #ifndef SX1276_H
 #define SX1276_H
-
-#include "sx1276_regs_fsk.h"
-#include "sx1276_regs_lora.h"
 
 #define RADIO_WAKEUP_TIME                           1000 /**< [us] */
 #define CHANNEL_HF									868000000 /**< [Hz] */
@@ -107,30 +107,6 @@ typedef struct {
 
 } sx1276_settings_t;
 
-/**
- * SX1276 hardware and global parameters.
- */
-typedef struct sx1276_s {
-	spi_t spi; /**< SPI */
-	gpio_t nss_pin; /**< SPI NSS pin */
-
-	gpio_t reset_pin; /**< Reset pin */
-	gpio_t dio0_pin;
-	gpio_t dio1_pin;
-	gpio_t dio2_pin;
-	gpio_t dio3_pin;
-	gpio_t dio4_pin;
-	gpio_t dio5_pin;
-
-	uint8_t rxtx;
-	sx1276_settings_t settings;
-
-	sx_1276_events_t events; /**< Radio events callbacks */
-
-	uint8_t rx_tx_buffer[RX_BUFFER_SIZE]; /**< Reception/Transmission buffer */
-
-} sx1276_t;
-
 typedef struct {
 	/**
 	 * @brief  Tx Done callback prototype.
@@ -176,7 +152,31 @@ typedef struct {
 	 */
 	void (*cad_done)(bool activity_detected);
 
-} sx_1276_events_t;
+} sx1276_events_t;
+
+/**
+ * SX1276 hardware and global parameters.
+ */
+typedef struct sx1276_s {
+	spi_t spi; /**< SPI */
+	gpio_t nss_pin; /**< SPI NSS pin */
+
+	gpio_t reset_pin; /**< Reset pin */
+	gpio_t dio0_pin;
+	gpio_t dio1_pin;
+	gpio_t dio2_pin;
+	gpio_t dio3_pin;
+	gpio_t dio4_pin;
+	gpio_t dio5_pin;
+
+	uint8_t rxtx;
+	sx1276_settings_t settings;
+
+	sx1276_events_t events; /**< Radio events callbacks */
+
+	uint8_t rx_tx_buffer[RX_BUFFER_SIZE]; /**< Reception/Transmission buffer */
+
+} sx1276_t;
 
 /**
  * Hardware IO IRQ callback function definition.

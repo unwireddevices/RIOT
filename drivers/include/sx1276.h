@@ -28,6 +28,27 @@
 #define RADIO_WAKEUP_TIME                           1000 /**< [us] */
 #define CHANNEL_HF									868000000 /**< [Hz] */
 
+#define RF_MID_BAND_THRESH                          525000000
+#define RADIO_INIT_REGISTERS_VALUE                \
+{                                                 \
+    { MODEM_FSK , REG_LNA                , 0x23 },\
+    { MODEM_FSK , REG_RXCONFIG           , 0x1E },\
+    { MODEM_FSK , REG_RSSICONFIG         , 0xD2 },\
+    { MODEM_FSK , REG_PREAMBLEDETECT     , 0xAA },\
+    { MODEM_FSK , REG_OSC                , 0x07 },\
+    { MODEM_FSK , REG_SYNCCONFIG         , 0x12 },\
+    { MODEM_FSK , REG_SYNCVALUE1         , 0xC1 },\
+    { MODEM_FSK , REG_SYNCVALUE2         , 0x94 },\
+    { MODEM_FSK , REG_SYNCVALUE3         , 0xC1 },\
+    { MODEM_FSK , REG_PACKETCONFIG1      , 0xD8 },\
+    { MODEM_FSK , REG_FIFOTHRESH         , 0x8F },\
+    { MODEM_FSK , REG_IMAGECAL           , 0x02 },\
+    { MODEM_FSK , REG_DIOMAPPING1        , 0x00 },\
+    { MODEM_FSK , REG_DIOMAPPING2        , 0x30 },\
+    { MODEM_LORA, REG_LR_PAYLOADMAXLENGTH, 0x40 },\
+}                                                 \
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -228,6 +249,8 @@ uint32_t sx1276_random(sx1276_t *dev);
  *
  * @param	[IN]	dev				The sx1276 device structure pointer
  *
+ * @param	[IN]	modem			Modem to be configured
+ *
  * @param	[IN]	bandwidth		Sets the bandwidth
  *									[0: 125 kHz,	1:	250 kHz,
  * 					 				2:	500 kHz,	3:	Reserved]
@@ -261,9 +284,9 @@ uint32_t sx1276_random(sx1276_t *dev);
  * @param	[IN] 	rx_continuous	Sets the reception in continuous mode
  *                          		[false: single mode, true: continuous mode]
  */
-void sx1276_set_rx_config(sx1276_t *dev, uint32_t bandwidth, uint32_t datarate,
+void sx1276_set_rx_config(sx1276_t *dev, sx1276_radio_modems_t modem, uint32_t bandwidth, uint32_t datarate,
 		uint8_t coderate, uint16_t preamble_len, uint16_t symb_timeout,
-		bool fix_len, uint8_t payload_len, bool crc_on, bool FreqHopOn,
+		bool fix_len, uint8_t payload_len, bool crc_on, bool freq_hop_on,
 		uint8_t hop_period, bool iq_inverted, bool rx_continuous);
 
 /**
@@ -271,6 +294,8 @@ void sx1276_set_rx_config(sx1276_t *dev, uint32_t bandwidth, uint32_t datarate,
  * Only bandwidths 125, 250 and 500 kHz are supported due to LoRa usage
  *
  * @param	[IN]	dev				The sx1276 device structure pointer
+ *
+ * @param	[IN]	modem			Modem to be configured
  *
  * @param	[IN]	power			Sets the output power [dBm]
  *
@@ -302,22 +327,24 @@ void sx1276_set_rx_config(sx1276_t *dev, uint32_t bandwidth, uint32_t datarate,
  *
  * @param	[IN]	timeout			Transmission timeout [us]
  */
-void sx1276_set_tx_config(sx1276_t *dev, int8_t power, uint32_t bandwidth,
+
+void sx1276_set_tx_config(sx1276_t *dev, sx1276_radio_modems_t modem, int8_t power, uint32_t bandwidth,
 		uint32_t datarate, uint8_t coderate, uint16_t preamble_len,
 		bool fix_len, bool crc_on, bool freq_hop_on, uint8_t hop_period,
 		bool iq_inverted, uint32_t timeout);
-
 /**
  * @brief Computes the packet time on air in us for the given payload
  * Can only be called once SetRxConfig or SetTxConfig have been called
  *
  * @param	[IN]	dev			The sx1276 device structure pointer
  *
+ * @param	[IN]	modem		Modem to use
+ *
  * @param	[IN]	pk_len		Packet payload length
  *
  * @return computed air time (us) for the given packet payload length
  */
-uint32_t sx1276_get_time_on_air(sx1276_t *dev, uint8_t pkt_len);
+uint32_t sx1276_get_time_on_air(sx1276_t *dev, sx1276_radio_modems_t modem, uint8_t pkt_len);
 
 /**
  * @brief Sends the buffer of size. Prepares the packet to be sent and sets
@@ -353,6 +380,15 @@ void sx1276_set_standby(sx1276_t *dev);
  * @param	[IN]	timeout	reception timeout [us] [0: continuous, others: timeout]
  */
 void sx1276_set_rx(sx1276_t *dev, uint32_t timeout);
+
+/**
+ * @brief Sets the radio in transmission mode for given amount of time
+ *
+ * @param	[IN]	dev		The sx1276 device structure pointer
+ *
+ * @param	[IN]	timeout	reception timeout [us] [0: continuous, others: timeout]
+ */
+void sx1276_set_tx(sx1276_t *dev, uint32_t timeout);
 
 /**
  * @brief Start a channel activity detection

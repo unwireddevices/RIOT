@@ -1032,18 +1032,19 @@ void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode)
     if (op_mode != op_mode_prev) {
         op_mode_prev = op_mode;
         if (op_mode == RF_OPMODE_SLEEP) {
-            sx1276_set_ant_sw_low_power( true );
+            sx1276_set_ant_sw_low_power(true);
         }
         else {
-            SX1276SetAntSwLowPower( false );
+            SX1276SetAntSwLowPower(false);
             if (op_mode == RF_OPMODE_TRANSMITTER) {
-                sx1276_set_ant_sw( 1 );
+                sx1276_set_ant_sw(1);
             }
             else {
-                sx1276_set_ant_sw( 0 );
+                sx1276_set_ant_sw(0);
             }
         }
 
-        sx1276_reg_write(dev,  REG_OPMODE, (sx1276_reg_read(dev,  REG_OPMODE ) & RF_OPMODE_MASK) | op_mode );
+        sx1276_reg_write(dev, REG_OPMODE,
+                         (sx1276_reg_read(dev, REG_OPMODE) & RF_OPMODE_MASK) | op_mode);
     }
 }

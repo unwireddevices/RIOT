@@ -1157,7 +1157,7 @@ void sx1276_write_fifo(sx1276_t *dev, uint8_t *buffer, uint8_t size)
 /*
  * IRQ Handlers
  */
-void sx1275_on_timeout_irq(void)
+void sx1276_on_timeout_irq(void)
 {
     switch (_current_radio->settings.state) {
         case RF_RX_RUNNING:
@@ -1180,7 +1180,7 @@ void sx1275_on_timeout_irq(void)
     }
 }
 
-void sx1275_on_dio0_irq( void )
+void sx1276_on_dio0_irq( void )
 {
     volatile uint8_t irq_flags = 0;
 
@@ -1275,4 +1275,117 @@ void sx1275_on_dio0_irq( void )
         default:
             break;
     }
+}
+
+void sx1276_on_dio_1_irq( void )
+{
+    switch (_current_radio->settings.state) {
+        case RF_RX_RUNNING:
+            switch (_current_radio->settings.modem) {
+                case MODEM_LORA:
+                    // Sync time out
+                    //TimerStop( &RxTimeoutTimer ); // TODO: RIOT timers
+
+                    _current_radio->settings.state = RF_IDLE;
+
+                    if ((_current_radio->events != NULL) && (_current_radio->events.rx_timeout() != NULL)) {
+                        _current_radio->events.rx_timeout();
+                    }
+                    break;
+                default:
+                    break;
+            }
+            break;
+        case RF_TX_RUNNING:
+            switch (_current_radio->settings.modem) {
+                case MODEM_LORA:
+                    break;
+                default:
+                    break;
+            }
+            break;
+        default:
+            break;
+    }
+}
+
+void sx1276_on_dio_2_irq( void )
+{
+    switch (_current_radio->settings.state) {
+        case RF_RX_RUNNING:
+            switch (_current_radio->settings.modem) {
+                case MODEM_LORA:
+                    if (_current_radio->settings.LoRa.FreqHopOn == true) {
+                        /* Clear IRQ */
+                        sx1276_reg_write(_current_radio, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL );
+
+                        if ((_current_radio->events != NULL) && (_current_radio->events.fhss_change_channel != NULL)) {
+                            _current_radio->events.fhss_change_channel((sx1276_reg_read(_current_radio, REG_LR_HOPCHANNEL) & RFLR_HOPCHANNEL_CHANNEL_MASK));
+                        }
+                    }
+
+                    break;
+                default:
+                    break;
+            }
+            break;
+        case RF_TX_RUNNING:
+            switch (_current_radio->settings.modem) {
+                case MODEM_FSK:
+                    break;
+                case MODEM_LORA:
+                    if (_current_radio->settings.lora.freq_hop_on) {
+                        /* Clear IRQ */
+                        sx1276_reg_write(_current_radio, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL);
+
+                        if ((_current_radio->events != NULL) && (_current_radio->events.fhss_change_channel != NULL)) {
+                            _current_radio->events.fhss_change_channel((sx1276_reg_read(_current_radio, REG_LR_HOPCHANNEL) & RFLR_HOPCHANNEL_CHANNEL_MASK));
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
+            break;
+        default:
+            break;
+    }
+}
+
+void sx1276_on_dio_3_irq( void )
+{
+    switch (_current_radio->settings.modem) {
+        case MODEM_FSK:
+            break;
+        case MODEM_LORA:
+            if ((sx1276_reg_read(_current_radio, REG_LR_IRQFLAGS) & RFLR_IRQFLAGS_CADDETECTED) == RFLR_IRQFLAGS_CADDETECTED) {
+                /* Clear IRQ */
+                sx1276_reg_write(_current_radio, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_CADDETECTED | RFLR_IRQFLAGS_CADDONE);
+
+                if ((_current_radio->events  != NULL) && (_current_radio->events.cad_done != NULL)) {
+                    _current_radio->events.cad_done(true);
+                }
+            }
+            else {
+                /* Clear IRQ */
+                sx1276_reg_write(_current_radio, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_CADDONE);
+
+                if ((_current_radio->events != NULL) && (_current_radio->events.cad_done != NULL)) {
+                    _current_radio->events.cad_done(false);
+                }
+            }
+            break;
+        default:
+            break;
+    }
+}
+
+void sx1276_on_dio_4_irq( void )
+{
+    /* Empty (only LoRa related part is implemented) */
+}
+
+void sx1276_on_dio_5_irq( void )
+{
+    /* Empty */
 }

@@ -1089,6 +1089,21 @@ void sx1276_set_modem(sx1276_t *dev, sx1276_radio_modems_t modem)
     }
 }
 
+void sx1276_set_max_payload_len(sx1276_t *dev, sx1276_radio_modems_t modem, uint8_t maxlen)
+{
+    sx1276_set_modem(modem);
+
+    switch (modem) {
+        case MODEM_LORA:
+            sx1276_reg_write(dev, REG_LR_PAYLOADMAXLENGTH, max);
+            break;
+    }
+}
+
+/*
+ * SPI Register routines
+ */
+
 void sx1276_reg_write(sx1276_t *dev, uint8_t addr, uint8_t data)
 {
     sx1276_reg_write_burst(dev, addr, &data, 1);
@@ -1147,13 +1162,6 @@ void sx1276_write_fifo(sx1276_t *dev, uint8_t *buffer, uint8_t size)
     sx1276_reg_read_burst(0, buffer, size);
 }
 
-void sx1276_set_max_payload_len(sx1276_t *dev, sx1276_radio_modems_t modem, uint8_t maxlen)
-{
-    sx1276_set_modem(modem);
-
-    switch (modem) {
-        case MODEM_LORA:
-            sx1276_reg_write(dev, REG_LR_PAYLOADMAXLENGTH, max);
-            break;
-    }
-}
+/*
+ * IRQ Handlers
+ */

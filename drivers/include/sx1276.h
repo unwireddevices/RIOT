@@ -112,9 +112,10 @@ typedef struct {
  * SX1276 hardware and global parameters.
  */
 typedef struct sx1276_s {
-	spi_t spi; /**< SPI instance */
+	spi_t spi; /**< SPI */
+	gpio_t nss_pin; /**< SPI NSS pin */
 
-	gpio_t reset_pin; /**< Reset pin instance */
+	gpio_t reset_pin; /**< Reset pin */
 	gpio_t dio0_pin;
 	gpio_t dio1_pin;
 	gpio_t dio2_pin;
@@ -462,9 +463,11 @@ void sx1276_reg_read_burst(sx1276_t *dev, uint8_t addr, uint8_t *buffer,
  *
  * @param	[IN]	dev		The sx1276 device structure pointer
  *
+ * @param	[IN]	modem	Modem to use
+ *
  * @param	[IN]	maxlen	Maximum payload length in bytes
  */
-void sx1276_set_max_payload_len(sx1276_t *dev, uint8_t maxlen);
+void sx1276_set_max_payload_len(sx1276_t *dev, sx1276_radio_modems_t modem, uint8_t maxlen);
 
 #ifdef __cplusplus
 }

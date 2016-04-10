@@ -20,8 +20,8 @@
 
 #include "periph/gpio.h"
 #include "periph/spi.h"
-#include "xtimer.h"
 
+#include "xtimer.h"
 #include "sx1276.h"
 
 /*
@@ -1085,6 +1085,75 @@ void sx1276_set_modem(sx1276_t *dev, sx1276_radio_modems_t modem)
 
             sx1276_reg_write(dev, REG_DIOMAPPING1, 0x00);
             sx1276_reg_write(dev, REG_DIOMAPPING2, 0x00);
+            break;
+    }
+}
+
+void sx1276_reg_write(sx1276_t *dev, uint8_t addr, uint8_t data)
+{
+    sx1276_reg_write_burst(dev, addr, &data, 1);
+}
+
+uint8_t sx1276_reg_read(sx1276_t *dev, uint8_t addr)
+{
+    uint8_t data;
+
+    sx1276_reg_read_burst(dev, addr, &data, 1);
+
+    return data;
+}
+
+void sx1276_reg_write_burst(sx1276_t *dev, uint8_t addr, uint8_t *buffer,
+                            uint8_t size)
+{
+    uint8_t i;
+    unsigned int cpsr;
+
+    spi_acquire(dev->spi);
+    cpsr = irq_disable();
+
+    gpio_clear(dev->nss_pin);
+    spi_transfer_regs(dev->spi, addr | 0x80, buffer, NULL, size);
+    gpio_set(dev->nss_pin);
+
+    irq_restore(cpsr);
+    spi_release(dev->spi);
+}
+
+void sx1276_reg_read_burst(sx1276_t *dev, uint8_t addr, uint8_t *buffer,
+                           uint8_t size)
+{
+    uint8_t i;
+    unsigned int cpsr;
+
+    spi_acquire(dev->spi);
+    cpsr = irq_disable();
+
+    gpio_clear(dev->nss_pin);
+    spi_transfer_regs(dev->spi, addr & 0x7F, NULL, buffer, size);
+    gpio_set(dev->nss_pin);
+
+    irq_restore(cpsr);
+    spi_release(dev->spi);
+}
+
+void sx1276_write_fifo(sx1276_t *dev, uint8_t *buffer, uint8_t size)
+{
+    sx1276_reg_write_burst(0, buffer, size);
+}
+
+void sx1276_write_fifo(sx1276_t *dev, uint8_t *buffer, uint8_t size)
+{
+    sx1276_reg_read_burst(0, buffer, size);
+}
+
+void sx1276_set_max_payload_len(sx1276_t *dev, sx1276_radio_modems_t modem, uint8_t maxlen)
+{
+    sx1276_set_modem(modem);
+
+    switch (modem) {
+        case MODEM_LORA:
+            sx1276_reg_write(dev, REG_LR_PAYLOADMAXLENGTH, max);
             break;
     }
 }

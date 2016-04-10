@@ -28,6 +28,8 @@
  * Local types definition
  */
 
+static sx1276_t _current_radio; // XXX: global variable used in ISRs
+
 /**
  * Radio registers definition
  */
@@ -47,21 +49,18 @@ typedef struct {
  * Must be called just after the reset so all registers are at their
  *         default values
  */
-static void
-_rx_chain_calibration(sx1276_t *dev);
+static void _rx_chain_calibration(sx1276_t *dev);
 
 /**
  * @brief Resets the SX1276
  */
-void
-sx1276_reset(sx1276_t *dev);
+void sx1276_reset(sx1276_t *dev);
 
 /**
  * @brief Sets the SX1276 in transmission mode for the given time
  * @param [IN] timeout Transmission timeout [us] [0: continuous, others timeout]
  */
-void
-sx1276_set_tx(sx1276_t *dev, uint32_t timeout);
+void sx1276_set_tx(sx1276_t *dev, uint32_t timeout);
 
 /**
  * @brief Writes the buffer contents to the SX1276 FIFO
@@ -69,8 +68,7 @@ sx1276_set_tx(sx1276_t *dev, uint32_t timeout);
  * @param [IN] buffer Buffer containing data to be put on the FIFO.
  * @param [IN] size Number of bytes to be written to the FIFO
  */
-void
-sx1276_write_fifo(sx1276_t *dev, uint8_t *buffer, uint8_t size);
+void sx1276_write_fifo(sx1276_t *dev, uint8_t *buffer, uint8_t size);
 
 /**
  * @brief Reads the contents of the SX1276 FIFO
@@ -78,16 +76,14 @@ sx1276_write_fifo(sx1276_t *dev, uint8_t *buffer, uint8_t size);
  * @param [OUT] buffer Buffer where to copy the FIFO read data.
  * @param [IN] size Number of bytes to be read from the FIFO
  */
-void
-sx1276_read_fifo(sx1276_t *dev, uint8_t *buffer, uint8_t size);
+void sx1276_read_fifo(sx1276_t *dev, uint8_t *buffer, uint8_t size);
 
 /**
  * @brief Sets the SX1276 operating mode
  *
  * @param [IN] op_mode New operating mode
  */
-void
-sx1276_set_op_mode( dev, sx1276_t *dev, uint8_t op_mode);
+void sx1276_set_op_mode( dev, sx1276_t *dev, uint8_t op_mode);
 
 /*
  * SX1276 DIO _irq callback functions prototype
@@ -96,44 +92,37 @@ sx1276_set_op_mode( dev, sx1276_t *dev, uint8_t op_mode);
 /**
  * @brief DIO 0 _irq callback
  */
-void
-sx1276_on_dio_0_irq(void);
+void sx1276_on_dio_0_irq(void);
 
 /**
  * @brief DIO 1 _irq callback
  */
-void
-sx1276_on_dio_1_irq(void);
+void sx1276_on_dio_1_irq(void);
 
 /**
  * @brief DIO 2 _irq callback
  */
-void
-sx1276_on_dio_2_irq(void);
+void sx1276_on_dio_2_irq(void);
 
 /**
  * @brief DIO 3 _irq callback
  */
-void
-sx1276_on_dio_3_irq(void);
+void sx1276_on_dio_3_irq(void);
 
 /**
  * @brief DIO 4 _irq callback
  */
-void
-sx1276_on_dio_4_irq(void);
+void sx1276_on_dio_4_irq(void);
 
 /**
  * @brief DIO 5 _irq callback
  */
-void
-sx1276_on_dio_5_irq(void);
+void sx1276_on_dio_5_irq(void);
 
 /**
  * @brief Tx & Rx timeout timer callback
  */
-void
-sx1276_on_timeout_irq(void);
+void sx1276_on_timeout_irq(void);
 
 /*
  * Private global constants
@@ -173,6 +162,9 @@ sx1276_dio_irq_handler *dio_irq[] =
 void sx1276_init(sx1276_t *dev, sx_1276_events_t *events)
 {
     uint8_t i;
+
+    /* Set global radio instance */
+    _current_radio = dev;
 
     dev->events = events;
 
@@ -231,7 +223,7 @@ bool sx1276_is_channel_free(sx1276_t *dev, uint32_t freq, uint16_t rssi_thresh)
     rssi = sx1276_read_rssi(dev);
     sx1276_set_sleep(dev);
 
-    if (rssi > rssiThresh) {
+    if (rssi > rssi_thresh) {
         return false;
     }
 
@@ -314,7 +306,7 @@ uint32_t sx1275_random(sx1276_t *dev)
  * @note Must be called just after the reset so all registers are at their
  *         default values
  */
-static void _rx_chain_calibration(void)
+static void _rx_chain_calibration(sx1276_t *dev)
 {
     uint8_t reg_pa_config_init_val;
     uint32_t initial_freq;
@@ -423,7 +415,7 @@ void sx1276_set_rx_config(sx1276_t *dev, sx1276_radio_modems_t modem,
             sx1276_reg_write(dev,
                              REG_LR_MODEMCONFIG3,
                              (sx1276_read_reg(dev, REG_LR_MODEMCONFIG3)
-                              & RFLR_MODEMCONFIG3_low_datarate_optimize_MASK)
+                              & RFLR_MODEMCONFIG3_LOWDATARATEOPTIMIZE_MASK)
                              | (dev->settings.lora.low_datarate_optimize << 3));
 
             sx1276_reg_write(dev, REG_LR_SYMBTIMEOUTLSB,
@@ -607,7 +599,7 @@ void sx1276_set_tx_config(sx1276_t *dev, sx1276_radio_modems_t modem,
             sx1276_reg_write(dev,
                              REG_LR_MODEMCONFIG3,
                              (sx1276_reg_read(dev, REG_LR_MODEMCONFIG3)
-                              & RFLR_MODEMCONFIG3_low_datarate_optimize_MASK)
+                              & RFLR_MODEMCONFIG3_LOWDATARATEOPTIMIZE_MASK)
                              | (dev->settings.lora.low_datarate_optimize << 3));
 
             sx1276_reg_write(dev, REG_LR_PREAMBLEMSB, (preamble_len >> 8) & 0x00FF);
@@ -662,7 +654,7 @@ uint32_t sx1276_get_time_on_air(sx1276_t *dev, sx1276_radio_modems_t modem,
             double ts = 1 / rs;
 
             /* time of preamble */
-            double tPreamble = (dev->settings.lora.preamble_len + 4.25) * ts;
+            double t_preamble = (dev->settings.lora.preamble_len + 4.25) * ts;
 
             /* Symbol length of payload and time */
             double tmp =
@@ -988,7 +980,7 @@ int16_t sx1276_read_rssi(sx1276_t *dev)
 {
     int16_t rssi = 0;
 
-    switch (modem) {
+    switch (dev->settings.modem) {
         case MODEM_FSK:
             rssi = -(sx1276_reg_read(dev, REG_RSSIVALUE) >> 1);
             break;
@@ -1095,7 +1087,7 @@ void sx1276_set_max_payload_len(sx1276_t *dev, sx1276_radio_modems_t modem, uint
 
     switch (modem) {
         case MODEM_LORA:
-            sx1276_reg_write(dev, REG_LR_PAYLOADMAXLENGTH, max);
+            sx1276_reg_write(dev, REG_LR_PAYLOADMAXLENGTH, maxlen);
             break;
     }
 }
@@ -1165,3 +1157,122 @@ void sx1276_write_fifo(sx1276_t *dev, uint8_t *buffer, uint8_t size)
 /*
  * IRQ Handlers
  */
+void sx1275_on_timeout_irq(void)
+{
+    switch (_current_radio->settings.state) {
+        case RF_RX_RUNNING:
+            _current_radio->settings.state = RF_IDLE;
+            //TimerStop( &RxTimeoutSyncWord ); // TODO: use RIOT timers
+
+            if ((_current_radio->events != NULL) && (_current_radio->events.rx_timeout != NULL)) {
+                _current_radio->events.rx_timeout(); /* Call event handler */
+            }
+            break;
+
+        case RF_TX_RUNNING:
+            _current_radio->settings.state = RF_IDLE;
+            if ((_current_radio->events != NULL) && (_current_radio->events.tx_timeout != NULL)) {
+                _current_radio->events.tx_timeout(); /* Call event handler */
+            }
+            break;
+        default:
+            break;
+    }
+}
+
+void sx1275_on_dio0_irq( void )
+{
+    volatile uint8_t irq_flags = 0;
+
+    switch (_current_radio->settings.state) {
+        case RF_RX_RUNNING:
+            switch (_current_radio->settings.modem) {
+                case MODEM_LORA:
+                {
+                    int8_t snr = 0;
+
+                    /* Clear IRQ */
+                    sx1276_reg_write(_current_radio,  REG_LR_IRQFLAGS, RFLR_IRQFLAGS_RXDONE);
+
+                    irq_flags = sx1276_reg_read(_current_radio,  REG_LR_IRQFLAGS);
+                    if ((irq_flags & RFLR_IRQFLAGS_PAYLOADCRCERROR_MASK) == RFLR_IRQFLAGS_PAYLOADCRCERROR) {
+                        sx1276_reg_write(_current_radio,  REG_LR_IRQFLAGS, RFLR_IRQFLAGS_PAYLOADCRCERROR); /* Clear IRQ */
+
+                        if (!_current_radio->settings.lora.rx_continuous) {
+                            _current_radio->settings.state = RF_IDLE;
+                        }
+
+                        //TimerStop( &RxTimeoutTimer ); // TODO: RIOT timers
+
+                        if ((_current_radio->events != NULL) && (_current_radio->events.RxError != NULL)) {
+                            _current_radio->events.rx_error();
+                        }
+                        break;
+                    }
+
+                    _current_radio->settings.lora_packet_handler.snr_value = sx1276_reg_read(_current_radio,  REG_LR_PKTSNRVALUE );
+                    if (_current_radio->settings.lora_packet_handler.snr_value & 0x80) { /* The SNR is negative */
+                        /* Invert and divide by 4 */
+                        snr = ((~_current_radio->settings.lora_packet_handler.snr_value + 1) & 0xFF) >> 2;
+                        snr = -snr;
+                    }
+                    else {
+                        /* Divide by 4 */
+                        snr = (_current_radio->settings.lora_packet_handler.snr_value & 0xFF) >> 2;
+                    }
+
+                    int16_t rssi = sx1276_reg_read(_current_radio, REG_LR_PKTRSSIVALUE);
+                    if (snr < 0) {
+                        if (_current_radio->settings.channel > RF_MID_BAND_THRESH) {
+                            _current_radio->settings.lora_packet_handler.rssi_value = RSSI_OFFSET_HF + rssi + (rssi >> 4) + snr;
+                        }
+                        else {
+                            _current_radio->settings.lora_packet_handler.rssi_value = RSSI_OFFSET_LF + rssi + (rssi >> 4) + snr;
+                        }
+                    }
+                    else {
+                        if (_current_radio->settings.Channel > RF_MID_BAND_THRESH) {
+                            _current_radio->settings.lora_packet_handler.rssi_value = RSSI_OFFSET_HF + rssi + (rssi >> 4);
+                        }
+                        else {
+                            _current_radio->settings.lora_packet_handler.rssi_value = RSSI_OFFSET_LF + rssi + (rssi >> 4);
+                        }
+                    }
+
+                    _current_radio->settings.lora_packet_handler.Size = sx1276_reg_read(_current_radio, REG_LR_RXNBBYTES);
+                    sx1276_read_fifo(_current_radio, _current_radio.rx_tx_buffer, _current_radio->settings.lora_packet_handler.size);
+
+                    if (!_current_radio->settings.lora.rx_continuous) {
+                        _current_radio->settings.state = RF_IDLE;
+                    }
+
+                    // TimerStop( &RxTimeoutTimer ); // TODO: RIOT timers
+
+                    if ((_current_radio->events != NULL) && (_current_radio->events.rx_done != NULL)) {
+                        _current_radio->events.rx_done(_current_radio.rx_tx_buffer, _current_radio->settings.lora_packet_handler.size, _current_radio->settings.lora_packet_handler.rssi_value, _current_radio->settings.lora_packet_handler.snr_value);
+                    }
+                }
+                break;
+                default:
+                    break;
+            }
+            break;
+        case RF_TX_RUNNING:
+            //TimerStop( &TxTimeoutTimer ); // TODO: RIOT timers
+            switch (_current_radio->settings.modem) {
+                case MODEM_LORA:
+                    sx1276_reg_write(_current_radio, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_TXDONE); /* Clear IRQ */
+                // Intentional fall through
+                case MODEM_FSK:
+                default:
+                    _current_radio->settings.state = RF_IDLE;
+                    if ((_current_radio->events != NULL) && (_current_radio->events.tx_done() != NULL)) {
+                        _current_radio->events.tx_done();
+                    }
+                    break;
+            }
+            break;
+        default:
+            break;
+    }
+}

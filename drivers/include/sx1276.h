@@ -22,11 +22,10 @@
 #include "sx1276_regs_fsk.h"
 #include "sx1276_regs_lora.h"
 
-/**
- * Radio wakeup time from SLEEP mode.
- */
 #define RADIO_WAKEUP_TIME                           1000 /**< [us] */
 #define CHANNEL_HF									868000000 /**< [Hz] */
+
+#define RX_BUFFER_SIZE                              256
 
 #define RF_MID_BAND_THRESH                          525000000
 #define RADIO_INIT_REGISTERS_VALUE                \

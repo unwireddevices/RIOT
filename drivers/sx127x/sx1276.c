@@ -1048,3 +1048,43 @@ void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode)
                          (sx1276_reg_read(dev, REG_OPMODE) & RF_OPMODE_MASK) | op_mode);
     }
 }
+
+void sx1276_set_modem(sx1276_t *dev, sx1276_radio_modems_t modem)
+{
+    if (dev->spi == NULL) {
+        /* No spi? */
+        // TODO: error codes
+        while (1) {
+        }
+    }
+
+    if (dev->settings.modem == modem) {
+        return;
+    }
+
+    dev->settings.modem = modem;
+    switch (dev->settings.modem) {
+        default:
+        case MODEM_FSK:
+            sx1276_set_op_mode( RF_OPMODE_SLEEP);
+            sx1276_reg_write(dev, REG_OPMODE,
+                             (sx1276_reg_read(dev, REG_OPMODE)
+                              & RFLR_OPMODE_LONGRANGEMODE_MASK)
+                             | RFLR_OPMODE_LONGRANGEMODE_OFF);
+
+            sx1276_reg_write(dev, REG_DIOMAPPING1, 0x00);
+            sx1276_reg_write(dev, REG_DIOMAPPING2, 0x30); // DIO5=mode_ready
+            break;
+
+        case MODEM_LORA:
+            sx1276_set_op_mode( RF_OPMODE_SLEEP);
+            sx1276_reg_write(dev, REG_OPMODE,
+                             (sx1276_reg_read(dev, REG_OPMODE)
+                              & RFLR_OPMODE_LONGRANGEMODE_MASK)
+                             | RFLR_OPMODE_LONGRANGEMODE_ON);
+
+            sx1276_reg_write(dev, REG_DIOMAPPING1, 0x00);
+            sx1276_reg_write(dev, REG_DIOMAPPING2, 0x00);
+            break;
+    }
+}

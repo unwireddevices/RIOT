@@ -96,37 +96,37 @@ void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode);
 /**
  * @brief DIO 0 _irq callback
  */
-void sx1276_on_dio_0_irq(void);
+void sx1276_on_dio_0_isr(sx1276* dev);
 
 /**
  * @brief DIO 1 _irq callback
  */
-void sx1276_on_dio_1_irq(void);
+void sx1276_on_dio_1_isr(sx1276* dev);
 
 /**
  * @brief DIO 2 _irq callback
  */
-void sx1276_on_dio_2_irq(void);
+void sx1276_on_dio_2_isr(sx1276* dev);
 
 /**
  * @brief DIO 3 _irq callback
  */
-void sx1276_on_dio_3_irq(void);
+void sx1276_on_dio_3_isr(sx1276* dev);
 
 /**
  * @brief DIO 4 _irq callback
  */
-void sx1276_on_dio_4_irq(void);
+void sx1276_on_dio_4_isr(sx1276* dev);
 
 /**
  * @brief DIO 5 _irq callback
  */
-void sx1276_on_dio_5_irq(void);
+void sx1276_on_dio_5_isr(sx1276* dev);
 
 /**
  * @brief Tx & Rx timeout timer callback
  */
-void sx1276_on_timeout_irq(void);
+void sx1276_on_timeout_isr(sx1276* dev);
 
 /*
  * Private global constants
@@ -1151,7 +1151,7 @@ void sx1276_read_fifo(sx1276_t *dev, uint8_t *buffer, uint8_t size)
 /*
  * IRQ Handlers
  */
-void sx1276_on_timeout_irq(void)
+void sx1276_on_timeout_isr(sx1276* dev)
 {
     switch (_current_radio->settings.state) {
         case RF_RX_RUNNING:
@@ -1174,7 +1174,7 @@ void sx1276_on_timeout_irq(void)
     }
 }
 
-void sx1276_on_dio0_irq( void )
+void sx1276_on_dio0_isr(sx1276* dev)
 {
     volatile uint8_t irq_flags = 0;
 
@@ -1271,7 +1271,7 @@ void sx1276_on_dio0_irq( void )
     }
 }
 
-void sx1276_on_dio_1_irq( void )
+void sx1276_on_dio_1_isr(sx1276* dev)
 {
     switch (_current_radio->settings.state) {
         case RF_RX_RUNNING:
@@ -1303,7 +1303,7 @@ void sx1276_on_dio_1_irq( void )
     }
 }
 
-void sx1276_on_dio_2_irq( void )
+void sx1276_on_dio_2_isr(sx1276* dev)
 {
     switch (_current_radio->settings.state) {
         case RF_RX_RUNNING:
@@ -1311,7 +1311,7 @@ void sx1276_on_dio_2_irq( void )
                 case MODEM_LORA:
                     if (_current_radio->settings.lora.freq_hop_on) {
                         /* Clear IRQ */
-                        sx1276_reg_write(_current_radio, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL );
+                        sx1276_reg_write(_current_radio, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL);
 
                         if ((_current_radio->events != NULL) && (_current_radio->events->fhss_change_channel != NULL)) {
                             _current_radio->events->fhss_change_channel((sx1276_reg_read(_current_radio, REG_LR_HOPCHANNEL) & RFLR_HOPCHANNEL_CHANNEL_MASK));
@@ -1346,7 +1346,7 @@ void sx1276_on_dio_2_irq( void )
     }
 }
 
-void sx1276_on_dio_3_irq( void )
+void sx1276_on_dio_3_isr(sx1276* dev)
 {
     switch (_current_radio->settings.modem) {
         case MODEM_FSK:
@@ -1374,12 +1374,12 @@ void sx1276_on_dio_3_irq( void )
     }
 }
 
-void sx1276_on_dio_4_irq( void )
+void sx1276_on_dio_4_isr(sx1276* dev)
 {
     /* Empty (only LoRa related part is implemented) */
 }
 
-void sx1276_on_dio_5_irq( void )
+void sx1276_on_dio_5_isr(sx1276* dev)
 {
     /* Empty */
 }

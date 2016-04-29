@@ -143,7 +143,7 @@ typedef struct {
 	 *
 	 * @param [IN] current_channel   Index number of the current channel
 	 */
-	void (*fhss_change_channel)(uint8_t currnet_channel);
+	void (*fhss_change_channel)(uint8_t current_channel);
 
 	/**
 	 * @brief CAD Done callback prototype.
@@ -175,14 +175,13 @@ typedef struct sx1276_s {
 	sx1276_events_t *events; /**< Radio events callbacks */
 
 	uint8_t rx_tx_buffer[RX_BUFFER_SIZE]; /**< Reception/Transmission buffer */
-
 } sx1276_t;
 
 /**
  * Hardware IO IRQ callback function definition.
  */
 
-typedef void (sx1276_dio_irq_handler)(void);
+typedef void (sx1276_dio_irq_handler)(sx1276_t *dev);
 
 /**
  * SX1276 definitions.

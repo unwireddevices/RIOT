@@ -205,6 +205,22 @@ void sx1276_set_channel(sx1276_t *dev, uint32_t freq)
     sx1276_reg_write(dev, REG_FRFLSB, (uint8_t)(freq & 0xFF));
 }
 
+bool sx1276_test(sx1276_t *dev) {
+    double initial_freq = (double) (((uint32_t) sx1276_reg_read(dev, REG_FRFMSB) << 16)
+                             | ((uint32_t) sx1276_reg_read(dev, REG_FRFMID) << 8)
+                             | ((uint32_t) sx1276_reg_read(dev, REG_FRFLSB))) * (double) FREQ_STEP;
+
+    sx1276_set_channel(dev, CHANNEL_HF);
+
+    double new_freq = (double) (((uint32_t) sx1276_reg_read(dev, REG_FRFMSB) << 16)
+            | ((uint32_t) sx1276_reg_read(dev, REG_FRFMID) << 8)
+            | ((uint32_t) sx1276_reg_read(dev, REG_FRFLSB))) * (double) FREQ_STEP;
+
+    sx1276_set_channel(dev, initial_freq);
+
+    return new_freq == CHANNEL_HF;
+}
+
 bool sx1276_is_channel_free(sx1276_t *dev, uint32_t freq, uint16_t rssi_thresh)
 {
     int16_t rssi = 0;
@@ -259,7 +275,7 @@ void sx1276_set_modem(sx1276_t *dev, sx1276_radio_modems_t modem)
     }
 }
 
-uint32_t sx1275_random(sx1276_t *dev)
+uint32_t sx1276_random(sx1276_t *dev)
 {
     uint8_t i;
     uint32_t rnd = 0;
@@ -1025,12 +1041,6 @@ int16_t sx1276_read_rssi(sx1276_t *dev)
 
 void sx1276_reset(sx1276_t *dev)
 {
-	/* Reset pin is not set */
-	// XXX: possibly does impossible to use 0 pin of any port as a reset pin?
-	if (dev->reset_pin == NULL) {
-		return;
-	}
-
     /* Set reset pin to 0 */
 	gpio_clear(dev->reset_pin);
 

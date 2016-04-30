@@ -21,10 +21,6 @@
 #include "board.h"
 #include "periph/gpio.h"
 
-void radio_init() {
-
-}
-
 void board_init(void)
 {
     /* initialize the CPU */
@@ -32,7 +28,4 @@ void board_init(void)
 
     /* initialize the boards LEDs */
     gpio_init(LED0_PIN, GPIO_OUT);
-
-    /* initialize radio transceiver */
-    radio_init();
 }

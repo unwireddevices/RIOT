@@ -26,6 +26,10 @@
 extern "C" {
 #endif
 
+sx1276_t sx1276;
+
+void init_radio(void);
+
 /**
  * @brief   Application-internal functions and variables for sx1276 tests
  * @internal

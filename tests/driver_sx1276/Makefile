@@ -9,6 +9,7 @@ USEMODULE += od
 USEMODULE += shell
 USEMODULE += shell_commands
 USEMODULE += ps
+USEMODULE += xtimer
 
 DRIVER ?= sx1276
 

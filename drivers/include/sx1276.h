@@ -258,6 +258,15 @@ bool sx1276_is_channel_free(sx1276_t *dev, uint32_t freq, uint16_t rssi_thresh);
 uint32_t sx1276_random(sx1276_t *dev);
 
 /**
+ * @brief Reads the raw temperature value of the chip
+ *
+ * @param	[IN]	dev	The sx1276 device pointer
+ *
+ * @return signed 8 bit integer value of the current temperature of the sx1276 chip
+ */
+int8_t sx1276_read_temp(sx1276_t *dev);
+
+/**
  * @brief Sets the reception parameters
  * Only bandwidths 125, 250 and 500 kHz are supported due to LoRa usage.
  *
@@ -298,10 +307,13 @@ uint32_t sx1276_random(sx1276_t *dev);
  * @param	[IN] 	rx_continuous	Sets the reception in continuous mode
  *                          		[false: single mode, true: continuous mode]
  */
-void sx1276_set_rx_config(sx1276_t *dev, sx1276_radio_modems_t modem, uint32_t bandwidth, uint32_t datarate,
-		uint8_t coderate, uint16_t preamble_len, uint16_t symb_timeout,
-		bool fix_len, uint8_t payload_len, bool crc_on, bool freq_hop_on,
-		uint8_t hop_period, bool iq_inverted, bool rx_continuous);
+void sx1276_set_rx_config(sx1276_t *dev, sx1276_radio_modems_t modem, uint32_t bandwidth,
+        uint32_t datarate, uint8_t coderate,
+        uint32_t bandwidth_afc, uint16_t preamble_len,
+        uint16_t symb_timeout, bool fix_len,
+        uint8_t payload_len,
+        bool crc_on, bool freq_hop_on, uint8_t hop_period,
+        bool iq_inverted, bool rx_continuous);
 
 /**
  * @brief Sets the transmission parameters
@@ -342,10 +354,11 @@ void sx1276_set_rx_config(sx1276_t *dev, sx1276_radio_modems_t modem, uint32_t b
  * @param	[IN]	timeout			Transmission timeout [us]
  */
 
-void sx1276_set_tx_config(sx1276_t *dev, sx1276_radio_modems_t modem, int8_t power, uint32_t bandwidth,
-		uint32_t datarate, uint8_t coderate, uint16_t preamble_len,
-		bool fix_len, bool crc_on, bool freq_hop_on, uint8_t hop_period,
-		bool iq_inverted, uint32_t timeout);
+void sx1276_set_tx_config(sx1276_t *dev, sx1276_radio_modems_t modem, int8_t power, uint32_t fdev,
+        uint32_t bandwidth, uint32_t datarate,
+        uint8_t coderate, uint16_t preamble_len,
+        bool fix_len, bool crc_on, bool freq_hop_on,
+        uint8_t hop_period, bool iq_inverted, uint32_t timeout);
 /**
  * @brief Computes the packet time on air in us for the given payload
  * Can only be called once SetRxConfig or SetTxConfig have been called
@@ -481,6 +494,16 @@ void sx1276_reg_read_burst(sx1276_t *dev, uint8_t addr, uint8_t *buffer,
  * @param	[IN]	maxlen	Maximum payload length in bytes
  */
 void sx1276_set_max_payload_len(sx1276_t *dev, sx1276_radio_modems_t modem, uint8_t maxlen);
+
+/**
+ *	Interrupt handlers
+ */
+
+void sx1276_on_dio0_isr(void* arg);
+void sx1276_on_dio1_isr(void* arg);
+void sx1276_on_dio2_isr(void* arg);
+void sx1276_on_dio3_isr(void* arg);
+void sx1276_on_dio4_isr(void* arg);
 
 #ifdef __cplusplus
 }

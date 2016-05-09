@@ -113,6 +113,7 @@ extern "C" {
 
 // Version
 #define REG_VERSION                                 0x42
+#define VERSION_SX1276								0x12
 
 // Additional settings
 #define REG_PLLHOP                                  0x44

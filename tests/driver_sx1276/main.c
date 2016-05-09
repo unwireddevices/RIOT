@@ -19,6 +19,8 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "shell.h"
 #include "shell_commands.h"
@@ -43,7 +45,7 @@ void print_logo(void) {
 	puts("  @@@           %@@,    @*    .@  .&,,&  @.#%   .@  %*    .@&&&&&&&*  @      @  ");
 	puts("  @@@           %@@,    @*    .@   .@@   .@%    .@  %*    ,@          *@,   ,@, ");
 	puts("  @@@           %@@,    *.     *                .#  ,.      %@&&@#     **,*.@   ");
-	puts("  @@@           %@@,");
+	puts("  @@@           %@@,															  ");
 	puts("  @@@   .,,,,,,,...            %@@@%   %     .# *%   .#@@@@,    *@@@@,    @@@*  ");
 	puts("  @@@   @@@@@@@@@@@@@@&.     %&     &%  @    @  .@  &*        .@.    ,@  @      ");
 	puts("  @@@   @@@     /.. *@@@@.   @&&&&&&&&  ,&  @.  .@  @         %@&&&&&&&*  #@(   ");
@@ -63,11 +65,11 @@ void print_logo(void) {
 }
 
 void tx_done(void) {
-	puts("sx1276: tx done");
+	//puts("sx1276: tx done");
 }
 
 void tx_timeout (void) {
-	puts("sx1276: tx timeout");
+	//puts("sx1276: tx timeout");
 }
 
 /**
@@ -80,14 +82,14 @@ void tx_timeout (void) {
  */
 void rx_done(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr) {
 	if (size > 0) {
-		printf("sx1276: received payload with RSSI %d and size %d (snr: %d)", rssi, size, snr);
+		//printf("sx1276: received payload with RSSI %d and size %d (snr: %d)", rssi, size, snr);
 
-		uint16_t i;
-		for (i = 0; i < size; i++) {
-			printf("0x%2x ", payload[i]);
-		}
+		///uint16_t i;
+		//for (i = 0; i < size; i++) {
+		//	printf("0x%2x ", payload[i]);
+		//}
 	} else {
-		puts("sx1276: rx done with zero size?");
+		//puts("sx1276: rx done with zero size?");
 	}
 }
 
@@ -95,22 +97,22 @@ void rx_done(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr) {
  * @brief  Rx Timeout callback prototype.
  */
 void rx_timeout(void) {
-	puts("sx1276: rx timeout");
+	//puts("sx1276: rx timeout");
 }
 
 /**
  * @brief Rx Error callback prototype.
  */
 void rx_error(void) {
-	puts("sx1276: rx error");
+	//puts("sx1276: rx error");
 }
 
 void fhss_change_channel(uint8_t current_channel) {
-	printf("sx1276: changed channel %d", current_channel);
+	//printf("sx1276: changed channel %d", current_channel);
 }
 
 void cad_done(bool activity_detected) {
-	puts("sx1276: CAD done");
+	//puts("sx1276: CAD done");
 }
 
 int spi_init(void) {
@@ -142,7 +144,33 @@ int spi_init(void) {
     return 1;
 }
 
+void sx1276_board_set_ant_sw_low_power(uint8_t lp) {
+	if (lp) {
+		gpio_init(SX1276_ANTSW, GPIO_OD);		/* open-drain output for low power mode */
+	} else {
+		gpio_init(SX1276_ANTSW, GPIO_OUT);
+	}
+}
 
+void sx1276_board_set_ant_sw(uint8_t tx) {
+	if (tx) {
+		gpio_set(SX1276_ANTSW);
+	} else {
+		gpio_clear(SX1276_ANTSW);
+	}
+}
+
+void init_configs(void) {
+	sx1276_set_tx_config(&sx1276, MODEM_LORA, TX_OUTPUT_POWER, 0, LORA_BANDWIDTH,
+            LORA_SPREADING_FACTOR, LORA_CODINGRATE,
+            LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
+            true, 0, 0, LORA_IQ_INVERSION, 3000000);
+
+	sx1276_set_rx_config(&sx1276, MODEM_LORA, LORA_BANDWIDTH, LORA_SPREADING_FACTOR,
+            LORA_CODINGRATE, 0, LORA_PREAMBLE_LENGTH,
+            LORA_SYMBOL_TIMEOUT, LORA_FIX_LENGTH_PAYLOAD_ON,
+            0, true, 0, 0, LORA_IQ_INVERSION, true);
+}
 
 void init_radio(void) {
 	sx1276.nss_pin = GPIO_PIN(PORT_B, SPI_1_PIN_NSS);
@@ -191,24 +219,124 @@ void init_radio(void) {
 
 	sx1276_init(&sx1276, &handlers);
 
+	gpio_init_int(SX1276_DIO0, GPIO_IN, GPIO_RISING, sx1276_on_dio0_isr, &sx1276);
+	gpio_init_int(SX1276_DIO1, GPIO_IN, GPIO_RISING, sx1276_on_dio1_isr, &sx1276);
+	gpio_init_int(SX1276_DIO2, GPIO_IN, GPIO_RISING, sx1276_on_dio2_isr, &sx1276);
+	gpio_init_int(SX1276_DIO3, GPIO_IN, GPIO_RISING, sx1276_on_dio3_isr, &sx1276);
+
+	sx1276_set_channel(&sx1276, RF_FREQUENCY);
+
+    init_configs();
+
 	puts("init_radio: sx1276 initialization done");
 }
 
-int test1(int argc, char **argv) {
-	puts("test 1 called");
+int random(int argc, char **argv) {
+	printf("random: number from sx1276: %u\n", (unsigned int) sx1276_random(&sx1276));
+	init_configs();
 
 	return 0;
 }
 
-int test2(int argc, char **argv) {
-	puts("test 2 called");
+
+int read_temp(int argc, char **argv) {
+	printf("read_temp: temperature of the chip %d *C\n", sx1276_read_temp(&sx1276));
+
+	return 0;
+}
+
+int regs(int argc, char **argv) {
+	if (argc <= 1) {
+		puts("usage: get <all | regnum>");
+		return -1;
+	}
+
+	if (strcmp(argv[1], "all") == 0) {
+		puts("- listing all registers -");
+		uint16_t i = 0;
+
+		/* Listing registers by four per line */
+		for (i = 0; i < 256; i += 4) {
+			printf("[regs] 0x%02X = 0x%02X\t", (uint8_t) i, sx1276_reg_read(&sx1276, (uint8_t) i));
+			printf("0x%02X = 0x%02X\t", (uint8_t) i + 1, sx1276_reg_read(&sx1276, (uint8_t) i + 1));
+			printf("0x%02X = 0x%02X\t", (uint8_t) i + 2, sx1276_reg_read(&sx1276, (uint8_t) i + 2));
+			printf("0x%02X = 0x%02X\n", (uint8_t) i + 3, sx1276_reg_read(&sx1276, (uint8_t) i + 3));
+		}
+
+		puts("-done-");
+
+		return 0;
+	} else {
+		long int num = 0;
+
+		// Register number in hex
+		if (strstr(argv[1], "0x") != NULL) {
+			num = strtol(argv[1], NULL, 16);
+		} else {
+			num = atoi(argv[1]);
+		}
+
+		if (num >= 0 && num <= 255) {
+			printf("[regs] 0x%02X = 0x%02X\n", (uint8_t) num, sx1276_reg_read(&sx1276, (uint8_t) num));
+		} else {
+			puts("regs: invalid register number specified");
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+int tx_test(int argc, char **argv) {
+	if (argc <= 1) {
+		puts("tx_test: payload is not specified");
+		return -1;
+	}
+
+	printf("tx_test: sending \"%s\" payload (%d bytes)\n", argv[1], strlen(argv[1]));
+	sx1276_send(&sx1276, (uint8_t*) argv[1], strlen(argv[1]));
+
+	puts("tx_test: sended");
+
+	return 0;
+}
+
+int regs_set(int argc, char **argv) {
+	if (argc <= 2) {
+		puts("usage: set <num> <value>");
+		return -1;
+	}
+
+	long int num, val;
+
+	// Register number in hex
+	if (strstr(argv[1], "0x") != NULL) {
+		num = strtol(argv[1], NULL, 16);
+	} else {
+		num = atoi(argv[1]);
+	}
+
+	// Register value in hex
+	if (strstr(argv[1], "0x") != NULL) {
+		val = strtol(argv[1], NULL, 16);
+	} if (strstr(argv[1], "0b") != NULL) { // In binary
+		val = strtol(argv[1], NULL, 2);
+	} else {
+		val = atoi(argv[1]);
+	}
+
+	sx1276_reg_write(&sx1276, (uint8_t) num, (uint8_t) val);
 
 	return 0;
 }
 
 static const shell_command_t shell_commands[] = {
-    { "test1", "Test 1", test1 },
-    { "test2", "Test 2", test2 },
+	{ "random", "Get random number from sx1276", random },
+	{ "temp", "Get temperature of sx1276", read_temp },
+	{ "get", "<all | num> - gets value of registers of sx1276, all or by specified number from 0 to 255", regs },
+	{ "set", "<num> <value> - sets value of register with specified number", regs_set },
+	{ "tx_test", "<payload> Send test payload string", tx_test },
+
     { NULL, NULL, NULL }
 };
 

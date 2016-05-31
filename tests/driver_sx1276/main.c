@@ -31,6 +31,10 @@
 
 #include "board.h"
 
+#include "sx1276_regs_lora.h"
+#include "sx1276_regs_fsk.h"
+
+
 #define _STACKSIZE      (THREAD_STACKSIZE_DEFAULT + THREAD_EXTRA_STACKSIZE_PRINTF)
 #define MSG_TYPE_ISR    (0x3456)
 
@@ -63,6 +67,7 @@ void print_logo(void) {
 	puts("                                                                                ");
 	puts("");
 }
+
 
 void tx_done(void) {
 	//puts("sx1276: tx done");
@@ -161,20 +166,20 @@ void sx1276_board_set_ant_sw(uint8_t tx) {
 }
 
 void init_configs(void) {
+	sx1276_set_rx_config(&sx1276, MODEM_LORA, LORA_BANDWIDTH, LORA_SPREADING_FACTOR,
+            LORA_CODINGRATE, 0, LORA_PREAMBLE_LENGTH,
+            LORA_SYMBOL_TIMEOUT, LORA_FIX_LENGTH_PAYLOAD_ON,
+            6, true, 0, 0, LORA_IQ_INVERSION, true);
+
 	sx1276_set_tx_config(&sx1276, MODEM_LORA, TX_OUTPUT_POWER, 0, LORA_BANDWIDTH,
             LORA_SPREADING_FACTOR, LORA_CODINGRATE,
             LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
             true, 0, 0, LORA_IQ_INVERSION, 3000000);
-
-	sx1276_set_rx_config(&sx1276, MODEM_LORA, LORA_BANDWIDTH, LORA_SPREADING_FACTOR,
-            LORA_CODINGRATE, 0, LORA_PREAMBLE_LENGTH,
-            LORA_SYMBOL_TIMEOUT, LORA_FIX_LENGTH_PAYLOAD_ON,
-            0, true, 0, 0, LORA_IQ_INVERSION, true);
 }
 
 void init_radio(void) {
-	sx1276.nss_pin = GPIO_PIN(PORT_B, SPI_1_PIN_NSS);
-	sx1276.spi = SPI_1;
+	sx1276.nss_pin = GPIO_PIN(PORT_B, SX1276_SPI_NSS);
+	sx1276.spi = SX1276_SPI;
 
 	sx1276.dio0_pin = SX1276_DIO0;
 	sx1276.dio1_pin = SX1276_DIO1;
@@ -192,6 +197,7 @@ void init_radio(void) {
 	settings.state = RF_IDLE;
 
 	sx1276.settings = settings;
+
 
 	sx1276_events_t handlers;
 	handlers.tx_timeout = tx_timeout;
@@ -225,7 +231,6 @@ void init_radio(void) {
 	gpio_init_int(SX1276_DIO3, GPIO_IN, GPIO_RISING, sx1276_on_dio3_isr, &sx1276);
 
 	sx1276_set_channel(&sx1276, RF_FREQUENCY);
-
     init_configs();
 
 	puts("init_radio: sx1276 initialization done");
@@ -254,13 +259,21 @@ int regs(int argc, char **argv) {
 	if (strcmp(argv[1], "all") == 0) {
 		puts("- listing all registers -");
 		uint16_t i = 0;
+		uint8_t reg, data = 0;
+		uint8_t j = 0;
 
-		/* Listing registers by four per line */
-		for (i = 0; i < 256; i += 4) {
-			printf("[regs] 0x%02X = 0x%02X\t", (uint8_t) i, sx1276_reg_read(&sx1276, (uint8_t) i));
-			printf("0x%02X = 0x%02X\t", (uint8_t) i + 1, sx1276_reg_read(&sx1276, (uint8_t) i + 1));
-			printf("0x%02X = 0x%02X\t", (uint8_t) i + 2, sx1276_reg_read(&sx1276, (uint8_t) i + 2));
-			printf("0x%02X = 0x%02X\n", (uint8_t) i + 3, sx1276_reg_read(&sx1276, (uint8_t) i + 3));
+		/* Listing registers map*/
+		puts("Reg   0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F");
+		for (i = 0; i <= 7; i++) {
+			printf("0x%02X ", i << 4);
+
+			for (j = 0; j <= 15; j++, reg++) {
+				data = sx1276_reg_read(&sx1276, reg);
+
+				printf("%02X ", data);
+		    }
+
+			puts("");
 		}
 
 		puts("-done-");
@@ -269,7 +282,7 @@ int regs(int argc, char **argv) {
 	} else {
 		long int num = 0;
 
-		// Register number in hex
+		/* Register number in hex */
 		if (strstr(argv[1], "0x") != NULL) {
 			num = strtol(argv[1], NULL, 16);
 		} else {
@@ -294,7 +307,11 @@ int tx_test(int argc, char **argv) {
 	}
 
 	printf("tx_test: sending \"%s\" payload (%d bytes)\n", argv[1], strlen(argv[1]));
+
+
 	sx1276_send(&sx1276, (uint8_t*) argv[1], strlen(argv[1]));
+
+	xtimer_usleep(10000); /* wait for the chip */
 
 	puts("tx_test: sended");
 
@@ -307,7 +324,7 @@ int regs_set(int argc, char **argv) {
 		return -1;
 	}
 
-	long int num, val;
+	long num, val;
 
 	// Register number in hex
 	if (strstr(argv[1], "0x") != NULL) {
@@ -317,15 +334,26 @@ int regs_set(int argc, char **argv) {
 	}
 
 	// Register value in hex
-	if (strstr(argv[1], "0x") != NULL) {
-		val = strtol(argv[1], NULL, 16);
-	} if (strstr(argv[1], "0b") != NULL) { // In binary
-		val = strtol(argv[1], NULL, 2);
+	if (strstr(argv[2], "0x") != NULL) {
+		val = strtol(argv[2], NULL, 16);
 	} else {
-		val = atoi(argv[1]);
+		val = atoi(argv[2]);
 	}
 
 	sx1276_reg_write(&sx1276, (uint8_t) num, (uint8_t) val);
+
+	return 0;
+
+}
+
+int fsk(int argc, char **argv) {
+	sx1276_set_modem(&sx1276, MODEM_FSK);
+
+	return 0;
+}
+
+int lora(int argc, char **argv) {
+	sx1276_set_modem(&sx1276, MODEM_LORA);
 
 	return 0;
 }
@@ -337,6 +365,9 @@ static const shell_command_t shell_commands[] = {
 	{ "set", "<num> <value> - sets value of register with specified number", regs_set },
 	{ "tx_test", "<payload> Send test payload string", tx_test },
 
+	{ "fsk", "Set modem to FSK mode", fsk },
+	{ "lora", "Set modem to LoRa mode", lora },
+
     { NULL, NULL, NULL }
 };
 
@@ -344,6 +375,8 @@ void *_recv_thread(void *arg)
 {
 	return NULL;
 }
+
+void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode);
 
 int main(void)
 {
@@ -362,9 +395,10 @@ int main(void)
         return 1;
     }
 
+    sx1276_set_op_mode(&sx1276, RF_IDLE);
+
     /* start the shell */
     puts("Initialization successful - starting the shell now");
-
     char line_buf[SHELL_DEFAULT_BUFSIZE];
     shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);
 

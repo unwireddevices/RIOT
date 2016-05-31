@@ -1,21 +1,21 @@
 /*
- * Copyright (C) 2016 Unwired Devices
+ * Copyright (C) 2015 TriaGnoSys GmbH
  *
- * This file is subject to the terms and conditions of the GNU Lesser General
- * Public License v2.1. See the file LICENSE in the top level directory for more
- * details.
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
  */
 
 /**
- * @defgroup    boards_unwd-range-l1 Unwired Range-l1
+ * @defgroup    boards_nucleo-f103 Nucleo-F103
  * @ingroup     boards
- * @brief       Board specific files for the unwd-range-l1 board.
+ * @brief       Board specific files for the nucleo-f103 board
  * @{
  *
  * @file
- * @brief       Board specific definitions for the unwd-range-l1 board.
+ * @brief       Board specific definitions for the nucleo-f103 board
  *
- * @author      Cr0s
+ * @author      Víctor Ariño <victor.arino@triagnosys.com>
  */
 
 #ifndef BOARD_H_
@@ -27,6 +27,7 @@
 extern "C" {
 #endif
 
+
 /**
  * @name SX1276 configuration
  * @{
@@ -36,18 +37,18 @@ extern "C" {
 
 
 
-#define LORA_BANDWIDTH                              2         // [0: 125 kHz,
+#define LORA_BANDWIDTH                              0         // [0: 125 kHz,
                                                               //  1: 250 kHz,
                                                               //  2: 500 kHz,
                                                               //  3: Reserved]
-#define LORA_SPREADING_FACTOR                       12        // [SF7..SF12]
+#define LORA_SPREADING_FACTOR                       7         // [SF7..SF12]
 #define LORA_CODINGRATE                             1         // [1: 4/5,
                                                               //  2: 4/6,
                                                               //  3: 4/7,
                                                               //  4: 4/8]
 #define LORA_PREAMBLE_LENGTH                        8         // Same for Tx and Rx
 #define LORA_SYMBOL_TIMEOUT                         5         // Symbols
-#define LORA_FIX_LENGTH_PAYLOAD_ON                  true
+#define LORA_FIX_LENGTH_PAYLOAD_ON                  false
 #define LORA_IQ_INVERSION							false
 
 #define SX1276_DIO0 GPIO_PIN(PORT_A, 8)
@@ -64,14 +65,14 @@ extern "C" {
 
 #ifdef USE_SPI_1
 #define SX1276_SPI SPI_1
-#define SX1276_SPI_NSS GPIO_PIN(PORT_B, SPI_1_PIN_NSS)
+#define SX1276_SPI_NSS SPI_1_NSS_PIN
 #define SX1276_SPI_MODE SPI_CONF_FIRST_RISING
-#define SX1276_SPI_SPEED SPI_SPEED_1MHZ
+#define SX1276_SPI_SPEED SPI_SPEED_100KHZ
 #endif
 
 #ifdef USE_SPI_0
 #define SX1276_SPI SPI_0
-#define SX1276_SPI_NSS GPIO_PIN(PORT_A, SPI_0_PIN_NSS)
+#define SX1276_SPI_NSS GPIO_PIN(PORT_A, SPI_0_NSS_PIN)
 #define SX1276_SPI_MODE SPI_CONF_FIRST_RISING
 #define SX1276_SPI_SPEED SPI_SPEED_1MHZ
 #endif
@@ -81,16 +82,16 @@ extern "C" {
 #define SX1276_DIO5 NULL
 #define SX1276_RESET NULL
 
-/** @} */
+/**
+ * @brief Use the 2nd UART for STDIO on this board
+ */
+#define UART_STDIO_DEV      UART_DEV(1)
 
 /**
  * @name xtimer configuration
- * @{
  */
-#define XTIMER              TIMER_DEV(0)
-#define XTIMER_CHAN         (0)
-#define XTIMER_OVERHEAD     (6)
-#define XTIMER_BACKOFF      (3)
+#define XTIMER_MASK         (0xffff0000)
+#define XTIMER_BACKOFF      5
 /** @} */
 
 #ifdef __cplusplus

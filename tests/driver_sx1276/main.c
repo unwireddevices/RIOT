@@ -35,11 +35,12 @@
 #include "sx1276_regs_fsk.h"
 
 
-#define _STACKSIZE      (THREAD_STACKSIZE_DEFAULT + THREAD_EXTRA_STACKSIZE_PRINTF)
+#define _STACKSIZE      (THREAD_STACKSIZE_DEFAULT + 2*THREAD_EXTRA_STACKSIZE_PRINTF)
 #define MSG_TYPE_ISR    (0x3456)
 
 static char stack[_STACKSIZE];
-static kernel_pid_t _recv_pid;
+static kernel_pid_t event_handler_thread_pid;
+static msg_t event_queue[10];
 
 void print_logo(void) {
 	puts("                                                .@                           @  ");
@@ -68,56 +69,20 @@ void print_logo(void) {
 	puts("");
 }
 
+void blink_led(void) {
+	volatile int i;
 
-void tx_done(void) {
-	//puts("sx1276: tx done");
-}
+	LED0_OFF;
 
-void tx_timeout (void) {
-	//puts("sx1276: tx timeout");
-}
+	for (i = 0; i < 5; i++) {
+		LED0_TOGGLE;
+		xtimer_usleep(50000);
 
-/**
- * @brief Rx Done callback
- *
- * @param [IN] payload Received buffer pointer
- * @param [IN] size    Received buffer size
- * @param [IN] rssi    RSSI value computed while receiving the frame [dBm]
- * @param [IN] snr     Raw SNR value given by the radio hardware [dB]
- */
-void rx_done(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr) {
-	if (size > 0) {
-		//printf("sx1276: received payload with RSSI %d and size %d (snr: %d)", rssi, size, snr);
-
-		///uint16_t i;
-		//for (i = 0; i < size; i++) {
-		//	printf("0x%2x ", payload[i]);
-		//}
-	} else {
-		//puts("sx1276: rx done with zero size?");
+		LED0_TOGGLE;
+		xtimer_usleep(50000);
 	}
-}
 
-/**
- * @brief  Rx Timeout callback prototype.
- */
-void rx_timeout(void) {
-	//puts("sx1276: rx timeout");
-}
-
-/**
- * @brief Rx Error callback prototype.
- */
-void rx_error(void) {
-	//puts("sx1276: rx error");
-}
-
-void fhss_change_channel(uint8_t current_channel) {
-	//printf("sx1276: changed channel %d", current_channel);
-}
-
-void cad_done(bool activity_detected) {
-	//puts("sx1276: CAD done");
+	LED0_ON;
 }
 
 int spi_init(void) {
@@ -177,8 +142,58 @@ void init_configs(void) {
             true, 0, 0, LORA_IQ_INVERSION, 3000000);
 }
 
+void *event_handler_thread(void *arg){
+	puts("sx1276: event handler thread started");
+
+	//sx1276_t *dev = (sx1276_t*) arg;
+	msg_init_queue(event_queue, sizeof(event_queue));
+	msg_t msg;
+
+	while (1) {
+		msg_receive(&msg);
+
+		sx1276_event_t* event = (sx1276_event_t*) msg.content.ptr;
+		sx1276_rx_packet_t* packet = (sx1276_rx_packet_t*) event->event_data;
+
+		switch (event->type) {
+		case RX_DONE:
+
+			printf("sx1276: received %u bytes: '%s' | RSSI: %d\n",
+					packet->size,
+					packet->content,
+					packet->rssi_value);
+
+			free(packet->content);
+
+			if (packet->rssi_value > -100) {
+				blink_led();
+			} else {
+				blink_led();
+				blink_led();
+			}
+
+			break;
+
+		case RX_ERROR:
+			printf("sx1276: reception error: '%s'\n", msg.content.ptr);
+			break;
+
+		case TX_DONE:
+			puts("sx1276: transmission done.");
+			break;
+
+		default:
+			printf("sx1276: received event #%d\n", (int) event->type);
+			break;
+		}
+
+	}
+
+	return NULL;
+}
+
 void init_radio(void) {
-	sx1276.nss_pin = GPIO_PIN(PORT_B, SX1276_SPI_NSS);
+	sx1276.nss_pin = SX1276_SPI_NSS;
 	sx1276.spi = SX1276_SPI;
 
 	sx1276.dio0_pin = SX1276_DIO0;
@@ -186,33 +201,23 @@ void init_radio(void) {
 	sx1276.dio2_pin = SX1276_DIO2;
 	sx1276.dio3_pin = SX1276_DIO3;
 
-	/* Unused pins */
-	sx1276.dio4_pin = (gpio_t) SX1276_DIO4;
-	sx1276.dio5_pin = (gpio_t) SX1276_DIO5;
+	sx1276.dio4_pin = (gpio_t) NULL;
+	sx1276.dio5_pin = (gpio_t) NULL;
 	sx1276.reset_pin = (gpio_t) SX1276_RESET;
 
 	sx1276_settings_t settings;
-	settings.channel = CHANNEL_HF;
+	settings.channel = RF_FREQUENCY;
 	settings.modem = MODEM_LORA;
 	settings.state = RF_IDLE;
 
 	sx1276.settings = settings;
-
-
-	sx1276_events_t handlers;
-	handlers.tx_timeout = tx_timeout;
-	handlers.tx_done = tx_done;
-	handlers.rx_timeout = rx_timeout;
-	handlers.rx_error = rx_error;
-	handlers.rx_done = rx_done;
-	handlers.fhss_change_channel = fhss_change_channel;
-	handlers.cad_done = cad_done;
 
 	if (!spi_init()) {
 		puts("init_radio: failed to initialize SPI for sx1276");
 		return;
 	}
 
+	/* Check presence of SX1276 */
 	if (!sx1276_test(&sx1276)) {
 		puts("init_radio: test failed");
 		return;
@@ -220,17 +225,26 @@ void init_radio(void) {
 		puts("init_radio: radio test passed");
 	}
 
-	/* Finally init the radio */
-	puts("init_radio: initializing SX1276...");
 
-	sx1276_init(&sx1276, &handlers);
+	/* Create event listener thread */
 
-	gpio_init_int(SX1276_DIO0, GPIO_IN, GPIO_RISING, sx1276_on_dio0_isr, &sx1276);
-	gpio_init_int(SX1276_DIO1, GPIO_IN, GPIO_RISING, sx1276_on_dio1_isr, &sx1276);
-	gpio_init_int(SX1276_DIO2, GPIO_IN, GPIO_RISING, sx1276_on_dio2_isr, &sx1276);
-	gpio_init_int(SX1276_DIO3, GPIO_IN, GPIO_RISING, sx1276_on_dio3_isr, &sx1276);
+	puts("init_radio: creating event listener...");
 
-	sx1276_set_channel(&sx1276, RF_FREQUENCY);
+    event_handler_thread_pid = thread_create(stack, sizeof(stack), THREAD_PRIORITY_MAIN - 1,
+                              THREAD_CREATE_STACKTEST, event_handler_thread, NULL,
+                              "sx1276 event handler thread");
+
+    if (event_handler_thread_pid <= KERNEL_PID_UNDEF) {
+        puts("Creation of receiver thread failed");
+        return;
+    }
+
+    sx1276.event_handler_thread_pid = event_handler_thread_pid;
+
+    /* Launch initialization of driver and device */
+    puts("init_radio: initializing driver...");
+	sx1276_init(&sx1276);
+
     init_configs();
 
 	puts("init_radio: sx1276 initialization done");
@@ -243,16 +257,9 @@ int random(int argc, char **argv) {
 	return 0;
 }
 
-
-int read_temp(int argc, char **argv) {
-	printf("read_temp: temperature of the chip %d *C\n", sx1276_read_temp(&sx1276));
-
-	return 0;
-}
-
 int regs(int argc, char **argv) {
 	if (argc <= 1) {
-		puts("usage: get <all | regnum>");
+		puts("usage: get <all | allinline | regnum>");
 		return -1;
 	}
 
@@ -274,6 +281,21 @@ int regs(int argc, char **argv) {
 		    }
 
 			puts("");
+		}
+
+		puts("-done-");
+
+		return 0;
+	} if (strcmp(argv[1], "allinline") == 0) {
+		puts("- listing all registers in one line -");
+		uint16_t reg;
+		uint8_t data = 0;
+
+		/* Listing registers map*/
+		for (reg = 0; reg < 256; reg++) {
+			data = sx1276_reg_read(&sx1276, (uint8_t) reg);
+
+			printf("%02X ", data);
 		}
 
 		puts("-done-");
@@ -306,10 +328,9 @@ int tx_test(int argc, char **argv) {
 		return -1;
 	}
 
-	printf("tx_test: sending \"%s\" payload (%d bytes)\n", argv[1], strlen(argv[1]));
+	printf("tx_test: sending \"%s\" payload (%d bytes)\n", argv[1], strlen(argv[1]) + 1);
 
-
-	sx1276_send(&sx1276, (uint8_t*) argv[1], strlen(argv[1]));
+	sx1276_send(&sx1276, (uint8_t*) argv[1], strlen(argv[1]) + 1);
 
 	xtimer_usleep(10000); /* wait for the chip */
 
@@ -346,37 +367,21 @@ int regs_set(int argc, char **argv) {
 
 }
 
-int fsk(int argc, char **argv) {
-	sx1276_set_modem(&sx1276, MODEM_FSK);
-
-	return 0;
-}
-
-int lora(int argc, char **argv) {
-	sx1276_set_modem(&sx1276, MODEM_LORA);
+int rx_test(int argc, char **argv) {
+	sx1276_set_rx(&sx1276, 30000);
 
 	return 0;
 }
 
 static const shell_command_t shell_commands[] = {
 	{ "random", "Get random number from sx1276", random },
-	{ "temp", "Get temperature of sx1276", read_temp },
 	{ "get", "<all | num> - gets value of registers of sx1276, all or by specified number from 0 to 255", regs },
 	{ "set", "<num> <value> - sets value of register with specified number", regs_set },
 	{ "tx_test", "<payload> Send test payload string", tx_test },
-
-	{ "fsk", "Set modem to FSK mode", fsk },
-	{ "lora", "Set modem to LoRa mode", lora },
+	{ "rx_test", "Start rx test", rx_test },
 
     { NULL, NULL, NULL }
 };
-
-void *_recv_thread(void *arg)
-{
-	return NULL;
-}
-
-void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode);
 
 int main(void)
 {
@@ -386,16 +391,29 @@ int main(void)
 
     init_radio();
 
-    _recv_pid = thread_create(stack, sizeof(stack), THREAD_PRIORITY_MAIN - 1,
-                              THREAD_CREATE_STACKTEST, _recv_thread, NULL,
-                              "recv_thread");
+    blink_led();
 
-    if (_recv_pid <= KERNEL_PID_UNDEF) {
-        puts("Creation of receiver thread failed");
-        return 1;
+//#define RX_TEST
+//#define TX_BEACON
+#ifdef TX_BEACON
+    char* args[] = {
+    		"tx_test", "Hello world! This is a test payload being sended!"
+    };
+
+    for(;;) {
+    	tx_test(2, args);
+    	blink_led();
+
+    	xtimer_usleep(1000 * 1000 * 3);
     }
+#endif
 
-    sx1276_set_op_mode(&sx1276, RF_IDLE);
+#ifdef RX_TEST
+    for (;;) {
+    	rx_test(0, NULL);
+    	xtimer_usleep(1000 * 1000);
+    }
+#endif
 
     /* start the shell */
     puts("Initialization successful - starting the shell now");

@@ -971,47 +971,6 @@ void sx1276_set_rx(sx1276_t *dev, uint32_t timeout)
     }
 }
 
-//XXX: removed
-void sx1276_set_tx(sx1276_t *dev, uint32_t timeout)
-{
-    // TODO: use RIOT timers
-    //TimerSetValue( &TxTimeoutTimer, timeout );
-
-    switch (dev->settings.modem) {
-        case MODEM_FSK:
-            break;
-
-        case MODEM_LORA:
-        {
-            if (dev->settings.lora.freq_hop_on) {
-                sx1276_reg_write(dev, REG_LR_IRQFLAGSMASK,
-                                 RFLR_IRQFLAGS_RXTIMEOUT |
-                                 RFLR_IRQFLAGS_RXDONE |
-                                 RFLR_IRQFLAGS_PAYLOADCRCERROR |
-                                 RFLR_IRQFLAGS_VALIDHEADER |
-                                    //RFLR_IRQFLAGS_TXDONE |
-                                 RFLR_IRQFLAGS_CADDONE |
-                                    //RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL |
-                                 RFLR_IRQFLAGS_CADDETECTED);
-
-                // DIO0=TxDone, DIO2=FhssChangeChannel
-                sx1276_reg_write(dev,
-                                 REG_DIOMAPPING1,
-                                 (sx1276_reg_read(dev, REG_DIOMAPPING1)
-                                  & RFLR_DIOMAPPING1_DIO0_MASK
-                                  & RFLR_DIOMAPPING1_DIO2_MASK)
-                                 | RFLR_DIOMAPPING1_DIO0_01
-                                 | RFLR_DIOMAPPING1_DIO2_00);
-            }
-            else {
-
-            }
-        }
-        break;
-    }
-
-}
-
 void sx1276_start_cad(sx1276_t *dev)
 {
     switch (dev->settings.modem) {

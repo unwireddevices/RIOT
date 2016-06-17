@@ -110,9 +110,11 @@ void sx1276_on_timeout_isr(sx1276_t *dev);
 #define RSSI_OFFSET_HF                              -157
 
 
-static void send_event(sx1276_t *dev, sx1276_event_type_t event_type, void* content) {
-	msg_t msg;
+static void send_event(sx1276_t *dev, sx1276_event_type_t event_type, void *content)
+{
+    msg_t msg;
     sx1276_event_t event;
+
     event.type = event_type;
     event.event_data = content;
     msg.content.ptr = (char *) &event;
@@ -146,17 +148,19 @@ static void _init_isrs(sx1276_t *dev)
  * @brief Timeout timers internal routines
  */
 
-static void _on_tx_timeout(void *arg) {
-	sx1276_t *dev = (sx1276_t*) arg;
+static void _on_tx_timeout(void *arg)
+{
+    sx1276_t *dev = (sx1276_t *) arg;
 
-	/* TX timeout. Send event message to the application's thread */
-	send_event(dev, TX_TIMEOUT, NULL);
+    /* TX timeout. Send event message to the application's thread */
+    send_event(dev, TX_TIMEOUT, NULL);
 }
 
-static void _on_rx_timeout(void *arg) {
-	sx1276_t *dev = (sx1276_t*) arg;
+static void _on_rx_timeout(void *arg)
+{
+    sx1276_t *dev = (sx1276_t *) arg;
 
-	/* RX timeout. Send event message to the application's thread */
+    /* RX timeout. Send event message to the application's thread */
     send_event(dev, RX_TIMEOUT, NULL);
 }
 
@@ -166,11 +170,11 @@ static void _on_rx_timeout(void *arg) {
 
 static void _init_timers(sx1276_t *dev)
 {
-	dev->tx_timeout_timer.arg = dev;
-	dev->tx_timeout_timer.callback = _on_tx_timeout;
+    dev->tx_timeout_timer.arg = dev;
+    dev->tx_timeout_timer.callback = _on_tx_timeout;
 
-	dev->rx_timeout_timer.arg = dev;
-	dev->rx_timeout_timer.callback = _on_rx_timeout;
+    dev->rx_timeout_timer.arg = dev;
+    dev->rx_timeout_timer.callback = _on_rx_timeout;
 }
 
 void sx1276_init(sx1276_t *dev)
@@ -820,20 +824,20 @@ void sx1276_send(sx1276_t *dev, uint8_t *buffer, uint8_t size)
 
 void sx1276_set_sleep(sx1276_t *dev)
 {
-	/* Disable running timers */
-	xtimer_remove(&dev->tx_timeout_timer);
-	xtimer_remove(&dev->rx_timeout_timer);
+    /* Disable running timers */
+    xtimer_remove(&dev->tx_timeout_timer);
+    xtimer_remove(&dev->rx_timeout_timer);
 
-	/* Put chip into sleep */
+    /* Put chip into sleep */
     sx1276_set_op_mode(dev, RF_OPMODE_SLEEP);
     sx1276_set_status(dev,  RF_IDLE);
 }
 
 void sx1276_set_standby(sx1276_t *dev)
 {
-	/* Disable running timers */
-	xtimer_remove(&dev->tx_timeout_timer);
-	xtimer_remove(&dev->rx_timeout_timer);
+    /* Disable running timers */
+    xtimer_remove(&dev->tx_timeout_timer);
+    xtimer_remove(&dev->rx_timeout_timer);
 
     sx1276_set_op_mode(dev, RF_OPMODE_STANDBY);
     sx1276_set_status(dev,  RF_IDLE);
@@ -922,7 +926,7 @@ void sx1276_set_rx(sx1276_t *dev, uint32_t timeout)
                                  RFLR_IRQFLAGS_VALIDHEADER |
                                  RFLR_IRQFLAGS_TXDONE |
                                  RFLR_IRQFLAGS_CADDONE |
-                                 	 	 	 	 	 	 	 //RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL |
+                                 //RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL |
                                  RFLR_IRQFLAGS_CADDETECTED);
 
                 // DIO0=RxDone, DIO2=FhssChangeChannel
@@ -960,7 +964,7 @@ void sx1276_set_rx(sx1276_t *dev, uint32_t timeout)
 
     sx1276_set_status(dev,  RF_RX_RUNNING);
     if (timeout != 0) {
-    	xtimer_set(&dev->rx_timeout_timer, timeout);
+        xtimer_set(&dev->rx_timeout_timer, timeout);
     }
 
     if (rx_continuous) {
@@ -1298,9 +1302,9 @@ void sx1276_on_dio0(void *arg)
             }
             break;
         case RF_TX_RUNNING:
-        	xtimer_remove(&dev->tx_timeout_timer); /* Clear TX timeout timer */
+            xtimer_remove(&dev->tx_timeout_timer);                          /* Clear TX timeout timer */
 
-            sx1276_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_TXDONE); /* Clear IRQ */
+            sx1276_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_TXDONE);   /* Clear IRQ */
             sx1276_set_status(dev,  RF_IDLE);
 
             send_event(dev, TX_DONE, NULL);
@@ -1319,7 +1323,7 @@ void sx1276_on_dio1(void *arg)
         case RF_RX_RUNNING:
             switch (dev->settings.modem) {
                 case MODEM_LORA:
-                	xtimer_remove(&dev->rx_timeout_timer);
+                    xtimer_remove(&dev->rx_timeout_timer);
 
                     sx1276_set_status(dev,  RF_IDLE);
 

@@ -129,8 +129,8 @@ typedef struct sx1276_s {
     kernel_pid_t event_handler_thread_pid;
     kernel_pid_t dio_polling_thread_pid;    /**< sx1276 DIO interrupt line flags */
 
-    xtimer_t tx_timeout_timer; /**< TX operation timeout timer */
-    xtimer_t rx_timeout_timer; /**< RX operation timeout timer */
+    xtimer_t tx_timeout_timer;              /**< TX operation timeout timer */
+    xtimer_t rx_timeout_timer;              /**< RX operation timeout timer */
 } sx1276_t;
 
 /**

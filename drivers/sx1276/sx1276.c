@@ -109,17 +109,16 @@ void sx1276_on_timeout_isr(sx1276_t *dev);
 #define RSSI_OFFSET_LF                              -164
 #define RSSI_OFFSET_HF                              -157
 
-/*
- * Private global variables
- */
 
-/**
- * Tx and Rx timers
- */
-// TODO: use of RIOT timers
-/*TimerEvent_t TxTimeoutTimer;
-   TimerEvent_t RxTimeoutTimer;
-   TimerEvent_t RxTimeoutSyncWord;*/
+static void send_event(sx1276_t *dev, sx1276_event_type_t event_type, void* content) {
+	msg_t msg;
+    sx1276_event_t event;
+    event.type = event_type;
+    event.event_data = content;
+    msg.content.ptr = (char *) &event;
+
+    msg_try_send(&msg, dev->event_handler_thread_pid);
+}
 
 static void sx1276_set_status(sx1276_t *dev, sx1276_radio_state_t state)
 {
@@ -143,20 +142,47 @@ static void _init_isrs(sx1276_t *dev)
     gpio_init_int(dev->dio3_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio3_isr, dev);
 }
 
+/**
+ * @brief Timeout timers internal routines
+ */
+
+static void _on_tx_timeout(void *arg) {
+	sx1276_t *dev = (sx1276_t*) arg;
+
+	/* TX timeout. Send event message to the application's thread */
+	send_event(dev, TX_TIMEOUT, NULL);
+}
+
+static void _on_rx_timeout(void *arg) {
+	sx1276_t *dev = (sx1276_t*) arg;
+
+	/* RX timeout. Send event message to the application's thread */
+    send_event(dev, RX_TIMEOUT, NULL);
+}
+
+/**
+ * @brief Sets timers callbacks and arguments
+ */
+
+static void _init_timers(sx1276_t *dev)
+{
+	dev->tx_timeout_timer.arg = dev;
+	dev->tx_timeout_timer.callback = _on_tx_timeout;
+
+	dev->rx_timeout_timer.arg = dev;
+	dev->rx_timeout_timer.callback = _on_rx_timeout;
+}
+
 void sx1276_init(sx1276_t *dev)
 {
-    // Initialize driver timeout timers
-    // TODO: use of RIOT timers
-    /*TimerInit( &TxTimeoutTimer, SX1276OnTimeoutIrq );
-       TimerInit( &RxTimeoutTimer, SX1276OnTimeoutIrq );
-       TimerInit( &RxTimeoutSyncWord, SX1276OnTimeoutIrq );*/
-
     sx1276_reset(dev);
 
+    /** Do internal initialization routines */
     _init_isrs(dev);
+    _init_timers(dev);
     _rx_chain_calibration(dev);
 
-    sx1276_reg_write(dev, REG_OPMODE, 0x00); /* Set RegOpMode value to the datasheet's default */
+    sx1276_reg_write(dev, REG_OPMODE, 0x00); /* Set RegOpMode value to the datasheet's default. Actual default after POR is 0x09 */
     sx1276_set_modem(dev, MODEM_LORA);
 
     sx1276_set_channel(dev, dev->settings.channel);
@@ -575,6 +601,7 @@ void sx1276_set_tx_config(sx1276_t *dev, sx1276_radio_modems_t modem, int8_t pow
             dev->settings.lora.freq_hop_on = freq_hop_on;
             dev->settings.lora.hop_period = hop_period;
             dev->settings.lora.iq_inverted = iq_inverted;
+            dev->settings.lora.tx_timeout = timeout;
 
             if (datarate > 12) {
                 datarate = 12;
@@ -754,8 +781,6 @@ void sx1276_send(sx1276_t *dev, uint8_t *buffer, uint8_t size)
              * So wake up the chip */
             if ((sx1276_reg_read(dev, REG_OPMODE) & ~RF_OPMODE_MASK)
                 == RF_OPMODE_SLEEP) {
-                puts("sx1276: waking up chip"); // XXX: debug
-
                 sx1276_set_standby(dev);
                 xtimer_usleep(RADIO_WAKEUP_TIME); /* wait for chip wake up */
             }
@@ -766,7 +791,7 @@ void sx1276_send(sx1276_t *dev, uint8_t *buffer, uint8_t size)
         break;
     }
 
-    /* Mask all interrupts except TXDONE */
+    /* Enable TXDONE interrupt */
     sx1276_reg_write(dev, REG_LR_IRQFLAGSMASK,
                      RFLR_IRQFLAGS_RXTIMEOUT |
                      RFLR_IRQFLAGS_RXDONE |
@@ -777,35 +802,38 @@ void sx1276_send(sx1276_t *dev, uint8_t *buffer, uint8_t size)
                      RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL |
                      RFLR_IRQFLAGS_CADDETECTED);
 
-    /* Max TXDONE interrupt to the DIO0 line */
+    /* Set TXDONE interrupt to the DIO0 line */
     sx1276_reg_write(dev,
                      REG_DIOMAPPING1,
                      (sx1276_reg_read(dev, REG_DIOMAPPING1)
                       & RFLR_DIOMAPPING1_DIO0_MASK)
                      | RFLR_DIOMAPPING1_DIO0_01);
 
-    /* Put chip into transfer mode */
-    sx1276_set_status(dev,  RF_TX_RUNNING);
-    //TimerStart(&TxTimeoutTimer); // TODO: use RIOT timers
 
+    /* Start TX timeout timer */
+    xtimer_set(&dev->tx_timeout_timer, dev->settings.lora.tx_timeout);
+
+    /* Put chip into transfer mode */
+    sx1276_set_status(dev, RF_TX_RUNNING);
     sx1276_set_op_mode(dev, RF_OPMODE_TRANSMITTER);
 }
 
 void sx1276_set_sleep(sx1276_t *dev)
 {
-    // TODO: use RIOT timers
-    /*TimerStop( &RxTimeoutTimer );
-       TimerStop( &TxTimeoutTimer );*/
+	/* Disable running timers */
+	xtimer_remove(&dev->tx_timeout_timer);
+	xtimer_remove(&dev->rx_timeout_timer);
 
+	/* Put chip into sleep */
     sx1276_set_op_mode(dev, RF_OPMODE_SLEEP);
     sx1276_set_status(dev,  RF_IDLE);
 }
 
 void sx1276_set_standby(sx1276_t *dev)
 {
-    // TODO: use RIOT timers
-    /*TimerStop( &RxTimeoutTimer );
-       TimerStop( &TxTimeoutTimer );*/
+	/* Disable running timers */
+	xtimer_remove(&dev->tx_timeout_timer);
+	xtimer_remove(&dev->rx_timeout_timer);
 
     sx1276_set_op_mode(dev, RF_OPMODE_STANDBY);
     sx1276_set_status(dev,  RF_IDLE);
@@ -894,7 +922,7 @@ void sx1276_set_rx(sx1276_t *dev, uint32_t timeout)
                                  RFLR_IRQFLAGS_VALIDHEADER |
                                  RFLR_IRQFLAGS_TXDONE |
                                  RFLR_IRQFLAGS_CADDONE |
-                                 //RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL |
+                                 	 	 	 	 	 	 	 //RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL |
                                  RFLR_IRQFLAGS_CADDETECTED);
 
                 // DIO0=RxDone, DIO2=FhssChangeChannel
@@ -932,9 +960,7 @@ void sx1276_set_rx(sx1276_t *dev, uint32_t timeout)
 
     sx1276_set_status(dev,  RF_RX_RUNNING);
     if (timeout != 0) {
-        // TODO: use RIOT timers
-        //TimerSetValue(&RxTimeoutTimer, timeout);
-        //TimerStart(&RxTimeoutTimer);
+    	xtimer_set(&dev->rx_timeout_timer, timeout);
     }
 
     if (rx_continuous) {
@@ -1226,34 +1252,7 @@ void sx1276_on_dio5_isr(void *arg)
     msg_try_send(&msg, ((sx1276_t *)arg)->dio_polling_thread_pid);
 }
 
-/**
- * State machine handlers
- */
-void sx1276_on_timeout_isr(sx1276_t *dev)
-{
-    msg_t msg;
-    sx1276_event_t event;
-
-    switch (dev->settings.state) {
-        case RF_RX_RUNNING:
-            sx1276_set_status(dev,  RF_IDLE);
-            //TimerStop( &RxTimeoutSyncWord ); // TODO: use RIOT timers
-
-            event.type = RX_TIMEOUT;
-            msg.content.ptr = (char *) &event;
-            msg_try_send(&msg, dev->event_handler_thread_pid);
-            break;
-
-        case RF_TX_RUNNING:
-            sx1276_set_status(dev,  RF_IDLE);
-            event.type = TX_TIMEOUT;
-            msg.content.ptr = (char *) &event;
-            msg_try_send(&msg, dev->event_handler_thread_pid);
-            break;
-        default:
-            break;
-    }
-}
+/* Internal event handlers */
 
 void sx1276_on_dio0(void *arg)
 {
@@ -1279,14 +1278,9 @@ void sx1276_on_dio0(void *arg)
                             sx1276_set_status(dev,  RF_IDLE);
                         }
 
-                        //TimerStop( &RxTimeoutTimer ); // TODO: RIOT timers
+                        xtimer_remove(&dev->rx_timeout_timer);
 
-                        msg_t msg;
-                        sx1276_event_t event;
-                        event.type = RX_ERROR;
-                        event.event_data = "CRC error";
-                        msg.content.ptr = (char *) &event;
-                        msg_try_send(&msg, dev->event_handler_thread_pid);
+                        send_event(dev, RX_ERROR, "CRC error");
 
                         break;
                     }
@@ -1328,7 +1322,7 @@ void sx1276_on_dio0(void *arg)
                         sx1276_set_status(dev,  RF_IDLE);
                     }
 
-                    // TimerStop( &RxTimeoutTimer ); // TODO: RIOT timers
+                    xtimer_remove(&dev->rx_timeout_timer);
 
                     packet.content = (char *) malloc(packet.size);
                     if (packet.content == NULL) {
@@ -1337,12 +1331,7 @@ void sx1276_on_dio0(void *arg)
 
                     sx1276_read_fifo(dev, (uint8_t *) packet.content, packet.size);
 
-                    msg_t msg;
-                    sx1276_event_t event;
-                    event.type = RX_DONE;
-                    event.event_data = &packet;
-                    msg.content.ptr = (char *) &event;
-                    msg_try_send(&msg, dev->event_handler_thread_pid);
+                    send_event(dev, RX_DONE, &packet);
                 }
                 break;
                 default:
@@ -1350,15 +1339,12 @@ void sx1276_on_dio0(void *arg)
             }
             break;
         case RF_TX_RUNNING:
-            //TimerStop( &TxTimeoutTimer ); // TODO: RIOT timers
+        	xtimer_remove(&dev->tx_timeout_timer); /* Clear TX timeout timer */
+
             sx1276_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_TXDONE); /* Clear IRQ */
             sx1276_set_status(dev,  RF_IDLE);
 
-            msg_t msg;
-            sx1276_event_t event;
-            event.type = TX_DONE;
-            msg.content.ptr = (char *) &event;
-            msg_try_send(&msg, dev->event_handler_thread_pid);
+            send_event(dev, TX_DONE, NULL);
             break;
         default:
             break;
@@ -1370,22 +1356,15 @@ void sx1276_on_dio1(void *arg)
     /* Get interrupt context */
     sx1276_t *dev = (sx1276_t *) arg;
 
-    puts("[isr] DIO1 called"); // XXX: debug
-
     switch (dev->settings.state) {
         case RF_RX_RUNNING:
             switch (dev->settings.modem) {
                 case MODEM_LORA:
-                    // Sync time out
-                    //TimerStop( &RxTimeoutTimer ); // TODO: RIOT timers
+                	xtimer_remove(&dev->rx_timeout_timer);
 
                     sx1276_set_status(dev,  RF_IDLE);
 
-                    msg_t msg;
-                    sx1276_event_t event;
-                    event.type = RX_TIMEOUT;
-                    msg.content.ptr = (char *) &event;
-                    msg_try_send(&msg, dev->event_handler_thread_pid);
+                    send_event(dev, RX_TIMEOUT, NULL);
                     break;
                 default:
                     break;
@@ -1403,8 +1382,6 @@ void sx1276_on_dio2(void *arg)
     /* Get interrupt context */
     sx1276_t *dev = (sx1276_t *) arg;
 
-    //puts("[isr] DIO2 called"); // XXX: debug
-
     switch (dev->settings.state) {
         case RF_RX_RUNNING:
             switch (dev->settings.modem) {
@@ -1413,13 +1390,8 @@ void sx1276_on_dio2(void *arg)
                         /* Clear IRQ */
                         sx1276_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL);
 
-                        msg_t msg;
-                        sx1276_event_t event;
-                        event.type = FHSS_CHANGE_CHANNEL;
                         uint32_t channel = sx1276_reg_read(dev, REG_LR_HOPCHANNEL) & RFLR_HOPCHANNEL_CHANNEL_MASK;
-                        event.event_data = &channel;
-                        msg.content.ptr = (char *) &event;
-                        msg_try_send(&msg, dev->event_handler_thread_pid);
+                        send_event(dev, FHSS_CHANGE_CHANNEL, &channel);
                     }
 
                     break;
@@ -1436,13 +1408,8 @@ void sx1276_on_dio2(void *arg)
                         /* Clear IRQ */
                         sx1276_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL);
 
-                        msg_t msg;
-                        sx1276_event_t event;
-                        event.type = FHSS_CHANGE_CHANNEL;
                         uint32_t channel = sx1276_reg_read(dev, REG_LR_HOPCHANNEL) & RFLR_HOPCHANNEL_CHANNEL_MASK;
-                        event.event_data = &channel;
-                        msg.content.ptr = (char *) &event;
-                        msg_try_send(&msg, dev->event_handler_thread_pid);
+                        send_event(dev, FHSS_CHANGE_CHANNEL, &channel);
                     }
                     break;
                 default:
@@ -1459,8 +1426,6 @@ void sx1276_on_dio3(void *arg)
     /* Get interrupt context */
     sx1276_t *dev = (sx1276_t *) arg;
 
-    //puts("[isr] DIO3 called"); // XXX: debug
-
     switch (dev->settings.modem) {
         case MODEM_FSK:
             break;
@@ -1469,13 +1434,8 @@ void sx1276_on_dio3(void *arg)
             sx1276_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_CADDETECTED | RFLR_IRQFLAGS_CADDONE);
 
             /* Send event message */
-            msg_t msg;
-            sx1276_event_t event;
-            event.type = CAD_DONE;
             bool result = (sx1276_reg_read(dev, REG_LR_IRQFLAGS) & RFLR_IRQFLAGS_CADDETECTED) == RFLR_IRQFLAGS_CADDETECTED;
-            event.event_data = &result;
-            msg.content.ptr = (char *) &event;
-            msg_try_send(&msg, dev->event_handler_thread_pid);
+            send_event(dev, CAD_DONE, &result);
             break;
         default:
             break;

@@ -36,7 +36,7 @@ extern "C" {
 
 
 
-#define LORA_BANDWIDTH                              2         // [0: 125 kHz,
+#define LORA_BANDWIDTH                              0         // [0: 125 kHz,
                                                               //  1: 250 kHz,
                                                               //  2: 500 kHz,
                                                               //  3: Reserved]

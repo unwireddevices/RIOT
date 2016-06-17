@@ -214,7 +214,6 @@ void sx1276_set_channel(sx1276_t *dev, uint32_t freq)
     uint8_t prev_mode = sx1276_reg_read(dev, REG_OPMODE);
 
     sx1276_set_op_mode(dev, RF_OPMODE_STANDBY);
-    dev->settings.channel = freq;
 
     freq = (uint32_t)((double) freq / (double) FREQ_STEP);
 

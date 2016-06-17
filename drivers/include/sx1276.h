@@ -28,26 +28,7 @@
 #define RX_BUFFER_SIZE                              256
 
 #define RF_MID_BAND_THRESH                          525000000
-#define RADIO_INIT_REGISTERS_VALUE                \
-{                                                 \
-    { MODEM_FSK , REG_LNA                , 0x23 },\
-    { MODEM_FSK , REG_RXCONFIG           , 0x1E },\
-    { MODEM_FSK , REG_RSSICONFIG         , 0xD2 },\
-    { MODEM_FSK , REG_PREAMBLEDETECT     , 0xAA },\
-    { MODEM_FSK , REG_OSC                , 0x07 },\
-    { MODEM_FSK , REG_SYNCCONFIG         , 0x12 },\
-    { MODEM_FSK , REG_SYNCVALUE1         , 0xC1 },\
-    { MODEM_FSK , REG_SYNCVALUE2         , 0x94 },\
-    { MODEM_FSK , REG_SYNCVALUE3         , 0xC1 },\
-    { MODEM_FSK , REG_PACKETCONFIG1      , 0xD8 },\
-    { MODEM_FSK , REG_FIFOTHRESH         , 0x8F },\
-    { MODEM_FSK , REG_IMAGECAL           , 0x02 },\
-    { MODEM_FSK , REG_DIOMAPPING1        , 0x00 },\
-    { MODEM_FSK , REG_DIOMAPPING2        , 0x30 },\
-    { MODEM_LORA, REG_LR_PAYLOADMAXLENGTH, 0x40 },\
-}                                                 \
-
-
+                                               \
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -66,7 +47,7 @@ typedef struct {
 	bool low_datarate_optimize;
 	uint8_t coderate;
 	uint16_t preamble_len;
-	bool fix_len;
+	bool implicit_header;
 	uint8_t payload_len;
 	bool crc_on;
 	bool freq_hop_on;
@@ -78,14 +59,15 @@ typedef struct {
 } sx1276_lora_settings_t;
 
 /**
- * LoRa packet handler state.
+ * LoRa received packet.
  */
 typedef struct {
 	uint8_t snr_value;
-	uint16_t rssi_value;
-	uint8_t size;
+	int16_t rssi_value;
 
-} sx1276_lora_packet_handler_t;
+	char* content;
+	uint8_t size;
+} sx1276_rx_packet_t;
 
 /**
  * Radio driver internal state machine states definition.
@@ -102,57 +84,29 @@ typedef struct {
 	sx1276_radio_state_t state;
 	uint32_t channel;
 	sx1276_lora_settings_t lora;
-	sx1276_lora_packet_handler_t lora_packet_handler;
 	sx1276_radio_modems_t modem;
 
 } sx1276_settings_t;
 
+typedef enum {
+	RX_DONE = 0,
+	TX_DONE,
+
+	RX_TIMEOUT,
+	TX_TIMEOUT,
+
+	RX_ERROR,
+
+	FHSS_CHANGE_CHANNEL,
+	CAD_DONE,
+
+} sx1276_event_type_t;
+
 typedef struct {
-	/**
-	 * @brief  Tx Done callback prototype.
-	 */
-	void (*tx_done)(void);
+	sx1276_event_type_t type;
 
-	/**
-	 * @brief  Tx Timeout callback prototype.
-	 */
-	void (*tx_timeout)(void);
-
-	/**
-	 * @brief Rx Done callback prototype.
-	 *
-	 * @param [IN] payload Received buffer pointer
-	 * @param [IN] size    Received buffer size
-	 * @param [IN] rssi    RSSI value computed while receiving the frame [dBm]
-	 * @param [IN] snr     Raw SNR value given by the radio hardware [dB]
-	 */
-	void (*rx_done)(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr);
-
-	/**
-	 * @brief  Rx Timeout callback prototype.
-	 */
-	void (*rx_timeout)(void);
-
-	/**
-	 * @brief Rx Error callback prototype.
-	 */
-	void (*rx_error)(void);
-
-	/**
-	 * @brief  FHSS Change Channel callback prototype.
-	 *
-	 * @param [IN] current_channel   Index number of the current channel
-	 */
-	void (*fhss_change_channel)(uint8_t current_channel);
-
-	/**
-	 * @brief CAD Done callback prototype.
-	 *
-	 * @param [IN] activity_detected    Channel Activity detected during the CAD
-	 */
-	void (*cad_done)(bool activity_detected);
-
-} sx1276_events_t;
+	void* event_data;
+} sx1276_event_t;
 
 /**
  * SX1276 hardware and global parameters.
@@ -172,9 +126,10 @@ typedef struct sx1276_s {
 	uint8_t rxtx;
 	sx1276_settings_t settings;
 
-	sx1276_events_t *events; /**< Radio events callbacks */
+	//uint8_t rx_tx_buffer[RX_BUFFER_SIZE]; 	/**< Reception/Transmission buffer */
 
-	uint8_t rx_tx_buffer[RX_BUFFER_SIZE]; /**< Reception/Transmission buffer */
+	kernel_pid_t event_handler_thread_pid;
+	kernel_pid_t dio_polling_thread_pid; 	/**< sx1276 DIO interrupt line flags */
 } sx1276_t;
 
 /**
@@ -205,11 +160,10 @@ bool sx1276_test(sx1276_t *dev);
 /**
  * @brief Initializes the transceiver.
  *
- * @param	[IN]	dev		The sx1276 device structure pointer
- * @param	[IN]	events	Events structure containing callback functions
+ * @param	[IN]	dev					The sx1276 device structure pointer
  */
 
-void sx1276_init(sx1276_t *dev, sx1276_events_t *events);
+void sx1276_init(sx1276_t *dev);
 
 /**
  * @brief Gets current status of transceiver.
@@ -290,7 +244,7 @@ int8_t sx1276_read_temp(sx1276_t *dev);
  *
  * @param	[IN]	symb_timeout  	Sets the RxSingle timeout value in symbols
  *
- * @param	[IN] 	fix_len			Fixed length packets [0: variable, 1: fixed]
+ * @param	[IN] 	implicit_header	Implicit header mode [0: explicit, 1: implicit]
  *
  * @param	[IN] 	payload_len		Sets payload length when fixed length is used
  *
@@ -310,7 +264,7 @@ int8_t sx1276_read_temp(sx1276_t *dev);
 void sx1276_set_rx_config(sx1276_t *dev, sx1276_radio_modems_t modem, uint32_t bandwidth,
         uint32_t datarate, uint8_t coderate,
         uint32_t bandwidth_afc, uint16_t preamble_len,
-        uint16_t symb_timeout, bool fix_len,
+        uint16_t symb_timeout, bool implicit_header,
         uint8_t payload_len,
         bool crc_on, bool freq_hop_on, uint8_t hop_period,
         bool iq_inverted, bool rx_continuous);
@@ -339,7 +293,7 @@ void sx1276_set_rx_config(sx1276_t *dev, sx1276_radio_modems_t modem, uint32_t b
  * @param	[IN]	preamble_len	Sets the preamble length
  *									LoRa: Length in symbols (the hardware adds 4 more symbols)
  *
- * @param	[IN]	fix_len			Fixed length packets [0: variable, 1: fixed]
+ * @param	[IN] 	implicit_header	Implicit header mode [0: explicit, 1: implicit]
  *
  * @param	[IN]	crc_on			Enables or disables the CRC [0: OFF, 1: ON]
  *
@@ -357,7 +311,7 @@ void sx1276_set_rx_config(sx1276_t *dev, sx1276_radio_modems_t modem, uint32_t b
 void sx1276_set_tx_config(sx1276_t *dev, sx1276_radio_modems_t modem, int8_t power, uint32_t fdev,
         uint32_t bandwidth, uint32_t datarate,
         uint8_t coderate, uint16_t preamble_len,
-        bool fix_len, bool crc_on, bool freq_hop_on,
+        bool implicit_header, bool crc_on, bool freq_hop_on,
         uint8_t hop_period, bool iq_inverted, uint32_t timeout);
 /**
  * @brief Computes the packet time on air in us for the given payload
@@ -499,11 +453,18 @@ void sx1276_set_max_payload_len(sx1276_t *dev, sx1276_radio_modems_t modem, uint
  *	Interrupt handlers
  */
 
-void sx1276_on_dio0_isr(void* arg);
-void sx1276_on_dio1_isr(void* arg);
-void sx1276_on_dio2_isr(void* arg);
-void sx1276_on_dio3_isr(void* arg);
-void sx1276_on_dio4_isr(void* arg);
+void sx1276_on_dio0_isr(void *arg);
+void sx1276_on_dio1_isr(void *arg);
+void sx1276_on_dio2_isr(void *arg);
+void sx1276_on_dio3_isr(void *arg);
+void sx1276_on_dio4_isr(void *arg);
+
+/**
+ * @brief sx1276 state machine hanlder thread body.
+ *
+ * @param	[IN]	arg	an sx1276 device instance
+ */
+void *dio_polling_thread(void *arg);
 
 #ifdef __cplusplus
 }

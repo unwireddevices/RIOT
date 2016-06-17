@@ -94,40 +94,6 @@ void sx1276_read_fifo(sx1276_t *dev, uint8_t *buffer, uint8_t size);
  */
 void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode);
 
-/*
- * SX1276 DIO _irq callback functions prototype
- */
-
-/**
- * @brief DIO 0 _irq callback
- */
-void sx1276_on_dio_0_isr(sx1276_t *dev);
-
-/**
- * @brief DIO 1 _irq callback
- */
-void sx1276_on_dio_1_isr(sx1276_t *dev);
-
-/**
- * @brief DIO 2 _irq callback
- */
-void sx1276_on_dio_2_isr(sx1276_t *dev);
-
-/**
- * @brief DIO 3 _irq callback
- */
-void sx1276_on_dio_3_isr(sx1276_t *dev);
-
-/**
- * @brief DIO 4 _irq callback
- */
-void sx1276_on_dio_4_isr(sx1276_t *dev);
-
-/**
- * @brief DIO 5 _irq callback
- */
-void sx1276_on_dio_5_isr(sx1276_t *dev);
-
 /**
  * @brief Tx & Rx timeout timer callback
  */
@@ -163,6 +129,11 @@ static void sx1276_set_status(sx1276_t *dev, sx1276_radio_state_t state)
 /**
  * @brief SX1276 DIO interrupt handlers initialization
  */
+
+static void sx1276_on_dio0_isr(void *arg);
+static void sx1276_on_dio1_isr(void *arg);
+static void sx1276_on_dio2_isr(void *arg);
+static void sx1276_on_dio3_isr(void *arg);
 
 static void _init_isrs(sx1276_t *dev)
 {

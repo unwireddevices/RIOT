@@ -126,8 +126,6 @@ typedef struct sx1276_s {
     uint8_t rxtx;
     sx1276_settings_t settings;
 
-    //uint8_t rx_tx_buffer[RX_BUFFER_SIZE];     /**< Reception/Transmission buffer */
-
     kernel_pid_t event_handler_thread_pid;
     kernel_pid_t dio_polling_thread_pid;    /**< sx1276 DIO interrupt line flags */
 } sx1276_t;
@@ -448,16 +446,6 @@ void sx1276_reg_read_burst(sx1276_t *dev, uint8_t addr, uint8_t *buffer,
  * @param	[IN]	maxlen	Maximum payload length in bytes
  */
 void sx1276_set_max_payload_len(sx1276_t *dev, sx1276_radio_modems_t modem, uint8_t maxlen);
-
-/**
- *	Interrupt handlers
- */
-
-void sx1276_on_dio0_isr(void *arg);
-void sx1276_on_dio1_isr(void *arg);
-void sx1276_on_dio2_isr(void *arg);
-void sx1276_on_dio3_isr(void *arg);
-void sx1276_on_dio4_isr(void *arg);
 
 /**
  * @brief sx1276 state machine hanlder thread body.

@@ -201,6 +201,13 @@ void sx1276_init(sx1276_t *dev)
     _init_peripherals(dev);
     _init_isrs(dev);
     _init_timers(dev);
+
+    /* Check presence of SX1276 */
+    if (!sx1276_test(dev)) {
+        puts("init_radio: test failed");
+        return; // TODO: error codes
+    }
+
     _rx_chain_calibration(dev);
 
     sx1276_reg_write(dev, REG_OPMODE, 0x00); /* Set RegOpMode value to the datasheet's default. Actual default after POR is 0x09 */
@@ -467,28 +474,13 @@ void sx1276_configure_lora(sx1276_t *dev, sx1276_lora_settings_t *settings)
 {
     sx1276_set_modem(dev, MODEM_LORA);
 
-    if (settings->bandwidth > 2) {
-        /* Fatal error: When using LoRa modem only bandwidths 125, 250 and 500 kHz are supported */
-        /* TODO: error codes */
-        while (1) {
-        }
-    }
-
     /* Copy LoRa configuration into device structure */
-    memcpy(&dev->settings.lora, settings, sizeof(sx1276_lora_settings_t));
-
-
-    dev->settings.lora.bandwidth += 7;
-
-    if (dev->settings.lora.datarate > 12) {
-        dev->settings.lora.datarate = 12;
-    }
-    else if (dev->settings.lora.datarate < 6) {
-        dev->settings.lora.datarate = 6;
+    if (settings != NULL) {
+    	memcpy(&dev->settings.lora, settings, sizeof(sx1276_lora_settings_t));
     }
 
-    if (((dev->settings.lora.bandwidth == 7) && ((dev->settings.lora.datarate == 11) || (dev->settings.lora.datarate == 12)))
-        || ((dev->settings.lora.bandwidth == 8) && (dev->settings.lora.datarate == 12))) {
+    if (((dev->settings.lora.bandwidth == BW_125_KHZ) && ((dev->settings.lora.datarate == SF11) || (dev->settings.lora.datarate == SF12)))
+        || ((dev->settings.lora.bandwidth == BW_250_KHZ) && (dev->settings.lora.datarate == SF12))) {
         dev->settings.lora.low_datarate_optimize = 0x01;
     }
     else {
@@ -543,35 +535,39 @@ void sx1276_configure_lora(sx1276_t *dev, sx1276_lora_settings_t *settings)
     setup_power_amplifier(dev, settings);
 
     /* ERRATA sensetivity tweaks */
-    if ((dev->settings.lora.bandwidth == 9) && (RF_MID_BAND_THRESH)) {
+    if ((dev->settings.lora.bandwidth == BW_500_KHZ) && (RF_MID_BAND_THRESH)) {
         /* ERRATA 2.1 - Sensitivity Optimization with a 500 kHz Bandwidth */
         sx1276_reg_write(dev, REG_LR_TEST36, 0x02);
         sx1276_reg_write(dev, REG_LR_TEST3A, 0x64);
     }
-    else if (dev->settings.lora.bandwidth == 9) {
+    else if (dev->settings.lora.bandwidth == BW_500_KHZ) {
         /* ERRATA 2.1 - Sensitivity Optimization with a 500 kHz Bandwidth */
         sx1276_reg_write(dev, REG_LR_TEST36, 0x02);
         sx1276_reg_write(dev, REG_LR_TEST3A, 0x7F);
     }
     else {
-        /* ERRATA 2.1 - Sensitivity Optimization with a 500 kHz Bandwidth */
+        /* ERRATA 2.1 - Sensitivity Optimization with another Bandwidth */
         sx1276_reg_write(dev, REG_LR_TEST36, 0x03);
     }
 
-    if (dev->settings.lora.datarate == 6) {
-        sx1276_reg_write(dev, REG_LR_DETECTOPTIMIZE,
-                         (sx1276_reg_read(dev, REG_LR_DETECTOPTIMIZE) &
-                          RFLR_DETECTIONOPTIMIZE_MASK) |
-                         RFLR_DETECTIONOPTIMIZE_SF6);
-        sx1276_reg_write(dev, REG_LR_DETECTIONTHRESHOLD,
-                         RFLR_DETECTIONTHRESH_SF6);
-    }
-    else {
-        sx1276_reg_write(dev, REG_LR_DETECTOPTIMIZE, RFLR_DETECTIONOPTIMIZE_SF7_TO_SF12);
-        sx1276_reg_write(dev, REG_LR_DETECTIONTHRESHOLD, RFLR_DETECTIONTHRESH_SF7_TO_SF12);
-    }
+	sx1276_reg_write(dev, REG_LR_DETECTOPTIMIZE, RFLR_DETECTIONOPTIMIZE_SF7_TO_SF12);
+	sx1276_reg_write(dev, REG_LR_DETECTIONTHRESHOLD, RFLR_DETECTIONTHRESH_SF7_TO_SF12);
 }
 
+void sx1276_configure_lora_bw(sx1276_t *dev, sx1276_lora_bandwidth_t bw) {
+	dev->settings.lora.bandwidth = bw;
+	sx1276_configure_lora(dev, NULL);
+}
+
+void sx1276_configure_lora_sf(sx1276_t *dev, sx1276_lora_spreading_factor_t sf) {
+	dev->settings.lora.datarate = sf;
+	sx1276_configure_lora(dev, NULL);
+}
+
+void sx1276_configure_lora_cr(sx1276_t *dev, sx1276_lora_coding_rate_t cr) {
+	dev->settings.lora.coderate = cr;
+	sx1276_configure_lora(dev, NULL);
+}
 
 uint32_t sx1276_get_time_on_air(sx1276_t *dev, sx1276_radio_modems_t modem,
                                 uint8_t pkt_len)
@@ -761,7 +757,7 @@ void sx1276_set_rx(sx1276_t *dev, uint32_t timeout)
                                  sx1276_reg_read(dev, REG_LR_DETECTOPTIMIZE) & 0x7F);
                 sx1276_reg_write(dev, REG_LR_TEST30, 0x00);
                 switch (dev->settings.lora.bandwidth) {
-                    case 0: // 7.8 kHz
+                    /*case 0: // 7.8 kHz
                         sx1276_reg_write(dev, REG_LR_TEST2F, 0x48);
                         sx1276_set_channel(dev, dev->settings.channel + 7.81e3);
                         break;
@@ -787,13 +783,16 @@ void sx1276_set_rx(sx1276_t *dev, uint32_t timeout)
                         break;
                     case 6: // 62.5 kHz
                         sx1276_reg_write(dev, REG_LR_TEST2F, 0x40);
-                        break;
-                    case 7: // 125 kHz
+                        break;*/
+                    case BW_125_KHZ: // 125 kHz
                         sx1276_reg_write(dev, REG_LR_TEST2F, 0x40);
                         break;
-                    case 8: // 250 kHz
+                    case BW_250_KHZ: // 250 kHz
                         sx1276_reg_write(dev, REG_LR_TEST2F, 0x40);
                         break;
+
+                    default:
+                    	break;
                 }
             }
             else {

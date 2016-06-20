@@ -40,14 +40,45 @@ typedef enum {
 } sx1276_radio_modems_t;
 
 /**
+ * LoRa modulation bandwidth.
+ */
+typedef enum {
+	BW_125_KHZ = 7,
+	BW_250_KHZ,
+	BW_500_KHZ
+} sx1276_lora_bandwidth_t;
+
+/**
+ * LoRa modulation spreading factor.
+ */
+typedef enum {
+	SF7 = 7,
+	SF8,
+	SF9,
+	SF10,
+	SF11,
+	SF12
+} sx1276_lora_spreading_factor_t;
+
+/**
+ * LoRa modulation coding rate.
+ */
+typedef enum {
+	CR_4_5 = 1,
+	CR_4_6,
+	CR_4_7,
+	CR_4_8
+} sx1276_lora_coding_rate_t;
+
+/**
  * LoRa configuration structure.
  */
 typedef struct {
     uint8_t power;
-    uint32_t bandwidth;
-    uint32_t datarate;
+    sx1276_lora_bandwidth_t bandwidth;
+    sx1276_lora_spreading_factor_t datarate;
     bool low_datarate_optimize;
-    uint8_t coderate;
+    sx1276_lora_coding_rate_t coderate;
     uint16_t preamble_len;
     bool implicit_header;
     uint8_t payload_len;
@@ -221,6 +252,30 @@ uint32_t sx1276_random(sx1276_t *dev);
  * @param	[IN]	settings	The LoRa modem settings structure
  */
 void sx1276_configure_lora(sx1276_t *dev, sx1276_lora_settings_t *settings);
+
+/**
+ * @brief Sets up the LoRa modem bandwidth settings.
+ *
+ * @param	[IN]	dev		The sx1276 device structure pointer
+ * @param	[IN]	bw		LoRa modulation bandwidth
+ */
+void sx1276_configure_lora_bw(sx1276_t *dev, sx1276_lora_bandwidth_t bw);
+
+/**
+ * @brief Sets up the LoRa modem spreading factor settings.
+ *
+ * @param	[IN]	dev		The sx1276 device structure pointer
+ * @param	[IN]	sf		LoRa modulation spreading factor
+ */
+void sx1276_configure_lora_sf(sx1276_t *dev, sx1276_lora_spreading_factor_t sf);
+
+/**
+ * @brief Sets up the LoRa modem coding rate settings.
+ *
+ * @param	[IN]	dev		The sx1276 device structure pointer
+ * @param	[IN]	cr		LoRa modulation bandwidth
+ */
+void sx1276_configure_lora_cr(sx1276_t *dev, sx1276_lora_coding_rate_t cr);
 
 /**
  * @brief Computes the packet time on air in us for the given payload.

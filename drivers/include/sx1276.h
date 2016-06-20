@@ -55,7 +55,7 @@ typedef struct {
     bool iq_inverted;
     bool rx_continuous;
     uint32_t tx_timeout;
-
+    uint32_t rx_timeout; /**< RX timeout in symbols */
 } sx1276_lora_settings_t;
 
 /**
@@ -222,98 +222,13 @@ uint32_t sx1276_random(sx1276_t *dev);
 int8_t sx1276_read_temp(sx1276_t *dev);
 
 /**
- * @brief Sets the reception parameters
- * Only bandwidths 125, 250 and 500 kHz are supported due to LoRa usage.
+ * @brief Sets up the LoRa modem configuration
  *
- * @param	[IN]	dev				The sx1276 device structure pointer
- *
- * @param	[IN]	modem			Modem to be configured
- *
- * @param	[IN]	bandwidth		Sets the bandwidth
- *									[0: 125 kHz,	1:	250 kHz,
- *                                  2:	500 kHz,	3:	Reserved]
- *
- * @param	[IN]	datarate		Sets the data rate
- *                                  [6: 64, 7: 128, 8: 256, 9: 512,
- *                                  10: 1024, 11: 2048, 12: 4096 chips]
- *
- * @param	[IN]    coderate		Sets the LoRa coding rate
- *                                  [1: 4/5, 2: 4/6, 3: 4/7, 4: 4/8]
- *
- * @param	[IN]	preambleLen		Sets the Preamble length
- *                                  Length in symbols (the hardware adds 4 more symbols)
- *
- * @param	[IN]	symb_timeout    Sets the RxSingle timeout value in symbols
- *
- * @param	[IN]    implicit_header	Implicit header mode [0: explicit, 1: implicit]
- *
- * @param	[IN]    payload_len		Sets payload length when fixed length is used
- *
- * @param	[IN]    crc_on			Enables or disables the CRC [0: OFF, 1: ON]
- *
- * @param	[IN]    freq_hop_on		Enables or disables the intra-packet frequency hopping
- *                                  [0: OFF, 1: ON]
- *
- * @param	[IN]    hop_period		Number of symbols between each hop
- *
- * @param	[IN]    iq_inverted		Inverts IQ signals (LoRa only)
- *									[0: not inverted, 1: inverted]
- *
- * @param	[IN]    rx_continuous	Sets the reception in continuous mode
- *                                  [false: single mode, true: continuous mode]
+ * @param	[IN]	dev			The sx1276 device pointer
+ * @param	[IN]	settings	The LoRa modem settings structure
  */
-void sx1276_set_rx_config(sx1276_t *dev, sx1276_radio_modems_t modem, uint32_t bandwidth,
-                          uint32_t datarate, uint8_t coderate,
-                          uint32_t bandwidth_afc, uint16_t preamble_len,
-                          uint16_t symb_timeout, bool implicit_header,
-                          uint8_t payload_len,
-                          bool crc_on, bool freq_hop_on, uint8_t hop_period,
-                          bool iq_inverted, bool rx_continuous);
+void sx1276_configure_lora(sx1276_t *dev, sx1276_lora_settings_t *settings);
 
-/**
- * @brief Sets the transmission parameters
- * Only bandwidths 125, 250 and 500 kHz are supported due to LoRa usage
- *
- * @param	[IN]	dev				The sx1276 device structure pointer
- *
- * @param	[IN]	modem			Modem to be configured
- *
- * @param	[IN]	power			Sets the output power [dBm]
- *
- * @param	[IN]	bandwidth		Sets the bandwidth for LoRa
- *									[0: 125 kHz, 1: 250 kHz,
- *									2: 500 kHz, 3: Reserved]
- *
- * @param	[IN]	datarate		Sets the data rate
- *									[6: 64, 7: 128, 8: 256, 9: 512,
- *									10: 1024, 11: 2048, 12: 4096  chips]
- *
- * @param	[IN]	coderate		Sets the coding rate for LoRa
- *									[1: 4/5, 2: 4/6, 3: 4/7, 4: 4/8]
- *
- * @param	[IN]	preamble_len	Sets the preamble length
- *									LoRa: Length in symbols (the hardware adds 4 more symbols)
- *
- * @param	[IN]    implicit_header	Implicit header mode [0: explicit, 1: implicit]
- *
- * @param	[IN]	crc_on			Enables or disables the CRC [0: OFF, 1: ON]
- *
- * @param	[IN]	freq_hop_on		Enables or disables the intra-packet frequency hopping
- *									[0: OFF, 1: ON]
- *
- * @param	[IN]	hop_period		Number of symbols between each hop in number of symbols
- *
- * @param	[IN]	iq_inverted		Inverts IQ signals (LoRa only)
- *									[0: not inverted, 1: inverted]
- *
- * @param	[IN]	timeout			Transmission timeout [us]
- */
-
-void sx1276_set_tx_config(sx1276_t *dev, sx1276_radio_modems_t modem, int8_t power, uint32_t fdev,
-                          uint32_t bandwidth, uint32_t datarate,
-                          uint8_t coderate, uint16_t preamble_len,
-                          bool implicit_header, bool crc_on, bool freq_hop_on,
-                          uint8_t hop_period, bool iq_inverted, uint32_t timeout);
 /**
  * @brief Computes the packet time on air in us for the given payload
  * Can only be called once SetRxConfig or SetTxConfig have been called

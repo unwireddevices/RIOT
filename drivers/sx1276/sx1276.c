@@ -365,136 +365,7 @@ static void _rx_chain_calibration(sx1276_t *dev)
     sx1276_set_channel(dev, initial_freq);
 }
 
-void sx1276_set_rx_config(sx1276_t *dev, sx1276_radio_modems_t modem, uint32_t bandwidth,
-                          uint32_t datarate, uint8_t coderate,
-                          uint32_t bandwidth_afc, uint16_t preamble_len,
-                          uint16_t symb_timeout, bool implicit_header,
-                          uint8_t payload_len,
-                          bool crc_on, bool freq_hop_on, uint8_t hop_period,
-                          bool iq_inverted, bool rx_continuous)
-{
-    sx1276_set_modem(dev, modem);
-
-    switch (modem) {
-        case MODEM_FSK:
-            break;
-
-        case MODEM_LORA:
-        {
-            if (bandwidth > 2) {
-                /* Fatal error: When using LoRa modem only bandwidths 125, 250 and 500 kHz are supported */
-                /* TODO: error codes */
-                while (1) {
-                }
-            }
-
-            bandwidth += 7;
-
-            dev->settings.lora.bandwidth = bandwidth;
-            dev->settings.lora.datarate = datarate;
-            dev->settings.lora.coderate = coderate;
-            dev->settings.lora.preamble_len = preamble_len;
-            dev->settings.lora.implicit_header = implicit_header;
-            dev->settings.lora.payload_len = payload_len;
-            dev->settings.lora.crc_on = crc_on;
-            dev->settings.lora.freq_hop_on = freq_hop_on;
-            dev->settings.lora.hop_period = hop_period;
-            dev->settings.lora.iq_inverted = iq_inverted;
-            dev->settings.lora.rx_continuous = rx_continuous;
-
-            if (datarate > 12) {
-                datarate = 12;
-            }
-            else if (datarate < 6) {
-                datarate = 6;
-            }
-
-            if (((bandwidth == 7) && ((datarate == 11) || (datarate == 12)))
-                || ((bandwidth == 8) && (datarate == 12))) {
-                dev->settings.lora.low_datarate_optimize = 0x01;
-            }
-            else {
-                dev->settings.lora.low_datarate_optimize = 0x00;
-            }
-
-            sx1276_reg_write(dev,
-                             REG_LR_MODEMCONFIG1,
-                             (sx1276_reg_read(dev, REG_LR_MODEMCONFIG1) &
-                              RFLR_MODEMCONFIG1_BW_MASK &
-                              RFLR_MODEMCONFIG1_CODINGRATE_MASK &
-                              RFLR_MODEMCONFIG1_IMPLICITHEADER_MASK) | (bandwidth << 4)
-                             | (coderate << 1) | implicit_header);
-
-            sx1276_reg_write(dev, REG_LR_MODEMCONFIG2,
-                             (sx1276_reg_read(dev, REG_LR_MODEMCONFIG2) &
-                              RFLR_MODEMCONFIG2_SF_MASK &
-                              RFLR_MODEMCONFIG2_RXPAYLOADCRC_MASK &
-                              RFLR_MODEMCONFIG2_SYMBTIMEOUTMSB_MASK) | (datarate << 4)
-                             | (crc_on << 2)
-                             | ((symb_timeout >> 8)
-                                & ~RFLR_MODEMCONFIG2_SYMBTIMEOUTMSB_MASK));
-
-            sx1276_reg_write(dev,
-                             REG_LR_MODEMCONFIG3,
-                             (sx1276_reg_read(dev, REG_LR_MODEMCONFIG3)
-                              & RFLR_MODEMCONFIG3_LOWDATARATEOPTIMIZE_MASK)
-                             | (dev->settings.lora.low_datarate_optimize << 3));
-
-            sx1276_reg_write(dev, REG_LR_SYMBTIMEOUTLSB,
-                             (uint8_t)(symb_timeout & 0xFF));
-
-            sx1276_reg_write(dev, REG_LR_PREAMBLEMSB,
-                             (uint8_t)((preamble_len >> 8) & 0xFF));
-            sx1276_reg_write(dev, REG_LR_PREAMBLELSB,
-                             (uint8_t)(preamble_len & 0xFF));
-
-            if (!implicit_header) {
-                sx1276_reg_write(dev, REG_LR_PAYLOADLENGTH, payload_len);
-            }
-
-
-            if (dev->settings.lora.freq_hop_on) {
-                sx1276_reg_write(dev,
-                                 REG_LR_PLLHOP,
-                                 (sx1276_reg_read(dev, REG_LR_PLLHOP)
-                                  & RFLR_PLLHOP_FASTHOP_MASK) | RFLR_PLLHOP_FASTHOP_ON);
-                sx1276_reg_write(dev, REG_LR_HOPPERIOD,
-                                 dev->settings.lora.hop_period);
-            }
-
-            if ((bandwidth == 9) && (RF_MID_BAND_THRESH)) {
-                /* ERRATA 2.1 - Sensitivity Optimization with a 500 kHz Bandwidth */
-                sx1276_reg_write(dev, REG_LR_TEST36, 0x02);
-                sx1276_reg_write(dev, REG_LR_TEST3A, 0x64);
-            }
-            else if (bandwidth == 9) {
-                /* ERRATA 2.1 - Sensitivity Optimization with a 500 kHz Bandwidth */
-                sx1276_reg_write(dev, REG_LR_TEST36, 0x02);
-                sx1276_reg_write(dev, REG_LR_TEST3A, 0x7F);
-            }
-            else {
-                /* ERRATA 2.1 - Sensitivity Optimization with a 500 kHz Bandwidth */
-                sx1276_reg_write(dev, REG_LR_TEST36, 0x03);
-            }
-
-            if (datarate == 6) {
-                sx1276_reg_write(dev, REG_LR_DETECTOPTIMIZE,
-                                 (sx1276_reg_read(dev, REG_LR_DETECTOPTIMIZE) &
-                                  RFLR_DETECTIONOPTIMIZE_MASK) |
-                                 RFLR_DETECTIONOPTIMIZE_SF6);
-                sx1276_reg_write(dev, REG_LR_DETECTIONTHRESHOLD,
-                                 RFLR_DETECTIONTHRESH_SF6);
-            }
-            else {
-                sx1276_reg_write(dev, REG_LR_DETECTOPTIMIZE, RFLR_DETECTIONOPTIMIZE_SF7_TO_SF12);
-                sx1276_reg_write(dev, REG_LR_DETECTIONTHRESHOLD, RFLR_DETECTIONTHRESH_SF7_TO_SF12);
-            }
-        }
-        break;
-    }
-}
-
-uint8_t sx1276_get_pa_select( uint32_t channel )
+static inline uint8_t sx1276_get_pa_select(uint32_t channel)
 {
     if (channel < RF_MID_BAND_THRESH) {
         return RF_PACONFIG_PASELECT_PABOOST;
@@ -504,17 +375,9 @@ uint8_t sx1276_get_pa_select( uint32_t channel )
     }
 }
 
-
-void sx1276_set_tx_config(sx1276_t *dev, sx1276_radio_modems_t modem, int8_t power, uint32_t fdev,
-                          uint32_t bandwidth, uint32_t datarate,
-                          uint8_t coderate, uint16_t preamble_len,
-                          bool implicit_header, bool crc_on, bool freq_hop_on,
-                          uint8_t hop_period, bool iq_inverted, uint32_t timeout)
-{
+static void setup_power_amplifier(sx1276_t *dev, sx1276_lora_settings_t *settings) {
     uint8_t pa_config = 0;
     uint8_t pa_dac = 0;
-
-    sx1276_set_modem(dev, modem);
 
     pa_config = sx1276_reg_read(dev, REG_PACONFIG);
     pa_dac = sx1276_reg_read(dev, REG_PADAC);
@@ -526,155 +389,160 @@ void sx1276_set_tx_config(sx1276_t *dev, sx1276_radio_modems_t modem, int8_t pow
 
     if ((pa_config & RF_PACONFIG_PASELECT_PABOOST)
         == RF_PACONFIG_PASELECT_PABOOST) {
-        if (power > 17) {
+        if (dev->settings.lora.power > 17) {
             pa_dac = (pa_dac & RF_PADAC_20DBM_MASK) | RF_PADAC_20DBM_ON;
         }
         else {
             pa_dac = (pa_dac & RF_PADAC_20DBM_MASK) | RF_PADAC_20DBM_OFF;
         }
         if ((pa_dac & RF_PADAC_20DBM_ON) == RF_PADAC_20DBM_ON) {
-            if (power < 5) {
-                power = 5;
+            if (dev->settings.lora.power < 5) {
+            	dev->settings.lora.power = 5;
             }
-            if (power > 20) {
-                power = 20;
-            }
-            pa_config = (pa_config & RF_PACONFIG_OUTPUTPOWER_MASK)
-                        | (uint8_t)((uint16_t)(power - 5) & 0x0F);
-        }
-        else {
-            if (power < 2) {
-                power = 2;
-            }
-            if (power > 17) {
-                power = 17;
+            if (dev->settings.lora.power > 20) {
+            	dev->settings.lora.power = 20;
             }
 
             pa_config = (pa_config & RF_PACONFIG_OUTPUTPOWER_MASK)
-                        | (uint8_t)((uint16_t)(power - 2) & 0x0F);
+                        | (uint8_t)((uint16_t)(dev->settings.lora.power - 5) & 0x0F);
+        }
+        else {
+            if (dev->settings.lora.power < 2) {
+            	dev->settings.lora.power = 2;
+            }
+            if (dev->settings.lora.power > 17) {
+            	dev->settings.lora.power = 17;
+            }
+
+            pa_config = (pa_config & RF_PACONFIG_OUTPUTPOWER_MASK)
+                        | (uint8_t)((uint16_t)(dev->settings.lora.power - 2) & 0x0F);
         }
     }
     else {
-        if (power < -1) {
-            power = -1;
+        if (dev->settings.lora.power < -1) {
+        	dev->settings.lora.power = -1;
         }
-        if (power > 14) {
-            power = 14;
+        if (dev->settings.lora.power > 14) {
+        	dev->settings.lora.power = 14;
         }
 
         pa_config = (pa_config & RF_PACONFIG_OUTPUTPOWER_MASK)
-                    | (uint8_t)((uint16_t)(power + 1) & 0x0F);
+                    | (uint8_t)((uint16_t)(dev->settings.lora.power + 1) & 0x0F);
     }
 
     sx1276_reg_write(dev, REG_PACONFIG, pa_config);
     sx1276_reg_write(dev, REG_PADAC, pa_dac);
-
-    switch (modem) {
-        case MODEM_FSK:
-            break;
-
-        case MODEM_LORA:
-        {
-            if (bandwidth > 2) {
-                /* Fatal error: When using LoRa modem only bandwidths 125, 250 and 500 kHz are supported */
-                /* TODO: error codes */
-                while (1) {
-                }
-            }
-
-            bandwidth += 7;
-
-            dev->settings.lora.bandwidth = bandwidth;
-            dev->settings.lora.datarate = datarate;
-            dev->settings.lora.coderate = coderate;
-            dev->settings.lora.preamble_len = preamble_len;
-            dev->settings.lora.implicit_header = implicit_header;
-            dev->settings.lora.crc_on = crc_on;
-            dev->settings.lora.freq_hop_on = freq_hop_on;
-            dev->settings.lora.hop_period = hop_period;
-            dev->settings.lora.iq_inverted = iq_inverted;
-            dev->settings.lora.tx_timeout = timeout;
-
-            if (datarate > 12) {
-                datarate = 12;
-            }
-            else if (datarate < 6) {
-                datarate = 6;
-            }
-
-            if (((bandwidth == 7) && ((datarate == 11) || (datarate == 12)))
-                || ((bandwidth == 8) && (datarate == 12))) {
-                dev->settings.lora.low_datarate_optimize = 0x01;
-            }
-            else {
-                dev->settings.lora.low_datarate_optimize = 0x00;
-            }
-
-            sx1276_reg_write(dev, REG_LR_MODEMCONFIG1,
-                             (sx1276_reg_read(dev, REG_LR_MODEMCONFIG1) &
-                              RFLR_MODEMCONFIG1_BW_MASK &
-                              RFLR_MODEMCONFIG1_CODINGRATE_MASK &
-                              RFLR_MODEMCONFIG1_IMPLICITHEADER_MASK) | (bandwidth << 4)
-                             | (coderate << 1) | implicit_header);
-
-            sx1276_reg_write(dev, REG_LR_MODEMCONFIG2,
-                             (sx1276_reg_read(dev, REG_LR_MODEMCONFIG2) &
-                              RFLR_MODEMCONFIG2_SF_MASK &
-                              RFLR_MODEMCONFIG2_RXPAYLOADCRC_MASK) | (datarate << 4)
-                             | (crc_on << 2));
-
-            sx1276_reg_write(dev,
-                             REG_LR_MODEMCONFIG3,
-                             (sx1276_reg_read(dev, REG_LR_MODEMCONFIG3)
-                              & RFLR_MODEMCONFIG3_LOWDATARATEOPTIMIZE_MASK)
-                             | (dev->settings.lora.low_datarate_optimize << 3));
-
-            sx1276_reg_write(dev, REG_LR_PREAMBLEMSB,
-                             (uint8_t)((preamble_len >> 8) & 0xFF));
-            sx1276_reg_write(dev, REG_LR_PREAMBLELSB,
-                             (uint8_t)(preamble_len & 0xFF));
-
-
-            if (dev->settings.lora.freq_hop_on) {
-                sx1276_reg_write(dev,
-                                 REG_LR_PLLHOP,
-                                 (sx1276_reg_read(dev, REG_LR_PLLHOP)
-                                  & RFLR_PLLHOP_FASTHOP_MASK) | RFLR_PLLHOP_FASTHOP_ON);
-                sx1276_reg_write(dev, REG_LR_HOPPERIOD,
-                                 dev->settings.lora.hop_period);
-            }
-
-            if ((bandwidth == 9) && (RF_MID_BAND_THRESH)) {
-                /* ERRATA 2.1 - Sensitivity Optimization with a 500 kHz Bandwidth */
-                sx1276_reg_write(dev, REG_LR_TEST36, 0x02);
-                sx1276_reg_write(dev, REG_LR_TEST3A, 0x64);
-            }
-            else if (bandwidth == 9) {
-                /* ERRATA 2.1 - Sensitivity Optimization with a 500 kHz Bandwidth */
-                sx1276_reg_write(dev, REG_LR_TEST36, 0x02);
-                sx1276_reg_write(dev, REG_LR_TEST3A, 0x7F);
-            }
-            else {
-                /* ERRATA 2.1 - Sensitivity Optimization with a 500 kHz Bandwidth */
-                sx1276_reg_write(dev, REG_LR_TEST36, 0x03);
-            }
-
-            if (datarate == 6) {
-                sx1276_reg_write(dev, REG_LR_DETECTOPTIMIZE,
-                                 (sx1276_reg_read(dev, REG_LR_DETECTOPTIMIZE) &
-                                  RFLR_DETECTIONOPTIMIZE_MASK) |
-                                 RFLR_DETECTIONOPTIMIZE_SF6);
-                sx1276_reg_write(dev, REG_LR_DETECTIONTHRESHOLD,
-                                 RFLR_DETECTIONTHRESH_SF6);
-            }
-            else {
-                sx1276_reg_write(dev, REG_LR_DETECTOPTIMIZE, RFLR_DETECTIONOPTIMIZE_SF7_TO_SF12);
-                sx1276_reg_write(dev, REG_LR_DETECTIONTHRESHOLD, RFLR_DETECTIONTHRESH_SF7_TO_SF12);
-            }
-        }
-        break;
-    }
 }
+
+void sx1276_configure_lora(sx1276_t *dev, sx1276_lora_settings_t *settings)
+{
+    sx1276_set_modem(dev, MODEM_LORA);
+
+	if (settings->bandwidth > 2) {
+		/* Fatal error: When using LoRa modem only bandwidths 125, 250 and 500 kHz are supported */
+		/* TODO: error codes */
+		while (1) {
+		}
+	}
+
+	/* Copy LoRa configuration into device structure */
+	memcpy(&dev->settings.lora, settings, sizeof(sx1276_lora_settings_t));
+
+
+	dev->settings.lora.bandwidth += 7;
+
+	if (dev->settings.lora.datarate > 12) {
+		dev->settings.lora.datarate = 12;
+	}
+	else if (dev->settings.lora.datarate < 6) {
+		dev->settings.lora.datarate = 6;
+	}
+
+	if (((dev->settings.lora.bandwidth == 7) && ((dev->settings.lora.datarate == 11) || (dev->settings.lora.datarate == 12)))
+		|| ((dev->settings.lora.bandwidth == 8) && (dev->settings.lora.datarate == 12))) {
+		dev->settings.lora.low_datarate_optimize = 0x01;
+	}
+	else {
+		dev->settings.lora.low_datarate_optimize = 0x00;
+	}
+
+	sx1276_reg_write(dev,
+					 REG_LR_MODEMCONFIG1,
+					 (sx1276_reg_read(dev, REG_LR_MODEMCONFIG1) &
+					  RFLR_MODEMCONFIG1_BW_MASK &
+					  RFLR_MODEMCONFIG1_CODINGRATE_MASK &
+					  RFLR_MODEMCONFIG1_IMPLICITHEADER_MASK) | (dev->settings.lora.bandwidth << 4)
+					 | (dev->settings.lora.coderate << 1) | dev->settings.lora.implicit_header);
+
+	sx1276_reg_write(dev, REG_LR_MODEMCONFIG2,
+					 (sx1276_reg_read(dev, REG_LR_MODEMCONFIG2) &
+					  RFLR_MODEMCONFIG2_SF_MASK &
+					  RFLR_MODEMCONFIG2_RXPAYLOADCRC_MASK &
+					  RFLR_MODEMCONFIG2_SYMBTIMEOUTMSB_MASK) | (dev->settings.lora.datarate << 4)
+					 | (dev->settings.lora.crc_on << 2)
+					 | ((dev->settings.lora.rx_timeout >> 8)
+						& ~RFLR_MODEMCONFIG2_SYMBTIMEOUTMSB_MASK));
+
+	sx1276_reg_write(dev,
+					 REG_LR_MODEMCONFIG3,
+					 (sx1276_reg_read(dev, REG_LR_MODEMCONFIG3)
+					  & RFLR_MODEMCONFIG3_LOWDATARATEOPTIMIZE_MASK)
+					 | (dev->settings.lora.low_datarate_optimize << 3));
+
+	sx1276_reg_write(dev, REG_LR_SYMBTIMEOUTLSB,
+					 (uint8_t)(dev->settings.lora.rx_timeout & 0xFF));
+
+	sx1276_reg_write(dev, REG_LR_PREAMBLEMSB,
+					 (uint8_t)((dev->settings.lora.preamble_len >> 8) & 0xFF));
+	sx1276_reg_write(dev, REG_LR_PREAMBLELSB,
+					 (uint8_t)(dev->settings.lora.preamble_len & 0xFF));
+
+	if (dev->settings.lora.implicit_header) {
+		sx1276_reg_write(dev, REG_LR_PAYLOADLENGTH, dev->settings.lora.payload_len);
+	}
+
+
+	if (dev->settings.lora.freq_hop_on) {
+		sx1276_reg_write(dev,
+						 REG_LR_PLLHOP,
+						 (sx1276_reg_read(dev, REG_LR_PLLHOP)
+						  & RFLR_PLLHOP_FASTHOP_MASK) | RFLR_PLLHOP_FASTHOP_ON);
+		sx1276_reg_write(dev, REG_LR_HOPPERIOD,
+						 dev->settings.lora.hop_period);
+	}
+
+	setup_power_amplifier(dev, settings);
+
+	/* ERRATA sensetivity tweaks */
+	if ((dev->settings.lora.bandwidth == 9) && (RF_MID_BAND_THRESH)) {
+		/* ERRATA 2.1 - Sensitivity Optimization with a 500 kHz Bandwidth */
+		sx1276_reg_write(dev, REG_LR_TEST36, 0x02);
+		sx1276_reg_write(dev, REG_LR_TEST3A, 0x64);
+	}
+	else if (dev->settings.lora.bandwidth == 9) {
+		/* ERRATA 2.1 - Sensitivity Optimization with a 500 kHz Bandwidth */
+		sx1276_reg_write(dev, REG_LR_TEST36, 0x02);
+		sx1276_reg_write(dev, REG_LR_TEST3A, 0x7F);
+	}
+	else {
+		/* ERRATA 2.1 - Sensitivity Optimization with a 500 kHz Bandwidth */
+		sx1276_reg_write(dev, REG_LR_TEST36, 0x03);
+	}
+
+	if (dev->settings.lora.datarate == 6) {
+		sx1276_reg_write(dev, REG_LR_DETECTOPTIMIZE,
+						 (sx1276_reg_read(dev, REG_LR_DETECTOPTIMIZE) &
+						  RFLR_DETECTIONOPTIMIZE_MASK) |
+						 RFLR_DETECTIONOPTIMIZE_SF6);
+		sx1276_reg_write(dev, REG_LR_DETECTIONTHRESHOLD,
+						 RFLR_DETECTIONTHRESH_SF6);
+	}
+	else {
+		sx1276_reg_write(dev, REG_LR_DETECTOPTIMIZE, RFLR_DETECTIONOPTIMIZE_SF7_TO_SF12);
+		sx1276_reg_write(dev, REG_LR_DETECTIONTHRESHOLD, RFLR_DETECTIONTHRESH_SF7_TO_SF12);
+	}
+}
+
 
 uint32_t sx1276_get_time_on_air(sx1276_t *dev, sx1276_radio_modems_t modem,
                                 uint8_t pkt_len)

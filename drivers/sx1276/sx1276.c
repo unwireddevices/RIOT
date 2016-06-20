@@ -66,12 +66,6 @@ static void _rx_chain_calibration(sx1276_t *dev);
 void sx1276_reset(sx1276_t *dev);
 
 /**
- * @brief Sets the SX1276 in transmission mode for the given time
- * @param [IN] timeout Transmission timeout [us] [0: continuous, others timeout]
- */
-void sx1276_set_tx(sx1276_t *dev, uint32_t timeout);
-
-/**
  * @brief Writes the buffer contents to the SX1276 FIFO
  *
  * @param [IN] buffer Buffer containing data to be put on the FIFO.
@@ -93,11 +87,6 @@ void sx1276_read_fifo(sx1276_t *dev, uint8_t *buffer, uint8_t size);
  * @param [IN] op_mode New operating mode
  */
 void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode);
-
-/**
- * @brief Tx & Rx timeout timer callback
- */
-void sx1276_on_timeout_isr(sx1276_t *dev);
 
 /*
  * Private global constants
@@ -961,7 +950,7 @@ void sx1276_set_rx(sx1276_t *dev, uint32_t timeout)
         break;
     }
 
-    sx1276_set_status(dev,  RF_RX_RUNNING);
+    sx1276_set_status(dev, RF_RX_RUNNING);
     if (timeout != 0) {
         xtimer_set(&dev->rx_timeout_timer, timeout);
     }
@@ -1079,13 +1068,9 @@ void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode)
             }
         }
 
-        printf("sx1276: RegOpMode (%02X) %02X -> %02X\n", op_mode, op_mode_prev, (op_mode_prev & RF_OPMODE_MASK) | op_mode);
-
         /* Replace previous mode value and setup new mode value */
         sx1276_reg_write(dev, REG_OPMODE, (op_mode_prev & RF_OPMODE_MASK) | op_mode);
         xtimer_usleep(1000 * 5); /* wait 5 milliseconds */
-
-        printf("sx1276: After setup: %02X\n", sx1276_reg_read(dev, REG_OPMODE) & ~RF_OPMODE_MASK);
     }
 }
 
@@ -1291,8 +1276,12 @@ void sx1276_on_dio0(void *arg)
                         __BKPT(1); /* Out of memory */
                     }
 
+                    /* Read the FIFO starting from the last packet received */
+                    uint8_t last_rx_addr = sx1276_reg_read(dev, REG_LR_FIFORXCURRENTADDR);
+                    sx1276_reg_write(dev, REG_LR_FIFOADDRPTR, last_rx_addr);
                     sx1276_read_fifo(dev, (uint8_t *) packet.content, packet.size);
 
+                    /* Notify upper layer about new packet */
                     send_event(dev, RX_DONE, &packet);
                 }
                 break;
@@ -1421,7 +1410,7 @@ void sx1276_on_dio5(void *arg)
 void *dio_polling_thread(void *arg)
 {
 
-    puts("sx1276: dio polling thread started");
+    puts("sx1276: dio polling thread started"); //XXX: debug
 
     sx1276_t *dev = (sx1276_t *) arg;
     msg_init_queue(msg_queue, sizeof(msg_queue));
@@ -1431,7 +1420,7 @@ void *dio_polling_thread(void *arg)
     while (1) {
         msg_receive(&msg);
 
-        printf("sx1276: received DIO #%d interrupt\n", (int) msg.content.value);
+        //printf("sx1276: received DIO #%d interrupt\n", (int) msg.content.value);
 
         uint32_t v = msg.content.value;
         switch (v) {

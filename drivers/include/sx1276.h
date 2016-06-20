@@ -25,7 +25,7 @@
 #define RADIO_WAKEUP_TIME                           1000        /**< [us] */
 #define RX_BUFFER_SIZE                              256
 #define RF_MID_BAND_THRESH                          525000000
-#define CHANNEL_HF									868000000
+#define CHANNEL_HF                                  868000000
 
 
 #ifdef __cplusplus

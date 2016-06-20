@@ -215,15 +215,6 @@ bool sx1276_is_channel_free(sx1276_t *dev, uint32_t freq, uint16_t rssi_thresh);
 uint32_t sx1276_random(sx1276_t *dev);
 
 /**
- * @brief Reads the raw temperature value of the chip.
- *
- * @param	[IN]	dev	The sx1276 device pointer
- *
- * @return signed 8 bit integer value of the current temperature of the sx1276 chip
- */
-int8_t sx1276_read_temp(sx1276_t *dev);
-
-/**
  * @brief Sets up the LoRa modem configuration.
  *
  * @param	[IN]	dev			The sx1276 device pointer

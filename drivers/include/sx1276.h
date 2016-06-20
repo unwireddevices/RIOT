@@ -23,23 +23,25 @@
 #define SX1276_H
 
 #define RADIO_WAKEUP_TIME                           1000        /**< [us] */
-#define CHANNEL_HF                                  868000000   /**< [Hz] */
-
 #define RX_BUFFER_SIZE                              256
-
 #define RF_MID_BAND_THRESH                          525000000
-                                               \
-    # ifdef __cplusplus
+#define CHANNEL_HF									868000000
+
+
+#ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * Radio driver supported modems
+ * Radio driver supported modems.
  */
 typedef enum {
     MODEM_FSK = 0, MODEM_LORA,
 } sx1276_radio_modems_t;
 
+/**
+ * LoRa configuration structure.
+ */
 typedef struct {
     uint8_t power;
     uint32_t bandwidth;
@@ -151,7 +153,7 @@ typedef void (sx1276_dio_irq_handler)(sx1276_t *dev);
  */
 
 /**
- * @brief Tests the transceiver
+ * @brief Tests the transceiver.
  *
  * @param	[IN]	dev	The sx1276 device structure pointer
  * @return true if test passed, false otherwise
@@ -176,21 +178,21 @@ void sx1276_init(sx1276_t *dev);
 sx1276_radio_state_t sx1276_get_status(sx1276_t *dev);
 
 /**
- * @brief Configures the radio with the given modem
+ * @brief Configures the radio with the given modem.
  *
  * @param [IN] modem Modem to be used [0: FSK, 1: LoRa]
  */
 void sx1276_set_modem(sx1276_t *dev, sx1276_radio_modems_t modem);
 
 /**
- * @brief Sets the channel frequency
+ * @brief Sets the channel frequency.
  *
  * @param	[IN]	dev		The sx1276 device structure pointer
  */
 void sx1276_set_channel(sx1276_t *dev, uint32_t freq);
 
 /**
- * @brief Checks that channel is free with specified RSSI threshold
+ * @brief Checks that channel is free with specified RSSI threshold.
  *
  * @param	[IN]	dev		The sx1276 device structure pointer
  * @param	[IN]	freq channel RF frequency
@@ -213,7 +215,7 @@ bool sx1276_is_channel_free(sx1276_t *dev, uint32_t freq, uint16_t rssi_thresh);
 uint32_t sx1276_random(sx1276_t *dev);
 
 /**
- * @brief Reads the raw temperature value of the chip
+ * @brief Reads the raw temperature value of the chip.
  *
  * @param	[IN]	dev	The sx1276 device pointer
  *
@@ -222,7 +224,7 @@ uint32_t sx1276_random(sx1276_t *dev);
 int8_t sx1276_read_temp(sx1276_t *dev);
 
 /**
- * @brief Sets up the LoRa modem configuration
+ * @brief Sets up the LoRa modem configuration.
  *
  * @param	[IN]	dev			The sx1276 device pointer
  * @param	[IN]	settings	The LoRa modem settings structure
@@ -230,8 +232,8 @@ int8_t sx1276_read_temp(sx1276_t *dev);
 void sx1276_configure_lora(sx1276_t *dev, sx1276_lora_settings_t *settings);
 
 /**
- * @brief Computes the packet time on air in us for the given payload
- * Can only be called once SetRxConfig or SetTxConfig have been called
+ * @brief Computes the packet time on air in us for the given payload.
+ * Can only be called once sx1276_configure_lora have been called
  *
  * @param	[IN]	dev			The sx1276 device structure pointer
  *
@@ -270,7 +272,7 @@ void sx1276_set_sleep(sx1276_t *dev);
 void sx1276_set_standby(sx1276_t *dev);
 
 /**
- * @brief Sets the radio in reception mode for given amount of time
+ * @brief Sets the radio in reception mode for given amount of time.
  *
  * @param	[IN]	dev		The sx1276 device structure pointer
  *
@@ -279,7 +281,7 @@ void sx1276_set_standby(sx1276_t *dev);
 void sx1276_set_rx(sx1276_t *dev, uint32_t timeout);
 
 /**
- * @brief Sets the radio in transmission mode for given amount of time
+ * @brief Sets the radio in transmission mode for given amount of time.
  *
  * @param	[IN]	dev		The sx1276 device structure pointer
  *
@@ -288,7 +290,7 @@ void sx1276_set_rx(sx1276_t *dev, uint32_t timeout);
 void sx1276_set_tx(sx1276_t *dev, uint32_t timeout);
 
 /**
- * @brief Start a channel activity detection
+ * @brief Start a channel activity detection.
  *
  * @param	[IN]	dev		The sx1276 device structure pointer
  */
@@ -296,7 +298,7 @@ void sx1276_set_tx(sx1276_t *dev, uint32_t timeout);
 void sx1276_start_cad(sx1276_t *dev);
 
 /**
- * @brief Reads the current RSSI value
+ * @brief Reads the current RSSI value.
  *
  * @param	[IN]	dev		The sx1276 device structure pointer
  *
@@ -305,7 +307,7 @@ void sx1276_start_cad(sx1276_t *dev);
 int16_t sx1276_read_rssi(sx1276_t *dev);
 
 /**
- * @brief Writes the radio register at specified address
+ * @brief Writes the radio register at specified address.
  *
  * @param	[IN]	dev		The sx1276 device structure pointer
  *
@@ -316,7 +318,7 @@ int16_t sx1276_read_rssi(sx1276_t *dev);
 void sx1276_reg_write(sx1276_t *dev, uint8_t addr, uint8_t data);
 
 /**
- * @brief Reads the radio register at specified address
+ * @brief Reads the radio register at specified address.
  *
  * @param	[IN]	dev		The sx1276 device structure pointer
  *
@@ -327,7 +329,7 @@ void sx1276_reg_write(sx1276_t *dev, uint8_t addr, uint8_t data);
 uint8_t sx1276_reg_read(sx1276_t *dev, uint8_t addr);
 
 /**
- * @brief Writes multiple radio registers starting at address (burst-mode)
+ * @brief Writes multiple radio registers starting at address (burst-mode).
  *
  * @param	[IN]	dev		The sx1276 device structure pointer
  *
@@ -341,7 +343,7 @@ void sx1276_reg_write_burst(sx1276_t *dev, uint8_t addr, uint8_t *buffer,
                             uint8_t size);
 
 /**
- * @brief Reads multiple radio registers starting at address
+ * @brief Reads multiple radio registers starting at address.
  *
  * @param	[IN]	dev		The sx1276 device structure pointer
  *
@@ -355,7 +357,7 @@ void sx1276_reg_read_burst(sx1276_t *dev, uint8_t addr, uint8_t *buffer,
                            uint8_t size);
 
 /**
- * @brief Sets the maximum payload length
+ * @brief Sets the maximum payload length.
  *
  * @param	[IN]	dev		The sx1276 device structure pointer
  *

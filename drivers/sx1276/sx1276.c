@@ -166,11 +166,38 @@ static void _init_timers(sx1276_t *dev)
     dev->rx_timeout_timer.callback = _on_rx_timeout;
 }
 
+static int _init_peripherals(sx1276_t *dev) {
+    int res;
+
+    /* Setup SPI for SX1276 */
+    spi_acquire(SX1276_SPI);
+    res = spi_init_master(dev->spi, SPI_CONF_FIRST_RISING, SPI_SPEED_1MHZ);
+    spi_release(SX1276_SPI);
+
+    if (res < 0) {
+        printf("sx1276: error initializing SPI_%i device (code %i)\n",
+               SX1276_SPI, res);
+        return 0;
+    }
+
+    res = gpio_init(SX1276_SPI_NSS, GPIO_OUT);
+    if (res < 0) {
+        printf("sx1276: error initializing GPIO_%ld as CS line (code %i)\n",
+               (long)SX1276_SPI_NSS, res);
+        return 0;
+    }
+
+    gpio_set(SX1276_SPI_NSS);
+
+    return 1;
+}
+
 void sx1276_init(sx1276_t *dev)
 {
     sx1276_reset(dev);
 
     /** Do internal initialization routines */
+    _init_peripherals(dev);
     _init_isrs(dev);
     _init_timers(dev);
     _rx_chain_calibration(dev);

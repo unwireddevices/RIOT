@@ -95,7 +95,7 @@ typedef enum {
     RX_TIMEOUT,
     TX_TIMEOUT,
 
-    RX_ERROR,
+    RX_ERROR_CRC,
 
     FHSS_CHANGE_CHANNEL,
     CAD_DONE,

@@ -84,7 +84,7 @@ void blink_led(void)
         xtimer_usleep(50000);
     }
 
-    LED0_ON;
+    LED0_OFF;
 }
 
 int spi_init(void)
@@ -167,7 +167,7 @@ void *event_handler_thread(void *arg)
         switch (event->type) {
             case RX_DONE:
 
-                printf("sx1276: received %u bytes: '%s' | RSSI: %d\n",
+                printf("RX: %u bytes: '%s' | RSSI: %d\n",
                        packet->size,
                        packet->content,
                        packet->rssi_value);
@@ -184,8 +184,8 @@ void *event_handler_thread(void *arg)
 
                 break;
 
-            case RX_ERROR:
-                printf("sx1276: reception error: '%s'\n", msg.content.ptr);
+            case RX_ERROR_CRC:
+                puts("sx1276: RX CRC failed");
                 break;
 
             case TX_DONE:
@@ -424,11 +424,11 @@ int main(void)
 
     blink_led();
 
-//#define RX_TEST
+#define RX_TEST
 //#define TX_BEACON
 #ifdef TX_BEACON
     char *args[] = {
-        "tx_test", "Hello world! This is a test payload being sended!"
+        "tx_test", "Hello world!! This is a test..."
     };
 
     for (;; ) {

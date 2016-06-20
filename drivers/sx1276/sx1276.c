@@ -1227,7 +1227,7 @@ void sx1276_on_dio0(void *arg)
 
                         xtimer_remove(&dev->rx_timeout_timer);
 
-                        send_event(dev, RX_ERROR, "CRC error");
+                        send_event(dev, RX_ERROR_CRC, NULL);
 
                         break;
                     }

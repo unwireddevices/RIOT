@@ -27,6 +27,48 @@
 extern "C" {
 #endif
 
+
+/**
+ * @name SX1276 configuration
+ * @{
+ */
+#define RF_FREQUENCY                                868900000   // Hz, 868.9MHz
+#define TX_OUTPUT_POWER                             10          // dBm
+
+#define LORA_PREAMBLE_LENGTH                        8           // Same for Tx and Rx
+#define LORA_SYMBOL_TIMEOUT                         10          // Symbols
+
+#define LORA_FIX_LENGTH_PAYLOAD_ON                  false
+#define LORA_IQ_INVERSION                           false
+
+#define SX1276_DIO0 GPIO_PIN(PORT_A, 8)
+#define SX1276_DIO1 GPIO_PIN(PORT_A, 9)
+#define SX1276_DIO2 GPIO_PIN(PORT_A, 10)
+#define SX1276_DIO3 GPIO_PIN(PORT_A, 11)
+
+#define SX1276_RESET GPIO_PIN(PORT_C, 6)
+
+/** Antenna mode (RX/TX) switching pin */
+#define SX1276_ANTSW GPIO_PIN(PORT_A, 12)
+
+/** SX1276 SPI */
+
+#define USE_SPI_0
+
+#ifdef USE_SPI_1
+#define SX1276_SPI SPI_1
+#define SX1276_SPI_NSS GPIO_PIN(PORT_B, 12)
+#define SX1276_SPI_MODE SPI_CONF_FIRST_RISING
+#define SX1276_SPI_SPEED SPI_SPEED_1MHZ
+#endif
+
+#ifdef USE_SPI_0
+#define SX1276_SPI SPI_0
+#define SX1276_SPI_NSS GPIO_PIN(PORT_A, 4)
+#define SX1276_SPI_MODE SPI_CONF_FIRST_RISING
+#define SX1276_SPI_SPEED SPI_SPEED_1MHZ
+#endif
+
 /**
  * @name Macros for controlling the on-board LEDs.
  * @{

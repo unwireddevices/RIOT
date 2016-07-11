@@ -154,6 +154,8 @@ extern "C" {
 #define SPI_1_PIN_AF        0
 /** @} */
 
+#define RTC_NUMOF           (1U)
+
 #ifdef __cplusplus
 }
 #endif

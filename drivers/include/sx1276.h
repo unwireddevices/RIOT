@@ -18,6 +18,7 @@
 
 #include "periph/gpio.h"
 #include "periph/spi.h"
+#include "xtimer.h"
 
 #ifndef SX1276_H
 #define SX1276_H
@@ -231,7 +232,7 @@ void sx1276_set_channel(sx1276_t *dev, uint32_t freq);
  *
  * @return channel is free or not [true: channel is free, false: channel is not free]
  */
-bool sx1276_is_channel_free(sx1276_t *dev, uint32_t freq, uint16_t rssi_thresh);
+bool sx1276_is_channel_free(sx1276_t *dev, uint32_t freq, int16_t rssi_thresh);
 
 /**
  * @brief generates 32 bits random value based on the RSSI readings

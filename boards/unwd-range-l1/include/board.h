@@ -31,7 +31,7 @@ extern "C" {
  * @name SX1276 configuration
  * @{
  */
-#define RF_FREQUENCY                                868000000 // Hz, 868MHz
+#define RF_FREQUENCY                                868900000 // Hz, 868MHz
 #define TX_OUTPUT_POWER                             10        // dBm
 
 
@@ -54,6 +54,8 @@ extern "C" {
 #define SX1276_DIO1 GPIO_PIN(PORT_A, 9)
 #define SX1276_DIO2 GPIO_PIN(PORT_A, 10)
 #define SX1276_DIO3 GPIO_PIN(PORT_A, 11)
+
+#define SX1276_RESET GPIO_PIN(PORT_A, 0)
 
 /** Antenna mode (RX/TX) switching pin */
 #define SX1276_ANTSW GPIO_PIN(PORT_A, 12)
@@ -79,7 +81,6 @@ extern "C" {
 /** Unused pins */
 #define SX1276_DIO4 NULL
 #define SX1276_DIO5 NULL
-#define SX1276_RESET NULL
 
 /** @} */
 

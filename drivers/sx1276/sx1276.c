@@ -263,7 +263,7 @@ bool sx1276_test(sx1276_t *dev)
     return true;
 }
 
-bool sx1276_is_channel_free(sx1276_t *dev, uint32_t freq, uint16_t rssi_thresh)
+bool sx1276_is_channel_free(sx1276_t *dev, uint32_t freq, int16_t rssi_thresh)
 {
     int16_t rssi = 0;
 
@@ -659,8 +659,8 @@ void sx1276_send(sx1276_t *dev, uint8_t *buffer, uint8_t size)
             sx1276_reg_write(dev, REG_LR_PAYLOADLENGTH, size);
 
             /* Full buffer used for Tx */
-            sx1276_reg_write(dev, REG_LR_FIFOTXBASEADDR, 0x80);
-            sx1276_reg_write(dev, REG_LR_FIFOADDRPTR, 0x80);
+            sx1276_reg_write(dev, REG_LR_FIFOTXBASEADDR, 0x00);
+            sx1276_reg_write(dev, REG_LR_FIFOADDRPTR, 0x00);
 
             /* FIFO operations can not take place in Sleep mode
              * So wake up the chip */
@@ -847,15 +847,16 @@ void sx1276_set_rx(sx1276_t *dev, uint32_t timeout)
     }
 
     sx1276_set_status(dev, RF_RX_RUNNING);
-    if (timeout != 0) {
-        xtimer_set(&dev->rx_timeout_timer, timeout);
-    }
 
     if (rx_continuous) {
         sx1276_set_op_mode(dev, RFLR_OPMODE_RECEIVER);
     }
     else {
-        sx1276_set_op_mode(dev, RFLR_OPMODE_RECEIVER_SINGLE);
+        if (timeout != 0) {
+            xtimer_set(&dev->rx_timeout_timer, timeout);
+        }
+
+    	sx1276_set_op_mode(dev, RFLR_OPMODE_RECEIVER_SINGLE);
     }
 }
 
@@ -939,6 +940,8 @@ void sx1276_reset(sx1276_t *dev)
     /* Put reset pin in High-Z */
     gpio_init(dev->reset_pin, GPIO_OD);
 
+    gpio_set(dev->reset_pin);
+
     /* Wait 10 ms */
     xtimer_usleep(1000 * 10);
 }
@@ -950,7 +953,8 @@ void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode)
     op_mode_prev = sx1276_reg_read(dev, REG_OPMODE) & ~RF_OPMODE_MASK;
 
     if (op_mode != op_mode_prev) {
-        if (op_mode == RF_OPMODE_SLEEP) {
+        /*
+    	if (op_mode == RF_OPMODE_SLEEP) {
             sx1276_board_set_ant_sw_low_power(true);
         }
         else {
@@ -962,11 +966,10 @@ void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode)
             else {
                 sx1276_board_set_ant_sw(0);
             }
-        }
+        }*/
 
         /* Replace previous mode value and setup new mode value */
         sx1276_reg_write(dev, REG_OPMODE, (op_mode_prev & RF_OPMODE_MASK) | op_mode);
-        xtimer_usleep(1000 * 5); /* wait 5 milliseconds */
     }
 }
 
@@ -1022,16 +1025,17 @@ void sx1276_reg_read_burst(sx1276_t *dev, uint8_t addr, uint8_t *buffer,
                            uint8_t size)
 {
     unsigned int cpsr;
+    cpsr = irq_disable();
 
     spi_acquire(dev->spi);
-    cpsr = irq_disable();
 
     gpio_clear(dev->nss_pin);
     spi_transfer_regs(dev->spi, addr & 0x7F, NULL, (char *) buffer, size);
     gpio_set(dev->nss_pin);
 
-    irq_restore(cpsr);
     spi_release(dev->spi);
+
+    irq_restore(cpsr);
 }
 
 void sx1276_write_fifo(sx1276_t *dev, uint8_t *buffer, uint8_t size)
@@ -1052,7 +1056,7 @@ void sx1276_on_dio0_isr(void *arg)
     msg_t msg;
 
     msg.content.value = 0;
-    msg_try_send(&msg, ((sx1276_t *)arg)->dio_polling_thread_pid);
+    msg_send_int(&msg, ((sx1276_t *)arg)->dio_polling_thread_pid);
 }
 
 void sx1276_on_dio1_isr(void *arg)
@@ -1060,7 +1064,7 @@ void sx1276_on_dio1_isr(void *arg)
     msg_t msg;
 
     msg.content.value = 1;
-    msg_try_send(&msg, ((sx1276_t *)arg)->dio_polling_thread_pid);
+    msg_send_int(&msg, ((sx1276_t *)arg)->dio_polling_thread_pid);
 }
 
 void sx1276_on_dio2_isr(void *arg)
@@ -1068,7 +1072,7 @@ void sx1276_on_dio2_isr(void *arg)
     msg_t msg;
 
     msg.content.value = 2;
-    msg_try_send(&msg, ((sx1276_t *)arg)->dio_polling_thread_pid);
+    msg_send_int(&msg, ((sx1276_t *)arg)->dio_polling_thread_pid);
 }
 
 void sx1276_on_dio3_isr(void *arg)
@@ -1076,7 +1080,7 @@ void sx1276_on_dio3_isr(void *arg)
     msg_t msg;
 
     msg.content.value = 3;
-    msg_try_send(&msg, ((sx1276_t *)arg)->dio_polling_thread_pid);
+    msg_send_int(&msg, ((sx1276_t *)arg)->dio_polling_thread_pid);
 }
 
 void sx1276_on_dio4_isr(void *arg)
@@ -1084,7 +1088,7 @@ void sx1276_on_dio4_isr(void *arg)
     msg_t msg;
 
     msg.content.value = 4;
-    msg_try_send(&msg, ((sx1276_t *)arg)->dio_polling_thread_pid);
+    msg_send_int(&msg, ((sx1276_t *)arg)->dio_polling_thread_pid);
 }
 
 void sx1276_on_dio5_isr(void *arg)
@@ -1092,7 +1096,7 @@ void sx1276_on_dio5_isr(void *arg)
     msg_t msg;
 
     msg.content.value = 5;
-    msg_try_send(&msg, ((sx1276_t *)arg)->dio_polling_thread_pid);
+    msg_send_int(&msg, ((sx1276_t *)arg)->dio_polling_thread_pid);
 }
 
 /* Internal event handlers */

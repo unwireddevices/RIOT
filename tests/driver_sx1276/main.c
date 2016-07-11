@@ -26,6 +26,8 @@
 #include "shell_commands.h"
 #include "thread.h"
 #include "xtimer.h"
+#include "lpm.h"
+#include "periph/rtc.h"
 
 #include "common.h"
 
@@ -87,36 +89,6 @@ void blink_led(void)
     LED0_OFF;
 }
 
-int spi_init(void)
-{
-    int res;
-
-    /* Setup SPI config for SX1276 */
-    spi_acquire(SX1276_SPI);
-    res = spi_init_master(SX1276_SPI, SX1276_SPI_MODE, SX1276_SPI_SPEED);
-    spi_release(SX1276_SPI);
-
-    if (res < 0) {
-        printf("spi_init_master: error initializing SPI_%i device (code %i)\n",
-               SX1276_SPI, res);
-        return 0;
-    }
-
-    res = gpio_init(SX1276_SPI_NSS, GPIO_OUT);
-    if (res < 0) {
-        printf("gpio_init: error initializing GPIO_%ld as CS line (code %i)\n",
-               (long)SX1276_SPI_NSS, res);
-        return 0;
-    }
-
-    gpio_set(SX1276_SPI_NSS);
-
-    printf("spi_init: SPI_%i successfully initialized as master, cs: GPIO_%ld, mode: %i, speed: %i\n",
-           SX1276_SPI, (long)SX1276_SPI_NSS, SX1276_SPI_MODE, SX1276_SPI_SPEED);
-
-    return 1;
-}
-
 void sx1276_board_set_ant_sw_low_power(uint8_t lp)
 {
     if (lp) {
@@ -139,15 +111,25 @@ void sx1276_board_set_ant_sw(uint8_t tx)
 
 void init_configs(void)
 {
-    sx1276_set_rx_config(&sx1276, MODEM_LORA, LORA_BANDWIDTH, LORA_SPREADING_FACTOR,
-                         LORA_CODINGRATE, 0, LORA_PREAMBLE_LENGTH,
-                         LORA_SYMBOL_TIMEOUT, LORA_FIX_LENGTH_PAYLOAD_ON,
-                         6, true, 0, 0, LORA_IQ_INVERSION, true);
+    sx1276_lora_settings_t settings;
 
-    sx1276_set_tx_config(&sx1276, MODEM_LORA, TX_OUTPUT_POWER, 0, LORA_BANDWIDTH,
-                         LORA_SPREADING_FACTOR, LORA_CODINGRATE,
-                         LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
-                         true, 0, 0, LORA_IQ_INVERSION, 3000000);
+    settings.bandwidth = BW_500_KHZ;
+    settings.coderate = CR_4_5;
+    settings.datarate = SF12;
+    settings.crc_on = true;
+    settings.freq_hop_on = false;
+    settings.hop_period = 0;
+    settings.implicit_header = false;
+    settings.iq_inverted = false;
+    settings.low_datarate_optimize = false;
+    settings.payload_len = 0;
+    settings.power = TX_OUTPUT_POWER;
+    settings.preamble_len = LORA_PREAMBLE_LENGTH;
+    settings.rx_continuous = true;
+    settings.tx_timeout = 1000 * 1000 * 30; // 30 sec
+    settings.rx_timeout = LORA_SYMBOL_TIMEOUT;
+
+    sx1276_configure_lora(&sx1276, &settings);
 }
 
 void *event_handler_thread(void *arg)
@@ -204,7 +186,6 @@ void *event_handler_thread(void *arg)
                 printf("sx1276: received event #%d\n", (int) event->type);
                 break;
         }
-
     }
 
     return NULL;
@@ -231,21 +212,6 @@ void init_radio(void)
 
     sx1276.settings = settings;
 
-    if (!spi_init()) {
-        puts("init_radio: failed to initialize SPI for sx1276");
-        return;
-    }
-
-    /* Check presence of SX1276 */
-    if (!sx1276_test(&sx1276)) {
-        puts("init_radio: test failed");
-        return;
-    }
-    else {
-        puts("init_radio: radio test passed");
-    }
-
-
     /* Create event listener thread */
 
     puts("init_radio: creating event listener...");
@@ -265,7 +231,11 @@ void init_radio(void)
     puts("init_radio: initializing driver...");
     sx1276_init(&sx1276);
 
+    /* Configure the device */
     init_configs();
+
+    /* Put chip into sleep */
+    sx1276_set_sleep(&sx1276);
 
     puts("init_radio: sx1276 initialization done");
 }
@@ -404,12 +374,67 @@ int rx_test(int argc, char **argv)
     return 0;
 }
 
+int lora_setup(int argc, char **argv) {
+	if (argc < 4) {
+		return -1;
+	}
+
+	int bw = atoi(argv[1]);
+	int sf = atoi(argv[2]);
+	int cr = atoi(argv[3]);
+
+	sx1276_lora_bandwidth_t lora_bw;
+
+	switch (bw) {
+	case 125:
+		lora_bw = BW_125_KHZ;
+		break;
+
+	case 250:
+		lora_bw = BW_250_KHZ;
+		break;
+
+	case 500:
+		lora_bw = BW_500_KHZ;
+		break;
+
+	default:
+		puts("lora_setup invalid bandwidth value passed");
+		return -1;
+	}
+
+	sx1276_lora_spreading_factor_t lora_sf;
+	if (sf < 7 || sf > 12) {
+		puts("lora_setup: invalid spreading factor value passed");
+		return -1;
+	}
+
+	lora_sf = (sx1276_lora_spreading_factor_t) sf;
+
+	sx1276_lora_coding_rate_t lora_cr;
+	if (cr < 5 || cr > 8) {
+		puts("lora_setup: invalid coding rate value passed");
+		return -1;
+	}
+
+	lora_cr = (sx1276_lora_coding_rate_t) (cr - 5);
+
+	sx1276_configure_lora_bw(&sx1276, lora_bw);
+	sx1276_configure_lora_sf(&sx1276, lora_sf);
+	sx1276_configure_lora_cr(&sx1276, lora_cr);
+
+	puts("lora_setup: configuration is set");
+
+	return 0;
+}
+
 static const shell_command_t shell_commands[] = {
     { "random", "Get random number from sx1276", random },
     { "get", "<all | num> - gets value of registers of sx1276, all or by specified number from 0 to 255", regs },
     { "set", "<num> <value> - sets value of register with specified number", regs_set },
     { "tx_test", "<payload> Send test payload string", tx_test },
     { "rx_test", "Start rx test", rx_test },
+	{ "lora_setup", "<BW (125, 250, 512)> <SF (7..12)> <CR 4/(5,6,7,8)> - sets up LoRa modulation settings", lora_setup},
 
     { NULL, NULL, NULL }
 };
@@ -424,19 +449,71 @@ int main(void)
 
     blink_led();
 
-#define RX_TEST
+//#define RTC
+//#define RX_TEST
 //#define TX_BEACON
 #ifdef TX_BEACON
     char *args[] = {
         "tx_test", "Hello world!! This is a test..."
     };
 
-    for (;; ) {
-        tx_test(2, args);
-        blink_led();
+	/* 3 seconds interval */
+	#define INTERVAL (1000 * 1000 * 3U)
 
-        xtimer_usleep(1000 * 1000 * 3);
+#ifdef _RTC
+    void rtc_alarm(void *arg)
+    {
+        (void)arg;
+
+        puts("Alarm!");
+
+        struct tm time;
+        rtc_get_alarm(&time);
+        time.tm_sec  += 3;
+
+        rtc_set_alarm(&time, rtc_alarm, 0);
     }
+
+#if RTC_NUMOF < 1
+#error "No RTC found. See the board specific periph_conf.h."
+#endif
+
+    /* Init low power modes */
+    lpm_init();
+    rtc_init();
+
+	struct tm time;
+	time.tm_year = 2016 - 1900; // years are counted from 1900
+	time.tm_mon  = 0; // 0 = January, 11 = December
+	time.tm_mday = 0;
+	time.tm_hour = 0;
+	time.tm_min  = 0;
+	time.tm_sec  = 0;
+
+	rtc_set_time(&time);
+	xtimer_usleep(100);
+
+	time.tm_sec  += 3;
+	rtc_set_alarm(&time, rtc_alarm, 0);
+	xtimer_usleep(100);
+
+	while(1) {
+		if (send) {
+			send = false;
+			tx_test(2, args);
+			blink_led();
+		}
+
+		//lpm_set(LPM_SLEEP);
+	}
+#else
+	while(1) {
+		tx_test(2, args);
+		blink_led();
+
+		xtimer_usleep(INTERVAL); // 3 sec
+	}
+#endif
 #endif
 
 #ifdef RX_TEST

@@ -32,7 +32,7 @@ extern "C" {
  * @{
  */
 #define RF_FREQUENCY                                868900000 // Hz, 868MHz
-#define TX_OUTPUT_POWER                             10        // dBm
+#define TX_OUTPUT_POWER                             14        // dBm
 
 
 
@@ -81,6 +81,19 @@ extern "C" {
 /** Unused pins */
 #define SX1276_DIO4 NULL
 #define SX1276_DIO5 NULL
+
+/** GPIO Ports */
+#define UNWD_GPIO_1 GPIO_PIN(PORT_A, 1)
+#define UNWD_GPIO_4 GPIO_PIN(PORT_A, 4)
+#define UNWD_GPIO_5 GPIO_PIN(PORT_A, 5)
+#define UNWD_GPIO_6 GPIO_PIN(PORT_A, 6)
+#define UNWD_GPIO_7 GPIO_PIN(PORT_A, 7)
+
+#define UNWD_GPIO_30 GPIO_PIN(PORT_B, 1)
+#define UNWD_GPIO_29 GPIO_PIN(PORT_B, 10)
+#define UNWD_GPIO_28 GPIO_PIN(PORT_B, 9)
+#define UNWD_GPIO_27 GPIO_PIN(PORT_B, 8)
+#define UNWD_GPIO_24 GPIO_PIN(PORT_B, 5)
 
 /** @} */
 

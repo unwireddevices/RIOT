@@ -113,7 +113,7 @@ void init_configs(void)
 {
     sx1276_lora_settings_t settings;
 
-    settings.bandwidth = BW_500_KHZ;
+    settings.bandwidth = BW_125_KHZ;
     settings.coderate = CR_4_5;
     settings.datarate = SF12;
     settings.crc_on = true;
@@ -123,13 +123,15 @@ void init_configs(void)
     settings.iq_inverted = false;
     settings.low_datarate_optimize = false;
     settings.payload_len = 0;
-    settings.power = TX_OUTPUT_POWER;
+    settings.power = 10;//TX_OUTPUT_POWER;
     settings.preamble_len = LORA_PREAMBLE_LENGTH;
     settings.rx_continuous = true;
     settings.tx_timeout = 1000 * 1000 * 30; // 30 sec
     settings.rx_timeout = LORA_SYMBOL_TIMEOUT;
 
     sx1276_configure_lora(&sx1276, &settings);
+
+    //sx1276_set_channel(&sx1276, 868500000);
 }
 
 void *event_handler_thread(void *arg)
@@ -439,6 +441,9 @@ static const shell_command_t shell_commands[] = {
     { NULL, NULL, NULL }
 };
 
+void sx1276_reset(sx1276_t *sx1276);
+void sx1276_set_op_mode(sx1276_t *sx1276, int opmode);
+
 int main(void)
 {
     print_logo();
@@ -450,15 +455,28 @@ int main(void)
     blink_led();
 
 //#define RTC
-//#define RX_TEST
+#define RX_TEST
+//#define DIO5_TEST
 //#define TX_BEACON
+
+#ifdef DIO5_TEST
+    sx1276_reset(&sx1276);
+
+    sx1276_set_modem(&sx1276, MODEM_FSK);
+    sx1276_set_op_mode(&sx1276, RF_OPMODE_STANDBY);
+
+    sx1276_reg_write(&sx1276, 0x24, 0x3);	// freq. divider setup
+    //sx1276_reg_write(&sx1276, 0x40, 0x10);
+    sx1276_reg_write(&sx1276, 0x41, 0x00);
+#endif
+
 #ifdef TX_BEACON
     char *args[] = {
         "tx_test", "Hello world!! This is a test..."
     };
 
-	/* 3 seconds interval */
-	#define INTERVAL (1000 * 1000 * 3U)
+	/* 5 seconds interval */
+	#define INTERVAL (1000 * 1000 * 5U)
 
 #ifdef _RTC
     void rtc_alarm(void *arg)

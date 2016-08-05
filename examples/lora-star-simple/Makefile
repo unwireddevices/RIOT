@@ -51,6 +51,13 @@ USEMODULE += umdk-gps
 CFLAGS += -DUMDK_GPS
 INCLUDES += -I../../unwired-modules/umdk-gps/include/
 
+USEMODULE += umdk-temp
+USEMODULE += printf_float
+CFLAGS += -DUMDK_TEMP
+INCLUDES += -I../../unwired-modules/umdk-temp/include/
+
+
+
 ####################################################
 
 CFLAGS += -DCRYPTO_AES

@@ -15,8 +15,8 @@
  * @brief       common declarations for the unwired modules
  * @author      Eugene Ponomarev
  */
-#ifndef UNWIRED_MODULES_UNWDS_COMMON_INCLUDE_UNWDS_COMMON_H_
-#define UNWIRED_MODULES_UNWDS_COMMON_INCLUDE_UNWDS_COMMON_H_
+#ifndef UNWDS_COMMON_H_
+#define UNWDS_COMMON_H_
 
 #include <stdint.h>
 
@@ -46,4 +46,4 @@ uint64_t unwds_get_ability(void);
 
 bool unwds_is_pin_occupied(uint32_t pin);
 
-#endif /* UNWIRED_MODULES_UNWDS_COMMON_INCLUDE_UNWDS_COMMON_H_ */
+#endif /* UNWDS_COMMON_H_ */

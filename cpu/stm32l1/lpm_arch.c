@@ -18,7 +18,18 @@
  * @}
  */
 
+#include <stdio.h>
 #include "arch/lpm_arch.h"
+
+#include "stm32l1xx.h"
+
+#define CR_DS_MASK               ((uint32_t)0xFFFFFFFC)
+
+/* Ultra Low Power mode definitions */
+#define PWR_OFFSET               (PWR_BASE - PERIPH_BASE)
+#define CR_OFFSET                (PWR_OFFSET + 0x00)
+#define ULP_BitNumber           0x09
+#define CR_ULP_BB               (PERIPH_BB_BASE + (CR_OFFSET * 32) + (ULP_BitNumber * 4))
 
 void lpm_arch_init(void)
 {
@@ -27,7 +38,55 @@ void lpm_arch_init(void)
 
 enum lpm_mode lpm_arch_set(enum lpm_mode target)
 {
-    /* TODO */
+    switch (target) {
+        case LPM_SLEEP:;             /* Sleep mode */
+        	PWR->CR = (PWR->CR & CR_DS_MASK) | PWR_CR_LPSDSR;
+            SCB->SCR &= (uint32_t) ~((uint32_t)SCB_SCR_SLEEPDEEP); /* Clear SLEEPDEEP bit of Cortex System Control Register */
+
+            /* Request Wait For Interrupt */
+            __WFI();
+            break;
+
+        case LPM_POWERDOWN:         /* Stop mode */
+            /* Regulator in LP mode */
+            PWR->CR = (PWR->CR & CR_DS_MASK) | PWR_CR_LPSDSR;
+
+            /* Set SLEEPDEEP bit of Cortex System Control Register */
+            SCB->SCR |= SCB_SCR_SLEEPDEEP;
+
+            /* Wait in sleep mode until interrupt */
+            __WFI();
+
+            /* Clear SLEEPDEEP bit */
+            SCB->SCR &= (uint32_t) ~((uint32_t)SCB_SCR_SLEEPDEEP);
+            break;
+
+        case LPM_OFF:               /* Standby mode */
+            /* Select STANDBY mode */
+            PWR->CR |= PWR_CR_PDDS;
+
+            /* Set SLEEPDEEP bit of Cortex System Control Register */
+            SCB->SCR |= SCB_SCR_SLEEPDEEP;
+
+            /* Enable Ultra Low Power mode */
+            *(__IO uint32_t *) CR_ULP_BB = 1;
+
+            /* This option is used to ensure that store operations are completed */
+            #if defined (__CC_ARM)
+            __force_stores();
+            #endif
+            /* Request Wait For Interrupt */
+            __WFI();
+            break;
+
+        /* do nothing here */
+        case LPM_UNKNOWN:
+        case LPM_ON:
+        case LPM_IDLE:
+        default:
+            break;
+    }
+
     return 0;
 }
 
@@ -39,7 +98,11 @@ enum lpm_mode lpm_arch_get(void)
 
 void lpm_arch_awake(void)
 {
-    /* TODO */
+    /* Disable Ultra Low Power mode */
+    *(__IO uint32_t *) CR_ULP_BB = 0;
+
+    PWR->CR &= (uint32_t) ~((uint32_t)PWR_CR_LPRUN);
+    PWR->CR &= (uint32_t) ~((uint32_t)PWR_CR_LPSDSR);
 }
 
 void lpm_arch_begin_awake(void)

@@ -32,4 +32,4 @@
 void umdk_gps_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
 bool umdk_gps_cmd(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_LEN], char *reply);
 
-#endif /* UMDK_4BTN_H */
+#endif /* UMDK_GPS_H */

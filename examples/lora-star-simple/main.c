@@ -152,7 +152,7 @@ void appdata_send_failed_cb(void) {
 void appdata_received_cb(uint8_t *buf, size_t buflen) {
 	printf("ls-ed: received data: \"%s\"\n", buf);
 
-	char reply[64];
+	char reply[UNWDS_MAX_REPLY_LEN];
 	memset(reply, 0, sizeof(reply));
 
 	unwds_command((char *) buf, reply);
@@ -166,13 +166,14 @@ void appdata_received_cb(uint8_t *buf, size_t buflen) {
 
 void ls_setup(ls_ed_t *ls)
 {
-	ls->settings.class = LS_ED_CLASS_B;	/* Continuously listening */
+	ls->settings.class = LS_ED_CLASS_B;
 
 	ls->settings.dr = LS_DR6;
 	ls->settings.channel = 0;
 
     ls->settings.app_id = 0xDEADBEEF;
     ls->settings.node_id = 1;
+
     memcpy(ls->settings.crypto.join_key, join_key, LS_MIC_KEY_LEN);
 
     ls->join_timeout_cb = joined_timeout_cb;
@@ -412,13 +413,15 @@ int main(void)
 {
     print_logo();
     xtimer_init();
-
+    rtc_init();
     radio_init();
 
     ls_setup(&ls);
     ls_ed_init(&ls);
 
     unwds_init(unwds_callback);
+
+    ls.settings.ability = unwds_get_ability();
 
     xtimer_usleep(1e6 * 1);
     ls_ed_join(&ls);

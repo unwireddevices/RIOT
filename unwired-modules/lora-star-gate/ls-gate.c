@@ -154,7 +154,7 @@ static inline void send_lnkchk_ack(ls_gate_t *ls, ls_gate_channel_t *ch, ls_addr
 	send_frame(ch, addr, (has_pending) ? LS_DL_LNKCHK_P : LS_DL_LNKCHK, NULL, 0);
 }
 
-static void device_join_req(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t dev_id, uint64_t app_id, uint32_t dev_nonce, ls_node_class_t node_class) {
+static void device_join_req(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t dev_id, uint64_t app_id, uint32_t dev_nonce, ls_node_class_t node_class, uint64_t ability) {
 	/* Check node acceptance */
 	if (ls->accept_node_join_cb != NULL) {
 		if (!ls->accept_node_join_cb(dev_id, app_id))
@@ -186,6 +186,9 @@ static void device_join_req(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t dev_i
 
 	/* Call join handler which returns an app nonce from the application side */
 	node->app_nonce = ls->node_joined_cb(node);
+
+	/* Set node's ability bit map */
+	node->node_ability = ability;
 
 	/* Send join ACK */
 	send_join_ack(ls, ch, dev_id, node->addr, node->app_nonce);
@@ -317,8 +320,9 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame) 
 		uint64_t app_id = req.app_id;
 		uint32_t dev_nonce = req.dev_nonce;
 		ls_node_class_t node_class = req.node_class;
+		uint64_t node_ability = req.node_ability;
 
-		device_join_req(ls, ch, dev_id, app_id, dev_nonce, node_class);
+		device_join_req(ls, ch, dev_id, app_id, dev_nonce, node_class, node_ability);
 
 		return true;
 

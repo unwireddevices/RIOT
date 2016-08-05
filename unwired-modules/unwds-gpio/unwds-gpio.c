@@ -231,7 +231,7 @@ bool unwds_gpio_cmd(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_L
 	/* gpio set <num> <1/0> */
 	if (strcmp(sub_cmd, "set") == 0 && argc == 3) {
 		/* Is pin is occupied by other module */
-		if (is_pin_occupied(arg)) {
+		if (unwds_is_pin_occupied(arg)) {
 			strcpy(reply, "pin occupied");
 			return false;
 		}
@@ -252,7 +252,7 @@ bool unwds_gpio_cmd(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_L
 		return true;
 	} else if (strcmp(sub_cmd, "toggle") == 0 && argc == 2) {
 		/* Is pin is occupied by other module */
-		if (is_pin_occupied(arg)) {
+		if (unwds_is_pin_occupied(arg)) {
 			strcpy(reply, "pin occupied");
 			return false;
 		}
@@ -271,7 +271,7 @@ bool unwds_gpio_cmd(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_L
 		return true;
 	} else if (strcmp(sub_cmd, "get") == 0 && argc == 2) { /* gpio get <num> */
 		/* Is pin is occupied by other module */
-		if (is_pin_occupied(arg)) {
+		if (unwds_is_pin_occupied(arg)) {
 			strcpy(reply, "pin occupied");
 			return false;
 		}

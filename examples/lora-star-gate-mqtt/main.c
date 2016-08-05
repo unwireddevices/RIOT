@@ -140,7 +140,7 @@ static void *reader(void *arg)
         	buf[i++] = c;
         } while (c != EOL);
 
-        /* Strip the buffer just in case that there's a garbage after EOL */
+        /* Strip the string just in case that there's a garbage after EOL */
         buf[i] = '\0';
 
         /* Parse received command */
@@ -257,8 +257,8 @@ bool accept_node_join_cb(uint64_t dev_id, uint64_t app_id) {
 void app_data_received_cb (ls_gate_node_t *node, ls_gate_channel_t *ch, uint8_t *buf, size_t bufsize) {
 	printf("data from 0x%08X: \"%s\"\n", (unsigned int) node->addr, buf);
 
-	char str[64] = { '\0' };
-	char msg[40] = { '\0' };
+	char str[160] = { '\0' };
+	char msg[128] = { '\0' };
 	memcpy(msg, buf, sizeof(msg));
 	msg[sizeof(msg) - 1] = '\0';
 

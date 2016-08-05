@@ -24,6 +24,9 @@ extern "C" {
 #include "assert.h"
 #include "thread.h"
 
+#include "lpm.h"
+#include "periph/rtc.h"
+
 #include "ls-mac-types.h"
 #include "ls-mac.h"
 #include "ls-end-device.h"
@@ -37,6 +40,8 @@ static msg_t msg_lnkchk_timeout;
 static msg_t msg_ack_timeout;
 
 static msg_t msg_lnkchk_begin;
+
+static msg_t msg_sleep_request;
 
 /**
  * Channels table. Frequency in Hz
@@ -59,6 +64,10 @@ static uint8_t datarate_table[7][3] = {
     { SF7, BW_125_KHZ, CR_4_5 },        /* DR5 */
     { SF7, BW_250_KHZ, CR_4_5 },        /* DR6 */
 };
+
+static inline void request_sleep(ls_ed_t *ls) {
+	xtimer_set_msg(&ls->_internal.sleep_req_timer, LS_ED_SLEEP_REQUEST_DELAY, &msg_sleep_request, ls->_internal.tim_thread_pid);
+}
 
 static void configure_sx1276(ls_ed_t *ls, bool tx)
 {
@@ -225,9 +234,19 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame) {
 		if (ls->joined_cb != NULL)
 			ls->joined_cb();
 
+		/* Clear wakeup reason */
+		ls->_internal.wakeup_msg = NULL;
+
 		/* Start periodic link check if needed */
-    	if (ls->settings.lnkchk_period_s != 0)
-    		xtimer_set_msg(&ls->_internal.lnkchk_timer, 1e6 * ls->settings.lnkchk_period_s, &msg_lnkchk_begin, ls->_internal.tim_thread_pid);
+    	if (ls->settings.lnkchk_period_s != 0) {
+    		if (ls->settings.class != LS_ED_CLASS_A) /* Use xtimer for this */
+    			xtimer_set_msg(&ls->_internal.lnkchk_timer, 1e6 * ls->settings.lnkchk_period_s, &msg_lnkchk_begin, ls->_internal.tim_thread_pid);
+    		else {
+    			/* Set wakeup reason as periodic link check */
+    			ls->_internal.wakeup_delay = 1e6 * ls->settings.lnkchk_period_s;
+    			ls->_internal.wakeup_msg = &msg_lnkchk_begin;
+    		}
+    	}
 
 		return true;
 
@@ -293,7 +312,7 @@ static void *sx1276_handler(void *arg) {
                 		/* Class A devices closes RX window after each received packet */
                 		if (ls->settings.class == LS_ED_CLASS_A) {
                 			close_rx_windows(ls);
-                			ls_ed_sleep(ls);
+                			request_sleep(ls);
                 		}
                 	}
                 } else
@@ -317,18 +336,18 @@ static void *sx1276_handler(void *arg) {
                 puts("sx1276: RX timeout");
 
             	close_rx_windows(ls);
-            	ls_ed_sleep(ls);
+            	ls_ed_sleep(ls, true);
                 break;
 
             case TX_TIMEOUT:
                 puts("sx1276: TX timeout");
-            	ls_ed_sleep(ls);
+                ls_ed_sleep(ls, true);
 
                 break;
 
             default:
                 printf("sx1276: received event #%d\n", (int) event->type);
-                ls_ed_sleep(ls);
+                ls_ed_sleep(ls, true);
                 break;
         }
     }
@@ -371,16 +390,8 @@ static void *uq_handler(void *arg) {
         msg_receive(&msg);
 
         if (ls_frame_fifo_empty(&ls->_internal.uplink_queue)) {
-            continue;
-        }
-
-        /* Sleeping while channel is occupied */
-        while (!sx1276_is_channel_free(ls->_internal.sx1276, ls->settings.channel, LS_CHANNEL_FREE_RSSI)) {
-            puts("ls: channel is occupied!"); // XXX: debug
-
-            uint16_t millis = random_uint32_range(LS_TX_DELAY_MIN_MS, LS_TX_DELAY_MAX_MS);
-
-            xtimer_usleep(1e3 * millis);
+            ls->state = LS_ED_IDLE;
+        	continue;
         }
 
         /* Get frame from queue */
@@ -466,8 +477,7 @@ void *tim_handler(void *arg) {
 				/* Use default settings for the transceiver in second RX window */
 				ls->_internal.use_rx_window_2_settings = true;
 
-				/* Restart transceiver to new reception mode */
-				ls_ed_sleep(ls);
+				/* Enter reception mode */
 				enter_rx(ls);
         	} else if (ls->settings.class == LS_ED_CLASS_B) {
         		/* Transmit next frame from queue */
@@ -475,8 +485,8 @@ void *tim_handler(void *arg) {
         			schedule_tx(ls);
         		else
         			enter_rx(ls);
-
         	}
+
         	break;
 
         case LS_ED_RX2_EXPIRED:
@@ -485,8 +495,10 @@ void *tim_handler(void *arg) {
         	/* Clear the default settings flag */
         	ls->_internal.use_rx_window_2_settings = false;
 
-        	/* Put transceiver into sleep */
-        	ls_ed_sleep(ls);
+        	/* Put transceiver into sleep with low power mode */
+        	ls->state = LS_ED_IDLE;
+
+        	request_sleep(ls);
         	break;
 
         case LS_ED_JOIN_REQ_EXPIRED:
@@ -544,9 +556,22 @@ void *tim_handler(void *arg) {
         	ls_ed_lnkchk(ls);
 
         	/* Restart periodic link check */
-        	if (ls->settings.lnkchk_period_s != 0)
-        		xtimer_set_msg(&ls->_internal.lnkchk_timer, 1e6 * ls->settings.lnkchk_period_s, &msg_lnkchk_begin, ls->_internal.tim_thread_pid);
+        	if (ls->settings.lnkchk_period_s != 0) {
+            	if (ls->settings.class == LS_ED_CLASS_A) {
+            		// TODO:
+            	} else
+            		xtimer_set_msg(&ls->_internal.lnkchk_timer, 1e6 * ls->settings.lnkchk_period_s, &msg_lnkchk_begin, ls->_internal.tim_thread_pid);
+        	}
 
+        	break;
+
+        case LS_ED_SLEEP_REQUEST:	/* Transfer to the sleep mode requested, we can enter to sleep only if there's no pending events and uplink queue is empty */
+        	if (ls_frame_fifo_empty(&ls->_internal.uplink_queue) && ls->state == LS_ED_IDLE) {
+        		ls_ed_sleep(ls, true);	/* Enter low power mode */
+        	} else {
+        		/* Restart sleep request */
+        		request_sleep(ls);
+        	}
         	break;
         }
     }
@@ -583,6 +608,8 @@ int ls_ed_init(ls_ed_t *ls) {
 	ls->_internal.num_retr = 0;
 	ls->_internal.is_joined = false;
 	ls->_internal.dev_addr = LS_ADDR_UNDEFINED;
+	ls->_internal.wakeup_msg = NULL;
+	ls->_internal.wakeup_delay = 0;
 
 	memset(&ls->status, 0, sizeof(ls_device_status_t));
 
@@ -606,6 +633,7 @@ int ls_ed_init(ls_ed_t *ls) {
 	msg_lnkchk_timeout.content.value = LS_ED_LNKCHK_REQ_EXPIRED;
 	msg_ack_timeout.content.value = LS_ED_APPDATA_ACK_EXPIRED;
 	msg_lnkchk_begin.content.value = LS_ED_LNKCHK_BEGIN;
+	msg_sleep_request.content.value = LS_ED_SLEEP_REQUEST;
 
 	if (!create_sx1276_handler_thread(ls)) {
 		ls->state = LS_ED_FAULT;
@@ -618,7 +646,7 @@ int ls_ed_init(ls_ed_t *ls) {
     /* Initialize random number generator */
     random_init(sx1276_random(ls->_internal.sx1276));
 
-	ls_ed_sleep(ls);
+	ls_ed_sleep(ls, false);
 
 	return LS_OK;
 }
@@ -632,7 +660,10 @@ int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed
 		return res;
 
 	if (confirmed) {
-		xtimer_set_msg(&ls->_internal.conf_ack_expired, LS_ACK_TIMEOUT, &msg_ack_timeout, ls->_internal.tim_thread_pid);
+		if (ls->settings.class == LS_ED_CLASS_A) {
+			// TODO: wakeup reason and delay
+		} else
+			xtimer_set_msg(&ls->_internal.conf_ack_expired, LS_ACK_TIMEOUT, &msg_ack_timeout, ls->_internal.tim_thread_pid);
 
 		/* Save current message for retransmission */
 		memcpy(ls->_internal.last_app_msg.data, buf, buflen);
@@ -663,13 +694,20 @@ int ls_ed_join(ls_ed_t *ls) {
 	req.node_class = ls->settings.class;
 	req.dev_nonce = sx1276_random(ls->_internal.sx1276);
 
+	req.node_ability = ls->settings.ability;
+
 	ls->_internal.last_nonce = req.dev_nonce;
 
 	/* Send request */
 	send_frame(ls, LS_UL_JOIN_REQ, (uint8_t *) &req, sizeof(ls_join_req_t));
 
 	/* Launch timeout timer */
-	xtimer_set_msg(&ls->_internal.join_req_expired, LS_JOIN_TIMEOUT, &msg_join_timeout, ls->_internal.tim_thread_pid);
+	if (ls->settings.class == LS_ED_CLASS_A) {
+		/* Set wakeup message */
+		ls->_internal.wakeup_msg = &msg_join_timeout;
+		ls->_internal.wakeup_delay = LS_JOIN_TIMEOUT;
+	} else if (ls->settings.class == LS_ED_CLASS_B)
+		xtimer_set_msg(&ls->_internal.join_req_expired, LS_JOIN_TIMEOUT, &msg_join_timeout, ls->_internal.tim_thread_pid);
 
 	return LS_OK;
 }
@@ -688,15 +726,33 @@ void ls_ed_lnkchk(ls_ed_t *ls) {
 	send_frame(ls, LS_UL_LNKCHK, (uint8_t *) &req, sizeof(ls_lnkchk_req_t));
 
 	/* Launch link check request acknowledge timeout timer */
-	xtimer_set_msg(&ls->_internal.lnkchk_expired, LS_LNKCHK_TIMEOUT, &msg_lnkchk_timeout, ls->_internal.tim_thread_pid);
+	if (ls->settings.class == LS_ED_CLASS_A) {
+		// TODO:
+	} else
+		xtimer_set_msg(&ls->_internal.lnkchk_expired, LS_LNKCHK_TIMEOUT, &msg_lnkchk_timeout, ls->_internal.tim_thread_pid);
 }
 
-void ls_ed_sleep(ls_ed_t *ls) {
+void ls_ed_sleep(ls_ed_t *ls, bool lowpower) {
 	assert(ls != NULL);
 
 	ls->state = LS_ED_SLEEP;
-
 	sx1276_set_sleep(ls->_internal.sx1276);
+
+	if (lowpower) {
+		/* Set next wakeup time */
+		// TODO:
+	    /*struct tm time;
+	    rtc_get_time(&time);
+	    time.tm_sec  += ls->_internal.wakeup_delay / 1e6;
+	    rtc_set_alarm(&time, NULL, NULL);*/
+
+		/* Enter low power mode */
+		//lpm_set(LPM_SLEEP);
+
+		//puts("leaved LPM");
+
+		msg_send(ls->_internal.wakeup_msg, ls->_internal.tim_thread_pid);
+	}
 }
 
 #ifdef __cplusplus

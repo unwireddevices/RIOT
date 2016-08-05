@@ -26,7 +26,7 @@
 #define UNWDS_MAX_PARAM_COUNT 4
 #define UNWDS_MAX_PARAM_LEN 64
 
-#define UNWDS_MAX_REPLY_LEN 64
+#define UNWDS_MAX_REPLY_LEN 128
 
 typedef void (uwnds_cb_t)(char *msg);
 
@@ -35,11 +35,15 @@ typedef struct {
 
 	void (*init_cb)(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
 	bool (*cmd_cb)(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_LEN], char *reply);
+
+	uint64_t ability_mask;
 } unwd_module_t;
 
 void unwds_init(uwnds_cb_t *callback);
 bool unwds_command(char *command, char *reply);
 
-bool is_pin_occupied(uint32_t pin);
+uint64_t unwds_get_ability(void);
+
+bool unwds_is_pin_occupied(uint32_t pin);
 
 #endif /* UNWIRED_MODULES_UNWDS_COMMON_INCLUDE_UNWDS_COMMON_H_ */

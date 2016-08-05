@@ -37,7 +37,7 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 	case CMD_DEVLIST:
 		for (int i = 0; i < LS_GATE_MAX_NODES; i++) {
 			if (!devs->nodes_free_list[i]) {
-				char buf[64];
+				char buf[128];
 
 				/* mqtt|topic|message */
 				sprintf(buf, "%c|%u|{app_id:0x%X,ability:0x%X,last_seen:%d}\n", REPLY_MQTT,

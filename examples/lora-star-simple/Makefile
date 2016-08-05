@@ -39,13 +39,17 @@ INCLUDES += -I../../unwired-modules/unwds-common/include/
 
 ############ UNWD MODULES USED #####################
 
-USEMODULE += unwds-gpio
-CFLAGS += -DUNWDS_GPIO
+#USEMODULE += unwds-gpio
+#CFLAGS += -DUNWDS_GPIO
 INCLUDES += -I../../unwired-modules/unwds-gpio/include/
 
-USEMODULE += umdk-4btn
-CFLAGS += -DUMDK_4BTN
+#USEMODULE += umdk-4btn
+#CFLAGS += -DUMDK_4BTN
 INCLUDES += -I../../unwired-modules/umdk-4btn/include/
+
+USEMODULE += umdk-gps
+CFLAGS += -DUMDK_GPS
+INCLUDES += -I../../unwired-modules/umdk-gps/include/
 
 ####################################################
 

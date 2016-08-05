@@ -60,6 +60,11 @@
  */
 #define LS_RX_DELAY2		1e6 * 2
 
+/**
+ * Sleep request delay
+ */
+#define LS_ED_SLEEP_REQUEST_DELAY 1e6 * 1
+
 // TODO: optimize these values to reduce memory consumption
 #define LS_SX1276_LISTENER_STACKSIZE	(2 * THREAD_STACKSIZE_DEFAULT)
 #define LS_UQ_HANDLER_STACKSIZE			(2 * THREAD_STACKSIZE_DEFAULT)
@@ -77,6 +82,8 @@ typedef enum {
 	LS_ED_APPDATA_ACK_EXPIRED,
 
 	LS_ED_LNKCHK_BEGIN,
+
+	LS_ED_SLEEP_REQUEST,
 } ls_ed_tim_cmd_t;
 
 /**
@@ -87,6 +94,8 @@ typedef enum {
 
 	LS_ED_TRANSMITTING,
 	LS_ED_LISTENING,
+
+	LS_ED_IDLE,
 
 	LS_ED_FAULT,
 } ls_ed_status_t;
@@ -133,6 +142,7 @@ typedef struct {
 	ls_ed_lnkchk_action_t lnkchk_failed_action;	/**< Action to do if link check is failed */
 
 	ls_node_class_t class;						/**< Device class */
+	uint64_t ability;							/**< Device abilities set up by the used modules */
 } ls_ed_settings_t;
 
 typedef struct {
@@ -188,6 +198,15 @@ typedef struct {
 
 	/* Timer for the periodic link check */
 	xtimer_t lnkchk_timer;
+
+	/* Delay before next wakeup in microseconds */
+	uint32_t wakeup_delay;
+
+	/* Wakeup message to send for timeout handling thread */
+	msg_t *wakeup_msg;
+
+	/* Sleep request timer */
+	xtimer_t sleep_req_timer;
 } ls_ed_internal_t;
 
 /**
@@ -208,6 +227,8 @@ typedef struct {
 	void (*appdata_received_cb)(uint8_t *buf, size_t buflen);
 	void (*appdata_send_failed_cb)(void);
 
+	void (*standby_mode_cb)(uint32_t wakeup_after);
+
 	ls_ed_internal_t _internal;	/**< Internal data for the LS stack*/
 } ls_ed_t;
 
@@ -219,7 +240,7 @@ int ls_ed_join(ls_ed_t *ls);
 
 void ls_ed_unjoin(ls_ed_t *ls);
 
-void ls_ed_sleep(ls_ed_t *ls);
+void ls_ed_sleep(ls_ed_t *ls, bool lowpower);
 
 void ls_ed_lnkchk(ls_ed_t *ls);
 

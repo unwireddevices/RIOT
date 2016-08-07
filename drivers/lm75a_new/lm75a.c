@@ -13,14 +13,12 @@
  * @{
  * @file		lm75a.h
  * @brief       LM75a temperature sensor driver implementation
- * @author      Eugene Ponomarev
+ * @author      EP
  */
 
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
-#include "thread.h"
 #include "assert.h"
 #include "periph/i2c.h"
 
@@ -30,7 +28,6 @@
 extern "C" {
 #endif
 
-
 int lm75a_init(lm75a_t *dev, lm75a_param_t *param)
 {
     assert(dev != NULL);
@@ -39,9 +36,18 @@ int lm75a_init(lm75a_t *dev, lm75a_param_t *param)
     /* Copy parameters */
     dev->params = *param;
 
-    /* Initialize the I2C */
-    if (i2c_init_master(dev->params.i2c, I2C_SPEED_NORMAL) < 0) {
-        return -1;
+    /* Modify the actual I2C address with respect to A1-A3 pins state */
+    dev->address = LM75A_ADDRESS;
+    if (param->a1) {
+        dev->address += 1;
+    }
+
+    if (param->a2) {
+        dev->address += 2;
+    }
+
+    if (param->a3) {
+        dev->address += 4;
     }
 
     return 0;
@@ -49,8 +55,12 @@ int lm75a_init(lm75a_t *dev, lm75a_param_t *param)
 
 float_t lm75a_get_ambient_temperature(lm75a_t *dev)
 {
+    assert(dev != NULL);
+
+    /* Acquire the I2C bus */
     i2c_acquire(dev->params.i2c);
 
+    /* Read two bytes from the sensor: MSB & LSB of temperature value */
     char temp[2] = {};
     i2c_read_regs(dev->params.i2c, LM75A_ADDRESS, LM75A_REG_ADDR_TEMP, temp, 2);
 
@@ -61,7 +71,7 @@ float_t lm75a_get_ambient_temperature(lm75a_t *dev)
     *ptr = temp[1];
     *(ptr + 1) = temp[0];
 
-    /* Shift data (left-aligned) */
+    /* Shift bits (left-aligned) */
     value >>= 5;
 
     /* Relocate negative bit (11th bit to 16th bit) */
@@ -70,9 +80,10 @@ float_t lm75a_get_ambient_temperature(lm75a_t *dev)
         value |= 0x8000;
     }
 
-    /* Real value can be calculated with sensor resolution */
+    /* Scale value to the sensor resolution */
     float_t result = (float)value * LM75A_DEGREES_RESOLUTION;
 
+    /* Release the I2C bus */
     i2c_release(dev->params.i2c);
 
     return result;

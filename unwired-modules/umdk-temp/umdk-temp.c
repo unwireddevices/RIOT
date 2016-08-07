@@ -34,6 +34,8 @@ extern "C" {
 #include "thread.h"
 #include "xtimer.h"
 
+#include "lm75a.h"
+
 static uwnds_cb_t *callback;
 
 static lm75a_t lm75a;
@@ -56,13 +58,13 @@ bool umdk_temp_cmd(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_LE
         char buf[UNWDS_MAX_REPLY_LEN] = { '\0' };
 
         float_t temp = lm75a_get_ambient_temperature(&lm75a);
-        sprintf(buf, "%.3f", temp);
+        sprintf(buf, "{temp:%.3f}", temp);
         strcpy(reply, buf);
 
         return true;
     }
 
-    strcpy(reply, "invalid params");
+    strcpy(reply, "{error:true, text:\"invalid params\"}");
 
     return false;
 }

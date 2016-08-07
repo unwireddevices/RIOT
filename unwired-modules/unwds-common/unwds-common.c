@@ -32,6 +32,7 @@ extern "C" {
 #include "umdk-4btn.h"
 #include "umdk-gps.h"
 #include "umdk-temp.h"
+#include "umdk-acc.h"
 
 /**
  * @brief Bitmap of occupied pins that cannot be used as gpio in-out
@@ -56,12 +57,18 @@ static const unwd_module_t modules[] = {
 #ifdef UMDK_TEMP
     { "temp", umdk_temp_init, umdk_temp_cmd, 1 << 4 },
 #endif
+#ifdef UMDK_ACC
+	{ "acc", umdk_acc_init, umdk_acc_cmd, 1 << 5 },
+#endif
     { "", NULL, NULL },
 };
 
 void unwds_init(uwnds_cb_t *event_callback)
 {
     int i = 0;
+
+    /* Pre-initialize I2C */
+    i2c_init_master(I2C_0, I2C_SPEED_NORMAL);
 
     while (modules[i].init_cb != NULL && modules[i].cmd_cb != NULL) {
         printf("unwds: initializing \"%s\" module...\n", modules[i].name);

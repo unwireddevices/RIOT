@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Unwired Devices
+ * Copyright (C) 2016 Unwired Devices <info@unwds.com>
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -13,7 +13,7 @@
  * @file
  * @brief       Test application for the STM32L1 Data EEPROM driver
  *
- * @author      Eugene Ponomarev <ep@unwds.com>
+ * @author      EP <ep@unwds.com>
  *
  * @}
  */
@@ -24,10 +24,9 @@
 
 #include "board.h"
 #include "xtimer.h"
+#include "random.h"
 
 #include "l1-nvram-eeprom.h"
-
-#include "random.h"
 
 #define TEST_NVRAM_SIZE 4096 * 2
 
@@ -39,10 +38,12 @@ static uint8_t buf_in[TEST_NVRAM_SIZE];
 /**
  * @brief xxd-like printing of a binary buffer
  */
-static void print_buffer(const uint8_t * buf, size_t length) {
+static void print_buffer(const uint8_t *buf, size_t length)
+{
     static const unsigned int bytes_per_line = 16;
     static const unsigned int bytes_per_group = 2;
     unsigned long i = 0;
+
     while (i < length) {
         unsigned int col;
         for (col = 0; col < bytes_per_line; ++col) {
@@ -55,27 +56,33 @@ static void print_buffer(const uint8_t * buf, size_t length) {
             }
             if ((i + col) < length) {
                 printf("%02x", buf[i + col]);
-            } else {
+            }
+            else {
                 putchar(' ');
                 putchar(' ');
             }
         }
+
         putchar(' ');
         for (col = 0; col < bytes_per_line; ++col) {
             if ((i + col) < length) {
                 /* Echo only printable chars */
                 if (isprint(buf[i + col])) {
                     putchar(buf[i + col]);
-                } else {
+                }
+                else {
                     putchar('.');
                 }
-            } else {
+            }
+            else {
                 putchar(' ');
             }
         }
+
         i += bytes_per_line;
     }
-    /* end with a newline */
+
+    /* end with a new line */
     puts("");
 }
 
@@ -193,7 +200,9 @@ int main(void)
 
     puts("All tests passed!");
 
-    while(1);
+    /* Hang with doing nothing */
+    while (1) {
+    }
 
     return 0;
 }

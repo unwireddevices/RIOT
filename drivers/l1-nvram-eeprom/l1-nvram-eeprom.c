@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Unwired Devices
+ * Copyright (C) 2016 Unwired Devices <info@unwds.com>
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
@@ -9,26 +9,26 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include "stm32l1xx.h"
+
 #include "nvram.h"
 #include "xtimer.h"
 #include "assert.h"
 
 #include "l1-nvram-eeprom.h"
 
-#include "stm32l1xx.h"
-
 /**
  * @ingroup     nvram
  * @{
  *
- * @file
+ * @file	l1-nvram-eeprom.c
  *
  * @brief       STM32L1 Data EEPROM driver
  *
  * Tested on:
- * - STM32L1CCUB
+ * - STM32L151CCU6
  *
- * @author      Eugene Ponomarev <ep@unwds.com>
+ * @author      EP <ep@unwds.com>
  */
 
 #ifdef __cplusplus
@@ -47,7 +47,7 @@ typedef enum
 /**
   * @brief  Unlocks the data memory and FLASH_PECR register access.
   * @param  None
-  * @retval None
+  * @return None
   */
 static void eeprom_unlock(void)
 {
@@ -62,7 +62,7 @@ static void eeprom_unlock(void)
 /**
   * @brief  Locks the Data memory and FLASH_PECR register access.
   * @param  None
-  * @retval None
+  * @return None
   */
 static void eeprom_lock(void)
 {
@@ -70,6 +70,9 @@ static void eeprom_lock(void)
   FLASH->PECR |= FLASH_PECR_PELOCK;
 }
 
+/**
+ * @brief Returns the current FLASH device status
+ */
 static l1_flash_status_t get_status(void)
 {
   l1_flash_status_t status = FLASH_COMPLETE;
@@ -96,10 +99,17 @@ static l1_flash_status_t get_status(void)
       }
     }
   }
+
   /* Return the FLASH Status */
   return status;
 }
 
+/**
+ * @brief Busy-waits within a timeout if the FLASH peripheral is performing an operation
+ *
+ * @param[in] timeout timeout value in cycles
+ * @return current status of FLASH device
+ */
 static l1_flash_status_t flash_wait_for_last_operation(uint32_t timeout) {
 	l1_flash_status_t status = FLASH_COMPLETE;
 
@@ -123,16 +133,9 @@ static l1_flash_status_t flash_wait_for_last_operation(uint32_t timeout) {
 }
 
 /**
-  * @brief  Write a Byte at a specified address in data memory without erase.
-  * @note   To correctly run this function, the DATA_EEPROM_Unlock() function
-  *         must be called before.
-  *         Call the DATA_EEPROM_Lock() to disable the data EEPROM access
-  *         and Flash program erase control register access(recommended to protect
-  *         the DATA_EEPROM against possible unwanted operation).
-  * @note   The function  DATA_EEPROM_FixedTimeProgramCmd() can be called before
-  *         this function to configure the Fixed Time Programming.
-  * @param  Address: specifies the address to be written.
-  * @param  Data: specifies the data to be written.
+  * @brief  Write a Byte at a specified address in data EEPROM.
+  * @param  address: specifies the address to be written.
+  * @param  data: specifies the data to be written.
   * @retval FLASH Status: The returned value can be:
   *   FLASH_ERROR_PROGRAM, FLASH_ERROR_WRP, FLASH_COMPLETE or FLASH_TIMEOUT.
   */
@@ -158,7 +161,6 @@ static l1_flash_status_t program_byte(uint32_t address, uint8_t data)
 
       /* Wait for last operation to be completed */
       status = flash_wait_for_last_operation(FLASH_ER_PRG_TIMEOUT);
-
     }
     else
     {
@@ -192,7 +194,7 @@ static l1_flash_status_t program_byte(uint32_t address, uint8_t data)
  * @return           Number of bytes written on success
  * @return           <0 on errors
  */
-static int nvram_write(nvram_t *dev, uint8_t *src, uint32_t dst, size_t len);
+static int nvram_write(nvram_t *dev, const uint8_t *src, uint32_t dst, size_t len);
 
 /**
  * @brief Copy data from NVRAM to system memory.
@@ -208,8 +210,8 @@ static int nvram_write(nvram_t *dev, uint8_t *src, uint32_t dst, size_t len);
 static int nvram_read(nvram_t *dev, uint8_t *dst, uint32_t src, size_t len);
 
 int nvram_l1_eeprom_init(nvram_t *dev) {
-	dev->read = nvram_read;
 	dev->write = nvram_write;
+	dev->read = nvram_read;
 
 	return 0;
 }
@@ -225,7 +227,7 @@ static int nvram_read(nvram_t *dev, uint8_t *dst, uint32_t src, size_t len) {
 	return i;
 }
 
-static int nvram_write(nvram_t *dev, uint8_t *src, uint32_t dst, size_t len) {
+static int nvram_write(nvram_t *dev, const uint8_t *src, uint32_t dst, size_t len) {
 	eeprom_unlock();
 
 	uint32_t eeprom_addr = EEPROM_BASE + dst;

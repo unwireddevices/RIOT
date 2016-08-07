@@ -52,12 +52,15 @@ CFLAGS += -DUMDK_GPS
 INCLUDES += -I../../unwired-modules/umdk-gps/include/
 
 USEMODULE += umdk-temp
+USEMODULE += lm75a_new
 USEMODULE += printf_float
 CFLAGS += -DUMDK_TEMP
 INCLUDES += -I../../unwired-modules/umdk-temp/include/
 
-
-
+USEMODULE += umdk-acc
+CFLAGS += -DUMDK_ACC
+INCLUDES += -I../../unwired-modules/umdk-acc/include/
+USEMODULE += printf_float
 ####################################################
 
 CFLAGS += -DCRYPTO_AES

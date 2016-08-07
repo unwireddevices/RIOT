@@ -67,10 +67,8 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 		sprintf(buf, "%s,%s", type, msg);
 		buf[len] = '\0'; /* Embed trailing zero terminator */
 
-		/* Can send immediately */
-		if (node->node_class == LS_ED_CLASS_B) {
-			ls_gate_send_to(ls, node->addr, (uint8_t *) buf, len + 1);
-		}
+		/* Send immediately */
+		ls_gate_send_to(ls, node->addr, (uint8_t *) buf, len + 1);
 
 		break;
 
@@ -78,6 +76,20 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 		msg_t msg;
 		msg_send(&msg, writer);
 
+		break;
+
+	case CMD_HAS_PENDING: {
+		uint64_t nodeid = strtol(addr, NULL, 10);
+		ls_gate_node_t *node = ls_devlist_get_by_nodeid(devs, nodeid);
+		if (node == NULL)
+			return;
+
+		uint8_t num_pending = strtol(type, NULL, 10);
+		node->num_pending = num_pending;
+
+		printf("[pending] setting node 0x%08X has %u frames pending\n", (unsigned int) node->node_id, num_pending);
+
+		}
 		break;
 	}
 }
@@ -105,6 +117,14 @@ void gc_parse_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *fif
 		char cmd = argv[0][0];
 
 		exec_command(ls, writer, fifo, cmd, NULL, NULL, NULL);
+	} else if (argc == 2) {
+		char cmd = argv[0][0];
+		char *type = argv[1];
+		char *addr = argv[2];
+
+		printf("cmd: %c\ntype: %s\naddr: %s\n", cmd, type, addr);
+
+		exec_command(ls, writer, fifo, cmd, type, addr, NULL);
 	} else if (argc == 3) {
 		char cmd = argv[0][0];
 		char *type = argv[1];

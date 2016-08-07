@@ -63,7 +63,7 @@ typedef struct {
 
 	ls_device_status_t status;	/**< Last received device status */
 
-	bool has_pending;			/**< Device has pending frames */
+	uint8_t num_pending;		/**< Number of frames pending */
 } ls_gate_node_t;
 
 typedef struct {

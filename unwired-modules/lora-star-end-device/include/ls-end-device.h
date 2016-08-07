@@ -53,7 +53,7 @@
 /**
  * @brief Duration of the first receive window in microseconds.
  */
-#define LS_RX_DELAY1		1e6 * 1
+#define LS_RX_DELAY1		1e6 * 2
 
 /**
  * @brief Duration of the second receive window in microseconds.
@@ -207,6 +207,9 @@ typedef struct {
 
 	/* Sleep request timer */
 	xtimer_t sleep_req_timer;
+
+	/* Wakeup timer */
+	xtimer_t wakeup_timer;
 } ls_ed_internal_t;
 
 /**

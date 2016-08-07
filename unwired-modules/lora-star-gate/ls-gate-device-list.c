@@ -128,7 +128,7 @@ ls_gate_node_t *ls_devlist_add(ls_gate_devices_t *devlist, uint64_t node_id, uin
 			e->next = node->nonce_list;
 			node->nonce_list = e;
 
-			node->has_pending = false;
+			node->num_pending = 0;
 
 			/* Increase number of connected devices */
 			devlist->num_nodes++;

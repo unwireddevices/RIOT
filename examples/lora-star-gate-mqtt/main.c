@@ -239,12 +239,24 @@ void node_kicked_cb (ls_gate_node_t *node) {
 	printf("gate: node with ID 0x%08X and address 0x%08X kicked from the network due to long silence\n",
 			(unsigned int) node->node_id,
 			(unsigned int) node->addr);
+
+	/* Notify the gate */
+	char str[32] = { '\0' };
+	sprintf(str, "%c|%u\n", REPLY_KICK, (unsigned int) node->node_id);
+
+	gc_pending_fifo_push(&fifo, str);
 }
 
 uint32_t node_joined_cb (ls_gate_node_t *node) {
 	printf("gate: node with ID 0x%08X joined to the network with address 0x%08X\n",
 			(unsigned int) node->node_id,
 			(unsigned int) node->addr);
+
+	/* Notify the gate */
+	char str[128] = { '\0' };
+	sprintf(str, "%c|%u|%u\n", REPLY_JOIN, (unsigned int) node->node_id, (unsigned int) node->node_class);
+
+	gc_pending_fifo_push(&fifo, str);
 
 	/* Return random app nonce */
 	return sx1276_random(&sx1276);
@@ -269,10 +281,23 @@ void app_data_received_cb (ls_gate_node_t *node, ls_gate_channel_t *ch, uint8_t 
 
 void app_data_ack_cb (ls_gate_node_t *node, ls_gate_channel_t *ch) {
 	printf("ls-gate: data acknowledged from 0x%08X\n", (unsigned int) node->addr);
+
+	if (node->num_pending)
+		node->num_pending--;
+
+	/* Notify the gate */
+	char str[64] = { '\0' };
+	sprintf(str, "%c|%u\n", REPLY_ACK, (unsigned int) node->node_id);
+	gc_pending_fifo_push(&fifo, str);
 }
 
 void link_ok_cb (ls_gate_node_t *node, ls_gate_channel_t *ch) {
 	printf("ls-gate: link ok with 0x%08X\n", (unsigned int) node->addr);
+
+	/* Notify the gate */
+	char str[64] = { '\0' };
+	sprintf(str, "%c|%u\n", REPLY_LNKCHK, (unsigned int) node->node_id);
+	gc_pending_fifo_push(&fifo, str);
 }
 
 

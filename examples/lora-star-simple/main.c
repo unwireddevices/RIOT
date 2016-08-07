@@ -183,12 +183,12 @@ void ls_setup(ls_ed_t *ls)
     ls->lnkchk_timeout_cb = lnkchk_timeout_cb;
 
     ls->appdata_send_failed_cb = appdata_send_failed_cb;
-    ls->settings.max_retr = 5;	/* Maximum number of confirmed data retransmissions */
+    ls->settings.max_retr = 5;									/* Maximum number of confirmed data retransmissions */
 
     ls->appdata_received_cb = appdata_received_cb;
 
     ls->settings.lnkchk_failed_action = LS_ED_REJOIN;
-    ls->settings.lnkchk_period_s = 60;
+    ls->settings.lnkchk_period_s = 30;
 
     ls->_internal.sx1276 = &sx1276;
 }

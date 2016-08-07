@@ -291,7 +291,7 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame) 
 		memcpy(&node->status, &frame->payload.data, sizeof(ls_device_status_t));
 
 		/* Send acknowledge */
-		send_lnkchk_ack(ls, ch, frame->header.dev_addr, node->has_pending);
+		send_lnkchk_ack(ls, ch, frame->header.dev_addr, node->num_pending > 0);
 
 		/* Notify application about link check to send pending frames */
 		if (ls->link_ok_cb != NULL)
@@ -541,6 +541,8 @@ int ls_gate_send_to(ls_gate_t *ls, ls_addr_t addr, uint8_t *buf, size_t bufsize)
 	ls_gate_node_t *node = ls_devlist_get(&ls->devices, addr);
 	if (node == NULL)
 		return -LS_GATE_E_NODEV;
+
+	printf("Sending %u bytes to 0x%08X\n", (unsigned) bufsize, (unsigned) addr);
 
 	/* Send frame as soon as possible */
 	send_frame((ls_gate_channel_t *) node->node_ch, addr, LS_DL, buf, bufsize);

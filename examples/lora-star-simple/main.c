@@ -129,7 +129,7 @@ void link_good_cb(void) {
 void joined_timeout_cb(void) {
 	puts("ls: join request timed out, resenting");
 
-    xtimer_usleep(1e6 * ++join_retr_count);
+    xtimer_usleep(1e6 * 2 * ++join_retr_count);
 	ls_ed_join(&ls);
 }
 
@@ -168,11 +168,11 @@ void ls_setup(ls_ed_t *ls)
 {
 	ls->settings.class = LS_ED_CLASS_B;
 
-	ls->settings.dr = LS_DR6;
+	ls->settings.dr = LS_DR5;
 	ls->settings.channel = 0;
 
     ls->settings.app_id = 0xDEADBEEF;
-    ls->settings.node_id = 1;
+    ls->settings.node_id = 3;
 
     memcpy(ls->settings.crypto.join_key, join_key, LS_MIC_KEY_LEN);
 
@@ -188,7 +188,7 @@ void ls_setup(ls_ed_t *ls)
     ls->appdata_received_cb = appdata_received_cb;
 
     ls->settings.lnkchk_failed_action = LS_ED_REJOIN;
-    ls->settings.lnkchk_period_s = 30;
+    ls->settings.lnkchk_period_s = 255;
 
     ls->_internal.sx1276 = &sx1276;
 }
@@ -386,9 +386,23 @@ int ls_lnkchk_cmd(int argc, char **argv) {
 	return 0;
 }
 
+int store_cmd(int argc, char **argv) {
+
+	return 0;
+}
+
+int load_cmd(int argc, char **argv) {
+
+	return 0;
+}
+
 static const shell_command_t shell_commands[] = {
 	{ "set", "<config> <value> -- sets up value for the config entry", ls_set_cmd },
 	{ "get", "<config> -- gets value for the config entry", ls_get_cmd },
+
+	//{ "store", "-- saves current configuration to the EEPROM", store_cmd },
+	//{ "load", "-- loads current configuration from the EEPROM", load_cmd },
+
 	{ "join", "joins to the network", ls_join_cmd },
 	{ "leave", "leaves the network", ls_unjoin_cmd },
 	{ "lnkchk", "link check", ls_lnkchk_cmd },

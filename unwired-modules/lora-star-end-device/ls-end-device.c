@@ -202,6 +202,22 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
                 xtimer_remove(&ls->_internal.conf_ack_expired);
             }
 
+            /* Remove link check timer */
+            if (ls->settings.class == LS_ED_CLASS_A) {
+                if (ls->_internal.wakeup_msg == &msg_lnkchk_timeout) {
+                    xtimer_remove(&ls->_internal.wakeup_timer);
+                }
+
+                if (ls->settings.lnkchk_period_s != 0) {
+                    /* Set wakeup reason as periodic link check */
+                    ls->_internal.wakeup_delay = 1e6 * ls->settings.lnkchk_period_s;
+                    ls->_internal.wakeup_msg = &msg_lnkchk_begin;
+                }
+            }
+            else {
+                xtimer_remove(&ls->_internal.lnkchk_expired);
+            }
+
             return true;
 
         case LS_DL:         /* Downlink frame */

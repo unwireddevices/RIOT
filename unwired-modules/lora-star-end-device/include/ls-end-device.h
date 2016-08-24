@@ -38,17 +38,17 @@
 /**
  * @brief Maximum time of awaiting for the confirmed application data acknowledge in microseconds.
  */
-#define LS_ACK_TIMEOUT	1e6 * 5
+#define LS_ACK_TIMEOUT	1e6 * 15
 
 /**
  * @brief Maximum time of awaiting for the link check request acknowledge in microseconds.
  */
-#define LS_LNKCHK_TIMEOUT	1e6 * 5
+#define LS_LNKCHK_TIMEOUT	1e6 * 15
 
 /**
  * @brief Maximum time of awaiting for the join request acknowledge in microseconds.
  */
-#define LS_JOIN_TIMEOUT 	1e6 * 5
+#define LS_JOIN_TIMEOUT 	1e6 * 15
 
 /**
  * @brief Duration of the first receive window in microseconds.

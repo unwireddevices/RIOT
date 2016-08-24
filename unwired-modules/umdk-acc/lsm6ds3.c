@@ -113,7 +113,7 @@ bool lsm6ds3_configure(lsm6ds3_t *dev, lsm6ds3_param_t *settings)
     assert(dev != NULL);
     assert(settings != NULL);
 
-    uint8_t data = 0;   /* Temporary variable */
+    uint8_t data = 0;
 
     /* Setup the accelerometer */
     data = 0;
@@ -223,7 +223,7 @@ bool lsm6ds3_configure(lsm6ds3_t *dev, lsm6ds3_param_t *settings)
             case 1000:
                 data |= LSM6DS3_ACC_GYRO_FS_G_1000dps;
                 break;
-            default:  //Default to full 2000DPS range
+            default:
             case 2000:
                 data |= LSM6DS3_ACC_GYRO_FS_G_2000dps;
                 break;

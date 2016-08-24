@@ -50,7 +50,7 @@ void umdk_acc_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     lsm_params.i2c_addr = 0x6A;
     lsm_params.i2c = UMDK_ACC_I2C;
 
-    if (!lsm6ds3_init(&lsm6ds3, &lsm_params) < 0) {
+    if (lsm6ds3_init(&lsm6ds3, &lsm_params) < 0) {
         puts("[umdk-acc] Initialization of LSM6DS3 failed");
     }
 

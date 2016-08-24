@@ -95,7 +95,7 @@ bool umdk_gps_cmd(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_LEN
         return true;
     }
 
-    strcpy(reply, "invalid params");
+    strcpy(reply, "{error: true, msg: \"invalid params\"}");
 
     return false;
 }

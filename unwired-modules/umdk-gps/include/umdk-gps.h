@@ -13,7 +13,7 @@
  * @{
  * @file		umdk-4btn.h
  * @brief       umdk-gps SL3333-based driver module definitions
- * @author      Eugene Ponomarev
+ * @author      EP
  */
 #ifndef UMDK_GPS_H
 #define UMDK_GPS_H
@@ -27,7 +27,7 @@
  */
 //#define UMDK_GPS_AUTOPUBLISH
 
-#define UMDK_GPS_UART UART_DEV(1)
+#define UMDK_GPS_UART UART_DEV(0)
 
 void umdk_gps_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
 bool umdk_gps_cmd(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_LEN], char *reply);

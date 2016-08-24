@@ -13,7 +13,7 @@
  * @{
  * @file		sl3333.h
  * @brief       SL3333-based (MTK3333) GPS module driver implementation
- * @author      Eugene Ponomarev
+ * @author      EP <ep@unwds.com>
  */
 
 #include <stdlib.h>
@@ -88,8 +88,6 @@ static bool parse(sl3333_t *dev, char *buf, sl3333_gps_data_t *data) {
 	if (strstr(buf, "RMC") == NULL) {
 		return false;
 	}
-
-	printf("gps: %s\n", buf);
 
 	/* Check validity sign */
 	char valid;

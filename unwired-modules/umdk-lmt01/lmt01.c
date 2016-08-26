@@ -23,32 +23,43 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "stm32l1xx.h"
+
 #include "periph/gpio.h"
 #include "xtimer.h"
 #include "assert.h"
 
 #include "lmt01.h"
 
-/**
- * @brief Pulse counter interrupt
- */
-static void interrupt_cb(void *arg) {
-	lmt01_t *dev = (lmt01_t *) arg;
+static void start_counter_timer(lmt01_t *lmt01) {
+	RCC->APB1ENR |= 0x01; /* Clock for timer 2 */
 
-	if (dev->_internal.do_count)
-		dev->_internal.pulse_count++;
+	/* Enable timer GPIO */
+	gpio_init(lmt01->sens_pin, GPIO_IN);
+	gpio_init_af(lmt01->sens_pin, 1);
+
+	TIM2->CNT = 0;				/* Reset counter value */
+
+	/* Start timer in pulse clock mode */
+	TIM2->CCMR1   |= 0x0100;	/* Ch. 2 as TI */
+	TIM2->SMCR    |= 0x0007;    /* External clock mode 1 */
+	TIM2->SMCR    |= 0x0060;    /* TI2FP2 as ext. clock */
+	TIM2->CR1     |= 0x0001;    /* Enable counting */
 }
 
 static inline void lmt01_off(lmt01_t *lmt01) {
 	gpio_clear(lmt01->en_pin);
+
+	TIM2->CR1 &= ~0x01;			/* Disable timer */
+	RCC->APB1ENR &= ~0x01;		/* Disable timer clocking */
 
 	lmt01->_internal.do_count = false;
 	lmt01->_internal.pulse_count = 0;
 }
 
 static inline void lmt01_on(lmt01_t *lmt01) {
-	/* Init interrupt handler */
-	gpio_init_int(lmt01->sens_pin, GPIO_IN, GPIO_RISING, interrupt_cb, lmt01);
+	/* Init timer in counter mode */
+	start_counter_timer(lmt01);
 
 	/* Enable sensor */
 	gpio_set(lmt01->en_pin);
@@ -77,23 +88,6 @@ int lmt01_init(lmt01_t *lmt01, gpio_t en_pin, gpio_t sens_pin) {
 	return 0;
 }
 
-/*
-static void test_pulse(int n) {
-	int i = 0;
-
-	gpio_init(GPIO_PIN(PORT_A, 7), GPIO_OUT);
-
-	for (i = 0; i < n; i++) {
-		gpio_set(GPIO_PIN(PORT_A, 7));
-
-		xtimer_usleep(100);
-
-		gpio_clear(GPIO_PIN(PORT_A, 7));
-
-		xtimer_usleep(100);
-	}
-}*/
-
 bool lmt01_detect(lmt01_t *lmt01, uint32_t timeout_ms) {
 	assert(lmt01 != NULL);
 
@@ -101,24 +95,20 @@ bool lmt01_detect(lmt01_t *lmt01, uint32_t timeout_ms) {
 	if (timeout_ms <= LMT01_MIN_TIMEOUT_MS)
 		timeout_ms = 2 * LMT01_MIN_TIMEOUT_MS;
 
-	int time = xtimer_now();
-
 	/* Reset sensor and enable it and interrupt handler */
 	lmt01_off(lmt01);
 	lmt01_on(lmt01);
 
-	/* Busy-waiting for the impulses within the timeout */
-	while (!lmt01->_internal.pulse_count) {
-		/* Check timeout expiration */
-		int diff = xtimer_now() - time;
+	xtimer_usleep(1e3 * 2 * LMT01_MIN_TIMEOUT_MS); /* Wait for the sensor start-up */
+	xtimer_usleep(1e3 * 2 * LMT01_MAX_PULSES_TRAIN_TIMEOUT_MS); /* Wait for the sensor pulse train finishes */
 
-		if (diff >= timeout_ms * 1e3) {
-			lmt01_off(lmt01);
-			return false;
-		}
+	lmt01->_internal.pulse_count = TIM2->CNT;
 
-		/* Sleep one millisecond, arriving pulses in counted by interrupt handler */
-		xtimer_usleep(1000);
+	if (!lmt01->_internal.pulse_count) {
+		lmt01->_internal.state = LMT01_UNKNOWN;
+		lmt01_off(lmt01);
+
+		return false;
 	}
 
 	lmt01->_internal.state = LMT01_DETECTED;
@@ -154,7 +144,7 @@ int lmt01_get_temp(lmt01_t *lmt01, float *temp) {
 	xtimer_usleep(1e3 * 2 * LMT01_MAX_PULSES_TRAIN_TIMEOUT_MS); /* Wait for the sensor pulse train finishes */
 
 	/* Get counted pulses */
-	uint16_t pulse_count = lmt01->_internal.pulse_count;
+	uint16_t pulse_count = lmt01->_internal.pulse_count = TIM2->CNT;
 	if (!pulse_count) {/* Has to be at least one pulse */
 		puts("[lmt01] no pulses detected");
 

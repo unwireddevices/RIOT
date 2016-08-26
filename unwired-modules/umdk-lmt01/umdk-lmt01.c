@@ -72,6 +72,9 @@ static int init_sensors(void) {
 
 			detected_count++;
 		}
+
+		/* Delay between sensor switching */
+		xtimer_usleep(1e3 * 100);
 	}
 
 	return detected_count;
@@ -105,7 +108,7 @@ static void prepare_result(char *buf) {
 			strcat(buf, ",");
 
 		/* Delay between sensor switching */
-		xtimer_usleep(1e3 * 10);
+		xtimer_usleep(1e3 * 100);
 	}
 
 	if (!results) {

@@ -33,8 +33,6 @@ extern "C" {
  * @brief Pulse counter interrupt
  */
 static void interrupt_cb(void *arg) {
-	assert(arg != NULL);
-
 	lmt01_t *dev = (lmt01_t *) arg;
 
 	if (dev->_internal.do_count)
@@ -54,9 +52,6 @@ static inline void lmt01_on(lmt01_t *lmt01) {
 
 	/* Enable sensor */
 	gpio_set(lmt01->en_pin);
-
-	/* Small delay to get stable reading */
-	xtimer_usleep(1e3 * 10);
 
 	/* Start to count pulses */
 	lmt01->_internal.do_count = true;
@@ -155,8 +150,8 @@ int lmt01_get_temp(lmt01_t *lmt01, float *temp) {
 	 * by the interrupt handler, so we have to wait at least 50ms as it is maximum time interval
 	 * in which sensor is performing a pulse train
 	 */
-	xtimer_usleep(1e3 * LMT01_MIN_TIMEOUT_MS); /* Wait for the sensor start-up */
-	xtimer_usleep(1e3 * LMT01_MAX_PULSES_TRAIN_TIMEOUT_MS); /* Wait for the sensor pulse train finishes */
+	xtimer_usleep(1e3 * 2 * LMT01_MIN_TIMEOUT_MS); /* Wait for the sensor start-up */
+	xtimer_usleep(1e3 * 2 * LMT01_MAX_PULSES_TRAIN_TIMEOUT_MS); /* Wait for the sensor pulse train finishes */
 
 	/* Get counted pulses */
 	uint16_t pulse_count = lmt01->_internal.pulse_count;

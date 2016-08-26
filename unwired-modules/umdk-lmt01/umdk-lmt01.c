@@ -103,6 +103,9 @@ static void prepare_result(char *buf) {
 		/* Append results delimiter */
 		if (results++ != num_sensors - 1)
 			strcat(buf, ",");
+
+		/* Delay between sensor switching */
+		xtimer_usleep(1e3 * 10);
 	}
 
 	if (!results) {
@@ -142,7 +145,11 @@ void *timer_thread(void *arg) {
 }
 
 void umdk_lmt01_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
-	(void) non_gpio_pin_map;
+	/* Disable gpio pins for sensors */
+	*non_gpio_pin_map |= 1 << 4;
+	*non_gpio_pin_map |= 1 << 5;
+	*non_gpio_pin_map |= 1 << 6;
+	*non_gpio_pin_map |= 1 << 7;
 
 	callback = event_callback;
 	publish_period_s = UMDK_LMT01_PUBLISH_PERIOD_S; /* Set to default */

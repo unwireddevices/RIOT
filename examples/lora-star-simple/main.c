@@ -168,11 +168,11 @@ void ls_setup(ls_ed_t *ls)
 {
 	ls->settings.class = LS_ED_CLASS_B;
 
-	ls->settings.dr = LS_DR5;
+	ls->settings.dr = LS_DR3;
 	ls->settings.channel = 0;
 
-    ls->settings.app_id = 0xDEADBEEF;
-    ls->settings.node_id = 3;
+    ls->settings.app_id = 0xFEEDF00D;
+    ls->settings.node_id = 1;
 
     memcpy(ls->settings.crypto.join_key, join_key, LS_MIC_KEY_LEN);
 

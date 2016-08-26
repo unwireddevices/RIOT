@@ -39,8 +39,8 @@ INCLUDES += -I../../unwired-modules/unwds-common/include/
 
 ############ UNWD MODULES USED #####################
 
-#USEMODULE += unwds-gpio
-#CFLAGS += -DUNWDS_GPIO
+USEMODULE += unwds-gpio
+CFLAGS += -DUNWDS_GPIO
 INCLUDES += -I../../unwired-modules/unwds-gpio/include/
 
 #USEMODULE += umdk-4btn
@@ -61,6 +61,11 @@ USEMODULE += umdk-acc
 CFLAGS += -DUMDK_ACC
 INCLUDES += -I../../unwired-modules/umdk-acc/include/
 USEMODULE += printf_float
+
+USEMODULE += umdk-lmt01
+CFLAGS += -DUMDK_LMT01
+INCLUDES += -I../../unwired-modules/umdk-lmt01/include/
+
 ####################################################
 
 CFLAGS += -DCRYPTO_AES

@@ -46,6 +46,8 @@ typedef enum {
 typedef struct {
 	uint16_t pulse_count;				/**< Last pulse count */
 	lmt01_state_t state;				/**< Sensor's last known state */
+
+	bool do_count;						/**< Allowed to count pulses */
 } lmt01_internal_t;
 
 /**

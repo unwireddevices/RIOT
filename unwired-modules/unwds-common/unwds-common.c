@@ -33,6 +33,7 @@ extern "C" {
 #include "umdk-gps.h"
 #include "umdk-temp.h"
 #include "umdk-acc.h"
+#include "umdk-lmt01.h"
 
 /**
  * @brief Bitmap of occupied pins that cannot be used as gpio in-out
@@ -45,12 +46,19 @@ static uint32_t non_gpio_pin_map;
 static uint64_t ability_map;
 
 static const unwd_module_t modules[] = {
-/*#ifdef UNWDS_GPIO
+/*
+#ifdef UNWDS_GPIO
     { "gpio", unwds_gpio_init, unwds_gpio_cmd, 1 << 1 },
    #endif
-   #ifdef UMDK_4BTN
+
+#ifdef UMDK_4BTN
     { "4btn", umdk_4btn_init, umdk_4btn_cmd, 1 << 2 },
- #endif*/
+#endif
+*/
+#ifdef UMDK_LMT01
+    { "lmt01", umdk_lmt01_init, umdk_lmt01_cmd, 1 << 6 },
+#endif
+/*
 #ifdef UMDK_GPS
     { "gps", umdk_gps_init, umdk_gps_cmd, 1 << 3 },
 #endif
@@ -59,7 +67,7 @@ static const unwd_module_t modules[] = {
 #endif
 #ifdef UMDK_ACC
 	{ "acc", umdk_acc_init, umdk_acc_cmd, 1 << 5 },
-#endif
+#endif*/
     { "", NULL, NULL },
 };
 

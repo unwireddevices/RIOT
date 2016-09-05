@@ -34,6 +34,7 @@ extern "C" {
 #include "umdk-temp.h"
 #include "umdk-acc.h"
 #include "umdk-lmt01.h"
+#include "umdk-uart.h"
 
 /**
  * @brief Bitmap of occupied pins that cannot be used as gpio in-out
@@ -46,32 +47,19 @@ static uint32_t non_gpio_pin_map;
 static uint64_t ability_map;
 
 static const unwd_module_t modules[] = {
-/*
-#ifdef UNWDS_GPIO
-    { "gpio", unwds_gpio_init, unwds_gpio_cmd, 1 << 1 },
-   #endif
 
-#ifdef UMDK_4BTN
-    { "4btn", umdk_4btn_init, umdk_4btn_cmd, 1 << 2 },
-#endif
-*/
-#ifdef UMDK_LMT01
-    { "lmt01", umdk_lmt01_init, umdk_lmt01_cmd, 1 << 6 },
-#endif
-/*
-#ifdef UMDK_GPS
-    { "gps", umdk_gps_init, umdk_gps_cmd, 1 << 3 },
-#endif
-#ifdef UMDK_TEMP
-    { "temp", umdk_temp_init, umdk_temp_cmd, 1 << 4 },
-#endif
-#ifdef UMDK_ACC
-	{ "acc", umdk_acc_init, umdk_acc_cmd, 1 << 5 },
-#endif*/
-    { "", NULL, NULL },
+    { UNWDS_GPIO_MODULE_ID, "gpio", unwds_gpio_init, unwds_gpio_cmd, 1 << 1 },/*
+    { UNWDS_4BTN_MODULE_ID, "4btn", umdk_4btn_init, umdk_4btn_cmd, 1 << 2 },
+    { UNWDS_LMT01_MODULE_ID, "lmt01", umdk_lmt01_init, umdk_lmt01_cmd, 1 << 6 },
+    { UNWDS_GPS_MODULE_ID, "gps", umdk_gps_init, umdk_gps_cmd, 1 << 3 },
+    { UNWDS_TEMP_MODULE_ID, "temp", umdk_temp_init, umdk_temp_cmd, 1 << 4 },
+	{ UNWDS_ACC_MODULE_ID, "acc", umdk_acc_init, umdk_acc_cmd, 1 << 5 },*/
+	{ UNWDS_LMT01_MODULE_ID, "lmt01", umdk_lmt01_init, umdk_lmt01_cmd, 1 << 6 },
+	{ UNWDS_UART_MODULE_ID, "uart", umdk_uart_init, umdk_uart_cmd, 1 << 7 },
+    { 0, "", NULL, NULL },
 };
 
-void unwds_init(uwnds_cb_t *event_callback)
+void unwds_init_modules(uwnds_cb_t *event_callback)
 {
     int i = 0;
 
@@ -79,67 +67,73 @@ void unwds_init(uwnds_cb_t *event_callback)
     i2c_init_master(I2C_0, I2C_SPEED_NORMAL);
 
     while (modules[i].init_cb != NULL && modules[i].cmd_cb != NULL) {
-        printf("unwds: initializing \"%s\" module...\n", modules[i].name);
-        modules[i].init_cb(&non_gpio_pin_map, event_callback);
-
-        /* Set corresponding bits in ability map */
-        ability_map |= modules[i].ability_mask;
+    	if (ability_map & modules[i].ability_mask) {
+    		printf("[unwds] initializing \"%s\" module...\n", modules[i].name);
+        	modules[i].init_cb(&non_gpio_pin_map, event_callback);
+    	}
 
         i++;
     }
 }
 
-static bool process_command(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_LEN], char *reply)
-{
-    char *module_name = argv[0];
-
-    int i = 0;
-
+static unwd_module_t *find_module(unwds_module_id_t modid) {
+	int i = 0;
     while (modules[i].init_cb != NULL && modules[i].cmd_cb != NULL) {
-        if (strcmp(modules[i].name, module_name) == 0) {
-            bool res = modules[i].cmd_cb(argc, argv, reply);
-            char buf[UNWDS_MAX_REPLY_LEN] = { '\0' };
-            sprintf(buf, "%s|%s", modules[i].name, reply);
-            strcpy(reply, buf);
+    	if (modules[i].module_id == modid)
+    		return (unwd_module_t *) &modules[i];
 
-            return res;
-        }
-
-        i++;
+    	i++;
     }
 
-    strcpy(reply, "unknown command");
-
-    return false;
+    return NULL;
 }
 
-bool unwds_command(char *command, char *reply)
-{
-    /* Tokenize the command parameters */
-    char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_LEN] = { { '\0', }, };
-    int argc = 0, j = 0;
-    int len = strlen(command);
-    int i = 0;
+void unwds_list_modules(uint64_t ability, bool enabled_only) {
+	int i = 0;
+	int modcount = 0;
+    while (modules[i].init_cb != NULL && modules[i].cmd_cb != NULL) {
+    	bool enabled = (ability & modules[i].ability_mask);
+    	unwds_module_id_t modid = modules[i].module_id;
 
-    for (i = 0; i < len; i++) {
-        if (argc >= UNWDS_MAX_PARAM_COUNT) {
-            break;
-        }
+    	if (enabled_only && !enabled) {
+    		i++;
+    		continue;
+    	}
 
-        if (command[i] == UNWDS_PARAM_DELIM) {
-            argc++;
-            j = 0;
-        }
-        else {
-            if (j >= UNWDS_MAX_PARAM_LEN) {
-                continue;
-            }
+    	modcount++;
+    	printf("[%s] %s (id: %d)\n", (enabled) ? "+" : "-", modules[i].name, modid);
 
-            argv[argc][j++] = command[i];
-        }
+    	i++;
     }
 
-    return process_command(argc, argv, reply);
+    if (!modcount)
+    	puts("<no modules enabled>");
+}
+
+void unwds_set_ability(uint64_t ability) {
+	ability_map = ability;
+}
+
+uint64_t unwds_get_ability_mask(unwds_module_id_t modid) {
+	unwd_module_t *module = find_module(modid);
+	if (!module)
+		return 0;
+
+	return module->ability_mask;
+}
+
+bool unwds_is_module_exists(unwds_module_id_t modid) {
+	return find_module(modid) != NULL;
+}
+
+bool unwds_send_to_module(unwds_module_id_t modid, module_data_t *data, module_data_t *reply)
+{
+
+	unwd_module_t *module = find_module(modid);
+	if (!module)
+		return false;
+
+	return module->cmd_cb(data, reply);
 }
 
 bool unwds_is_pin_occupied(uint32_t pin)

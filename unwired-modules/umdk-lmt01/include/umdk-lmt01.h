@@ -26,9 +26,11 @@
 
 #define UMDK_LMT01_DETECT_TIMEOUT_MS 300
 
-#define UMDK_LMT01_PUBLISH_PERIOD_S 10
+#define UMDK_LMT01_PUBLISH_PERIOD_S 60
+
+#define UNWDS_LMT01_MODULE_ID 5
 
 void umdk_lmt01_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
-bool umdk_lmt01_cmd(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_LEN], char *reply);
+bool umdk_lmt01_cmd(module_data_t *data, module_data_t *reply);
 
 #endif /* UMDK_LMT01_H */

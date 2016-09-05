@@ -21,29 +21,40 @@
 #include <stdint.h>
 
 #define UNWDS_MAX_MODULE_NAME 10
+#define UNWDS_MAX_DATA_LEN 128
 
-#define UNWDS_PARAM_DELIM ','
-#define UNWDS_MAX_PARAM_COUNT 4
-#define UNWDS_MAX_PARAM_LEN 64
+/**
+ * @brief Holds data transferred to/from module
+ */
+typedef struct {
+	uint8_t length;
+	uint8_t data[UNWDS_MAX_DATA_LEN];
+} module_data_t;
 
-#define UNWDS_MAX_REPLY_LEN 128
+typedef void (uwnds_cb_t)(module_data_t *msg);
 
-typedef void (uwnds_cb_t)(char *msg);
+typedef uint8_t unwds_module_id_t;
 
 typedef struct {
+	unwds_module_id_t module_id;
 	char name[UNWDS_MAX_MODULE_NAME];
-
 	void (*init_cb)(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
-	bool (*cmd_cb)(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_LEN], char *reply);
+	bool (*cmd_cb)(module_data_t *data, module_data_t *reply);
 
 	uint64_t ability_mask;
 } unwd_module_t;
 
-void unwds_init(uwnds_cb_t *callback);
-bool unwds_command(char *command, char *reply);
+void unwds_init_modules(uwnds_cb_t *event_callback);
+bool unwds_send_to_module(unwds_module_id_t modid, module_data_t *data, module_data_t *reply);
 
 uint64_t unwds_get_ability(void);
+void unwds_set_ability(uint64_t ability);
+
+void unwds_list_modules(uint64_t ability, bool enabled_only);
 
 bool unwds_is_pin_occupied(uint32_t pin);
+bool unwds_is_module_exists(unwds_module_id_t modid);
+
+uint64_t unwds_get_ability_mask(unwds_module_id_t modid);
 
 #endif /* UNWDS_COMMON_H_ */

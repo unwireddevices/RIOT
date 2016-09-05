@@ -80,45 +80,42 @@ static int init_sensors(void) {
 	return detected_count;
 }
 
-static void prepare_result(char *buf) {
+static uint16_t convert_temp(float temp) {
+	return (temp + 100) * 16;
+}
+
+static void prepare_result(module_data_t *buf) {
 	int results = 0;
 	int i;
 
+	uint16_t res[4] = { 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF };
+
 	for (i = 0; i < UMDK_LMT01_MAX_SENSOR_COUNT; i++) {
-		if (!detected[i])
+		if (!detected[i]) {
 			continue;
+		}
 
 		float temp;
 		int pulses;
 		if ((pulses = lmt01_get_temp(&sensors[i], &temp)) > 0) {
 			printf("[umdk-lmt01] Measured %d pulses on #%d: %.02f\n", pulses, i, temp);
+			res[i] = convert_temp(temp);
+			results++;
 		} else {
 			continue;
 		}
 
-		/* Copy temperature value as string */
-		char tempbuf[10] = { '\0' };
-		snprintf(tempbuf, 10, "%.02f", temp);
-
-		/* Append it to the result */
-		strcat(buf, tempbuf);
-
-		/* Append results delimiter */
-		if (results++ != num_sensors - 1)
-			strcat(buf, ",");
-
 		/* Delay between sensor switching */
 		xtimer_usleep(1e3 * 100);
-	}
-
-	if (!results) {
-		strcat(buf, "!no data!");
 	}
 
 	/* Try to re-detect sensors */
 	if ((num_sensors = init_sensors()) == 0) {
 		puts("[umdk-lmt01] Unable to detect sensor(s)");
 	}
+
+	memcpy(buf->data, (uint8_t *) res, sizeof(res));
+	buf->length = sizeof(res);
 }
 
 void *timer_thread(void *arg) {
@@ -131,16 +128,11 @@ void *timer_thread(void *arg) {
     while (1) {
         msg_receive(&msg);
 
-        puts("[umdk-lmt01] Publishing...");
-
-        /* Compoese the measuring */
-        char buf[30] = {};
-        strcpy(buf, "lmt01|");
-
-        prepare_result(buf);
+        module_data_t data = {};
+        prepare_result(&data);
 
         /* Notify the application */
-        callback(buf);
+        callback(&data);
 
         /* Restart after delay */
         xtimer_set_msg(&timer, 1e6 * publish_period_s, &timer_msg, timer_pid);
@@ -168,31 +160,19 @@ void umdk_lmt01_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
     xtimer_set_msg(&timer, 1e6 * publish_period_s, &timer_msg, timer_pid);
 }
 
-bool umdk_lmt01_cmd(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_LEN], char *reply) {
-	if (argc < 2)
+bool umdk_lmt01_cmd(module_data_t *cmd, module_data_t *reply) {
+	if (cmd->length < 1)
 		return false;
 
-	char *sub_cmd = argv[1];
-	int arg = strtol(argv[2], NULL, 10);
+	uint8_t arg = cmd->data[0];
 
-	/* lmt01 set_timer <interval_s> */
-	if (strcmp(sub_cmd, "set_timer") == 0 && argc == 2) {
-		if (arg > 0) {
-			/* Restart timer with new period */
-			xtimer_remove(&timer);
-			publish_period_s = arg;
+	/* Restart timer with new period */
+	xtimer_remove(&timer);
+	publish_period_s = arg;
 
-		    xtimer_set_msg(&timer, 1e6 * publish_period_s, &timer_msg, timer_pid);
+	xtimer_set_msg(&timer, 1e6 * publish_period_s, &timer_msg, timer_pid);
 
-			strcpy(reply, "ok");
-
-			return true;
-		}
-	}
-
-	strcpy(reply, "invalid");
-
-	return false;
+	return true;
 }
 
 #ifdef __cplusplus

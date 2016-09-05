@@ -20,9 +20,11 @@
 
 #include "unwds-common.h"
 
+#define UNWDS_ACC_MODULE_ID 4
+
 #define UMDK_ACC_I2C I2C_0
 
 void umdk_acc_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
-bool umdk_acc_cmd(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_LEN], char *reply);
+bool umdk_acc_cmd(module_data_t *data, module_data_t *reply);
 
 #endif /* UMDK_ACC_H */

@@ -27,9 +27,11 @@
  */
 //#define UMDK_GPS_AUTOPUBLISH
 
+#define UNWDS_GPS_MODULE_ID 3
+
 #define UMDK_GPS_UART UART_DEV(0)
 
 void umdk_gps_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
-bool umdk_gps_cmd(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_LEN], char *reply);
+bool umdk_gps_cmd(module_data_t *data, module_data_t *reply);
 
 #endif /* UMDK_GPS_H */

@@ -20,6 +20,8 @@
 
 #include "unwds-common.h"
 
+#define UNWDS_4BTN_MODULE_ID 2
+
 #define UMDK_4BTN_1 UNWD_GPIO_4
 #define UMDK_4BTN_2 UNWD_GPIO_5
 #define UMDK_4BTN_3 UNWD_GPIO_6
@@ -28,6 +30,6 @@
 #define UMDK_4BTN_DEBOUNCE_TIME_MS 150
 
 void umdk_4btn_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
-bool umdk_4btn_cmd(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_LEN], char *reply);
+bool umdk_4btn_cmd(module_data_t *data, module_data_t *reply);
 
 #endif /* UMDK_4BTN_H */

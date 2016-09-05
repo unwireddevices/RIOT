@@ -29,6 +29,8 @@ extern "C" {
 #include "board.h"
 #include "unwds-common.h"
 
+#include "unwds-gpio.h"
+
 static const gpio_t gpio_map[] = {
 		0,
 #ifdef UNWD_GPIO_1
@@ -221,83 +223,68 @@ void unwds_gpio_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	(void) event_callback;
 }
 
-bool unwds_gpio_cmd(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_LEN], char *reply) {
-	if (argc < 2)
+static inline void do_reply(module_data_t *reply, unwds_gpio_reply_t reply_code) {
+	reply->length = 1;
+	reply->data[0] = reply_code;
+}
+
+static bool check_pin(module_data_t *reply, int pin) {
+	/* Is pin is occupied by other module */
+	if (unwds_is_pin_occupied(pin)) {
+		do_reply(reply, UNWD_GPIO_REPLY_ERR_PIN);
 		return false;
-
-	char *sub_cmd = argv[1];
-	int arg = strtol(argv[2], NULL, 10);
-
-	/* gpio set <num> <1/0> */
-	if (strcmp(sub_cmd, "set") == 0 && argc == 3) {
-		/* Is pin is occupied by other module */
-		if (unwds_is_pin_occupied(arg)) {
-			strcpy(reply, "pin occupied");
-			return false;
-		}
-
-		/* Gpio port not in range */
-		if (arg < 0 || arg > 30) {
-			strcpy(reply, "pin not in range [1; 30]");
-			return false;
-		}
-
-		bool one = strtol(argv[3], NULL, 10) == 1;
-
-		if (set(arg, one))
-			strcpy(reply, "ok");
-		else
-			strcpy(reply, "pin not connected");
-
-		return true;
-	} else if (strcmp(sub_cmd, "toggle") == 0 && argc == 2) {
-		/* Is pin is occupied by other module */
-		if (unwds_is_pin_occupied(arg)) {
-			strcpy(reply, "pin occupied");
-			return false;
-		}
-
-		/* Gpio port not in range */
-		if (arg <= 0 || arg > 30) {
-			strcpy(reply, "pin not in range [1; 30]");
-			return false;
-		}
-
-		if (toggle(arg))
-			strcpy(reply, "ok");
-		else
-			strcpy(reply, "pin isn't connected");
-
-		return true;
-	} else if (strcmp(sub_cmd, "get") == 0 && argc == 2) { /* gpio get <num> */
-		/* Is pin is occupied by other module */
-		if (unwds_is_pin_occupied(arg)) {
-			strcpy(reply, "pin occupied");
-			return false;
-		}
-
-		/* Gpio port not in range */
-		if (arg < 0 || arg >= (sizeof(gpio_map) / sizeof(gpio_t))) {
-			strcpy(reply, "pin not in range [1; 30]");
-			return false;
-		}
-
-		if (gpio_map[arg] == 0) {
-			strcpy(reply, "pin isn't connected");
-			return false;
-		}
-
-		if (get(arg))
-			strcpy(reply, "1");
-		else
-			strcpy(reply, "0");
-
-		return true;
 	}
 
-	strcpy(reply, "invalid params");
+	/* Gpio pin not in range */
+	if (pin < 0 || pin >= (sizeof(gpio_map) / sizeof(gpio_t)) || gpio_map[pin] == 0) {
+		do_reply(reply, UNWD_GPIO_REPLY_ERR_PIN);
+		return false;
+	}
 
-	return false;
+	return true;
+}
+
+bool unwds_gpio_cmd(module_data_t *cmd, module_data_t *reply) {
+	if (cmd->length != UWNDS_GPIO_DATA_LEN) {
+		do_reply(reply, UNWD_GPIO_REPLY_ERR_FORMAT);
+		return false;
+	}
+
+	uint8_t value = cmd->data[0];
+	uint8_t pin = value & UNWDS_GPIO_PIN_MASK;
+	unwds_gpio_action_t act = (value & UNWDS_GPIO_ACT_MASK) >> UNWDS_GPIO_ACT_SHIFT;
+
+	if (!check_pin(reply, pin))
+		return false;
+
+	switch (act) {
+	case UNWDS_GPIO_GET:
+		if (get(pin))
+			do_reply(reply, UNWD_GPIO_REPLY_OK_1);
+		else
+			do_reply(reply, UNWD_GPIO_REPLY_OK_0);
+
+		break;
+
+	case UNWDS_GPIO_SET_0:
+	case UNWDS_GPIO_SET_1:
+		if (set(pin, act == UNWDS_GPIO_SET_1))
+			do_reply(reply, UNWD_GPIO_REPLY_OK);
+		else
+			do_reply(reply, UNWD_GPIO_REPLY_ERR_PIN);
+
+		break;
+
+	case UNWDS_GPIO_TOGGLE:
+		if (toggle(pin))
+			do_reply(reply, UNWD_GPIO_REPLY_OK);
+		else
+			do_reply(reply, UNWD_GPIO_REPLY_ERR_PIN);
+
+		break;
+	}
+
+	return true;
 }
 
 #ifdef __cplusplus

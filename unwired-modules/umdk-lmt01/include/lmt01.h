@@ -21,9 +21,14 @@
 #include "periph/gpio.h"
 
 /**
+ * @brief Maximum idle time
+ */
+#define LMT01_MAX_IDLE_TIME_MS 30
+
+/**
  * @brief Minimum timeout of sensor response in milliseconds
  */
-#define LMT01_MIN_TIMEOUT_MS 54
+#define LMT01_MIN_TIMEOUT_MS 28
 
 /*
  * @brief Maximum duration of pulses train in milliseconds

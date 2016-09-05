@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 cr0s
+ * Copyright (C) 2016 Unwired Devices [info@unwds.com]
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -12,7 +12,7 @@
  * @file
  * @brief       Basic functionality of sx1276 driver
  *
- * @author      Cr0s
+ * @author      Evgeniy Ponomarev
  * @}
  */
 #include <stdbool.h>
@@ -30,14 +30,8 @@
 #include "include/sx1276_regs_fsk.h"
 #include "include/sx1276_regs_lora.h"
 
-static char stack[THREAD_STACKSIZE_MAIN];
+static char stack[1024 + 512];
 static msg_t msg_queue[10];
-
-/**
- * These functions must be implemented in user's code
- */
-void sx1276_board_set_ant_sw_low_power(uint8_t lp);
-void sx1276_board_set_ant_sw(uint8_t tx);
 
 /**
  * Radio registers definition
@@ -153,10 +147,44 @@ static void _on_rx_timeout(void *arg)
     send_event(dev, RX_TIMEOUT, NULL);
 }
 
+#define SX1276_WHITENING_KEY_LSB 0xAF
+#define SX1276_WHITENING_KEY_MSB 0x05
+
+/**
+ * @brief Performs CCIT whitening/dewhitening
+ */
+
+void sx1276_whitening(uint8_t *buffer, size_t size)
+{
+    uint8_t i = 0;
+    uint16_t j = 0;
+    uint8_t whit_key_msb_prev = 0;
+    uint8_t rev_whit_key_lsb = 0;
+    rev_whit_key_lsb = SX1276_WHITENING_KEY_LSB;
+
+    uint8_t whit_key_msb = SX1276_WHITENING_KEY_MSB;
+    uint8_t whit_key_lsb = SX1276_WHITENING_KEY_LSB;
+
+    for( j = 0; j < size - 1; j++ )
+    {
+        buffer[j] ^= rev_whit_key_lsb;
+
+        for( i = 0; i < 8; i++ )
+        {
+            whit_key_msb_prev = whit_key_msb;
+            whit_key_msb =  (whit_key_lsb & 0x01) ^ ((whit_key_lsb >> 5) & 0x01);
+            whit_key_lsb = ((((whit_key_msb_prev << 7 ) & 0x80) | ((whit_key_lsb >> 1) & 0xFF)));
+        }
+
+        rev_whit_key_lsb = (whit_key_lsb & 0xF0) >> 4 | (whit_key_lsb & 0x0F) << 4;
+        rev_whit_key_lsb = (rev_whit_key_lsb & 0xCC) >> 2 | (rev_whit_key_lsb & 0x33) << 2;
+        rev_whit_key_lsb = (rev_whit_key_lsb & 0xAA) >> 1 | (rev_whit_key_lsb & 0x55) << 1;
+    }
+}
+
 /**
  * @brief Sets timers callbacks and arguments
  */
-
 static void _init_timers(sx1276_t *dev)
 {
     dev->tx_timeout_timer.arg = dev;
@@ -629,6 +657,8 @@ uint32_t sx1276_get_time_on_air(sx1276_t *dev, sx1276_radio_modems_t modem,
 
 void sx1276_send(sx1276_t *dev, uint8_t *buffer, uint8_t size)
 {
+	sx1276_whitening(buffer, size);
+
     switch (dev->settings.modem) {
         case MODEM_FSK:
             sx1276_write_fifo(dev, &size, 1);
@@ -1180,6 +1210,11 @@ void sx1276_on_dio0(void *arg)
                     uint8_t last_rx_addr = sx1276_reg_read(dev, REG_LR_FIFORXCURRENTADDR);
                     sx1276_reg_write(dev, REG_LR_FIFOADDRPTR, last_rx_addr);
                     sx1276_read_fifo(dev, (uint8_t *) packet.content, packet.size);
+
+                    /* Apply dewhitening */
+                    sx1276_whitening((uint8_t *) packet.content, packet.size);
+
+
 
                     /* Notify upper layer about new packet */
                     send_event(dev, RX_DONE, &packet);

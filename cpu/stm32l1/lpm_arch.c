@@ -39,12 +39,16 @@ void lpm_arch_init(void)
 enum lpm_mode lpm_arch_set(enum lpm_mode target)
 {
     switch (target) {
-        case LPM_SLEEP:;             /* Sleep mode */
-        	PWR->CR = (PWR->CR & CR_DS_MASK) | PWR_CR_LPSDSR;
-            SCB->SCR &= (uint32_t) ~((uint32_t)SCB_SCR_SLEEPDEEP); /* Clear SLEEPDEEP bit of Cortex System Control Register */
+        case LPM_SLEEP:;                                            /* Sleep mode */
+            PWR->CR = (PWR->CR & CR_DS_MASK) | PWR_CR_LPSDSR;
+            SCB->SCR &= (uint32_t) ~((uint32_t)SCB_SCR_SLEEPDEEP);  /* Clear SLEEPDEEP bit of Cortex System Control Register */
 
             /* Request Wait For Interrupt */
+            __disable_irq();
+            asm ("DMB");
             __WFI();
+            asm ("nop");
+            __enable_irq();
             break;
 
         case LPM_POWERDOWN:         /* Stop mode */
@@ -55,7 +59,11 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             SCB->SCR |= SCB_SCR_SLEEPDEEP;
 
             /* Wait in sleep mode until interrupt */
+            __disable_irq();
+            asm ("DMB");
             __WFI();
+            asm ("nop");
+            __enable_irq();
 
             /* Clear SLEEPDEEP bit */
             SCB->SCR &= (uint32_t) ~((uint32_t)SCB_SCR_SLEEPDEEP);

@@ -31,7 +31,7 @@ extern "C" {
 
 #include "unwds-gpio.h"
 
-static const gpio_t gpio_map[] = {
+static const gpio_t unwds_gpio_map[] = {
 		0,
 #ifdef UNWD_GPIO_1
 		UNWD_GPIO_1,
@@ -186,7 +186,7 @@ static const gpio_t gpio_map[] = {
 };
 
 static bool set(int num, bool one) {
-	gpio_t gpio = gpio_map[num];
+	gpio_t gpio = unwds_gpio_map[num];
 	if (gpio == 0)
 		return false;
 
@@ -201,14 +201,14 @@ static bool set(int num, bool one) {
 }
 
 static bool get(int num) {
-	gpio_t gpio = gpio_map[num];
+	gpio_t gpio = unwds_gpio_map[num];
 	gpio_init(gpio, GPIO_IN);
 
 	return gpio_read(gpio);
 }
 
 static bool toggle(int num) {
-	gpio_t gpio = gpio_map[num];
+	gpio_t gpio = unwds_gpio_map[num];
 	if (gpio == 0)
 		return false;
 
@@ -236,7 +236,7 @@ static bool check_pin(module_data_t *reply, int pin) {
 	}
 
 	/* Gpio pin not in range */
-	if (pin < 0 || pin >= (sizeof(gpio_map) / sizeof(gpio_t)) || gpio_map[pin] == 0) {
+	if (pin < 0 || pin >= (sizeof(unwds_gpio_map) / sizeof(gpio_t)) || unwds_gpio_map[pin] == 0) {
 		do_reply(reply, UNWD_GPIO_REPLY_ERR_PIN);
 		return false;
 	}
@@ -285,6 +285,13 @@ bool unwds_gpio_cmd(module_data_t *cmd, module_data_t *reply) {
 	}
 
 	return true;
+}
+
+gpio_t unwds_gpio_pin(int pin) {
+	if (pin < 0 || pin >= (sizeof(unwds_gpio_map) / sizeof(gpio_t)))
+		return 0;
+
+	return unwds_gpio_map[pin];
 }
 
 #ifdef __cplusplus

@@ -18,6 +18,8 @@
  * @}
  */
 
+#include "board.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -32,8 +34,6 @@
 #include "ringbuffer.h"
 #include "periph/uart.h"
 
-#include "board.h"
-
 #include "ls-mac-types.h"
 #include "ls-crypto.h"
 #include "ls-gate.h"
@@ -47,7 +47,7 @@ ls_gate_t ls;
 static uint8_t join_key[LS_MIC_KEY_LEN] = { 0xCA, 0xFE, 0xBA, 0xBE, 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED, 0xCA, 0xFE, 0xDE, 0xAD, 0xBE, 0xEF };
 
 ls_gate_channel_t channels[1] = {
-		{ LS_DR6, 0, { &sx1276, &ls } },	/* DR3, channel 2 */
+		{ LS_DR3, 0, { &sx1276, &ls } },	/* DR3, channel 0 */
 };
 
 /* UART interaction */
@@ -68,7 +68,6 @@ static char sender_stack[THREAD_STACKSIZE_MAIN];
 
 static char payload[255];
 static ls_addr_t send_addr;
-
 
 static uart_t uart = UART_DEV(1);
 

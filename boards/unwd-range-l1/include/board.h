@@ -82,6 +82,9 @@ extern "C" {
 #define SX1276_DIO4 NULL
 #define SX1276_DIO5 NULL
 
+/** "Connect" Button */
+#define UNWD_CONNECT_BTN GPIO_PIN(PORT_A, 1)
+
 /** GPIO Ports */
 #define UNWD_GPIO_1 GPIO_PIN(PORT_A, 1)
 #define UNWD_GPIO_4 GPIO_PIN(PORT_A, 4)
@@ -97,7 +100,7 @@ extern "C" {
 
 /** @} */
 
-#define UART_STDIO_DEV              (UART_DEV(1))
+#define UART_STDIO_DEV              (UART_DEV(0))
 #define UART_STDIO_BAUDRATE         (115200U)
 #define UART_STDIO_RX_BUFSIZE       (64U)
 

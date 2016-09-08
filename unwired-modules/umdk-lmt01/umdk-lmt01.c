@@ -32,6 +32,7 @@ extern "C" {
 
 #include "unwds-common.h"
 #include "umdk-lmt01.h"
+#include "unwds-gpio.h"
 
 #include "thread.h"
 #include "xtimer.h"
@@ -47,7 +48,7 @@ static uwnds_cb_t *callback;
 static kernel_pid_t timer_pid;
 static char timer_stack[THREAD_STACKSIZE_MAIN];
 
-static int publish_period_s;
+static int publish_period_min;
 
 static msg_t timer_msg = {};
 static xtimer_t timer;
@@ -58,6 +59,10 @@ static int init_sensors(void) {
 
 	for (i = 0; i < UMDK_LMT01_MAX_SENSOR_COUNT; i++) {
 		lmt01_t *dev = &sensors[i];
+
+		/* Skip disabled */
+		if (!en_pins[i])
+			continue;
 
 		/* Initialize */
 		if (lmt01_init(dev, en_pins[i], UMDK_LMT01_INT_PIN) < 0) {
@@ -114,8 +119,9 @@ static void prepare_result(module_data_t *buf) {
 		puts("[umdk-lmt01] Unable to detect sensor(s)");
 	}
 
-	memcpy(buf->data, (uint8_t *) res, sizeof(res));
-	buf->length = sizeof(res);
+	buf->data[0] = UNWDS_LMT01_MODULE_ID;
+	memcpy(buf->data + 1, (uint8_t *) res, sizeof(res));
+	buf->length = sizeof(res) + 1;
 }
 
 void *timer_thread(void *arg) {
@@ -128,6 +134,8 @@ void *timer_thread(void *arg) {
     while (1) {
         msg_receive(&msg);
 
+        xtimer_remove(&timer);
+
         module_data_t data = {};
         prepare_result(&data);
 
@@ -135,19 +143,15 @@ void *timer_thread(void *arg) {
         callback(&data);
 
         /* Restart after delay */
-        xtimer_set_msg(&timer, 1e6 * publish_period_s, &timer_msg, timer_pid);
+        xtimer_set_msg(&timer, 1e6 * 60 * publish_period_min, &timer_msg, timer_pid);
     }
 }
 
 void umdk_lmt01_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
-	/* Disable gpio pins for sensors */
-	*non_gpio_pin_map |= 1 << 4;
-	*non_gpio_pin_map |= 1 << 5;
-	*non_gpio_pin_map |= 1 << 6;
-	*non_gpio_pin_map |= 1 << 7;
+	(void) non_gpio_pin_map;
 
 	callback = event_callback;
-	publish_period_s = UMDK_LMT01_PUBLISH_PERIOD_S; /* Set to default */
+	publish_period_min = UMDK_LMT01_PUBLISH_PERIOD_MIN; /* Set to default */
 
 	if ((num_sensors = init_sensors()) == 0) {
 		puts("[umdk-lmt01] Unable to detect sensor(s)");
@@ -156,21 +160,74 @@ void umdk_lmt01_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	/* Create handler thread */
 	timer_pid = thread_create(timer_stack, sizeof(timer_stack), THREAD_PRIORITY_MAIN - 1, 0, timer_thread, NULL, "lmt01 publisher thread");
 
-    /* Start publishing timer with default period */
-    xtimer_set_msg(&timer, 1e6 * publish_period_s, &timer_msg, timer_pid);
+    /* Start publishing timer */
+	xtimer_set_msg(&timer, 1e6 * 60 * publish_period_min, &timer_msg, timer_pid);
 }
 
 bool umdk_lmt01_cmd(module_data_t *cmd, module_data_t *reply) {
 	if (cmd->length < 1)
 		return false;
 
-	uint8_t arg = cmd->data[0];
+	umdk_lmt01_cmd_t c = cmd->data[0];
+	switch (c) {
+	case UMDK_LMT01_CMD_SET_PERIOD: {
+		if (cmd->length != 2)
+			return false;
 
-	/* Restart timer with new period */
-	xtimer_remove(&timer);
-	publish_period_s = arg;
+		uint8_t period = cmd->data[1];
+		xtimer_remove(&timer);
 
-	xtimer_set_msg(&timer, 1e6 * publish_period_s, &timer_msg, timer_pid);
+		publish_period_min = period;
+
+		/* Don't restart timer if new period is zero */
+		if (publish_period_min) {
+			xtimer_set_msg(&timer, 1e6 * 60 * publish_period_min, &timer_msg, timer_pid);
+			printf("[lmt01] Period set to %d seconds\n", publish_period_min);
+		} else
+			puts("[lmt01] Timer stopped");
+
+		reply->length = 4;
+		reply->data[0] = UNWDS_LMT01_MODULE_ID;
+		reply->data[1] = 'o';
+		reply->data[2] = 'k';
+		reply->data[3] = '\0';
+
+		break;
+	}
+
+	case UMDK_LMT01_CMD_POLL:
+		/* Send signal to publisher thread */
+		msg_send(&timer_msg, timer_pid);
+
+		return false; /* Don't reply */
+
+		break;
+
+	case UMDK_LMT01_CMD_SET_GPIOS: {
+		uint8_t *gpios = &cmd->data[1];
+		int num_gpios = cmd->length - 1;
+
+		if (!num_gpios)
+			return false;
+
+		int i;
+		for (i = 0; i < num_gpios; i++) {
+			if (gpios[i]) {
+				gpio_t gpio = unwds_gpio_pin(gpios[i]);
+				en_pins[i] = gpio;
+			} else
+				en_pins[i] = 0;	/* Disable this pin */
+		}
+
+		/* Re-initialize sensors */
+		init_sensors();
+
+		break;
+	}
+
+	default:
+		break;
+	}
 
 	return true;
 }

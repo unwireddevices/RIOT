@@ -84,6 +84,12 @@ bool ls_frame_fifo_empty(ls_frame_fifo_t *fifo) {
 	return (fifo->front == -1 && fifo->rear == -1);
 }
 
+void ls_frame_fifo_clear(ls_frame_fifo_t *fifo) {
+	int c = irq_disable();
+	fifo->front = fifo->rear = -1;
+	irq_restore(c);
+}
+
 #ifdef __cplusplus
 }
 #endif

@@ -48,6 +48,9 @@ unsigned bitarithm_lsb(register unsigned v)
 {
     register unsigned r = 0;
 
+    if (!v)
+    	return r;
+
     while ((v & 0x01) == 0) {
         v >>= 1;
         r++;

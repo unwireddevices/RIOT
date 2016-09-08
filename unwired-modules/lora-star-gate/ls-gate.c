@@ -140,7 +140,7 @@ static int send_frame(ls_gate_channel_t *ch, ls_addr_t to, ls_type_t type, uint8
 	return LS_GATE_OK;
 }
 
-static inline void send_join_ack(ls_gate_t *ls, ls_gate_channel_t *ch, uint32_t dev_id, ls_addr_t addr, uint32_t app_nonce) {
+static inline void send_join_ack(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t dev_id, ls_addr_t addr, uint32_t app_nonce) {
 	ls_join_ack_t ack = { .addr = addr, .dev_id = dev_id, .app_nonce = app_nonce };
 
 	send_frame(ch, addr, LS_DL_JOIN_ACK, (uint8_t *) &ack, sizeof(ls_join_ack_t));
@@ -293,6 +293,10 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame) 
 		/* Send acknowledge */
 		send_lnkchk_ack(ls, ch, frame->header.dev_addr, node->num_pending > 0);
 
+		/* Decrease pending frames counter */
+		if (node->num_pending)
+			node->num_pending--;
+
 		/* Notify application about link check to send pending frames */
 		if (ls->link_ok_cb != NULL)
 			ls->link_ok_cb(node, ch);
@@ -403,7 +407,7 @@ static void *sx1276_handler(void *arg) {
 	return NULL;
 }
 
-void *tim_handler(void *arg) {
+static void *tim_handler(void *arg) {
 	assert(arg != NULL);
 
 	ls_gate_t *ls = (ls_gate_t *) arg;

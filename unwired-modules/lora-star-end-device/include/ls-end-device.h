@@ -82,8 +82,6 @@ typedef enum {
 	LS_ED_APPDATA_ACK_EXPIRED,
 
 	LS_ED_LNKCHK_BEGIN,
-
-	LS_ED_SLEEP_REQUEST,
 } ls_ed_tim_cmd_t;
 
 /**
@@ -243,7 +241,7 @@ int ls_ed_join(ls_ed_t *ls);
 
 void ls_ed_unjoin(ls_ed_t *ls);
 
-void ls_ed_sleep(ls_ed_t *ls, bool lowpower);
+void ls_ed_sleep(ls_ed_t *ls);
 
 void ls_ed_lnkchk(ls_ed_t *ls);
 

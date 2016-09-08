@@ -36,6 +36,7 @@
 
 #include "ls-end-device.h"
 #include "unwds-common.h"
+#include "unwds-gpio.h"
 
 
 static uint8_t join_key[AES_KEY_SIZE] = { 0xCA, 0xFE, 0xBA, 0xBE, 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED, 0xCA, 0xFE, 0xDE, 0xAD, 0xBE, 0xEF };
@@ -413,6 +414,9 @@ static const shell_command_t shell_commands[] = {
     { NULL, NULL, NULL }
 };
 
+#define pulses_
+
+#ifndef pulses
 static void unwds_callback(char *buf) {
     size_t buflen = strlen(buf) + 1; /* Don't forget about \0 at the end of a string */
 
@@ -422,11 +426,43 @@ static void unwds_callback(char *buf) {
 
     blink_led();
 }
+#endif
 
+#ifdef pulses
+void cb(void *arg) {
+	(void) arg;
+
+	int i = 0;
+	int n = 1280;
+
+	gpio_init(UNWD_GPIO_1, GPIO_OUT);
+	gpio_clear(UNWD_GPIO_1);
+
+	int j;
+	for (j = 0; j < 2; j++) {
+		xtimer_usleep(1e3 * 54);
+
+		for (i = 0; i < n; i++) {
+			gpio_set(UNWD_GPIO_1);
+
+			xtimer_usleep(1);
+
+			gpio_clear(UNWD_GPIO_1);
+
+			xtimer_usleep(1);
+		}
+	}
+}
+#endif
 int main(void)
 {
     print_logo();
     xtimer_init();
+#ifdef pulses
+    gpio_init_int(UNWD_GPIO_4, GPIO_IN, GPIO_RISING, cb, NULL);
+    gpio_init(UNWD_GPIO_1, GPIO_OUT);
+#endif
+#ifndef pulses
     rtc_init();
     radio_init();
 
@@ -441,7 +477,7 @@ int main(void)
     ls_ed_join(&ls);
 
     blink_led();
-
+#endif
     char line_buf[SHELL_DEFAULT_BUFSIZE];
     shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);
 

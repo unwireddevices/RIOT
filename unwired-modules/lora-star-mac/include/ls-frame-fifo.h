@@ -85,4 +85,11 @@ bool ls_frame_fifo_empty(ls_frame_fifo_t *fifo);
  */
 bool ls_frame_fifo_full(ls_frame_fifo_t *fifo);
 
+/**
+ * @brief clears the queue.
+ *
+ * @param	*fifo	pointer to the FIFO structure
+ */
+void ls_frame_fifo_clear(ls_frame_fifo_t *fifo);
+
 #endif /* LS_FRAME_FIFO_H_ */

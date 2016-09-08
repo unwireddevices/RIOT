@@ -31,7 +31,6 @@ USEMODULE += sx1276
 
 EXTERNAL_MODULE_DIRS += ../../unwired-modules/
 USEMODULE += lora-star-mac
-USEMODULE += lora-star-gate
 USEMODULE += lora-star-end-device
 USEMODULE += unwds-common
 

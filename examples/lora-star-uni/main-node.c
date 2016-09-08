@@ -129,6 +129,7 @@ void appdata_received_cb(uint8_t *buf, size_t buflen) {
 	bytes_to_hex(buf, buflen, hex, false);
 
 	printf("ls-ed: received data: \"%s\"\n", hex);
+	blink_led();
 
 	if (buflen < 2)
 		return;
@@ -140,13 +141,12 @@ void appdata_received_cb(uint8_t *buf, size_t buflen) {
 	cmd.length = buflen - 1;
 
 	module_data_t reply = {};
-	unwds_send_to_module(modid, &cmd, &reply);
+	if (!unwds_send_to_module(modid, &cmd, &reply))
+		return;
 
     int res = ls_ed_send_app_data(&ls, reply.data, reply.length, true);
     if (res < 0)
     	printf("sendc: error #%d\n", res);
-
-    blink_led();
 }
 
 void ls_setup(ls_ed_t *ls)
@@ -381,8 +381,12 @@ static const shell_command_t shell_commands[] = {
 static void unwds_callback(module_data_t *buf) {
     int res = ls_ed_send_app_data(&ls, buf->data, buf->length, true);
     if (res < 0)
+    {
+    	if (res == -LS_SEND_E_FQ_OVERFLOW) {
+    		puts("[error] Uplink queue overflowed!");
+    	} else
     	printf("send: error #%d\n", res);
-
+    }
     blink_led();
 }
 
@@ -419,7 +423,7 @@ void init_node(shell_command_t **commands)
 
 		unwds_set_ability(node_settings.ability);
 		ls.settings.ability = node_settings.ability;
-		ls.settings.class = LS_ED_CLASS_B;
+		ls.settings.class = LS_ED_CLASS_A;
 
 		unwds_init_modules(unwds_callback);
 

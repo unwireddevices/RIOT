@@ -18,6 +18,7 @@
 #ifndef UNWDS_GPIO_H
 #define UNWDS_GPIO_H
 
+#include "periph/gpio.h"
 #include "unwds-common.h"
 
 #define UNWDS_GPIO_MODULE_ID 1
@@ -44,5 +45,7 @@ typedef enum {
 
 void unwds_gpio_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
 bool unwds_gpio_cmd(module_data_t *cmd, module_data_t *reply);
+
+gpio_t unwds_gpio_pin(int pin);
 
 #endif /* UNWDS_GPIO_H */

@@ -742,6 +742,8 @@ void sx1276_set_sleep(sx1276_t *dev)
     /* Put chip into sleep */
     sx1276_set_op_mode(dev, RF_OPMODE_SLEEP);
     sx1276_set_status(dev,  RF_IDLE);
+
+    puts("SX1276 sleeping");
 }
 
 void sx1276_set_standby(sx1276_t *dev)

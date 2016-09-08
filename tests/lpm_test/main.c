@@ -19,39 +19,35 @@
  */
 
 #include <stdio.h>
-#include "lpm.h"
 
-#include "periph/rtc.h"
+#include "periph/gpio.h"
 #include "thread.h"
+#include "xtimer.h"
 
 /**
  * @brief Time delay before RTC alarm
  */
 #define SLEEP_TIME_SEC 3
-
-void rtc_alarm_cb(void *arg) {
-	(void) arg;
+void gcb(void *arg)
+{
+  LED0_TOGGLE;
+  puts("CB!!!");
 }
 
 int main(void)
 {
-    rtc_init();
-
     puts("= STM32 Low Power mode test =");
-
-    /* Setup RTC alarm time to wake up on */
-    struct tm time;
-    rtc_get_time(&time);
-    time.tm_sec  += SLEEP_TIME_SEC;
-    rtc_set_alarm(&time, rtc_alarm_cb, NULL);
 
     puts("Entering LPM...");
 
-    /* Enter low power mode */
-    lpm_set(LPM_SLEEP);
+    while (1) {
+      /* Enter low power mode */
+      xtimer_sleep(SLEEP_TIME_SEC);
 
-    /* This code is supposed to execute after wake-up on RTC alarm */
-    puts("Normally running");
+      /* This code is supposed to execute after wake-up on RTC alarm */
+      LED0_TOGGLE;
+      puts("Normally running");
+    }
 
     while (1) ;
 

@@ -107,6 +107,7 @@ typedef enum {
 	LS_INIT_E_FQ_THREAD,			/**< Unable to start uplink frame queue handler thread */
 	LS_INIT_E_TIM_THREAD,			/**< Unable to start rx window timing handler thread */
 	LS_SEND_E_FQ_OVERFLOW,			/**< Uplink frame queue is overflowed */
+	LS_SEND_E_NOT_JOINED,			/**< Not joined to the network */
 
 	LS_OK,							/**< Initialized successfully */
 

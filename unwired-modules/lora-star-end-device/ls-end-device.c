@@ -519,8 +519,14 @@ static void *tim_handler(void *arg)
                 /* Clear the default settings flag */
                 ls->_internal.use_rx_window_2_settings = false;
 
-                /* Put transceiver into sleep with low power mode */
-                ls_ed_sleep(ls);
+                /* Transmit next frame from queue */
+                if (!ls_frame_fifo_empty(&ls->_internal.uplink_queue)) {
+                    schedule_tx(ls);
+                } else {
+					/* Put transceiver into sleep with low power mode */
+					ls_ed_sleep(ls);
+                }
+
                 break;
 
             case LS_ED_JOIN_REQ_EXPIRED:
@@ -673,6 +679,11 @@ int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed
 {
     assert(ls != NULL);
     assert(buf != NULL);
+
+    /* Has to be joined to network */
+    if (!ls->_internal.is_joined) {
+    	return -LS_SEND_E_NOT_JOINED;
+    }
 
     int res = send_frame(ls, (confirmed) ? LS_UL_CONF : LS_UL_UNC, buf, buflen);
     if (res < 0) {

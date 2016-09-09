@@ -102,7 +102,7 @@ void link_good_cb(void) {
 }
 
 void joined_timeout_cb(void) {
-	puts("ls: join request timed out, resenting");
+	puts("ls: join request timed out, resending");
 
     xtimer_usleep(1e6 * 2 * ++join_retr_count);
 	ls_ed_join(&ls);
@@ -146,7 +146,7 @@ void appdata_received_cb(uint8_t *buf, size_t buflen) {
 
     int res = ls_ed_send_app_data(&ls, reply.data, reply.length, true);
     if (res < 0)
-    	printf("sendc: error #%d\n", res);
+    	printf("send: error #%d\n", res);
 }
 
 void ls_setup(ls_ed_t *ls)
@@ -384,9 +384,12 @@ static void unwds_callback(module_data_t *buf) {
     {
     	if (res == -LS_SEND_E_FQ_OVERFLOW) {
     		puts("[error] Uplink queue overflowed!");
+    	} if (res == -LS_SEND_E_NOT_JOINED) {
+    		puts("[error] Cannot send app. data: not joined to the network");
     	} else
-    	printf("send: error #%d\n", res);
+    		printf("send: error #%d\n", res);
     }
+
     blink_led();
 }
 

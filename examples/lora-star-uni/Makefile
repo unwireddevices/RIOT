@@ -65,6 +65,10 @@ INCLUDES += -I../../unwired-modules/umdk-lmt01/include/
 USEMODULE += umdk-uart
 INCLUDES += -I../../unwired-modules/umdk-uart/include/
 
+USEMODULE += umdk-sht21
+USEMODULE += sht21
+INCLUDES += -I../../unwired-modules/umdk-sht21/include/
+
 ####################################################
 
 

@@ -421,7 +421,10 @@ static void *uq_handler(void *arg)
 
         f = &frame;
 
-        /* Check the previous state */
+        /* Wakeup peripherals */
+        if (ls->wakeup_cb)
+        	ls->wakeup_cb();
+
         ls->state = LS_ED_TRANSMITTING;
 
         /* Configure to sleep */

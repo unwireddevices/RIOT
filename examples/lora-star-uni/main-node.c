@@ -151,17 +151,17 @@ void appdata_received_cb(uint8_t *buf, size_t buflen) {
 
 static void standby_mode_cb(void) {
 	puts("Peripherals disabled");
+	xtimer_usleep(1000);
 
 	gpio_clear(LED0_PIN);
-
 	/* Disable Console UART */
 	UART_0_CLKDIS();							/* Disable console UART clocking */
-
-	xtimer_usleep(1000);
+	SPI_1_CLKDIS();								/* Disable SPI clocking */
 }
 
 static void wakeup_cb(void) {
 	UART_0_CLKEN();								/* Enable console UART clocking */
+	SPI_1_CLKEN();								/* Disable SPI clocking */
 
 	gpio_set(LED0_PIN);
 

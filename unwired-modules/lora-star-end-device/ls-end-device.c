@@ -488,6 +488,9 @@ static void *tim_handler(void *arg)
     while (1) {
         msg_receive(&msg);
 
+        if (ls->wakeup_cb != NULL)
+        	ls->wakeup_cb();
+
         ls_ed_tim_cmd_t cmd = (ls_ed_tim_cmd_t) msg.content.value;
 
         switch (cmd) {
@@ -680,6 +683,9 @@ int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed
     assert(ls != NULL);
     assert(buf != NULL);
 
+    if (ls->wakeup_cb != NULL)
+    	ls->wakeup_cb();
+
     /* Has to be joined to network */
     if (!ls->_internal.is_joined) {
     	return -LS_SEND_E_NOT_JOINED;
@@ -712,6 +718,9 @@ void ls_ed_unjoin(ls_ed_t *ls)
 int ls_ed_join(ls_ed_t *ls)
 {
     assert(ls != NULL);
+
+    if (ls->wakeup_cb != NULL)
+    	ls->wakeup_cb();
 
     /* Leave network if we're currently joined */
     ls_ed_unjoin(ls);
@@ -762,6 +771,9 @@ void ls_ed_sleep(ls_ed_t *ls)
 
     ls->state = LS_ED_SLEEP;
     sx1276_set_sleep(ls->_internal.sx1276);
+
+    if (ls->standby_mode_cb != NULL)
+    	ls->standby_mode_cb();
 }
 
 #ifdef __cplusplus

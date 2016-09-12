@@ -742,8 +742,6 @@ void sx1276_set_sleep(sx1276_t *dev)
     /* Put chip into sleep */
     sx1276_set_op_mode(dev, RF_OPMODE_SLEEP);
     sx1276_set_status(dev,  RF_IDLE);
-
-    puts("SX1276 sleeping");
 }
 
 void sx1276_set_standby(sx1276_t *dev)
@@ -985,21 +983,6 @@ void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode)
     op_mode_prev = sx1276_reg_read(dev, REG_OPMODE) & ~RF_OPMODE_MASK;
 
     if (op_mode != op_mode_prev) {
-        /*
-    	if (op_mode == RF_OPMODE_SLEEP) {
-            sx1276_board_set_ant_sw_low_power(true);
-        }
-        else {
-            sx1276_board_set_ant_sw_low_power(false);
-
-            if (op_mode == RF_OPMODE_TRANSMITTER) {
-                sx1276_board_set_ant_sw(1);
-            }
-            else {
-                sx1276_board_set_ant_sw(0);
-            }
-        }*/
-
         /* Replace previous mode value and setup new mode value */
         sx1276_reg_write(dev, REG_OPMODE, (op_mode_prev & RF_OPMODE_MASK) | op_mode);
     }

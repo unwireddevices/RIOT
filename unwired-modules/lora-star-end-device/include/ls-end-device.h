@@ -229,7 +229,8 @@ typedef struct {
 	void (*appdata_received_cb)(uint8_t *buf, size_t buflen);
 	void (*appdata_send_failed_cb)(void);
 
-	void (*standby_mode_cb)(uint32_t wakeup_after);
+	void (*standby_mode_cb)(void);
+	void (*wakeup_cb)(void);
 
 	ls_ed_internal_t _internal;	/**< Internal data for the LS stack*/
 } ls_ed_t;

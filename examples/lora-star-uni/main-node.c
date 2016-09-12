@@ -149,7 +149,31 @@ void appdata_received_cb(uint8_t *buf, size_t buflen) {
     	printf("send: error #%d\n", res);
 }
 
-void ls_setup(ls_ed_t *ls)
+static void standby_mode_cb(void) {
+	puts("Peripherals disabled");
+
+	gpio_clear(LED0_PIN);
+
+	/* Disable Console UART */
+	while (!(UART_0_DEV->SR & USART_SR_TXE)) {}	/* Wait for transfers finished */
+	UART_0_CLKDIS();							/* Disable console UART clocking */
+	SPI_0_CLKDIS();								/* Disable SPI clocking */
+
+	xtimer_usleep(1000);
+}
+
+static void wakeup_cb(void) {
+	UART_0_CLKEN();								/* Enable console UART clocking */
+	SPI_0_CLKEN();								/* Disable SPI clocking */
+
+	gpio_set(LED0_PIN);
+
+	xtimer_usleep(1000);
+
+	puts("Peripherals enabled");
+}
+
+static void ls_setup(ls_ed_t *ls)
 {
 	ls->settings.class = node_settings.class;
 
@@ -171,6 +195,9 @@ void ls_setup(ls_ed_t *ls)
     ls->settings.max_retr = node_settings.max_retr;		/* Maximum number of confirmed data retransmissions */
 
     ls->appdata_received_cb = appdata_received_cb;
+
+    ls->standby_mode_cb = standby_mode_cb;
+    ls->wakeup_cb = wakeup_cb;
 
     ls->settings.lnkchk_failed_action = LS_ED_REJOIN;
     ls->settings.lnkchk_period_s = node_settings.lnkchk_period;
@@ -358,6 +385,7 @@ static int ls_moddisable_cmd(int argc, char **argv) {
 		return 1;
 	}
 
+	/* Remove module from node's ability */
 	node_settings.ability &= ~unwds_get_ability_mask(modid);
 
 	return 0;
@@ -423,6 +451,8 @@ void init_node(shell_command_t **commands)
         radio_init();
 		ls_setup(&ls);
 		ls_ed_init(&ls);
+
+		wakeup_cb();
 
 		unwds_set_ability(node_settings.ability);
 		ls.settings.ability = node_settings.ability;

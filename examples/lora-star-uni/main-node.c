@@ -155,16 +155,13 @@ static void standby_mode_cb(void) {
 	gpio_clear(LED0_PIN);
 
 	/* Disable Console UART */
-	while (!(UART_0_DEV->SR & USART_SR_TXE)) {}	/* Wait for transfers finished */
 	UART_0_CLKDIS();							/* Disable console UART clocking */
-	SPI_0_CLKDIS();								/* Disable SPI clocking */
 
 	xtimer_usleep(1000);
 }
 
 static void wakeup_cb(void) {
 	UART_0_CLKEN();								/* Enable console UART clocking */
-	SPI_0_CLKEN();								/* Disable SPI clocking */
 
 	gpio_set(LED0_PIN);
 

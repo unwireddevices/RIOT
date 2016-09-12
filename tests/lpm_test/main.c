@@ -27,7 +27,7 @@
 /**
  * @brief Time delay before RTC alarm
  */
-#define SLEEP_TIME_SEC 3
+#define SLEEP_TIME_SEC 1
 void gcb(void *arg)
 {
   LED0_TOGGLE;
@@ -40,14 +40,15 @@ int main(void)
 
     puts("Entering LPM...");
 
-    while (1) {
-      /* Enter low power mode */
-      xtimer_sleep(SLEEP_TIME_SEC);
+	/* Enter low power mode */
+	xtimer_sleep(SLEEP_TIME_SEC);
 
-      /* This code is supposed to execute after wake-up on RTC alarm */
-      LED0_TOGGLE;
-      puts("Normally running");
-    }
+	/* This code is supposed to execute after wake-up */
+	LED0_TOGGLE;
+	puts("Normally running");
+
+	xtimer_sleep(10);
+	puts("After 10 seconds");
 
     while (1) ;
 

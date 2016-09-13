@@ -6,6 +6,7 @@ include ../Makefile.tests_common
 USEMODULE += od
 USEMODULE += ps
 USEMODULE += xtimer
+USEMODULE += sx1276
 
 CFLAGS += -DDEVELHELP
 

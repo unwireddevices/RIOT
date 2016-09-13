@@ -105,10 +105,16 @@ static void set_xtimer_freq(int freq) {
 
 void switch_to_msi_1mhz(void)
 {
-    select_msi_range(RCC_ICSCR_MSIRANGE_6);	/* 4.194 MHz */
+    select_msi_range(RCC_ICSCR_MSIRANGE_6);
 
     /* Enable MSI */
     RCC->CR |= RCC_CR_MSION;
+
+    /* Disable PLL and HSE and HSI */
+    RCC->CR &= ~(RCC_CR_HSION | RCC_CR_HSEON | RCC_CR_PLLON);
+
+    /* Regulator in LP mode */
+    PWR->CR |= PWR_CR_LPSDSR;
 
     /* Set MSI as system clock */
     set_sysclk_msi();
@@ -117,15 +123,7 @@ void switch_to_msi_1mhz(void)
     setup_flash_for_msi();
 
     /* Set xtimer for current frequency */
-    set_xtimer_freq(4194000); /* 4.194 MHz */
-
-    /* Disable HSI */
-    RCC->CR &= RCC_CR_HSION;
-
-    /* Enable LPSDSR */
-    PWR->CR |= PWR_CR_LPSDSR;
-
-    // TODO: change xtimer TIM clocking
+    set_xtimer_freq(1048000); /* 1.048 MHz */
 }
 
 void restore_clocks_hsi(void)
@@ -216,9 +214,13 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 
             /* Wait in sleep mode until interrupt */
             __disable_irq();
+            //switch_to_msi_1mhz();
+
             asm ("DMB");
             __WFI();
             asm ("nop");
+
+            //restore_clocks_hsi();
             __enable_irq();
 
             /* Clear SLEEPDEEP bit */

@@ -24,6 +24,8 @@ extern "C" {
 #include <string.h>
 #include <stdlib.h>
 
+#include "lpm.h"
+#include "arch/lpm_arch.h"
 #include "shell.h"
 #include "shell_commands.h"
 #include "thread.h"
@@ -157,9 +159,13 @@ static void standby_mode_cb(void) {
 	/* Disable Console UART */
 	UART_0_CLKDIS();							/* Disable console UART clocking */
 	SPI_1_CLKDIS();								/* Disable SPI clocking */
+
+	lpm_prevent_sleep = 0;
 }
 
 static void wakeup_cb(void) {
+	lpm_prevent_sleep = 1;
+
 	UART_0_CLKEN();								/* Enable console UART clocking */
 	SPI_1_CLKEN();								/* Disable SPI clocking */
 

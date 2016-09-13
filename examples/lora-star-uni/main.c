@@ -22,6 +22,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "lpm.h"
+#include "arch/lpm_arch.h"
 #include "shell.h"
 #include "shell_commands.h"
 #include "thread.h"
@@ -129,6 +131,8 @@ static bool check_button(void) {
 
 int main(void)
 {
+	lpm_prevent_sleep = 1;
+
     print_logo();
     xtimer_init();
 

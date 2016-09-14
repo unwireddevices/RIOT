@@ -90,21 +90,27 @@ static inline void setup_flash_for_msi(void)
 
 #define TIM TIM5
 
-static void set_xtimer_freq(int freq) {
-    /* configure reload and pre-scaler values */
-    //TIM->ARR = 0xffffffff;
-    //TIM->PSC = freq / XTIMER_USEC_TO_TICKS(1000000ul);
-
-    //TIM->CCR[0] /= 8;
-    //TIM->SR &= ~(1 << (0 + 1));
-    //TIM->DIER |= (1 << (0 + 1));
+static void fix_xtimer_freq(bool slow) {
+    /* configure pre-scaler values */
+    if (slow) {
+    	TIM->PSC /= 8;
+    }
+    else {
+    	TIM->ARR = 0xFFFFFFFF;
+    	TIM->PSC = 0x1f;
+    }
 
     /* trigger update event to make pre-scaler value effective */
-    //TIM->EGR = TIM_EGR_UG;
+    TIM->EGR = TIM_EGR_UG;
+    TIM->SR &= ~(1 << (XTIMER_CHAN));
+    TIM->DIER |= (1 << (XTIMER_CHAN));
 }
 
 void switch_to_msi_1mhz(void)
 {
+   /* Set xtimer for current frequency */
+	fix_xtimer_freq(true);
+
     select_msi_range(RCC_ICSCR_MSIRANGE_6);
 
     /* Enable MSI */
@@ -121,9 +127,6 @@ void switch_to_msi_1mhz(void)
 
     /* Configure FLASH */
     setup_flash_for_msi();
-
-    /* Set xtimer for current frequency */
-    set_xtimer_freq(1048000); /* 1.048 MHz */
 }
 
 void restore_clocks_hsi(void)
@@ -178,7 +181,7 @@ void restore_clocks_hsi(void)
     while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL) {
     }
 
-    set_xtimer_freq(32000000);
+    fix_xtimer_freq(false);
 }
 
 void lpm_arch_init(void)
@@ -195,13 +198,13 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 
             /* Request Wait For Interrupt */
             __disable_irq();
-            switch_to_msi_1mhz();
+            //switch_to_msi_1mhz();
 
             asm ("DMB");
             __WFI();
             asm ("nop");
 
-            restore_clocks_hsi();
+           // restore_clocks_hsi();
             __enable_irq();
             break;
 
@@ -221,10 +224,11 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             asm ("nop");
 
             //restore_clocks_hsi();
-            __enable_irq();
 
             /* Clear SLEEPDEEP bit */
             SCB->SCR &= (uint32_t) ~((uint32_t)SCB_SCR_SLEEPDEEP);
+
+            __enable_irq();
             break;
 
         case LPM_OFF:               /* Standby mode */

@@ -21,6 +21,7 @@
 #include <stdio.h>
 
 #include "lpm.h"
+#include "periph/rtc.h"
 #include "arch/lpm_arch.h"
 #include "periph/gpio.h"
 #include "thread.h"
@@ -28,6 +29,8 @@
 
 #include "board.h"
 #include "sx1276.h"
+
+#include "stm32l1xx.h"
 
 static sx1276_t sx1276;
 
@@ -62,38 +65,54 @@ void radio_init(void)
 /**
  * @brief Time delay before RTC alarm
  */
+
 #define SLEEP_TIME_SEC 1
 void gcb(void *arg)
 {
-  LED0_TOGGLE;
-  puts("CB!!!");
 }
 
+/*
 static void disable_gpios(void) {
     //RCC->AHBENR |= RCC_AHBENR_GPIOAEN | RCC_AHBENR_GPIOBEN | RCC_AHBENR_GPIOCEN |RCC_AHBENR_GPIOHEN;
 
     GPIOC->PUPDR=0;
     RCC->AHBENR &= ~RCC_AHBENR_GPIOCEN;
-}
+}*/
 
 int main(void)
 {
 	lpm_prevent_sleep = 1;
     puts("= STM32 Low Power mode test =");
 
+    xtimer_init();
+    rtc_init();
+
     gpio_init_int(GPIO_PIN(PORT_C, 1), GPIO_IN, GPIO_RISING, gcb, NULL);
 
     volatile int i = 0;
-    for(i = 0; i < 30000000; i++) ;
+    for(i = 0; i < 10000000; i++) ;
 
-    disable_gpios();
+    //disable_gpios();
 
     puts("Disabling sx1276...");
-    radio_init();
+    //radio_init();
 
     puts("Entering LPM...");
+
+    /*
+    struct tm t;
+    rtc_get_time(&t);
+
+    t.tm_sec += 10;
+    rtc_set_alarm(&t, gcb, NULL);*/
+
+    //lpm_prevent_sleep = 0;
+	//lpm_set(LPM_POWERDOWN);
+
     lpm_prevent_sleep = 0;
-	xtimer_sleep(1);
+
+    xtimer_sleep(10);
+    printf("3. TIM5->PSC: %08x\n", TIM5->PSC);
 
 	/* This code is supposed to execute after wake-up */
 	LED0_TOGGLE;

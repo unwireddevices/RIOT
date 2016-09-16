@@ -111,7 +111,7 @@ bool clear_nvram(void) {
   puts("Start cleaning NVRAM");
   res = (nv->clear(nv) > 0);
   if (res) {
-    puts("Sccessfully clened");
+    puts("Sccessfully cleaned");
   }
   else {
     puts("Error while cleaning");

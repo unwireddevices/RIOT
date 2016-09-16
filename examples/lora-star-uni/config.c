@@ -23,6 +23,7 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #include "nvram.h"
 #include "checksum/crc16_ccitt.h"
@@ -96,13 +97,26 @@ bool save_eui64_nvram(nvram_t *nvram) {
 	return (nvram->write(nvram, (uint8_t *) &eui64, CONFIG_EUI64_ADDR, sizeof(config_eui64_t)) > 0);
 }
 
-
 bool save_config_nvram(nvram_t *nvram) {
 	/* Calculate checksum */
 	config.cfg_crc = get_crc((uint8_t *) &config, CONFIG_SIZE - 4);
 
 	/* Write to NVRAM */
 	return (nvram->write(nvram, (uint8_t *) &config, CONFIG_ADDR, sizeof(nvram_config_t)) > 0);
+}
+
+bool clear_nvram(void) {
+  bool res;
+	/* Write to NVRAM */
+  puts("Start cleaning NVRAM");
+  res = (nv->clear(nv) > 0);
+  if (res) {
+    puts("Sccessfully clened");
+  }
+  else {
+    puts("Error while cleaning");
+  }
+	return res;
 }
 
 config_role_t config_get_role(void) {

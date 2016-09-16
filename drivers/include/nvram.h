@@ -72,6 +72,16 @@ typedef struct nvram {
      */
     int (*write)(struct nvram *dev, uint8_t *src, uint32_t dst, size_t size);
 
+    /**
+     * @brief Clears all contents of NVRAM.
+     *
+     * @param[in]  dev   Pointer to NVRAM device descriptor
+     *
+     * @return           Number of bytes in NVRAM on success
+     * @return           <0 on errors
+     */
+    int (*clear)(struct nvram *dev);
+
     /** @brief Device capacity */
     size_t size;
 

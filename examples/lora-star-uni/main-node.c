@@ -394,6 +394,12 @@ static int ls_moddisable_cmd(int argc, char **argv) {
 	return 0;
 }
 
+static int ls_clear_nvram(int argc, char **argv) {
+
+  clear_nvram();
+	return 0;
+}
+
 static const shell_command_t shell_commands[] = {
 	{ "set", "<config> <value> -- sets up value for the config entry", ls_set_cmd },
 	{ "listconfig", "-- prints out current configuration", ls_printc_cmd },
@@ -403,6 +409,8 @@ static const shell_command_t shell_commands[] = {
 	{ "moddisable", "<modid> -- disables selected module", ls_moddisable_cmd },
 
 	{ "save", "-- saves current configuration", ls_save_cmd },
+
+	{ "clear", "-- clears all data in NVRAM", ls_clear_nvram },
 
 	{ "cmd", "<modid> <cmdhex> -- executes command to against selected UNWDS module", ls_cmd_cmd },
 

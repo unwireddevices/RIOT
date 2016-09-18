@@ -122,40 +122,9 @@ static int count_pulses(lmt01_t *lmt01) {
 	return pulse_count;
 }
 
-bool lmt01_detect(lmt01_t *lmt01, uint32_t timeout_ms) {
-	assert(lmt01 != NULL);
-
-	/* Wait for pulses either within given timeout or within at least two minimum datasheet timeouts */
-	if (timeout_ms <= LMT01_MIN_TIMEOUT_MS)
-		timeout_ms = 2 * LMT01_MIN_TIMEOUT_MS;
-
-	int pulse_count = count_pulses(lmt01);
-	printf("[lmt01] Pulses counted while detection: %d\n", pulse_count);
-
-	if (!pulse_count) {
-		lmt01->_internal.state = LMT01_UNKNOWN;
-		lmt01_off(lmt01);
-
-		return false;
-	}
-
-	lmt01->_internal.state = LMT01_DETECTED;
-
-	lmt01_off(lmt01);
-
-	/* Got impulses, sensor is seems to be present */
-	return true;
-}
-
 int lmt01_get_temp(lmt01_t *lmt01, float *temp) {
 	assert(lmt01 != NULL);
 	assert(temp != NULL);
-
-	/* Check presence of a sensor */
-	if (lmt01->_internal.state != LMT01_DETECTED && !lmt01_detect(lmt01, 2 * LMT01_MIN_TIMEOUT_MS)) {
-		lmt01->_internal.state = LMT01_UNKNOWN;
-		return 0;
-	}
 
 	lmt01->_internal.state = LMT01_MEASURING;
 

@@ -396,8 +396,14 @@ static int ls_moddisable_cmd(int argc, char **argv) {
 
 static int ls_clear_nvram(int argc, char **argv) {
 
-  clear_nvram();
-	return 0;
+  if (clear_nvram()) {
+	  puts("[ok] Settings cleared");
+	  puts("Type \"reboot\" to define new configuration");
+  } else {
+	  puts("[error] Unable to cleare NVRAM");
+  }
+
+  return 0;
 }
 
 static const shell_command_t shell_commands[] = {

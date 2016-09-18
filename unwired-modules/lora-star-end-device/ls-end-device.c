@@ -691,6 +691,9 @@ int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed
 
     /* Has to be joined to network */
     if (!ls->_internal.is_joined) {
+    	if (ls->standby_mode_cb)
+    		ls->standby_mode_cb();
+
     	return -LS_SEND_E_NOT_JOINED;
     }
 

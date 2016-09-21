@@ -76,12 +76,10 @@ uint32_t sht21_measure(sht21_t * dev, sht21_measure_t *measure)
 {
     assert(dev != NULL);
     /*init i2c*/
-    i2c_poweron(dev->i2c);
     i2c_init_master(dev->i2c, I2C_SPEED_NORMAL);
-    //printf("measuring...\n");
+
     /* Acquire the I2C bus */
     i2c_acquire(dev->i2c);
-    //char data[10];
     uint16_t temp_int;
     uint16_t humi_int;
     i2c_read_regs(dev->i2c, 0x40, SHT21_REG_T_HOLD, (char *)&temp_int, 2);

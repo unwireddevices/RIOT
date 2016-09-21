@@ -20,7 +20,7 @@
 
 #include "unwds-common.h"
 
-#define UMDK_SHT21_I2C I2C_1
+#define UMDK_SHT21_I2C I2C_0
 
 #define UMDK_SHT21_PUBLISH_PERIOD_MIN 1
 

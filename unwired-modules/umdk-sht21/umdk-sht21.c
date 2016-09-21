@@ -68,6 +68,8 @@ static void prepare_result(module_data_t *buf) {
 	sht21_measure_t measure = {};
 	sht21_measure(&dev, &measure);
 
+	printf("[sth21] Temp: %.02f, humiditiy: %.02f\n", measure.temperature, measure.humidity);
+
 	uint16_t temp = convert_temp(measure.temperature);
 	uint8_t hum = convert_humid(measure.humidity);
 

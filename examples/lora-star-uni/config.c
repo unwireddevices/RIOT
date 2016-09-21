@@ -117,12 +117,7 @@ bool save_config_nvram(nvram_t *nvram)
 
 bool clear_nvram(void)
 {
-    bool res;
-
-    /* Write to NVRAM */
-    puts("Start cleaning NVRAM");
-
-    return res;
+    return nv->clear(nv) > 0;
 }
 
 config_role_t config_get_role(void)

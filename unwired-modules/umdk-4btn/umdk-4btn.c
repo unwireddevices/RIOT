@@ -57,10 +57,11 @@ void *handler(void *arg) {
 
         printf("[umdk-4btn] pressed: %d\n", (unsigned int) btn);
 
-        char buf[8] = { '\0' };
-        sprintf(buf, "4btn|%d\n", btn);
+        module_data_t data;
+        data.length = 1;
+        data.data[0] = btn;
 
-        callback(buf);
+        callback(&data);
     }
 
 	return NULL;
@@ -145,7 +146,7 @@ void umdk_4btn_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	handler_pid = thread_create(handler_stack, sizeof(handler_stack), THREAD_PRIORITY_MAIN - 1, 0, handler, NULL, "4btn handler thread");
 }
 
-bool umdk_4btn_cmd(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_LEN], char *reply) {
+bool umdk_4btn_cmd(module_data_t *data, module_data_t *reply) {
 	return false;
 }
 

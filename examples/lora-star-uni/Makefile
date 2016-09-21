@@ -44,7 +44,7 @@ INCLUDES += -I../../unwired-modules/unwds-common/include/
 USEMODULE += unwds-gpio
 INCLUDES += -I../../unwired-modules/unwds-gpio/include/
 
-#USEMODULE += umdk-4btn
+USEMODULE += umdk-4btn
 INCLUDES += -I../../unwired-modules/umdk-4btn/include/
 
 #USEMODULE += umdk-gps

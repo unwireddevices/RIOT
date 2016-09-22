@@ -58,8 +58,9 @@ void *handler(void *arg) {
         printf("[umdk-4btn] pressed: %d\n", (unsigned int) btn);
 
         module_data_t data;
-        data.length = 1;
-        data.data[0] = btn;
+        data.length = 2;
+        data.data[0] = UNWDS_4BTN_MODULE_ID;
+        data.data[1] = btn;
 
         callback(&data);
     }

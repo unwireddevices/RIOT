@@ -152,13 +152,13 @@ void appdata_received_cb(uint8_t *buf, size_t buflen) {
 }
 
 static void standby_mode_cb(void) {
-	puts("Peripherals disabled");
-	xtimer_usleep(1000);
+	//puts("Peripherals disabled");
+	//xtimer_usleep(1000);
 
-	gpio_clear(LED0_PIN);
+	//gpio_clear(LED0_PIN);
 	/* Disable Console UART */
-	UART_0_CLKDIS();							/* Disable console UART clocking */
-	SPI_1_CLKDIS();								/* Disable SPI clocking */
+	//UART_0_CLKDIS();							/* Disable console UART clocking */
+	//SPI_1_CLKDIS();								/* Disable SPI clocking */
 
 	lpm_prevent_sleep = 0;
 }
@@ -166,14 +166,14 @@ static void standby_mode_cb(void) {
 static void wakeup_cb(void) {
 	lpm_prevent_sleep = 1;
 
-	UART_0_CLKEN();								/* Enable console UART clocking */
-	SPI_1_CLKEN();								/* Disable SPI clocking */
+	//UART_0_CLKEN();								/* Enable console UART clocking */
+	//SPI_1_CLKEN();								/* Disable SPI clocking */
 
-	gpio_set(LED0_PIN);
+	//gpio_set(LED0_PIN);
 
-	xtimer_usleep(1000);
+	//xtimer_usleep(1000);
 
-	puts("Peripherals enabled");
+	//puts("Peripherals enabled");
 }
 
 static void ls_setup(ls_ed_t *ls)

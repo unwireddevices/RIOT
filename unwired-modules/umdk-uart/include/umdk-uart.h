@@ -25,13 +25,19 @@
 #define UMDK_UART_DEV UART_DEV(1)
 #define UMDK_UART_BAUDRATE 115200
 
+#define UMDK_UART_RXBUF_SIZE 128
+
+#define UMDK_UART_SYMBOL_TIMEOUT_MS 500
+
 typedef enum {
 	UMDK_UART_SEND_ALL = 0,
 } umdk_uart_prefix_t;
 
 typedef enum {
-	UMDK_UART_SENT = 0,
+	UMDK_UART_REPLY_SENT = 0,
+	UMDK_UART_REPLY_RECEIVED = 1,
 	/* ... */
+	UMDK_UART_REPLY_ERR_OVF = 253,	/* RX buffer overflowed */
 	UMDK_UART_REPLY_ERR_FMT = 254,
 	UMDK_UART_ERR = 255,
 } umdk_uart_reply_t;

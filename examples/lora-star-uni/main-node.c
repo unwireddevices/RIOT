@@ -506,7 +506,7 @@ void init_node(shell_command_t **commands)
 
         unwds_set_ability(node_settings.ability);
         ls.settings.ability = node_settings.ability;
-        ls.settings.class = LS_ED_CLASS_A;
+        ls.settings.class = node_settings.class;
 
         unwds_init_modules(unwds_callback);
 

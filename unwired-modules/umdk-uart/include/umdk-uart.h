@@ -31,11 +31,13 @@
 
 typedef enum {
 	UMDK_UART_SEND_ALL = 0,
+	UMDK_UART_SET_BAUDRATE = 1,
 } umdk_uart_prefix_t;
 
 typedef enum {
 	UMDK_UART_REPLY_SENT = 0,
 	UMDK_UART_REPLY_RECEIVED = 1,
+	UMDK_UART_REPLY_BAUDRATE_SET = 2,
 	/* ... */
 	UMDK_UART_REPLY_ERR_OVF = 253,	/* RX buffer overflowed */
 	UMDK_UART_REPLY_ERR_FMT = 254,

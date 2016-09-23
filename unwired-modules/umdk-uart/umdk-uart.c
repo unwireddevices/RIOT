@@ -48,6 +48,12 @@ static msg_t send_msg_ovf;
 
 static xtimer_t send_timer;
 
+static int baudrates[10] = {
+		1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800
+};
+
+static uint8_t current_baudrate_idx = 0;
+
 void *writer(void *arg) {
     msg_t msg;
     msg_t msg_queue[8];
@@ -123,7 +129,7 @@ static void do_reply(module_data_t *reply, umdk_uart_reply_t r)
 {
     reply->length = 2;
     reply->data[0] = UNWDS_UART_MODULE_ID;
-    reply->data[0] = r;
+    reply->data[1] = r;
 }
 
 bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
@@ -146,6 +152,29 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             do_reply(reply, UMDK_UART_REPLY_SENT);
 
             break;
+
+        case UMDK_UART_SET_BAUDRATE:
+            if (data->length != 2) { /* Must be one byte of prefix and one byte of BR index */
+                do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
+                return false;
+            }
+
+            uint8_t br = data->data[1];
+            if (br >= 10) {	/* This BR index is not supported */
+                do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
+                return false;
+            }
+
+            /* Set baudrate and reinitialize UART */
+            current_baudrate_idx = br;
+            if (uart_init(UMDK_UART_DEV, baudrates[current_baudrate_idx], rx_cb, NULL)) {
+                do_reply(reply, UMDK_UART_ERR); /* UART error, baud rate not supported? */
+                return false;
+            }
+
+            do_reply(reply, UMDK_UART_REPLY_BAUDRATE_SET);
+
+        	break;
 
         default:
         	do_reply(reply, UMDK_UART_REPLY_ERR_FMT);

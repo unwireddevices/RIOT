@@ -24,8 +24,8 @@ extern "C" {
 #include <stdbool.h>
 #include <string.h>
 
+#include "lpm.h"
 #include "periph/gpio.h"
-
 #include "board.h"
 
 #include "lmt01.h"
@@ -40,9 +40,6 @@ extern "C" {
 static gpio_t en_pins[UMDK_LMT01_MAX_SENSOR_COUNT] = UMDK_LMT01_SENSOR_EN_PINS;
 static lmt01_t sensors[UMDK_LMT01_MAX_SENSOR_COUNT];
 
-static bool detected[UMDK_LMT01_MAX_SENSOR_COUNT];
-static int num_sensors = 0;
-
 static uwnds_cb_t *callback;
 
 static kernel_pid_t timer_pid;
@@ -53,9 +50,8 @@ static int publish_period_min;
 static msg_t timer_msg = {};
 static xtimer_t timer;
 
-static int init_sensors(void) {
+static void init_sensors(void) {
 	int i = 0;
-	uint8_t detected_count = 0;
 
 	for (i = 0; i < UMDK_LMT01_MAX_SENSOR_COUNT; i++) {
 		lmt01_t *dev = &sensors[i];
@@ -68,21 +64,7 @@ static int init_sensors(void) {
 		if (lmt01_init(dev, en_pins[i], UMDK_LMT01_INT_PIN) < 0) {
 			printf("[umdk-lmt01] Failed to initialize sensor #%d\n", i);
 		}
-
-		/* Detect */
-		printf("[umdk-lmt01] Detecting %d...\n", i);
-		if (lmt01_detect(dev, UMDK_LMT01_DETECT_TIMEOUT_MS)) {
-			detected[i] = true;
-			printf("[umdk-lmt01] Detected sensor #%d\n", i);
-
-			detected_count++;
-		}
-
-		/* Delay between sensor switching */
-		xtimer_usleep(1e3 * 100);
 	}
-
-	return detected_count;
 }
 
 static uint16_t convert_temp(float temp) {
@@ -96,7 +78,7 @@ static void prepare_result(module_data_t *buf) {
 	uint16_t res[4] = { 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF };
 
 	for (i = 0; i < UMDK_LMT01_MAX_SENSOR_COUNT; i++) {
-		if (!detected[i]) {
+		if (!en_pins[i]) {
 			continue;
 		}
 
@@ -114,11 +96,6 @@ static void prepare_result(module_data_t *buf) {
 		xtimer_usleep(1e3 * 100);
 	}
 
-	/* Try to re-detect sensors */
-	if ((num_sensors = init_sensors()) == 0) {
-		puts("[umdk-lmt01] Unable to detect sensor(s)");
-	}
-
 	buf->data[0] = UNWDS_LMT01_MODULE_ID;
 	memcpy(buf->data + 1, (uint8_t *) res, sizeof(res));
 	buf->length = sizeof(res) + 1;
@@ -134,6 +111,8 @@ void *timer_thread(void *arg) {
     while (1) {
         msg_receive(&msg);
 
+        lpm_prevent_sleep = 1;
+
         xtimer_remove(&timer);
 
         module_data_t data = {};
@@ -142,8 +121,10 @@ void *timer_thread(void *arg) {
         /* Notify the application */
         callback(&data);
 
+        lpm_prevent_sleep = 0;
+
         /* Restart after delay */
-        xtimer_set_msg(&timer, 1e6 * 60 * publish_period_min, &timer_msg, timer_pid);
+        xtimer_set_msg(&timer, 1e6 * 60 * publish_period_min, &timer_msg, timer_pid); // XXX: timer / 32
     }
 }
 
@@ -153,15 +134,13 @@ void umdk_lmt01_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	callback = event_callback;
 	publish_period_min = UMDK_LMT01_PUBLISH_PERIOD_MIN; /* Set to default */
 
-	if ((num_sensors = init_sensors()) == 0) {
-		puts("[umdk-lmt01] Unable to detect sensor(s)");
-	}
+	init_sensors();
 
 	/* Create handler thread */
 	timer_pid = thread_create(timer_stack, sizeof(timer_stack), THREAD_PRIORITY_MAIN - 1, 0, timer_thread, NULL, "lmt01 publisher thread");
 
     /* Start publishing timer */
-	xtimer_set_msg(&timer, 1e6 * 60 * publish_period_min, &timer_msg, timer_pid);
+	xtimer_set_msg(&timer, 1e6 * 60 * publish_period_min, &timer_msg, timer_pid); // XXX: / 16
 }
 
 bool umdk_lmt01_cmd(module_data_t *cmd, module_data_t *reply) {
@@ -182,7 +161,7 @@ bool umdk_lmt01_cmd(module_data_t *cmd, module_data_t *reply) {
 		/* Don't restart timer if new period is zero */
 		if (publish_period_min) {
 			xtimer_set_msg(&timer, 1e6 * 60 * publish_period_min, &timer_msg, timer_pid);
-			printf("[lmt01] Period set to %d seconds\n", publish_period_min);
+			printf("[lmt01] Period set to %d minutes\n", publish_period_min);
 		} else
 			puts("[lmt01] Timer stopped");
 

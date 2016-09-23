@@ -283,7 +283,7 @@ static void print_config(void) {
 
 	printf("CHANNEL = %d\n", node_settings.channel);
 	printf("DATARATE = %d\n", node_settings.dr);
-	//printf("CLASS = %c\n", (node_settings.class == LS_ED_CLASS_A) ? 'A' : (node_settings.class == LS_ED_CLASS_B) ? 'B' : '?');
+	printf("CLASS = %c\n", (node_settings.class == LS_ED_CLASS_A) ? 'A' : (node_settings.class == LS_ED_CLASS_B) ? 'B' : '?');
 	printf("LNKCHKPERIOD (s) = %d\n", node_settings.lnkchk_period);
 	printf("MAXRETR = %d\n", node_settings.max_retr);
 

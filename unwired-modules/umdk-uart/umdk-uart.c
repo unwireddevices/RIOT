@@ -41,7 +41,7 @@ static uint8_t rxbuf[UMDK_UART_RXBUF_SIZE] = {};
 static volatile uint8_t num_bytes_received;
 
 static kernel_pid_t writer_pid;
-static char writer_stack[THREAD_STACKSIZE_MAIN + 1024];
+static char writer_stack[THREAD_STACKSIZE_MAIN + 2048];
 
 static msg_t send_msg;
 static msg_t send_msg_ovf;
@@ -56,8 +56,8 @@ static uint8_t current_baudrate_idx = 0;
 
 void *writer(void *arg) {
     msg_t msg;
-    msg_t msg_queue[8];
-    msg_init_queue(msg_queue, 8);
+    msg_t msg_queue[128];
+    msg_init_queue(msg_queue, 128);
 
     while (1) {
         msg_receive(&msg);

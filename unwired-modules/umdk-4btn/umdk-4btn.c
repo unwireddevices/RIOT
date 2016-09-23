@@ -35,7 +35,7 @@ extern "C" {
 #include "xtimer.h"
 
 static kernel_pid_t handler_pid;
-static char handler_stack[THREAD_STACKSIZE_MAIN + 1024];
+static char handler_stack[THREAD_STACKSIZE_MAIN];
 
 static msg_t btn1;
 static msg_t btn2;
@@ -48,8 +48,8 @@ static uwnds_cb_t *callback;
 
 void *handler(void *arg) {
     msg_t msg;
-    msg_t msg_queue[8];
-    msg_init_queue(msg_queue, 8);
+    msg_t msg_queue[128];
+    msg_init_queue(msg_queue, 128);
 
     while (1) {
         msg_receive(&msg);

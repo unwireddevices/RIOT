@@ -156,6 +156,7 @@ static void _on_rx_timeout(void *arg)
 
 void sx1276_whitening(uint8_t *buffer, size_t size)
 {
+	/*
     uint8_t i = 0;
     uint16_t j = 0;
     uint8_t whit_key_msb_prev = 0;
@@ -179,7 +180,7 @@ void sx1276_whitening(uint8_t *buffer, size_t size)
         rev_whit_key_lsb = (whit_key_lsb & 0xF0) >> 4 | (whit_key_lsb & 0x0F) << 4;
         rev_whit_key_lsb = (rev_whit_key_lsb & 0xCC) >> 2 | (rev_whit_key_lsb & 0x33) << 2;
         rev_whit_key_lsb = (rev_whit_key_lsb & 0xAA) >> 1 | (rev_whit_key_lsb & 0x55) << 1;
-    }
+    }*/
 }
 
 /**

@@ -36,6 +36,7 @@ extern "C" {
 #include "umdk-lmt01.h"
 #include "umdk-uart.h"
 #include "umdk-sht21.h"
+#include "umdk-pir.h"
 
 /**
  * @brief Bitmap of occupied pins that cannot be used as gpio in-out
@@ -57,6 +58,7 @@ static const unwd_module_t modules[] = {
 	{ UNWDS_LMT01_MODULE_ID, "lmt01", umdk_lmt01_init, umdk_lmt01_cmd, 1 << 6 },
 	{ UNWDS_UART_MODULE_ID, "uart", umdk_uart_init, umdk_uart_cmd, 1 << 7 },
 	{ UNWDS_SHT21_MODULE_ID, "sht21", umdk_sht21_init, umdk_sht21_cmd, 1 << 8 },
+	{ UNWDS_PIR_MODULE_ID, "pir", umdk_pir_init, umdk_pir_cmd, 1 << 9 },
 
     { 0, "", NULL, NULL },
 };

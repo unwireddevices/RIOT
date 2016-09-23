@@ -69,6 +69,10 @@ USEMODULE += umdk-sht21
 USEMODULE += sht21
 INCLUDES += -I../../unwired-modules/umdk-sht21/include/
 
+USEMODULE += umdk-pir
+USEMODULE += pir
+INCLUDES += -I../../unwired-modules/umdk-pir/include/
+
 ####################################################
 
 

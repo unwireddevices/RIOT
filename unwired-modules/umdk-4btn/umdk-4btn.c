@@ -35,7 +35,7 @@ extern "C" {
 #include "xtimer.h"
 
 static kernel_pid_t handler_pid;
-static char handler_stack[THREAD_STACKSIZE_MAIN];
+static char handler_stack[THREAD_STACKSIZE_MAIN + 1024];
 
 static msg_t btn1;
 static msg_t btn2;
@@ -54,8 +54,6 @@ void *handler(void *arg) {
     while (1) {
         msg_receive(&msg);
         int btn = msg.content.value;
-
-        printf("[umdk-4btn] pressed: %d\n", (unsigned int) btn);
 
         module_data_t data;
         data.length = 2;

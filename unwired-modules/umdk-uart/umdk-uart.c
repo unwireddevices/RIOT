@@ -41,7 +41,7 @@ static uint8_t rxbuf[UMDK_UART_RXBUF_SIZE] = {};
 static volatile uint8_t num_bytes_received;
 
 static kernel_pid_t writer_pid;
-static char writer_stack[THREAD_STACKSIZE_MAIN];
+static char writer_stack[THREAD_STACKSIZE_MAIN + 1024];
 
 static msg_t send_msg;
 static msg_t send_msg_ovf;
@@ -73,14 +73,11 @@ void *writer(void *arg) {
 
 			memcpy(data.data + 2, rxbuf, num_bytes_received);
 
-			printf("[umdk-uart] rx: %s | len: %d\n", rxbuf, num_bytes_received);
-
 			num_bytes_received = 0;
         } else if (msg.content.value == send_msg_ovf.content.value) { /* RX buffer overflowed, send error message */
         	data.length = 2;
         	data.data[1] = UMDK_UART_REPLY_ERR_OVF;
 
-        	puts("[umdk-uart] Input buffer overflowed");
         	num_bytes_received = 0;
         }
 

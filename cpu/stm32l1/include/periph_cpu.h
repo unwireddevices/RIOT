@@ -28,6 +28,11 @@ extern "C" {
 #endif
 
 /**
+ * @brief   Available number of ADC devices
+ */
+#define ADC_DEVS            (1U)
+
+/**
  * @brief   Generate GPIO mode bitfields
  *
  * We use 5 bit to encode the mode:
@@ -86,6 +91,30 @@ typedef enum {
     GPIO_AF13,              /**< use alternate function 13 */
     GPIO_AF14               /**< use alternate function 14 */
 } gpio_af_t;
+
+/**
+ * @brief   Override ADC resolution values
+ * @{
+ */
+
+#define HAVE_ADC_RES_T
+#ifdef HAVE_ADC_RES_T
+typedef enum {
+    ADC_RES_6BIT  = (ADC_CR1_RES_0 | ADC_CR1_RES_1),    /**< ADC resolution: 6 bit */
+    ADC_RES_8BIT  = (ADC_CR1_RES_1),     				/**< ADC resolution: 8 bit */
+    ADC_RES_10BIT = (ADC_CR1_RES_0),     				/**< ADC resolution: 10 bit */
+    ADC_RES_12BIT = (0x00000000),     					/**< ADC resolution: 12 bit */
+} adc_res_t;
+#endif
+/** @} */
+
+/**
+ * @brief   ADC line configuration values
+ */
+typedef struct {
+    gpio_t pin;             /**< pin to use */
+    uint8_t chan;           /**< internal channel the pin is connected to */
+} adc_conf_t;
 
 /**
  * @brief   DAC line configuration data

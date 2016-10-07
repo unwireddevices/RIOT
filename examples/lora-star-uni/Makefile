@@ -73,6 +73,10 @@ USEMODULE += umdk-pir
 USEMODULE += pir
 INCLUDES += -I../../unwired-modules/umdk-pir/include/
 
+USEMODULE += umdk-6adc
+INCLUDES += -I../../unwired-modules/umdk-6adc/include/
+
+
 ####################################################
 
 

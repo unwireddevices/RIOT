@@ -162,7 +162,7 @@ int adc_sample(adc_t line,  adc_res_t res)
     tmpreg1 |= (uint32_t)(align | edge | etrig | ((uint32_t)continuous_conv_mode << 1));
     ADC1->CR2 = tmpreg1;
 
-    uint8_t channels[1] = { (uint8_t) line };
+    uint8_t channels[1] = { (uint8_t) adc_config[line].chan };
     adc_set_regular_sequence(1, channels);
 
     ADC1->CR2 |= (uint32_t)ADC_CR2_ADON;

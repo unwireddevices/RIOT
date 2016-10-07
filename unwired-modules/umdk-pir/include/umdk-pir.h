@@ -20,7 +20,7 @@
 
 #include "unwds-common.h"
 
-#define UNWDS_PIR_MODULE_ID 12
+#define UNWDS_PIR_MODULE_ID 9
 
 #define UMDK_PIR UNWD_GPIO_24
 

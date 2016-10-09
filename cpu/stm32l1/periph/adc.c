@@ -48,7 +48,7 @@ static inline void prep(void)
 {
     mutex_lock(&lock);
     RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;
-   // ADC1->CR2 |= ADC_CR2_ADON;
+    // ADC1->CR2 |= ADC_CR2_ADON;
 }
 
 static inline void done(void)
@@ -61,17 +61,17 @@ static inline void done(void)
 
 void adc_set_sample_time_on_all_channels(uint8_t time)
 {
-	uint8_t i;
-	uint32_t reg32 = 0;
+    uint8_t i;
+    uint32_t reg32 = 0;
 
-	for (i = 0; i <= 9; i++) {
-		reg32 |= (time << (i * 3));
-	}
+    for (i = 0; i <= 9; i++) {
+        reg32 |= (time << (i * 3));
+    }
 
-	ADC1->SMPR0 = reg32;
-	ADC1->SMPR1 = reg32;
-	ADC1->SMPR2 = reg32;
-	ADC1->SMPR3 = reg32;
+    ADC1->SMPR0 = reg32;
+    ADC1->SMPR1 = reg32;
+    ADC1->SMPR2 = reg32;
+    ADC1->SMPR3 = reg32;
 }
 
 int adc_init(adc_t line)
@@ -97,40 +97,40 @@ int adc_init(adc_t line)
 
 void adc_set_regular_sequence(uint8_t length, uint8_t channel[])
 {
-	uint32_t fifth6 = 0;
-	uint32_t fourth6 = 0;
-	uint32_t third6 = 0;
-	uint32_t second6 = 0;
-	uint32_t first6 = 0;
-	uint8_t i = 0;
+    uint32_t fifth6 = 0;
+    uint32_t fourth6 = 0;
+    uint32_t third6 = 0;
+    uint32_t second6 = 0;
+    uint32_t first6 = 0;
+    uint8_t i = 0;
 
-	if (length > 20) {
-		return;
-	}
+    if (length > 20) {
+        return;
+    }
 
-	for (i = 1; i <= length; i++) {
-		if (i <= 6) {
-			first6 |= (channel[i - 1] << ((i - 1) * 5));
-		}
-		if ((i > 6) & (i <= 12)) {
-			second6 |= (channel[i - 1] << ((i - 6 - 1) * 5));
-		}
-		if ((i > 12) & (i <= 18)) {
-			third6 |= (channel[i - 1] << ((i - 12 - 1) * 5));
-		}
-		if ((i > 18) & (i <= 24)) {
-			fourth6 |= (channel[i - 1] << ((i - 18 - 1) * 5));
-		}
-		if ((i > 24) & (i <= 28)) {
-			fifth6 |= (channel[i - 1] << ((i - 24 - 1) * 5));
-		}
-	}
+    for (i = 1; i <= length; i++) {
+        if (i <= 6) {
+            first6 |= (channel[i - 1] << ((i - 1) * 5));
+        }
+        if ((i > 6) & (i <= 12)) {
+            second6 |= (channel[i - 1] << ((i - 6 - 1) * 5));
+        }
+        if ((i > 12) & (i <= 18)) {
+            third6 |= (channel[i - 1] << ((i - 12 - 1) * 5));
+        }
+        if ((i > 18) & (i <= 24)) {
+            fourth6 |= (channel[i - 1] << ((i - 18 - 1) * 5));
+        }
+        if ((i > 24) & (i <= 28)) {
+            fifth6 |= (channel[i - 1] << ((i - 24 - 1) * 5));
+        }
+    }
 
-	ADC1->SQR1 = fifth6 | ((length - 1) << 20);
-	ADC1->SQR2 = fourth6;
-	ADC1->SQR3 = third6;
-	ADC1->SQR4 = second6;
-	ADC1->SQR5 = first6;
+    ADC1->SQR1 = fifth6 | ((length - 1) << 20);
+    ADC1->SQR2 = fourth6;
+    ADC1->SQR3 = third6;
+    ADC1->SQR4 = second6;
+    ADC1->SQR5 = first6;
 
 }
 
@@ -167,11 +167,11 @@ int adc_sample(adc_t line,  adc_res_t res)
 
     ADC1->CR2 |= (uint32_t)ADC_CR2_ADON;
 
-	/* Start conversion on regular channels. */
+    /* Start conversion on regular channels. */
     ADC1->CR2 |= (uint32_t)ADC_CR2_SWSTART;
 
-	/* Wait until the end of ADC conversion */
-	while ((ADC1->SR & ADC_SR_EOC) == 0);
+    /* Wait until the end of ADC conversion */
+    while ((ADC1->SR & ADC_SR_EOC) == 0) ;
 
     /* read result */
     sample = (int)ADC1->DR;

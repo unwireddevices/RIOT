@@ -11,9 +11,9 @@
  * @{
  *
  * @file
- * @brief       Peripheral MCU configuration for the unwd-range-l1 board
+ * @brief       Peripheral MCU configuration for the unwd-range-l1 R160829 board
  *
- * @author      Cr0s
+ * @author      Mikhail Churikov
  */
 
 #ifndef PERIPH_CONF_H_

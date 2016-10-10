@@ -13,9 +13,9 @@
  * @{
  *
  * @file
- * @brief       Board specific definitions for the unwd-range-l1 board.
+ * @brief       Board specific definitions for the unwd-range-l1 R160829 board.
  *
- * @author      Cr0s
+ * @author      Mikhail Churikov
  */
 
 #ifndef BOARD_H_

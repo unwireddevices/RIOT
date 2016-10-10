@@ -11,9 +11,9 @@
  * @{
  *
  * @file
- * @brief       Board specific implementations for the unwd-range-l1 board
+ * @brief       Board specific implementations for the unwd-range-l1 R160829 board
  *
- * @author      Cr0s
+ * @author      Mihail Churikov
  *
  * @}
  */

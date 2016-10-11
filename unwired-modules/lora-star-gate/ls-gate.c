@@ -370,7 +370,7 @@ static void *sx1276_handler(void *arg) {
                 free(packet->content);
 
                 /* Check frame format */
-                if (ls_validate_frame((uint8_t *) packet->content, packet->size)) {
+                if (ls_validate_frame((uint8_t *) &frame, packet->size)) {
                 	if (!frame_recv(ls, ch, &frame)) {
                 		//puts("ls-gate: well-formed frame discarded");
                 	}

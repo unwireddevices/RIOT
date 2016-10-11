@@ -292,7 +292,6 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
     }
 }
 
-
 static void *sx1276_handler(void *arg)
 {
     assert(arg != NULL);
@@ -322,7 +321,7 @@ static void *sx1276_handler(void *arg)
                 free(packet->content);
 
                 /* Check frame format */
-                if (ls_validate_frame((uint8_t *) packet->content, packet->size)) {
+                if (ls_validate_frame((uint8_t *) &frame, packet->size)) {
                     if (frame_recv(ls, &frame)) {
                         /* Class A devices closes RX window after each received packet */
                         if (ls->settings.class == LS_ED_CLASS_A) {

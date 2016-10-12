@@ -78,7 +78,7 @@ static char reader_stack[1024 + 2 * 1024];
 static kernel_pid_t writer_pid;
 static char writer_stack[1024];
 
-static uart_t uart = UART_DEV(1);
+static uart_t uart = GATE_COMM_UART;
 
 static gc_pending_fifo_t fifo;
 

@@ -55,36 +55,36 @@ static int baudrates[10] = {
 static uint8_t current_baudrate_idx = 0;
 
 void *writer(void *arg) {
-    msg_t msg;
-    msg_t msg_queue[128];
-    msg_init_queue(msg_queue, 128);
+  msg_t msg;
+  msg_t msg_queue[128];
+  msg_init_queue(msg_queue, 128);
 
-    while (1) {
-        msg_receive(&msg);
+  while (1) {
+    msg_receive(&msg);
 
-        module_data_t data;
-        data.data[0] = UNWDS_UART_MODULE_ID;
-        data.length = 2;
+    module_data_t data;
+    data.data[0] = UNWDS_UART_MODULE_ID;
+    data.length = 2;
 
-        /* Received payload, send it */
-        if (msg.content.value == send_msg.content.value) {
-			data.length += num_bytes_received;
-			data.data[1] = UMDK_UART_REPLY_RECEIVED;
+    /* Received payload, send it */
+    if (msg.content.value == send_msg.content.value) {
+      data.length += num_bytes_received;
+      data.data[1] = UMDK_UART_REPLY_RECEIVED;
 
-			memcpy(data.data + 2, rxbuf, num_bytes_received);
+      memcpy(data.data + 2, rxbuf, num_bytes_received);
 
-			num_bytes_received = 0;
-        } else if (msg.content.value == send_msg_ovf.content.value) { /* RX buffer overflowed, send error message */
-        	data.length = 2;
-        	data.data[1] = UMDK_UART_REPLY_ERR_OVF;
+      num_bytes_received = 0;
+    } else if (msg.content.value == send_msg_ovf.content.value) { /* RX buffer overflowed, send error message */
+      data.length = 2;
+      data.data[1] = UMDK_UART_REPLY_ERR_OVF;
 
-        	num_bytes_received = 0;
-        }
-
-        callback(&data);
+      num_bytes_received = 0;
     }
 
-	return NULL;
+    callback(&data);
+  }
+
+  return NULL;
 }
 
 void rx_cb(void *arg, uint8_t data)
@@ -114,6 +114,13 @@ void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     if (uart_init(UMDK_UART_DEV, UMDK_UART_BAUDRATE, rx_cb, NULL)) {
         return;
     }
+
+    /* Initialize DE/RE pins */
+    gpio_init(DE_PIN, GPIO_OUT);
+    gpio_init(RE_PIN, GPIO_OUT);
+
+    DE_DISABLE;
+    RE_ENABLE;
 
     send_msg.content.value = 0;
     send_msg_ovf.content.value = 1;
@@ -145,8 +152,15 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
                 return false;
             }
 
+            /* Send data */
+            RE_DISABLE;
+            DE_ENABLE;
+
             uart_write(UMDK_UART_DEV, (uint8_t *) data->data + 1, data->length - 1);
             do_reply(reply, UMDK_UART_REPLY_SENT);
+
+            DE_DISABLE;
+            RE_ENABLE;
 
             break;
 
@@ -163,11 +177,13 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             }
 
             /* Set baudrate and reinitialize UART */
+            RE_DISABLE;
             current_baudrate_idx = br;
             if (uart_init(UMDK_UART_DEV, baudrates[current_baudrate_idx], rx_cb, NULL)) {
                 do_reply(reply, UMDK_UART_ERR); /* UART error, baud rate not supported? */
                 return false;
             }
+            RE_ENABLE;
 
             do_reply(reply, UMDK_UART_REPLY_BAUDRATE_SET);
 

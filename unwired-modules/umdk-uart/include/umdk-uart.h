@@ -22,12 +22,61 @@
 
 #define UNWDS_UART_MODULE_ID 7
 
-#define UMDK_UART_DEV UART_DEV(1)
-#define UMDK_UART_BAUDRATE 115200
-
 #define UMDK_UART_RXBUF_SIZE 128
 
 #define UMDK_UART_SYMBOL_TIMEOUT_MS 500
+
+/**
+ * @brief   DE/RE pins definitions and handlers
+ * @{
+ */
+#define DE_PIN            UNWD_GPIO_30
+#define DE_PIN_NUM        10 // Port B
+
+#define DE_MASK           (1 << DE_PIN_NUM)
+
+#if defined(CPU_FAM_STM32F4)
+#define DE_CREG            BSRRH
+#else
+#define DE_CREG            BRR
+#endif
+#if defined(CPU_FAM_STM32F3) || defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32L1)
+#define DE_SREG            BSRRL
+#else
+#define DE_SREG            BSRR
+#endif
+
+#define DE_ON             (GPIOB->DE_SREG = DE_MASK)
+#define DE_OFF            (GPIOB->DE_CREG = DE_MASK)
+#define DE_TOGGLE         (GPIOB->ODR     ^= DE_MASK)
+
+#define DE_ENABLE         (GPIOB->LED_SREG = DE_MASK)
+#define DE_DISABLE        (GPIOB->LED_CREG = DE_MASK)
+
+#define RE_PIN            UNWD_GPIO_29 
+#define RE_PIN_NUM        11 // Port B
+
+#define RE_MASK           (1 << RE_PIN_NUM)
+
+#if defined(CPU_FAM_STM32F4)
+#define RE_CREG            BSRRH
+#else
+#define RE_CREG            BRR
+#endif
+#if defined(CPU_FAM_STM32F3) || defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32L1)
+#define RE_SREG            BSRRL
+#else
+#define RE_SREG            BSRR
+#endif
+
+#define RE_ON             (GPIOB->RE_SREG = RE_MASK)
+#define RE_OFF            (GPIOB->RE_CREG = RE_MASK)
+#define RE_TOGGLE         (GPIOB->ODR     ^= RE_MASK)
+
+#define RE_DISABLE        (GPIOB->RE_SREG = RE_MASK)
+#define RE_ENABLE         (GPIOB->RE_CREG = RE_MASK)
+
+/** @} */
 
 typedef enum {
 	UMDK_UART_SEND_ALL = 0,

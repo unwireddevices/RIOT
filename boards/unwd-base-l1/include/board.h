@@ -13,9 +13,9 @@
  * @{
  *
  * @file
- * @brief       Board specific definitions for the unwd-range-l1 R160829 board.
+ * @brief       Board specific definitions for the unwd-range-l1 board.
  *
- * @author      Mikhail Churikov
+ * @author      Cr0s
  */
 
 #ifndef BOARD_H_
@@ -91,22 +91,20 @@ extern "C" {
 #define UNWD_GPIO_5 GPIO_PIN(PORT_A, 5)
 #define UNWD_GPIO_6 GPIO_PIN(PORT_B, 8)
 #define UNWD_GPIO_7 GPIO_PIN(PORT_B, 9)
-#define UNWD_GPIO_16 GPIO_PIN(PORT_B, 3)
-#define UNWD_GPIO_17 GPIO_PIN(PORT_A, 15)
 
-#define UNWD_GPIO_30 GPIO_PIN(PORT_B, 10)
-#define UNWD_GPIO_29 GPIO_PIN(PORT_B, 11)
+#define UNWD_GPIO_30 GPIO_PIN(PORT_B, 11)
+#define UNWD_GPIO_29 GPIO_PIN(PORT_B, 10)
 #define UNWD_GPIO_28 GPIO_PIN(PORT_A, 7)
 #define UNWD_GPIO_27 GPIO_PIN(PORT_A, 6)
 #define UNWD_GPIO_24 GPIO_PIN(PORT_A, 1)
 
 /** @} */
 
-#define UART_STDIO_DEV              (UART_DEV(1))
+#define UART_STDIO_DEV              (UART_DEV(0))
 #define UART_STDIO_BAUDRATE         (115200U)
 #define UART_STDIO_RX_BUFSIZE       (64U)
 
-#define GATE_COMM_UART              (UART_DEV(0))
+#define GATE_COMM_UART              (UART_DEV(1))
 
 #define UMDK_UART_DEV UART_DEV(1)
 #define UMDK_UART_BAUDRATE 115200

@@ -283,7 +283,7 @@ static int ls_set_cmd(int argc, char **argv)
     if (argc != 3) {
         puts("usage: get <key> <value>");
         puts("keys:");
-        puts("\tdr <0-7> -- sets device data rate [0 - slowest, 3 - average, 7 - fastest]");
+        puts("\tdr <0-6> -- sets device data rate [0 - slowest, 3 - average, 6 - fastest]");
         puts("\tch <0-2> -- sets device channel");
 
         return 1;
@@ -295,8 +295,8 @@ static int ls_set_cmd(int argc, char **argv)
     if (strcmp(key, "dr") == 0) {
         uint8_t v = strtol(value, NULL, 10);
 
-        if (v > 7) {
-            puts("set dr: datarate value must be from 0 to 7");
+        if (v > 6) {
+            puts("set dr: datarate value must be from 0 to 6");
             return 1;
         }
 

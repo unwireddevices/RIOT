@@ -109,6 +109,9 @@ extern "C" {
 
 #define GATE_COMM_UART              (UART_DEV(1))
 
+#define UMDK_UART_DEV UART_DEV(1)
+#define UMDK_UART_BAUDRATE 115200
+
 /**
  * @name xtimer configuration
  * @{

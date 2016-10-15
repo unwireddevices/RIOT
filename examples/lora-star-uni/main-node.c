@@ -362,7 +362,7 @@ int ls_cmd_cmd(int argc, char **argv)
     module_data_t reply = {};
     bool res = unwds_send_to_module(modid, &cmd, &reply);
     char replystr[2 * UNWDS_MAX_DATA_LEN] = {};
-    bytes_to_hex(reply.data, reply.length, replystr, true);
+    bytes_to_hex(reply.data, reply.length, replystr, false);
 
     if (res) {
         printf("[ok] Reply: %s\n", replystr);

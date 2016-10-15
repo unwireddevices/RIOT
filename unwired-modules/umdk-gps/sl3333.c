@@ -36,7 +36,7 @@ static void rx_cb(void *arg, uint8_t data)
 	sl3333_t *dev = (sl3333_t *) arg;
 
 	/* Insert received character into ring buffer */
-    ringbuffer_add_one(&dev->rxrb, data);
+	ringbuffer_add_one(&dev->rxrb, data);
 
     /* Notify parser thread about ready message */
     if (data == SL3333_EOL) {
@@ -74,11 +74,6 @@ static int get_csv_field(char *buf, int fieldno, char *field, int maxlen) {
 
 	return fieldpos + 1;
 }
-/*
-static int convert_latlon(char *data) {
-	uint8_t a, b, c, d;
-	sscanf(data, "%2d%2d%2d.%3d", a, b, c, d);
-}*/
 
 /**
  * @brief Parses GPS data in NMEA format

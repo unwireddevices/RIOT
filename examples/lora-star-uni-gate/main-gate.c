@@ -405,11 +405,27 @@ static int ls_save_cmd(int argc, char **argv)
     return 0;
 }
 
+static int ls_clear_nvram(int argc, char **argv)
+{
+
+    if (clear_nvram()) {
+        puts("[ok] Settings cleared");
+        puts("Type \"reboot\" to define new configuration");
+    }
+    else {
+        puts("[error] Unable to clear NVRAM");
+    }
+
+    return 0;
+}
+
 static const shell_command_t shell_commands[] = {
     { "set", "<config> <value> -- sets up value for the config entry", ls_set_cmd },
     { "listconfig", "-- prints out current configuration", ls_printc_cmd },
-
     { "save", "-- saves current settings in NVRAM", ls_save_cmd },
+
+	{ "clear", "-- clears settings stored in NVRAM", ls_clear_nvram },
+
     { "list", "-- prints list of connected devices", ls_list_cmd },
 
     { NULL, NULL, NULL }

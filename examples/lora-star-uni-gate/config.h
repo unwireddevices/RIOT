@@ -62,6 +62,7 @@ bool write_eui64_nvram(uint64_t eui);
 bool save_config_nvram(nvram_t *nvram);
 bool load_config_nvram(nvram_t *nvram);
 void config_reset_nvram(nvram_t *nvram);
+bool clear_nvram(void);
 config_role_t config_get_role(void);
 
 /* Device specific settings */

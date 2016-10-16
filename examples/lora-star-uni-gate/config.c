@@ -174,6 +174,11 @@ bool config_read_role_block(uint8_t *buf, size_t size) {
 	return true;
 }
 
+bool clear_nvram(void)
+{
+    return nv->clear(nv) > 0;
+}
+
 #ifdef __cplusplus
 }
 #endif

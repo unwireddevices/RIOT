@@ -427,7 +427,7 @@ static int ls_clear_nvram(int argc, char **argv)
         puts("Type \"reboot\" to define new configuration");
     }
     else {
-        puts("[error] Unable to cleare NVRAM");
+        puts("[error] Unable to clear NVRAM");
     }
 
     return 0;

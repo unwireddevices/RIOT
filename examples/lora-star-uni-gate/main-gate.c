@@ -48,11 +48,17 @@ extern "C" {
 #include "main.h"
 #include "config.h"
 #include "utils.h"
+
+#include "ls-regions.h"
+
 typedef struct {
     bool is_valid;
 
     ls_channel_t channel;
     ls_datarate_t dr;
+
+    bool region_not_set;
+    uint8_t region_index;
 } node_role_settings_t;
 
 static node_role_settings_t node_settings;
@@ -62,7 +68,7 @@ static sx1276_t sx1276;
 static ls_gate_t ls;
 
 static ls_gate_channel_t channels[1] = {
-    { LS_DR6, 0, { &sx1276, &ls } },        /* DR3, channel 2 */
+    { LS_DR6, 0, { &sx1276, &ls } },        /* DR, frequency, sx1276 & LS instance */
 };
 
 /* UART interaction */
@@ -248,7 +254,7 @@ void app_data_ack_cb(ls_gate_node_t *node, ls_gate_channel_t *ch)
 
 void link_ok_cb(ls_gate_node_t *node, ls_gate_channel_t *ch)
 {
-    printf("ls-gate: link of with 0x%08X%08X\n", (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF));
+    printf("ls-gate: link ok with 0x%08X%08X\n", (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF));
 
     char str[18] = {};
     sprintf(str, "%c%08X%08X\n", REPLY_LNKCHK, (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF));
@@ -262,7 +268,7 @@ static void ls_setup(ls_gate_t *ls)
     ls->settings.join_key = config_get_joinkey();
 
     if (node_settings.is_valid) {
-        channels[0].ch = node_settings.channel;
+        channels[0].frequency = regions[node_settings.region_index].channels[node_settings.channel];
         channels[0].dr = node_settings.dr;
     }
 
@@ -284,7 +290,8 @@ static int ls_set_cmd(int argc, char **argv)
         puts("usage: get <key> <value>");
         puts("keys:");
         puts("\tdr <0-6> -- sets device data rate [0 - slowest, 3 - average, 6 - fastest]");
-        puts("\tch <0-2> -- sets device channel");
+        printf("\tregion <0-%d> -- sets device region\n", LS_UNI_NUM_REGIONS - 1);
+        puts("\tch <ch> -- sets device channel for selected region");
 
         return 1;
     }
@@ -303,11 +310,28 @@ static int ls_set_cmd(int argc, char **argv)
         node_settings.dr = (ls_datarate_t) v;
         dr_set = true;
     }
+    else if (strcmp(key, "region") == 0) {
+        uint8_t v = strtol(value, NULL, 10);
+
+        if (v > LS_UNI_NUM_REGIONS - 1) {
+            printf("set region: region value must be from 0 to %d\n", LS_UNI_NUM_REGIONS - 1);
+            return 1;
+        }
+
+        node_settings.region_index = v;
+        node_settings.region_not_set = false;
+    }
     else if (strcmp(key, "ch") == 0) {
         uint8_t v = strtol(value, NULL, 10);
 
-        if (v > 2) {
-            puts("set ch: channel value must be from 0 to 2");
+        if (node_settings.region_not_set) {
+        	puts("set ch: set region first");
+        	return 1;
+        }
+
+
+        if (v > regions[node_settings.region_index].num_channels - 1) {
+            printf("set ch: channel value must be from 0 to %d\n", regions[node_settings.region_index].num_channels - 1);
             return 1;
         }
 
@@ -322,7 +346,7 @@ static int ls_set_cmd(int argc, char **argv)
     node_settings.is_valid = channel_set && dr_set;
 
     if (node_settings.is_valid) {
-        channels[0].ch = node_settings.channel;
+        channels[0].frequency = regions[node_settings.region_index].channels[node_settings.channel];
         channels[0].dr = node_settings.dr;
     }
 
@@ -349,8 +373,31 @@ static int ls_list_cmd(int argc, char **argv)
     return 0;
 }
 
+static void print_regions(void) {
+	puts("[ available regions ]");
+
+	int i;
+	for (i = 0; i < LS_UNI_NUM_REGIONS; i++) {
+		printf("%d. %s [", i, regions[i].region);
+		int j;
+		for (j = 0; j < regions[i].num_channels; j++) {
+			printf("%d", (unsigned) regions[i].channels[j]);
+
+			if (j + 1 != regions[i].num_channels)
+				printf(", ");
+		}
+
+		puts("]");
+	}
+}
+
 static void print_config(void)
 {
+	if (node_settings.region_not_set) {
+		puts("[!] Region is not set yet");
+		print_regions();
+	}
+
     puts("[ gate configuration ]");
 
     uint64_t eui64 = config_get_nodeid();
@@ -359,11 +406,18 @@ static void print_config(void)
     printf("EUI64 = 0x%08x%08x\n", (unsigned int) (eui64 >> 32), (unsigned int) (eui64 & 0xFFFFFFFF));
     printf("APPID64 = 0x%08x%08x\n", (unsigned int) (appid >> 32), (unsigned int) (appid & 0xFFFFFFFF));
 
-    if (channel_set || node_settings.is_valid) {
-        printf("CHANNEL = %d\n", node_settings.channel);
-    }
-    else {
-        puts("CHANNEL = <not set>");
+    if (!node_settings.region_not_set) {
+    	printf("REGION = %s\n", regions[node_settings.region_index].region);
+
+        if (channel_set || node_settings.is_valid) {
+            printf("CHANNEL = %d\n", (unsigned) regions[node_settings.region_index].channels[node_settings.channel]);
+        }
+        else {
+            puts("CHANNEL = <not set>");
+        }
+    } else {
+    	puts("REGION = <not set>");
+    	puts("CHANNEL = <set region first>");
     }
 
     if (dr_set || node_settings.is_valid) {
@@ -383,6 +437,11 @@ static int ls_printc_cmd(int argc, char **argv)
 
 static int ls_save_cmd(int argc, char **argv)
 {
+	if (node_settings.region_not_set) {
+		puts("[error] You must setup region via `set region` command");
+		return 1;
+	}
+
     if (!node_settings.is_valid) {
         puts("[error] You must setup following settings via `set` command(s):");
         if (!dr_set) {

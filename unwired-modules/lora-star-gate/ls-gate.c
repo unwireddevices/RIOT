@@ -31,15 +31,6 @@ extern "C" {
 #include <stdint.h>
 
 /**
- * Channels table. Frequency in Hz
- */
-static uint32_t channels_table[3] = {
-		868100000,
-		868300000,
-		868500000
-};
-
-/**
  * Data rates table.
  */
 static uint8_t datarate_table[7][3] = {
@@ -82,8 +73,7 @@ static void prepare_sx1276(ls_gate_channel_t *ch)
     sx1276_configure_lora(ch->_internal.sx1276, &settings);
 
     /* Setup channel */
-    ls_channel_t c = ch->ch;
-    sx1276_set_channel(ch->_internal.sx1276, channels_table[c]);
+    sx1276_set_channel(ch->_internal.sx1276, ch->frequency);
 }
 
 static int send_frame(ls_gate_channel_t *ch, ls_addr_t to, ls_type_t type, uint8_t *buf, size_t buflen) {
@@ -127,7 +117,7 @@ static int send_frame(ls_gate_channel_t *ch, ls_addr_t to, ls_type_t type, uint8
 	}
 
 	/* Anti-collision: sleeping while channel is seems to be occupied */
-	while (!sx1276_is_channel_free(ch->_internal.sx1276, channels_table[ch->ch], LS_CHANNEL_FREE_RSSI)) {
+	while (!sx1276_is_channel_free(ch->_internal.sx1276, ch->frequency, LS_CHANNEL_FREE_RSSI)) {
 		puts("ls-gate: channel is occupied!"); // XXX: debug
 
 		uint16_t millis = random_uint32_range(LS_TX_DELAY_MIN_MS, LS_TX_DELAY_MAX_MS);
@@ -472,7 +462,7 @@ static bool create_tim_handler_thread(ls_gate_t *ls) {
 
 static bool open_channel(ls_gate_channel_t *ch) {
 	assert(ch != NULL);
-	printf("ls_gate_init: opening channel #%d with datarate DR%d\n", (unsigned int) ch->ch, (unsigned int) ch->dr);
+	printf("ls_gate_init: opening channel %d Hz with datarate DR%d\n", (unsigned int) ch->frequency, (unsigned int) ch->dr);
 
 	/* Launch channel listener thread */
     kernel_pid_t pid = thread_create(ch->_internal.sx1276_listener_thread_stack,
@@ -481,7 +471,7 @@ static bool open_channel(ls_gate_channel_t *ch) {
                                      "sx1276 channel thread");
 
     if (pid <= KERNEL_PID_UNDEF) {
-    	printf("ls_gate_init: opening channel #%d failed", (unsigned int) ch->ch);
+    	printf("ls_gate_init: opening channel %d Hz failed", (unsigned int) ch->frequency);
         return false;
     }
 

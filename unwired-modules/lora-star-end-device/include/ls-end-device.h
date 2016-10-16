@@ -133,6 +133,9 @@ typedef struct {
 	ls_datarate_t dr;							/**< End-device data rate */
 	ls_channel_t channel;						/**< Channel for the end-device */
 
+	uint32_t *channels_table;					/**< Table of frequencies [Hz] of possible channels */
+	size_t channels_table_size;					/**< Size of the channels table */
+
 	ls_crypto_t crypto;							/**< Cryptography settings */
 
 	uint8_t max_retr;							/**< Maximum number of retransmissions */

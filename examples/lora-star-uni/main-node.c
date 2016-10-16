@@ -46,6 +46,8 @@ extern "C" {
 #include "config.h"
 #include "utils.h"
 
+#include "ls-regions.h"
+
 typedef struct {
     bool is_valid;
 
@@ -57,7 +59,10 @@ typedef struct {
 
     ls_node_class_t class;
 
-    uint64_t ability;   /**< Defines ability mask - list of enabled UNWDS modules */
+    uint64_t ability;   	/**< Defines ability mask - list of enabled UNWDS modules */
+
+    bool region_not_set;
+    uint8_t region_index;	/**< Selected channels region index */
 } node_role_settings_t;
 
 static node_role_settings_t node_settings;
@@ -163,29 +168,12 @@ void appdata_received_cb(uint8_t *buf, size_t buflen)
 
 static void standby_mode_cb(void)
 {
-    //puts("Peripherals disabled");
-    //xtimer_usleep(1000);
-
-    //gpio_clear(LED0_PIN);
-    /* Disable Console UART */
-    //UART_0_CLKDIS();							/* Disable console UART clocking */
-    //SPI_1_CLKDIS();								/* Disable SPI clocking */
-
     lpm_prevent_sleep = 0;
 }
 
 static void wakeup_cb(void)
 {
     lpm_prevent_sleep = 1;
-
-    //UART_0_CLKEN();								/* Enable console UART clocking */
-    //SPI_1_CLKEN();								/* Disable SPI clocking */
-
-    //gpio_set(LED0_PIN);
-
-    //xtimer_usleep(1000);
-
-    //puts("Peripherals enabled");
 }
 
 static void ls_setup(ls_ed_t *ls)
@@ -194,6 +182,11 @@ static void ls_setup(ls_ed_t *ls)
 
     ls->settings.dr = node_settings.dr;
     ls->settings.channel = node_settings.channel;
+
+    if (!node_settings.region_not_set) {
+    	ls->settings.channels_table = regions[node_settings.region_index].channels;
+    	ls->settings.channels_table_size = regions[node_settings.region_index].num_channels;
+    }
 
     ls->settings.app_id = config_get_appid();
     ls->settings.node_id = config_get_nodeid();
@@ -225,8 +218,9 @@ int ls_set_cmd(int argc, char **argv)
     if (argc != 3) {
         puts("usage: get <key> <value>");
         puts("keys:");
+        printf("\tregion <0-%d> -- sets channels region\n", LS_UNI_NUM_REGIONS - 1);
+        puts("\tch <ch> -- sets device channel in selected region");
         puts("\tdr <0-6> -- sets device data rate [0 - slowest, 3 - average, 6 - fastest]");
-        puts("\tch <0-2> -- sets device channel");
         puts("\tmaxretr <0-255> -- sets maximum number of retransmissions of confirmed app. data [5 is recommended]");
         puts("\tlnkchkperiod <1-255> -- sets link check period in seconds [120 is recommended]");
 
@@ -249,12 +243,28 @@ int ls_set_cmd(int argc, char **argv)
     else if (strcmp(key, "ch") == 0) {
         uint8_t v = strtol(value, NULL, 10);
 
-        if (v > 2) {
-            puts("set ch: channel value must be from 0 to 2");
+        if (node_settings.region_not_set) {
+        	puts("set ch: set region first via \"set region\" command");
+        	return 1;
+        }
+
+        if (v > regions[node_settings.region_index].num_channels - 1) {
+            printf("set ch: channel value must be from 0 to %d\n", regions[node_settings.region_index].num_channels - 1);
             return 1;
         }
 
         ls.settings.channel = (ls_channel_t) v;
+    }
+    else if (strcmp(key, "region") == 0) {
+		uint8_t v = strtol(value, NULL, 10);
+
+		if (v > LS_UNI_NUM_REGIONS) {
+			printf("set region: region value must be from 0 to %d\n", LS_UNI_NUM_REGIONS - 1);
+			return 1;
+		}
+
+		node_settings.region_index = v;
+		node_settings.region_not_set = false;
     }
     else if (strcmp(key, "maxretr") == 0) {
         uint8_t v = strtol(value, NULL, 10);
@@ -289,8 +299,31 @@ int ls_set_cmd(int argc, char **argv)
     return 0;
 }
 
+static void print_regions(void) {
+	puts("[ available regions ]");
+
+	int i;
+	for (i = 0; i < LS_UNI_NUM_REGIONS; i++) {
+		printf("%d. %s [", i, regions[i].region);
+		int j;
+		for (j = 0; j < regions[i].num_channels; j++) {
+			printf("%d", (unsigned) regions[i].channels[j]);
+
+			if (j + 1 != regions[i].num_channels)
+				printf(", ");
+		}
+
+		puts("]");
+	}
+}
+
 static void print_config(void)
 {
+	if (node_settings.region_not_set) {
+		puts("[!] Region is not set yet");
+		print_regions();
+	}
+
     puts("[ node configuration ]");
 
     uint64_t eui64 = config_get_nodeid();
@@ -299,7 +332,14 @@ static void print_config(void)
     printf("EUI64 = 0x%08x%08x\n", (unsigned int) (eui64 >> 32), (unsigned int) (eui64 & 0xFFFFFFFF));
     printf("APPID64 = 0x%08x%08x\n", (unsigned int) (appid >> 32), (unsigned int) (appid & 0xFFFFFFFF));
 
-    printf("CHANNEL = %d\n", node_settings.channel);
+    if (!node_settings.region_not_set) {
+    	printf("REGION = %s\n", regions[node_settings.region_index].region);
+    	printf("CHANNEL = %d [%d]\n", node_settings.channel, (unsigned) regions[node_settings.region_index].channels[node_settings.channel]);
+    } else {
+    	puts("REGION = <not set>");
+    	puts("CHANNEL = <set region first>");
+    }
+
     printf("DATARATE = %d\n", node_settings.dr);
     printf("CLASS = %c\n", (node_settings.class == LS_ED_CLASS_A) ? 'A' : (node_settings.class == LS_ED_CLASS_B) ? 'B' : '?');
     printf("LNKCHKPERIOD (s) = %d\n", node_settings.lnkchk_period);
@@ -433,19 +473,30 @@ static int ls_clear_nvram(int argc, char **argv)
     return 0;
 }
 
+static int print_regions_cmd(int argc, char **argv) {
+	(void) argc;
+	(void) argv;
+
+	print_regions();
+
+	return 0;
+}
+
 static const shell_command_t shell_commands[] = {
-    { "set", "<config> <value> -- sets up value for the config entry", ls_set_cmd },
+    { "set", "<config> <value> -- sets up value for the configuration entry", ls_set_cmd },
+
     { "listconfig", "-- prints out current configuration", ls_printc_cmd },
+	{ "listregions", "-- prints out available regions", print_regions_cmd },
 
     { "listmods", "-- list available modules", ls_listmodules_cmd },
-    { "modenable", "<modid> -- enables selected module", ls_modenable_cmd },
+	{ "modenable", "<modid> -- enables selected module", ls_modenable_cmd },
     { "moddisable", "<modid> -- disables selected module", ls_moddisable_cmd },
 
     { "save", "-- saves current configuration", ls_save_cmd },
 
     { "clear", "-- clears all data in NVRAM", ls_clear_nvram },
 
-    { "cmd", "<modid> <cmdhex> -- executes command to against selected UNWDS module", ls_cmd_cmd },
+    { "cmd", "<modid> <cmdhex> -- executes command to selected UNWDS module", ls_cmd_cmd },
 
     { NULL, NULL, NULL }
 };

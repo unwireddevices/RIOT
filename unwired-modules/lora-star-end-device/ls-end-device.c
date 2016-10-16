@@ -42,15 +42,6 @@ static msg_t msg_ack_timeout;
 static msg_t msg_lnkchk_begin;
 
 /**
- * Channels table. Frequency in Hz
- */
-static uint32_t channels_table[3] = {
-    868100000,
-    868300000,
-    868500000
-};
-
-/**
  * Data rates table.
  */
 static uint8_t datarate_table[7][3] = {
@@ -72,7 +63,7 @@ static void configure_sx1276(ls_ed_t *ls, bool tx)
     /* Setup channel */
     ls_channel_t ch = (!ls->_internal.use_rx_window_2_settings) ? ls->settings.channel : LS_RX2_CH;
 
-    sx1276_set_channel(ls->_internal.sx1276, channels_table[ch]);
+    sx1276_set_channel(ls->_internal.sx1276, ls->settings.channels_table[ch]);
 
     /* Setup transceiver settings according to datarate */
     sx1276_lora_settings_t settings;

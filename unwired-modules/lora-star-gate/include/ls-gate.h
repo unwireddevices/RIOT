@@ -112,7 +112,7 @@ typedef struct {
  */
 typedef struct {
 	ls_datarate_t dr;	/**< Data rate for this channel */
-	ls_channel_t ch;	/**< Channel number */
+	uint32_t frequency;	/**< LoRa frequency */
 
 	ls_channel_internal_t _internal;	/**< Internal channel-specific data */
 } ls_gate_channel_t;

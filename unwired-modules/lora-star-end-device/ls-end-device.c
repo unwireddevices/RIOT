@@ -93,6 +93,10 @@ static void enter_rx(ls_ed_t *ls)
     assert(ls != NULL);
     assert(ls->_internal.sx1276 != NULL);
 
+    /* Don't touch anything if we're already in reception mode */
+    if (ls->state == LS_ED_LISTENING)
+    	return;
+
     ls->state = LS_ED_LISTENING;
 
     configure_sx1276(ls, false);
@@ -500,9 +504,11 @@ static void *tim_handler(void *arg)
                 else if (ls->settings.class == LS_ED_CLASS_B) {
                     /* Transmit next frame from queue */
                     if (!ls_frame_fifo_empty(&ls->_internal.uplink_queue)) {
+                    	puts("ls: sending next frame");
                         schedule_tx(ls);
                     }
                     else {
+                    	puts("ls: staying in RX mode");
                         enter_rx(ls);
                     }
                 }

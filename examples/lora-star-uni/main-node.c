@@ -223,8 +223,7 @@ int ls_set_cmd(int argc, char **argv)
         puts("\tdr <0-6> -- sets device data rate [0 - slowest, 3 - average, 6 - fastest]");
         puts("\tmaxretr <0-255> -- sets maximum number of retransmissions of confirmed app. data [5 is recommended]");
         puts("\tlnkchkperiod <1-255> -- sets link check period in seconds [120 is recommended]");
-
-        //puts("\tclass <A/B> -- sets device class");
+        puts("\tclass <A/B> -- sets device class");
     }
 
     char *key = argv[1];
@@ -279,11 +278,11 @@ int ls_set_cmd(int argc, char **argv)
 
         ls.settings.lnkchk_period_s = v;
     }
-    else if (strcmp(key, "Class") == 0) {
+    else if (strcmp(key, "сlass") == 0) {
         char v = value[0];
 
         if (v != 'A' && v != 'B') {
-            puts("set Class: either A or B");
+            puts("set сlass: either A or B");
             return 1;
         }
 

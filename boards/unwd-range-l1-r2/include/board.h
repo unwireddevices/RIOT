@@ -106,9 +106,9 @@ extern "C" {
 #define UART_STDIO_BAUDRATE         (115200U)
 #define UART_STDIO_RX_BUFSIZE       (64U)
 
-#define GATE_COMM_UART              (UART_DEV(2))
+#define GATE_COMM_UART              (UART_DEV(0))
 
-#define UMDK_UART_DEV UART_DEV(2)
+#define UMDK_UART_DEV UART_DEV(0)
 #define UMDK_UART_BAUDRATE 115200
 
 /**

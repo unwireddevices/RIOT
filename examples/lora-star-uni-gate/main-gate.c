@@ -466,14 +466,26 @@ static int ls_save_cmd(int argc, char **argv)
 
 static int ls_clear_nvram(int argc, char **argv)
 {
+	if (argc != 2) {
+		puts("usage: clear <all | joinkey>");
+		puts("\tall -- clears all data in NVRAM including device EUI64");
+		puts("\tjoinkey -- clears network encryption key stored in NVRAM");
 
-    if (clear_nvram()) {
-        puts("[ok] Settings cleared");
-        puts("Type \"reboot\" to define new configuration");
-    }
-    else {
-        puts("[error] Unable to clear NVRAM");
-    }
+		return 1;
+	}
+
+	char *arg = argv[1];
+	if (strcmp(arg, "all") == 0) {
+		if (!clear_nvram()) {
+			puts("[error] Unable to clear NVRAM");
+		}
+	} else if (strcmp(arg, "joinkey") == 0) {
+		puts("clear joinkey: not supported yet");
+		//config_clear_joinkey();
+	}
+
+	puts("[ok] Settings cleared");
+	puts("Type \"reboot\" to define new configuration");
 
     return 0;
 }
@@ -483,7 +495,7 @@ static const shell_command_t shell_commands[] = {
     { "listconfig", "-- prints out current configuration", ls_printc_cmd },
     { "save", "-- saves current settings in NVRAM", ls_save_cmd },
 
-	{ "clear", "-- clears settings stored in NVRAM", ls_clear_nvram },
+	{ "clear", "<all | joinkey> clears settings in NVRAM", ls_clear_nvram },
 
     { "list", "-- prints list of connected devices", ls_list_cmd },
 

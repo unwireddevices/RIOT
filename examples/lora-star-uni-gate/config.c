@@ -115,6 +115,13 @@ config_role_t config_get_role(void) {
 	else return ROLE_NO_CFG;
 }
 
+void config_clear_joinkey(void) {
+	memset(config.nwk_key, 0, 16);
+
+	/* Write to NVRAM */
+	nv->write(nv, (uint8_t *) &config, CONFIG_ADDR, sizeof(nvram_config_t));
+}
+
 bool config_write_main_block(uint64_t appid64, uint8_t joinkey[16]) {
 	config.appid64 = appid64;
 	memcpy(config.nwk_key, joinkey, 16);

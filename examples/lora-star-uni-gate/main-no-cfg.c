@@ -101,7 +101,7 @@ static int unk_set_cmd(int argc, char **argv)
             return 1;
         }
 
-        printf("[ok] EUI64 = 0x%08x%08x\n", (unsigned int) (id >> 32), (unsigned int) (id & 0xFFFFFFFF));
+        printf("[ok] APPID64 = 0x%08x%08x\n", (unsigned int) (id >> 32), (unsigned int) (id & 0xFFFFFFFF));
         appid = id;
     }
     else if (strcmp(type, "joinkey") == 0) {

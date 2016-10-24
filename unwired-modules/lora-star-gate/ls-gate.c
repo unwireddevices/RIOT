@@ -116,14 +116,6 @@ static int send_frame(ls_gate_channel_t *ch, ls_addr_t to, ls_type_t type, uint8
 		ls_encrypt_frame(mic_key, aes_key, &frame, &payload_size);
 	}
 
-	/* Anti-collision: sleeping while channel is seems to be occupied */
-	while (!sx1276_is_channel_free(ch->_internal.sx1276, ch->frequency, LS_CHANNEL_FREE_RSSI)) {
-		puts("ls-gate: channel is occupied!"); // XXX: debug
-
-		uint16_t millis = random_uint32_range(LS_TX_DELAY_MIN_MS, LS_TX_DELAY_MAX_MS);
-		xtimer_usleep(1e3 * millis);
-	}
-
 	/* Send frame into LoRa PHY */
 	sx1276_send(ch->_internal.sx1276, (uint8_t *) &frame, header_size + payload_size);
 

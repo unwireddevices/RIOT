@@ -51,11 +51,12 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 				char buf[128];
 
 				/* L */
-				sprintf(buf, "%c%08X%08X%08X%08X%08X%08X%04d\n", REPLY_LIST,
+				sprintf(buf, "%c%08X%08X%08X%08X%08X%08X%04X%04X\n", REPLY_LIST,
 						(unsigned int) (devs->nodes[i].node_id >> 32), (unsigned int) (devs->nodes[i].node_id & 0xFFFFFFFF),
 						(unsigned int) (devs->nodes[i].app_id >> 32), (unsigned int) (devs->nodes[i].app_id & 0xFFFFFFFF),
 						(unsigned int) (devs->nodes[i].node_ability >> 32), (unsigned int) (devs->nodes[i].node_ability & 0xFFFFFFFF),
-						(unsigned int) ((ls->_internal.ping_count - devs->nodes[i].last_seen) * LS_PING_TIMEOUT_S));
+						(unsigned int) ((ls->_internal.ping_count - devs->nodes[i].last_seen) * LS_PING_TIMEOUT_S),
+						(unsigned int) devs->nodes[i].node_class);
 
 				if (!gc_pending_fifo_push(fifo, buf)) {
 					puts("gc: pending fifo overflowed!");

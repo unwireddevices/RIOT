@@ -119,8 +119,8 @@ void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     gpio_init(DE_PIN, GPIO_OUT);
     gpio_init(RE_PIN, GPIO_OUT);
 
-    DE_DISABLE;
-    RE_ENABLE;
+    gpio_clear(DE_PIN);
+    gpio_clear(RE_PIN);
 
     send_msg.content.value = 0;
     send_msg_ovf.content.value = 1;
@@ -153,15 +153,15 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             }
 
             /* Send data */
-            RE_DISABLE;
-            DE_ENABLE;
+            gpio_set(RE_PIN);
+            gpio_set(DE_PIN);
 
             uart_write(UMDK_UART_DEV, (uint8_t *) data->data + 1, data->length - 1);
+
+            gpio_clear(RE_PIN);
+            gpio_clear(DE_PIN);
+
             do_reply(reply, UMDK_UART_REPLY_SENT);
-
-            DE_DISABLE;
-            RE_ENABLE;
-
             break;
 
         case UMDK_UART_SET_BAUDRATE:
@@ -177,13 +177,13 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             }
 
             /* Set baudrate and reinitialize UART */
-            RE_DISABLE;
+            gpio_clear(RE_PIN);
             current_baudrate_idx = br;
             if (uart_init(UMDK_UART_DEV, baudrates[current_baudrate_idx], rx_cb, NULL)) {
                 do_reply(reply, UMDK_UART_ERR); /* UART error, baud rate not supported? */
                 return false;
             }
-            RE_ENABLE;
+            gpio_set(RE_PIN);
 
             do_reply(reply, UMDK_UART_REPLY_BAUDRATE_SET);
 

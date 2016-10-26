@@ -8,7 +8,6 @@
 
 /**
  * @defgroup    drivers_sx1276 SX1276
- * @ingroup     drivers_netdev
  * @brief       Semtech SX1276
  * @{
  * @file
@@ -23,11 +22,12 @@
 #ifndef SX1276_H
 #define SX1276_H
 
-#define RADIO_WAKEUP_TIME                           1000        /**< [us] */
-#define RX_BUFFER_SIZE                              256
-#define RF_MID_BAND_THRESH                          525000000
-#define CHANNEL_HF                                  868000000
+#define SX1276_RADIO_WAKEUP_TIME                           1000        /**< [us] */
+#define SX1276_RX_BUFFER_SIZE                              256
+#define SX1276_RF_MID_BAND_THRESH                          525000000
+#define SX1276_CHANNEL_HF                                  868000000
 
+#define SX1276_EVENT_HANDLER_STACK_SIZE 2048
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,38 +37,38 @@ extern "C" {
  * Radio driver supported modems.
  */
 typedef enum {
-    MODEM_FSK = 0, MODEM_LORA,
+    SX1276_MODEM_FSK = 0, SX1276_MODEM_LORA,
 } sx1276_radio_modems_t;
 
 /**
  * LoRa modulation bandwidth.
  */
 typedef enum {
-	BW_125_KHZ = 7,
-	BW_250_KHZ,
-	BW_500_KHZ
+    SX1276_BW_125_KHZ = 7,
+    SX1276_BW_250_KHZ,
+    SX1276_BW_500_KHZ
 } sx1276_lora_bandwidth_t;
 
 /**
  * LoRa modulation spreading factor.
  */
 typedef enum {
-	SF7 = 7,
-	SF8,
-	SF9,
-	SF10,
-	SF11,
-	SF12
+    SX1276_SF7 = 7,
+    SX1276_SF8,
+    SX1276_SF9,
+    SX1276_SF10,
+    SX1276_SF11,
+    SX1276_SF12
 } sx1276_lora_spreading_factor_t;
 
 /**
  * LoRa modulation coding rate.
  */
 typedef enum {
-	CR_4_5 = 1,
-	CR_4_6,
-	CR_4_7,
-	CR_4_8
+    SX1276_CR_4_5 = 1,
+    SX1276_CR_4_6,
+    SX1276_CR_4_7,
+    SX1276_CR_4_8
 } sx1276_lora_coding_rate_t;
 
 /**
@@ -96,19 +96,18 @@ typedef struct {
  * LoRa received packet.
  */
 typedef struct {
-    uint8_t snr_value;
-    int16_t rssi_value;
+    uint8_t snr_value;      /**< Packet's signal-to-noise rate (SNR) */
+    int16_t rssi_value;     /**< Packet's RSSI */
+    uint8_t size;           /**< Packet's actual size in bytes */
 
-    char *content;
-    uint8_t size;
+    uint8_t content[256];   /**< Packet's content */
 } sx1276_rx_packet_t;
 
 /**
  * Radio driver internal state machine states definition.
  */
 typedef enum {
-    RF_IDLE = 0, RF_RX_RUNNING, RF_TX_RUNNING, RF_CAD,
-
+    SX1276_RF_IDLE = 0, SX1276_RF_RX_RUNNING, SX1276_RF_TX_RUNNING, SX1276_RF_CAD,
 } sx1276_radio_state_t;
 
 /**
@@ -123,62 +122,81 @@ typedef struct {
 } sx1276_settings_t;
 
 typedef enum {
-    RX_DONE = 0,
-    TX_DONE,
+    SX1276_RX_DONE = 0,
+    SX1276_TX_DONE,
 
-    RX_TIMEOUT,
-    TX_TIMEOUT,
+    SX1276_RX_TIMEOUT,
+    SX1276_TX_TIMEOUT,
 
-    RX_ERROR_CRC,
+    SX1276_RX_ERROR_CRC,
 
-    FHSS_CHANGE_CHANNEL,
-    CAD_DONE,
+    SX1276_FHSS_CHANGE_CHANNEL,
+    SX1276_CAD_DONE,
 
 } sx1276_event_type_t;
 
+/***
+ * SX1276 internal data.
+ */
 typedef struct {
-    sx1276_event_type_t type;
+    /* Data that will be passed to events handler in application */
+    sx1276_rx_packet_t last_packet;         /**< Last packet that was received */
+    uint32_t last_channel;                  /**< Last channel in frequency hopping sequence */
+    bool is_last_cad_success;               /**< Sign of success of last CAD operation (activity detected) */
 
-    void *event_data;
-} sx1276_event_t;
+    /* DIO lines events handler outside ISR context */
+    kernel_pid_t dio_polling_thread_pid;            /**< SX1276 DIO interrupt lines handler thread PID */
+    /**< SX1276 DIO interrupt lines events handler stack */
+    uint8_t dio_polling_thread_stack[SX1276_EVENT_HANDLER_STACK_SIZE];
+
+    /* Timers */
+    xtimer_t tx_timeout_timer;              /**< TX operation timeout timer */
+    xtimer_t rx_timeout_timer;              /**< RX operation timeout timer */
+} sx1276_internal_t;
 
 /**
  * SX1276 hardware and global parameters.
  */
 typedef struct sx1276_s {
-    spi_t spi;          /**< SPI */
-    gpio_t nss_pin;     /**< SPI NSS pin */
+    spi_t spi;                                                          /**< SPI */
+    gpio_t nss_pin;                                                     /**< SPI NSS pin */
 
-    gpio_t reset_pin;   /**< Reset pin */
-    gpio_t dio0_pin;
-    gpio_t dio1_pin;
-    gpio_t dio2_pin;
-    gpio_t dio3_pin;
-    gpio_t dio4_pin;
-    gpio_t dio5_pin;
+    gpio_t reset_pin;                                                   /**< Reset pin */
+    gpio_t dio0_pin;                                                    /**< Interrupt line DIO0 */
+    gpio_t dio1_pin;                                                    /**< Interrupt line DIO1 */
+    gpio_t dio2_pin;                                                    /**< Interrupt line DIO2 */
+    gpio_t dio3_pin;                                                    /**< Interrupt line DIO3 */
+    gpio_t dio4_pin;                                                    /**< Interrupt line DIO4 (not used) */
+    gpio_t dio5_pin;                                                    /**< Interrupt line DIO5 (not used) */
 
-    uint8_t rxtx;
-    sx1276_settings_t settings;
+    sx1276_settings_t settings;                                         /**< Transceiver settings */
 
-    kernel_pid_t event_handler_thread_pid;
-    kernel_pid_t dio_polling_thread_pid;    /**< sx1276 DIO interrupt line flags */
+    void (*sx1276_event_cb)(void *dev, sx1276_event_type_t event_type); /**< Event callback */
+    void *callback_arg;                                                 /**< User-defined callback argument */
 
-    xtimer_t tx_timeout_timer;              /**< TX operation timeout timer */
-    xtimer_t rx_timeout_timer;              /**< RX operation timeout timer */
+    sx1276_internal_t _internal;                                        /**< Internal sx1276 data used within the driver */
 } sx1276_t;
+
+/**
+ * SX1276 initialization result.
+ */
+typedef enum {
+    SX1276_INIT_OK = 0,         /**< Initialization was successful */
+    SX1276_ERR_SPI,             /**< Failed to initialize SPI bus or CS line */
+    SX1276_ERR_TEST_FAILED,     /**< SX1276 testing failed during initialization (check chip) */
+    SX1276_ERR_THREAD           /**< Unable to create DIO handling thread (check amount of free memory) */
+} sx1276_init_result_t;
 
 /**
  * Hardware IO IRQ callback function definition.
  */
-
-typedef void (sx1276_dio_irq_handler)(sx1276_t *dev);
+typedef void (sx1276_dio_irq_handler_t)(sx1276_t *dev);
 
 /**
  * SX1276 definitions.
  */
-#define XTAL_FREQ       32000000 /**< 32MHz */
-#define FREQ_STEP       61.03515625
-#define RX_BUFFER_SIZE  256
+#define SX1276_XTAL_FREQ       32000000 /**< 32MHz */
+#define SX1276_FREQ_STEP       61.03515625
 
 /**
  * Public functions prototypes.
@@ -196,9 +214,11 @@ bool sx1276_test(sx1276_t *dev);
  * @brief Initializes the transceiver.
  *
  * @param	[IN]	dev					The sx1276 device structure pointer
+ *
+ * @return result of initialization (see @sx1276_init_result_t struct)
  */
 
-void sx1276_init(sx1276_t *dev);
+sx1276_init_result_t sx1276_init(sx1276_t *dev);
 
 /**
  * @brief Gets current status of transceiver.

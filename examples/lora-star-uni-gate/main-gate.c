@@ -181,8 +181,8 @@ static void radio_init(void)
 
     sx1276_settings_t settings;
     settings.channel = RF_FREQUENCY;
-    settings.modem = MODEM_LORA;
-    settings.state = RF_IDLE;
+    settings.modem = SX1276_MODEM_LORA;
+    settings.state = SX1276_RF_IDLE;
 
     sx1276.settings = settings;
 

@@ -52,7 +52,6 @@ INCLUDES += -I../../unwired-modules/umdk-gps/include/
 
 #USEMODULE += umdk-temp
 #USEMODULE += lm75a_new
-USEMODULE += printf_float
 INCLUDES += -I../../unwired-modules/umdk-temp/include/
 
 #USEMODULE += umdk-acc
@@ -68,6 +67,10 @@ INCLUDES += -I../../unwired-modules/umdk-uart/include/
 USEMODULE += umdk-sht21
 USEMODULE += sht21
 INCLUDES += -I../../unwired-modules/umdk-sht21/include/
+
+USEMODULE += umdk-lps331
+USEMODULE += lps331ap
+INCLUDES += -I../../unwired-modules/umdk-lps331/include/
 
 USEMODULE += umdk-pir
 USEMODULE += pir

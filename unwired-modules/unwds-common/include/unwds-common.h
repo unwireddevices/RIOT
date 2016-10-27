@@ -23,8 +23,8 @@
 /**
  * Stacks pool definitions.
  */
-#define UNWDS_STACK_POOL_SIZE 5U
-#define UNWDS_STACK_SIZE_BYTES (2048U)
+#define UNWDS_STACK_POOL_SIZE 4U
+#define UNWDS_STACK_SIZE_BYTES (2048U + 512U)
 
 uint8_t *allocate_stack(void);
 

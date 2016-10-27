@@ -41,7 +41,6 @@ static uint8_t rxbuf[UMDK_UART_RXBUF_SIZE] = {};
 static volatile uint8_t num_bytes_received;
 
 static kernel_pid_t writer_pid;
-static char writer_stack[THREAD_STACKSIZE_MAIN + 2048];
 
 static msg_t send_msg;
 static msg_t send_msg_ovf;
@@ -125,8 +124,14 @@ void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     send_msg.content.value = 0;
     send_msg_ovf.content.value = 1;
 
+    char *stack = (char *) allocate_stack();
+    if (!stack) {
+    	puts("umdk-uart: unable to allocate memory. Is too many modules enabled?");
+    	return;
+    }
+
 	/* Create handler thread */
-	writer_pid = thread_create(writer_stack, sizeof(writer_stack), THREAD_PRIORITY_MAIN - 1, 0, writer, NULL, "umdk-uart writer thread");
+	writer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, 0, writer, NULL, "umdk-uart thread");
 }
 
 static void do_reply(module_data_t *reply, umdk_uart_reply_t r)

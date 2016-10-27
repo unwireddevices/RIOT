@@ -14,6 +14,7 @@
  * @file		umdk-pir.c
  * @brief       umdk-pir module implementation
  * @author      MC
+ * @author		Evgeniy Ponomarev
  */
 
 #ifdef __cplusplus
@@ -35,7 +36,6 @@ extern "C" {
 #include "xtimer.h"
 
 static kernel_pid_t handler_pid;
-static char handler_stack[THREAD_STACKSIZE_MAIN];
 
 static msg_t pir;
 
@@ -76,50 +76,6 @@ static void pir_rising_cb(void *arg) {
 
 	msg_send_int(&pir, handler_pid);
 }
-//
-//static void btn_2_pressed_cb(void *arg) {
-//	(void) arg;
-//
-//    int now = xtimer_now();
-//    /* Don't accept a press of current button if it did occur earlier than last press plus debouncing time */
-//    if (now - last_pressed[1] <= UMDK_4BTN_DEBOUNCE_TIME_MS * 1000) {
-//    	last_pressed[1] = now;
-//    	return;
-//	}
-//    last_pressed[1] = now;
-//
-//	msg_send_int(&btn2, handler_pid);
-//}
-//
-//static void btn_3_pressed_cb(void *arg) {
-//	(void) arg;
-//
-//    int now = xtimer_now();
-//
-//    /* Don't accept a press of current button if it did occur earlier than last press plus debouncing time */
-//    if (now - last_pressed[2] <= UMDK_4BTN_DEBOUNCE_TIME_MS * 1000) {
-//    	last_pressed[2] = now;
-//    	return;
-//	}
-//
-//    last_pressed[2] = now;
-//
-//	msg_send_int(&btn3, handler_pid);
-//}
-//
-//static void btn_4_pressed_cb(void *arg) {
-//	(void) arg;
-//
-//    int now = xtimer_now();
-//    /* Don't accept a press of current button if it did occur earlier than last press plus debouncing time */
-//    if (now - last_pressed[3] <= UMDK_4BTN_DEBOUNCE_TIME_MS * 1000) {
-//    	last_pressed[3] = now;
-//    	return;
-//	}
-//    last_pressed[3] = now;
-//
-//	msg_send_int(&btn4, handler_pid);
-//}
 
 void umdk_pir_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	(void) non_gpio_pin_map;
@@ -133,7 +89,13 @@ void umdk_pir_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	gpio_init_int(UMDK_PIR, GPIO_IN_PD, GPIO_RISING, pir_rising_cb, NULL);
 
 	/* Create handler thread */
-	handler_pid = thread_create(handler_stack, sizeof(handler_stack), THREAD_PRIORITY_MAIN - 1, 0, handler, NULL, "PIR handler thread");
+	char *stack = (char *) allocate_stack();
+	if (!stack) {
+		puts("umdk-pir: unable to allocate memory. Is too many modules enabled?");
+		return;
+	}
+
+	handler_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, 0, handler, NULL, "PIR thread");
 }
 
 bool umdk_pir_cmd(module_data_t *data, module_data_t *reply) {

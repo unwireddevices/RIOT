@@ -14,6 +14,7 @@
  * @file		umdk-sht21.c
  * @brief       umdk-sht21 module implementation
  * @author      Eugene Ponomarev
+ * @author		MC
  */
 
 #ifdef __cplusplus
@@ -43,7 +44,6 @@ static sht21_t dev;
 static uwnds_cb_t *callback;
 
 static kernel_pid_t timer_pid;
-static char timer_stack[THREAD_STACKSIZE_MAIN];
 
 static int publish_period_min;
 
@@ -118,7 +118,13 @@ void umdk_sht21_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	}
 
 	/* Create handler thread */
-	timer_pid = thread_create(timer_stack, sizeof(timer_stack), THREAD_PRIORITY_MAIN - 1, 0, timer_thread, NULL, "sht21 publisher thread");
+	char *stack = (char *) allocate_stack();
+	if (!stack) {
+		puts("umdk-sht21: unable to allocate memory. Is too many modules enabled?");
+		return;
+	}
+
+	timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, 0, timer_thread, NULL, "sht21 thread");
 
     /* Start publishing timer */
 	xtimer_set_msg(&timer, 1e6 * 60 * publish_period_min, &timer_msg, timer_pid);

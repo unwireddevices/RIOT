@@ -35,7 +35,6 @@ extern "C" {
 #include "xtimer.h"
 
 static kernel_pid_t handler_pid;
-static char handler_stack[THREAD_STACKSIZE_MAIN];
 
 static msg_t btn1;
 static msg_t btn2;
@@ -142,7 +141,13 @@ void umdk_4btn_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	gpio_init_int(UMDK_4BTN_4, GPIO_IN_PU, GPIO_FALLING, btn_4_pressed_cb, NULL);
 
 	/* Create handler thread */
-	handler_pid = thread_create(handler_stack, sizeof(handler_stack), THREAD_PRIORITY_MAIN - 1, 0, handler, NULL, "4btn handler thread");
+	char *stack = (char *) allocate_stack();
+	if (!stack) {
+		puts("umdk-4btn: unable to allocate memory. Is too many modules enabled?");
+		return;
+	}
+
+	handler_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, 0, handler, NULL, "4btn thread");
 }
 
 bool umdk_4btn_cmd(module_data_t *data, module_data_t *reply) {

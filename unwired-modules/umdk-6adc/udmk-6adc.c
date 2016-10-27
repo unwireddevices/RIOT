@@ -41,7 +41,6 @@ extern "C" {
 static uwnds_cb_t *callback;
 
 static kernel_pid_t timer_pid;
-static char timer_stack[THREAD_STACKSIZE_MAIN];
 
 static int publish_period_min;
 static bool adc_lines_en[ADC_NUMOF] = {
@@ -142,7 +141,13 @@ void umdk_6adc_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     init_adc(true);
 
     /* Create handler thread */
-    timer_pid = thread_create(timer_stack, sizeof(timer_stack), THREAD_PRIORITY_MAIN - 1, 0, timer_thread, NULL, "6ADC publisher thread");
+    char *stack = (char *) allocate_stack();
+    if (!stack) {
+    	puts("umdk-6adc: unable to allocate memory. Is too many modules enabled?");
+    	return;
+    }
+
+    timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, 0, timer_thread, NULL, "6ADC thread");
 
     /* Start publishing timer */
     xtimer_set_msg(&timer, 1e6 * 60 * publish_period_min, &timer_msg, timer_pid);

@@ -43,7 +43,6 @@ static lmt01_t sensors[UMDK_LMT01_MAX_SENSOR_COUNT];
 static uwnds_cb_t *callback;
 
 static kernel_pid_t timer_pid;
-static char timer_stack[THREAD_STACKSIZE_MAIN];
 
 static int publish_period_min;
 
@@ -124,7 +123,7 @@ void *timer_thread(void *arg) {
         lpm_prevent_sleep = 0;
 
         /* Restart after delay */
-        xtimer_set_msg(&timer, 1e6 * 60 * publish_period_min, &timer_msg, timer_pid); // XXX: timer / 32
+        xtimer_set_msg(&timer, 1e6 * 60 * publish_period_min, &timer_msg, timer_pid);
     }
 }
 
@@ -137,10 +136,16 @@ void umdk_lmt01_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	init_sensors();
 
 	/* Create handler thread */
-	timer_pid = thread_create(timer_stack, sizeof(timer_stack), THREAD_PRIORITY_MAIN - 1, 0, timer_thread, NULL, "lmt01 publisher thread");
+	char *stack = (char *) allocate_stack();
+	if (!stack) {
+		puts("umdk-lmt01: unable to allocate memory. Is too many modules enabled?");
+		return;
+	}
+
+	timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, 0, timer_thread, NULL, "lmt01 thread");
 
     /* Start publishing timer */
-	xtimer_set_msg(&timer, 1e6 * 60 * publish_period_min, &timer_msg, timer_pid); // XXX: / 16
+	xtimer_set_msg(&timer, 1e6 * 60 * publish_period_min, &timer_msg, timer_pid);
 }
 
 bool umdk_lmt01_cmd(module_data_t *cmd, module_data_t *reply) {

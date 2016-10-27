@@ -79,7 +79,7 @@ int lps331ap_read_temp(lps331ap_t *dev)
 {
     char tmp;
     int16_t val = 0;
-    float res = TEMP_BASE;      /* reference value -> see datasheet */
+    int res = 42500;      /* reference value -> see datasheet */
 
     i2c_acquire(dev->i2c);
     i2c_read_reg(dev->i2c, dev->address, LPS331AP_REG_TEMP_OUT_L, &tmp);
@@ -89,10 +89,10 @@ int lps331ap_read_temp(lps331ap_t *dev)
     val |= (tmp << 8);
 
     /* compute actual temperature value in °C */
-    res += ((float)val) / TEMP_DIVIDER;
+    res += (int)(((double)val) * 2.08333);
 
     /* return temperature in m°C */
-    return (int)(res * 1000);
+    return res;
 }
 
 int lps331ap_read_pres(lps331ap_t *dev)

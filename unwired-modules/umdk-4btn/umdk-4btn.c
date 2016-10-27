@@ -36,12 +36,7 @@ extern "C" {
 
 static kernel_pid_t handler_pid;
 
-static msg_t btn1;
-static msg_t btn2;
-static msg_t btn3;
-static msg_t btn4;
-
-static int last_pressed[4] = { 0, };
+static int last_pressed[4] = {};
 
 static uwnds_cb_t *callback;
 
@@ -52,7 +47,9 @@ void *handler(void *arg) {
 
     while (1) {
         msg_receive(&msg);
-        int btn = msg.content.value;
+        int btn = msg.type;
+
+        printf("[4btn] Pressed: %d\n", btn + 1);
 
         module_data_t data;
         data.length = 2;
@@ -65,62 +62,22 @@ void *handler(void *arg) {
 	return NULL;
 }
 
-static void btn_1_pressed_cb(void *arg) {
-	(void) arg;
+static void btn_pressed_int(void *arg) {
+	int btn_num = ((int) arg) - 1;
 
     int now = xtimer_now();
     /* Don't accept a press of current button if it did occur earlier than last press plus debouncing time */
-    if (now - last_pressed[0] <= UMDK_4BTN_DEBOUNCE_TIME_MS * 1000) {
-    	last_pressed[0] = now;
-    	return;
-	}
-    last_pressed[0] = now;
-
-	msg_send_int(&btn1, handler_pid);
-}
-
-static void btn_2_pressed_cb(void *arg) {
-	(void) arg;
-
-    int now = xtimer_now();
-    /* Don't accept a press of current button if it did occur earlier than last press plus debouncing time */
-    if (now - last_pressed[1] <= UMDK_4BTN_DEBOUNCE_TIME_MS * 1000) {
-    	last_pressed[1] = now;
-    	return;
-	}
-    last_pressed[1] = now;
-
-	msg_send_int(&btn2, handler_pid);
-}
-
-static void btn_3_pressed_cb(void *arg) {
-	(void) arg;
-
-    int now = xtimer_now();
-
-    /* Don't accept a press of current button if it did occur earlier than last press plus debouncing time */
-    if (now - last_pressed[2] <= UMDK_4BTN_DEBOUNCE_TIME_MS * 1000) {
-    	last_pressed[2] = now;
+    if (now - last_pressed[btn_num] <= UMDK_4BTN_DEBOUNCE_TIME_MS * 1000) {
+    	puts("[4btn] Press rejected");
     	return;
 	}
 
-    last_pressed[2] = now;
+    last_pressed[btn_num] = now;
 
-	msg_send_int(&btn3, handler_pid);
-}
+    msg_t msg;
+    msg.type = btn_num;
 
-static void btn_4_pressed_cb(void *arg) {
-	(void) arg;
-
-    int now = xtimer_now();
-    /* Don't accept a press of current button if it did occur earlier than last press plus debouncing time */
-    if (now - last_pressed[3] <= UMDK_4BTN_DEBOUNCE_TIME_MS * 1000) {
-    	last_pressed[3] = now;
-    	return;
-	}
-    last_pressed[3] = now;
-
-	msg_send_int(&btn4, handler_pid);
+	msg_send_int(&msg, handler_pid);
 }
 
 void umdk_4btn_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
@@ -128,17 +85,11 @@ void umdk_4btn_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 
 	callback = event_callback;
 
-	/* Prepare event messages */
-	btn1.content.value = 1;
-	btn2.content.value = 2;
-	btn3.content.value = 3;
-	btn4.content.value = 4;
-
 	/* Initialize interrupts */
-	gpio_init_int(UMDK_4BTN_1, GPIO_IN_PU, GPIO_FALLING, btn_1_pressed_cb, NULL);
-	gpio_init_int(UMDK_4BTN_2, GPIO_IN_PU, GPIO_FALLING, btn_2_pressed_cb, NULL);
-	gpio_init_int(UMDK_4BTN_3, GPIO_IN_PU, GPIO_FALLING, btn_3_pressed_cb, NULL);
-	gpio_init_int(UMDK_4BTN_4, GPIO_IN_PU, GPIO_FALLING, btn_4_pressed_cb, NULL);
+	gpio_init_int(UMDK_4BTN_1, GPIO_IN_PU, GPIO_FALLING, btn_pressed_int, (void *) 1);
+	gpio_init_int(UMDK_4BTN_2, GPIO_IN_PU, GPIO_FALLING, btn_pressed_int, (void *) 2);
+	gpio_init_int(UMDK_4BTN_3, GPIO_IN_PU, GPIO_FALLING, btn_pressed_int, (void *) 3);
+	gpio_init_int(UMDK_4BTN_4, GPIO_IN_PU, GPIO_FALLING, btn_pressed_int, (void *) 4);
 
 	/* Create handler thread */
 	char *stack = (char *) allocate_stack();
@@ -147,7 +98,7 @@ void umdk_4btn_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 		return;
 	}
 
-	handler_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, 0, handler, NULL, "4btn thread");
+	handler_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, handler, NULL, "4btn thread");
 }
 
 bool umdk_4btn_cmd(module_data_t *data, module_data_t *reply) {

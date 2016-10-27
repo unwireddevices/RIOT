@@ -225,18 +225,15 @@ static bool accept_node_join_cb(uint64_t dev_id, uint64_t app_id)
 
 void app_data_received_cb(ls_gate_node_t *node, ls_gate_channel_t *ch, uint8_t *buf, size_t bufsize)
 {
-    char hex[255] = {};
+    char hex[GC_MAX_REPLY_LEN - 19] = {};
+    if (bufsize > sizeof(hex))
+    	bufsize = sizeof(hex);
 
     bytes_to_hex(buf, bufsize, hex, false);
+    printf("[recv] %d bytes: %s\n", bufsize, hex);
 
-    printf("ls-gate: data from 0x%08X%08X: %s\n", (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF), hex);
-
-    char str[200] = { };
-    char msg[180] = { };
-    memcpy(msg, hex, sizeof(msg));
-    msg[sizeof(msg) - 1] = '\0';
-
-    sprintf(str, "%c%08X%08X%s\n", REPLY_IND, (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF), msg);
+    char str[GC_MAX_REPLY_LEN] = { };
+    sprintf(str, "%c%08X%08X%s\n", REPLY_IND, (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF), hex);
 
     gc_pending_fifo_push(&fifo, str);
 }

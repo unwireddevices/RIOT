@@ -34,13 +34,13 @@ extern "C" {
  * Data rates table.
  */
 static uint8_t datarate_table[7][3] = {
-    { SF12, BW_125_KHZ, CR_4_5 },       /* DR0 */
-    { SF11, BW_125_KHZ, CR_4_5 },       /* DR1 */
-    { SF10, BW_125_KHZ, CR_4_5 },       /* DR2 */
-    { SF9, BW_125_KHZ, CR_4_5 },        /* DR3 */
-    { SF8, BW_125_KHZ, CR_4_5 },        /* DR4 */
-    { SF7, BW_125_KHZ, CR_4_5 },        /* DR5 */
-    { SF7, BW_250_KHZ, CR_4_5 },        /* DR6 */
+    { SX1276_SF12, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR0 */
+    { SX1276_SF11, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR1 */
+    { SX1276_SF10, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR2 */
+    { SX1276_SF9, SX1276_BW_125_KHZ, SX1276_CR_4_5 },        /* DR3 */
+    { SX1276_SF8, SX1276_BW_125_KHZ, SX1276_CR_4_5 },        /* DR4 */
+    { SX1276_SF7, SX1276_BW_125_KHZ, SX1276_CR_4_5 },        /* DR5 */
+    { SX1276_SF7, SX1276_BW_250_KHZ, SX1276_CR_4_5 },        /* DR6 */
 };
 
 static msg_t msg_ping;
@@ -83,8 +83,11 @@ static int send_frame(ls_gate_channel_t *ch, ls_addr_t to, ls_type_t type, uint8
 
 	prepare_sx1276(ch);
 
-	ls_frame_t frame;
-	ls_assemble_frame(to, type, buf, buflen, &frame);
+	/* Capture channel */
+	mutex_lock(&ch->_internal.channel_mutex);
+
+	ls_frame_t *frame = &ch->_internal.current_frame;
+	ls_assemble_frame(to, type, buf, buflen, frame);
 
 	/* Send frame */
     size_t header_size = sizeof(ls_header_t) + sizeof(ls_payload_len_t);
@@ -98,7 +101,7 @@ static int send_frame(ls_gate_channel_t *ch, ls_addr_t to, ls_type_t type, uint8
 
 	switch (type) {
 	case LS_DL_JOIN_ACK:
-		ls_encrypt_frame(ls->settings.join_key, ls->settings.join_key, &frame, &payload_size);
+		ls_encrypt_frame(ls->settings.join_key, ls->settings.join_key, frame, &payload_size);
 		break;
 
 	case LS_DL_ACK:
@@ -106,18 +109,20 @@ static int send_frame(ls_gate_channel_t *ch, ls_addr_t to, ls_type_t type, uint8
 
 		ls_derive_keys(node->last_nonce, node->app_nonce, node->addr, mic_key, NULL);
 
-		ls_encrypt_frame(mic_key, mic_key, &frame, &payload_size);
+		ls_encrypt_frame(mic_key, mic_key, frame, &payload_size);
 		break;
 
 	default:
 		node = ls_devlist_get(&ls->devices, to);
 
 		ls_derive_keys(node->last_nonce, node->app_nonce, node->addr, mic_key, aes_key);
-		ls_encrypt_frame(mic_key, aes_key, &frame, &payload_size);
+		ls_encrypt_frame(mic_key, aes_key, frame, &payload_size);
 	}
 
 	/* Send frame into LoRa PHY */
-	sx1276_send(ch->_internal.sx1276, (uint8_t *) &frame, header_size + payload_size);
+	sx1276_send(ch->_internal.sx1276, (uint8_t *) frame, header_size + payload_size);
+
+	mutex_unlock(&ch->_internal.channel_mutex);
 
 	return LS_GATE_OK;
 }
@@ -322,71 +327,56 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame) 
 	}
 }
 
-static void *sx1276_handler(void *arg) {
+static void sx1276_handler(void *arg, sx1276_event_type_t event_type) {
 	assert(arg != NULL);
 
-    puts("ls-gate: sx1276 event handler thread started"); // XXX: debug
-
-    ls_gate_channel_t *ch = (ls_gate_channel_t *) arg;
+	sx1276_t *dev = (sx1276_t *) arg;
+    ls_gate_channel_t *ch = (ls_gate_channel_t *) dev->callback_arg;
     ls_gate_t *ls = (ls_gate_t *) ch->_internal.gate;
 
-    msg_init_queue(ch->_internal.sx1276_event_queue, sizeof(ch->_internal.sx1276_event_queue));
-    msg_t msg;
+	sx1276_rx_packet_t *packet = (sx1276_rx_packet_t *) &dev->_internal.last_packet;
 
-    while (1) {
-        msg_receive(&msg);
+	switch (event_type) {
+		case SX1276_RX_DONE:
+			//printf("RX: %d bytes\n", (unsigned int) packet->size);
+			;
 
-        sx1276_event_t *event = (sx1276_event_t *) msg.content.ptr;
-        sx1276_rx_packet_t *packet = (sx1276_rx_packet_t *) event->event_data;
+			/* Copy packet's data as a frame to our stack */
+			ls_frame_t *frame = (ls_frame_t *) packet->content;
 
-        switch (event->type) {
-            case RX_DONE:
-            	//printf("RX: %d bytes\n", (unsigned int) packet->size);
-            	;
+			/* Check frame format */
+			if (ls_validate_frame(packet->content, packet->size)) {
+				if (!frame_recv(ls, ch, frame)) {
+					//puts("ls-gate: well-formed frame discarded");
+				}
+			} else {
+				//puts("ls-gate: malformed data discarded");
+			}
 
-                /* Copy packet's data as a frame to our stack */
-                ls_frame_t frame;
-                memcpy(&frame, packet->content, packet->size);
+			break;
 
-                /* It's necessary to free the memory for the content because it was allocated dynamically in the sx1276 library */
-                free(packet->content);
+		case SX1276_RX_ERROR_CRC:
+			break;
 
-                /* Check frame format */
-                if (ls_validate_frame((uint8_t *) &frame, packet->size)) {
-                	if (!frame_recv(ls, ch, &frame)) {
-                		//puts("ls-gate: well-formed frame discarded");
-                	}
-                } else {
-                	//puts("ls-gate: malformed data discarded");
-                }
+		case SX1276_TX_DONE:
+			//puts("sx1276: transmission done.");
+			prepare_sx1276(ch);
+			sx1276_set_rx(ch->_internal.sx1276, ch->_internal.sx1276->settings.lora.rx_timeout);
 
-                break;
+			break;
 
-            case RX_ERROR_CRC:
-                break;
+		case SX1276_RX_TIMEOUT:
+			break;
 
-            case TX_DONE:
-                //puts("sx1276: transmission done.");
-            	prepare_sx1276(ch);
-                sx1276_set_rx(ch->_internal.sx1276, ch->_internal.sx1276->settings.lora.rx_timeout);
+		case SX1276_TX_TIMEOUT:
+			prepare_sx1276(ch);
+			sx1276_set_rx(ch->_internal.sx1276, ch->_internal.sx1276->settings.lora.rx_timeout);
+			break;
 
-                break;
-
-            case RX_TIMEOUT:
-                break;
-
-            case TX_TIMEOUT:
-            	prepare_sx1276(ch);
-                sx1276_set_rx(ch->_internal.sx1276, ch->_internal.sx1276->settings.lora.rx_timeout);
-                break;
-
-            default:
-                printf("sx1276: received event #%d\n", (int) event->type);
-                break;
-        }
-    }
-
-	return NULL;
+		default:
+			printf("sx1276: received event #%d\n", (int) event_type);
+			break;
+	}
 }
 
 static void *tim_handler(void *arg) {
@@ -456,24 +446,17 @@ static bool open_channel(ls_gate_channel_t *ch) {
 	assert(ch != NULL);
 	printf("ls_gate_init: opening channel %d Hz with datarate DR%d\n", (unsigned int) ch->frequency, (unsigned int) ch->dr);
 
-	/* Launch channel listener thread */
-    kernel_pid_t pid = thread_create(ch->_internal.sx1276_listener_thread_stack,
-    		sizeof(ch->_internal.sx1276_listener_thread_stack),
-			THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, sx1276_handler, ch,
-                                     "sx1276 channel thread");
+	sx1276_t *sx1276 = ch->_internal.sx1276;
 
-    if (pid <= KERNEL_PID_UNDEF) {
-    	printf("ls_gate_init: opening channel %d Hz failed", (unsigned int) ch->frequency);
-        return false;
-    }
-
-    ch->_internal.sx1276->event_handler_thread_pid = pid;
+	/* Setup callbacks */
+	sx1276->sx1276_event_cb = sx1276_handler;
+	sx1276->callback_arg = ch;
 
 	/* Initialize and configure the transceiver for this channel */
 	prepare_sx1276(ch);
 
     /* Set channel to receive */
-    sx1276_set_rx(ch->_internal.sx1276, ch->_internal.sx1276->settings.lora.rx_timeout);
+    sx1276_set_rx(sx1276, sx1276->settings.lora.rx_timeout);
 
     return true;
 }
@@ -484,6 +467,7 @@ static bool initialize_channels(ls_gate_t *ls) {
 		assert(ch->_internal.sx1276 != NULL);
 
 		ch->_internal.gate = ls;
+		mutex_init(&ch->_internal.channel_mutex);
 
 		if (!open_channel(ch)) {
 			return false;

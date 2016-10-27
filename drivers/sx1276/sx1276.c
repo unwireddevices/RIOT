@@ -12,13 +12,15 @@
  * @file
  * @brief       Basic functionality of sx1276 driver
  *
- * @author      Evgeniy Ponomarev
+ * @author      Cr0s
  * @}
  */
 #include <stdbool.h>
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
+
+#include "debug.h"
 
 #include "periph/gpio.h"
 #include "periph/spi.h"
@@ -29,9 +31,6 @@
 #include "sx1276.h"
 #include "include/sx1276_regs_fsk.h"
 #include "include/sx1276_regs_lora.h"
-
-static char stack[1024 + 512];
-static msg_t msg_queue[10];
 
 /**
  * Radio registers definition
@@ -92,19 +91,6 @@ void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode);
 #define RSSI_OFFSET_LF                              -164
 #define RSSI_OFFSET_HF                              -157
 
-
-static void send_event(sx1276_t *dev, sx1276_event_type_t event_type, void *content)
-{
-    msg_t msg;
-    sx1276_event_t event;
-
-    event.type = event_type;
-    event.event_data = content;
-    msg.content.ptr = (char *) &event;
-
-    msg_try_send(&msg, dev->event_handler_thread_pid);
-}
-
 static void sx1276_set_status(sx1276_t *dev, sx1276_radio_state_t state)
 {
     dev->settings.state = state;
@@ -127,16 +113,22 @@ static void _init_isrs(sx1276_t *dev)
     gpio_init_int(dev->dio3_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio3_isr, dev);
 }
 
+static inline void send_event(sx1276_t *dev, sx1276_event_type_t event_type)
+{
+    if (dev->sx1276_event_cb != NULL) {
+        dev->sx1276_event_cb(dev, event_type);
+    }
+}
+
 /**
  * @brief Timeout timers internal routines
  */
-
 static void _on_tx_timeout(void *arg)
 {
     sx1276_t *dev = (sx1276_t *) arg;
 
     /* TX timeout. Send event message to the application's thread */
-    send_event(dev, TX_TIMEOUT, NULL);
+    send_event(dev, SX1276_TX_TIMEOUT);
 }
 
 static void _on_rx_timeout(void *arg)
@@ -144,43 +136,7 @@ static void _on_rx_timeout(void *arg)
     sx1276_t *dev = (sx1276_t *) arg;
 
     /* RX timeout. Send event message to the application's thread */
-    send_event(dev, RX_TIMEOUT, NULL);
-}
-
-#define SX1276_WHITENING_KEY_LSB 0xAF
-#define SX1276_WHITENING_KEY_MSB 0x05
-
-/**
- * @brief Performs CCIT whitening/dewhitening
- */
-
-void sx1276_whitening(uint8_t *buffer, size_t size)
-{
-	/*
-    uint8_t i = 0;
-    uint16_t j = 0;
-    uint8_t whit_key_msb_prev = 0;
-    uint8_t rev_whit_key_lsb = 0;
-    rev_whit_key_lsb = SX1276_WHITENING_KEY_LSB;
-
-    uint8_t whit_key_msb = SX1276_WHITENING_KEY_MSB;
-    uint8_t whit_key_lsb = SX1276_WHITENING_KEY_LSB;
-
-    for( j = 0; j < size - 1; j++ )
-    {
-        buffer[j] ^= rev_whit_key_lsb;
-
-        for( i = 0; i < 8; i++ )
-        {
-            whit_key_msb_prev = whit_key_msb;
-            whit_key_msb =  (whit_key_lsb & 0x01) ^ ((whit_key_lsb >> 5) & 0x01);
-            whit_key_lsb = ((((whit_key_msb_prev << 7 ) & 0x80) | ((whit_key_lsb >> 1) & 0xFF)));
-        }
-
-        rev_whit_key_lsb = (whit_key_lsb & 0xF0) >> 4 | (whit_key_lsb & 0x0F) << 4;
-        rev_whit_key_lsb = (rev_whit_key_lsb & 0xCC) >> 2 | (rev_whit_key_lsb & 0x33) << 2;
-        rev_whit_key_lsb = (rev_whit_key_lsb & 0xAA) >> 1 | (rev_whit_key_lsb & 0x55) << 1;
-    }*/
+    send_event(dev, SX1276_RX_TIMEOUT);
 }
 
 /**
@@ -188,11 +144,11 @@ void sx1276_whitening(uint8_t *buffer, size_t size)
  */
 static void _init_timers(sx1276_t *dev)
 {
-    dev->tx_timeout_timer.arg = dev;
-    dev->tx_timeout_timer.callback = _on_tx_timeout;
+    dev->_internal.tx_timeout_timer.arg = dev;
+    dev->_internal.tx_timeout_timer.callback = _on_tx_timeout;
 
-    dev->rx_timeout_timer.arg = dev;
-    dev->rx_timeout_timer.callback = _on_rx_timeout;
+    dev->_internal.rx_timeout_timer.arg = dev;
+    dev->_internal.rx_timeout_timer.callback = _on_rx_timeout;
 }
 
 static int _init_peripherals(sx1276_t *dev)
@@ -200,60 +156,69 @@ static int _init_peripherals(sx1276_t *dev)
     int res;
 
     /* Setup SPI for SX1276 */
-    spi_acquire(SX1276_SPI);
+    spi_acquire(dev->spi);
     res = spi_init_master(dev->spi, SPI_CONF_FIRST_RISING, SPI_SPEED_1MHZ);
-    spi_release(SX1276_SPI);
+    spi_release(dev->spi);
 
     if (res < 0) {
         printf("sx1276: error initializing SPI_%i device (code %i)\n",
-               SX1276_SPI, res);
+        		dev->spi, res);
         return 0;
     }
 
-    res = gpio_init(SX1276_SPI_NSS, GPIO_OUT);
+    res = gpio_init(dev->nss_pin, GPIO_OUT);
     if (res < 0) {
         printf("sx1276: error initializing GPIO_%ld as CS line (code %i)\n",
-               (long)SX1276_SPI_NSS, res);
+               (long)dev->nss_pin, res);
         return 0;
     }
 
-    gpio_set(SX1276_SPI_NSS);
+    gpio_set(dev->nss_pin);
 
     return 1;
 }
 
-void sx1276_init(sx1276_t *dev)
+sx1276_init_result_t sx1276_init(sx1276_t *dev)
 {
     sx1276_reset(dev);
 
     /** Do internal initialization routines */
-    _init_peripherals(dev);
+    if (!_init_peripherals(dev)) {
+        return SX1276_ERR_SPI;
+    }
+
     _init_isrs(dev);
     _init_timers(dev);
 
     /* Check presence of SX1276 */
     if (!sx1276_test(dev)) {
-        puts("init_radio: test failed");
-        return; // TODO: error codes
+        DEBUG("init_radio: test failed");
+        return SX1276_ERR_TEST_FAILED;
     }
 
     _rx_chain_calibration(dev);
 
-    sx1276_reg_write(dev, REG_OPMODE, 0x00); /* Set RegOpMode value to the datasheet's default. Actual default after POR is 0x09 */
-    sx1276_set_modem(dev, MODEM_LORA);
+    /* Set RegOpMode value to the datasheet's default. Actual default after POR is 0x09 */
+    sx1276_reg_write(dev, REG_OPMODE, 0x00);
 
+    /* Switch into LoRa mode */
+    sx1276_set_modem(dev, SX1276_MODEM_LORA);
+
+    /* Set current frequency */
     sx1276_set_channel(dev, dev->settings.channel);
 
-    kernel_pid_t pid = thread_create(stack, sizeof(stack), THREAD_PRIORITY_MAIN,
+    /* Create DIO event lines handler */
+    kernel_pid_t pid = thread_create((char *) dev->_internal.dio_polling_thread_stack, sizeof(dev->_internal.dio_polling_thread_stack), THREAD_PRIORITY_MAIN,
                                      THREAD_CREATE_STACKTEST, dio_polling_thread, dev,
-                                     "sx1276_dio_polling_thread");
+                                     "sx1276 DIO handler");
 
     if (pid <= KERNEL_PID_UNDEF) {
-        puts("sx1276: creation of DIO polling thread failed");
-        return; // TODO: error codes
+        DEBUG("sx1276: creation of DIO handling thread");
+        return SX1276_ERR_THREAD;
     }
+    dev->_internal.dio_polling_thread_pid = pid;
 
-    dev->dio_polling_thread_pid = pid;
+    return SX1276_INIT_OK;
 }
 
 sx1276_radio_state_t sx1276_get_status(sx1276_t *dev)
@@ -268,7 +233,7 @@ void sx1276_set_channel(sx1276_t *dev, uint32_t freq)
 
     sx1276_set_op_mode(dev, RF_OPMODE_STANDBY);
 
-    freq = (uint32_t)((double) freq / (double) FREQ_STEP);
+    freq = (uint32_t)((double) freq / (double) SX1276_FREQ_STEP);
 
     /* Write frequency settings into chip */
     sx1276_reg_write(dev, REG_FRFMSB, (uint8_t)((freq >> 16) & 0xFF));
@@ -316,7 +281,7 @@ void sx1276_set_modem(sx1276_t *dev, sx1276_radio_modems_t modem)
     dev->settings.modem = modem;
 
     switch (dev->settings.modem) {
-        case MODEM_LORA:
+        case SX1276_MODEM_LORA:
             sx1276_set_op_mode(dev, RF_OPMODE_SLEEP);
             sx1276_reg_write(dev,
                              REG_OPMODE,
@@ -328,7 +293,7 @@ void sx1276_set_modem(sx1276_t *dev, sx1276_radio_modems_t modem)
             sx1276_reg_write(dev, REG_DIOMAPPING2, 0x10); /* DIO5=ClkOut */
             break;
 
-        case MODEM_FSK:
+        case SX1276_MODEM_FSK:
             sx1276_set_op_mode(dev, RF_OPMODE_SLEEP);
             sx1276_reg_write(dev,
                              REG_OPMODE,
@@ -352,7 +317,7 @@ uint32_t sx1276_random(sx1276_t *dev)
     uint8_t i;
     uint32_t rnd = 0;
 
-    sx1276_set_modem(dev, MODEM_LORA); /* Set LoRa modem ON */
+    sx1276_set_modem(dev, SX1276_MODEM_LORA); /* Set LoRa modem ON */
 
     /* Disable LoRa modem interrupts */
     sx1276_reg_write(dev, REG_LR_IRQFLAGSMASK, RFLR_IRQFLAGS_RXTIMEOUT |
@@ -397,7 +362,7 @@ static void _rx_chain_calibration(sx1276_t *dev)
     reg_pa_config_init_val = sx1276_reg_read(dev, REG_PACONFIG);
     initial_freq = (double) (((uint32_t) sx1276_reg_read(dev, REG_FRFMSB) << 16)
                              | ((uint32_t) sx1276_reg_read(dev, REG_FRFMID) << 8)
-                             | ((uint32_t) sx1276_reg_read(dev, REG_FRFLSB))) * (double) FREQ_STEP;
+                             | ((uint32_t) sx1276_reg_read(dev, REG_FRFLSB))) * (double) SX1276_FREQ_STEP;
 
     /* Cut the PA just in case, RFO output, power = -1 dBm */
     sx1276_reg_write(dev, REG_PACONFIG, 0x00);
@@ -413,7 +378,7 @@ static void _rx_chain_calibration(sx1276_t *dev)
     }
 
     /* Set a frequency in HF band */
-    sx1276_set_channel(dev, CHANNEL_HF);
+    sx1276_set_channel(dev, SX1276_CHANNEL_HF);
 
     /* Launch Rx chain calibration for HF band */
     sx1276_reg_write(dev,
@@ -431,7 +396,7 @@ static void _rx_chain_calibration(sx1276_t *dev)
 
 static inline uint8_t sx1276_get_pa_select(uint32_t channel)
 {
-    if (channel < RF_MID_BAND_THRESH) {
+    if (channel < SX1276_RF_MID_BAND_THRESH) {
         return RF_PACONFIG_PASELECT_PABOOST;
     }
     else {
@@ -501,15 +466,15 @@ static void setup_power_amplifier(sx1276_t *dev, sx1276_lora_settings_t *setting
 
 void sx1276_configure_lora(sx1276_t *dev, sx1276_lora_settings_t *settings)
 {
-    sx1276_set_modem(dev, MODEM_LORA);
+    sx1276_set_modem(dev, SX1276_MODEM_LORA);
 
     /* Copy LoRa configuration into device structure */
     if (settings != NULL) {
-    	memcpy(&dev->settings.lora, settings, sizeof(sx1276_lora_settings_t));
+        memcpy(&dev->settings.lora, settings, sizeof(sx1276_lora_settings_t));
     }
 
-    if (((dev->settings.lora.bandwidth == BW_125_KHZ) && ((dev->settings.lora.datarate == SF11) || (dev->settings.lora.datarate == SF12)))
-        || ((dev->settings.lora.bandwidth == BW_250_KHZ) && (dev->settings.lora.datarate == SF12))) {
+    if (((dev->settings.lora.bandwidth == SX1276_BW_125_KHZ) && ((dev->settings.lora.datarate == SX1276_SF11) || (dev->settings.lora.datarate == SX1276_SF12)))
+        || ((dev->settings.lora.bandwidth == SX1276_BW_250_KHZ) && (dev->settings.lora.datarate == SX1276_SF12))) {
         dev->settings.lora.low_datarate_optimize = 0x01;
     }
     else {
@@ -564,12 +529,12 @@ void sx1276_configure_lora(sx1276_t *dev, sx1276_lora_settings_t *settings)
     setup_power_amplifier(dev, settings);
 
     /* ERRATA sensetivity tweaks */
-    if ((dev->settings.lora.bandwidth == BW_500_KHZ) && (RF_MID_BAND_THRESH)) {
+    if ((dev->settings.lora.bandwidth == SX1276_BW_500_KHZ) && (SX1276_RF_MID_BAND_THRESH)) {
         /* ERRATA 2.1 - Sensitivity Optimization with a 500 kHz Bandwidth */
         sx1276_reg_write(dev, REG_LR_TEST36, 0x02);
         sx1276_reg_write(dev, REG_LR_TEST3A, 0x64);
     }
-    else if (dev->settings.lora.bandwidth == BW_500_KHZ) {
+    else if (dev->settings.lora.bandwidth == SX1276_BW_500_KHZ) {
         /* ERRATA 2.1 - Sensitivity Optimization with a 500 kHz Bandwidth */
         sx1276_reg_write(dev, REG_LR_TEST36, 0x02);
         sx1276_reg_write(dev, REG_LR_TEST3A, 0x7F);
@@ -579,23 +544,26 @@ void sx1276_configure_lora(sx1276_t *dev, sx1276_lora_settings_t *settings)
         sx1276_reg_write(dev, REG_LR_TEST36, 0x03);
     }
 
-	sx1276_reg_write(dev, REG_LR_DETECTOPTIMIZE, RFLR_DETECTIONOPTIMIZE_SF7_TO_SF12);
-	sx1276_reg_write(dev, REG_LR_DETECTIONTHRESHOLD, RFLR_DETECTIONTHRESH_SF7_TO_SF12);
+    sx1276_reg_write(dev, REG_LR_DETECTOPTIMIZE, RFLR_DETECTIONOPTIMIZE_SF7_TO_SF12);
+    sx1276_reg_write(dev, REG_LR_DETECTIONTHRESHOLD, RFLR_DETECTIONTHRESH_SF7_TO_SF12);
 }
 
-void sx1276_configure_lora_bw(sx1276_t *dev, sx1276_lora_bandwidth_t bw) {
-	dev->settings.lora.bandwidth = bw;
-	sx1276_configure_lora(dev, NULL);
+void sx1276_configure_lora_bw(sx1276_t *dev, sx1276_lora_bandwidth_t bw)
+{
+    dev->settings.lora.bandwidth = bw;
+    sx1276_configure_lora(dev, NULL);
 }
 
-void sx1276_configure_lora_sf(sx1276_t *dev, sx1276_lora_spreading_factor_t sf) {
-	dev->settings.lora.datarate = sf;
-	sx1276_configure_lora(dev, NULL);
+void sx1276_configure_lora_sf(sx1276_t *dev, sx1276_lora_spreading_factor_t sf)
+{
+    dev->settings.lora.datarate = sf;
+    sx1276_configure_lora(dev, NULL);
 }
 
-void sx1276_configure_lora_cr(sx1276_t *dev, sx1276_lora_coding_rate_t cr) {
-	dev->settings.lora.coderate = cr;
-	sx1276_configure_lora(dev, NULL);
+void sx1276_configure_lora_cr(sx1276_t *dev, sx1276_lora_coding_rate_t cr)
+{
+    dev->settings.lora.coderate = cr;
+    sx1276_configure_lora(dev, NULL);
 }
 
 uint32_t sx1276_get_time_on_air(sx1276_t *dev, sx1276_radio_modems_t modem,
@@ -604,10 +572,10 @@ uint32_t sx1276_get_time_on_air(sx1276_t *dev, sx1276_radio_modems_t modem,
     uint32_t air_time = 0;
 
     switch (modem) {
-        case MODEM_FSK:
+        case SX1276_MODEM_FSK:
             break;
 
-        case MODEM_LORA:
+        case SX1276_MODEM_LORA:
         {
             double bw = 0.0;
 
@@ -658,15 +626,13 @@ uint32_t sx1276_get_time_on_air(sx1276_t *dev, sx1276_radio_modems_t modem,
 
 void sx1276_send(sx1276_t *dev, uint8_t *buffer, uint8_t size)
 {
-	sx1276_whitening(buffer, size);
-
     switch (dev->settings.modem) {
-        case MODEM_FSK:
+        case SX1276_MODEM_FSK:
             sx1276_write_fifo(dev, &size, 1);
             sx1276_write_fifo(dev, buffer, size);
             break;
 
-        case MODEM_LORA:
+        case SX1276_MODEM_LORA:
         {
 
             if (dev->settings.lora.iq_inverted) {
@@ -698,7 +664,7 @@ void sx1276_send(sx1276_t *dev, uint8_t *buffer, uint8_t size)
             if ((sx1276_reg_read(dev, REG_OPMODE) & ~RF_OPMODE_MASK)
                 == RF_OPMODE_SLEEP) {
                 sx1276_set_standby(dev);
-                xtimer_usleep(RADIO_WAKEUP_TIME); /* wait for chip wake up */
+                xtimer_usleep(SX1276_RADIO_WAKEUP_TIME); /* wait for chip wake up */
             }
 
             /* Write payload buffer */
@@ -727,32 +693,32 @@ void sx1276_send(sx1276_t *dev, uint8_t *buffer, uint8_t size)
 
 
     /* Start TX timeout timer */
-    xtimer_set(&dev->tx_timeout_timer, dev->settings.lora.tx_timeout);
+    xtimer_set(&dev->_internal.tx_timeout_timer, dev->settings.lora.tx_timeout);
 
     /* Put chip into transfer mode */
-    sx1276_set_status(dev, RF_TX_RUNNING);
+    sx1276_set_status(dev, SX1276_RF_TX_RUNNING);
     sx1276_set_op_mode(dev, RF_OPMODE_TRANSMITTER);
 }
 
 void sx1276_set_sleep(sx1276_t *dev)
 {
     /* Disable running timers */
-    xtimer_remove(&dev->tx_timeout_timer);
-    xtimer_remove(&dev->rx_timeout_timer);
+    xtimer_remove(&dev->_internal.tx_timeout_timer);
+    xtimer_remove(&dev->_internal.rx_timeout_timer);
 
     /* Put chip into sleep */
     sx1276_set_op_mode(dev, RF_OPMODE_SLEEP);
-    sx1276_set_status(dev,  RF_IDLE);
+    sx1276_set_status(dev,  SX1276_RF_IDLE);
 }
 
 void sx1276_set_standby(sx1276_t *dev)
 {
     /* Disable running timers */
-    xtimer_remove(&dev->tx_timeout_timer);
-    xtimer_remove(&dev->rx_timeout_timer);
+    xtimer_remove(&dev->_internal.tx_timeout_timer);
+    xtimer_remove(&dev->_internal.rx_timeout_timer);
 
     sx1276_set_op_mode(dev, RF_OPMODE_STANDBY);
-    sx1276_set_status(dev,  RF_IDLE);
+    sx1276_set_status(dev,  SX1276_RF_IDLE);
 }
 
 void sx1276_set_rx(sx1276_t *dev, uint32_t timeout)
@@ -760,10 +726,10 @@ void sx1276_set_rx(sx1276_t *dev, uint32_t timeout)
     bool rx_continuous = false;
 
     switch (dev->settings.modem) {
-        case MODEM_FSK:
+        case SX1276_MODEM_FSK:
             break;
 
-        case MODEM_LORA:
+        case SX1276_MODEM_LORA:
         {
             if (dev->settings.lora.iq_inverted) {
                 sx1276_reg_write(dev,
@@ -788,42 +754,15 @@ void sx1276_set_rx(sx1276_t *dev, uint32_t timeout)
                                  sx1276_reg_read(dev, REG_LR_DETECTOPTIMIZE) & 0x7F);
                 sx1276_reg_write(dev, REG_LR_TEST30, 0x00);
                 switch (dev->settings.lora.bandwidth) {
-                    /*case 0: // 7.8 kHz
-                        sx1276_reg_write(dev, REG_LR_TEST2F, 0x48);
-                        sx1276_set_channel(dev, dev->settings.channel + 7.81e3);
-                        break;
-                    case 1: // 10.4 kHz
-                        sx1276_reg_write(dev, REG_LR_TEST2F, 0x44);
-                        sx1276_set_channel(dev, dev->settings.channel + 10.42e3);
-                        break;
-                    case 2: // 15.6 kHz
-                        sx1276_reg_write(dev, REG_LR_TEST2F, 0x44);
-                        sx1276_set_channel(dev, dev->settings.channel + 15.62e3);
-                        break;
-                    case 3: // 20.8 kHz
-                        sx1276_reg_write(dev, REG_LR_TEST2F, 0x44);
-                        sx1276_set_channel(dev, dev->settings.channel + 20.83e3);
-                        break;
-                    case 4: // 31.2 kHz
-                        sx1276_reg_write(dev, REG_LR_TEST2F, 0x44);
-                        sx1276_set_channel(dev, dev->settings.channel + 31.25e3);
-                        break;
-                    case 5: // 41.4 kHz
-                        sx1276_reg_write(dev, REG_LR_TEST2F, 0x44);
-                        sx1276_set_channel(dev, dev->settings.channel + 41.67e3);
-                        break;
-                    case 6: // 62.5 kHz
-                        sx1276_reg_write(dev, REG_LR_TEST2F, 0x40);
-                        break;*/
-                    case BW_125_KHZ: // 125 kHz
+                    case SX1276_BW_125_KHZ: // 125 kHz
                         sx1276_reg_write(dev, REG_LR_TEST2F, 0x40);
                         break;
-                    case BW_250_KHZ: // 250 kHz
+                    case SX1276_BW_250_KHZ: // 250 kHz
                         sx1276_reg_write(dev, REG_LR_TEST2F, 0x40);
                         break;
 
                     default:
-                    	break;
+                        break;
                 }
             }
             else {
@@ -877,29 +816,29 @@ void sx1276_set_rx(sx1276_t *dev, uint32_t timeout)
         break;
     }
 
-    sx1276_set_status(dev, RF_RX_RUNNING);
+    sx1276_set_status(dev, SX1276_RF_RX_RUNNING);
 
     if (rx_continuous) {
         sx1276_set_op_mode(dev, RFLR_OPMODE_RECEIVER);
     }
     else {
         if (timeout != 0) {
-            xtimer_set(&dev->rx_timeout_timer, timeout);
+            xtimer_set(&(dev->_internal.rx_timeout_timer), timeout);
         }
 
-    	sx1276_set_op_mode(dev, RFLR_OPMODE_RECEIVER_SINGLE);
+        sx1276_set_op_mode(dev, RFLR_OPMODE_RECEIVER_SINGLE);
     }
 }
 
 void sx1276_start_cad(sx1276_t *dev)
 {
     switch (dev->settings.modem) {
-        case MODEM_FSK:
+        case SX1276_MODEM_FSK:
         {
 
         }
         break;
-        case MODEM_LORA:
+        case SX1276_MODEM_LORA:
         {
             sx1276_reg_write(dev, REG_LR_IRQFLAGSMASK, RFLR_IRQFLAGS_RXTIMEOUT |
                              RFLR_IRQFLAGS_RXDONE |
@@ -917,7 +856,7 @@ void sx1276_start_cad(sx1276_t *dev)
                              (sx1276_reg_read(dev, REG_DIOMAPPING1)
                               & RFLR_DIOMAPPING1_DIO0_MASK) | RFLR_DIOMAPPING1_DIO0_00);
 
-            sx1276_set_status(dev,  RF_CAD);
+            sx1276_set_status(dev,  SX1276_RF_CAD);
             sx1276_set_op_mode(dev, RFLR_OPMODE_CAD);
         }
         break;
@@ -931,11 +870,11 @@ int16_t sx1276_read_rssi(sx1276_t *dev)
     int16_t rssi = 0;
 
     switch (dev->settings.modem) {
-        case MODEM_FSK:
+        case SX1276_MODEM_FSK:
             rssi = -(sx1276_reg_read(dev, REG_RSSIVALUE) >> 1);
             break;
-        case MODEM_LORA:
-            if (dev->settings.channel > RF_MID_BAND_THRESH) {
+        case SX1276_MODEM_LORA:
+            if (dev->settings.channel > SX1276_RF_MID_BAND_THRESH) {
                 rssi = RSSI_OFFSET_HF + sx1276_reg_read(dev, REG_LR_RSSIVALUE);
             }
             else {
@@ -994,10 +933,10 @@ void sx1276_set_max_payload_len(sx1276_t *dev, sx1276_radio_modems_t modem, uint
     sx1276_set_modem(dev, modem);
 
     switch (modem) {
-        case MODEM_FSK:
+        case SX1276_MODEM_FSK:
             break;
 
-        case MODEM_LORA:
+        case SX1276_MODEM_LORA:
             sx1276_reg_write(dev, REG_LR_PAYLOADMAXLENGTH, maxlen);
             break;
     }
@@ -1041,6 +980,7 @@ void sx1276_reg_read_burst(sx1276_t *dev, uint8_t addr, uint8_t *buffer,
                            uint8_t size)
 {
     unsigned int cpsr;
+
     cpsr = irq_disable();
 
     spi_acquire(dev->spi);
@@ -1072,7 +1012,7 @@ void sx1276_on_dio0_isr(void *arg)
     msg_t msg;
 
     msg.content.value = 0;
-    msg_send_int(&msg, ((sx1276_t *)arg)->dio_polling_thread_pid);
+    msg_send_int(&msg, ((sx1276_t *)arg)->_internal.dio_polling_thread_pid);
 }
 
 void sx1276_on_dio1_isr(void *arg)
@@ -1080,7 +1020,7 @@ void sx1276_on_dio1_isr(void *arg)
     msg_t msg;
 
     msg.content.value = 1;
-    msg_send_int(&msg, ((sx1276_t *)arg)->dio_polling_thread_pid);
+    msg_send_int(&msg, ((sx1276_t *)arg)->_internal.dio_polling_thread_pid);
 }
 
 void sx1276_on_dio2_isr(void *arg)
@@ -1088,7 +1028,7 @@ void sx1276_on_dio2_isr(void *arg)
     msg_t msg;
 
     msg.content.value = 2;
-    msg_send_int(&msg, ((sx1276_t *)arg)->dio_polling_thread_pid);
+    msg_send_int(&msg, ((sx1276_t *)arg)->_internal.dio_polling_thread_pid);
 }
 
 void sx1276_on_dio3_isr(void *arg)
@@ -1096,7 +1036,7 @@ void sx1276_on_dio3_isr(void *arg)
     msg_t msg;
 
     msg.content.value = 3;
-    msg_send_int(&msg, ((sx1276_t *)arg)->dio_polling_thread_pid);
+    msg_send_int(&msg, ((sx1276_t *)arg)->_internal.dio_polling_thread_pid);
 }
 
 void sx1276_on_dio4_isr(void *arg)
@@ -1104,7 +1044,7 @@ void sx1276_on_dio4_isr(void *arg)
     msg_t msg;
 
     msg.content.value = 4;
-    msg_send_int(&msg, ((sx1276_t *)arg)->dio_polling_thread_pid);
+    msg_send_int(&msg, ((sx1276_t *)arg)->_internal.dio_polling_thread_pid);
 }
 
 void sx1276_on_dio5_isr(void *arg)
@@ -1112,7 +1052,7 @@ void sx1276_on_dio5_isr(void *arg)
     msg_t msg;
 
     msg.content.value = 5;
-    msg_send_int(&msg, ((sx1276_t *)arg)->dio_polling_thread_pid);
+    msg_send_int(&msg, ((sx1276_t *)arg)->_internal.dio_polling_thread_pid);
 }
 
 /* Internal event handlers */
@@ -1124,9 +1064,9 @@ void sx1276_on_dio0(void *arg)
     volatile uint8_t irq_flags = 0;
 
     switch (dev->settings.state) {
-        case RF_RX_RUNNING:
+        case SX1276_RF_RX_RUNNING:
             switch (dev->settings.modem) {
-                case MODEM_LORA:
+                case SX1276_MODEM_LORA:
                 {
                     int8_t snr = 0;
 
@@ -1138,85 +1078,75 @@ void sx1276_on_dio0(void *arg)
                         sx1276_reg_write(dev,  REG_LR_IRQFLAGS, RFLR_IRQFLAGS_PAYLOADCRCERROR); /* Clear IRQ */
 
                         if (!dev->settings.lora.rx_continuous) {
-                            sx1276_set_status(dev,  RF_IDLE);
+                            sx1276_set_status(dev,  SX1276_RF_IDLE);
                         }
 
-                        xtimer_remove(&dev->rx_timeout_timer);
+                        xtimer_remove(&dev->_internal.rx_timeout_timer);
 
-                        send_event(dev, RX_ERROR_CRC, NULL);
+                        send_event(dev, SX1276_RX_ERROR_CRC);
 
                         break;
                     }
 
-                    sx1276_rx_packet_t packet;
+                    sx1276_rx_packet_t *packet = &dev->_internal.last_packet;
 
-                    packet.snr_value = sx1276_reg_read(dev,  REG_LR_PKTSNRVALUE);
-                    if (packet.snr_value & 0x80) { /* The SNR is negative */
+                    packet->snr_value = sx1276_reg_read(dev,  REG_LR_PKTSNRVALUE);
+                    if (packet->snr_value & 0x80) { /* The SNR is negative */
                         /* Invert and divide by 4 */
-                        snr = ((~packet.snr_value + 1) & 0xFF) >> 2;
+                        snr = ((~packet->snr_value + 1) & 0xFF) >> 2;
                         snr = -snr;
                     }
                     else {
                         /* Divide by 4 */
-                        snr = (packet.snr_value & 0xFF) >> 2;
+                        snr = (packet->snr_value & 0xFF) >> 2;
                     }
 
                     int16_t rssi = sx1276_reg_read(dev, REG_LR_PKTRSSIVALUE);
                     if (snr < 0) {
-                        if (dev->settings.channel > RF_MID_BAND_THRESH) {
-                            packet.rssi_value = RSSI_OFFSET_HF + rssi + (rssi >> 4) + snr;
+                        if (dev->settings.channel > SX1276_RF_MID_BAND_THRESH) {
+                            packet->rssi_value = RSSI_OFFSET_HF + rssi + (rssi >> 4) + snr;
                         }
                         else {
-                            packet.rssi_value = RSSI_OFFSET_LF + rssi + (rssi >> 4) + snr;
+                            packet->rssi_value = RSSI_OFFSET_LF + rssi + (rssi >> 4) + snr;
                         }
                     }
                     else {
-                        if (dev->settings.channel > RF_MID_BAND_THRESH) {
-                            packet.rssi_value = RSSI_OFFSET_HF + rssi + (rssi >> 4);
+                        if (dev->settings.channel > SX1276_RF_MID_BAND_THRESH) {
+                            packet->rssi_value = RSSI_OFFSET_HF + rssi + (rssi >> 4);
                         }
                         else {
-                            packet.rssi_value = RSSI_OFFSET_LF + rssi + (rssi >> 4);
+                            packet->rssi_value = RSSI_OFFSET_LF + rssi + (rssi >> 4);
                         }
                     }
 
-                    packet.size = sx1276_reg_read(dev, REG_LR_RXNBBYTES);
+                    packet->size = sx1276_reg_read(dev, REG_LR_RXNBBYTES);
 
                     if (!dev->settings.lora.rx_continuous) {
-                        sx1276_set_status(dev,  RF_IDLE);
+                        sx1276_set_status(dev,  SX1276_RF_IDLE);
                     }
 
-                    xtimer_remove(&dev->rx_timeout_timer);
+                    xtimer_remove(&dev->_internal.rx_timeout_timer);
 
-                    packet.content = (char *) malloc(packet.size);
-                    if (packet.content == NULL) {
-                        __BKPT(1); /* Out of memory */
-                    }
-
-                    /* Read the FIFO starting from the last packet received */
+                    /* Read the last packet from FIFO */
                     uint8_t last_rx_addr = sx1276_reg_read(dev, REG_LR_FIFORXCURRENTADDR);
                     sx1276_reg_write(dev, REG_LR_FIFOADDRPTR, last_rx_addr);
-                    sx1276_read_fifo(dev, (uint8_t *) packet.content, packet.size);
+                    sx1276_read_fifo(dev, (uint8_t *) packet->content, packet->size);
 
-                    /* Apply dewhitening */
-                    sx1276_whitening((uint8_t *) packet.content, packet.size);
-
-
-
-                    /* Notify upper layer about new packet */
-                    send_event(dev, RX_DONE, &packet);
+                    /* Notify application about new packet received */
+                    send_event(dev, SX1276_RX_DONE);
                 }
                 break;
                 default:
                     break;
             }
             break;
-        case RF_TX_RUNNING:
-            xtimer_remove(&dev->tx_timeout_timer);                          /* Clear TX timeout timer */
+        case SX1276_RF_TX_RUNNING:
+            xtimer_remove(&dev->_internal.tx_timeout_timer);                /* Clear TX timeout timer */
 
             sx1276_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_TXDONE);   /* Clear IRQ */
-            sx1276_set_status(dev,  RF_IDLE);
+            sx1276_set_status(dev,  SX1276_RF_IDLE);
 
-            send_event(dev, TX_DONE, NULL);
+            send_event(dev, SX1276_TX_DONE);
             break;
         default:
             break;
@@ -1229,20 +1159,20 @@ void sx1276_on_dio1(void *arg)
     sx1276_t *dev = (sx1276_t *) arg;
 
     switch (dev->settings.state) {
-        case RF_RX_RUNNING:
+        case SX1276_RF_RX_RUNNING:
             switch (dev->settings.modem) {
-                case MODEM_LORA:
-                    xtimer_remove(&dev->rx_timeout_timer);
+                case SX1276_MODEM_LORA:
+                    xtimer_remove(&dev->_internal.rx_timeout_timer);
 
-                    sx1276_set_status(dev,  RF_IDLE);
+                    sx1276_set_status(dev,  SX1276_RF_IDLE);
 
-                    send_event(dev, RX_TIMEOUT, NULL);
+                    send_event(dev, SX1276_RX_TIMEOUT);
                     break;
                 default:
                     break;
             }
             break;
-        case RF_TX_RUNNING:
+        case SX1276_RF_TX_RUNNING:
             break;
         default:
             break;
@@ -1255,15 +1185,15 @@ void sx1276_on_dio2(void *arg)
     sx1276_t *dev = (sx1276_t *) arg;
 
     switch (dev->settings.state) {
-        case RF_RX_RUNNING:
+        case SX1276_RF_RX_RUNNING:
             switch (dev->settings.modem) {
-                case MODEM_LORA:
+                case SX1276_MODEM_LORA:
                     if (dev->settings.lora.freq_hop_on) {
                         /* Clear IRQ */
                         sx1276_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL);
 
-                        uint32_t channel = sx1276_reg_read(dev, REG_LR_HOPCHANNEL) & RFLR_HOPCHANNEL_CHANNEL_MASK;
-                        send_event(dev, FHSS_CHANGE_CHANNEL, &channel);
+                        dev->_internal.last_channel = sx1276_reg_read(dev, REG_LR_HOPCHANNEL) & RFLR_HOPCHANNEL_CHANNEL_MASK;
+                        send_event(dev, SX1276_FHSS_CHANGE_CHANNEL);
                     }
 
                     break;
@@ -1271,17 +1201,17 @@ void sx1276_on_dio2(void *arg)
                     break;
             }
             break;
-        case RF_TX_RUNNING:
+        case SX1276_RF_TX_RUNNING:
             switch (dev->settings.modem) {
-                case MODEM_FSK:
+                case SX1276_MODEM_FSK:
                     break;
-                case MODEM_LORA:
+                case SX1276_MODEM_LORA:
                     if (dev->settings.lora.freq_hop_on) {
                         /* Clear IRQ */
                         sx1276_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL);
 
-                        uint32_t channel = sx1276_reg_read(dev, REG_LR_HOPCHANNEL) & RFLR_HOPCHANNEL_CHANNEL_MASK;
-                        send_event(dev, FHSS_CHANGE_CHANNEL, &channel);
+                        dev->_internal.last_channel = sx1276_reg_read(dev, REG_LR_HOPCHANNEL) & RFLR_HOPCHANNEL_CHANNEL_MASK;
+                        send_event(dev, SX1276_FHSS_CHANGE_CHANNEL);
                     }
                     break;
                 default:
@@ -1299,49 +1229,45 @@ void sx1276_on_dio3(void *arg)
     sx1276_t *dev = (sx1276_t *) arg;
 
     switch (dev->settings.modem) {
-        case MODEM_FSK:
+        case SX1276_MODEM_FSK:
             break;
-        case MODEM_LORA:
+        case SX1276_MODEM_LORA:
             /* Clear IRQ */
             sx1276_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_CADDETECTED | RFLR_IRQFLAGS_CADDONE);
 
             /* Send event message */
-            bool result = (sx1276_reg_read(dev, REG_LR_IRQFLAGS) & RFLR_IRQFLAGS_CADDETECTED) == RFLR_IRQFLAGS_CADDETECTED;
-            send_event(dev, CAD_DONE, &result);
+            dev->_internal.is_last_cad_success = (sx1276_reg_read(dev, REG_LR_IRQFLAGS) & RFLR_IRQFLAGS_CADDETECTED) == RFLR_IRQFLAGS_CADDETECTED;
+            send_event(dev, SX1276_CAD_DONE);
             break;
         default:
             break;
     }
 }
 
+/* Following interrupt lines are not used */
 void sx1276_on_dio4(void *arg)
 {
     (void) arg;
-
-    /* Empty (only LoRa related part is implemented) */
 }
 
 void sx1276_on_dio5(void *arg)
 {
     (void) arg;
-
-    /* Empty */
 }
 
 void *dio_polling_thread(void *arg)
 {
 
-    puts("sx1276: dio polling thread started"); //XXX: debug
+    DEBUG("sx1276: dio polling thread started");
 
     sx1276_t *dev = (sx1276_t *) arg;
-    msg_init_queue(msg_queue, sizeof(msg_queue));
+    msg_t msg_queue[8];
+    msg_init_queue(msg_queue, 8);
 
     msg_t msg;
 
     while (1) {
         msg_receive(&msg);
-
-        //printf("sx1276: received DIO #%d interrupt\n", (int) msg.content.value);
 
         uint32_t v = msg.content.value;
         switch (v) {

@@ -45,13 +45,13 @@ static msg_t msg_lnkchk_begin;
  * Data rates table.
  */
 static uint8_t datarate_table[7][3] = {
-    { SF12, BW_125_KHZ, CR_4_5 },       /* DR0 */
-    { SF11, BW_125_KHZ, CR_4_5 },       /* DR1 */
-    { SF10, BW_125_KHZ, CR_4_5 },       /* DR2 */
-    { SF9, BW_125_KHZ, CR_4_5 },        /* DR3 */
-    { SF8, BW_125_KHZ, CR_4_5 },        /* DR4 */
-    { SF7, BW_125_KHZ, CR_4_5 },        /* DR5 */
-    { SF7, BW_250_KHZ, CR_4_5 },        /* DR6 */
+    { SX1276_SF12, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR0 */
+    { SX1276_SF11, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR1 */
+    { SX1276_SF10, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR2 */
+    { SX1276_SF9, SX1276_BW_125_KHZ, SX1276_CR_4_5 },        /* DR3 */
+    { SX1276_SF8, SX1276_BW_125_KHZ, SX1276_CR_4_5 },        /* DR4 */
+    { SX1276_SF7, SX1276_BW_125_KHZ, SX1276_CR_4_5 },        /* DR5 */
+    { SX1276_SF7, SX1276_BW_250_KHZ, SX1276_CR_4_5 },        /* DR6 */
 };
 
 static void configure_sx1276(ls_ed_t *ls, bool tx)
@@ -287,102 +287,67 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
     }
 }
 
-static void *sx1276_handler(void *arg)
+static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
 {
     assert(arg != NULL);
 
-    puts("lrn: sx1276 event handler thread started");
+    sx1276_t *dev = (sx1276_t *) arg;
+    ls_ed_t *ls = (ls_ed_t *) dev->callback_arg;
 
-    ls_ed_t *ls = (ls_ed_t *) arg;
+	sx1276_rx_packet_t *packet = (sx1276_rx_packet_t *) &dev->_internal.last_packet;
 
-    msg_init_queue(ls->_internal.sx1276_event_queue, sizeof(ls->_internal.sx1276_event_queue));
-    msg_t msg;
+	switch (event_type) {
+		case SX1276_RX_DONE:
+			printf("RX: %u bytes, | RSSI: %d\n", packet->size, packet->rssi_value);
 
-    while (1) {
-        msg_receive(&msg);
+			ls_frame_t *frame = (ls_frame_t *) packet->content;
 
-        sx1276_event_t *event = (sx1276_event_t *) msg.content.ptr;
-        sx1276_rx_packet_t *packet = (sx1276_rx_packet_t *) event->event_data;
+			/* Check frame format */
+			if (ls_validate_frame(packet->content, packet->size)) {
+				/* Process new frame */
+				if (frame_recv(ls, frame)) {
+					/* Class A devices closes RX window after each received packet */
+					if (ls->settings.class == LS_ED_CLASS_A) {
+						close_rx_windows(ls);
+					}
+				}
+			}
+			else {
+				puts("ls-ed: malformed data discarded"); // XXX: debug
 
-        switch (event->type) {
-            case RX_DONE:
-                printf("RX: %u bytes, | RSSI: %d\n", packet->size, packet->rssi_value);
+			}
+			break;
 
-                /* Copy packet's data as a frame to our stack */
-                ls_frame_t frame;
-                memcpy(&frame, packet->content, packet->size);
+		case SX1276_RX_ERROR_CRC:
+			puts("sx1276: RX CRC failed");
+			break;
 
-                /* It's necessary to free the memory for the content because it was allocated dynamically in the sx1276 library */
-                free(packet->content);
+		case SX1276_TX_DONE:
+			puts("sx1276: transmission done.");
 
-                /* Check frame format */
-                if (ls_validate_frame((uint8_t *) &frame, packet->size)) {
-                    if (frame_recv(ls, &frame)) {
-                        /* Class A devices closes RX window after each received packet */
-                        if (ls->settings.class == LS_ED_CLASS_A) {
-                            close_rx_windows(ls);
-                        }
-                    }
-                }
-                else {
-                    puts("ls-ed: malformed data discarded"); // XXX: debug
+			/* Open RX windows after each transmitted packet */
+			open_rx_windows(ls);
 
-                }
-                break;
+			break;
 
-            case RX_ERROR_CRC:
-                puts("sx1276: RX CRC failed");
-                break;
+		case SX1276_RX_TIMEOUT:
+			puts("sx1276: RX timeout");
 
-            case TX_DONE:
-                puts("sx1276: transmission done.");
+			close_rx_windows(ls);
+			ls_ed_sleep(ls);
+			break;
 
-                /* Open RX windows after each transmitted packet */
-                open_rx_windows(ls);
+		case SX1276_TX_TIMEOUT:
+			puts("sx1276: TX timeout");
+			ls_ed_sleep(ls);
 
-                break;
+			break;
 
-            case RX_TIMEOUT:
-                puts("sx1276: RX timeout");
-
-                close_rx_windows(ls);
-                ls_ed_sleep(ls);
-                break;
-
-            case TX_TIMEOUT:
-                puts("sx1276: TX timeout");
-                ls_ed_sleep(ls);
-
-                break;
-
-            default:
-                printf("sx1276: received event #%d\n", (int) event->type);
-                ls_ed_sleep(ls);
-                break;
-        }
-    }
-
-    return NULL;
-}
-
-static bool create_sx1276_handler_thread(ls_ed_t *ls)
-{
-    puts("ls_init: creating sx1276 event listener...");
-
-    kernel_pid_t pid = thread_create(ls->_internal.sx1276_listener_thread_stack,
-                                     sizeof(ls->_internal.sx1276_listener_thread_stack),
-                                     THREAD_PRIORITY_MAIN - 1,
-                                     THREAD_CREATE_STACKTEST, sx1276_handler, ls,
-                                     "sx1276 event handler thread");
-
-    if (pid <= KERNEL_PID_UNDEF) {
-        puts("ls_init: creation of sx1276 event listener thread failed");
-        return false;
-    }
-
-    ls->_internal.sx1276->event_handler_thread_pid = pid;
-
-    return true;
+		default:
+			printf("sx1276: received event #%d\n", (int) event_type);
+			ls_ed_sleep(ls);
+			break;
+	}
 }
 
 /**
@@ -661,10 +626,9 @@ int ls_ed_init(ls_ed_t *ls)
     msg_ack_timeout.content.value = LS_ED_APPDATA_ACK_EXPIRED;
     msg_lnkchk_begin.content.value = LS_ED_LNKCHK_BEGIN;
 
-    if (!create_sx1276_handler_thread(ls)) {
-        ls->state = LS_ED_FAULT;
-        return -LS_INIT_E_FQ_THREAD;
-    }
+    /* Setup event callback and stack state as it's argument */
+    ls->_internal.sx1276->sx1276_event_cb = sx1276_handler;
+    ls->_internal.sx1276->callback_arg = ls;
 
     /* Initialize the transceiver */
     sx1276_init(ls->_internal.sx1276);

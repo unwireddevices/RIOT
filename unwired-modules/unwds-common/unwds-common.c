@@ -89,6 +89,20 @@ static const unwd_module_t modules[] = {
     { 0, "", NULL, NULL },
 };
 
+/**
+ * Stacks pool.
+ */
+static uint8_t stacks_pool[UNWDS_STACK_POOL_SIZE][UNWDS_STACK_SIZE_BYTES];
+static uint8_t stacks_allocated = 0;
+
+uint8_t *allocate_stack(void) {
+	/* Stacks pool is full */
+	if (stacks_allocated == UNWDS_STACK_POOL_SIZE)
+		return NULL;
+
+	return stacks_pool[stacks_allocated++];
+}
+
 void unwds_init_modules(uwnds_cb_t *event_callback)
 {
     int i = 0;

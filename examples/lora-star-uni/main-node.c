@@ -88,8 +88,8 @@ void radio_init(void)
 
     sx1276_settings_t settings;
     settings.channel = RF_FREQUENCY;
-    settings.modem = MODEM_LORA;
-    settings.state = RF_IDLE;
+    settings.modem = SX1276_MODEM_LORA;
+    settings.state = SX1276_RF_IDLE;
 
     sx1276.settings = settings;
 
@@ -278,7 +278,7 @@ int ls_set_cmd(int argc, char **argv)
 
         ls.settings.lnkchk_period_s = v;
     }
-    else if (strcmp(key, "сlass") == 0) {
+    else if (strcmp(key, "class") == 0) {
         char v = value[0];
 
         if (v != 'A' && v != 'B') {

@@ -21,9 +21,7 @@
 #include "unwds-common.h"
 
 #define UNWDS_UART_MODULE_ID 7
-
-#define UMDK_UART_RXBUF_SIZE 128
-
+#define UMDK_UART_RXBUF_SIZE (UNWDS_MAX_DATA_LEN - 1)
 #define UMDK_UART_SYMBOL_TIMEOUT_MS 500
 
 /**

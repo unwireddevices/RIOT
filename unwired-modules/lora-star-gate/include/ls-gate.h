@@ -18,6 +18,8 @@
 #ifndef UNWIRED_MODULES_LORA_STAR_INCLUDE_LS_H_
 #define UNWIRED_MODULES_LORA_STAR_INCLUDE_LS_H_
 
+#include "mutex.h"
+
 #include "ls-frame-fifo.h"
 #include "ls-mac-types.h"
 #include "ls-crypto.h"
@@ -98,11 +100,11 @@ typedef struct {
  * @brief Holds internal channel-related data such as transceiver handler, thread stack, etc.
  */
 typedef struct {
-	sx1276_t *sx1276;	/**< Transceiver instance for this channel */
-	void *gate;			/**< Gate instance pointer */
+	sx1276_t *sx1276;			/**< Transceiver instance for this channel */
+	void *gate;					/**< Gate instance pointer */
 
-    char sx1276_listener_thread_stack[LS_SX1276_LISTENER_STACKSIZE]; /**< SX1276 events listener thread stack */
-    msg_t sx1276_event_queue[16];
+	ls_frame_t current_frame;	/**< Memory for current frame */
+	mutex_t channel_mutex;		/**< Mutex on the channel */
 } ls_channel_internal_t;
 
 /**

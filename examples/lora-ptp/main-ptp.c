@@ -13,7 +13,7 @@
  * @{
  * @file
  * @brief
- * @author      Evgeniy Ponomarev
+ * @author      Cr0s
  */
 
 #ifdef __cplusplus
@@ -36,8 +36,6 @@ extern "C" {
 
 #include "sx1276.h"
 #include "board.h"
-
-#include "unwds-common.h"
 
 #include "main.h"
 #include "config.h"
@@ -69,13 +67,13 @@ typedef struct {
  * Data rates table.
  */
 static uint8_t datarate_table[7][3] = {
-    { SF12, BW_125_KHZ, CR_4_5 },       /* DR0 */
-    { SF11, BW_125_KHZ, CR_4_5 },       /* DR1 */
-    { SF10, BW_125_KHZ, CR_4_5 },       /* DR2 */
-    { SF9, BW_125_KHZ, CR_4_5 },        /* DR3 */
-    { SF8, BW_125_KHZ, CR_4_5 },        /* DR4 */
-    { SF7, BW_125_KHZ, CR_4_5 },        /* DR5 */
-    { SF7, BW_250_KHZ, CR_4_5 },        /* DR6 */
+    { SX1276_SF12, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR0 */
+    { SX1276_SF11, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR1 */
+    { SX1276_SF10, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR2 */
+    { SX1276_SF9, SX1276_BW_125_KHZ, SX1276_CR_4_5 },        /* DR3 */
+    { SX1276_SF8, SX1276_BW_125_KHZ, SX1276_CR_4_5 },        /* DR4 */
+    { SX1276_SF7, SX1276_BW_125_KHZ, SX1276_CR_4_5 },        /* DR5 */
+    { SX1276_SF7, SX1276_BW_250_KHZ, SX1276_CR_4_5 },        /* DR6 */
 };
 
 #define UART_BUFSIZE 220
@@ -110,9 +108,7 @@ static msg_t send_msg;
 
 static xtimer_t send_timer;
 
-static char sx1276_listener_thread_stack[THREAD_STACKSIZE_MAIN];
-
-static bool create_sx1276_handler_thread(void);
+static void sx1276_handler(void *dev, sx1276_event_type_t event_type);
 
 static void send_frame(uint8_t *buf, size_t size) {
 	lptp_frame_t frame = {};
@@ -188,13 +184,15 @@ static void radio_init(void)
 
     sx1276_settings_t settings;
     settings.channel = RF_FREQUENCY;
-    settings.modem = MODEM_LORA;
-    settings.state = RF_IDLE;
+    settings.modem = SX1276_MODEM_LORA;
+    settings.state = SX1276_RF_IDLE;
 
     sx1276.settings = settings;
 
+    sx1276.sx1276_event_cb = sx1276_handler;
+    sx1276.callback_arg = NULL;
+
     sx1276_init(&sx1276);
-    create_sx1276_handler_thread();
 
     puts("init_radio: sx1276 initialization done");
 }
@@ -256,92 +254,54 @@ static void frame_recv(lptp_frame_t *frame) {
 	uart_write(UART, frame->payload.data, frame->payload.size);
 }
 
-static void *sx1276_handler(void *arg)
+static void sx1276_handler(void *dev, sx1276_event_type_t event_type)
 {
-    puts("lrn: sx1276 event handler thread started");
+	(void) dev;
 
-    msg_t sx1276_event_queue[10] = {};
-    msg_init_queue(sx1276_event_queue, sizeof(sx1276_event_queue));
-    msg_t msg;
+	switch (event_type) {
+		case SX1276_RX_DONE:
+			printf("[rx] %u bytes, | RSSI: %d\n", sx1276._internal.last_packet.size, sx1276._internal.last_packet.rssi_value);
 
-    while (1) {
-        msg_receive(&msg);
+			lptp_frame_t *frame = (lptp_frame_t *) sx1276._internal.last_packet.content;
 
-        sx1276_event_t *event = (sx1276_event_t *) msg.content.ptr;
-        sx1276_rx_packet_t *packet = (sx1276_rx_packet_t *) event->event_data;
+			/* Check frame format */
+			if (validate_frame(frame)) {
+				frame_recv(frame);
+			}
+			else {
+				printf("[rx] Frame discarded. Header: 0x%02x, port: %d\n", frame->header.header, frame->header.port);
+			}
+			break;
 
-        switch (event->type) {
-            case RX_DONE:
-                printf("[rx] %u bytes, | RSSI: %d\n", packet->size, packet->rssi_value);
+		case SX1276_RX_ERROR_CRC:
+			puts("sx1276: RX CRC failed");
+			sx1276_set_sleep(&sx1276);
+			break;
 
-                /* Copy packet's data as a frame to our stack */
-                lptp_frame_t frame = {};
-                memcpy(&frame, packet->content, packet->size);
+		case SX1276_TX_DONE:
+			puts("sx1276: transmission done.");
 
-                /* It's necessary to free the memory for the content because it was allocated dynamically in the sx1276 library */
-                free(packet->content);
+			/* Switch to reception */
+			enter_rx();
 
-                /* Check frame format */
-                if (validate_frame(&frame)) {
-                    frame_recv(&frame);
-                }
-                else {
-                    printf("[rx] Frame discarded. Header: 0x%02x, port: %d\n", frame.header.header, frame.header.port); // XXX: debug
-                }
-                break;
+			break;
 
-            case RX_ERROR_CRC:
-                puts("sx1276: RX CRC failed");
-                sx1276_set_sleep(&sx1276);
-                break;
+		case SX1276_RX_TIMEOUT:
+			puts("sx1276: RX timeout");
+			sx1276_set_sleep(&sx1276);
+			break;
 
-            case TX_DONE:
-                puts("sx1276: transmission done.");
+		case SX1276_TX_TIMEOUT:
+			puts("sx1276: TX timeout");
+			sx1276_set_sleep(&sx1276);
 
-                /* Switch to reception */
-                enter_rx();
+			break;
 
-                break;
-
-            case RX_TIMEOUT:
-                puts("sx1276: RX timeout");
-                sx1276_set_sleep(&sx1276);
-                break;
-
-            case TX_TIMEOUT:
-                puts("sx1276: TX timeout");
-                sx1276_set_sleep(&sx1276);
-
-                break;
-
-            default:
-                printf("sx1276: received event #%d\n", (int) event->type);
-                sx1276_set_sleep(&sx1276);
-                break;
-        }
-    }
-
-    return NULL;
-}
-
-static bool create_sx1276_handler_thread(void)
-{
-    puts("creating sx1276 event listener...");
-
-    kernel_pid_t pid = thread_create(sx1276_listener_thread_stack,
-                                     sizeof(sx1276_listener_thread_stack),
-                                     THREAD_PRIORITY_MAIN - 1,
-                                     THREAD_CREATE_STACKTEST, sx1276_handler, NULL,
-                                     "sx1276 event handler thread");
-
-    if (pid <= KERNEL_PID_UNDEF) {
-        puts("[error] creation of sx1276 event listener thread failed");
-        return false;
-    }
-
-    sx1276.event_handler_thread_pid = pid;
-
-    return true;
+		default:
+			printf("sx1276: received event #%d\n", (int) event_type);
+			sx1276_set_sleep(&sx1276);
+			break;
+	}
 }
 
 static int cmd_set(int argc, char **argv)

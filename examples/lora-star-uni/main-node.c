@@ -425,6 +425,7 @@ static int ls_modenable_cmd(int argc, char **argv)
 {
     if (argc < 1) {
         puts("Usage: modenable <modid>. Example: modenable 1");
+        printf("Please note that you can enable UP TO %d modules at the same time!\n", UNWDS_STACK_POOL_SIZE);
         return 1;
     }
 

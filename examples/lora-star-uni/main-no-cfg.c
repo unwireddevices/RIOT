@@ -39,8 +39,6 @@ static uint8_t joinkey[16] = {
 
 bool joinkey_set = false;
 
-static int agreekey;
-
 static void print_appid64(void)
 {
     if (appid) {
@@ -155,29 +153,18 @@ int unk_save_cmd(int argc, char **argv)
 		puts("Current configuration:");
 		print_config();
 
-		puts("");
+		puts("[!] Saving current configuration...");
 
-		agreekey = xtimer_now() & 0xFF;
+		if (config_write_main_block(appid, joinkey)) {
+			puts("[ok] Configuration is written. Rebooting...");
 
-		puts("[warning] Saving current configuration is permanent!");
-		printf("Verify your setup and type:\n\n\tsave %d\n\nto permanently save current configuration and reboot.\n", agreekey);
-	} else {
-		int key = atoi(argv[1]);
-
-		if (key == agreekey) {
-			puts("[!] Saving current configuration...");
-
-			if (config_write_main_block(appid, joinkey)) {
-				puts("[ok] Configuration is written. Reboot in 5 seconds...");
-				xtimer_sleep(5);
-
-				/* Reboot */
-				NVIC_SystemReset();
-			} else {
-				puts("[error] An error occurred when saving the configuration");
-			}
+			/* Reboot */
+			NVIC_SystemReset();
+		} else {
+			puts("[error] An error occurred when saving the configuration");
 		}
 	}
+
     return 0;
 }
 

@@ -29,7 +29,7 @@
 uint8_t *allocate_stack(void);
 
 #define UNWDS_MAX_MODULE_NAME 10
-#define UNWDS_MAX_DATA_LEN 221
+#define UNWDS_MAX_DATA_LEN 126
 
 /**
  * @brief Holds data transferred to/from module

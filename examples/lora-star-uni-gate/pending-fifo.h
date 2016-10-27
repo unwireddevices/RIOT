@@ -22,8 +22,8 @@
 
 #include "mutex.h"
 
-#define GC_MAX_PENDING 50
-#define GC_MAX_REPLY_LEN 128
+#define GC_MAX_PENDING 16
+#define GC_MAX_REPLY_LEN 256
 
 /**
  * @brief describes the frame queue.

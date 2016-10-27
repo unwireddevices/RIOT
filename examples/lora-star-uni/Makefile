@@ -41,18 +41,18 @@ INCLUDES += -I../../unwired-modules/unwds-common/include/
 
 ############ UNWD MODULES USED #####################
 
-UNWD_GPIO = 1
-UNWD_4BTN = 1
-UNWD_GPS	=	0
+UNWD_GPIO   =   1
+UNWD_4BTN   =   1
+UNWD_GPS	=	1
 UNWD_TEMP	=	0
-UNWD_LM75A=	0
+UNWD_LM75A  =	0
 UNWD_ACC	=	0
-UNWD_LMT01=	0
+UNWD_LMT01  =	1
 UNWD_UART	=	1
-UNWD_SHT21=	1
+UNWD_SHT21  =	1
 UNWD_PIR	=	1
 UNWD_6ADC	=	1
-UNWD_LPS331=1
+UNWD_LPS331 =   1
 
 ####### UNWD MMODULES' includes & flags ############
 ifeq ($(UNWD_GPIO),1)

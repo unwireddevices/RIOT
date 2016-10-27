@@ -434,7 +434,7 @@ static bool create_uq_handler_thread(ls_ed_t *ls)
 
     kernel_pid_t pid_fq = thread_create(ls->_internal.uq_thread_stack, sizeof(ls->_internal.uq_thread_stack), THREAD_PRIORITY_MAIN - 2,
                                         THREAD_CREATE_STACKTEST, uq_handler, ls,
-                                        "uplink frame queue handler thread");
+                                        "uplink queue thread");
 
     if (pid_fq <= KERNEL_PID_UNDEF) {
         puts("ls_init: creation of uplink rame queue handler thread failed");

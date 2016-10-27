@@ -156,24 +156,24 @@ static int _init_peripherals(sx1276_t *dev)
     int res;
 
     /* Setup SPI for SX1276 */
-    spi_acquire(SX1276_SPI);
+    spi_acquire(dev->spi);
     res = spi_init_master(dev->spi, SPI_CONF_FIRST_RISING, SPI_SPEED_1MHZ);
-    spi_release(SX1276_SPI);
+    spi_release(dev->spi);
 
     if (res < 0) {
         printf("sx1276: error initializing SPI_%i device (code %i)\n",
-               SX1276_SPI, res);
+        		dev->spi, res);
         return 0;
     }
 
-    res = gpio_init(SX1276_SPI_NSS, GPIO_OUT);
+    res = gpio_init(dev->nss_pin, GPIO_OUT);
     if (res < 0) {
         printf("sx1276: error initializing GPIO_%ld as CS line (code %i)\n",
-               (long)SX1276_SPI_NSS, res);
+               (long)dev->nss_pin, res);
         return 0;
     }
 
-    gpio_set(SX1276_SPI_NSS);
+    gpio_set(dev->nss_pin);
 
     return 1;
 }

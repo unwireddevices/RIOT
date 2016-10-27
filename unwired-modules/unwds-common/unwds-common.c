@@ -51,18 +51,40 @@ static uint32_t non_gpio_pin_map;
 static uint64_t ability_map;
 
 static const unwd_module_t modules[] = {
+
+#ifdef umdk_gpio
     { UNWDS_GPIO_MODULE_ID, "gpio", unwds_gpio_init, unwds_gpio_cmd, 1 << 1 },
+#endif
+#ifdef umdk_4btn
     { UNWDS_4BTN_MODULE_ID, "4btn", umdk_4btn_init, umdk_4btn_cmd, 1 << 2 },
+#endif
+#ifdef umdk_gps
     { UNWDS_GPS_MODULE_ID, "gps", umdk_gps_init, umdk_gps_cmd, 1 << 3 },
-	/*
+#endif
+#ifdef umdk_temp
     { UNWDS_TEMP_MODULE_ID, "temp", umdk_temp_init, umdk_temp_cmd, 1 << 4 },
-	{ UNWDS_ACC_MODULE_ID, "acc", umdk_acc_init, umdk_acc_cmd, 1 << 5 },*/
+#endif
+#ifdef umdk_acc
+	{ UNWDS_ACC_MODULE_ID, "acc", umdk_acc_init, umdk_acc_cmd, 1 << 5 },
+#endif
+#ifdef umdk_lmt01
 	{ UNWDS_LMT01_MODULE_ID, "lmt01", umdk_lmt01_init, umdk_lmt01_cmd, 1 << 6 },
+#endif
+#ifdef umdk_uart
 	{ UNWDS_UART_MODULE_ID, "uart", umdk_uart_init, umdk_uart_cmd, 1 << 7 },
+#endif
+#ifdef umdk_sht21
 	{ UNWDS_SHT21_MODULE_ID, "sht21", umdk_sht21_init, umdk_sht21_cmd, 1 << 8 },
+#endif
+#ifdef umdk_pir
 	{ UNWDS_PIR_MODULE_ID, "pir", umdk_pir_init, umdk_pir_cmd, 1 << 9 },
+#endif
+#ifdef umdk_6adc
 	{ UNWDS_6ADC_MODULE_ID, "6adc", umdk_6adc_init, umdk_6adc_cmd, 1 << 10 },
+#endif
+#ifdef umdk_lps331
 	{ UNWDS_LPS331_MODULE_ID, "lps331", umdk_lps331_init, umdk_lps331_cmd, 1 << 11 },
+#endif
 
     { 0, "", NULL, NULL },
 };

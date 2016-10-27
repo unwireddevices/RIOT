@@ -38,6 +38,7 @@ extern "C" {
 #include "umdk-sht21.h"
 #include "umdk-pir.h"
 #include "umdk-6adc.h"
+#include "umdk-lps331.h"
 
 /**
  * @brief Bitmap of occupied pins that cannot be used as gpio in-out
@@ -52,18 +53,34 @@ static uint64_t ability_map;
 static const unwd_module_t modules[] = {
 
     { UNWDS_GPIO_MODULE_ID, "gpio", unwds_gpio_init, unwds_gpio_cmd, 1 << 1 },
-    { UNWDS_4BTN_MODULE_ID, "4btn", umdk_4btn_init, umdk_4btn_cmd, 1 << 2 },
-    { UNWDS_GPS_MODULE_ID, "gps", umdk_gps_init, umdk_gps_cmd, 1 << 3 },/*
+    //{ UNWDS_4BTN_MODULE_ID, "4btn", umdk_4btn_init, umdk_4btn_cmd, 1 << 2 },
+    //{ UNWDS_GPS_MODULE_ID, "gps", umdk_gps_init, umdk_gps_cmd, 1 << 3 },
+	/*
     { UNWDS_TEMP_MODULE_ID, "temp", umdk_temp_init, umdk_temp_cmd, 1 << 4 },
 	{ UNWDS_ACC_MODULE_ID, "acc", umdk_acc_init, umdk_acc_cmd, 1 << 5 },*/
 	{ UNWDS_LMT01_MODULE_ID, "lmt01", umdk_lmt01_init, umdk_lmt01_cmd, 1 << 6 },
 	{ UNWDS_UART_MODULE_ID, "uart", umdk_uart_init, umdk_uart_cmd, 1 << 7 },
 	{ UNWDS_SHT21_MODULE_ID, "sht21", umdk_sht21_init, umdk_sht21_cmd, 1 << 8 },
-	{ UNWDS_PIR_MODULE_ID, "pir", umdk_pir_init, umdk_pir_cmd, 1 << 9 },
+	//{ UNWDS_PIR_MODULE_ID, "pir", umdk_pir_init, umdk_pir_cmd, 1 << 9 },
 	{ UNWDS_6ADC_MODULE_ID, "6adc", umdk_6adc_init, umdk_6adc_cmd, 1 << 10 },
+	{ UNWDS_LPS331_MODULE_ID, "lps331", umdk_lps331_init, umdk_lps331_cmd, 1 << 11 },
 
     { 0, "", NULL, NULL },
 };
+
+/**
+ * Stacks pool.
+ */
+static uint8_t stacks_pool[UNWDS_STACK_POOL_SIZE][UNWDS_STACK_SIZE_BYTES];
+static uint8_t stacks_allocated = 0;
+
+uint8_t *allocate_stack(void) {
+	/* Stacks pool is full */
+	if (stacks_allocated == UNWDS_STACK_POOL_SIZE)
+		return NULL;
+
+	return stacks_pool[stacks_allocated++];
+}
 
 void unwds_init_modules(uwnds_cb_t *event_callback)
 {

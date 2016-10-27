@@ -20,8 +20,16 @@
 
 #include <stdint.h>
 
+/**
+ * Stacks pool definitions.
+ */
+#define UNWDS_STACK_POOL_SIZE 5U
+#define UNWDS_STACK_SIZE_BYTES (2048U)
+
+uint8_t *allocate_stack(void);
+
 #define UNWDS_MAX_MODULE_NAME 10
-#define UNWDS_MAX_DATA_LEN 128
+#define UNWDS_MAX_DATA_LEN 221
 
 /**
  * @brief Holds data transferred to/from module

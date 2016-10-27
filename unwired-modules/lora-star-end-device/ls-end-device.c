@@ -23,6 +23,7 @@ extern "C" {
 #include "random.h"
 #include "assert.h"
 #include "thread.h"
+#include "mutex.h"
 
 #include "lpm.h"
 #include "periph/rtc.h"
@@ -135,20 +136,26 @@ static int send_frame(ls_ed_t *ls, ls_type_t type, uint8_t *buf, size_t buflen)
 
     configure_sx1276(ls, true); /* Configure for TX */
 
-    ls_frame_t frame;
-    ls_assemble_frame(ls->_internal.dev_addr, type, buf, buflen, &frame);
+    mutex_lock(&ls->_internal.curr_frame_mutex);
+
+    ls_frame_t *frame = &ls->_internal.current_frame;
+    ls_assemble_frame(ls->_internal.dev_addr, type, buf, buflen, frame);
 
     /* Enqueue frame */
-    if (!ls_frame_fifo_push(&ls->_internal.uplink_queue, &frame)) {
+    if (!ls_frame_fifo_push(&ls->_internal.uplink_queue, frame)) {
+    	mutex_unlock(&ls->_internal.curr_frame_mutex);
         return -LS_SEND_E_FQ_OVERFLOW;
     }
 
+    /* Schedule RX windows */
     if (ls->settings.class != LS_ED_CLASS_A) {
         open_rx_windows(ls);
     }
     else if (ls->state != LS_ED_LISTENING) {
         schedule_tx(ls);
     }
+
+    mutex_unlock(&ls->_internal.curr_frame_mutex);
 
     return LS_OK;
 }
@@ -406,10 +413,10 @@ static void *uq_handler(void *arg)
         }
 
         // XXX: debug
-        printf(">mhdr=0x%02X, mic=0x%04X, addr=0x%02X, type=0x%02X, fid=0x%02X\n", (unsigned int) f->header.mhdr,
+        printf(">mhdr=0x%02X, mic=0x%04X, addr=0x%02X, type=0x%02X, fid=0x%02X (%d bytes)\n", (unsigned int) f->header.mhdr,
                (unsigned int) f->header.mic, (unsigned int) f->header.dev_addr,
                (unsigned int) f->header.type,
-               (unsigned int) f->header.fid);
+               (unsigned int) f->header.fid, header_size + payload_size);
 
         /* Send frame into LoRa PHY */
         sx1276_send(ls->_internal.sx1276, (uint8_t *) f, header_size + payload_size);
@@ -603,6 +610,7 @@ int ls_ed_init(ls_ed_t *ls)
     ls->_internal.wakeup_msg = NULL;
     ls->_internal.wakeup_delay = 0;
 
+    mutex_init(&ls->_internal.curr_frame_mutex);
     memset(&ls->status, 0, sizeof(ls_device_status_t));
 
     /* Initialize uplink frame queue */

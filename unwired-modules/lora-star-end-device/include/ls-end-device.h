@@ -212,6 +212,10 @@ typedef struct {
 
 	/* Wakeup timer */
 	xtimer_t wakeup_timer;
+
+	/* Current frame to send (to reduce stack consumption) */
+	ls_frame_t current_frame;
+	mutex_t curr_frame_mutex; /**< Mutex on current frame */
 } ls_ed_internal_t;
 
 /**

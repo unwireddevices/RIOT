@@ -97,7 +97,7 @@ static uint8_t stacks_allocated = 0;
 
 uint8_t *allocate_stack(void) {
 	/* Stacks pool is full */
-	if (stacks_allocated == UNWDS_STACK_POOL_SIZE)
+	if (stacks_allocated + 1 == UNWDS_STACK_POOL_SIZE)
 		return NULL;
 
 	return stacks_pool[stacks_allocated++];

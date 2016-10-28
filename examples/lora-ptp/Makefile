@@ -32,7 +32,6 @@ USEMODULE += sx1276
 EXTERNAL_MODULE_DIRS += ../../unwired-modules/
 USEMODULE += lora-star-mac
 USEMODULE += lora-ptp
-USEMODULE += unwds-common
 
 INCLUDES += -I../../unwired-modules/lora-star-mac/include/
 INCLUDES += -I../../unwired-modules/lora-ptp/include/

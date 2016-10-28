@@ -586,7 +586,7 @@ static bool create_tim_handler_thread(ls_ed_t *ls)
 
     kernel_pid_t pid_tim = thread_create(ls->_internal.tim_thread_stack, sizeof(ls->_internal.tim_thread_stack), THREAD_PRIORITY_MAIN - 2,
                                          THREAD_CREATE_STACKTEST, tim_handler, ls,
-                                         "LS timeouts handler thread");
+                                         "LS timeouts thread");
 
     if (pid_tim <= KERNEL_PID_UNDEF) {
         puts("ls_init: creation of timer handler thread failed");

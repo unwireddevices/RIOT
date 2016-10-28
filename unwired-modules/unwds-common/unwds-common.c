@@ -26,6 +26,8 @@ extern "C" {
 #include <stdbool.h>
 #include <string.h>
 
+#include "nvram.h"
+
 #include "unwds-common.h"
 
 #include "unwds-gpio.h"
@@ -88,6 +90,47 @@ static const unwd_module_t modules[] = {
 
     { 0, "", NULL, NULL },
 };
+
+/**
+ * NVRAM config.
+ */
+static nvram_t *nvram = NULL;
+static int nvram_config_block_size = 0;
+static int nvram_config_base_addr = 0;
+
+void unwds_setup_nvram_config(nvram_t *nvram_ptr, int base_addr, int block_size) {
+	nvram = nvram_ptr;
+	nvram_config_base_addr = base_addr;
+	nvram_config_block_size = block_size;
+}
+
+bool unwds_read_nvram_config(unwds_module_id_t module_id, uint8_t *data_out, uint8_t max_size) {
+	/* All configuration blocks has the same size */
+	int addr = nvram_config_base_addr + module_id * nvram_config_block_size;
+
+	/* Either max_size bytes or full block */
+	int size = (max_size < nvram_config_block_size) ? max_size : nvram_config_block_size;
+
+	/* Read NVRAM block */
+	if (nvram->read(nvram, data_out, addr, size) < 0)
+		return false;
+
+	return true;
+}
+
+bool unwds_write_nvram_config(unwds_module_id_t module_id, uint8_t *data, size_t data_size) {
+	if (data_size > nvram_config_block_size)
+		return false;
+
+	/* All configuration blocks has the same size */
+	int addr = nvram_config_base_addr + module_id * nvram_config_block_size;
+
+	/* Write NVRAM block */
+	if (nvram->write(nvram, data, addr, nvram_config_block_size) < 0)
+		return false;
+
+	return true;
+}
 
 /**
  * Stacks pool.

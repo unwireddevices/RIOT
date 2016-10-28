@@ -56,6 +56,9 @@ typedef struct {
 
 #define CONFIG_SIZE (sizeof(nvram_config_t) - 4)
 
+#define UNWDS_CONFIG_BASE_ADDR (CONFIG_ADDR + CONFIG_SIZE + 4)
+#define UNWDS_CONFIG_BLOCK_SIZE_BYTES 64
+
 bool load_eui64_nvram(nvram_t *nvram);
 bool write_eui64_nvram(uint64_t eui);
 
@@ -74,5 +77,7 @@ uint8_t *config_get_joinkey(void);
 /* Role specific settings */
 bool config_write_role_block(uint8_t *buf, size_t size);
 bool config_read_role_block(uint8_t *buf, size_t size);
+
+nvram_t *config_get_nvram(void);
 
 #endif /* LORA_STAR_UNI_CONFIG_H_ */

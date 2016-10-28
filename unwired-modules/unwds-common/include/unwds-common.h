@@ -20,6 +20,39 @@
 
 #include <stdint.h>
 
+#include "nvram.h"
+
+typedef uint8_t unwds_module_id_t;
+
+/**
+ * Modules NVRAM configuration.
+ */
+
+void unwds_setup_nvram_config(nvram_t *nvram_ptr, int base_addr, int block_size);
+
+/**
+ * @brief Reads data from NVRAM configuration for specified module
+ *
+ * @param	[in]	module_id	ID of the module
+ * @param	[out]	*data_out	Data from NVRAM
+ *
+ * @return	true	reading success
+ * @return	false	reading failed
+ */
+bool unwds_read_nvram_config(unwds_module_id_t module_id, uint8_t *data_out, uint8_t max_size);
+
+/**
+ * @brief Writes data to NVRAM configuration for specified module
+ *
+ * @param	[in]	module_id	ID of the module
+ * @param	[in]	*data		Configuration data
+ * @param	[in]	data_size	Size of configuration block data
+ *
+ * @return	true	writing success
+ * @return	false	writing failed
+ */
+bool unwds_write_nvram_config(unwds_module_id_t module_id, uint8_t *data, size_t data_size);
+
 /**
  * Stacks pool definitions.
  */
@@ -40,8 +73,6 @@ typedef struct {
 } module_data_t;
 
 typedef void (uwnds_cb_t)(module_data_t *msg);
-
-typedef uint8_t unwds_module_id_t;
 
 typedef struct {
 	unwds_module_id_t module_id;

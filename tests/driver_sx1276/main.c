@@ -36,86 +36,13 @@
 #include "sx1276_regs_lora.h"
 #include "sx1276_regs_fsk.h"
 
-
-#define _STACKSIZE      (THREAD_STACKSIZE_DEFAULT + 2 * THREAD_EXTRA_STACKSIZE_PRINTF)
-#define MSG_TYPE_ISR    (0x3456)
-
-static char stack[_STACKSIZE];
-static kernel_pid_t event_handler_thread_pid;
-static msg_t event_queue[10];
-
-void print_logo(void)
-{
-    puts("                                                .@                           @  ");
-    puts("                                                                             @  ");
-    puts("  @@@           %@@,     &@**%@. .#    ./   .#  .@   #@*.   *@@@@@,    @#%.%%@  ");
-    puts("  @@@           %@@,    @#    .&  .# ..@.  .#*  .@  /#    .@.    ,%   @.    .@  ");
-    puts("  @@@           %@@,    @*    .@  .&,,&  @.#%   .@  %*    .@&&&&&&&*  @      @  ");
-    puts("  @@@           %@@,    @*    .@   .@@   .@%    .@  %*    ,@          *@,   ,@, ");
-    puts("  @@@           %@@,    *.     *                .#  ,.      %@&&@#     **,*.@   ");
-    puts("  @@@           %@@,															  ");
-    puts("  @@@   .,,,,,,,...            %@@@%   %     .# *%   .#@@@@,    *@@@@,    @@@*  ");
-    puts("  @@@   @@@@@@@@@@@@@@&.     %&     &%  @    @  .@  &*        .@.    ,@  @      ");
-    puts("  @@@   @@@     /.. *@@@@.   @&&&&&&&&  ,&  @.  .@  @         %@&&&&&&&*  #@(   ");
-    puts("  &@@*  @@@     @@@   (@@@   @#          (@@/   .@  @.        ,@             @  ");
-    puts("   @@@. @@@    @@@#    #@@%   .@@&@@.     /*    .@   /@@&@@(    %@&&@#   &@&@*  ");
-    puts("    @@% @@@ @@@@@.     .@@@                                                     ");
-    puts("        @@@ ####/#####/ @@@ ##################################################  ");
-    puts("        @@@            *@@&                                                     ");
-    puts("        @@@            @@@,                                                     ");
-    puts("        @@@          *@@@#                                                      ");
-    puts("        @@@,...,,#&@@@@@                                                        ");
-    puts("        @@@@@@@@@@@%,                                                           ");
-    puts("                                                                                ");
-    puts("                                                                                ");
-    puts("                                                                                ");
-    puts("");
-}
-
-void blink_led(void)
-{
-    volatile int i;
-
-    LED0_OFF;
-
-    for (i = 0; i < 5; i++) {
-        LED0_TOGGLE;
-        xtimer_usleep(50000);
-
-        LED0_TOGGLE;
-        xtimer_usleep(50000);
-    }
-
-    LED0_OFF;
-}
-
-void sx1276_board_set_ant_sw_low_power(uint8_t lp)
-{
-    if (lp) {
-        gpio_init(SX1276_ANTSW, GPIO_OD);       /* open-drain output for low power mode */
-    }
-    else {
-        gpio_init(SX1276_ANTSW, GPIO_OUT);
-    }
-}
-
-void sx1276_board_set_ant_sw(uint8_t tx)
-{
-    if (tx) {
-        gpio_set(SX1276_ANTSW);
-    }
-    else {
-        gpio_clear(SX1276_ANTSW);
-    }
-}
-
 void init_configs(void)
 {
     sx1276_lora_settings_t settings;
 
-    settings.bandwidth = BW_125_KHZ;
-    settings.coderate = CR_4_5;
-    settings.datarate = SF12;
+    settings.bandwidth = SX1276_BW_125_KHZ;
+    settings.coderate = SX1276_CR_4_5;
+    settings.datarate = SX1276_SF12;
     settings.crc_on = true;
     settings.freq_hop_on = false;
     settings.hop_period = 0;
@@ -123,7 +50,7 @@ void init_configs(void)
     settings.iq_inverted = false;
     settings.low_datarate_optimize = false;
     settings.payload_len = 0;
-    settings.power = 10;//TX_OUTPUT_POWER;
+    settings.power = 14;
     settings.preamble_len = LORA_PREAMBLE_LENGTH;
     settings.rx_continuous = true;
     settings.tx_timeout = 1000 * 1000 * 30; // 30 sec
@@ -131,66 +58,42 @@ void init_configs(void)
 
     sx1276_configure_lora(&sx1276, &settings);
 
-    //sx1276_set_channel(&sx1276, 868500000);
+    sx1276_set_channel(&sx1276, 868500000);
 }
 
-void *event_handler_thread(void *arg)
+void event_handler_thread(void *arg, sx1276_event_type_t event_type)
 {
-    puts("sx1276: event handler thread started");
+	sx1276_rx_packet_t *packet = (sx1276_rx_packet_t *) &sx1276._internal.last_packet;
 
-    //sx1276_t *dev = (sx1276_t*) arg;
-    msg_init_queue(event_queue, sizeof(event_queue));
-    msg_t msg;
+	switch (event_type) {
+		case SX1276_RX_DONE:
+			printf("RX: %u bytes: '%s' | RSSI: %d\n",
+				   packet->size,
+				   packet->content,
+				   packet->rssi_value);
 
-    while (1) {
-        msg_receive(&msg);
+			break;
 
-        sx1276_event_t *event = (sx1276_event_t *) msg.content.ptr;
-        sx1276_rx_packet_t *packet = (sx1276_rx_packet_t *) event->event_data;
+		case SX1276_RX_ERROR_CRC:
+			puts("sx1276: RX CRC failed");
+			break;
 
-        switch (event->type) {
-            case RX_DONE:
+		case SX1276_TX_DONE:
+			puts("sx1276: transmission done.");
+			break;
 
-                printf("RX: %u bytes: '%s' | RSSI: %d\n",
-                       packet->size,
-                       packet->content,
-                       packet->rssi_value);
+		case SX1276_RX_TIMEOUT:
+			puts("sx1276: RX timeout");
+			break;
 
-                free(packet->content);
+		case SX1276_TX_TIMEOUT:
+			puts("sx1276: TX timeout");
+			break;
 
-                if (packet->rssi_value > -100) {
-                    blink_led();
-                }
-                else {
-                    blink_led();
-                    blink_led();
-                }
-
-                break;
-
-            case RX_ERROR_CRC:
-                puts("sx1276: RX CRC failed");
-                break;
-
-            case TX_DONE:
-                puts("sx1276: transmission done.");
-                break;
-
-            case RX_TIMEOUT:
-                puts("sx1276: RX timeout");
-                break;
-
-            case TX_TIMEOUT:
-                puts("sx1276: TX timeout");
-                break;
-
-            default:
-                printf("sx1276: received event #%d\n", (int) event->type);
-                break;
-        }
-    }
-
-    return NULL;
+		default:
+			printf("sx1276: received event #%d\n", (int) event_type);
+			break;
+	}
 }
 
 void init_radio(void)
@@ -209,25 +112,12 @@ void init_radio(void)
 
     sx1276_settings_t settings;
     settings.channel = RF_FREQUENCY;
-    settings.modem = MODEM_LORA;
-    settings.state = RF_IDLE;
+    settings.modem = SX1276_MODEM_LORA;
+    settings.state = SX1276_RF_IDLE;
 
     sx1276.settings = settings;
 
-    /* Create event listener thread */
-
-    puts("init_radio: creating event listener...");
-
-    event_handler_thread_pid = thread_create(stack, sizeof(stack), THREAD_PRIORITY_MAIN - 1,
-                                             THREAD_CREATE_STACKTEST, event_handler_thread, NULL,
-                                             "sx1276 event handler thread");
-
-    if (event_handler_thread_pid <= KERNEL_PID_UNDEF) {
-        puts("Creation of receiver thread failed");
-        return;
-    }
-
-    sx1276.event_handler_thread_pid = event_handler_thread_pid;
+    sx1276.sx1276_event_cb = event_handler_thread;
 
     /* Launch initialization of driver and device */
     puts("init_radio: initializing driver...");
@@ -389,15 +279,15 @@ int lora_setup(int argc, char **argv) {
 
 	switch (bw) {
 	case 125:
-		lora_bw = BW_125_KHZ;
+		lora_bw = SX1276_BW_125_KHZ;
 		break;
 
 	case 250:
-		lora_bw = BW_250_KHZ;
+		lora_bw = SX1276_BW_250_KHZ;
 		break;
 
 	case 500:
-		lora_bw = BW_500_KHZ;
+		lora_bw = SX1276_BW_500_KHZ;
 		break;
 
 	default:
@@ -446,100 +336,8 @@ void sx1276_set_op_mode(sx1276_t *sx1276, int opmode);
 
 int main(void)
 {
-    print_logo();
-
     xtimer_init();
-
     init_radio();
-
-    blink_led();
-
-//#define RTC
-#define RX_TEST
-//#define DIO5_TEST
-//#define TX_BEACON
-
-#ifdef DIO5_TEST
-    sx1276_reset(&sx1276);
-
-    sx1276_set_modem(&sx1276, MODEM_FSK);
-    sx1276_set_op_mode(&sx1276, RF_OPMODE_STANDBY);
-
-    sx1276_reg_write(&sx1276, 0x24, 0x3);	// freq. divider setup
-    //sx1276_reg_write(&sx1276, 0x40, 0x10);
-    sx1276_reg_write(&sx1276, 0x41, 0x00);
-#endif
-
-#ifdef TX_BEACON
-    char *args[] = {
-        "tx_test", "Hello world!! This is a test..."
-    };
-
-	/* 5 seconds interval */
-	#define INTERVAL (1000 * 1000 * 5U)
-
-#ifdef _RTC
-    void rtc_alarm(void *arg)
-    {
-        (void)arg;
-
-        puts("Alarm!");
-
-        struct tm time;
-        rtc_get_alarm(&time);
-        time.tm_sec  += 3;
-
-        rtc_set_alarm(&time, rtc_alarm, 0);
-    }
-
-#if RTC_NUMOF < 1
-#error "No RTC found. See the board specific periph_conf.h."
-#endif
-
-    /* Init low power modes */
-    lpm_init();
-    rtc_init();
-
-	struct tm time;
-	time.tm_year = 2016 - 1900; // years are counted from 1900
-	time.tm_mon  = 0; // 0 = January, 11 = December
-	time.tm_mday = 0;
-	time.tm_hour = 0;
-	time.tm_min  = 0;
-	time.tm_sec  = 0;
-
-	rtc_set_time(&time);
-	xtimer_usleep(100);
-
-	time.tm_sec  += 3;
-	rtc_set_alarm(&time, rtc_alarm, 0);
-	xtimer_usleep(100);
-
-	while(1) {
-		if (send) {
-			send = false;
-			tx_test(2, args);
-			blink_led();
-		}
-
-		//lpm_set(LPM_SLEEP);
-	}
-#else
-	while(1) {
-		tx_test(2, args);
-		blink_led();
-
-		xtimer_usleep(INTERVAL); // 3 sec
-	}
-#endif
-#endif
-
-#ifdef RX_TEST
-    for (;; ) {
-        rx_test(0, NULL);
-        xtimer_usleep(1000 * 1000);
-    }
-#endif
 
     /* start the shell */
     puts("Initialization successful - starting the shell now");

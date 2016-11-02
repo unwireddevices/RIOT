@@ -417,29 +417,31 @@ void I2C_0_ERR_ISR(void)
 {
     unsigned state = I2C1->SR1;
     DEBUG("\n\n### I2C1 ERROR OCCURED ###\n");
-    DEBUG("status: %08x\n", state);
+    printf("status: %08x\n", state);
     if (state & I2C_SR1_OVR) {
-        DEBUG("OVR\n");
+    	puts("OVR\n");
     }
     if (state & I2C_SR1_AF) {
-        DEBUG("AF\n");
+    	I2C1->SR1 &= ~I2C_SR1_AF;
+    	puts("I2C1 NACK");
     }
     if (state & I2C_SR1_ARLO) {
-        DEBUG("ARLO\n");
+    	I2C1->SR1 &= ~I2C_SR1_ARLO;
+    	puts("ARLO\n");
     }
     if (state & I2C_SR1_BERR) {
-        DEBUG("BERR\n");
+    	puts("BERR\n");
     }
     if (state & I2C_SR1_PECERR) {
-        DEBUG("PECERR\n");
+    	puts("PECERR\n");
     }
     if (state & I2C_SR1_TIMEOUT) {
-        DEBUG("TIMEOUT\n");
+    	puts("TIMEOUT\n");
     }
     if (state & I2C_SR1_SMBALERT) {
-        DEBUG("SMBALERT\n");
+    	puts("SMBALERT\n");
     }
-    while (1) {}
+    //while (1) {}
 }
 #endif /* I2C_0_EN */
 
@@ -448,29 +450,31 @@ void I2C_1_ERR_ISR(void)
 {
     unsigned state = I2C2->SR1;
     DEBUG("\n\n### I2C2 ERROR OCCURED ###\n");
-    DEBUG("status: %08x\n", state);
+    printf("status: %08x\n", state);
     if (state & I2C_SR1_OVR) {
-        DEBUG("OVR\n");
+        puts("OVR\n");
     }
     if (state & I2C_SR1_AF) {
-        DEBUG("AF\n");
+    	I2C2->SR1 &= ~I2C_SR1_AF;
+        puts("I2C2 NACK");
     }
     if (state & I2C_SR1_ARLO) {
-        DEBUG("ARLO\n");
+    	I2C2->SR1 &= ~I2C_SR1_ARLO;
+    	puts("ARLO\n");
     }
     if (state & I2C_SR1_BERR) {
-        DEBUG("BERR\n");
+    	puts("BERR\n");
     }
     if (state & I2C_SR1_PECERR) {
-        DEBUG("PECERR\n");
+    	puts("PECERR\n");
     }
     if (state & I2C_SR1_TIMEOUT) {
-        DEBUG("TIMEOUT\n");
+    	puts("TIMEOUT\n");
     }
     if (state & I2C_SR1_SMBALERT) {
-        DEBUG("SMBALERT\n");
+    	puts("SMBALERT\n");
     }
-    while (1) {}
+    //while (1) {}
 }
 #endif /* I2C_1_EN */
 

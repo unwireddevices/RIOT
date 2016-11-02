@@ -13,11 +13,14 @@
  * @file		sht21.c
  * @brief       driver for SHT21 sensor
  * @author      SmallSharky
+ * @authoh		Eugene P. [ep@unwds.com]
  */
 
 
 #include "sht21.h"
-//#include "i2c.h"
+#include "periph/i2c.h"
+
+#include "xtimer.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -87,9 +90,13 @@ int sht21_init(sht21_t * dev)
     /* Acquire the I2C bus */
     i2c_acquire(dev->i2c);
 
+    i2c_init_master(dev->i2c, I2C_SPEED_NORMAL);
+
     if (i2c_read_reg(dev->i2c, SHT21_ADDRESS, SHT21_USER_REG_READ, (char *)&config) != 1) {
       puts("[sht21 driver] The sensor not found. Error.\n");
-      return 1;
+      i2c_release(dev->i2c);
+
+      return -1;
     }
 
     /* Clean all the configuration bits except those reserved */
@@ -100,15 +107,55 @@ int sht21_init(sht21_t * dev)
 
     puts("[sht21 driver] Send proper config.\n");
     i2c_write_reg(dev->i2c, SHT21_ADDRESS, SHT21_USER_REG_WRITE, config);
-
     i2c_release(dev->i2c);
-
 
     return 0;
 }
 
+static inline int ticks_to_millicelsius(int ticks)
+{
+	ticks &= ~0x0003; /* clear status bits */
+	/*
+	 * Formula T = -46.85 + 175.72 * ST / 2^16 from data sheet 6.2,
+	 * optimized for integer fixed point (3 digits) arithmetic
+	 */
+	return ((21965 * ticks) >> 13) - 46850;
+}
+
+static inline int ticks_to_per_cent_mille(int ticks)
+{
+	ticks &= ~0x0003; /* clear status bits */
+	/*
+	 * Formula RH = -6 + 125 * SRH / 2^16 from data sheet 6.1,
+	 * optimized for integer fixed point (3 digits) arithmetic
+	 */
+	return ((15625 * ticks) >> 13) - 6000;
+}
+
+static uint16_t read_sensor_no_hold(sht21_t *dev, bool need_rh) {
+	/* Choose measurement command: humidity or temperature */
+	uint8_t cmd = (need_rh) ? SHT21_REG_RH_NACK : SHT21_REG_T_NACK;
+
+	/* Send T/RH measurement command without SCK holding */
+	volatile long i;
+	for(i = 0; i < 100000; i++);
+
+	i2c_write_byte(dev->i2c, SHT21_ADDRESS, cmd);
+
+	/* Sleep long enough (250 ms) */
+	/* TODO: polling with tracking of NACK's */
+	for(i = 0; i < 100000; i++);
+
+	/* Read back measurement: MSB, LSB and checksum byte */
+	uint8_t bytes[3];
+	i2c_read_bytes(dev->i2c, SHT21_ADDRESS, (char *) bytes, 3);
+
+	/* Compose 16 bit integer */
+	return bytes[0] << 8 | bytes[1];
+}
+
 /**
- * @brief Get SHT21 measure
+ * @brief Gets SHT21 measure.
  *
  * @param[in] dev pointer to the initialized SHT21 device
  * @param[in] measure pointer to the allocated memory
@@ -123,33 +170,21 @@ int sht21_init(sht21_t * dev)
  * sht21_init(sht21);
  * sht21_measure(sht21, &measure)
  */
-uint32_t sht21_measure(sht21_t * dev, sht21_measure_t *measure)
+uint32_t sht21_measure(sht21_t *dev, sht21_measure_t *measure)
 {
     assert(dev != NULL);
 
-    /* Acquire the I2C bus */
-    i2c_acquire(dev->i2c);
-    uint8_t temp_int[2];
-    uint16_t temperature;
-    double res_temp = -46.85;
-    double res_humid = -6.0;
-    uint16_t humidity = 0;
-    uint8_t humi_int[2];
-    i2c_read_regs(dev->i2c, 0x40, SHT21_REG_T_HOLD, (char *)temp_int, 2);
-    temperature = (temp_int[0] << 8) | (temp_int[1] & SHT21_STATUS_MASK);
-    res_temp += (175.72 * (double)temperature) / 65536.0;
-    temperature = (uint16_t)((res_temp * 100)/2331 + 850);
-    //measure->temperature = temperature;
-    measure->temperature = temperature;
+    //soft_reset(dev);
 
-    i2c_read_regs(dev->i2c, 0x40, SHT21_REG_RH_HOLD, (char *)humi_int, 2);
-    humidity = (humi_int[0] << 8) | (humi_int[1] & SHT21_STATUS_MASK);
-    res_humid += 125.0 * (double)humidity / 65536.0;
-    //humidity = (res_humid * 100)/26214 + 12;
-    //measure->humidity = humidity;
-    measure->humidity = res_humid;
+    i2c_acquire(dev->i2c);
+
+    int temperature = ticks_to_millicelsius(read_sensor_no_hold(dev, false));
+    int humidity = ticks_to_per_cent_mille(read_sensor_no_hold(dev, true));
 
     i2c_release(dev->i2c);
+
+    measure->temperature = temperature;
+    measure->humidity = humidity;
 
     return 0;
 }

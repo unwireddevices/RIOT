@@ -56,22 +56,24 @@ static bool init_sensor(void) {
 	return sht21_init(&dev) == 0;
 }
 
-static uint16_t convert_temp(float temp) {
-	return (temp + 100) * 16;
+static uint16_t convert_temp(int temp) {
+	return (temp / 1000.0f + 100) * 16;
 }
 
-static uint8_t convert_humid(float humid) {
-	return humid / 100;
+static uint8_t convert_humid(int humid) {
+	return humid / 1000;
 }
 
 static void prepare_result(module_data_t *buf) {
 	sht21_measure_t measure = {};
 	sht21_measure(&dev, &measure);
 
-	printf("[sth21] Temp: %.02f, humiditiy: %.02f\n", measure.temperature, measure.humidity);
+	printf("[sth21] Temp: %.2f, humiditiy: %.1f%%\n", measure.temperature / 1000.0f, measure.humidity / 1000.0f);
 
 	uint16_t temp = convert_temp(measure.temperature);
 	uint8_t hum = convert_humid(measure.humidity);
+
+	printf("[sht21] Temp %d, hum: %d%%\n", temp, hum);
 
 	buf->length = 1 + 2 + 1; /* One byte for module ID, two bytes for temperature, one byte for humidity */
 
@@ -124,7 +126,7 @@ void umdk_sht21_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 		return;
 	}
 
-	timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, 0, timer_thread, NULL, "sht21 thread");
+	timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "sht21 thread");
 
     /* Start publishing timer */
 	xtimer_set_msg(&timer, 1e6 * 60 * publish_period_min, &timer_msg, timer_pid);
@@ -148,7 +150,7 @@ bool umdk_sht21_cmd(module_data_t *cmd, module_data_t *reply) {
 		/* Don't restart timer if new period is zero */
 		if (publish_period_min) {
 			xtimer_set_msg(&timer, 1e6 * 60 * publish_period_min, &timer_msg, timer_pid);
-			printf("[sht21] Period set to %d seconds\n", publish_period_min);
+			printf("[sht21] Period set to %d minute (s)\n", publish_period_min);
 		} else
 			puts("[sht21] Timer stopped");
 

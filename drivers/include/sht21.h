@@ -28,8 +28,7 @@
 /**
  * @brief Initial SHT21 address on I2C bus
  */
-#define SHT21_ADDRESS 0x80
-
+#define SHT21_ADDRESS 0x40
 
 /**
  * @brief SHT21 registers
@@ -45,10 +44,6 @@
 
 #define SHT21_REG_SOFT_RESET	0xFE
 
-
-
-
-
 /**
  * @brief Structure that holds the SHT21 driver internal state and parameters
  */
@@ -59,8 +54,8 @@ typedef struct {
 
 
 typedef struct {
-	float   temperature;    /**< temperature value */
-	float   humidity;         /**< humidity value*/
+	int   temperature;    /**< temperature in mC */
+	int   humidity;         /**< humidity in 1/1000 % (promille) */
 } sht21_measure_t;
 
 

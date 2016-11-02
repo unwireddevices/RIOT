@@ -150,9 +150,6 @@ void unwds_init_modules(uwnds_cb_t *event_callback)
 {
     int i = 0;
 
-    /* Pre-initialize I2C */
-    i2c_init_master(I2C_0, I2C_SPEED_NORMAL);
-
     while (modules[i].init_cb != NULL && modules[i].cmd_cb != NULL) {
     	if (ability_map & modules[i].ability_mask) {
     		printf("[unwds] initializing \"%s\" module...\n", modules[i].name);

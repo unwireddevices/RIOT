@@ -559,6 +559,7 @@ void init_node(shell_command_t **commands)
         ls.settings.ability = node_settings.ability;
         ls.settings.class = node_settings.class;
 
+        unwds_setup_nvram_config(config_get_nvram(), UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
         unwds_init_modules(unwds_callback);
 
         xtimer_usleep(1e6 * 1);

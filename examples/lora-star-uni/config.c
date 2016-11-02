@@ -202,6 +202,10 @@ bool config_read_role_block(uint8_t *buf, size_t size)
     return true;
 }
 
+nvram_t *config_get_nvram(void) {
+	return nv;
+}
+
 #ifdef __cplusplus
 }
 #endif

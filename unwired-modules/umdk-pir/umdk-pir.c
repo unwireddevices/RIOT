@@ -95,7 +95,7 @@ void umdk_pir_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 		return;
 	}
 
-	handler_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, 0, handler, NULL, "PIR thread");
+	handler_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, handler, NULL, "PIR thread");
 }
 
 bool umdk_pir_cmd(module_data_t *data, module_data_t *reply) {

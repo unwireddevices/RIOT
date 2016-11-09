@@ -18,6 +18,9 @@
  * @}
  */
 
+#define SHORT_LOGO 1
+#define INSERT_BUILD_TIME 1
+ 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -72,6 +75,12 @@ void print_logo(void)
     puts("                                                                                ");
     puts("                                                                                ");
     puts("");
+}
+
+void print_logo_short(void)
+{
+	puts("Unwired Range firmware by Unwired Devices");
+	puts("www.unwds.com - info@unwds.com");
 }
 
 void blink_led(void)
@@ -456,7 +465,12 @@ void cb(void *arg) {
 #endif
 int main(void)
 {
-    print_logo();
+#ifdef SHORT_LOGO
+    print_logo_short();
+#else
+	print_logo();
+#endif
+
     xtimer_init();
 #ifdef pulses
     gpio_init_int(UNWD_GPIO_4, GPIO_IN, GPIO_RISING, cb, NULL);

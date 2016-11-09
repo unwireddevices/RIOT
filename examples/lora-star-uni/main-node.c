@@ -421,6 +421,7 @@ static int ls_listmodules_cmd(int argc, char **argv)
     return 0;
 }
 
+/*
 static int ls_modenable_cmd(int argc, char **argv)
 {
     if (argc < 1) {
@@ -453,8 +454,35 @@ static int ls_moddisable_cmd(int argc, char **argv)
         return 1;
     }
 
-    /* Remove module from node's ability */
     node_settings.ability &= ~unwds_get_ability_mask(modid);
+
+    return 0;
+}
+*/
+
+static int ls_module_cmd(int argc, char **argv)
+{
+    if (argc < 2) {
+        puts("Usage: mod <modid> <0|1>. Example: module 7 1");
+        return 1;
+    }
+
+    uint8_t modid = atoi(argv[1]);
+    if (!unwds_is_module_exists(modid)) {
+        puts("mod: module with specified id doesn't exist");
+        return 1;
+    }
+
+	if (atoi(argv[2]))
+	{
+		/* Enable module */
+		node_settings.ability |= unwds_get_ability_mask(modid);
+		printf("[unwds] %s [%d] enabled. Save and reboot to apply changes\n", unwds_get_module_name(modid), modid);
+	} else {
+		/* Disable module */
+		node_settings.ability &= ~unwds_get_ability_mask(modid);
+		printf("[unwds] %s [%d] disabled. Save and reboot to apply changes\n", unwds_get_module_name(modid), modid);
+	}
 
     return 0;
 }
@@ -483,20 +511,27 @@ static int print_regions_cmd(int argc, char **argv) {
 }
 
 static const shell_command_t shell_commands[] = {
-    { "set", "<config> <value> -- sets up value for the configuration entry", ls_set_cmd },
+    { "set", "<config> <value> -- set up value for the configuration entry", ls_set_cmd },
 
-    { "listconfig", "-- prints out current configuration", ls_printc_cmd },
-	{ "listregions", "-- prints out available regions", print_regions_cmd },
+//    { "listconfig", "-- prints out current configuration", ls_printc_cmd },
+	{ "lscfg", "-- print out current configuration", ls_printc_cmd },
+	
+//	{ "listregions", "-- prints out available regions", print_regions_cmd },
+	{ "lsregion", "-- print out available regions", print_regions_cmd },
 
-    { "listmods", "-- list available modules", ls_listmodules_cmd },
-	{ "modenable", "<modid> -- enables selected module", ls_modenable_cmd },
-    { "moddisable", "<modid> -- disables selected module", ls_moddisable_cmd },
+//    { "listmods", "-- list available modules", ls_listmodules_cmd },
+	{ "lsmod", "-- list available modules", ls_listmodules_cmd },
+	
+//	{ "modenable", "<modid> -- enable selected module", ls_modenable_cmd },
+	
+//    { "moddisable", "<modid> -- disable selected module", ls_moddisable_cmd },
+	{ "mod", "<modid> <0|1>	-- disable or enable selected module", ls_module_cmd },
 
     { "save", "-- saves current configuration", ls_save_cmd },
 
     { "clear", "-- clears all data in NVRAM", ls_clear_nvram },
 
-    { "cmd", "<modid> <cmdhex> -- executes command to selected UNWDS module", ls_cmd_cmd },
+    { "cmd", "<modid> <cmdhex> -- send command to another UNWDS devices", ls_cmd_cmd },
 
     { NULL, NULL, NULL }
 };
@@ -541,8 +576,8 @@ void init_node(shell_command_t **commands)
     rtc_init();
 
     if (!load_config()) {
-        puts("[!] This device is not configured yet. Type \"help\" to see list of possible configuration commands.");
-        puts("[!] Configure this node and type \"reboot\" to reboot and apply settings.");
+        puts("[!] Device is not configured yet. Type \"help\" to see list of possible configuration commands.");
+        puts("[!] Configure the node and type \"reboot\" to reboot and apply settings.");
 
         print_config();
     }

@@ -46,6 +46,12 @@ static nvram_t nvram;
 
 void print_logo(void)
 {
+#ifdef SHORT_LOGO
+	puts("*****************************************");
+	puts("Unwired Range firmware by Unwired Devices");
+	puts("www.unwds.com - info@unwds.com");
+	puts("*****************************************");
+#else
     puts("                                                .@                           @  ");
     puts("                                                                             @  ");
     puts("  @@@           %@@,     &@**%@. .#    ./   .#  .@   #@*.   *@@@@@,    @#%.%%@  ");
@@ -67,7 +73,9 @@ void print_logo(void)
     puts("        @@@,...,,#&@@@@@                                                        ");
     puts("        @@@@@@@@@@@%,                                                           ");
     puts("                                                                                ");
-    printf("Version: %s\n", FIRMWARE_VERSION);
+#endif
+
+    printf("Version: %s (%s %s)\n", FIRMWARE_VERSION, __DATE__, __TIME__);
     puts("");
 }
 
@@ -152,16 +160,15 @@ int main(void)
     if (!load_eui64_nvram(&nvram)) {
     	puts("[config] No EUI64 defined for this device. Please provide EUI64 and reboot to apply changes.");
     }
-
-    /* It's first launch or config memory is corrupted */
-    if (!load_config_nvram(&nvram)) {
-    	puts("[config] No valid configuration found in NVRAM. It's either first launch or NVRAM content is corrupted.");
-    	puts("[config] Please provide APPID64 and JOINKEY for this device.");
-
-    	config_reset_nvram(&nvram);
-    } else {
-    	puts("[config] Configuration loaded from NVRAM");
-    }
+	
+	/* It's first launch or config memory is corrupted */
+	if (!load_config_nvram(&nvram)) {
+		puts("[config] No valid configuration found in NVRAM. It's either first launch or NVRAM content is corrupted.");
+		puts("[config] Please provide APPID64 and JOINKEY for this device.");
+			config_reset_nvram(&nvram);
+	} else {
+		puts("[config] Configuration loaded from NVRAM");
+	}
 
     init_role(config_get_role());
 

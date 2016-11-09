@@ -22,6 +22,8 @@
 
 #define FIRMWARE_VERSION "1.2"
 
+#define SHORT_LOGO 1
+
 typedef int (*cmd_fun_t)(int, char **);
 
 extern void init_node(shell_command_t **commands);

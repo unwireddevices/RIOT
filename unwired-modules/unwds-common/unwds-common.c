@@ -206,6 +206,14 @@ uint64_t unwds_get_ability_mask(unwds_module_id_t modid) {
 	return module->ability_mask;
 }
 
+char *unwds_get_module_name(unwds_module_id_t modid) {
+	unwd_module_t *module = find_module(modid);
+	if (!module)
+		return NULL;
+
+	return module->name;	
+}
+
 bool unwds_is_module_exists(unwds_module_id_t modid) {
 	return find_module(modid) != NULL;
 }

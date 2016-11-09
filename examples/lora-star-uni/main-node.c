@@ -223,7 +223,7 @@ int ls_set_cmd(int argc, char **argv)
         puts("\tdr <0-6> -- sets device data rate [0 - slowest, 3 - average, 6 - fastest]");
         puts("\tmaxretr <0-255> -- sets maximum number of retransmissions of confirmed app. data [5 is recommended]");
         puts("\tlnkchkperiod <1-255> -- sets link check period in seconds [120 is recommended]");
-        puts("\tclass <A/B> -- sets device class");
+        puts("\tclass <A/B/C> -- sets device class");
     }
 
     char *key = argv[1];
@@ -281,12 +281,14 @@ int ls_set_cmd(int argc, char **argv)
     else if (strcmp(key, "class") == 0) {
         char v = value[0];
 
-        if (v != 'A' && v != 'B') {
-            puts("set сlass: either A or B");
+        if (v != 'A' && v != 'B' && v != 'C') {
+            puts("set сlass: A, B or C");
             return 1;
         }
 
-        ls.settings.class = (v == 'A') ? LS_ED_CLASS_A : (v == 'B') ? LS_ED_CLASS_B : LS_ED_CLASS_B;
+		if (v == 'A') { ls.settings.class = LS_ED_CLASS_A; }
+		else if (v == 'B') { ls.settings.class = LS_ED_CLASS_B; }
+		else if (v == 'C') { ls.settings.class = LS_ED_CLASS_C; };
     }
 
     node_settings.channel = ls.settings.channel;
@@ -340,7 +342,12 @@ static void print_config(void)
     }
 
     printf("DATARATE = %d\n", node_settings.dr);
-    printf("CLASS = %c\n", (node_settings.class == LS_ED_CLASS_A) ? 'A' : (node_settings.class == LS_ED_CLASS_B) ? 'B' : '?');
+	
+	char class;
+	if (node_settings.class == LS_ED_CLASS_A) {class = 'A'; }
+	else if (node_settings.class == LS_ED_CLASS_B) {class = 'B'; }
+	else if (node_settings.class == LS_ED_CLASS_C) {class = 'C'; };
+    printf("CLASS = %c\n", class);
     printf("LNKCHKPERIOD (s) = %d\n", node_settings.lnkchk_period);
     printf("MAXRETR = %d\n", node_settings.max_retr);
 

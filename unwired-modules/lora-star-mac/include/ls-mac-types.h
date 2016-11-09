@@ -39,7 +39,8 @@ typedef uint8_t ls_channel_t;	/**< 1 byte channel number */
  */
 typedef enum {
 	LS_ED_CLASS_A = 0,
-	LS_ED_CLASS_B
+	LS_ED_CLASS_B,
+	LS_ED_CLASS_C
 } ls_node_class_t;
 
 /**

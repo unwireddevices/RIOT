@@ -116,27 +116,6 @@ static void init_role(config_role_t role) {
 	}
 }
 
-/*
-static bool check_button(void) {
-    gpio_init(UNWD_CONNECT_BTN, GPIO_IN);
-
-    xtimer_usleep(1e3 * 1000);
-
-    if (!gpio_read(UNWD_CONNECT_BTN)) {
-    	int i;
-    	for (i = 0; i < 10; i++) {
-    		if (gpio_read(UNWD_CONNECT_BTN))
-    			return false;
-
-    		xtimer_usleep(1e3 * 1000);
-    	}
-
-    	return true;
-    }
-
-    return false;
-}*/
-
 int main(void)
 {
 	lpm_prevent_sleep = 1;
@@ -145,16 +124,6 @@ int main(void)
     xtimer_init();
 
     nvram_l1_eeprom_init(&nvram);
-
-    /*if (check_button()) {
-    	puts("[!] Button press detected, resetting config...");
-
-    	blink_led();
-    	blink_led();
-    	blink_led();
-
-    	config_reset_nvram(&nvram);
-    }*/
 
     /* Check EUI64 */
     if (!load_eui64_nvram(&nvram)) {

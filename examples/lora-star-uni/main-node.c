@@ -528,6 +528,20 @@ static bool load_config(void)
     return node_settings.is_valid;
 }
 
+static bool is_connect_button_pressed(void) {
+    if (!gpio_init(UNWD_CONNECT_BTN, GPIO_IN_PU)) {
+		if (!gpio_read(UNWD_CONNECT_BTN)) {
+			return true;
+		}
+	}
+	else
+	{
+		puts("Error initializing Connect button\n");
+	}
+	
+	return false;
+}
+
 void init_node(shell_command_t **commands)
 {
     puts("[node] Initializing...");
@@ -557,7 +571,15 @@ void init_node(shell_command_t **commands)
         ls.settings.class = node_settings.class;
 
         unwds_setup_nvram_config(config_get_nvram(), UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
-        unwds_init_modules(unwds_callback);
+		
+		if (is_connect_button_pressed() && UNWD_USE_CONNECT_BTN) {
+			puts("[!] Entering Safe Mode, all modules disabled.");
+			blink_led();
+			blink_led();
+			blink_led();
+		} else {
+			unwds_init_modules(unwds_callback);
+		}
 
         xtimer_usleep(1e6 * 1);
         ls_ed_join(&ls);

@@ -421,45 +421,6 @@ static int ls_listmodules_cmd(int argc, char **argv)
     return 0;
 }
 
-/*
-static int ls_modenable_cmd(int argc, char **argv)
-{
-    if (argc < 1) {
-        puts("Usage: modenable <modid>. Example: modenable 1");
-        printf("Please note that you can enable UP TO %d modules at the same time!\n", UNWDS_STACK_POOL_SIZE);
-        return 1;
-    }
-
-    uint8_t modid = atoi(argv[1]);
-    if (!unwds_is_module_exists(modid)) {
-        puts("modenable: module with specified id is not exists");
-        return 1;
-    }
-
-    node_settings.ability |= unwds_get_ability_mask(modid);
-
-    return 0;
-}
-
-static int ls_moddisable_cmd(int argc, char **argv)
-{
-    if (argc < 1) {
-        puts("Usage: modenable <modid>. Example: modenable 1");
-        return 1;
-    }
-
-    uint8_t modid = atoi(argv[1]);
-    if (!unwds_is_module_exists(modid)) {
-        puts("moddisable: module with specified id is not exists");
-        return 1;
-    }
-
-    node_settings.ability &= ~unwds_get_ability_mask(modid);
-
-    return 0;
-}
-*/
-
 static int ls_module_cmd(int argc, char **argv)
 {
     if (argc < 2) {
@@ -477,11 +438,11 @@ static int ls_module_cmd(int argc, char **argv)
 	{
 		/* Enable module */
 		node_settings.ability |= unwds_get_ability_mask(modid);
-		printf("[unwds] %s [%d] enabled. Save and reboot to apply changes\n", unwds_get_module_name(modid), modid);
+		printf("mod: %s [%d] enabled. Save and reboot to apply changes\n", unwds_get_module_name(modid), modid);
 	} else {
 		/* Disable module */
 		node_settings.ability &= ~unwds_get_ability_mask(modid);
-		printf("[unwds] %s [%d] disabled. Save and reboot to apply changes\n", unwds_get_module_name(modid), modid);
+		printf("mod: %s [%d] disabled. Save and reboot to apply changes\n", unwds_get_module_name(modid), modid);
 	}
 
     return 0;
@@ -511,20 +472,14 @@ static int print_regions_cmd(int argc, char **argv) {
 }
 
 static const shell_command_t shell_commands[] = {
-    { "set", "<config> <value> -- set up value for the configuration entry", ls_set_cmd },
+    { "set", "<config> <value> -- set value for the configuration entry", ls_set_cmd },
 
-//    { "listconfig", "-- prints out current configuration", ls_printc_cmd },
 	{ "lscfg", "-- print out current configuration", ls_printc_cmd },
 	
-//	{ "listregions", "-- prints out available regions", print_regions_cmd },
-	{ "lsregion", "-- print out available regions", print_regions_cmd },
+	{ "lsregion", "-- list available regions", print_regions_cmd },
 
-//    { "listmods", "-- list available modules", ls_listmodules_cmd },
 	{ "lsmod", "-- list available modules", ls_listmodules_cmd },
 	
-//	{ "modenable", "<modid> -- enable selected module", ls_modenable_cmd },
-	
-//    { "moddisable", "<modid> -- disable selected module", ls_moddisable_cmd },
 	{ "mod", "<modid> <0|1>	-- disable or enable selected module", ls_module_cmd },
 
     { "save", "-- saves current configuration", ls_save_cmd },

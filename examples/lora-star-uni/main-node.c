@@ -48,6 +48,8 @@ extern "C" {
 
 #include "ls-regions.h"
 
+#define DISPLAY_JOINKEY_2BYTES 1
+
 typedef struct {
     bool is_valid;
 
@@ -329,6 +331,11 @@ static void print_config(void)
 
     uint64_t eui64 = config_get_nodeid();
     uint64_t appid = config_get_appid();
+	
+	if (DISPLAY_JOINKEY_2BYTES) {
+		uint8_t *key = config_get_joinkey();	
+		printf("JOINKEY = 0x....%01x%01x\n", key[14], key[15]);
+	}
 
     printf("EUI64 = 0x%08x%08x\n", (unsigned int) (eui64 >> 32), (unsigned int) (eui64 & 0xFFFFFFFF));
     printf("APPID64 = 0x%08x%08x\n", (unsigned int) (appid >> 32), (unsigned int) (appid & 0xFFFFFFFF));

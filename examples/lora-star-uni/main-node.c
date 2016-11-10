@@ -72,7 +72,7 @@ static node_role_settings_t node_settings;
 static sx1276_t sx1276;
 static ls_ed_t ls;
 
-static unsigned int join_retr_count;
+// static unsigned int join_retr_count;
 
 void radio_init(void)
 {
@@ -115,8 +115,10 @@ void link_good_cb(void)
 void joined_timeout_cb(void)
 {
     puts("ls: join request timed out, resending");
-
-    xtimer_usleep(1e6 * 2 * ++join_retr_count);
+	/* quasi-random delay up to 8.4 seconds for collision avoidance */
+	unsigned int delay = ((xtimer_now() & 0xFF) << 15);
+	printf("ls: quasi-random retransmission delay %d msec\n", (unsigned int) (delay/1e3));
+	xtimer_usleep(delay);
     ls_ed_join(&ls);
 }
 

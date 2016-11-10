@@ -569,6 +569,11 @@ static void *tim_handler(void *arg)
                 }
                 else {
                     /* Do a retransmission */
+					/* quasi-random delay up to 8.4 seconds for collision avoidance */
+					unsigned int delay = ((xtimer_now() & 0xFF) << 15);
+					printf("ls-ed: quasi-random retransmission delay %d msec\n", (unsigned int) (delay/1e3));
+					xtimer_usleep(delay);
+					
                     ls->_internal.num_retr++;
                     ls_ed_send_app_data(ls, ls->_internal.last_app_msg.data, ls->_internal.last_app_msg.len, true);
                 }

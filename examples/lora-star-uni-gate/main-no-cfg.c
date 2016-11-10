@@ -157,25 +157,18 @@ int unk_save_cmd(int argc, char **argv)
 
 		puts("");
 
-		agreekey = xtimer_now() & 0xFF;
+//		agreekey = xtimer_now() & 0xFF;
 
-		puts("[warning] Saving current configuration is permanent!");
-		printf("Verify your setup and type:\n\n\tsave %d\n\nto permanently save current configuration and reboot.\n", agreekey);
-	} else {
-		int key = atoi(argv[1]);
+		puts("[!] Saving current configuration...");
 
-		if (key == agreekey) {
-			puts("[!] Saving current configuration...");
+		if (config_write_main_block(appid, joinkey)) {
+			puts("[ok] Configuration was written. Rebooting.");
+//			xtimer_sleep(5);
 
-			if (config_write_main_block(appid, joinkey)) {
-				puts("[ok] Configuration is written. Reboot in 5 seconds...");
-				xtimer_sleep(5);
-
-				/* Reboot */
-				NVIC_SystemReset();
-			} else {
-				puts("[error] An error occurred when saving the configuration");
-			}
+			/* Reboot */
+			NVIC_SystemReset();
+		} else {
+			puts("[error] An error occurred when saving the configuration");
 		}
 	}
     return 0;

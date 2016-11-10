@@ -39,8 +39,6 @@ static uint8_t joinkey[16] = {
 
 bool joinkey_set = false;
 
-static int agreekey;
-
 static void print_appid64(void)
 {
     if (appid) {

@@ -29,6 +29,7 @@ typedef int (*cmd_fun_t)(int, char **);
 extern void init_node(shell_command_t **commands);
 extern void init_gate(shell_command_t **commands);
 extern void init_no_eui64(shell_command_t **commands);
+extern void init_no_key(shell_command_t **commands);
 extern void init_no_cfg(shell_command_t **commands);
 
 void blink_led(void);

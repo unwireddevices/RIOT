@@ -107,6 +107,10 @@ static void init_role(config_role_t role) {
 	case ROLE_NO_EUI64:
 		init_no_eui64((shell_command_t **) &shell_commands);
 		break;
+		
+	case ROLE_EMPTY_KEY:
+		init_no_key((shell_command_t **) &shell_commands);
+		break;
 
 	default:
 	case ROLE_NO_CFG:
@@ -133,7 +137,7 @@ int main(void)
 	/* It's first launch or config memory is corrupted */
 	if (!load_config_nvram(&nvram)) {
 		puts("[config] No valid configuration found in NVRAM. It's either first launch or NVRAM content is corrupted.");
-		puts("[config] Please provide APPID64 and JOINKEY for this device.");
+		puts("[config] Could you please provide APPID64 and JOINKEY for this device?");
 			config_reset_nvram(&nvram);
 	} else {
 		puts("[config] Configuration loaded from NVRAM");

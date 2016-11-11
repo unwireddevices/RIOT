@@ -109,7 +109,6 @@ static int send_frame(ls_gate_channel_t *ch, ls_addr_t to, ls_type_t type, uint8
             node = ls_devlist_get(&ls->devices, to);
 
             ls_derive_keys(node->last_nonce, node->app_nonce, node->addr, mic_key, NULL);
-
             ls_encrypt_frame(mic_key, mic_key, frame, &payload_size);
             break;
 

@@ -53,6 +53,7 @@ static xtimer_t timer;
 
 static bool init_sensor(void)
 {
+    dev.i2c = UMDK_LPS331_I2C;
 
     return lps331ap_init(&dev, dev.i2c, 0x5D, LPS331AP_RATE_1HZ);
 }
@@ -109,7 +110,6 @@ void umdk_lps331_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     callback = event_callback;
     publish_period_min = UMDK_LPS331_PUBLISH_PERIOD_MIN; /* Set to default */
 
-    dev.i2c = UMDK_LPS331_I2C;
     if (init_sensor()) {
         puts("[umdk-lps331] Unable to init sensor!");
     }

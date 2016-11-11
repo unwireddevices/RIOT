@@ -61,19 +61,19 @@ static uint16_t convert_temp(int temp) {
 }
 
 static uint8_t convert_humid(int humid) {
-	return humid / 1000;
+	return round(humid / 1000.0f);
 }
 
 static void prepare_result(module_data_t *buf) {
 	sht21_measure_t measure = {};
 	sht21_measure(&dev, &measure);
 
-	printf("[sth21] Temp: %.2f, humiditiy: %.1f%%\n", measure.temperature / 1000.0f, measure.humidity / 1000.0f);
+//	printf("[sth21] Temp: %.2f, humiditiy: %.1f%%\n", measure.temperature / 1000.0f, measure.humidity / 1000.0f);
 
 	uint16_t temp = convert_temp(measure.temperature);
 	uint8_t hum = convert_humid(measure.humidity);
 
-	printf("[sht21] Temp %d, hum: %d%%\n", temp, hum);
+	printf("[sht21] Temperature %d C, humidity: %d%%\n", (temp >> 4)-100, hum);
 
 	buf->length = 1 + 2 + 1; /* One byte for module ID, two bytes for temperature, one byte for humidity */
 
@@ -122,7 +122,7 @@ void umdk_sht21_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	/* Create handler thread */
 	char *stack = (char *) allocate_stack();
 	if (!stack) {
-		puts("umdk-sht21: unable to allocate memory. Is too many modules enabled?");
+		puts("umdk-sht21: unable to allocate memory. Are too many modules enabled?");
 		return;
 	}
 

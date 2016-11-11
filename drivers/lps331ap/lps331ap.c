@@ -32,7 +32,7 @@
 /**
  * @brief default I2C bus speed for this sensor
  */
-#define BUS_SPEED           I2C_SPEED_FAST
+#define BUS_SPEED           I2C_SPEED_NORMAL
 
 /**
  * @brief pressure divider for norming pressure output

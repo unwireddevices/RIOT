@@ -189,6 +189,10 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 {
     switch (frame->header.type) {
         case LS_DL_ACK:                             /* Downlink frame acknowledge for confirmed messages */
+            if (!ls_validate_frame_mic(ls->settings.crypto.mic_key, frame)) {
+                return false;
+            }
+
             puts("ls-ed: confirmation received");   // XXX: debug
 
             /* Remove timeout timer */

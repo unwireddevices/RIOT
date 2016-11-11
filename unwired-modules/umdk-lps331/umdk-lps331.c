@@ -61,19 +61,23 @@ static bool init_sensor(void)
 static void prepare_result(module_data_t *buf)
 {
     int temperature_mc, pressure_mbar;
+	uint16_t temperature_unwds, pressure_unwds;
 
     temperature_mc = lps331ap_read_temp(&dev);
+	temperature_unwds = (temperature_mc << 4)/1000;
+	
     pressure_mbar = lps331ap_read_pres(&dev);
+	pressure_unwds = pressure_mbar >> 4;
 
-    printf("[umdk-lps331] Temp: %d mC, pressure: %d mbar\n", temperature_mc, pressure_mbar);
+	printf("[lps331] T: %d C, P: %d mbar\n", temperature_unwds >> 4, pressure_unwds << 4);
 
-    buf->length = 1 + 2 + 2; /* One byte for module ID, two bytes for temperature, one byte for pressure*/
+    buf->length = 1 + 2 + 2; /* One byte for module ID, two bytes for temperature, two bytes for pressure*/
 
     buf->data[0] = UNWDS_LPS331_MODULE_ID;
 
     /* Copy measurements into response */
-    memcpy(buf->data + 1, (int16_t *) &temperature_mc, 2);
-    memcpy(buf->data + 1 + 2, (uint16_t *) &pressure_mbar, 2);
+    memcpy(buf->data + 1, &temperature_unwds, 2);
+    memcpy(buf->data + 1 + 2, &pressure_unwds, 2);
 }
 
 static void *timer_thread(void *arg)
@@ -113,14 +117,15 @@ void umdk_lps331_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     if (init_sensor()) {
         puts("[umdk-lps331] Unable to init sensor!");
     }
-    if (lps331ap_enable(&dev)) {
+	
+    if (lps331ap_enable(&dev) < 1) {
         puts("[umdk-lps331] Unable to enable sensor!");
     }
 
     /* Create handler thread */
     char *stack = (char *) allocate_stack();
     if (!stack) {
-    	puts("umdk-lps331: unable to allocate memory. Is too many modules enabled?");
+    	puts("umdk-lps331: unable to allocate memory. Are too many modules enabled?");
     	return;
     }
 

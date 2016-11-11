@@ -42,14 +42,14 @@ static uwnds_cb_t *callback;
 
 void *handler(void *arg) {
     msg_t msg;
-    msg_t msg_queue[128];
-    msg_init_queue(msg_queue, 128);
+    msg_t msg_queue[2];
+    msg_init_queue(msg_queue, 2);
 
     while (1) {
         msg_receive(&msg);
-        int btn = msg.type;
+        int btn = msg.type + 1;
 
-        printf("[4btn] Pressed: %d\n", btn + 1);
+        //printf("[4btn] Pressed: %d\n", btn);
 
         module_data_t data;
         data.length = 2;
@@ -65,13 +65,14 @@ void *handler(void *arg) {
 static void btn_pressed_int(void *arg) {
 	int btn_num = ((int) arg) - 1;
 
-    int now = xtimer_now();
+    uint32_t now = xtimer_now();
     /* Don't accept a press of current button if it did occur earlier than last press plus debouncing time */
     if (now - last_pressed[btn_num] <= UMDK_4BTN_DEBOUNCE_TIME_MS * 1000) {
     	puts("[4btn] Press rejected");
     	return;
 	}
 
+    printf("[4btn] Pressed: %d\n", btn_num + 1);
     last_pressed[btn_num] = now;
 
     msg_t msg;

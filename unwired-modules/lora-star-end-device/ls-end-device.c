@@ -124,7 +124,12 @@ static void open_rx_windows(ls_ed_t *ls)
         /* Enter reception mode */
         enter_rx(ls);
     }
+	// for a while, B and C are the same
     else if (ls->settings.class == LS_ED_CLASS_B) {
+        xtimer_set_msg(&ls->_internal.rx_window1, LS_RX_DELAY1, &msg_rx1, ls->_internal.tim_thread_pid);
+        enter_rx(ls);
+    }
+	else if (ls->settings.class == LS_ED_CLASS_C) {
         xtimer_set_msg(&ls->_internal.rx_window1, LS_RX_DELAY1, &msg_rx1, ls->_internal.tim_thread_pid);
         enter_rx(ls);
     }
@@ -473,7 +478,19 @@ static void *tim_handler(void *arg)
                     /* Enter reception mode */
                     enter_rx(ls);
                 }
+				// for a while, classes B and C are the same
                 else if (ls->settings.class == LS_ED_CLASS_B) {
+                    /* Transmit next frame from queue */
+                    if (!ls_frame_fifo_empty(&ls->_internal.uplink_queue)) {
+                    	puts("ls: sending next frame");
+                        schedule_tx(ls);
+                    }
+                    else {
+                    	puts("ls: staying in RX mode");
+                        enter_rx(ls);
+                    }
+				}
+				else if (ls->settings.class == LS_ED_CLASS_C) {
                     /* Transmit next frame from queue */
                     if (!ls_frame_fifo_empty(&ls->_internal.uplink_queue)) {
                     	puts("ls: sending next frame");
@@ -552,6 +569,11 @@ static void *tim_handler(void *arg)
                 }
                 else {
                     /* Do a retransmission */
+					/* quasi-random delay up to 8.4 seconds for collision avoidance */
+					unsigned int delay = ((xtimer_now() & 0xFF) << 15);
+					printf("ls-ed: quasi-random retransmission delay %d msec\n", (unsigned int) (delay/1e3));
+					xtimer_usleep(delay);
+					
                     ls->_internal.num_retr++;
                     ls_ed_send_app_data(ls, ls->_internal.last_app_msg.data, ls->_internal.last_app_msg.len, true);
                 }

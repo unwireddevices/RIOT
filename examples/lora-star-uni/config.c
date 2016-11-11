@@ -33,6 +33,8 @@ extern "C" {
 static nvram_config_t config;
 static bool config_valid = false;
 
+static bool key_valid = false;
+
 static config_eui64_t eui64;
 static bool eui64_valid = false;
 
@@ -89,6 +91,13 @@ bool load_config_nvram(nvram_t *nvram)
         }
 
         memcpy(&config, &temp_config, sizeof(nvram_config_t));
+		
+		for (int i=0; i<16; i++) {
+			if (config.nwk_key[i] > 0) {
+				key_valid = true;
+			}
+		}
+		
         config_valid = true;
 
         return true;
@@ -125,7 +134,9 @@ config_role_t config_get_role(void)
     if (!eui64_valid) {
         return ROLE_NO_EUI64;
     }
-
+	if (!key_valid) {
+		return ROLE_EMPTY_KEY;
+	}
     if (config_valid) {
         return ROLE_NODE;
     }

@@ -46,6 +46,12 @@ static nvram_t nvram;
 
 void print_logo(void)
 {
+#ifdef SHORT_LOGO
+	puts("*****************************************");
+	puts("Unwired Range firmware by Unwired Devices");
+	puts("www.unwds.com - info@unwds.com");
+	puts("*****************************************");
+#else
     puts("                                                .@                           @  ");
     puts("                                                                             @  ");
     puts("  @@@           %@@,     &@**%@. .#    ./   .#  .@   #@*.   *@@@@@,    @#%.%%@  ");
@@ -67,7 +73,9 @@ void print_logo(void)
     puts("        @@@,...,,#&@@@@@                                                        ");
     puts("        @@@@@@@@@@@%,                                                           ");
     puts("                                                                                ");
-    printf("Version: %s\n", FIRMWARE_VERSION);
+#endif
+
+    printf("Version: %s (%s %s)\n", FIRMWARE_VERSION, __DATE__, __TIME__);
     puts("");
 }
 
@@ -99,6 +107,10 @@ static void init_role(config_role_t role) {
 	case ROLE_NO_EUI64:
 		init_no_eui64((shell_command_t **) &shell_commands);
 		break;
+		
+	case ROLE_EMPTY_KEY:
+		init_no_key((shell_command_t **) &shell_commands);
+		break;
 
 	default:
 	case ROLE_NO_CFG:
@@ -107,27 +119,6 @@ static void init_role(config_role_t role) {
 		break;
 	}
 }
-
-/*
-static bool check_button(void) {
-    gpio_init(UNWD_CONNECT_BTN, GPIO_IN);
-
-    xtimer_usleep(1e3 * 1000);
-
-    if (!gpio_read(UNWD_CONNECT_BTN)) {
-    	int i;
-    	for (i = 0; i < 10; i++) {
-    		if (gpio_read(UNWD_CONNECT_BTN))
-    			return false;
-
-    		xtimer_usleep(1e3 * 1000);
-    	}
-
-    	return true;
-    }
-
-    return false;
-}*/
 
 int main(void)
 {
@@ -138,30 +129,19 @@ int main(void)
 
     nvram_l1_eeprom_init(&nvram);
 
-    /*if (check_button()) {
-    	puts("[!] Button press detected, resetting config...");
-
-    	blink_led();
-    	blink_led();
-    	blink_led();
-
-    	config_reset_nvram(&nvram);
-    }*/
-
     /* Check EUI64 */
     if (!load_eui64_nvram(&nvram)) {
     	puts("[config] No EUI64 defined for this device. Please provide EUI64 and reboot to apply changes.");
     }
-
-    /* It's first launch or config memory is corrupted */
-    if (!load_config_nvram(&nvram)) {
-    	puts("[config] No valid configuration found in NVRAM. It's either first launch or NVRAM content is corrupted.");
-    	puts("[config] Please provide APPID64 and JOINKEY for this device.");
-
-    	config_reset_nvram(&nvram);
-    } else {
-    	puts("[config] Configuration loaded from NVRAM");
-    }
+	
+	/* It's first launch or config memory is corrupted */
+	if (!load_config_nvram(&nvram)) {
+		puts("[config] No valid configuration found in NVRAM. It's either first launch or NVRAM content is corrupted.");
+		puts("[config] Could you please provide APPID64 and JOINKEY for this device?");
+			config_reset_nvram(&nvram);
+	} else {
+		puts("[config] Configuration loaded from NVRAM");
+	}
 
     init_role(config_get_role());
 

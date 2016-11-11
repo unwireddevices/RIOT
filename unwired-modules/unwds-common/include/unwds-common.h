@@ -89,6 +89,8 @@ bool unwds_send_to_module(unwds_module_id_t modid, module_data_t *data, module_d
 uint64_t unwds_get_ability(void);
 void unwds_set_ability(uint64_t ability);
 
+char *unwds_get_module_name(unwds_module_id_t modid);
+
 void unwds_list_modules(uint64_t ability, bool enabled_only);
 
 bool unwds_is_pin_occupied(uint32_t pin);

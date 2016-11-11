@@ -48,6 +48,8 @@ extern "C" {
 
 #include "ls-regions.h"
 
+#define DISPLAY_JOINKEY_2BYTES 1
+
 typedef struct {
     bool is_valid;
 
@@ -70,7 +72,7 @@ static node_role_settings_t node_settings;
 static sx1276_t sx1276;
 static ls_ed_t ls;
 
-static unsigned int join_retr_count;
+// static unsigned int join_retr_count;
 
 void radio_init(void)
 {
@@ -113,8 +115,10 @@ void link_good_cb(void)
 void joined_timeout_cb(void)
 {
     puts("ls: join request timed out, resending");
-
-    xtimer_usleep(1e6 * 2 * ++join_retr_count);
+	/* quasi-random delay up to 8.4 seconds for collision avoidance */
+	unsigned int delay = ((xtimer_now() & 0xFF) << 15);
+	printf("ls: quasi-random retransmission delay %d msec\n", (unsigned int) (delay/1e3));
+	xtimer_usleep(delay);
     ls_ed_join(&ls);
 }
 
@@ -223,7 +227,7 @@ int ls_set_cmd(int argc, char **argv)
         puts("\tdr <0-6> -- sets device data rate [0 - slowest, 3 - average, 6 - fastest]");
         puts("\tmaxretr <0-255> -- sets maximum number of retransmissions of confirmed app. data [5 is recommended]");
         puts("\tlnkchkperiod <1-255> -- sets link check period in seconds [120 is recommended]");
-        puts("\tclass <A/B> -- sets device class");
+        puts("\tclass <A/B/C> -- sets device class");
     }
 
     char *key = argv[1];
@@ -281,12 +285,14 @@ int ls_set_cmd(int argc, char **argv)
     else if (strcmp(key, "class") == 0) {
         char v = value[0];
 
-        if (v != 'A' && v != 'B') {
-            puts("set сlass: either A or B");
+        if (v != 'A' && v != 'B' && v != 'C') {
+            puts("set сlass: A, B or C");
             return 1;
         }
 
-        ls.settings.class = (v == 'A') ? LS_ED_CLASS_A : (v == 'B') ? LS_ED_CLASS_B : LS_ED_CLASS_B;
+		if (v == 'A') { ls.settings.class = LS_ED_CLASS_A; }
+		else if (v == 'B') { ls.settings.class = LS_ED_CLASS_B; }
+		else if (v == 'C') { ls.settings.class = LS_ED_CLASS_C; };
     }
 
     node_settings.channel = ls.settings.channel;
@@ -327,6 +333,11 @@ static void print_config(void)
 
     uint64_t eui64 = config_get_nodeid();
     uint64_t appid = config_get_appid();
+	
+	if (DISPLAY_JOINKEY_2BYTES) {
+		uint8_t *key = config_get_joinkey();	
+		printf("JOINKEY = 0x....%01x%01x\n", key[14], key[15]);
+	}
 
     printf("EUI64 = 0x%08x%08x\n", (unsigned int) (eui64 >> 32), (unsigned int) (eui64 & 0xFFFFFFFF));
     printf("APPID64 = 0x%08x%08x\n", (unsigned int) (appid >> 32), (unsigned int) (appid & 0xFFFFFFFF));
@@ -340,7 +351,12 @@ static void print_config(void)
     }
 
     printf("DATARATE = %d\n", node_settings.dr);
-    printf("CLASS = %c\n", (node_settings.class == LS_ED_CLASS_A) ? 'A' : (node_settings.class == LS_ED_CLASS_B) ? 'B' : '?');
+	
+	char class;
+	if (node_settings.class == LS_ED_CLASS_A) {class = 'A'; }
+	else if (node_settings.class == LS_ED_CLASS_B) {class = 'B'; }
+	else if (node_settings.class == LS_ED_CLASS_C) {class = 'C'; };
+    printf("CLASS = %c\n", class);
     printf("LNKCHKPERIOD (s) = %d\n", node_settings.lnkchk_period);
     printf("MAXRETR = %d\n", node_settings.max_retr);
 
@@ -421,53 +437,61 @@ static int ls_listmodules_cmd(int argc, char **argv)
     return 0;
 }
 
-static int ls_modenable_cmd(int argc, char **argv)
+static int ls_module_cmd(int argc, char **argv)
 {
-    if (argc < 1) {
-        puts("Usage: modenable <modid>. Example: modenable 1");
-        printf("Please note that you can enable UP TO %d modules at the same time!\n", UNWDS_STACK_POOL_SIZE);
+    if (argc < 3) {
+        puts("Usage: mod <modid> <0|1>. Example: module 7 1");
         return 1;
     }
 
     uint8_t modid = atoi(argv[1]);
     if (!unwds_is_module_exists(modid)) {
-        puts("modenable: module with specified id is not exists");
+        puts("mod: module with specified id doesn't exist");
         return 1;
     }
 
-    node_settings.ability |= unwds_get_ability_mask(modid);
-
-    return 0;
-}
-
-static int ls_moddisable_cmd(int argc, char **argv)
-{
-    if (argc < 1) {
-        puts("Usage: modenable <modid>. Example: modenable 1");
-        return 1;
-    }
-
-    uint8_t modid = atoi(argv[1]);
-    if (!unwds_is_module_exists(modid)) {
-        puts("moddisable: module with specified id is not exists");
-        return 1;
-    }
-
-    /* Remove module from node's ability */
-    node_settings.ability &= ~unwds_get_ability_mask(modid);
+	if (atoi(argv[2]))
+	{
+		/* Enable module */
+		node_settings.ability |= unwds_get_ability_mask(modid);
+		printf("mod: %s [%d] enabled. Save and reboot to apply changes\n", unwds_get_module_name(modid), modid);
+	} else {
+		/* Disable module */
+		node_settings.ability &= ~unwds_get_ability_mask(modid);
+		printf("mod: %s [%d] disabled. Save and reboot to apply changes\n", unwds_get_module_name(modid), modid);
+	}
 
     return 0;
 }
 
 static int ls_clear_nvram(int argc, char **argv)
 {
-
-    if (clear_nvram()) {
-        puts("[ok] Settings cleared");
-        puts("Type \"reboot\" to define new configuration");
+    if (argc < 2) {
+        puts("Usage: clear <all|key> -- clear all NVRAM contents or just the security key.");
+        return 1;
     }
-    else {
-        puts("[error] Unable to clear NVRAM");
+	
+    char *key = argv[1];
+
+    if (strcmp(key, "all") == 0) {
+		puts("Please wait a minute while I'm cleaning up here...");
+		if (clear_nvram()) {
+			puts("[ok] Settings cleared, let me reboot this device now");
+			NVIC_SystemReset();
+		}
+		else {
+			puts("[error] Unable to clear NVRAM");
+		}
+    }
+	else if (strcmp(key, "key") == 0) {
+		uint8_t joinkey_zero[16];
+		memset(joinkey_zero, 0, 16);
+		if (config_write_main_block(config_get_appid(), joinkey_zero)) {
+			puts("[ok] Security key was zeroed. Rebooting.");
+			NVIC_SystemReset();
+		} else {
+			puts("[error] An error occurred trying to save the key");
+		}
     }
 
     return 0;
@@ -483,20 +507,21 @@ static int print_regions_cmd(int argc, char **argv) {
 }
 
 static const shell_command_t shell_commands[] = {
-    { "set", "<config> <value> -- sets up value for the configuration entry", ls_set_cmd },
+    { "set", "<config> <value> -- set value for the configuration entry", ls_set_cmd },
 
-    { "listconfig", "-- prints out current configuration", ls_printc_cmd },
-	{ "listregions", "-- prints out available regions", print_regions_cmd },
+	{ "lscfg", "-- print out current configuration", ls_printc_cmd },
+	
+	{ "lsregion", "-- list available regions", print_regions_cmd },
 
-    { "listmods", "-- list available modules", ls_listmodules_cmd },
-	{ "modenable", "<modid> -- enables selected module", ls_modenable_cmd },
-    { "moddisable", "<modid> -- disables selected module", ls_moddisable_cmd },
+	{ "lsmod", "-- list available modules", ls_listmodules_cmd },
+	
+	{ "mod", "<modid> <0|1>	-- disable or enable selected module", ls_module_cmd },
 
     { "save", "-- saves current configuration", ls_save_cmd },
 
-    { "clear", "-- clears all data in NVRAM", ls_clear_nvram },
+    { "clear", "<all|key> -- clear settings stored in NVRAM", ls_clear_nvram },
 
-    { "cmd", "<modid> <cmdhex> -- executes command to selected UNWDS module", ls_cmd_cmd },
+    { "cmd", "<modid> <cmdhex> -- send command to another UNWDS devices", ls_cmd_cmd },
 
     { NULL, NULL, NULL }
 };
@@ -531,6 +556,20 @@ static bool load_config(void)
     return node_settings.is_valid;
 }
 
+static bool is_connect_button_pressed(void) {
+    if (!gpio_init(UNWD_CONNECT_BTN, GPIO_IN_PU)) {
+		if (!gpio_read(UNWD_CONNECT_BTN)) {
+			return true;
+		}
+	}
+	else
+	{
+		puts("Error initializing Connect button\n");
+	}
+	
+	return false;
+}
+
 void init_node(shell_command_t **commands)
 {
     puts("[node] Initializing...");
@@ -541,8 +580,8 @@ void init_node(shell_command_t **commands)
     rtc_init();
 
     if (!load_config()) {
-        puts("[!] This device is not configured yet. Type \"help\" to see list of possible configuration commands.");
-        puts("[!] Configure this node and type \"reboot\" to reboot and apply settings.");
+        puts("[!] Device is not configured yet. Type \"help\" to see list of possible configuration commands.");
+        puts("[!] Configure the node and type \"reboot\" to reboot and apply settings.");
 
         print_config();
     }
@@ -560,7 +599,15 @@ void init_node(shell_command_t **commands)
         ls.settings.class = node_settings.class;
 
         unwds_setup_nvram_config(config_get_nvram(), UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
-        unwds_init_modules(unwds_callback);
+		
+		if (is_connect_button_pressed() && UNWD_USE_CONNECT_BTN) {
+			puts("[!] Entering Safe Mode, all modules disabled.");
+			blink_led();
+			blink_led();
+			blink_led();
+		} else {
+			unwds_init_modules(unwds_callback);
+		}
 
         xtimer_usleep(1e6 * 1);
         ls_ed_join(&ls);

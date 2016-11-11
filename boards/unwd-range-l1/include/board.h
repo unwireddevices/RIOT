@@ -83,7 +83,8 @@ extern "C" {
 #define SX1276_DIO5 NULL
 
 /** "Connect" Button */
-#define UNWD_CONNECT_BTN GPIO_PIN(PORT_A, 1)
+#define UNWD_USE_CONNECT_BTN	1
+#define UNWD_CONNECT_BTN		GPIO_PIN(PORT_A, 1)
 
 /** GPIO Ports */
 #define UNWD_GPIO_1 GPIO_PIN(PORT_A, 1)

@@ -117,7 +117,7 @@ static void reset_config(void) {
 	uart_config.uart_dev = UMDK_UART_DEV;
 }
 
-void init_config(void) {
+static void init_config(void) {
 	reset_config();
 
 	if (!unwds_read_nvram_config(UNWDS_UART_MODULE_ID, (uint8_t *) &uart_config, sizeof(uart_config)))

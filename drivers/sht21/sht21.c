@@ -36,7 +36,7 @@ extern "C" {
  * @return 0 if initialization succeeded
  * @return <0 in case of an error
  */
-int sht21_init(sht21_t * dev)
+int sht21_init(sht21_t *dev)
 {
     uint8_t config;
 
@@ -45,7 +45,7 @@ int sht21_init(sht21_t * dev)
     /* Acquire I2C bus */
     i2c_acquire(dev->i2c);
 
-    i2c_init_master(dev->i2c, I2C_SPEED_NORMAL);
+    //i2c_init_master(dev->i2c, I2C_SPEED_NORMAL);
 
     if (i2c_read_reg(dev->i2c, SHT21_ADDRESS, SHT21_USER_REG_READ, (char *)&config) != 1) {
       puts("[sht21 driver] Error: sensor not found");

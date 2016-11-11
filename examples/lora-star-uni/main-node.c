@@ -440,7 +440,7 @@ static int ls_listmodules_cmd(int argc, char **argv)
 static int ls_module_cmd(int argc, char **argv)
 {
     if (argc < 3) {
-        puts("Usage: mod <modid> <0|1>. Example: module 7 1");
+        puts("Usage: mod <modid> <0|1>. Example: mod 7 1");
         return 1;
     }
 

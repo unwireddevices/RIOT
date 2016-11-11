@@ -68,7 +68,7 @@ static sx1276_t sx1276;
 static ls_gate_t ls;
 
 static ls_gate_channel_t channels[1] = {
-    { LS_DR6, 0, { &sx1276, &ls } },        /* DR, frequency, sx1276 & LS instance */
+    { LS_DR6, 0, 0, { &sx1276, &ls } },        /* DR, frequency, sx1276 & LS instance */
 };
 
 /* UART interaction */
@@ -229,11 +229,16 @@ void app_data_received_cb(ls_gate_node_t *node, ls_gate_channel_t *ch, uint8_t *
     if (bufsize > sizeof(hex))
     	bufsize = sizeof(hex);
 
+    int16_t rssi = ch->last_rssi;
+
     bytes_to_hex(buf, bufsize, hex, false);
-    printf("[recv] %d bytes: %s\n", bufsize, hex);
+    printf("[recv] %d bytes: %s | rssi: %d\n", bufsize, hex, rssi);
 
     char str[GC_MAX_REPLY_LEN] = { };
-    sprintf(str, "%c%08X%08X%s\n", REPLY_IND, (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF), hex);
+    sprintf(str, "%c%08X%08X%04X%s\n", REPLY_IND,
+    		(unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF),
+			(unsigned int) -rssi,
+			hex);
 
     gc_pending_fifo_push(&fifo, str);
 }
@@ -251,10 +256,15 @@ void app_data_ack_cb(ls_gate_node_t *node, ls_gate_channel_t *ch)
 
 void link_ok_cb(ls_gate_node_t *node, ls_gate_channel_t *ch)
 {
-    printf("ls-gate: link ok with 0x%08X%08X\n", (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF));
+    int16_t rssi = ch->last_rssi;
+    printf("ls-gate: link ok with 0x%08X%08X | rssi: %d\n",
+    		(unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF),
+			rssi);
 
-    char str[18] = {};
-    sprintf(str, "%c%08X%08X\n", REPLY_LNKCHK, (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF));
+    char str[22] = {};
+    sprintf(str, "%c%08X%08X%04X\n", REPLY_LNKCHK,
+    		(unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF),
+			(unsigned int) -rssi);
 
     gc_pending_fifo_push(&fifo, str);
 }

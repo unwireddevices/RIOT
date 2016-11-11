@@ -116,6 +116,8 @@ typedef struct {
 	ls_datarate_t dr;	/**< Data rate for this channel */
 	uint32_t frequency;	/**< LoRa frequency */
 
+	int16_t	last_rssi;	/**< RSSI of last received packet on this channel */
+
 	ls_channel_internal_t _internal;	/**< Internal channel-specific data */
 } ls_gate_channel_t;
 

@@ -268,27 +268,26 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             return true;
 
         case LS_DL_LNKCHK: /* Link check acknowledge */
+        case LS_DL_LNKCHK_P: /* Link check acknowledged with frames pending */
+        	/*
+        	 * Make sure that we've received link check acknowledge which is for us.
+        	 * The frames with invalid MIC should be ignored
+        	 */
+            if (!ls_validate_frame_mic(ls->settings.crypto.mic_key, frame)) {
+                return false;
+            }
+
             /* Remove timeout timer */
             xtimer_remove(&ls->_internal.lnkchk_expired);
 
+            /* Notify application about successful link check */
             if (ls->link_good_cb != NULL) {
                 ls->link_good_cb();
             }
 
-            return true;
-
-        case LS_DL_LNKCHK_P: /* Link check acknowledged with frames pending */
-        	puts("ls-ed: waiting for next pending frame");
-
-            /* Remove timeout timer */
-        	xtimer_remove(&ls->_internal.lnkchk_expired);
-
-            if (ls->link_good_cb != NULL) {
-                ls->link_good_cb();
-            }
-
-            /* False because we must wait for another frame which is pending */
-            return false;
+            /* Close RX window only if we haven't pending frames (regular link check acknowledge received) */
+            bool close_rx_window = frame->header.type == LS_DL_LNKCHK;
+            return close_rx_window;
 
         default:
         case LS_UL_CONF:        /* Uplink data confirmed */

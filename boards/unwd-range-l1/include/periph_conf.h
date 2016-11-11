@@ -302,11 +302,11 @@ static const timer_conf_t timer_config[] = {
 #define I2C_1_ERR_ISR       isr_i2c2_er
 
 static const i2c_conf_t i2c_config[] = {
-    /* device, port, scl-, sda-pin-number, I2C-AF, ER-IRQn, EV-IRQn */
+    /* device, port, scl-, sda-pin-number, I2C-AF, ER-IRQn, EV-IRQn, CLKEN bit */
     {I2C1, GPIO_PIN(PORT_B,  8), GPIO_PIN(PORT_B,  9), GPIO_OD_PU,
-     GPIO_AF4, I2C1_ER_IRQn, I2C1_EV_IRQn},
+     GPIO_AF4, I2C1_ER_IRQn, I2C1_EV_IRQn, 0},
     {I2C2, GPIO_PIN(PORT_B, 10), GPIO_PIN(PORT_B, 11), GPIO_OD_PU,
-     GPIO_AF4, I2C2_ER_IRQn, I2C2_EV_IRQn},
+     GPIO_AF4, I2C2_ER_IRQn, I2C2_EV_IRQn, 1},
 };
 
 /** @} */

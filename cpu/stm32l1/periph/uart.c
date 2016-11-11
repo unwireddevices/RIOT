@@ -157,12 +157,19 @@ void uart_write(uart_t uart, const uint8_t *data, size_t len)
             return;
     }
 
-    for (size_t i = 0; i < len; i++) {
-    	while (!(dev->SR & USART_SR_TXE)) {}
-        dev->DR = data[i];
+    long ticks;
+    const long timeout = 50000;
 
-        while (!(dev->SR & USART_SR_TC)) {}
+    for (size_t i = 0; i < len; i++) {
+    	ticks = 0;
+        dev->DR = data[i];
+    	/* Wait for 'sent to DR' flag */
+    	while (!(dev->SR & USART_SR_TXE) && ticks < timeout) { ticks++; }
+
+    	ticks = 0;
         dev->SR &= ~USART_SR_TC;
+        /* Wait for 'transfer complete' flag */
+        while (!(dev->SR & USART_SR_TC) && ticks < timeout) { ticks++; }
     }
 }
 

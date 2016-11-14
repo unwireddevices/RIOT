@@ -14,7 +14,7 @@
  * @file		umdk-lps331.c
  * @brief       umdk-lps331 module implementation
  * @author      Mikhail Churikov
- * @author		Evgeniy Ponomarev
+ * @author		Evgeniy Ponomarev 
  */
 
 #ifdef __cplusplus
@@ -64,12 +64,12 @@ static void prepare_result(module_data_t *buf)
 	uint16_t temperature_unwds, pressure_unwds;
 
     temperature_mc = lps331ap_read_temp(&dev);
-	temperature_unwds = (temperature_mc << 4)/1000;
+	temperature_unwds = (temperature_mc/1000.0f + 100.0f) * 16.0f;
 	
     pressure_mbar = lps331ap_read_pres(&dev);
 	pressure_unwds = pressure_mbar >> 4;
 
-	printf("[lps331] T: %d C, P: %d mbar\n", temperature_unwds >> 4, pressure_unwds << 4);
+	printf("[lps331] T: %d C, P: %d mbar\n", (temperature_unwds >> 4)-100, pressure_unwds << 4);
 
     buf->length = 1 + 2 + 2; /* One byte for module ID, two bytes for temperature, two bytes for pressure*/
 

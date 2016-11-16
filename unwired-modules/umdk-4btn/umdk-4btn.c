@@ -23,6 +23,7 @@ extern "C" {
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <limits.h>
 
 #include "periph/gpio.h"
 
@@ -36,7 +37,7 @@ extern "C" {
 
 static kernel_pid_t handler_pid;
 
-static int last_pressed[4] = {};
+static uint32_t last_pressed[4] = {};
 
 static uwnds_cb_t *callback;
 
@@ -66,8 +67,13 @@ static void btn_pressed_int(void *arg) {
 	int btn_num = ((int) arg) - 1;
 
     uint32_t now = xtimer_now();
-    /* Don't accept a press of current button if it did occur earlier than last press plus debouncing time */
-    if (now - last_pressed[btn_num] <= UMDK_4BTN_DEBOUNCE_TIME_MS * 1000) {
+    /* Timer overflows every ~71 minutes */
+	uint32_t overflow = 0;
+	if (last_pressed[btn_num] > now) {
+		overflow = UINT32_MAX - last_pressed[btn_num];
+	}
+	/* Don't accept a press of current button if it did occur earlier than last press plus debouncing time */
+    if (overflow + now - last_pressed[btn_num] <= UMDK_4BTN_DEBOUNCE_TIME_MS * 1000) {
     	puts("[4btn] Press rejected");
     	return;
 	}

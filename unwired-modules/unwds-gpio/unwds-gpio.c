@@ -224,8 +224,9 @@ void unwds_gpio_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 }
 
 static inline void do_reply(module_data_t *reply, unwds_gpio_reply_t reply_code) {
-	reply->length = 1;
-	reply->data[0] = reply_code;
+	reply->length = UWNDS_GPIO_DATA_LEN + 1;
+	reply->data[0] = UNWDS_GPIO_MODULE_ID;
+	reply->data[1] = reply_code;
 }
 
 static bool check_pin(module_data_t *reply, int pin) {

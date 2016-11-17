@@ -54,11 +54,6 @@ void wdg_reload(void);
 bool wdg_reset_occurred(void);
 
 /**
- * @brief Resets flag which indicates that previous reset was caused by watchdog timer.
- */
-void wdg_reset_clear(void);
-
-/**
  * @brief Gets current reload value in watchdog timer.
  *
  * @return current reload value

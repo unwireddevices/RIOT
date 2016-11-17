@@ -87,11 +87,6 @@ bool wdg_reset_occurred(void)
     return RCC->CSR & RCC_CSR_IWDGRSTF;
 }
 
-void wdg_reset_clear(void) {
-    /* Clear watchdog reset flag */
-    RCC->CSR &= ~RCC_CSR_IWDGRSTF;
-}
-
 uint32_t wdg_get_value(void)
 {
     return IWDG->RLR;

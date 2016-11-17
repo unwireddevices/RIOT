@@ -71,6 +71,7 @@ typedef enum {
 
 typedef enum {
 	LS_GATE_PING = 0,
+	LS_GATE_KEEPALIVE,
 } ls_gate_tim_cmd_t;
 
 /**
@@ -92,8 +93,10 @@ typedef enum {
  * Could be stored in non-volatile memory
  */
 typedef struct {
-	uint64_t gate_id;			/**< Unique node ID */
-	uint8_t *join_key;			/**< Join MIC key */
+	uint64_t gate_id;				/**< Unique node ID */
+	uint8_t *join_key;				/**< Join MIC key */
+
+	uint32_t keepalive_period_ms;	/**< Period of calling `keepalive_cb` [milliseconds] */
 } ls_gate_settings_t;
 
 /**
@@ -128,15 +131,14 @@ typedef struct {
  * @brief Lora-Star gate stack internal data.
  */
 typedef struct {
-    uint32_t ping_count;			/**< Ping count, increments every PING_TIMEOUT us */
-    xtimer_t ping_timer;			/**< Timer for periodic ping count increment */
+    uint32_t ping_count;				/**< Ping count, increments every PING_TIMEOUT us */
+    xtimer_t ping_timer;				/**< Timer for periodic ping count increment */
+    xtimer_t keepalive_timer;			/**< Timer for periodic keepalive callback calls */
 
     /* Timeout message handler data */
     char tim_thread_stack[LS_TIM_HANDLER_STACKSIZE];
 	kernel_pid_t tim_thread_pid;
 	msg_t tim_msg_queue[LS_TIM_MSG_QUEUE_SIZE];
-
-	xtimer_t pending_timer;		/**< Timer for serving pending frames */
 } ls_gate_internal_t;
 
 /**
@@ -157,6 +159,9 @@ typedef struct {
 
 	void (*app_data_ack_cb)(ls_gate_node_t *node, ls_gate_channel_t *ch);
 	void (*link_ok_cb)(ls_gate_node_t *node, ls_gate_channel_t *ch);
+
+	/* Gate will call this callback periodically to make sure that watchdog timer (if used) is reset in time  */
+	void (*keepalive_cb)(void);
 
 	ls_gate_devices_t devices;		/**< Devices list */
 

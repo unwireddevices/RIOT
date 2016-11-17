@@ -44,6 +44,7 @@ static uint8_t datarate_table[7][3] = {
 };
 
 static msg_t msg_ping;
+static msg_t msg_keepalive;
 
 static void prepare_sx1276(ls_gate_channel_t *ch)
 {
@@ -445,6 +446,14 @@ static void *tim_handler(void *arg)
                 /* Restart timer */
                 xtimer_set_msg(&ls->_internal.ping_timer, LS_PING_TIMEOUT, &msg_ping, ls->_internal.tim_thread_pid);
                 break;
+
+            case LS_GATE_KEEPALIVE:
+            	/* Call application code */
+            	ls->keepalive_cb();
+
+            	/* Restart timer */
+            	xtimer_set_msg(&ls->_internal.keepalive_timer, 1000 * ls->settings.keepalive_period_ms, &msg_keepalive, ls->_internal.tim_thread_pid);
+            	break;
         }
     }
 
@@ -519,6 +528,7 @@ int ls_gate_init(ls_gate_t *ls)
     assert(ls->num_channels > 0);
 
     msg_ping.content.value = LS_GATE_PING;
+    msg_keepalive.content.value = LS_GATE_KEEPALIVE;
 
     if (!create_tim_handler_thread(ls)) {
         return -LS_INIT_E_TIM_THREAD;
@@ -526,6 +536,11 @@ int ls_gate_init(ls_gate_t *ls)
 
     /* Start ping timer */
     xtimer_set_msg(&ls->_internal.ping_timer, LS_PING_TIMEOUT, &msg_ping, ls->_internal.tim_thread_pid);
+
+    /* Start keepalive timer */
+    if (ls->settings.keepalive_period_ms != 0 && ls->keepalive_cb != NULL) {
+    	xtimer_set_msg(&ls->_internal.keepalive_timer, 1000 * ls->settings.keepalive_period_ms, &msg_keepalive, ls->_internal.tim_thread_pid);
+    }
 
     ls_devlist_init(&ls->devices);
     initialize_channels(ls);

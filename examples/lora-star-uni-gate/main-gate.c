@@ -30,10 +30,11 @@ extern "C" {
 #include "xtimer.h"
 #include "lpm.h"
 #include "periph/rtc.h"
+#include "periph/uart.h"
+#include "periph/wdg.h"
+
 #include "random.h"
 #include "ringbuffer.h"
-#include "periph/uart.h"
-
 #include "board.h"
 
 #include "sx1276.h"
@@ -269,10 +270,23 @@ void link_ok_cb(ls_gate_node_t *node, ls_gate_channel_t *ch)
     gc_pending_fifo_push(&fifo, str);
 }
 
+#ifdef GATE_USE_WATCHDOG
+static void keepalive_cb(void) {
+	xtimer_usleep(100); /* XXX: watchdog timer don't want to reset without a small delay before */
+	wdg_reload();
+}
+#endif
+
 static void ls_setup(ls_gate_t *ls)
 {
     ls->settings.gate_id = config_get_nodeid();
     ls->settings.join_key = config_get_joinkey();
+
+#ifdef GATE_USE_WATCHDOG
+    ls->settings.keepalive_period_ms = 1000; /* 1 second */
+#else
+    ls->settings.keepalive_period_ms = 0;
+#endif
 
     if (node_settings.is_valid) {
         channels[0].frequency = regions[node_settings.region_index].channels[node_settings.channel];
@@ -289,6 +303,12 @@ static void ls_setup(ls_gate_t *ls)
 
     ls->link_ok_cb = link_ok_cb;
     ls->app_data_ack_cb = app_data_ack_cb;
+
+#ifdef GATE_USE_WATCHDOG
+    ls->keepalive_cb = keepalive_cb;
+#else
+    ls->keepalive_cb = NULL;
+#endif
 }
 
 static int ls_set_cmd(int argc, char **argv)
@@ -509,6 +529,34 @@ static const shell_command_t shell_commands[] = {
     { NULL, NULL, NULL }
 };
 
+#ifdef GATE_USE_WATCHDOG
+static void watchdog_start(void) {
+	/* Set watchdog to about 3.5 seconds */
+    wdg_set_prescaler(0x03);
+    wdg_set_reload((uint16_t) 0x0FFF);
+
+    /* Start watchdog */
+    wdg_reload();
+    wdg_enable();
+
+	puts("[!] Watchdog timer is enabled. Use `connect` button on reset to disable watchdog timer");
+}
+
+static bool is_connect_button_pressed(void) {
+    if (!gpio_init(UNWD_CONNECT_BTN, GPIO_IN_PU)) {
+		if (!gpio_read(UNWD_CONNECT_BTN)) {
+			return true;
+		}
+	}
+	else
+	{
+		puts("Error initializing Connect button");
+	}
+
+	return false;
+}
+#endif
+
 static bool load_config(void)
 {
     if (!config_read_role_block((uint8_t *) &node_settings, sizeof(node_role_settings_t))) {
@@ -524,11 +572,20 @@ void init_gate(shell_command_t **commands)
 {
     if (load_config()) {
         print_config();
-
         puts("[ok] Configuration seems valid, initializing LoRa gate...");
+
+#ifdef GATE_USE_WATCHDOG
+        if (!is_connect_button_pressed())
+        	watchdog_start();
+        else
+        	puts("[!] Watchdog timer is suppressed by `connect` button");
+#endif
+
         uart_gate_init();
+
         radio_init();
         sx1276_init(&sx1276);
+
         ls_setup(&ls);
         ls_gate_init(&ls);
 

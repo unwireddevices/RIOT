@@ -8,6 +8,7 @@ BOARD ?= unwd-range-l1
 RIOTBASE ?= $(CURDIR)/../..
 
 CFLAGS += -DDEVELHELP
+CFLAGS += -DGATE_USE_WATCHDOG
 
 FEATURES_REQUIRED = periph_spi periph_gpio
 

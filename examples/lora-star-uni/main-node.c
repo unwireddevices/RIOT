@@ -352,9 +352,8 @@ static void print_config(void)
 
     printf("DATARATE = %d\n", node_settings.dr);
 	
-	char class = 'A';
-	if (node_settings.class == LS_ED_CLASS_A) {class = 'A'; }
-	else if (node_settings.class == LS_ED_CLASS_B) {class = 'B'; }
+	char class = 'A'; // node_settings.class == LS_ED_CLASS_A
+	if (node_settings.class == LS_ED_CLASS_B) {class = 'B'; }
 	else if (node_settings.class == LS_ED_CLASS_C) {class = 'C'; };
     printf("CLASS = %c\n", class);
     printf("LNKCHKPERIOD (s) = %d\n", node_settings.lnkchk_period);

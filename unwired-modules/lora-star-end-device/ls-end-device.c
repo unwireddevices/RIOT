@@ -157,7 +157,7 @@ static int send_frame(ls_ed_t *ls, ls_type_t type, uint8_t *buf, size_t buflen)
     if (ls->settings.class != LS_ED_CLASS_A) {
         open_rx_windows(ls);
     }
-    else if (ls->state != LS_ED_LISTENING) {
+    else if (ls->state == LS_ED_IDLE) {
         schedule_tx(ls);
     }
 
@@ -716,6 +716,9 @@ int ls_ed_join(ls_ed_t *ls)
 
     if (ls->wakeup_cb != NULL)
     	ls->wakeup_cb();
+
+    /* Enter IDLE state */
+    ls->state = LS_ED_IDLE;
 
     /* Leave network if we're currently joined */
     ls_ed_unjoin(ls);

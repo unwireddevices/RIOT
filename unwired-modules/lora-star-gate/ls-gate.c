@@ -424,25 +424,6 @@ static void *tim_handler(void *arg)
             case LS_GATE_PING:
                 ls->_internal.ping_count++;
 
-                /* Kick all devices with big ping difference */
-                for (int i = 0; i < LS_GATE_MAX_NODES; i++) {
-                    if (!ls->devices.nodes_free_list[i]) {
-                        ls_gate_node_t *node = &ls->devices.nodes[i];
-
-                        int diff = ls->_internal.ping_count - node->last_seen;
-
-                        if (diff >= LS_MAX_PING_DIFFERENCE) {
-                            /* Kick node */
-                            ls_devlist_remove_device(&ls->devices, i);
-
-                            /* Notify application code about kicked node */
-                            if (ls->node_kicked_cb != NULL) {
-                                ls->node_kicked_cb(node);
-                            }
-                        }
-                    }
-                }
-
                 /* Restart timer */
                 xtimer_set_msg(&ls->_internal.ping_timer, LS_PING_TIMEOUT, &msg_ping, ls->_internal.tim_thread_pid);
                 break;

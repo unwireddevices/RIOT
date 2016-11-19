@@ -299,7 +299,6 @@ int ls_set_cmd(int argc, char **argv)
         else if (v == 'C') {
             ls.settings.class = LS_ED_CLASS_C;
         }
-        ;
     }
 
     node_settings.channel = ls.settings.channel;

@@ -356,7 +356,12 @@ static void print_config(void)
 	if (node_settings.class == LS_ED_CLASS_B) {class = 'B'; }
 	else if (node_settings.class == LS_ED_CLASS_C) {class = 'C'; };
     printf("CLASS = %c\n", class);
-    printf("LNKCHKPERIOD (s) = %d\n", node_settings.lnkchk_period);
+
+    if (class == 'A')
+    	puts("LNKCHKPERIOD (s) = <don't care>");
+    else
+    	printf("LNKCHKPERIOD (s) = %d\n", node_settings.lnkchk_period);
+
     printf("MAXRETR = %d\n", node_settings.max_retr);
 
     puts("[ enabled modules ]");

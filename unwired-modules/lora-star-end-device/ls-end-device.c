@@ -124,7 +124,8 @@ static void open_rx_windows(ls_ed_t *ls)
         /* Enter reception mode */
         enter_rx(ls);
     }
-	// for a while, B and C are the same
+
+	/* For a while, B and C are the same */
     else if (ls->settings.class == LS_ED_CLASS_B) {
         xtimer_set_msg(&ls->_internal.rx_window1, LS_RX_DELAY1, &msg_rx1, ls->_internal.tim_thread_pid);
         enter_rx(ls);
@@ -265,7 +266,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             ls->_internal.wakeup_msg = NULL;
 
             /* Start periodic link check if needed */
-            if (ls->settings.lnkchk_period_s != 0) {
+            if (ls->settings.class != LS_ED_CLASS_A && ls->settings.lnkchk_period_s != 0) {
             	xtimer_set_msg(&ls->_internal.lnkchk_timer, 1e6 * ls->settings.lnkchk_period_s, &msg_lnkchk_begin, ls->_internal.tim_thread_pid);
             }
 
@@ -748,6 +749,10 @@ int ls_ed_join(ls_ed_t *ls)
 void ls_ed_lnkchk(ls_ed_t *ls)
 {
     assert(ls != NULL);
+
+    /* No link checks on class A */
+    if (ls->settings.class == LS_ED_CLASS_A)
+    	return;
 
     /* The device has to be joined */
     if (!ls->_internal.is_joined) {

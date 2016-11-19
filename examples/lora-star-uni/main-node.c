@@ -61,10 +61,10 @@ typedef struct {
 
     ls_node_class_t class;
 
-    uint64_t ability;   	/**< Defines ability mask - list of enabled UNWDS modules */
+    uint64_t ability;       /**< Defines ability mask - list of enabled UNWDS modules */
 
     bool region_not_set;
-    uint8_t region_index;	/**< Selected channels region index */
+    uint8_t region_index;   /**< Selected channels region index */
 } node_role_settings_t;
 
 static node_role_settings_t node_settings;
@@ -115,10 +115,10 @@ void link_good_cb(void)
 void joined_timeout_cb(void)
 {
     puts("ls: join request timed out, resending");
-	/* quasi-random delay up to 8.4 seconds for collision avoidance */
-	unsigned int delay = ((xtimer_now() & 0xFF) << 15);
-	printf("ls: quasi-random retransmission delay %d msec\n", (unsigned int) (delay/1e3));
-	xtimer_usleep(delay);
+    /* quasi-random delay up to 8.4 seconds for collision avoidance */
+    unsigned int delay = ((xtimer_now() & 0xFF) << 15);
+    printf("ls: quasi-random retransmission delay %d msec\n", (unsigned int) (delay / 1e3));
+    xtimer_usleep(delay);
     ls_ed_join(&ls);
 }
 
@@ -188,8 +188,8 @@ static void ls_setup(ls_ed_t *ls)
     ls->settings.channel = node_settings.channel;
 
     if (!node_settings.region_not_set) {
-    	ls->settings.channels_table = regions[node_settings.region_index].channels;
-    	ls->settings.channels_table_size = regions[node_settings.region_index].num_channels;
+        ls->settings.channels_table = regions[node_settings.region_index].channels;
+        ls->settings.channels_table_size = regions[node_settings.region_index].num_channels;
     }
 
     ls->settings.app_id = config_get_appid();
@@ -247,8 +247,8 @@ int ls_set_cmd(int argc, char **argv)
         uint8_t v = strtol(value, NULL, 10);
 
         if (node_settings.region_not_set) {
-        	puts("set ch: set region first via \"set region\" command");
-        	return 1;
+            puts("set ch: set region first via \"set region\" command");
+            return 1;
         }
 
         if (v > regions[node_settings.region_index].num_channels - 1) {
@@ -259,15 +259,15 @@ int ls_set_cmd(int argc, char **argv)
         ls.settings.channel = (ls_channel_t) v;
     }
     else if (strcmp(key, "region") == 0) {
-		uint8_t v = strtol(value, NULL, 10);
+        uint8_t v = strtol(value, NULL, 10);
 
-		if (v > LS_UNI_NUM_REGIONS) {
-			printf("set region: region value must be from 0 to %d\n", LS_UNI_NUM_REGIONS - 1);
-			return 1;
-		}
+        if (v > LS_UNI_NUM_REGIONS) {
+            printf("set region: region value must be from 0 to %d\n", LS_UNI_NUM_REGIONS - 1);
+            return 1;
+        }
 
-		node_settings.region_index = v;
-		node_settings.region_not_set = false;
+        node_settings.region_index = v;
+        node_settings.region_not_set = false;
     }
     else if (strcmp(key, "maxretr") == 0) {
         uint8_t v = strtol(value, NULL, 10);
@@ -290,9 +290,16 @@ int ls_set_cmd(int argc, char **argv)
             return 1;
         }
 
-		if (v == 'A') { ls.settings.class = LS_ED_CLASS_A; }
-		else if (v == 'B') { ls.settings.class = LS_ED_CLASS_B; }
-		else if (v == 'C') { ls.settings.class = LS_ED_CLASS_C; };
+        if (v == 'A') {
+            ls.settings.class = LS_ED_CLASS_A;
+        }
+        else if (v == 'B') {
+            ls.settings.class = LS_ED_CLASS_B;
+        }
+        else if (v == 'C') {
+            ls.settings.class = LS_ED_CLASS_C;
+        }
+        ;
     }
 
     node_settings.channel = ls.settings.channel;
@@ -304,63 +311,73 @@ int ls_set_cmd(int argc, char **argv)
     return 0;
 }
 
-static void print_regions(void) {
-	puts("[ available regions ]");
+static void print_regions(void)
+{
+    puts("[ available regions ]");
 
-	int i;
-	for (i = 0; i < LS_UNI_NUM_REGIONS; i++) {
-		printf("%d. %s [", i, regions[i].region);
-		int j;
-		for (j = 0; j < regions[i].num_channels; j++) {
-			printf("%d", (unsigned) regions[i].channels[j]);
+    int i;
+    for (i = 0; i < LS_UNI_NUM_REGIONS; i++) {
+        printf("%d. %s [", i, regions[i].region);
+        int j;
+        for (j = 0; j < regions[i].num_channels; j++) {
+            printf("%d", (unsigned) regions[i].channels[j]);
 
-			if (j + 1 != regions[i].num_channels)
-				printf(", ");
-		}
+            if (j + 1 != regions[i].num_channels) {
+                printf(", ");
+            }
+        }
 
-		puts("]");
-	}
+        puts("]");
+    }
 }
 
 static void print_config(void)
 {
-	if (node_settings.region_not_set) {
-		puts("[!] Region is not set yet");
-		print_regions();
-	}
+    if (node_settings.region_not_set) {
+        puts("[!] Region is not set yet");
+        print_regions();
+    }
 
     puts("[ node configuration ]");
 
     uint64_t eui64 = config_get_nodeid();
     uint64_t appid = config_get_appid();
-	
-	if (DISPLAY_JOINKEY_2BYTES) {
-		uint8_t *key = config_get_joinkey();	
-		printf("JOINKEY = 0x....%01x%01x\n", key[14], key[15]);
-	}
+
+    if (DISPLAY_JOINKEY_2BYTES) {
+        uint8_t *key = config_get_joinkey();
+        printf("JOINKEY = 0x....%01x%01x\n", key[14], key[15]);
+    }
 
     printf("EUI64 = 0x%08x%08x\n", (unsigned int) (eui64 >> 32), (unsigned int) (eui64 & 0xFFFFFFFF));
     printf("APPID64 = 0x%08x%08x\n", (unsigned int) (appid >> 32), (unsigned int) (appid & 0xFFFFFFFF));
 
     if (!node_settings.region_not_set) {
-    	printf("REGION = %s\n", regions[node_settings.region_index].region);
-    	printf("CHANNEL = %d [%d]\n", node_settings.channel, (unsigned) regions[node_settings.region_index].channels[node_settings.channel]);
-    } else {
-    	puts("REGION = <not set>");
-    	puts("CHANNEL = <set region first>");
+        printf("REGION = %s\n", regions[node_settings.region_index].region);
+        printf("CHANNEL = %d [%d]\n", node_settings.channel, (unsigned) regions[node_settings.region_index].channels[node_settings.channel]);
+    }
+    else {
+        puts("REGION = <not set>");
+        puts("CHANNEL = <set region first>");
     }
 
     printf("DATARATE = %d\n", node_settings.dr);
-	
-	char class = 'A'; // node_settings.class == LS_ED_CLASS_A
-	if (node_settings.class == LS_ED_CLASS_B) {class = 'B'; }
-	else if (node_settings.class == LS_ED_CLASS_C) {class = 'C'; };
+
+    char class = 'A'; // node_settings.class == LS_ED_CLASS_A
+    if (node_settings.class == LS_ED_CLASS_B) {
+        class = 'B';
+    }
+    else if (node_settings.class == LS_ED_CLASS_C) {
+        class = 'C';
+    }
+    ;
     printf("CLASS = %c\n", class);
 
-    if (class == 'A')
-    	puts("LNKCHKPERIOD (s) = <don't care>");
-    else
-    	printf("LNKCHKPERIOD (s) = %d\n", node_settings.lnkchk_period);
+    if (class == 'A') {
+        puts("LNKCHKPERIOD (s) = <don't care>");
+    }
+    else {
+        printf("LNKCHKPERIOD (s) = %d\n", node_settings.lnkchk_period);
+    }
 
     printf("MAXRETR = %d\n", node_settings.max_retr);
 
@@ -454,16 +471,16 @@ static int ls_module_cmd(int argc, char **argv)
         return 1;
     }
 
-	if (atoi(argv[2]))
-	{
-		/* Enable module */
-		node_settings.ability |= unwds_get_ability_mask(modid);
-		printf("mod: %s [%d] enabled. Save and reboot to apply changes\n", unwds_get_module_name(modid), modid);
-	} else {
-		/* Disable module */
-		node_settings.ability &= ~unwds_get_ability_mask(modid);
-		printf("mod: %s [%d] disabled. Save and reboot to apply changes\n", unwds_get_module_name(modid), modid);
-	}
+    if (atoi(argv[2])) {
+        /* Enable module */
+        node_settings.ability |= unwds_get_ability_mask(modid);
+        printf("mod: %s [%d] enabled. Save and reboot to apply changes\n", unwds_get_module_name(modid), modid);
+    }
+    else {
+        /* Disable module */
+        node_settings.ability &= ~unwds_get_ability_mask(modid);
+        printf("mod: %s [%d] disabled. Save and reboot to apply changes\n", unwds_get_module_name(modid), modid);
+    }
 
     return 0;
 }
@@ -474,52 +491,54 @@ static int ls_clear_nvram(int argc, char **argv)
         puts("Usage: clear <all|key> -- clear all NVRAM contents or just the security key.");
         return 1;
     }
-	
+
     char *key = argv[1];
 
     if (strcmp(key, "all") == 0) {
-		puts("Please wait a minute while I'm cleaning up here...");
-		if (clear_nvram()) {
-			puts("[ok] Settings cleared, let me reboot this device now");
-			NVIC_SystemReset();
-		}
-		else {
-			puts("[error] Unable to clear NVRAM");
-		}
+        puts("Please wait a minute while I'm cleaning up here...");
+        if (clear_nvram()) {
+            puts("[ok] Settings cleared, let me reboot this device now");
+            NVIC_SystemReset();
+        }
+        else {
+            puts("[error] Unable to clear NVRAM");
+        }
     }
-	else if (strcmp(key, "key") == 0) {
-		uint8_t joinkey_zero[16];
-		memset(joinkey_zero, 0, 16);
-		if (config_write_main_block(config_get_appid(), joinkey_zero)) {
-			puts("[ok] Security key was zeroed. Rebooting.");
-			NVIC_SystemReset();
-		} else {
-			puts("[error] An error occurred trying to save the key");
-		}
+    else if (strcmp(key, "key") == 0) {
+        uint8_t joinkey_zero[16];
+        memset(joinkey_zero, 0, 16);
+        if (config_write_main_block(config_get_appid(), joinkey_zero)) {
+            puts("[ok] Security key was zeroed. Rebooting.");
+            NVIC_SystemReset();
+        }
+        else {
+            puts("[error] An error occurred trying to save the key");
+        }
     }
 
     return 0;
 }
 
-static int print_regions_cmd(int argc, char **argv) {
-	(void) argc;
-	(void) argv;
+static int print_regions_cmd(int argc, char **argv)
+{
+    (void) argc;
+    (void) argv;
 
-	print_regions();
+    print_regions();
 
-	return 0;
+    return 0;
 }
 
 static const shell_command_t shell_commands[] = {
     { "set", "<config> <value> -- set value for the configuration entry", ls_set_cmd },
 
-	{ "lscfg", "-- print out current configuration", ls_printc_cmd },
-	
-	{ "lsregion", "-- list available regions", print_regions_cmd },
+    { "lscfg", "-- print out current configuration", ls_printc_cmd },
 
-	{ "lsmod", "-- list available modules", ls_listmodules_cmd },
-	
-	{ "mod", "<modid> <0|1>	-- disable or enable selected module", ls_module_cmd },
+    { "lsregion", "-- list available regions", print_regions_cmd },
+
+    { "lsmod", "-- list available modules", ls_listmodules_cmd },
+
+    { "mod", "<modid> <0|1>	-- disable or enable selected module", ls_module_cmd },
 
     { "save", "-- saves current configuration", ls_save_cmd },
 
@@ -560,18 +579,18 @@ static bool load_config(void)
     return node_settings.is_valid;
 }
 
-static bool is_connect_button_pressed(void) {
+static bool is_connect_button_pressed(void)
+{
     if (!gpio_init(UNWD_CONNECT_BTN, GPIO_IN_PU)) {
-		if (!gpio_read(UNWD_CONNECT_BTN)) {
-			return true;
-		}
-	}
-	else
-	{
-		puts("Error initializing Connect button\n");
-	}
-	
-	return false;
+        if (!gpio_read(UNWD_CONNECT_BTN)) {
+            return true;
+        }
+    }
+    else {
+        puts("Error initializing Connect button\n");
+    }
+
+    return false;
 }
 
 void init_node(shell_command_t **commands)
@@ -603,15 +622,16 @@ void init_node(shell_command_t **commands)
         ls.settings.class = node_settings.class;
 
         unwds_setup_nvram_config(config_get_nvram(), UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
-		
-		if (is_connect_button_pressed() && UNWD_USE_CONNECT_BTN) {
-			puts("[!] Entering Safe Mode, all modules disabled.");
-			blink_led();
-			blink_led();
-			blink_led();
-		} else {
-			unwds_init_modules(unwds_callback);
-		}
+
+        if (is_connect_button_pressed() && UNWD_USE_CONNECT_BTN) {
+            puts("[!] Entering Safe Mode, all modules disabled.");
+            blink_led();
+            blink_led();
+            blink_led();
+        }
+        else {
+            unwds_init_modules(unwds_callback);
+        }
 
         xtimer_usleep(1e6 * 1);
         ls_ed_join(&ls);

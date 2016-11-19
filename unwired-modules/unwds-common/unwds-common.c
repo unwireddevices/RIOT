@@ -151,9 +151,30 @@ void unwds_init_modules(uwnds_cb_t *event_callback)
     int i = 0;
 
     /* Pre-initialize I2Cs */
-    i2c_init_master(I2C_0, I2C_SPEED_NORMAL);
-    i2c_init_master(I2C_1, I2C_SPEED_NORMAL);
 
+	bool i2c0_en = false;
+	bool i2c1_en = false;
+	while (modules[i].init_cb != NULL && modules[i].cmd_cb != NULL) {
+    	if (ability_map & modules[i].ability_mask) {
+			if ((modules[i].ability_mask == 1<<11) || (modules[i].ability_mask == 1<<8))
+			{
+				i2c0_en = true;
+//				i2c1_en = true;
+			}
+    	}
+        i++;
+    }
+	
+	if (i2c0_en) {
+		printf("[unwds] initializing I2C bus 0\n");
+		i2c_init_master(I2C_0, I2C_SPEED_NORMAL);		
+	}
+	if (i2c1_en) {
+		printf("[unwds] initializing I2C bus 1\n");
+		i2c_init_master(I2C_1, I2C_SPEED_NORMAL);
+	}
+
+	i = 0;
     while (modules[i].init_cb != NULL && modules[i].cmd_cb != NULL) {
     	if (ability_map & modules[i].ability_mask) {
     		printf("[unwds] initializing \"%s\" module...\n", modules[i].name);

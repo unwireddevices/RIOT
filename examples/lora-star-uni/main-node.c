@@ -135,9 +135,13 @@ void joined_cb(void)
 
 void appdata_send_failed_cb(void)
 {
-    puts("ls-ed: application data confirmation timeout. Checking link...");
-
-    ls_ed_lnkchk(&ls);
+	if (ls.settings.class == LS_ED_CLASS_A) {
+		puts("ls-ed: application data confirmation timeout. Rejoining...");
+		joined_timeout_cb();
+	} else {
+		puts("ls-ed: application data confirmation timeout. Checking link...");
+	    ls_ed_lnkchk(&ls);
+	}
 }
 
 void appdata_received_cb(uint8_t *buf, size_t buflen)

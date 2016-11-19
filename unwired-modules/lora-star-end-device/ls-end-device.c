@@ -157,7 +157,7 @@ static int send_frame(ls_ed_t *ls, ls_type_t type, uint8_t *buf, size_t buflen)
     if (ls->settings.class != LS_ED_CLASS_A) {
         open_rx_windows(ls);
     }
-    else if (ls->state == LS_ED_IDLE) {
+    else if (ls->state == LS_ED_IDLE || ls->state == LS_ED_SLEEP) {
         schedule_tx(ls);
     }
 

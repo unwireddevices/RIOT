@@ -201,12 +201,6 @@ typedef struct {
 	/* Timer for the periodic link check */
 	xtimer_t lnkchk_timer;
 
-	/* Delay before next wakeup in microseconds */
-	uint32_t wakeup_delay;
-
-	/* Wakeup message to send for timeout handling thread */
-	msg_t *wakeup_msg;
-
 	/* Sleep request timer */
 	xtimer_t sleep_req_timer;
 

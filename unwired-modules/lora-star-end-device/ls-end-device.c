@@ -262,9 +262,6 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
                 ls->joined_cb();
             }
 
-            /* Clear wakeup reason */
-            ls->_internal.wakeup_msg = NULL;
-
             /* Start periodic link check if needed */
             if (ls->settings.class != LS_ED_CLASS_A && ls->settings.lnkchk_period_s != 0) {
             	xtimer_set_msg(&ls->_internal.lnkchk_timer, 1e6 * ls->settings.lnkchk_period_s, &msg_lnkchk_begin, ls->_internal.tim_thread_pid);
@@ -633,8 +630,6 @@ int ls_ed_init(ls_ed_t *ls)
     ls->_internal.num_retr = 0;
     ls->_internal.is_joined = false;
     ls->_internal.dev_addr = LS_ADDR_UNDEFINED;
-    ls->_internal.wakeup_msg = NULL;
-    ls->_internal.wakeup_delay = 0;
 
     mutex_init(&ls->_internal.curr_frame_mutex);
     memset(&ls->status, 0, sizeof(ls_device_status_t));

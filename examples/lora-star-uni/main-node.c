@@ -627,7 +627,8 @@ void init_node(shell_command_t **commands)
         unwds_setup_nvram_config(config_get_nvram(), UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
 
         if (is_connect_button_pressed() && UNWD_USE_CONNECT_BTN) {
-            puts("[!] Entering Safe Mode, all modules disabled.");
+            puts("[!] Entering Safe Mode, all modules disabled, class C.");
+			ls.settings.class = LS_ED_CLASS_C;
             blink_led();
             blink_led();
             blink_led();

@@ -40,7 +40,7 @@
 /**
  * @brief Difference in ping count. If the node skipped LS_MAX_PING_DIFFERENCE pings it considered as dead and would be kicked from the network
  */
-#define LS_MAX_PING_DIFFERENCE (60 * 3)
+#define LS_MAX_PING_DIFFERENCE (60 * 60 * 12)  /* 36 hours */
 
 #define LS_TX_DELAY_MIN_MS 100
 #define LS_TX_DELAY_MAX_MS 1000

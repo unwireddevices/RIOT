@@ -190,6 +190,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 {
     switch (frame->header.type) {
         case LS_DL_ACK:                             /* Downlink frame acknowledge for confirmed messages */
+        case LS_DL_ACK_P:							/* Downlink frame acknowledge with frames pending */
             if (!ls_validate_frame_mic(ls->settings.crypto.mic_key, frame)) {
                 return false;
             }
@@ -202,7 +203,9 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             /* Remove link check timer */
             xtimer_remove(&ls->_internal.lnkchk_expired);
 
-            return true;
+            /* Close RX window only if we haven't pending frames (regular app. data acknowledge received) */
+            bool close_rx_window = frame->header.type == LS_DL_ACK;
+            return close_rx_window;
 
         case LS_DL:         /* Downlink frame */
             /* Must be joined to the network first */
@@ -270,7 +273,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             return true;
 
         case LS_DL_LNKCHK: /* Link check acknowledge */
-        case LS_DL_LNKCHK_P: /* Link check acknowledged with frames pending */
+        case LS_DL_LNKCHK_P: { /* Link check acknowledged with frames pending */
         	/*
         	 * Make sure that we've received link check acknowledge which is for us.
         	 * The frames with invalid MIC should be ignored
@@ -290,11 +293,9 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             /* Close RX window only if we haven't pending frames (regular link check acknowledge received) */
             bool close_rx_window = frame->header.type == LS_DL_LNKCHK;
             return close_rx_window;
+        }
 
         default:
-        case LS_UL_CONF:        /* Uplink data confirmed */
-        case LS_UL_UNC:         /* Uplink data unconfirmed */
-        case LS_UL_JOIN_REQ:    /* Join request */
             /* Not interested in frames from other devices */
             return false;
     }
@@ -323,6 +324,14 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
 					if (ls->settings.class == LS_ED_CLASS_A) {
 						close_rx_windows(ls);
 					}
+				} else {
+					puts("ls-ed: first RX window reopened");
+
+					/* Reopen RX window */
+					xtimer_remove(&ls->_internal.rx_window1);
+					xtimer_remove(&ls->_internal.rx_window2);
+
+					open_rx_windows(ls);
 				}
 			}
 			else {

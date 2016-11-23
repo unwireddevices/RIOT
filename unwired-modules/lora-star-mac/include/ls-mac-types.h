@@ -81,7 +81,7 @@ typedef enum {
 	LS_DL_JOIN_ACK,	/**< Join acknowledge */
 
 	/* Reserved for future use */
-	LS_RFU1,
+	LS_DL_ACK_P,	/**< Application data acknowledge with frames pending */
 	LS_RFU2,
 	LS_RFU3,
 } ls_type_t;

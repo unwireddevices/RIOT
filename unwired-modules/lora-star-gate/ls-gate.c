@@ -88,6 +88,15 @@ static int send_frame(ls_gate_channel_t *ch, ls_addr_t to, ls_type_t type, uint8
     /* Capture channel */
     mutex_lock(&ch->_internal.channel_mutex);
 
+    /* Wait for TX operation */
+    volatile long time = 0;
+    while (sx1276_get_status(ch->_internal.sx1276) == SX1276_RF_TX_RUNNING) {
+    	time++;
+
+    	if (time > 1000000)
+    		break;
+    }
+
     ls_frame_t *frame = &ch->_internal.current_frame;
     ls_assemble_frame(to, type, buf, buflen, frame);
 
@@ -107,6 +116,7 @@ static int send_frame(ls_gate_channel_t *ch, ls_addr_t to, ls_type_t type, uint8
             break;
 
         case LS_DL_ACK:
+        case LS_DL_ACK_P:
             node = ls_devlist_get(&ls->devices, to);
 
             ls_derive_keys(node->last_nonce, node->app_nonce, node->addr, mic_key, NULL);
@@ -135,9 +145,9 @@ static inline void send_join_ack(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t 
     send_frame(ch, addr, LS_DL_JOIN_ACK, (uint8_t *) &ack, sizeof(ls_join_ack_t));
 }
 
-static inline void send_ack(ls_gate_t *ls, ls_gate_channel_t *ch, ls_addr_t addr)
+static inline void send_ack(ls_gate_t *ls, ls_gate_channel_t *ch, ls_addr_t addr, bool has_pending)
 {
-    send_frame(ch, addr, LS_DL_ACK, NULL, 0);
+    send_frame(ch, addr, (has_pending) ? LS_DL_ACK_P : LS_DL_ACK, NULL, 0);
 }
 
 static inline void send_lnkchk_ack(ls_gate_t *ls, ls_gate_channel_t *ch, ls_addr_t addr, bool has_pending)
@@ -251,16 +261,34 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
                 ls->app_data_ack_cb(node, ch);
             }
 
+            /* Decrease pending frames counter */
+            if (node->node_class == LS_ED_CLASS_A) {
+				if (node->num_pending) {
+					node->num_pending--;
+				}
+            }
+
             return true;
         }
 
-        case LS_UL_CONF: /* Uplink data confirmed */
+        case LS_UL_CONF: {/* Uplink data confirmed */
+            /* Address must be defined */
+            if (frame->header.dev_addr == LS_ADDR_UNDEFINED) {
+                return false;
+            }
+
+            ls_gate_node_t *node = ls_devlist_get(&ls->devices, frame->header.dev_addr);
+            if (node == NULL) { /* The node must be joined to the network */
+                return false;
+            }
+
             if (!app_data_recv(ls, ch, frame)) {
                 return false;
             }
 
-            send_ack(ls, ch, frame->header.dev_addr);
+            send_ack(ls, ch, frame->header.dev_addr, node->num_pending > 0);
             return true;
+        }
 
         case LS_UL_UNC: /* Uplink data unconfirmed */
             if (!app_data_recv(ls, ch, frame)) {
@@ -345,10 +373,6 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
             return true;
 
         default:
-        case LS_DL_ACK:         /* Downlink frame acknowledge for confirmed messages */
-        case LS_DL:             /* Downlink frame */
-        case LS_DL_JOIN_ACK:    /* Downlink join acknowledge */
-        case LS_DL_LNKCHK:
             /* Not interested in somehow received downlink frames */
             return false;
     }
@@ -443,7 +467,7 @@ static void *tim_handler(void *arg)
 					}
 				}
 
-				
+
                 /* Restart timer */
                 xtimer_set_msg(&ls->_internal.ping_timer, LS_PING_TIMEOUT, &msg_ping, ls->_internal.tim_thread_pid);
                 break;

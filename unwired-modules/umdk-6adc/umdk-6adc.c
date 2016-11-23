@@ -62,7 +62,7 @@ static void init_adc(bool enable_all)
 
     for (i = 0; i < ADC_NUMOF; i++) {
         if (adc_init(ADC_LINE(i)) < 0) {
-            printf("[umdk-6adc] Failed to initialize adc line #%d\n", i);
+            printf("[umdk-6adc] Failed to initialize adc line #%d\n", i + 1);
             continue;
         }
 
@@ -81,13 +81,34 @@ static void prepare_result(module_data_t *buf)
     for (i = 0; i < ADC_NUMOF; i++) {
         if (!adc_lines_en[i]) {
             samples[i] = 0xFFFF;
-            printf("[umdk-6adc] Reading line #%d: <disabled>\n", i);
+            printf("[umdk-6adc] Reading line #%d: <disabled>\n", i + 1);
             continue;
         }
 
         samples[i] = adc_sample(ADC_LINE(i), UMDK_6ADC_ADC_RESOLUTION);
-
-        printf("[umdk-6adc] Reading line #%d: %d\n", i, samples[i]);
+		
+		if (UMDK_6ADC_CONVERT_TO_MILLIVOLTS) {
+			switch (UMDK_6ADC_ADC_RESOLUTION) {
+				case ADC_RES_12BIT:
+					samples[i] = (float)samples[i] * (UMDK_6ADC_ADC_VREF_MV/4095.0);
+					break;
+				case ADC_RES_10BIT:
+					samples[i] = (float)samples[i] * (UMDK_6ADC_ADC_VREF_MV/1023.0);
+					break;
+				case ADC_RES_8BIT:
+					samples[i] = (float)samples[i] * (UMDK_6ADC_ADC_VREF_MV/255.0);
+					break;
+				default:
+					break;
+			}
+		}
+		if (UMDK_6ADC_CONVERT_TO_MILLIVOLTS) {
+			printf("[umdk-6adc] Reading line #%d: %d mV\n", i + 1, samples[i]);
+		}
+		else {
+			printf("[umdk-6adc] Reading line #%d: %d\n", i + 1, samples[i]);
+		}
+			
     }
 
     buf->data[0] = UNWDS_6ADC_MODULE_ID;

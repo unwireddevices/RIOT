@@ -83,8 +83,11 @@ int adc_init(adc_t line)
 
     /* lock and power on the device */
     prep();
-    /*configure the pin */
-    gpio_init_analog(adc_config[line].pin);
+    /* configure the pin */
+	/* no need to configure GPIO for ADC channels not connected to any GPIO */
+	if ((adc_config[line].pin != ADC_VREF_CHANNEL_PIN) && (adc_config[line].pin != ADC_TEMPERATURE_CHANNEL_PIN)) {
+		gpio_init_analog(adc_config[line].pin);
+	}
 
     /* Set sample time */
     adc_set_sample_time_on_all_channels(0x03 /* 25 cycles */);

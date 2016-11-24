@@ -108,7 +108,6 @@ static void prepare_result(module_data_t *buf)
 		else {
 			printf("[umdk-6adc] Reading line #%d: %d\n", i + 1, samples[i]);
 		}
-			
     }
 
     buf->data[0] = UNWDS_6ADC_MODULE_ID;

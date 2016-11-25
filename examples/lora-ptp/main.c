@@ -46,6 +46,12 @@ static nvram_t nvram;
 
 void print_logo(void)
 {
+#ifdef SHORT_LOGO
+	puts("*****************************************");
+	puts("Unwired Range firmware by Unwired Devices");
+	puts("www.unwds.com - info@unwds.com");
+	puts("*****************************************");
+#else
     puts("                                                .@                           @  ");
     puts("                                                                             @  ");
     puts("  @@@           %@@,     &@**%@. .#    ./   .#  .@   #@*.   *@@@@@,    @#%.%%@  ");
@@ -67,7 +73,9 @@ void print_logo(void)
     puts("        @@@,...,,#&@@@@@                                                        ");
     puts("        @@@@@@@@@@@%,                                                           ");
     puts("                                                                                ");
-    printf("Version: %s\n", FIRMWARE_VERSION);
+#endif
+
+    printf("Version: %s (%s %s)\n", FIRMWARE_VERSION, __DATE__, __TIME__);
     puts("");
 }
 

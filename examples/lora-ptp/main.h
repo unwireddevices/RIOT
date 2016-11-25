@@ -20,7 +20,9 @@
 
 #include "shell.h"
 
-#define FIRMWARE_VERSION "1.0"
+#define FIRMWARE_VERSION "1.1-PTP"
+
+#define SHORT_LOGO 1
 
 typedef int (*cmd_fun_t)(int, char **);
 

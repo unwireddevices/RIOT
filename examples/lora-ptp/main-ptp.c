@@ -338,6 +338,7 @@ static int cmd_set(int argc, char **argv)
 
         if (v < 433000000 || v > 900000000) {
             puts("set freq: value must be from 433000000 to 900000000");
+			puts("To comply with Russian regulations, please set frequency in the range of 868900000 to 869100000");
             return 1;
         }
 
@@ -376,7 +377,7 @@ static void print_config(void)
 
     puts("");
     printf("BAUDRATE = %u\n", (unsigned int) node_settings.baudrate);
-    printf("SYBMTIMEOUT = %u\n", (unsigned int) node_settings.symbol_timeout_ms);
+    printf("SYMBTIMEOUT = %u\n", (unsigned int) node_settings.symbol_timeout_ms);
 }
 
 static int cmd_printc(int argc, char **argv) {
@@ -414,7 +415,7 @@ static int cmd_save(int argc, char **argv)
 
 static const shell_command_t shell_commands[] = {
     { "set", "<config> <value> -- sets up value for the config entry", cmd_set },
-    { "listconfig", "-- prints out current configuration", cmd_printc },
+    { "lscfg", "-- prints out current configuration", cmd_printc },
 
     { "save", "-- saves current configuration", cmd_save },
 

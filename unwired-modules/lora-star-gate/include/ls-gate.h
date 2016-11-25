@@ -158,7 +158,6 @@ typedef struct {
 	void (*app_data_received_cb) (ls_gate_node_t *node, ls_gate_channel_t *ch, uint8_t *buf, size_t bufsize);
 
 	void (*app_data_ack_cb)(ls_gate_node_t *node, ls_gate_channel_t *ch);
-	void (*link_ok_cb)(ls_gate_node_t *node, ls_gate_channel_t *ch);
 
 	/* Gate will call this callback periodically to make sure that watchdog timer (if used) is reset in time  */
 	void (*keepalive_cb)(void);

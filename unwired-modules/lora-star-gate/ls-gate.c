@@ -150,11 +150,6 @@ static inline void send_ack(ls_gate_t *ls, ls_gate_channel_t *ch, ls_addr_t addr
     send_frame(ch, addr, (has_pending) ? LS_DL_ACK_P : LS_DL_ACK, NULL, 0);
 }
 
-static inline void send_lnkchk_ack(ls_gate_t *ls, ls_gate_channel_t *ch, ls_addr_t addr, bool has_pending)
-{
-    send_frame(ch, addr, (has_pending) ? LS_DL_LNKCHK_P : LS_DL_LNKCHK, NULL, 0);
-}
-
 static void device_join_req(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t dev_id, uint64_t app_id, uint32_t dev_nonce, ls_node_class_t node_class, uint64_t ability)
 {
     /* Check node acceptance */
@@ -293,51 +288,6 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
         case LS_UL_UNC: /* Uplink data unconfirmed */
             if (!app_data_recv(ls, ch, frame)) {
                 return false;
-            }
-
-            return true;
-
-        case LS_UL_LNKCHK:  /* Link check request */
-            /* Address must be defined */
-            if (frame->header.dev_addr == LS_ADDR_UNDEFINED) {
-                return false;
-            }
-
-            ls_gate_node_t *node = ls_devlist_get(&ls->devices, frame->header.dev_addr);
-            if (node == NULL) { /* The node must be joined to the network */
-                return false;
-            }
-
-            /* Derive encryption keys */
-            uint8_t mic_key[AES_BLOCK_SIZE];
-            uint8_t aes_key[AES_BLOCK_SIZE];
-            ls_derive_keys(node->last_nonce, node->app_nonce, node->addr, mic_key, aes_key);
-
-            /* Validate MIC */
-            if (!ls_validate_frame_mic(mic_key, frame)) {
-                return false;
-            }
-
-            /* Update node's last seen time */
-            node->last_seen = ls->_internal.ping_count;
-
-            /* Decrypt frame payload */
-            ls_decrypt_frame_payload(aes_key, &frame->payload);
-
-            /* Copy status information into device record */
-            memcpy(&node->status, &frame->payload.data, sizeof(ls_device_status_t));
-
-            /* Send acknowledge */
-            send_lnkchk_ack(ls, ch, frame->header.dev_addr, node->num_pending > 0);
-
-            /* Decrease pending frames counter */
-            if (node->num_pending) {
-                node->num_pending--;
-            }
-
-            /* Notify application about link check to send pending frames */
-            if (ls->link_ok_cb != NULL) {
-                ls->link_ok_cb(node, ch);
             }
 
             return true;

@@ -255,21 +255,6 @@ void app_data_ack_cb(ls_gate_node_t *node, ls_gate_channel_t *ch)
     gc_pending_fifo_push(&fifo, str);
 }
 
-void link_ok_cb(ls_gate_node_t *node, ls_gate_channel_t *ch)
-{
-    int16_t rssi = ch->last_rssi;
-    printf("ls-gate: link ok with 0x%08X%08X | rssi: %d\n",
-    		(unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF),
-			rssi);
-
-    char str[22] = {};
-    sprintf(str, "%c%08X%08X%04X\n", REPLY_LNKCHK,
-    		(unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF),
-			(unsigned int) -rssi);
-
-    gc_pending_fifo_push(&fifo, str);
-}
-
 #ifdef GATE_USE_WATCHDOG
 static void keepalive_cb(void) {
 	xtimer_usleep(100); /* XXX: watchdog timer don't want to reset without a small delay before */
@@ -301,7 +286,6 @@ static void ls_setup(ls_gate_t *ls)
     ls->node_kicked_cb = node_kicked_cb;
     ls->app_data_received_cb = app_data_received_cb;
 
-    ls->link_ok_cb = link_ok_cb;
     ls->app_data_ack_cb = app_data_ack_cb;
 
 #ifdef GATE_USE_WATCHDOG

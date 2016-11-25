@@ -73,17 +73,19 @@ typedef enum {
 
 	LS_DL_ACK,		/**< Downlink application data acknowledge for confirmed messages */
 
-	LS_UL_LNKCHK,	/**< Uplink link check frame */
-	LS_DL_LNKCHK,	/**< Downlink link check frame */
-	LS_DL_LNKCHK_P, /**< Link check ok but there's a pending frames that will be received */
+
+	RFU1,
+	RFU2,
+	RFU3,
 
 	LS_UL_JOIN_REQ,	/**< Join request */
 	LS_DL_JOIN_ACK,	/**< Join acknowledge */
 
 	/* Reserved for future use */
 	LS_DL_ACK_P,	/**< Application data acknowledge with frames pending */
-	LS_RFU2,
-	LS_RFU3,
+
+	LS_RFU4,
+	LS_RFU5,
 } ls_type_t;
 
 /**
@@ -157,29 +159,7 @@ typedef struct {
 } ls_join_ack_t;
 
 typedef struct {
-	uint8_t batt_level;
-
-	/* Reserved fields */
-	uint8_t rfu1;
-	uint8_t rfu2;
-	uint8_t rfu3;
+	uint8_t status_byte;
 } ls_device_status_t;
-
-/**
- * LS Link check request.
- */
-typedef struct {
-	ls_device_status_t status;
-} ls_lnkchk_req_t;
-
-/**
- * LS Link check acknowledge
- */
-typedef struct {
-	uint8_t rfu1;
-	uint8_t rfu2;
-	uint8_t rfu3;
-	uint8_t rfu4;
-} ls_lnkchk_ack_t;
 
 #endif /* UNWIRED_MODULES_LORA_STAR_INCLUDE_LS_MAC_TYPES_H_ */

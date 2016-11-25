@@ -36,11 +36,7 @@ static msg_t msg_rx1;
 static msg_t msg_rx2;
 
 static msg_t msg_join_timeout;
-static msg_t msg_lnkchk_timeout;
-
 static msg_t msg_ack_timeout;
-
-static msg_t msg_lnkchk_begin;
 
 /**
  * Data rates table.
@@ -200,9 +196,6 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             /* Remove timeout timer */
             xtimer_remove(&ls->_internal.conf_ack_expired);
 
-            /* Remove link check timer */
-            xtimer_remove(&ls->_internal.lnkchk_expired);
-
             /* Close RX window only if we haven't pending frames (regular app. data acknowledge received) */
             bool close_rx_window = frame->header.type == LS_DL_ACK;
             return close_rx_window;
@@ -265,35 +258,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
                 ls->joined_cb();
             }
 
-            /* Start periodic link check if needed */
-            if (ls->settings.class != LS_ED_CLASS_A && ls->settings.lnkchk_period_s != 0) {
-            	xtimer_set_msg(&ls->_internal.lnkchk_timer, 1e6 * ls->settings.lnkchk_period_s, &msg_lnkchk_begin, ls->_internal.tim_thread_pid);
-            }
-
             return true;
-
-        case LS_DL_LNKCHK: /* Link check acknowledge */
-        case LS_DL_LNKCHK_P: { /* Link check acknowledged with frames pending */
-        	/*
-        	 * Make sure that we've received link check acknowledge which is for us.
-        	 * The frames with invalid MIC should be ignored
-        	 */
-            if (!ls_validate_frame_mic(ls->settings.crypto.mic_key, frame)) {
-                return false;
-            }
-
-            /* Remove timeout timer */
-            xtimer_remove(&ls->_internal.lnkchk_expired);
-
-            /* Notify application about successful link check */
-            if (ls->link_good_cb != NULL) {
-                ls->link_good_cb();
-            }
-
-            /* Close RX window only if we haven't pending frames (regular link check acknowledge received) */
-            bool close_rx_window = frame->header.type == LS_DL_LNKCHK;
-            return close_rx_window;
-        }
 
         default:
             /* Not interested in frames from other devices */
@@ -543,28 +508,6 @@ static void *tim_handler(void *arg)
 
                 break;
 
-
-            case LS_ED_LNKCHK_REQ_EXPIRED:
-                puts("ls-ed: link check request expired"); // XXX: debug
-
-                /* Unjoin the device */
-                ls_ed_unjoin(ls);
-
-                /* Select action */
-                switch (ls->settings.lnkchk_failed_action) {
-                    case LS_ED_REJOIN:
-                        ls_ed_join(ls);
-                        break;
-
-                    case LS_ED_NOTIFY:
-                        if (ls->lnkchk_timeout_cb != NULL) {
-                            ls->lnkchk_timeout_cb();
-                        }
-                        break;
-                }
-
-                break;
-
             case LS_ED_APPDATA_ACK_EXPIRED:
                 puts("ls-ed: appdata confirmation timeout");
 
@@ -586,19 +529,6 @@ static void *tim_handler(void *arg)
 					
                     ls->_internal.num_retr++;
                     ls_ed_send_app_data(ls, ls->_internal.last_app_msg.data, ls->_internal.last_app_msg.len, true);
-                }
-
-                break;
-
-            case LS_ED_LNKCHK_BEGIN:
-                puts("ls-ed: periodic link check begins");
-
-                /* Start link check */
-                ls_ed_lnkchk(ls);
-
-                /* Restart periodic link check */
-                if (ls->settings.lnkchk_period_s != 0) {
-                	xtimer_set_msg(&ls->_internal.lnkchk_timer, 1e6 * ls->settings.lnkchk_period_s, &msg_lnkchk_begin, ls->_internal.tim_thread_pid);
                 }
 
                 break;
@@ -660,9 +590,7 @@ int ls_ed_init(ls_ed_t *ls)
     msg_rx1.content.value = LS_ED_RX1_EXPIRED;
     msg_rx2.content.value = LS_ED_RX2_EXPIRED;
     msg_join_timeout.content.value = LS_ED_JOIN_REQ_EXPIRED;
-    msg_lnkchk_timeout.content.value = LS_ED_LNKCHK_REQ_EXPIRED;
     msg_ack_timeout.content.value = LS_ED_APPDATA_ACK_EXPIRED;
-    msg_lnkchk_begin.content.value = LS_ED_LNKCHK_BEGIN;
 
     /* Setup event callback and stack state as it's argument */
     ls->_internal.sx1276->sx1276_event_cb = sx1276_handler;
@@ -751,29 +679,6 @@ int ls_ed_join(ls_ed_t *ls)
     xtimer_set_msg(&ls->_internal.join_req_expired, LS_JOIN_TIMEOUT, &msg_join_timeout, ls->_internal.tim_thread_pid);
 
     return LS_OK;
-}
-
-void ls_ed_lnkchk(ls_ed_t *ls)
-{
-    assert(ls != NULL);
-
-    /* No link checks on class A */
-    if (ls->settings.class == LS_ED_CLASS_A)
-    	return;
-
-    /* The device has to be joined */
-    if (!ls->_internal.is_joined) {
-        return;
-    }
-
-    /* Send link check request */
-    ls_lnkchk_req_t req;
-    memcpy(&req.status, &ls->status, sizeof(ls_device_status_t));
-
-    send_frame(ls, LS_UL_LNKCHK, (uint8_t *) &req, sizeof(ls_lnkchk_req_t));
-
-    /* Launch link check request acknowledge timeout timer */
-    xtimer_set_msg(&ls->_internal.lnkchk_expired, LS_LNKCHK_TIMEOUT, &msg_lnkchk_timeout, ls->_internal.tim_thread_pid);
 }
 
 void ls_ed_sleep(ls_ed_t *ls)

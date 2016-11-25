@@ -126,22 +126,13 @@ void joined_timeout_cb(void)
 void joined_cb(void)
 {
     puts("ls-ed: successfully joined to the network");
-
-    ls.status.batt_level = 0xAA;
-    ls_ed_lnkchk(&ls);
-
     blink_led();
 }
 
 void appdata_send_failed_cb(void)
 {
-	if (ls.settings.class == LS_ED_CLASS_A) {
-		puts("ls-ed: application data confirmation timeout. Rejoining...");
-		joined_timeout_cb();
-	} else {
-		puts("ls-ed: application data confirmation timeout. Checking link...");
-	    ls_ed_lnkchk(&ls);
-	}
+	puts("ls-ed: application data confirmation timeout. Rejoining...");
+	joined_timeout_cb();
 }
 
 void appdata_received_cb(uint8_t *buf, size_t buflen)
@@ -204,9 +195,6 @@ static void ls_setup(ls_ed_t *ls)
     ls->join_timeout_cb = joined_timeout_cb;
     ls->joined_cb = joined_cb;
 
-    ls->link_good_cb = link_good_cb;
-    ls->lnkchk_timeout_cb = lnkchk_timeout_cb;
-
     ls->appdata_send_failed_cb = appdata_send_failed_cb;
     ls->settings.max_retr = node_settings.max_retr;     /* Maximum number of confirmed data retransmissions */
 
@@ -214,9 +202,6 @@ static void ls_setup(ls_ed_t *ls)
 
     ls->standby_mode_cb = standby_mode_cb;
     ls->wakeup_cb = wakeup_cb;
-
-    ls->settings.lnkchk_failed_action = LS_ED_REJOIN;
-    ls->settings.lnkchk_period_s = node_settings.lnkchk_period;
 
     ls->_internal.sx1276 = &sx1276;
 }
@@ -230,7 +215,6 @@ int ls_set_cmd(int argc, char **argv)
         puts("\tch <ch> -- sets device channel in selected region");
         puts("\tdr <0-6> -- sets device data rate [0 - slowest, 3 - average, 6 - fastest]");
         puts("\tmaxretr <0-255> -- sets maximum number of retransmissions of confirmed app. data [5 is recommended]");
-        puts("\tlnkchkperiod <1-255> -- sets link check period in seconds [120 is recommended]");
         puts("\tclass <A/B/C> -- sets device class");
     }
 
@@ -277,15 +261,6 @@ int ls_set_cmd(int argc, char **argv)
         uint8_t v = strtol(value, NULL, 10);
         ls.settings.max_retr = v;
     }
-    else if (strcmp(key, "lnkchkperiod") == 0) {
-        uint8_t v = strtol(value, NULL, 10);
-        if (v < 1) {
-            puts("[error] Too small link check interval");
-            return 1;
-        }
-
-        ls.settings.lnkchk_period_s = v;
-    }
     else if (strcmp(key, "class") == 0) {
         char v = value[0];
 
@@ -307,7 +282,6 @@ int ls_set_cmd(int argc, char **argv)
 
     node_settings.channel = ls.settings.channel;
     node_settings.dr = ls.settings.dr;
-    node_settings.lnkchk_period = ls.settings.lnkchk_period_s;
     node_settings.max_retr = ls.settings.max_retr;
     node_settings.class = ls.settings.class;
 
@@ -372,15 +346,7 @@ static void print_config(void)
     else if (node_settings.class == LS_ED_CLASS_C) {
         class = 'C';
     }
-    ;
     printf("CLASS = %c\n", class);
-
-    if (class == 'A') {
-        puts("LNKCHKPERIOD (s) = <don't care>");
-    }
-    else {
-        printf("LNKCHKPERIOD (s) = %d\n", node_settings.lnkchk_period);
-    }
 
     printf("MAXRETR = %d\n", node_settings.max_retr);
 

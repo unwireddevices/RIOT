@@ -41,11 +41,6 @@
 #define LS_ACK_TIMEOUT	1e6 * 15
 
 /**
- * @brief Maximum time of awaiting for the link check request acknowledge in microseconds.
- */
-#define LS_LNKCHK_TIMEOUT	1e6 * 15
-
-/**
  * @brief Maximum time of awaiting for the join request acknowledge in microseconds.
  */
 #define LS_JOIN_TIMEOUT 	1e6 * 15
@@ -77,11 +72,8 @@ typedef enum {
 	LS_ED_RX2_EXPIRED,
 
 	LS_ED_JOIN_REQ_EXPIRED,
-	LS_ED_LNKCHK_REQ_EXPIRED,
 
 	LS_ED_APPDATA_ACK_EXPIRED,
-
-	LS_ED_LNKCHK_BEGIN,
 } ls_ed_tim_cmd_t;
 
 /**
@@ -140,9 +132,6 @@ typedef struct {
 
 	uint8_t max_retr;							/**< Maximum number of retransmissions */
 
-	uint8_t lnkchk_period_s;					/**< Periodic link check interval is seconds */
-	ls_ed_lnkchk_action_t lnkchk_failed_action;	/**< Action to do if link check is failed */
-
 	ls_node_class_t class;						/**< Device class */
 	uint64_t ability;							/**< Device abilities set up by the used modules */
 } ls_ed_settings_t;
@@ -183,9 +172,6 @@ typedef struct {
 	/* Join request expiration timer */
 	xtimer_t join_req_expired;
 
-	/* Link check request expiration timer */
-	xtimer_t lnkchk_expired;
-
 	/* Confirmation timeout */
 	xtimer_t conf_ack_expired;
 
@@ -224,9 +210,6 @@ typedef struct {
 	void (*joined_cb)(void);
 	void (*join_timeout_cb)(void);
 
-	void (*link_good_cb)(void);
-	void (*lnkchk_timeout_cb)(void);
-
 	void (*appdata_received_cb)(uint8_t *buf, size_t buflen);
 	void (*appdata_send_failed_cb)(void);
 
@@ -245,7 +228,5 @@ int ls_ed_join(ls_ed_t *ls);
 void ls_ed_unjoin(ls_ed_t *ls);
 
 void ls_ed_sleep(ls_ed_t *ls);
-
-void ls_ed_lnkchk(ls_ed_t *ls);
 
 #endif /* UNWIRED_MODULES_LORA_STAR_INCLUDE_LS_H_ */

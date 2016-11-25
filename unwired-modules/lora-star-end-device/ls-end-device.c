@@ -512,7 +512,7 @@ static void *tim_handler(void *arg)
                 puts("ls-ed: appdata confirmation timeout");
 
                 /* Retransmit data */
-                if (ls->_internal.num_retr > ls->settings.max_retr) {
+                if (ls->_internal.num_retr >= ls->settings.max_retr) {
                     /* Stop retransmitting */
                     ls->_internal.num_retr = 0;
 

@@ -29,7 +29,6 @@ extern "C" {
 #include "periph/adc.h"
 #include "board.h"
 
-
 #include "unwds-common.h"
 #include "unwds-gpio.h"
 
@@ -86,29 +85,52 @@ static void prepare_result(module_data_t *buf)
         }
 
         samples[i] = adc_sample(ADC_LINE(i), UMDK_6ADC_ADC_RESOLUTION);
+    }
+	
+	if (UMDK_6ADC_CONVERT_TO_MILLIVOLTS) {
+		/* Calculate Vdd */
+		uint32_t full_scale = 0;
 		
-		if (UMDK_6ADC_CONVERT_TO_MILLIVOLTS) {
-			switch (UMDK_6ADC_ADC_RESOLUTION) {
-				case ADC_RES_12BIT:
-					samples[i] = (float)samples[i] * (UMDK_6ADC_ADC_VREF_MV/4095.0);
-					break;
-				case ADC_RES_10BIT:
-					samples[i] = (float)samples[i] * (UMDK_6ADC_ADC_VREF_MV/1023.0);
-					break;
-				case ADC_RES_8BIT:
-					samples[i] = (float)samples[i] * (UMDK_6ADC_ADC_VREF_MV/255.0);
-					break;
-				default:
-					break;
+		switch (UMDK_6ADC_ADC_RESOLUTION) {
+			case ADC_RES_12BIT:
+				full_scale = 4095;
+				break;
+			case ADC_RES_10BIT:
+				full_scale = 1023;
+				break;
+			case ADC_RES_8BIT:
+				full_scale = 255;
+				break;
+			case ADC_RES_6BIT:
+				full_scale = 63;
+				break;
+			default:
+				puts("[umdk-6adc] Unsupported ADC resolution, aborting.");
+				return;
+				break; 
+		}
+		
+		for (i = 0; i < ADC_NUMOF; i++) {
+			if ((i != ADC_VREF_INDEX) && (i != ADC_TEMPERATURE_INDEX)) {
+				samples[i] = (uint32_t)(samples[i] * samples[ADC_VREF_INDEX]) / full_scale;
 			}
 		}
+	}
+	
+	for (i = 0; i < ADC_NUMOF; i++) {
+		printf("[umdk-6adc] Reading line #%d: %d", i + 1, samples[i]);
 		if (UMDK_6ADC_CONVERT_TO_MILLIVOLTS) {
-			printf("[umdk-6adc] Reading line #%d: %d mV\n", i + 1, samples[i]);
+			if (i == ADC_TEMPERATURE_INDEX) {
+				puts(" C");
+			}
+			else {
+				puts(" mV");
+			}
 		}
 		else {
-			printf("[umdk-6adc] Reading line #%d: %d\n", i + 1, samples[i]);
+			puts(" ");
 		}
-    }
+	}
 
     buf->data[0] = UNWDS_6ADC_MODULE_ID;
     memcpy(buf->data + 1, (uint8_t *) &samples, sizeof(samples));

@@ -584,7 +584,6 @@ static bool load_config(void)
 
 static bool is_connect_button_pressed(void)
 {
-	/*
     if (!gpio_init(UNWD_CONNECT_BTN, GPIO_IN_PU)) {
         if (!gpio_read(UNWD_CONNECT_BTN)) {
             return true;
@@ -593,7 +592,7 @@ static bool is_connect_button_pressed(void)
     else {
         puts("Error initializing Connect button\n");
     }
-	*/
+
     return false;
 }
 

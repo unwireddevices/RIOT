@@ -1628,6 +1628,11 @@ typedef struct
 #define  ADC_CCR_ADCPRE_1                    ((uint32_t)0x00020000)        /*!< Bit 1 */
 #define  ADC_CCR_TSVREFE                     ((uint32_t)0x00800000)        /*!< Temperature Sensor and VREFINT Enable */
 
+/***********************  Calibration Data Addresses  ************************/
+#define	ADC_VREFINT_CAL						((uint16_t *)0x1FF800F8)			/* VREFINT calibration data address */
+#define	ADC_TS_CAL1							((uint16_t *)0x1FF800FA)			/* Temperature Sensor calibration data address */
+#define	ADC_TS_CAL2							((uint16_t *)0x1FF800FE)			/* Temperature Sensor calibration data address */
+
 /******************************************************************************/
 /*                                                                            */
 /*                       Advanced Encryption Standard (AES)                   */

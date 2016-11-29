@@ -156,7 +156,7 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 			return;
 		}
 
-		printf("[pending] Sending invite to node with ID 0x%08X%08X\n", (unsigned int) (nodeid >> 32), (unsigned int) (nodeid & 0xFFFFFFFF));
+		printf("[invite] Sending invite to node with ID 0x%08X%08X\n", (unsigned int) (nodeid >> 32), (unsigned int) (nodeid & 0xFFFFFFFF));
 		ls_gate_invite(ls, nodeid);
 		break;
 	}

@@ -15,8 +15,8 @@
  * @brief       definitions for the gate commands
  * @author      Eugene Ponomarev
  */
-#ifndef EXAMPLES_LORA_STAR_GATE_MQTT_GATE_COMMANDS_H_
-#define EXAMPLES_LORA_STAR_GATE_MQTT_GATE_COMMANDS_H_
+#ifndef GATE_COMMANDS_H_
+#define GATE_COMMANDS_H_
 
 #include "ls-gate.h"
 #include "pending-fifo.h"
@@ -40,9 +40,8 @@ typedef enum {
 	REPLY_KICK = 'K',	/* Node is kicked from the network */
 
 	REPLY_ACK = 'A',	/* Application data acknowledged by the node */
-	REPLY_LNKCHK = 'C',	/* Link check from the node */
 } gate_reply_type_t;
 
 void gc_parse_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *fifo, char *cmd);
 
-#endif /* EXAMPLES_LORA_STAR_GATE_MQTT_GATE_COMMANDS_H_ */
+#endif /* GATE_COMMANDS_H_ */

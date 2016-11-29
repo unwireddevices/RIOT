@@ -288,7 +288,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
 			/* quasi-random delay up to 8.4 seconds for collision avoidance */
 			unsigned int delay = ((xtimer_now() & 0xFF) << 15);
-			printf("ls-ed: quasi-random retransmission delay %d msec\n", (unsigned int) (delay/1e3));
+			printf("ls-ed: quasi-random delay %d msec\n", (unsigned int) (delay/1e3));
 			xtimer_usleep(delay);
 
             /* Proceed to join procedure as requested */

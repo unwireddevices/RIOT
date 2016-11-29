@@ -112,6 +112,7 @@ static int send_frame(ls_gate_channel_t *ch, ls_addr_t to, ls_type_t type, uint8
 
     switch (type) {
         case LS_DL_JOIN_ACK:
+        case LS_DL_INVITE:
             ls_encrypt_frame(ls->settings.join_key, ls->settings.join_key, frame, &payload_size);
             break;
 
@@ -542,6 +543,19 @@ int ls_gate_send_to(ls_gate_t *ls, ls_addr_t addr, uint8_t *buf, size_t bufsize)
 
     /* Send frame as soon as possible */
     send_frame((ls_gate_channel_t *) node->node_ch, addr, LS_DL, buf, bufsize);
+
+    return LS_GATE_OK;
+}
+
+int ls_gate_invite(ls_gate_t *ls, uint64_t nodeid) {
+	/* Iterate throug all channels and send invitation */
+    for (int i = 0; i < ls->num_channels; i++) {
+        ls_gate_channel_t *ch = &ls->channels[i];
+        assert(ch->_internal.sx1276 != NULL);
+
+        ls_invite_t invite = { .dev_id = nodeid };
+        send_frame(ch, LS_ADDR_UNDEFINED, LS_DL_INVITE, (uint8_t *) &invite, sizeof(ls_invite_t));
+    }
 
     return LS_GATE_OK;
 }

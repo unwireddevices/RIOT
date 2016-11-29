@@ -260,6 +260,36 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
             return true;
 
+        case LS_DL_INVITE: /* Individual join invitation for class C devices */
+        	if (ls->settings.class != LS_ED_CLASS_C) /* Only for class C */
+        		return false;
+
+        	/* Validate and decrypt frame */
+            if (frame->payload.len != sizeof(ls_invite_t)) {
+                return false;
+            }
+
+            if (!ls_validate_frame_mic(ls->settings.crypto.join_key, frame)) {
+                return false;
+            }
+
+            ls_decrypt_frame_payload(ls->settings.crypto.join_key, &frame->payload);
+
+            /* Check device ID */
+            ls_invite_t ack;
+            memcpy(&ack, frame->payload.data, sizeof(ls_invite_t));
+
+            /* This is not for us */
+            if (ack.dev_id != ls->settings.node_id) {
+                return false;
+            }
+
+            puts("ls-ed: invited to join, rejoining..."); // XXX: debug
+
+            /* Proceed to join procedure as requested */
+            ls_ed_join(ls);
+        	return false;
+
         default:
             /* Not interested in frames from other devices */
             return false;

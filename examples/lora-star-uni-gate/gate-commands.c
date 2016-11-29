@@ -103,16 +103,15 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 
 		/* Send LoRa message */
 		ls_gate_send_to(ls, node->addr, a, numdigits / 2);
-		}
 		break;
+	}
 
 	case CMD_FLUSH: {
 		/* Send flush message */
 		msg_t msg;
 		msg_send(&msg, writer);
-		}
-
 		break;
+	}
 
 	case CMD_HAS_PENDING: {
 		/* Minimum length is length of eui64 in hex + two hex digits + one character '\n' */
@@ -141,7 +140,29 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 
 		printf("[pending] setting node 0x%08X%08X has %u frames pending\n", (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF), num_pending);
 
+		break;
+	}
+
+	case CMD_INVITE: {
+		/* Minimum length is length of eui64 in hex +  one character '\n' */
+		if (strlen(payload) < 16 + 1) {
+			printf("[error] Invalid command received: %s\n", payload);
+			return;
 		}
+
+		uint64_t nodeid = 0;
+		if (!hex_to_bytesn(payload, 16, (uint8_t *) &nodeid, true)) {
+			printf("[error] Invalid command received: %s\n", payload);
+			return;
+		}
+
+		printf("[pending] Sending invite to node with ID 0x%08X%08X\n", (unsigned int) (nodeid >> 32), (unsigned int) (nodeid & 0xFFFFFFFF));
+		ls_gate_invite(ls, nodeid);
+		break;
+	}
+
+	default:
+		printf("[gate-commands] Unsupported: %s\n", payload);
 		break;
 	}
 }

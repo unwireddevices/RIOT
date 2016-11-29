@@ -74,17 +74,17 @@ typedef enum {
 	LS_DL_ACK,		/**< Downlink application data acknowledge for confirmed messages */
 
 
-	RFU1,
-	RFU2,
-	RFU3,
+	LS_RFU1,
+	LS_RFU2,
+	LS_RFU3,
 
 	LS_UL_JOIN_REQ,	/**< Join request */
 	LS_DL_JOIN_ACK,	/**< Join acknowledge */
 
-	/* Reserved for future use */
-	LS_DL_ACK_P,	/**< Application data acknowledge with frames pending */
+	LS_DL_ACK_P,		/**< Application data acknowledge with frames pending */
+	LS_DL_INVITE,		/**< Individual join invitation for the class C (always listening) devices */
 
-	LS_RFU4,
+	/* Reserved for future use */
 	LS_RFU5,
 } ls_type_t;
 
@@ -161,5 +161,12 @@ typedef struct {
 typedef struct {
 	uint8_t status_byte;
 } ls_device_status_t;
+
+/**
+ * @brief Individual join invitation for class C devices
+ */
+typedef struct {
+	uint64_t dev_id;
+} ls_invite_t;
 
 #endif /* UNWIRED_MODULES_LORA_STAR_INCLUDE_LS_MAC_TYPES_H_ */

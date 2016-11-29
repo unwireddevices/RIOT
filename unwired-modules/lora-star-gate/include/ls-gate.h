@@ -174,11 +174,13 @@ int ls_gate_init(ls_gate_t *ls);
 
 /**
  * @brief Sends an answer to the node in channel assigned to the node.
- *
- * If the node has class A, then the frame will be queued until the node hasn't become available
- * If the node has class B, then the frame will be send as soon as possible
  */
 int ls_gate_send_to(ls_gate_t *ls, ls_addr_t devaddr, uint8_t *buf, size_t bufsize);
+
+/**
+ * @brief Sends invitation to join for class C devices on all channels
+ */
+int ls_gate_invite(ls_gate_t *ls, uint64_t nodeid);
 
 /**
  * @brief Broadcasts a packet to all nodes and channels.

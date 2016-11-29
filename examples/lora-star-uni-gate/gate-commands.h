@@ -26,6 +26,7 @@ typedef enum {
 	CMD_DEVLIST = 'L',		/* Command to get devices list from a gate */
 	CMD_IND = 'I',			/* Individual command to the mote by address */
 	CMD_HAS_PENDING = '?',	/* Individual device has N pending packets */
+	CMD_INVITE = 'V',		/* Individual invite to join network for class C devices */
 
 	CMD_FLUSH = 'F',		/* Command to get all pending info */
 } gate_cmd_type_t;

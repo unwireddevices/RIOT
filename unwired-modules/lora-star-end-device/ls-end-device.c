@@ -260,7 +260,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
             return true;
 
-        case LS_DL_INVITE: /* Individual join invitation for class C devices */
+        case LS_DL_INVITE: { /* Individual join invitation for class C devices */
         	if (ls->settings.class != LS_ED_CLASS_C) /* Only for class C */
         		return false;
 
@@ -289,6 +289,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             /* Proceed to join procedure as requested */
             ls_ed_join(ls);
         	return false;
+        }
 
         default:
             /* Not interested in frames from other devices */
@@ -671,9 +672,20 @@ int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed
 
 void ls_ed_unjoin(ls_ed_t *ls)
 {
+	/* Stop timers */
     xtimer_remove(&ls->_internal.join_req_expired);
+    xtimer_remove(&ls->_internal.conf_ack_expired);
+    xtimer_remove(&ls->_internal.rx_window1);
+    xtimer_remove(&ls->_internal.rx_window2);
 
+    /* Forget network address */
     ls->_internal.dev_addr = LS_ADDR_UNDEFINED;
+
+    /* Forget session cryptographic keys */
+    memset(ls->settings.crypto.aes_key, 0, AES_KEY_SIZE);
+    memset(ls->settings.crypto.mic_key, 0, AES_KEY_SIZE);
+
+    /* Mark as not joined */
     ls->_internal.is_joined = false;
 }
 

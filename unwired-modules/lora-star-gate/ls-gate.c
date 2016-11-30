@@ -191,6 +191,9 @@ static void device_join_req(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t dev_i
     /* Set node's ability bit map */
     node->node_ability = ability;
 
+    /* Reset last frame ID counter */
+    node->last_fid = 0;
+
     /* Send join ACK */
     send_join_ack(ls, ch, dev_id, node->addr, node->app_nonce);
 }
@@ -253,21 +256,31 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
                 return false;
             }
 
-            if (ls->app_data_ack_cb != NULL) {
-                ls->app_data_ack_cb(node, ch);
-            }
+            /*
+             * Process acknowledge frame only if it wasn't sent twice (frame ID duplicated).
+             */
+            if (frame->header.fid >= (uint8_t) (node->last_fid + 1)) {
+            	/* Update frame ID */
+            	node->last_fid = frame->header.fid;
 
-            /* Decrease pending frames counter */
-            if (node->node_class == LS_ED_CLASS_A) {
-				if (node->num_pending) {
-					node->num_pending--;
-				}
+                if (ls->app_data_ack_cb != NULL) {
+                    ls->app_data_ack_cb(node, ch);
+                }
+
+                /* Decrease pending frames counter */
+                if (node->node_class == LS_ED_CLASS_A) {
+    				if (node->num_pending) {
+    					node->num_pending--;
+    				}
+                }
+            } else {
+            	printf("[!] Frame dropped: %d != %d\n", frame->header.fid, node->last_fid); // XXX: debug
             }
 
             return true;
         }
 
-        case LS_UL_CONF: {/* Uplink data confirmed */
+        case LS_UL_CONF: { /* Uplink data confirmed */
             /* Address must be defined */
             if (frame->header.dev_addr == LS_ADDR_UNDEFINED) {
                 return false;
@@ -278,8 +291,19 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
                 return false;
             }
 
-            if (!app_data_recv(ls, ch, frame)) {
-                return false;
+            /*
+             * Process received application data frame only if it wasn't sent twice (frame ID duplicated).
+             * Confirmation of data reception will be sent in any case
+             */
+            if (frame->header.fid >= (uint8_t) (node->last_fid + 1)) {
+            	/* Update frame ID */
+            	node->last_fid = frame->header.fid;
+
+				if (!app_data_recv(ls, ch, frame)) {
+					return false;
+				}
+            } else {
+            	printf("[!] Frame dropped: %d != %d\n", frame->header.fid, node->last_fid); // XXX: debug
             }
 
             send_ack(ls, ch, frame->header.dev_addr, node->num_pending > 0);

@@ -143,6 +143,8 @@ static int send_frame(ls_ed_t *ls, ls_type_t type, uint8_t *buf, size_t buflen)
     ls_frame_t *frame = &ls->_internal.current_frame;
     ls_assemble_frame(ls->_internal.dev_addr, type, buf, buflen, frame);
 
+    frame->header.fid = ls->_internal.last_fid;
+
     /* Enqueue frame */
     if (!ls_frame_fifo_push(&ls->_internal.uplink_queue, frame)) {
     	mutex_unlock(&ls->_internal.curr_frame_mutex);
@@ -191,6 +193,9 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
                 return false;
             }
 
+            /* Advance frame ID */
+            ls->_internal.last_fid++;
+
             puts("ls-ed: confirmation received");   // XXX: debug
 
             /* Remove timeout timer */
@@ -214,6 +219,9 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
             /* Send acknowledge */
             send_frame(ls, LS_UL_ACK, NULL, 0);
+
+            /* Advance frame ID */
+            ls->_internal.last_fid++;
 
             /* Notify application about the data */
             if (ls->appdata_received_cb != NULL) {
@@ -253,6 +261,9 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             /* Make device joined */
             ls->_internal.is_joined = true;
 
+            /* Advance last frame ID */
+            ls->_internal.last_fid++;
+
             /* Notify application code via callback */
             if (ls->joined_cb != NULL) {
                 ls->joined_cb();
@@ -285,6 +296,9 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             }
 
             puts("ls-ed: invited to join, rejoining..."); // XXX: debug
+
+            /* Stop rejoin timeout */
+            xtimer_remove(&ls->_internal.join_req_expired);
 
 			/* quasi-random delay up to 8.4 seconds for collision avoidance */
 			unsigned int delay = ((xtimer_now() & 0xFF) << 15);
@@ -417,8 +431,6 @@ static void *uq_handler(void *arg)
 
         size_t header_size = sizeof(ls_header_t) + sizeof(ls_payload_len_t);
         size_t payload_size = 0;
-
-        frame.header.fid = ls->_internal.last_fid++;
 
         /* Apply cryptography procedures */
         if (f->header.type != LS_UL_JOIN_REQ) {
@@ -718,6 +730,9 @@ int ls_ed_join(ls_ed_t *ls)
     req.node_ability = ls->settings.ability;
 
     ls->_internal.last_nonce = req.dev_nonce;
+
+    /* Reset frame ID */
+    ls->_internal.last_fid = 0;
 
     /* Send request */
     send_frame(ls, LS_UL_JOIN_REQ, (uint8_t *) &req, sizeof(ls_join_req_t));

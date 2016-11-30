@@ -15,8 +15,8 @@
  * @brief       Device list definitions
  * @author      Eugene Ponomarev
  */
-#ifndef UNWIRED_MODULES_LORA_STAR_GATE_INCLUDE_LS_GATE_DEVICE_LIST_H_
-#define UNWIRED_MODULES_LORA_STAR_GATE_INCLUDE_LS_GATE_DEVICE_LIST_H_
+#ifndef LS_GATE_DEVICE_LIST_H_
+#define LS_GATE_DEVICE_LIST_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -64,6 +64,8 @@ typedef struct {
 	ls_device_status_t status;	/**< Last received device status */
 
 	uint8_t num_pending;		/**< Number of frames pending */
+
+	ls_frame_id_t last_fid;		/**< Last received frame ID */
 } ls_gate_node_t;
 
 typedef struct {
@@ -90,4 +92,4 @@ bool ls_devlist_is_full(ls_gate_devices_t *devlist);
 
 bool ls_devlist_remove_device(ls_gate_devices_t *devlist, ls_addr_t addr);
 
-#endif /* UNWIRED_MODULES_LORA_STAR_GATE_INCLUDE_LS_GATE_DEVICE_LIST_H_ */
+#endif /* LS_GATE_DEVICE_LIST_H_ */

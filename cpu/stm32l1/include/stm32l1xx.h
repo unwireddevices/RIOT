@@ -2440,7 +2440,8 @@ typedef struct
 #define FLASH_PECR_OBL_LAUNCH                ((uint32_t)0x00040000)        /*!< Launch the option byte loading */
 
 /******************  Bit definition for FLASH_PDKEYR register  ******************/
-#define  FLASH_PDKEYR_PDKEYR                 ((uint32_t)0xFFFFFFFF)       /*!< FLASH_PEC and data matrix Key */
+#define  FLASH_PDKEY1                        ((uint32_t)0x04152637)       /*!< FLASH_PEC and data matrix Key 1 */
+#define  FLASH_PDKEY2                        ((uint32_t)0xFAFBFCFD)       /*!< FLASH_PEC and data matrix Key 2 */
 
 /******************  Bit definition for FLASH_PEKEYR register  ******************/
 #define  FLASH_PEKEYR_PEKEYR                 ((uint32_t)0xFFFFFFFF)       /*!< FLASH_PEC and data matrix Key */

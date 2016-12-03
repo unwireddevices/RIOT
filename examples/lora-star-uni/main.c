@@ -122,6 +122,8 @@ static void init_role(config_role_t role) {
 
 int main(void)
 {
+	lpm_arch_init();
+	
 	lpm_prevent_sleep = 1;
 
     print_logo();

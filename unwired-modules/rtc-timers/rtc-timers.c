@@ -30,11 +30,16 @@ extern "C" {
 #include "div.h"
 #include "rtc-timers.h"
 
-static void _callback_unlock_mutex(void* arg);
 static void _callback_unlock_mutex(void* arg)
 {
-    //mutex_t *mutex = (mutex_t *) arg;
-    //mutex_unlock(mutex);
+    mutex_t *mutex = (mutex_t *) arg;
+    mutex_unlock(mutex);
+}
+
+static void _callback_msg(void* arg)
+{
+    msg_t *msg = (msg_t*)arg;
+    msg_send_int(msg, msg->sender_pid);
 }
 
 void rtctimers_sleep(uint32_t sleep_sec) {
@@ -56,7 +61,11 @@ void rtctimers_sleep(uint32_t sleep_sec) {
 }
 
 void rtctimers_set_msg(rtctimer_t *timer, uint32_t offset, msg_t *msg, kernel_pid_t target_pid) {
+	timer->callback = _callback_msg;
+	timer->arg = (void *) msg;
 
+	msg->sender_pid = target_pid;
+	rtctimers_set(timer, offset);
 }
 
 #ifdef __cplusplus

@@ -20,6 +20,7 @@
 extern "C" {
 #endif
 
+#include <xtimer.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -59,9 +60,12 @@ static void _lltimer_set(uint32_t sec) {
 	time.tm_min = mins;
 	time.tm_sec = sec;
 
-	printf("[rtctimer] Set to %d %d:%d:%d\n", time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
-
+	printf("[rtctimer] Setting to %d %d:%d:%d\n", time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
+	rtc_clear_alarm();
 	rtc_set_alarm(&time, _rtc_callback, NULL);
+
+	rtc_get_alarm(&time);
+	printf("[rtctimer] Set to %d %d:%d:%d\n", time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
 }
 
 static void _rtc_callback(void *arg) {
@@ -79,14 +83,6 @@ uint32_t rtctimers_now(void) {
 	return (time.tm_mday * 3600 * 24)
 			+ (time.tm_hour * 60 * 60)
 			+ (time.tm_min * 60) + time.tm_sec;
-}
-
-void rtctimer_sleep(uint32_t sleep_sec) {
-
-}
-
-void rtctimer_set_msg(rtctimer_t *timer, uint32_t offset, msg_t *msg, kernel_pid_t target_pid) {
-
 }
 
 int _rtctimers_set_absolute(rtctimer_t *timer, uint32_t target)

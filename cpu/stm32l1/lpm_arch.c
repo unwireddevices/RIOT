@@ -116,7 +116,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             PWR->CR = (PWR->CR & CR_DS_MASK) | PWR_CR_LPSDSR;
 
             /* Enable Ultra Low Power mode */
-            *(__IO uint32_t *) CR_ULP_BB = 1;
+			PWR->CR |= PWR_CR_ULP;
 
             /* Set SLEEPDEEP bit of Cortex System Control Register */
             SCB->SCR |= SCB_SCR_SLEEPDEEP;
@@ -139,6 +139,9 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 
             /* Switch back to full speed */
             cpu_init();
+			
+			/* Wait for the reference voltage */
+			while(!(PWR->CSR & PWR_CSR_VREFINTRDYF)) {}
 
             __enable_irq();
 

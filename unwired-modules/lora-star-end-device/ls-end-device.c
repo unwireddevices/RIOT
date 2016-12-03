@@ -32,6 +32,8 @@ extern "C" {
 #include "ls-mac.h"
 #include "ls-end-device.h"
 
+#include "rtc-timers.h"
+
 static msg_t msg_rx1;
 static msg_t msg_rx2;
 
@@ -85,6 +87,14 @@ static void configure_sx1276(ls_ed_t *ls, bool tx)
     sx1276_configure_lora(ls->_internal.sx1276, &settings);
 }
 
+static void anticollision_delay(void) {
+	/* Pseudorandom delay up to 8 seconds for collision avoidance */
+	unsigned int delay = random_uint32_range(1, 8);
+
+	printf("ls-ed: random delay %d s\n", (unsigned int) (delay));
+	rtctimers_sleep(delay);
+}
+
 static void enter_rx(ls_ed_t *ls)
 {
     assert(ls != NULL);
@@ -114,8 +124,8 @@ static void open_rx_windows(ls_ed_t *ls)
 
     /* Open 2 RX windows if class A device */
     if (ls->settings.class == LS_ED_CLASS_A) {
-        xtimer_set_msg(&ls->_internal.rx_window1, LS_RX_DELAY1, &msg_rx1, ls->_internal.tim_thread_pid);
-        xtimer_set_msg(&ls->_internal.rx_window2, LS_RX_DELAY1 + LS_RX_DELAY2, &msg_rx2, ls->_internal.tim_thread_pid);
+        rtctimers_set_msg(&ls->_internal.rx_window1, LS_RX_DELAY1, &msg_rx1, ls->_internal.tim_thread_pid);
+        rtctimers_set_msg(&ls->_internal.rx_window2, LS_RX_DELAY1 + LS_RX_DELAY2, &msg_rx2, ls->_internal.tim_thread_pid);
 
         /* Enter reception mode */
         enter_rx(ls);
@@ -123,11 +133,11 @@ static void open_rx_windows(ls_ed_t *ls)
 
 	/* For a while, B and C are the same */
     else if (ls->settings.class == LS_ED_CLASS_B) {
-        xtimer_set_msg(&ls->_internal.rx_window1, LS_RX_DELAY1, &msg_rx1, ls->_internal.tim_thread_pid);
+        rtctimers_set_msg(&ls->_internal.rx_window1, LS_RX_DELAY1, &msg_rx1, ls->_internal.tim_thread_pid);
         enter_rx(ls);
     }
 	else if (ls->settings.class == LS_ED_CLASS_C) {
-        xtimer_set_msg(&ls->_internal.rx_window1, LS_RX_DELAY1, &msg_rx1, ls->_internal.tim_thread_pid);
+        rtctimers_set_msg(&ls->_internal.rx_window1, LS_RX_DELAY1, &msg_rx1, ls->_internal.tim_thread_pid);
         enter_rx(ls);
     }
 }
@@ -174,8 +184,8 @@ static void close_rx_windows(ls_ed_t *ls)
     puts("ls: both rx windows closed"); // XXX: debug
 
     /* Remove windows */
-    xtimer_remove(&ls->_internal.rx_window1);
-    xtimer_remove(&ls->_internal.rx_window2);
+    rtctimers_remove(&ls->_internal.rx_window1);
+    rtctimers_remove(&ls->_internal.rx_window2);
 
     /* Put SX1276 into sleep */
     ls_ed_sleep(ls);
@@ -199,7 +209,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             puts("ls-ed: confirmation received");   // XXX: debug
 
             /* Remove timeout timer */
-            xtimer_remove(&ls->_internal.conf_ack_expired);
+            rtctimers_remove(&ls->_internal.conf_ack_expired);
 
             /* Close RX window only if we haven't pending frames (regular app. data acknowledge received) */
             bool close_rx_window = frame->header.type == LS_DL_ACK;
@@ -256,7 +266,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             ls_derive_keys(ls->_internal.last_nonce, ack.app_nonce, ack.addr, ls->settings.crypto.mic_key, ls->settings.crypto.aes_key);
 
             /* Remove timeout timer */
-            xtimer_remove(&ls->_internal.join_req_expired);
+            rtctimers_remove(&ls->_internal.join_req_expired);
 
             /* Make device joined */
             ls->_internal.is_joined = true;
@@ -298,12 +308,9 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             puts("ls-ed: invited to join, rejoining..."); // XXX: debug
 
             /* Stop rejoin timeout */
-            xtimer_remove(&ls->_internal.join_req_expired);
+            rtctimers_remove(&ls->_internal.join_req_expired);
 
-			/* quasi-random delay up to 8.4 seconds for collision avoidance */
-			unsigned int delay = ((xtimer_now() & 0xFF) << 15);
-			printf("ls-ed: quasi-random delay %d msec\n", (unsigned int) (delay/1e3));
-			xtimer_usleep(delay);
+			anticollision_delay();
 
             /* Proceed to join procedure as requested */
             ls_ed_join(ls);
@@ -343,8 +350,8 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
 					puts("ls-ed: first RX window reopened");
 
 					/* Reopen RX window */
-					xtimer_remove(&ls->_internal.rx_window1);
-					xtimer_remove(&ls->_internal.rx_window2);
+					rtctimers_remove(&ls->_internal.rx_window1);
+					rtctimers_remove(&ls->_internal.rx_window2);
 
 					open_rx_windows(ls);
 				}
@@ -570,10 +577,7 @@ static void *tim_handler(void *arg)
                 }
                 else {
                     /* Do a retransmission */
-					/* quasi-random delay up to 8.4 seconds for collision avoidance */
-					unsigned int delay = ((xtimer_now() & 0xFF) << 15);
-					printf("ls-ed: quasi-random retransmission delay %d msec\n", (unsigned int) (delay/1e3));
-					xtimer_usleep(delay);
+                	anticollision_delay();
 					
                     ls->_internal.num_retr++;
                     ls_ed_send_app_data(ls, ls->_internal.last_app_msg.data, ls->_internal.last_app_msg.len, true);
@@ -677,7 +681,7 @@ int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed
     }
 
     if (confirmed) {
-        xtimer_set_msg(&ls->_internal.conf_ack_expired, LS_ACK_TIMEOUT, &msg_ack_timeout, ls->_internal.tim_thread_pid);
+        rtctimers_set_msg(&ls->_internal.conf_ack_expired, LS_ACK_TIMEOUT, &msg_ack_timeout, ls->_internal.tim_thread_pid);
 
         /* Save current message for retransmission */
         memcpy(ls->_internal.last_app_msg.data, buf, buflen);
@@ -690,10 +694,10 @@ int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed
 void ls_ed_unjoin(ls_ed_t *ls)
 {
 	/* Stop timers */
-    xtimer_remove(&ls->_internal.join_req_expired);
-    xtimer_remove(&ls->_internal.conf_ack_expired);
-    xtimer_remove(&ls->_internal.rx_window1);
-    xtimer_remove(&ls->_internal.rx_window2);
+    rtctimers_remove(&ls->_internal.join_req_expired);
+    rtctimers_remove(&ls->_internal.conf_ack_expired);
+    rtctimers_remove(&ls->_internal.rx_window1);
+    rtctimers_remove(&ls->_internal.rx_window2);
 
     /* Forget network address */
     ls->_internal.dev_addr = LS_ADDR_UNDEFINED;
@@ -738,7 +742,7 @@ int ls_ed_join(ls_ed_t *ls)
     send_frame(ls, LS_UL_JOIN_REQ, (uint8_t *) &req, sizeof(ls_join_req_t));
 
     /* Launch timeout timer */
-    xtimer_set_msg(&ls->_internal.join_req_expired, LS_JOIN_TIMEOUT, &msg_join_timeout, ls->_internal.tim_thread_pid);
+    rtctimers_set_msg(&ls->_internal.join_req_expired, LS_JOIN_TIMEOUT, &msg_join_timeout, ls->_internal.tim_thread_pid);
 
     return LS_OK;
 }

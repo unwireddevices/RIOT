@@ -18,14 +18,13 @@
 #ifndef UNWIRED_MODULES_LORA_STAR_INCLUDE_LS_H_
 #define UNWIRED_MODULES_LORA_STAR_INCLUDE_LS_H_
 
+#include "rtc-timers.h"
+
 #include "ls-frame-fifo.h"
 #include "ls-mac-types.h"
 #include "ls-crypto.h"
 
 #include "sx1276.h"
-
-#define LS_TX_DELAY_MIN_MS 100
-#define LS_TX_DELAY_MAX_MS 1000
 
 #define LS_RX2_DR LS_DR3
 #define LS_RX2_CH 0
@@ -36,29 +35,29 @@
 #define LS_CHANNEL_FREE_RSSI -100
 
 /**
- * @brief Maximum time of awaiting for the confirmed application data acknowledge in microseconds.
+ * @brief Maximum time of awaiting for the confirmed application data acknowledge in seconds.
  */
-#define LS_ACK_TIMEOUT	1e6 * 15
+#define LS_ACK_TIMEOUT	15
 
 /**
- * @brief Maximum time of awaiting for the join request acknowledge in microseconds.
+ * @brief Maximum time of awaiting for the join request acknowledge in seconds.
  */
-#define LS_JOIN_TIMEOUT 	1e6 * 15
+#define LS_JOIN_TIMEOUT 	15
 
 /**
- * @brief Duration of the first receive window in microseconds.
+ * @brief Duration of the first receive window in seconds.
  */
-#define LS_RX_DELAY1		1e6 * 2
+#define LS_RX_DELAY1		2
 
 /**
- * @brief Duration of the second receive window in microseconds.
+ * @brief Duration of the second receive window in seconds.
  */
-#define LS_RX_DELAY2		1e6 * 2
+#define LS_RX_DELAY2		2
 
 /**
  * Sleep request delay
  */
-#define LS_ED_SLEEP_REQUEST_DELAY 1e6 * 1
+#define LS_ED_SLEEP_REQUEST_DELAY 1
 
 // TODO: optimize these values to reduce memory consumption
 #define LS_SX1276_LISTENER_STACKSIZE	(2 * THREAD_STACKSIZE_DEFAULT)
@@ -143,7 +142,7 @@ typedef struct {
     msg_t sx1276_event_queue[16];
 
     /* Timers for first and second RX windows */
-    xtimer_t rx_window1, rx_window2;
+    rtctimer_t rx_window1, rx_window2;
 
     /* In second RX window, use the default settings */
     bool use_rx_window_2_settings;
@@ -170,10 +169,10 @@ typedef struct {
 	bool is_joined;
 
 	/* Join request expiration timer */
-	xtimer_t join_req_expired;
+	rtctimer_t join_req_expired;
 
 	/* Confirmation timeout */
-	xtimer_t conf_ack_expired;
+	rtctimer_t conf_ack_expired;
 
 	/* Number of retransmitting tries */
 	uint8_t num_retr;
@@ -185,13 +184,13 @@ typedef struct {
 	ls_frame_id_t last_fid;
 
 	/* Timer for the periodic link check */
-	xtimer_t lnkchk_timer;
+	rtctimer_t lnkchk_timer;
 
 	/* Sleep request timer */
-	xtimer_t sleep_req_timer;
+	rtctimer_t sleep_req_timer;
 
 	/* Wakeup timer */
-	xtimer_t wakeup_timer;
+	rtctimer_t wakeup_timer;
 
 	/* Current frame to send (to reduce stack consumption) */
 	ls_frame_t current_frame;

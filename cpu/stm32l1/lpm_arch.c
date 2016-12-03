@@ -67,13 +67,6 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             break;
 
         case LPM_POWERDOWN:         /* Low-power sleep mode */
-			/* Unlock the RUN_PD bit to change flash settings */  
-			FLASH->PDKEYR = FLASH_PDKEY1;
-			FLASH->PDKEYR = FLASH_PDKEY2;
-
-			/* put flash in power-down mode during sleep */  
-			FLASH->ACR |= (uint32_t)FLASH_ACR_SLEEP_PD; 
-		
             /* Regulator in LP mode */
             PWR->CR = (PWR->CR & CR_DS_MASK) | PWR_CR_LPSDSR;
 

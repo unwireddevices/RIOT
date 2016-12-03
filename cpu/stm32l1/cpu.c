@@ -118,6 +118,9 @@ static void clk_init(void)
     /* Wait till the high speed clock source is ready
      * NOTE: the MCU will stay here forever if you use an external clock source and it's not connected */
     while (!(RCC->CR & CLOCK_CR_SOURCE_RDY)) {}
+	/* Unlock the RUN_PD bit to change flash settings */  
+	FLASH->PDKEYR = FLASH_PDKEY1;
+	FLASH->PDKEYR = FLASH_PDKEY2;
     FLASH->ACR |= FLASH_ACR_ACC64 | FLASH_ACR_SLEEP_PD;
     /* Enable Prefetch Buffer */
     FLASH->ACR |= FLASH_ACR_PRFTEN;

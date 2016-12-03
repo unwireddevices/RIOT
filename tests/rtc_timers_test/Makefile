@@ -8,6 +8,8 @@ USEMODULE += ps
 USEMODULE += rtc-timers
 USEMODULE += xtimer
 
+USEMODULE += sx1276
+
 EXTERNAL_MODULE_DIRS += ../../unwired-modules/
 USEMODULE += rtc-timers
 INCLUDES += -I../../unwired-modules/rtc-timers/include/

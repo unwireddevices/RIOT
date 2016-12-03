@@ -162,3 +162,36 @@ static void clk_init(void)
 
     RCC->CR &= ~(CLOCK_DISABLE_OTHERS);
 }
+
+void msi_clock_65khz(void)
+{
+    /* Set MSION bit */
+    RCC->CR |= RCC_CR_MSION;
+    /* Reset SW, HPRE, PPRE1, PPRE2, MCOSEL and MCOPRE bits */
+    RCC->CFGR &= ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLDIV | RCC_CFGR_PLLMUL);
+    /* Reset HSION, HSEON, CSSON and PLLON bits */
+    RCC->CR &= ~(RCC_CR_HSION | RCC_CR_HSEON | RCC_CR_HSEBYP | RCC_CR_CSSON | RCC_CR_PLLON);
+    /* Disable all interrupts */
+    RCC->CIR = 0x0;
+
+	while (!(RCC->CR & RCC_CR_MSIRDY)) {}
+
+	/* HCLK = SYSCLK /1*/
+    RCC->CFGR |= (uint32_t)RCC_CFGR_HPRE_DIV1;
+
+    /* PCLK2 = HCLK /1*/
+    RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE2_DIV1;
+    
+    /* PCLK1 = HCLK /1*/
+    RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE1_DIV1;
+  
+    RCC->ICSCR &= (uint32_t)((uint32_t)~(RCC_ICSCR_MSIRANGE));
+    RCC->ICSCR |= (uint32_t)RCC_ICSCR_MSIRANGE_0;
+
+    /* Select MSI as system clock source */
+    RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_SW));
+    RCC->CFGR |= (uint32_t)RCC_CFGR_SW_MSI;
+
+    /* Wait till MSI is used as system clock source */
+    while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS) != (uint32_t)RCC_CFGR_SWS_MSI) {}
+}

@@ -78,7 +78,9 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 
             /* Wait in sleep mode until interrupt */
             __disable_irq();
-            //switch_to_msi_1mhz();
+			
+            /* Switch to medium-speed clock */
+			msi_clock_65khz();
 
             asm ("DMB");
             __WFI();
@@ -90,7 +92,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             asm ("nop");
             asm ("nop");
 
-            /* Restore frequency */
+            /* Switch back to full speed */
             cpu_init();
 
             __enable_irq();

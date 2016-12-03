@@ -101,17 +101,21 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 
             /* Request Wait For Interrupt */
             __disable_irq();
-            //switch_to_msi_1mhz();
+			
+			/* Switch to medium-speed clock */
+            /* msi_clock_65khz(); */
 
             asm ("DMB");
             __WFI();
             asm ("nop");
 
-           // restore_clocks_hsi();
+			/* Switch back to full speed */
+			/* main_clock(); */
+			
             __enable_irq();
             break;
 
-        case LPM_POWERDOWN:         /* Low-power sleep mode */
+        case LPM_POWERDOWN:         /* STOP mode */
             /* Regulator in LP mode */
             PWR->CR = (PWR->CR & CR_DS_MASK) | PWR_CR_LPSDSR;
 
@@ -119,13 +123,10 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 			PWR->CR |= PWR_CR_ULP;
 
             /* Set SLEEPDEEP bit of Cortex System Control Register */
-            SCB->SCR |= SCB_SCR_SLEEPDEEP;
+            SCB->SCR |= (uint32_t)SCB_SCR_SLEEPDEEP;
 
             /* Wait in sleep mode until interrupt */
             __disable_irq();
-			
-            /* Switch to medium-speed clock */
-			msi_clock_65khz();
 
             asm ("DMB");
             __WFI();
@@ -136,9 +137,6 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 
             asm ("nop");
             asm ("nop");
-
-            /* Switch back to full speed */
-            cpu_init();
 			
 			/* Wait for the reference voltage */
 			while(!(PWR->CSR & PWR_CSR_VREFINTRDYF)) {}
@@ -155,7 +153,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             PWR->CR |= PWR_CR_PDDS;
 
             /* Set SLEEPDEEP bit of Cortex System Control Register */
-            SCB->SCR |= SCB_SCR_SLEEPDEEP;
+            SCB->SCR |= (uint32_t)SCB_SCR_SLEEPDEEP;
 
             /* Enable Ultra Low Power mode */
             *(__IO uint32_t *) CR_ULP_BB = 1;

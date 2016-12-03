@@ -195,3 +195,50 @@ void msi_clock_65khz(void)
     /* Wait till MSI is used as system clock source */
     while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS) != (uint32_t)RCC_CFGR_SWS_MSI) {}
 }
+
+void main_clock(void)
+{
+    /* Set MSION bit */
+    RCC->CR |= RCC_CR_MSION;
+    /* Reset SW, HPRE, PPRE1, PPRE2, MCOSEL and MCOPRE bits */
+    RCC->CFGR &= ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLDIV | RCC_CFGR_PLLMUL);
+    /* Reset HSION, HSEON, CSSON and PLLON bits */
+    RCC->CR &= ~(RCC_CR_HSION | RCC_CR_HSEON | RCC_CR_HSEBYP | RCC_CR_CSSON | RCC_CR_PLLON);
+    /* Disable all interrupts */
+    RCC->CIR = 0x0;
+	
+	/* Wait for PLL to stop */
+	while ((RCC->CR & RCC_CR_PLLRDY)) {}
+
+	
+	RCC->CR |= CLOCK_CR_SOURCE;
+    /* Wait till the high speed clock source is ready */
+	while (!(RCC->CR & CLOCK_CR_SOURCE_RDY)) {}
+
+    /* HCLK = SYSCLK */
+    RCC->CFGR |= (uint32_t)CLOCK_AHB_DIV;
+    /* PCLK2 = HCLK */
+    RCC->CFGR |= (uint32_t)CLOCK_APB2_DIV;
+    /* PCLK1 = HCLK */
+    RCC->CFGR |= (uint32_t)CLOCK_APB1_DIV;
+ 
+#if CLOCK_USE_PLL
+    /*  PLL configuration: PLLCLK = CLOCK_SOURCE / PLL_DIV * PLL_MUL */
+    RCC->CFGR |= (uint32_t)(CLOCK_PLL_SOURCE | CLOCK_PLL_DIV | CLOCK_PLL_MUL);
+    /* Enable PLL */
+    RCC->CR |= RCC_CR_PLLON;
+    /* Wait till PLL is ready */
+    while ((RCC->CR & RCC_CR_PLLRDY) == 0) {}
+#elif CLOCK_MSI
+    RCC->ICSCR &= ~(RCC_ICSCR_MSIRANGE);
+    RCC->ICSCR |= (CLOCK_MSI << 13);
+#endif
+ 
+    /* Select PLL as system clock source */
+    RCC->CFGR &= ~((uint32_t)(RCC_CFGR_SW));
+    RCC->CFGR |= (uint32_t)CLOCK_CFGR_SW;
+    /* Wait till PLL is used as system clock source */
+    while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS) != CLOCK_CFGR_SW_RDY) {}
+	
+	RCC->CR &= ~(CLOCK_DISABLE_OTHERS);
+}

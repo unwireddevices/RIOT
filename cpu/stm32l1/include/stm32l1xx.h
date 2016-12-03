@@ -66,6 +66,12 @@
  * @brief   Switch to 65 kHz MSI clock
  */
 void msi_clock_65khz(void);
+
+/**
+ * @brief   Switch back to main clock
+ */
+void main_clock(void);
+
   
 /* Uncomment the line below according to the target STM32L device used in your
    application

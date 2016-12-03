@@ -150,7 +150,7 @@ bool umdk_lps331_cmd(module_data_t *cmd, module_data_t *reply)
             }
 
             uint8_t period = cmd->data[1];
-            xtimer_remove(&timer);
+            rtctimers_remove(&timer);
 
             publish_period_min = period;
 

@@ -37,7 +37,7 @@ extern "C" {
 #include "unwds-gpio.h"
 
 #include "thread.h"
-#include "xtimer.h"
+#include "rtc-timers.h"
 
 static sht21_t dev;
 
@@ -46,7 +46,7 @@ static uwnds_cb_t *callback;
 static kernel_pid_t timer_pid;
 
 static msg_t timer_msg = {};
-static xtimer_t timer;
+static rtctimer_t timer;
 
 static struct {
 	bool is_valid;
@@ -101,7 +101,7 @@ static void *timer_thread(void *arg) {
     while (1) {
         msg_receive(&msg);
 
-        xtimer_remove(&timer);
+        rtctimers_remove(&timer);
 
         module_data_t data = {};
         prepare_result(&data);
@@ -110,7 +110,7 @@ static void *timer_thread(void *arg) {
         callback(&data);
 
         /* Restart after delay */
-        xtimer_set_msg(&timer, 1e6 * 60 * sht21_config.publish_period_min, &timer_msg, timer_pid);
+        rtctimers_set_msg(&timer, 60 * sht21_config.publish_period_min, &timer_msg, timer_pid);
     }
 
     return NULL;
@@ -166,7 +166,7 @@ void umdk_sht21_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "sht21 thread");
 
     /* Start publishing timer */
-	xtimer_set_msg(&timer, 1e6 * 60 * sht21_config.publish_period_min, &timer_msg, timer_pid);
+	rtctimers_set_msg(&timer, 60 * sht21_config.publish_period_min, &timer_msg, timer_pid);
 }
 
 bool umdk_sht21_cmd(module_data_t *cmd, module_data_t *reply) {
@@ -180,14 +180,14 @@ bool umdk_sht21_cmd(module_data_t *cmd, module_data_t *reply) {
 			return false;
 
 		uint8_t period = cmd->data[1];
-		xtimer_remove(&timer);
+		rtctimers_remove(&timer);
 
 		sht21_config.publish_period_min = period;
 		save_config();
 
 		/* Don't restart timer if new period is zero */
 		if (sht21_config.publish_period_min) {
-			xtimer_set_msg(&timer, 1e6 * 60 * sht21_config.publish_period_min, &timer_msg, timer_pid);
+			rtctimers_set_msg(&timer, 60 * sht21_config.publish_period_min, &timer_msg, timer_pid);
 			printf("[sht21] Period set to %d minute (s)\n", sht21_config.publish_period_min);
 		} else
 			puts("[sht21] Timer stopped");

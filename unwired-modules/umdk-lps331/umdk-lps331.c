@@ -38,6 +38,7 @@ extern "C" {
 
 #include "thread.h"
 #include "xtimer.h"
+#include "rtc-timers.h"
 
 static lps331ap_t dev;
 
@@ -49,7 +50,7 @@ static int publish_period_min;
 
 static msg_t timer_msg = {
 };
-static xtimer_t timer;
+static rtctimer_t timer;
 
 static bool init_sensor(void)
 {
@@ -92,7 +93,7 @@ static void *timer_thread(void *arg)
     while (1) {
         msg_receive(&msg);
 
-        xtimer_remove(&timer);
+        rtctimers_remove(&timer);
 
         module_data_t data = {};
         prepare_result(&data);
@@ -101,7 +102,7 @@ static void *timer_thread(void *arg)
         callback(&data);
 
         /* Restart after delay */
-        xtimer_set_msg(&timer, 1e6 * 60 * publish_period_min, &timer_msg, timer_pid);
+        rtctimers_set_msg(&timer, 60 * publish_period_min, &timer_msg, timer_pid);
     }
 
     return NULL;
@@ -132,7 +133,7 @@ void umdk_lps331_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "lps331ap thread");
 
     /* Start publishing timer */
-    xtimer_set_msg(&timer, 1e6 * 60 * publish_period_min, &timer_msg, timer_pid);
+    rtctimers_set_msg(&timer, 60 * publish_period_min, &timer_msg, timer_pid);
 }
 
 bool umdk_lps331_cmd(module_data_t *cmd, module_data_t *reply)
@@ -155,7 +156,7 @@ bool umdk_lps331_cmd(module_data_t *cmd, module_data_t *reply)
 
             /* Don't restart timer if new period is zero */
             if (publish_period_min) {
-                xtimer_set_msg(&timer, 1e6 * 60 * publish_period_min, &timer_msg, timer_pid);
+            	rtctimers_set_msg(&timer, 60 * publish_period_min, &timer_msg, timer_pid);
                 printf("[umdk-lps331] Period set to %d seconds\n", publish_period_min);
             }
             else {

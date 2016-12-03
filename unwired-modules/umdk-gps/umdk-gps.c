@@ -32,7 +32,6 @@ extern "C" {
 #include "umdk-gps.h"
 
 #include "thread.h"
-#include "xtimer.h"
 
 static uwnds_cb_t *callback;
 

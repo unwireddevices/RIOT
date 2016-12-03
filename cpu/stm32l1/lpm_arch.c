@@ -66,7 +66,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             __enable_irq();
             break;
 
-        case LPM_POWERDOWN:         /* Stop mode */
+        case LPM_POWERDOWN:         /* Low-power sleep mode */
             /* Regulator in LP mode */
             PWR->CR = (PWR->CR & CR_DS_MASK) | PWR_CR_LPSDSR;
 

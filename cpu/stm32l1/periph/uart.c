@@ -157,7 +157,7 @@ void uart_write(uart_t uart, const uint8_t *data, size_t len)
             return;
     }
 
-    long ticks;
+    volatile long ticks;
     const long timeout = 50000;
 
     for (size_t i = 0; i < len; i++) {

@@ -98,6 +98,9 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             break;
 
         case LPM_OFF:               /* Standby mode */
+			/* Clear Wakeup flag */	
+			PWR->CR |= PWR_CR_CWUF;
+		
             /* Select STANDBY mode */
             PWR->CR |= PWR_CR_PDDS;
 

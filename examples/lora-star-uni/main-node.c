@@ -29,7 +29,6 @@ extern "C" {
 #include "shell.h"
 #include "shell_commands.h"
 #include "thread.h"
-#include "xtimer.h"
 #include "lpm.h"
 #include "periph/rtc.h"
 #include "periph/gpio.h"
@@ -47,6 +46,8 @@ extern "C" {
 #include "utils.h"
 
 #include "ls-regions.h"
+
+#include "rtc-timers.h"
 
 #define DISPLAY_JOINKEY_2BYTES 1
 
@@ -115,10 +116,13 @@ void link_good_cb(void)
 void joined_timeout_cb(void)
 {
     puts("ls: join request timed out, resending");
-    /* quasi-random delay up to 8.4 seconds for collision avoidance */
-    unsigned int delay = ((xtimer_now() & 0xFF) << 15);
-    printf("ls: quasi-random retransmission delay %d msec\n", (unsigned int) (delay / 1e3));
-    xtimer_usleep(delay);
+
+	/* Pseudorandom delay up to 8 seconds for collision avoidance */
+	unsigned int delay = random_uint32_range(1, 8);
+
+	printf("ls-ed: random delay %d s\n", (unsigned int) (delay));
+	rtctimers_sleep(delay);
+
     ls_ed_join(&ls);
 }
 
@@ -167,6 +171,7 @@ void appdata_received_cb(uint8_t *buf, size_t buflen)
 
 static void standby_mode_cb(void)
 {
+	puts("Entering LPM");
     lpm_prevent_sleep = 0;
 }
 
@@ -569,7 +574,8 @@ void init_node(shell_command_t **commands)
     /* Set our commands for shell */
     memcpy(commands, shell_commands, sizeof(shell_commands));
 
-    rtc_init();
+    rtctimers_init();
+    lpm_prevent_sleep = 1;
 
     if (!load_config()) {
         puts("[!] Device is not configured yet. Type \"help\" to see list of possible configuration commands.");
@@ -603,7 +609,7 @@ void init_node(shell_command_t **commands)
             unwds_init_modules(unwds_callback);
         }
 
-        xtimer_usleep(1e6 * 1);
+        rtctimers_sleep(1);
         ls_ed_join(&ls);
 
         blink_led();

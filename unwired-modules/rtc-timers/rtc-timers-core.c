@@ -27,6 +27,9 @@ extern "C" {
 #include "rtc-timers.h"
 #include "periph/rtc.h"
 
+//#include "debug.h"
+#define DEBUG printf
+
 static rtctimer_t *timer_list_head = NULL;
 
 static void _add_timer_to_list(rtctimer_t **list_head, rtctimer_t *timer);
@@ -44,7 +47,7 @@ static void _lltimer_set(uint32_t sec) {
 
 	rtc_get_time(&time);
 
-	printf("[rtctimers] Current time: %d %d:%d:%d\n", time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
+	DEBUG("[rtctimers] %d %d:%d:%d -> ", time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
 
 	int days = sec / (3600 * 24);
 	sec -= days * (3600 * 24);
@@ -60,12 +63,11 @@ static void _lltimer_set(uint32_t sec) {
 	time.tm_min = mins;
 	time.tm_sec = sec;
 
-	printf("[rtctimer] Setting to %d %d:%d:%d\n", time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
 	rtc_clear_alarm();
 	rtc_set_alarm(&time, _rtc_callback, NULL);
 
 	rtc_get_alarm(&time);
-	printf("[rtctimer] Set to %d %d:%d:%d\n", time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
+	DEBUG("%d %d:%d:%d\n", time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
 }
 
 static void _rtc_callback(void *arg) {
@@ -90,7 +92,7 @@ int _rtctimers_set_absolute(rtctimer_t *timer, uint32_t target)
     uint32_t now = rtctimers_now();
     int res = 0;
 
-    printf("timer_set_absolute(): now=%u target=%u\n", (unsigned) now, (unsigned) target);
+    //DEBUG("timer_set_absolute(): now=%u target=%u\n", (unsigned) now, (unsigned) target);
 
     timer->next = NULL;
 
@@ -102,7 +104,7 @@ int _rtctimers_set_absolute(rtctimer_t *timer, uint32_t target)
     timer->target = target;
 
 	if (now >= target) {
-		puts("[rtctimers] now >= target!");
+		DEBUG("[rtctimers] now >= target!\n");
 	}
 	else {
 		_add_timer_to_list(&timer_list_head, timer);
@@ -119,7 +121,7 @@ int _rtctimers_set_absolute(rtctimer_t *timer, uint32_t target)
 
 void rtctimers_set(rtctimer_t *timer, uint32_t offset) {
     if (!timer->callback) {
-        puts("timer_set(): timer has no callback.\n");
+        DEBUG("timer_set(): timer has no callback.\n");
         return;
     }
 
@@ -170,7 +172,7 @@ static void _remove(rtctimer_t *timer)
     }
     else {
         if (!_remove_timer_from_list(&timer_list_head, timer)) {
-        	puts("[rtctimers] Unable to remove timer from list!");
+        	//DEBUG("[rtctimers] Unable to remove timer from list!\n");
         }
     }
 }
@@ -185,7 +187,7 @@ void rtctimers_remove(rtctimer_t *timer) {
     irq_restore(state);
 }
 
-static void _shoot(rtctimer_t *timer) {
+static inline void _shoot(rtctimer_t *timer) {
 	timer->callback(timer->arg);
 }
 
@@ -218,7 +220,7 @@ static void _timer_callback(void)
 
         /* make sure we're not setting a time in the past */
         if (next_target < (rtctimers_now() + RTCTIMERS_ISR_BACKOFF)) {
-            puts("[rtctimers] next_target < now + isr");
+            DEBUG("[rtctimers] next_target < now + isr\n");
         }
     }
 

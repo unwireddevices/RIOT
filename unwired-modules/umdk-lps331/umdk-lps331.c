@@ -46,11 +46,16 @@ static uwnds_cb_t *callback;
 
 static kernel_pid_t timer_pid;
 
-static int publish_period_min;
-
 static msg_t timer_msg = {
 };
 static rtctimer_t timer;
+
+static struct {
+	bool is_valid;
+
+	uint8_t publish_period_min;
+	uint8_t i2c_dev;
+} lps331_config;
 
 static bool init_sensor(void)
 {
@@ -102,10 +107,38 @@ static void *timer_thread(void *arg)
         callback(&data);
 
         /* Restart after delay */
-        rtctimers_set_msg(&timer, 60 * publish_period_min, &timer_msg, timer_pid);
+        rtctimers_set_msg(&timer, 60 * lps331_config.publish_period_min, &timer_msg, timer_pid);
     }
 
     return NULL;
+}
+
+static void reset_config(void) {
+	lps331_config.is_valid = false;
+	lps331_config.publish_period_min = UMDK_LPS331_PUBLISH_PERIOD_MIN;
+	lps331_config.i2c_dev = UMDK_LPS331_I2C;
+}
+
+static void init_config(void) {
+	reset_config();
+
+	if (!unwds_read_nvram_config(UNWDS_LPS331_MODULE_ID, (uint8_t *) &lps331_config, sizeof(lps331_config)))
+		return;
+
+	if (!lps331_config.is_valid) {
+		reset_config();
+		return;
+	}
+
+	if (lps331_config.i2c_dev >= I2C_NUMOF) {
+		reset_config();
+		return;
+	}
+}
+
+static inline void save_config(void) {
+	lps331_config.is_valid = true;
+	unwds_write_nvram_config(UNWDS_LPS331_MODULE_ID, (uint8_t *) &lps331_config, sizeof(lps331_config));
 }
 
 void umdk_lps331_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
@@ -113,7 +146,9 @@ void umdk_lps331_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     (void) non_gpio_pin_map;
 
     callback = event_callback;
-    publish_period_min = UMDK_LPS331_PUBLISH_PERIOD_MIN; /* Set to default */
+	
+	init_config();
+	printf("[lps331] Publish period: %d min\n", lps331_config.publish_period_min);
 
     if (init_sensor()) {
         puts("[umdk-lps331] Unable to init sensor!");
@@ -133,7 +168,7 @@ void umdk_lps331_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "lps331ap thread");
 
     /* Start publishing timer */
-    rtctimers_set_msg(&timer, 60 * publish_period_min, &timer_msg, timer_pid);
+    rtctimers_set_msg(&timer, 60 * lps331_config.publish_period_min, &timer_msg, timer_pid);
 }
 
 bool umdk_lps331_cmd(module_data_t *cmd, module_data_t *reply)
@@ -152,12 +187,13 @@ bool umdk_lps331_cmd(module_data_t *cmd, module_data_t *reply)
             uint8_t period = cmd->data[1];
             rtctimers_remove(&timer);
 
-            publish_period_min = period;
+            lps331_config.publish_period_min = period;
+			save_config();
 
             /* Don't restart timer if new period is zero */
-            if (publish_period_min) {
-            	rtctimers_set_msg(&timer, 60 * publish_period_min, &timer_msg, timer_pid);
-                printf("[umdk-lps331] Period set to %d seconds\n", publish_period_min);
+            if (lps331_config.publish_period_min) {
+            	rtctimers_set_msg(&timer, 60 * lps331_config.publish_period_min, &timer_msg, timer_pid);
+                printf("[umdk-lps331] Period set to %d seconds\n", lps331_config.publish_period_min);
             }
             else {
                 puts("[umdk-lps331] Timer stopped");
@@ -183,6 +219,7 @@ bool umdk_lps331_cmd(module_data_t *cmd, module_data_t *reply)
         case UMDK_LPS331_CMD_SET_I2C: {
             i2c_t i2c = (i2c_t) cmd->data[1];
             dev.i2c = i2c;
+			lps331_config.i2c_dev = i2c;
 
             init_sensor();
 

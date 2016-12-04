@@ -555,6 +555,10 @@ static bool load_config(void)
 
 static bool is_connect_button_pressed(void)
 {
+	if (!UNWD_USE_CONNECT_BTN) {
+		return false;
+	}
+	
     if (!gpio_init(UNWD_CONNECT_BTN, GPIO_IN_PU)) {
         if (!gpio_read(UNWD_CONNECT_BTN)) {
             return true;
@@ -607,7 +611,7 @@ void init_node(shell_command_t **commands)
 			safe_mode = true;
 		}
 
-        if ((is_connect_button_pressed() || safe_mode) && UNWD_USE_CONNECT_BTN) {
+        if (is_connect_button_pressed() || safe_mode) {
             puts("[!] Entering Safe Mode, all modules disabled, class C.");
 			ls.settings.class = LS_ED_CLASS_C;
             blink_led();

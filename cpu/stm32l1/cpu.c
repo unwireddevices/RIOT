@@ -109,7 +109,7 @@ static void clk_init(void)
     RCC->CFGR &= ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLDIV | RCC_CFGR_PLLMUL);
     /* Reset HSION, HSEON, CSSON and PLLON bits */
     RCC->CR &= ~(RCC_CR_HSION | RCC_CR_HSEON | RCC_CR_HSEBYP | RCC_CR_CSSON | RCC_CR_PLLON);
-    /* Disable all interrupts */
+    /* Clear all interrupts */
     RCC->CIR = 0x0;
 
     /* SYSCLK, HCLK, PCLK2 and PCLK1 configuration */
@@ -163,53 +163,113 @@ static void clk_init(void)
     RCC->CR &= ~(CLOCK_DISABLE_OTHERS);
 }
 
-void msi_clock_65khz(void)
+void default_to_msi_clock(uint32_t msi_range, uint32_t hpre_divider)
 {
-    /* Set MSION bit */
-    RCC->CR |= RCC_CR_MSION;
-    /* Reset SW, HPRE, PPRE1, PPRE2, MCOSEL and MCOPRE bits */
-    RCC->CFGR &= ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLDIV | RCC_CFGR_PLLMUL);
-    /* Reset HSION, HSEON, CSSON and PLLON bits */
-    RCC->CR &= ~(RCC_CR_HSION | RCC_CR_HSEON | RCC_CR_HSEBYP | RCC_CR_CSSON | RCC_CR_PLLON);
-    /* Disable all interrupts */
-    RCC->CIR = 0x0;
-
-	while (!(RCC->CR & RCC_CR_MSIRDY)) {}
-
-	/* HCLK = SYSCLK /1*/
-    RCC->CFGR |= (uint32_t)RCC_CFGR_HPRE_DIV1;
-
-    /* PCLK2 = HCLK /1*/
-    RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE2_DIV1;
-    
-    /* PCLK1 = HCLK /1*/
-    RCC->CFGR |= (uint32_t)RCC_CFGR_PPRE1_DIV1;
+	/* RCC system reset */
+	RCC->CR |= RCC_CR_MSION;
+	/* Switch SYSCLK to MSI*/
+	RCC->CFGR &= ~RCC_CFGR_SW;
+	RCC->CFGR |= RCC_CFGR_SW_MSI;
+	/* Reset HSION, HSEON, CSSON, HSEBYP & PLLON bits */
+	RCC->CR &= ~(RCC_CR_HSION | RCC_CR_HSEON | RCC_CR_CSSON | RCC_CR_PLLON | RCC_CR_HSEBYP);
   
-    RCC->ICSCR &= (uint32_t)((uint32_t)~(RCC_ICSCR_MSIRANGE));
-    RCC->ICSCR |= (uint32_t)RCC_ICSCR_MSIRANGE_0;
+	/* Reset CFGR register */
+	RCC->CFGR = 0x0;
+  
+	/* Set MSIClockRange & MSITRIM[4:0] bits to the reset value */
+	RCC->ICSCR &= ~(RCC_ICSCR_MSIRANGE | RCC_ICSCR_MSITRIM);
+	RCC->ICSCR |= RCC_ICSCR_MSIRANGE_5;
+  
+	/* Set HSITRIM bits to the reset value */
+	RCC->ICSCR &= ~RCC_ICSCR_HSITRIM;
+	RCC->ICSCR |= ((uint32_t)0x10 << 8);
+  
+	/* Clear all interrupts */
+	RCC->CIR = 0x0;
 
-    /* Select MSI as system clock source */
-    RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_SW));
-    RCC->CFGR |= (uint32_t)RCC_CFGR_SW_MSI;
+	/* Flash no latency*/
+	FLASH->ACR &= ~FLASH_ACR_LATENCY;
+	/* Flash no prefetch */
+	FLASH->ACR &= ~FLASH_ACR_PRFTEN;
+	/* Flash 32-bit access */
+	FLASH->ACR &= ~FLASH_ACR_ACC64;
+ 
+	/* Enable the PWR APB1 Clock */
+	RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+	  
+	/* Select the Voltage Range 3 (1.2V) */
+	PWR->CR |= (PWR_CR_VOS_0 | PWR_CR_VOS_1);
+	/* Wait Until the Voltage Regulator is ready */
+	while((PWR->CSR & PWR_CSR_VOSF) != 0) {}
 
-    /* Wait till MSI is used as system clock source */
-    while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS) != (uint32_t)RCC_CFGR_SWS_MSI) {}
+	/* Configure the MSI frequency */
+	uint32_t tmpreg = 0;
+	tmpreg = RCC->ICSCR; 
+	/* Clear MSIRANGE[2:0] bits */
+	tmpreg &= ~RCC_ICSCR_MSIRANGE;
+	/* Set the MSIRANGE[2:0] bits according to RCC_MSIRange value */
+	tmpreg |= RCC_ICSCR_MSIRANGE_0;
+	/* Store the new value */
+	RCC->ICSCR = tmpreg;
+  
+	/* Select MSI as system clock source */
+	tmpreg = RCC->CFGR;
+	/* Clear SW[1:0] bits */
+	tmpreg &= ~RCC_CFGR_SW;
+	/* Set SW[1:0] bits to enable MSI clock */
+	tmpreg |= RCC_CFGR_SW_MSI;
+	/* Store the new value */
+	RCC->CFGR = tmpreg;
+
+	/* Wait until MSI is used as system clock source */
+	while ((uint8_t)(RCC->CFGR & RCC_CFGR_SWS) != 0x00);
+
+	/* Div2 */
+	tmpreg = RCC->CFGR;
+	/* Clear HPRE[3:0] bits */
+	tmpreg &= ~RCC_CFGR_HPRE;
+	/* Set HPRE[3:0] bits according to RCC_SYSCLK value */
+	tmpreg |= RCC_CFGR_HPRE_DIV1;
+	/* Store the new value */
+	RCC->CFGR = tmpreg;
+
+	/* Disable HSI clock */
+	RCC->CR &= ~RCC_CR_HSION;
+
+	/* Disable HSE clock */
+	RCC->CR &= ~RCC_CR_HSEON;
+
+	/* Disable LSI clock */
+	RCC->CSR &= ~RCC_CSR_LSION;
 }
 
-void main_clock(void)
+void restore_default_clock(void)
 {
-    /* Set MSION bit */
-    RCC->CR |= RCC_CR_MSION;
     /* Reset SW, HPRE, PPRE1, PPRE2, MCOSEL and MCOPRE bits */
     RCC->CFGR &= ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLDIV | RCC_CFGR_PLLMUL);
     /* Reset HSION, HSEON, CSSON and PLLON bits */
     RCC->CR &= ~(RCC_CR_HSION | RCC_CR_HSEON | RCC_CR_HSEBYP | RCC_CR_CSSON | RCC_CR_PLLON);
-    /* Disable all interrupts */
+    /* Clear all interrupts */
     RCC->CIR = 0x0;
 	
 	/* Wait for PLL to stop */
 	while ((RCC->CR & RCC_CR_PLLRDY)) {}
+	
+	/* Select the Voltage Range 1 (1.8V) */
+	PWR->CR |= PWR_CR_VOS_0;
+	PWR->CR &= ~PWR_CR_VOS_1;
+	/* Wait Until the Voltage Regulator is ready */
+	while((PWR->CSR & PWR_CSR_VOSF) != 0) {}
 
+	/* Flash 64-bit access */
+	FLASH->ACR |= FLASH_ACR_ACC64;	
+	/* Flash latency 1 */
+	FLASH->ACR |= FLASH_ACR_LATENCY;
+	/* Flash prefetch */
+	FLASH->ACR |= FLASH_ACR_PRFTEN;
+	/* Check if flash is ready */
+	while (!(FLASH->SR & FLASH_SR_READY)) {}
+	
 	
 	RCC->CR |= CLOCK_CR_SOURCE;
     /* Wait till the high speed clock source is ready */

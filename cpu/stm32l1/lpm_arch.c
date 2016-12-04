@@ -95,27 +95,34 @@ void lpm_arch_init(void)
 enum lpm_mode lpm_arch_set(enum lpm_mode target)
 {
     switch (target) {
-        case LPM_SLEEP:;                                            /* Sleep mode */
+        case LPM_SLEEP:               /* Low-power sleep mode */
+			/* Clear Wakeup flag */	
+			PWR->CR |= PWR_CR_CWUF;
+			/* Enable low-power mode of the voltage regulator */
             PWR->CR = (PWR->CR & CR_DS_MASK) | PWR_CR_LPSDSR;
-            SCB->SCR &= (uint32_t) ~((uint32_t)SCB_SCR_SLEEPDEEP);  /* Clear SLEEPDEEP bit of Cortex System Control Register */
+			/* Clear SLEEPDEEP bit */
+            SCB->SCR &= (uint32_t) ~((uint32_t)SCB_SCR_SLEEPDEEP);
 
-            /* Request Wait For Interrupt */
             __disable_irq();
 			
-			/* Switch to medium-speed clock */
-            /* msi_clock_65khz(); */
-
+			/* Switch to 65kHz medium-speed clock */
+            default_to_msi_clock(RCC_ICSCR_MSIRANGE_0, RCC_CFGR_HPRE_DIV1);
+			
+			/* Request Wait For Interrupt */
             asm ("DMB");
             __WFI();
-            asm ("nop");
+            asm ("nop; nop; nop; nop");
 
 			/* Switch back to full speed */
-			/* main_clock(); */
+			restore_default_clock();
 			
             __enable_irq();
             break;
 
         case LPM_POWERDOWN:         /* STOP mode */
+			/* Clear Wakeup flag */	
+			PWR->CR |= PWR_CR_CWUF;
+		
             /* Regulator in LP mode */
             PWR->CR = (PWR->CR & CR_DS_MASK) | PWR_CR_LPSDSR;
 
@@ -125,9 +132,9 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             /* Set SLEEPDEEP bit of Cortex System Control Register */
             SCB->SCR |= (uint32_t)SCB_SCR_SLEEPDEEP;
 
-            /* Wait in sleep mode until interrupt */
             __disable_irq();
 
+			/* Request Wait For Interrupt */
             asm ("DMB");
             __WFI();
             asm ("nop");
@@ -140,6 +147,9 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 			
 			/* Wait for the reference voltage */
 			while(!(PWR->CSR & PWR_CSR_VREFINTRDYF)) {}
+			
+			/* Restore clocks and PLL */
+			restore_default_clock();
 
             __enable_irq();
 
@@ -156,7 +166,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             SCB->SCR |= (uint32_t)SCB_SCR_SLEEPDEEP;
 
             /* Enable Ultra Low Power mode */
-            *(__IO uint32_t *) CR_ULP_BB = 1;
+            PWR->CR |= PWR_CR_ULP;
 
             /* This option is used to ensure that store operations are completed */
             #if defined (__CC_ARM)

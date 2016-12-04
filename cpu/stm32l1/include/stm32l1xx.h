@@ -58,19 +58,21 @@
  extern "C" {
 #endif
 
+#include <stdint.h>
+
 /** @addtogroup cpu_specific_Library_configuration_section
   * @{
   */
 
 /**
- * @brief   Switch to 65 kHz MSI clock
+ * @brief   Switch to MSI clock
  */
-void msi_clock_65khz(void);
+void default_to_msi_clock(uint32_t msi_range, uint32_t hpre_divider);
 
 /**
- * @brief   Switch back to main clock
+ * @brief   Switch back to default clock settings
  */
-void main_clock(void);
+void restore_default_clock(void);
 
   
 /* Uncomment the line below according to the target STM32L device used in your

@@ -597,8 +597,17 @@ void init_node(shell_command_t **commands)
         ls.settings.class = node_settings.class;
 
         unwds_setup_nvram_config(config_get_nvram(), UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
+		
+		bool safe_mode = false;
+		char ch[4];
+		puts("Type 'safe' or press and hold connect button to enter safe mode");
+		xtimer_sleep(3);
+		scanf("%4s", ch);
+		if (strcmp(ch, "safe") == 0) {
+			safe_mode = true;
+		}
 
-        if (is_connect_button_pressed() && UNWD_USE_CONNECT_BTN) {
+        if ((is_connect_button_pressed() || safe_mode) && UNWD_USE_CONNECT_BTN) {
             puts("[!] Entering Safe Mode, all modules disabled, class C.");
 			ls.settings.class = LS_ED_CLASS_C;
             blink_led();

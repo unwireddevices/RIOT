@@ -85,7 +85,7 @@ void blink_led(void)
 
     LED0_OFF;
 
-    for (i = 0; i < 5; i++) {
+    for (i = 0; i < 2; i++) {
         LED0_TOGGLE;
         xtimer_usleep(50000);
 

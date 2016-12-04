@@ -106,7 +106,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 			/* Request Wait For Interrupt */
             asm ("DMB");
             __WFI();
-            asm ("nop; nop; nop; nop");
+            /* asm ("nop; nop; nop; nop"); */
 
 			/* Switch back to full speed */
 			restore_default_clock();
@@ -132,13 +132,10 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 			/* Request Wait For Interrupt */
             asm ("DMB");
             __WFI();
-            asm ("nop");
+            /* asm ("nop; nop; nop; nop"); */
 
             /* Clear SLEEPDEEP bit */
             SCB->SCR &= (uint32_t) ~((uint32_t)SCB_SCR_SLEEPDEEP);
-
-            asm ("nop");
-            asm ("nop");
 			
 			/* Wait for the reference voltage */
 			while(!(PWR->CSR & PWR_CSR_VREFINTRDYF)) {}

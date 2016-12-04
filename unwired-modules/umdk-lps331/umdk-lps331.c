@@ -51,8 +51,7 @@ static msg_t timer_msg = {
 static rtctimer_t timer;
 
 static struct {
-	bool is_valid;
-
+	uint8_t is_valid;
 	uint8_t publish_period_min;
 	uint8_t i2c_dev;
 } lps331_config;
@@ -114,7 +113,7 @@ static void *timer_thread(void *arg)
 }
 
 static void reset_config(void) {
-	lps331_config.is_valid = false;
+	lps331_config.is_valid = 0;
 	lps331_config.publish_period_min = UMDK_LPS331_PUBLISH_PERIOD_MIN;
 	lps331_config.i2c_dev = UMDK_LPS331_I2C;
 }
@@ -125,7 +124,7 @@ static void init_config(void) {
 	if (!unwds_read_nvram_config(UNWDS_LPS331_MODULE_ID, (uint8_t *) &lps331_config, sizeof(lps331_config)))
 		return;
 
-	if (!lps331_config.is_valid) {
+	if ((lps331_config.is_valid == 0xFF) || (lps331_config.is_valid == 0))  {
 		reset_config();
 		return;
 	}
@@ -137,7 +136,7 @@ static void init_config(void) {
 }
 
 static inline void save_config(void) {
-	lps331_config.is_valid = true;
+	lps331_config.is_valid = 1;
 	unwds_write_nvram_config(UNWDS_LPS331_MODULE_ID, (uint8_t *) &lps331_config, sizeof(lps331_config));
 }
 

@@ -53,8 +53,7 @@ static int baudrates[UMDK_UART_NUM_BAUDRATES] = {
 };
 
 typedef struct {
-	bool is_valid;
-
+	uint8_t is_valid;
 	uint8_t uart_dev;
 	uint8_t current_baudrate_idx;
 } uart_config_t;
@@ -112,7 +111,7 @@ void rx_cb(void *arg, uint8_t data)
 }
 
 static void reset_config(void) {
-	uart_config.is_valid = false;
+	uart_config.is_valid = 0;
 	uart_config.current_baudrate_idx = UMDK_UART_BAUDRATE_NO;
 	uart_config.uart_dev = UMDK_UART_DEV;
 }
@@ -123,7 +122,7 @@ static void init_config(void) {
 	if (!unwds_read_nvram_config(UNWDS_UART_MODULE_ID, (uint8_t *) &uart_config, sizeof(uart_config)))
 		return;
 
-	if (!uart_config.is_valid) {
+	if ((uart_config.is_valid == 0xFF) || (uart_config.is_valid == 0))  {
 		reset_config();
 		return;
 	}
@@ -140,7 +139,7 @@ static void init_config(void) {
 }
 
 static inline void save_config(void) {
-	uart_config.is_valid = true;
+	uart_config.is_valid = 1;
 	unwds_write_nvram_config(UNWDS_UART_MODULE_ID, (uint8_t *) &uart_config, sizeof(uart_config));
 }
 

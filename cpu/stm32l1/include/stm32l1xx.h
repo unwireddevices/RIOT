@@ -73,7 +73,6 @@ void default_to_msi_clock(uint32_t msi_range, uint32_t hpre_divider);
  * @brief   Switch back to default clock settings
  */
 void restore_default_clock(void);
-
   
 /* Uncomment the line below according to the target STM32L device used in your
    application

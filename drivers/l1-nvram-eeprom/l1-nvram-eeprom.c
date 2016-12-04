@@ -208,11 +208,24 @@ static int nvram_read(nvram_t *dev, uint8_t *dst, uint32_t src, size_t len);
  */
 static int nvram_clear(nvram_t *dev);
 
+/**
+ * @brief Clears part of NVRAM content
+ *
+ * @param[in]  dev   Pointer to NVRAM device descriptor
+ * @param[in]  start Start address of the fragment to clear
+ * @param[in]  size  Size of the fragment to clear
+ *
+ * @return           Number of cleared bytes in NVRAM on success
+ * @return           <0 on errors
+ */
+static int nvram_clear_bytes(nvram_t *dev, uint32_t start, size_t size);
+
 int nvram_l1_eeprom_init(nvram_t *dev)
 {
     dev->write = nvram_write;
     dev->read = nvram_read;
     dev->clear = nvram_clear;
+	dev->clearpart = nvram_clear_bytes;
 
     return 0;
 }
@@ -255,6 +268,21 @@ static int nvram_clear(nvram_t *dev)
     for (i = 0; i < len; i++) {
         /* Program byte */
         program_byte(EEPROM_BASE + i, 0xFF);
+    }
+
+    eeprom_lock();
+
+    return i;
+}
+
+static int nvram_clear_bytes(nvram_t *dev, uint32_t start, size_t size)
+{
+    eeprom_unlock();
+
+	uint32_t i = 0;
+    for (i = 0; i < size; i++) {
+        /* Program byte */
+        program_byte(EEPROM_BASE + start + i, 0xFF);
     }
 
     eeprom_lock();

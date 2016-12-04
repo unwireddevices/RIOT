@@ -81,6 +81,18 @@ typedef struct nvram {
      * @return           <0 on errors
      */
     int (*clear)(struct nvram *dev);
+	
+	/**
+     * @brief Clears part of NVRAM content
+     *
+     * @param[in]  dev   Pointer to NVRAM device descriptor
+	 * @param[in]  start Start address of the fragment to clear
+	 * @param[in]  size  Size of the fragment to clear
+     *
+     * @return           Number of cleared bytes in NVRAM on success
+     * @return           <0 on errors
+     */
+    int (*clearpart)(struct nvram *dev, uint32_t start, size_t size);
 
     /** @brief Device capacity */
     size_t size;

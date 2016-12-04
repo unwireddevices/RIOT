@@ -132,6 +132,17 @@ bool unwds_write_nvram_config(unwds_module_id_t module_id, uint8_t *data, size_t
 	return true;
 }
 
+bool unwds_erase_nvram_config(unwds_module_id_t module_id) {
+	/* All configuration blocks has the same size */
+	int addr = nvram_config_base_addr + module_id * nvram_config_block_size;
+
+	/* Write NVRAM block */
+	if (nvram->clearpart(nvram, addr, nvram_config_block_size) < 0)
+		return false;
+
+	return true;
+}
+
 /**
  * Stacks pool.
  */

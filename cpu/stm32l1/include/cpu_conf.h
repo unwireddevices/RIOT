@@ -38,6 +38,16 @@ extern "C" {
 #define CPU_FLASH_BASE                  FLASH_BASE
 /** @} */
 
+/**
+ * @brief   Switch to 65 kHz MSI clock
+ */
+void msi_clock_65khz(void);
+
+/**
+ * @brief   Switch back to main clock
+ */
+void main_clock(void);
+
 #ifdef __cplusplus
 }
 #endif

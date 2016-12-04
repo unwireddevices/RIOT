@@ -19,7 +19,6 @@
  */
 
 #include <stdio.h>
-#include "uart_stdio.h"
 
 #include "arch/lpm_arch.h"
 
@@ -29,10 +28,6 @@
 #include "cpu.h"
 #include "board.h"
 #include "periph_conf.h"
-
-#ifdef MODULE_AUTO_INIT
-#include <auto_init.h>
-#endif
 
 #define CR_DS_MASK               ((uint32_t)0xFFFFFFFC)
 

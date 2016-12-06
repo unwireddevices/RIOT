@@ -65,16 +65,14 @@ static bool init_sensor(void)
 
 static void prepare_result(module_data_t *buf)
 {
-    int temperature_mc, pressure_mbar;
-	uint16_t temperature_unwds, pressure_unwds;
+    uint16_t temperature_mc, pressure_mbar;
+	uint16_t temperature_unwds;
 
     temperature_mc = lps331ap_read_temp(&dev);
 	temperature_unwds = (temperature_mc/1000.0f + 100.0f) * 16.0f;
 	
     pressure_mbar = lps331ap_read_pres(&dev);
-	pressure_unwds = pressure_mbar >> 4;
-
-	printf("[lps331] T: %d C, P: %d mbar\n", (temperature_unwds >> 4)-100, pressure_unwds << 4);
+	printf("[lps331] T: %d C, P: %d mbar\n", (temperature_unwds >> 4)-100, pressure_mbar);
 
     buf->length = 1 + 2 + 2; /* One byte for module ID, two bytes for temperature, two bytes for pressure*/
 
@@ -82,7 +80,7 @@ static void prepare_result(module_data_t *buf)
 
     /* Copy measurements into response */
     memcpy(buf->data + 1, &temperature_unwds, 2);
-    memcpy(buf->data + 1 + 2, &pressure_unwds, 2);
+    memcpy(buf->data + 1 + 2, &pressure_mbar, 2);
 }
 
 static void *timer_thread(void *arg)

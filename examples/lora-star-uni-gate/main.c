@@ -116,6 +116,9 @@ static void init_role(config_role_t role) {
 
 int main(void)
 {
+	/* Gate never sleeps */
+	lpm_prevent_sleep = 1;
+	
     print_logo();
     xtimer_init();
 

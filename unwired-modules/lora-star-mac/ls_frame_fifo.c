@@ -103,7 +103,13 @@ int ls_frame_fifo_size(ls_frame_fifo_t *fifo) {
 		return 0;
 	}
 
-	return fifo->rear - fifo->front;
+	int size = fifo->rear - fifo->front;
+
+	/* Front may be ahead of rear */
+	if (size < 0)
+		size = -size;
+
+	return size;
 }
 
 void ls_frame_fifo_clear(ls_frame_fifo_t *fifo) {

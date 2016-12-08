@@ -235,9 +235,6 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             /* Send acknowledge */
             send_frame(ls, LS_UL_ACK, NULL, 0);
 
-            /* Advance frame ID */
-            ls->_internal.last_fid++;
-
             /* Notify application about the data */
             if (ls->appdata_received_cb != NULL) {
                 ls->appdata_received_cb(frame->payload.data, frame->payload.len);
@@ -275,9 +272,6 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
             /* Make device joined */
             ls->_internal.is_joined = true;
-
-            /* Advance last frame ID */
-            ls->_internal.last_fid++;
 
             /* Notify application code via callback */
             if (ls->joined_cb != NULL) {
@@ -435,10 +429,13 @@ static void *uq_handler(void *arg)
         if (!ls->_internal.confirmation_required) {
         	/* Remove frame from queue */
         	ls_frame_fifo_pop(&ls->_internal.uplink_queue, NULL);
-        }
 
-        /* Update frame's FID to the last one */
-        f->header.fid = ls->_internal.last_fid;
+        	/* Update frame's FID to the last one and advance it */
+        	f->header.fid = ls->_internal.last_fid++;
+        } else {
+            /* Update frame's FID to the last one */
+            f->header.fid = ls->_internal.last_fid;
+        }
 
         /* Wakeup peripherals */
         if (ls->wakeup_cb)
@@ -531,9 +528,9 @@ static void *tim_handler(void *arg)
 				// for a while, classes B and C are the same
                 else if (ls->settings.class == LS_ED_CLASS_B) {
                     /* Transmit next frame from queue */
-                    if (!ls_frame_fifo_empty(&ls->_internal.uplink_queue) && !ls->_internal.confirmation_required) {
+                    if (!ls_frame_fifo_empty(&ls->_internal.uplink_queue)) {
                     	puts("ls: sending next frame");
-                        schedule_tx(ls);
+                    	schedule_tx(ls);
                     }
                     else {
                     	puts("ls: staying in RX mode");
@@ -542,7 +539,7 @@ static void *tim_handler(void *arg)
 				}
 				else if (ls->settings.class == LS_ED_CLASS_C) {
                     /* Transmit next frame from queue */
-                    if (!ls_frame_fifo_empty(&ls->_internal.uplink_queue) && !ls->_internal.confirmation_required) {
+                    if (!ls_frame_fifo_empty(&ls->_internal.uplink_queue)) {
                     	puts("ls: sending next frame");
                         schedule_tx(ls);
                     }
@@ -713,6 +710,7 @@ void ls_ed_unjoin(ls_ed_t *ls)
 {
     /* Clear uplink queue */
     ls_frame_fifo_clear(&ls->_internal.uplink_queue);
+    ls->_internal.confirmation_required = false;
 
 	/* Stop timers */
     rtctimers_remove(&ls->_internal.join_req_expired);

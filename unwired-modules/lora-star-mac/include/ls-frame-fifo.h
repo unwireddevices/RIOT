@@ -15,8 +15,8 @@
  * @brief       FIFO definitions
  * @author      Eugene Ponomarev
  */
-#ifndef TESTS_DRIVER_SX1276_RELAY_NETWORK_ls_FRAME_FIFO_H_
-#define TESTS_DRIVER_SX1276_RELAY_NETWORK_ls_FRAME_FIFO_H_
+#ifndef LS_FRAME_FIFO_H_
+#define LS_FRAME_FIFO_H_
 
 #include <stdbool.h>
 
@@ -58,6 +58,16 @@ void ls_frame_fifo_init(ls_frame_fifo_t *fifo);
 bool ls_frame_fifo_pop(ls_frame_fifo_t *fifo, ls_frame_t *frame);
 
 /**
+ * @brief polls element from the end of a queue but doesn't evicts it.
+ *
+ * @param	*fifo	pointer to the FIFO structure
+ * @param	*frame	pointer to the frame to write the output
+ *
+ * @return false if queue is empty
+ */
+bool ls_frame_fifo_peek(ls_frame_fifo_t *fifo, ls_frame_t *frame);
+
+/**
  * @brief inserts element into the queue.
  *
  * @param	*fifo	pointer to the FIFO structure
@@ -84,6 +94,15 @@ bool ls_frame_fifo_empty(ls_frame_fifo_t *fifo);
  * @return	true if queue is full
  */
 bool ls_frame_fifo_full(ls_frame_fifo_t *fifo);
+
+/**
+ * @brief Gets number of elements currently in queue
+ *
+ * @param	*fifo	pointer to the FIFO structure
+ *
+ * @return	0 if queue is empty, number of elements in queue otherwise
+ */
+int ls_frame_fifo_size(ls_frame_fifo_t *fifo);
 
 /**
  * @brief clears the queue.

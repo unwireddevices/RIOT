@@ -42,7 +42,9 @@ bool ls_frame_fifo_pop(ls_frame_fifo_t *fifo, ls_frame_t *frame) {
 
 	mutex_lock(&fifo->mutex);
 
-	*frame = fifo->fifo[fifo->front];
+	if (frame != NULL) {
+		*frame = fifo->fifo[fifo->front];
+	}
 
 	if (fifo->front == fifo->rear) {
 		fifo->front = fifo->rear = -1;
@@ -53,6 +55,18 @@ bool ls_frame_fifo_pop(ls_frame_fifo_t *fifo, ls_frame_t *frame) {
 	fifo->front = (fifo->front + 1) % LS_MAX_FRAME_FIFO_SIZE;
 
 	mutex_unlock(&fifo->mutex);
+	return true;
+}
+
+bool ls_frame_fifo_peek(ls_frame_fifo_t *fifo, ls_frame_t *frame) {
+	if (ls_frame_fifo_empty(fifo)) {
+		return false;
+	}
+
+	mutex_lock(&fifo->mutex);
+	*frame = fifo->fifo[fifo->front];
+	mutex_unlock(&fifo->mutex);
+
 	return true;
 }
 
@@ -82,6 +96,14 @@ bool ls_frame_fifo_full(ls_frame_fifo_t *fifo) {
 
 bool ls_frame_fifo_empty(ls_frame_fifo_t *fifo) {
 	return (fifo->front == -1 && fifo->rear == -1);
+}
+
+int ls_frame_fifo_size(ls_frame_fifo_t *fifo) {
+	if (ls_frame_fifo_empty(fifo)) {
+		return 0;
+	}
+
+	return fifo->rear - fifo->front;
 }
 
 void ls_frame_fifo_clear(ls_frame_fifo_t *fifo) {

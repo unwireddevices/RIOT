@@ -177,20 +177,11 @@ typedef struct {
 	/* Number of retransmitting tries */
 	uint8_t num_retr;
 
-	/* Last application data packet to retransmit after confirmation timeout */
-	ls_payload_t last_app_msg;
-
 	/* Last frame ID */
 	ls_frame_id_t last_fid;
 
-	/* Timer for the periodic link check */
-	rtctimer_t lnkchk_timer;
-
-	/* Sleep request timer */
-	rtctimer_t sleep_req_timer;
-
-	/* Wakeup timer */
-	rtctimer_t wakeup_timer;
+	/* Last frame needs to be confirmed Blocking sending of other frames from queue until current frame is confirmed */
+	bool confirmation_required;
 
 	/* Current frame to send (to reduce stack consumption) */
 	ls_frame_t current_frame;

@@ -142,11 +142,19 @@ static void open_rx_windows(ls_ed_t *ls)
     }
 }
 
+static void send_next(ls_ed_t *ls) {
+    /* Schedule RX windows */
+    if (ls->settings.class != LS_ED_CLASS_A) {
+        open_rx_windows(ls);
+    }
+    else if (ls->state == LS_ED_IDLE || ls->state == LS_ED_SLEEP) {
+        schedule_tx(ls);
+    }
+}
+
 static int send_frame(ls_ed_t *ls, ls_type_t type, uint8_t *buf, size_t buflen)
 {
     assert(ls != NULL);
-
-    configure_sx1276(ls, true); /* Configure for TX */
 
     mutex_lock(&ls->_internal.curr_frame_mutex);
 
@@ -161,13 +169,7 @@ static int send_frame(ls_ed_t *ls, ls_type_t type, uint8_t *buf, size_t buflen)
         return -LS_SEND_E_FQ_OVERFLOW;
     }
 
-    /* Schedule RX windows */
-    if (ls->settings.class != LS_ED_CLASS_A) {
-        open_rx_windows(ls);
-    }
-    else if (ls->state == LS_ED_IDLE || ls->state == LS_ED_SLEEP) {
-        schedule_tx(ls);
-    }
+    send_next(ls);
 
     mutex_unlock(&ls->_internal.curr_frame_mutex);
 
@@ -202,6 +204,9 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             if (!ls_validate_frame_mic(ls->settings.crypto.mic_key, frame)) {
                 return false;
             }
+
+            /* Pop frame from uplink queue */
+            ls_frame_fifo_pop(&ls->_internal.uplink_queue, NULL);
 
             /* Advance frame ID */
             ls->_internal.last_fid++;
@@ -415,14 +420,25 @@ static void *uq_handler(void *arg)
             continue;
         }
 
-        /* Get frame from queue */
+        /* Get frame from queue top */
         ls_frame_t *f;
         ls_frame_t frame;
-        if (!ls_frame_fifo_pop(&ls->_internal.uplink_queue, &frame)) {
+        if (!ls_frame_fifo_peek(&ls->_internal.uplink_queue, &frame)) {
             continue;
         }
 
         f = &frame;
+
+        ls->_internal.confirmation_required = (f->header.type == LS_UL_CONF);
+
+        /* Current frame is not confirmed app. data */
+        if (!ls->_internal.confirmation_required) {
+        	/* Remove frame from queue */
+        	ls_frame_fifo_pop(&ls->_internal.uplink_queue, NULL);
+        }
+
+        /* Update frame's FID to the last one */
+        f->header.fid = ls->_internal.last_fid;
 
         /* Wakeup peripherals */
         if (ls->wakeup_cb)
@@ -448,10 +464,14 @@ static void *uq_handler(void *arg)
         }
 
         // XXX: debug
-        printf(">mhdr=0x%02X, mic=0x%04X, addr=0x%02X, type=0x%02X, fid=0x%02X (%d bytes)\n", (unsigned int) f->header.mhdr,
+        printf(">mhdr=0x%02X, mic=0x%04X, addr=0x%02X, type=0x%02X, fid=0x%02X (%d bytes) [%d left]\n", (unsigned int) f->header.mhdr,
                (unsigned int) f->header.mic, (unsigned int) f->header.dev_addr,
                (unsigned int) f->header.type,
-               (unsigned int) f->header.fid, header_size + payload_size);
+               (unsigned int) f->header.fid, header_size + payload_size,
+			   ls_frame_fifo_size(&ls->_internal.uplink_queue));
+
+        /* Configure for TX */
+        configure_sx1276(ls, true);
 
         /* Send frame into LoRa PHY */
         sx1276_send(ls->_internal.sx1276, (uint8_t *) f, header_size + payload_size);
@@ -511,7 +531,7 @@ static void *tim_handler(void *arg)
 				// for a while, classes B and C are the same
                 else if (ls->settings.class == LS_ED_CLASS_B) {
                     /* Transmit next frame from queue */
-                    if (!ls_frame_fifo_empty(&ls->_internal.uplink_queue)) {
+                    if (!ls_frame_fifo_empty(&ls->_internal.uplink_queue) && !ls->_internal.confirmation_required) {
                     	puts("ls: sending next frame");
                         schedule_tx(ls);
                     }
@@ -522,7 +542,7 @@ static void *tim_handler(void *arg)
 				}
 				else if (ls->settings.class == LS_ED_CLASS_C) {
                     /* Transmit next frame from queue */
-                    if (!ls_frame_fifo_empty(&ls->_internal.uplink_queue)) {
+                    if (!ls_frame_fifo_empty(&ls->_internal.uplink_queue) && !ls->_internal.confirmation_required) {
                     	puts("ls: sending next frame");
                         schedule_tx(ls);
                     }
@@ -541,7 +561,7 @@ static void *tim_handler(void *arg)
                 ls->_internal.use_rx_window_2_settings = false;
 
                 /* Transmit next frame from queue */
-                if (!ls_frame_fifo_empty(&ls->_internal.uplink_queue)) {
+                if (!ls_frame_fifo_empty(&ls->_internal.uplink_queue) && !ls->_internal.confirmation_required) {
                     schedule_tx(ls);
                 } else {
 					/* Put transceiver into sleep with low power mode */
@@ -580,7 +600,9 @@ static void *tim_handler(void *arg)
                 	anticollision_delay();
 					
                     ls->_internal.num_retr++;
-                    ls_ed_send_app_data(ls, ls->_internal.last_app_msg.data, ls->_internal.last_app_msg.len, true);
+                    rtctimers_set_msg(&ls->_internal.conf_ack_expired, LS_ACK_TIMEOUT, &msg_ack_timeout, ls->_internal.tim_thread_pid);
+
+                    send_next(ls);
                 }
 
                 break;
@@ -681,11 +703,7 @@ int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed
     }
 
     if (confirmed) {
-        rtctimers_set_msg(&ls->_internal.conf_ack_expired, LS_ACK_TIMEOUT, &msg_ack_timeout, ls->_internal.tim_thread_pid);
-
-        /* Save current message for retransmission */
-        memcpy(ls->_internal.last_app_msg.data, buf, buflen);
-        ls->_internal.last_app_msg.len = buflen;
+    	rtctimers_set_msg(&ls->_internal.conf_ack_expired, LS_ACK_TIMEOUT, &msg_ack_timeout, ls->_internal.tim_thread_pid);
     }
 
     return LS_OK;
@@ -693,6 +711,9 @@ int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed
 
 void ls_ed_unjoin(ls_ed_t *ls)
 {
+    /* Clear uplink queue */
+    ls_frame_fifo_clear(&ls->_internal.uplink_queue);
+
 	/* Stop timers */
     rtctimers_remove(&ls->_internal.join_req_expired);
     rtctimers_remove(&ls->_internal.conf_ack_expired);

@@ -27,8 +27,9 @@ extern "C" {
 #include "rtc-timers.h"
 #include "periph/rtc.h"
 
-//#include "debug.h"
-#define DEBUG printf
+#include "debug.h"
+//#define DEBUG printf
+
 
 static rtctimer_t *timer_list_head = NULL;
 

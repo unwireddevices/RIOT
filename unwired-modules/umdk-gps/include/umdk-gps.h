@@ -26,7 +26,7 @@
 #define UNWDS_GPS_MODULE_ID 3
 
 #ifndef UMDK_GPS_UART
-#define UMDK_GPS_UART UART_DEV(1)
+#define UMDK_GPS_UART UMDK_UART_DEV
 #endif
 
 typedef enum {

@@ -105,13 +105,13 @@ extern "C" {
 
 /** @} */
 
-#define UART_STDIO_DEV              (UART_DEV(1))
+#define UART_STDIO_DEV              (UART_DEV(0))
 #define UART_STDIO_BAUDRATE         (115200U)
 #define UART_STDIO_RX_BUFSIZE       (64U)
 
-#define GATE_COMM_UART              (UART_DEV(0))
+#define GATE_COMM_UART              (UART_DEV(1))
 
-#define UMDK_UART_DEV 0
+#define UMDK_UART_DEV 1
 #define UMDK_UART_BAUDRATE_NO 7 /* 115200 */
 
 /**

@@ -73,37 +73,52 @@ static const timer_conf_t timer_config[] = {
 /**
  * @brief UART configuration
  */
-#define UART_NUMOF          (2U)
+#define UART_NUMOF          (3U)
 #define UART_0_EN           1
 #define UART_1_EN           1
+#define UART_2_EN           0
 #define UART_IRQ_PRIO       1
 
-/* UART 0 device configuration */
-#define UART_0_DEV          USART2
-#define UART_0_CLKEN()      (RCC->APB1ENR |= RCC_APB1ENR_USART2EN)
-#define UART_0_CLKDIS()     (RCC->APB1ENR &= ~RCC_APB1ENR_USART2EN)
-#define UART_0_ISON()		(RCC->APB1ENR & RCC_APB1ENR_USART2EN)
+/* UART 0 (USART1) device configuration */
+#define UART_0_DEV          USART1
+#define UART_0_CLKEN()      (RCC->APB2ENR |= RCC_APB2ENR_USART1EN)
+#define UART_0_CLKDIS()		(RCC->APB2ENR &= ~RCC_APB2ENR_USART1EN)
 #define UART_0_CLK          (CLOCK_CORECLOCK)   /* UART clock runs with 32MHz (F_CPU / 1) */
-#define UART_0_IRQ          USART2_IRQn
-#define UART_0_ISR          isr_usart2
+#define UART_0_IRQ          USART1_IRQn
+#define UART_0_ISR          isr_usart1
 #define UART_0_BUS_FREQ     32000000
 /* UART 0 pin configuration */
-#define UART_0_RX_PIN       GPIO_PIN(PORT_A, 3)
-#define UART_0_TX_PIN       GPIO_PIN(PORT_A, 2)
+#define UART_0_RX_PIN       GPIO_PIN(PORT_B, 7)
+#define UART_0_TX_PIN       GPIO_PIN(PORT_B, 6)
 #define UART_0_AF           GPIO_AF7
 
-/* UART 1 device configuration */
-#define UART_1_DEV          USART1
-#define UART_1_CLKEN()      (RCC->APB2ENR |= RCC_APB2ENR_USART1EN)
-#define UART_1_CLKDIS()		(RCC->APB2ENR &= ~RCC_APB2ENR_USART1EN)
+/* UART 1 (USART2) device configuration */
+#define UART_1_DEV          USART2
+#define UART_1_CLKEN()      (RCC->APB1ENR |= RCC_APB1ENR_USART2EN)
+#define UART_1_CLKDIS()     (RCC->APB1ENR &= ~RCC_APB1ENR_USART2EN)
+#define UART_1_ISON()		(RCC->APB1ENR & RCC_APB1ENR_USART2EN)
 #define UART_1_CLK          (CLOCK_CORECLOCK)   /* UART clock runs with 32MHz (F_CPU / 1) */
-#define UART_1_IRQ          USART1_IRQn
-#define UART_1_ISR          isr_usart1
+#define UART_1_IRQ          USART2_IRQn
+#define UART_1_ISR          isr_usart2
 #define UART_1_BUS_FREQ     32000000
-/* UART 0 pin configuration */
-#define UART_1_RX_PIN       GPIO_PIN(PORT_B, 7)
-#define UART_1_TX_PIN       GPIO_PIN(PORT_B, 6)
+/* UART 1 pin configuration */
+#define UART_1_RX_PIN       GPIO_PIN(PORT_A, 3)
+#define UART_1_TX_PIN       GPIO_PIN(PORT_A, 2)
 #define UART_1_AF           GPIO_AF7
+
+/* UART 2 (USART3) device configuration */
+#define UART_2_DEV          USART3
+#define UART_2_CLKEN()      (RCC->APB1ENR |= RCC_APB1ENR_USART3EN)
+#define UART_2_CLKDIS()     (RCC->APB1ENR &= ~RCC_APB1ENR_USART3EN)
+#define UART_2_ISON()		(RCC->APB1ENR & RCC_APB1ENR_USART3EN)
+#define UART_2_CLK          (CLOCK_CORECLOCK)   /* UART clock runs with 32MHz (F_CPU / 1) */
+#define UART_2_IRQ          USART3_IRQn
+#define UART_2_ISR          isr_usart3
+#define UART_2_BUS_FREQ     32000000
+/* UART 2 pin configuration */
+#define UART_2_RX_PIN       GPIO_PIN(PORT_B, 11)
+#define UART_2_TX_PIN       GPIO_PIN(PORT_B, 10)
+#define UART_2_AF           GPIO_AF7
 
 /**
  * @brief GPIO configuration

@@ -99,6 +99,8 @@ extern "C" {
 #define UNWD_GPIO_29 GPIO_PIN(PORT_B, 11)
 #define UNWD_GPIO_28 GPIO_PIN(PORT_A, 7)
 #define UNWD_GPIO_27 GPIO_PIN(PORT_A, 6)
+#define UNWD_GPIO_26 GPIO_PIN(PORT_A, 3)
+#define UNWD_GPIO_25 GPIO_PIN(PORT_A, 2)
 #define UNWD_GPIO_24 GPIO_PIN(PORT_A, 1)
 
 /** @} */

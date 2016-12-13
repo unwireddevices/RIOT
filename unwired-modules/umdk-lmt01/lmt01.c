@@ -49,6 +49,7 @@ static void start_counter_timer(lmt01_t *lmt01) {
 
 static inline void lmt01_off(lmt01_t *lmt01) {
 	gpio_clear(lmt01->en_pin);
+	gpio_init(lmt01->sens_pin, GPIO_IN); /* disable pull-up */
 
 	TIM3->CR1 &= ~0x01;			/* Disable timer */
 	RCC->APB1ENR &= ~0x02;		/* Disable timer clocking */

@@ -32,26 +32,26 @@ extern "C" {
 #include "lmt01.h"
 
 static void start_counter_timer(lmt01_t *lmt01) {
-	RCC->APB1ENR |= 0x01; /* Clock for timer 2 */
+	RCC->APB1ENR |= 0x02; /* Clock for timer 3 */
 
 	/* Enable timer GPIO */
-	gpio_init(lmt01->sens_pin, GPIO_IN);
-	gpio_init_af(lmt01->sens_pin, 1);
+	gpio_init(lmt01->sens_pin, GPIO_IN_PU);
+	gpio_init_af(lmt01->sens_pin, 2);
 
-	TIM2->CNT = 0;				/* Reset counter value */
+	TIM3->CNT = 0;				/* Reset counter value */
 
 	/* Start timer in pulse clock mode */
-	TIM2->CCMR1   |= 0x0100;	/* Ch. 2 as TI */
-	TIM2->SMCR    |= 0x0007;    /* External clock mode 1 */
-	TIM2->SMCR    |= 0x0060;    /* TI2FP2 as ext. clock */
-	TIM2->CR1     |= 0x0001;    /* Enable counting */
+	TIM3->CCMR1   |= 0x0100;	/* Ch. 2 as TI */
+	TIM3->SMCR    |= 0x0007;    /* External clock mode 1 */
+	TIM3->SMCR    |= 0x0060;    /* TI2FP2 as ext. clock */
+	TIM3->CR1     |= 0x0001;    /* Enable counting */
 }
 
 static inline void lmt01_off(lmt01_t *lmt01) {
 	gpio_clear(lmt01->en_pin);
 
-	TIM2->CR1 &= ~0x01;			/* Disable timer */
-	RCC->APB1ENR &= ~0x01;		/* Disable timer clocking */
+	TIM3->CR1 &= ~0x01;			/* Disable timer */
+	RCC->APB1ENR &= ~0x02;		/* Disable timer clocking */
 
 	lmt01->_internal.do_count = false;
 	lmt01->_internal.pulse_count = 0;
@@ -95,16 +95,16 @@ static int count_pulses(lmt01_t *lmt01) {
 	/* Init timer in counter mode */
 	start_counter_timer(lmt01);
 
-	int prev = TIM2->CNT;
+	int prev = TIM3->CNT;
 	int ms_idle = 0;
 
 	while (1) {
-		int curr = TIM2->CNT;
+		int curr = TIM3->CNT;
 
 		if (curr == prev) {
 			xtimer_usleep(1e3 * 5);	/* Sleep some time */
 
-			if (prev == TIM2->CNT && (ms_idle += 5) > LMT01_MAX_IDLE_TIME_MS)
+			if (prev == TIM3->CNT && (ms_idle += 5) > LMT01_MAX_IDLE_TIME_MS)
 				break;
 		} else {
 			ms_idle = 0;
@@ -114,7 +114,7 @@ static int count_pulses(lmt01_t *lmt01) {
 	}
 
 	/* Get counted pulses */
-	int pulse_count = TIM2->CNT;
+	int pulse_count = TIM3->CNT;
 
 	/* Disable sensor */
 	lmt01_off(lmt01);

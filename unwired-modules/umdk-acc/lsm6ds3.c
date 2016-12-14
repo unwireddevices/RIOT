@@ -379,13 +379,12 @@ static int16_t read_raw_temp(lsm6ds3_t *dev)
     return output;
 }
 
-float_t lsm6ds3_read_temp_c(lsm6ds3_t *dev)
+float lsm6ds3_read_temp_c(lsm6ds3_t *dev)
 {
-    float_t output = (float_t) read_raw_temp(dev) / 16; /* Scale by 16 */
-
-    output += 25;                                       /* Remove offset */
-
-    return output;
+	float output = 0;
+	output = read_raw_temp(dev) / 16;
+	output += 25;
+	return output;
 }
 
 #ifdef __cplusplus

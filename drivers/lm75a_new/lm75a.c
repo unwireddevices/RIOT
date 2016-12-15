@@ -53,7 +53,7 @@ int lm75a_init(lm75a_t *dev, lm75a_param_t *param)
     return 0;
 }
 
-float_t lm75a_get_ambient_temperature(lm75a_t *dev)
+int16_t lm75a_get_ambient_temperature(lm75a_t *dev)
 {
     assert(dev != NULL);
 
@@ -81,12 +81,12 @@ float_t lm75a_get_ambient_temperature(lm75a_t *dev)
     }
 
     /* Scale value to the sensor resolution */
-    float_t result = (float)value * LM75A_DEGREES_RESOLUTION;
+    /* float_t result = (float)value * LM75A_DEGREES_RESOLUTION; */
 
     /* Release the I2C bus */
     i2c_release(dev->params.i2c);
 
-    return result;
+    return (int16_t)value;
 }
 
 #ifdef __cplusplus

@@ -34,7 +34,7 @@ extern "C" {
 #include "umdk-4btn.h"
 #include "umdk-gps.h"
 #include "umdk-temp.h"
-#include "umdk-acc.h"
+#include "umdk-lsm6ds3.h"
 #include "umdk-lmt01.h"
 #include "umdk-uart.h"
 #include "umdk-sht21.h"
@@ -67,8 +67,8 @@ static const unwd_module_t modules[] = {
 #ifdef umdk_lm75
     { UNWDS_LM75_MODULE_ID, "temp", umdk_lm75_init, umdk_lm75_cmd, 1 << 4, true },
 #endif
-#ifdef umdk_acc
-	{ UNWDS_ACC_MODULE_ID, "acc", umdk_acc_init, umdk_acc_cmd, 1 << 5, true },
+#ifdef umdk_lsm6ds3
+	{ UNWDS_ACC_MODULE_ID, "lsm6ds3", umdk_lsm6ds3_init, umdk_lsm6ds3_cmd, 1 << 5, true },
 #endif
 #ifdef umdk_lmt01
 	{ UNWDS_LMT01_MODULE_ID, "lmt01", umdk_lmt01_init, umdk_lmt01_cmd, 1 << 6, false },

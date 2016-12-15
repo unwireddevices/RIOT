@@ -71,12 +71,7 @@ void *handler(void *arg)
       {
         msg_receive(&msg);
 
-        printf("\n");
-	printf("[4counter] Count_before_unsleep_1: %lu\n", conf_counter.count_value[0]);
-	printf("[4counter] Count_before_unsleep_2: %lu\n", conf_counter.count_value[1]);
-	printf("[4counter] Count_before_unsleep_3: %lu\n", conf_counter.count_value[2]);
-	printf("[4counter] Count_before_unsleep_4: %lu\n", conf_counter.count_value[3]);
-	printf("\n");
+	lpm_prevent_sleep = 1;
 
 	module_data_t data;
 	data.length = 17;
@@ -89,7 +84,7 @@ void *handler(void *arg)
 	*(tmp + 2)  = conf_counter.count_value[2];
 	*(tmp + 3)  = conf_counter.count_value[3];
 
-	lpm_prevent_sleep = 1;
+
 
 	printf("[4counter] Count_to_NVRAM_1: %lu\n", conf_counter.count_value[0]);
 	printf("[4counter] Count_to_NVRAM_2: %lu\n", conf_counter.count_value[1]);

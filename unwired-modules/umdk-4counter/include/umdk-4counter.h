@@ -34,6 +34,7 @@
 
 typedef enum {
 	UMDK_4COUNT_CMD_SET_PERIOD = 0,
+	UMDK_4COUNTER_CMD_POLL = 1,
 } umdk_4counter_cmd_t;
 
 void umdk_4counter_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);

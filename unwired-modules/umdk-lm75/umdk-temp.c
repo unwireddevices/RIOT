@@ -52,8 +52,20 @@ void umdk_lm75_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     lm75a_init(&lm75a, &lm_params);
 }
 
-bool umdk_lm75_cmd(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_LEN], char *reply)
+bool umdk_lm75_cmd(module_data_t *data, module_data_t *reply)
 {
+	if (data->length < 1)
+		return false;
+
+
+	umdk_lm75_cmd_t c = data->data[0];
+
+	switch (c) {
+	case UMDK_LM75_CMD_POLL:
+		// TODO: send binary data
+		return true;
+	}
+	/*
     if (strcmp(argv[1], "get") == 0) {
         char buf[UNWDS_MAX_REPLY_LEN] = { '\0' };
 
@@ -65,6 +77,7 @@ bool umdk_lm75_cmd(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_LE
     }
 
     strcpy(reply, "{error:true, text:\"invalid params\"}");
+	 */
 
     return false;
 }

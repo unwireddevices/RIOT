@@ -75,15 +75,10 @@ CFLAGS += -D umdk_gps
 endif
 INCLUDES += -I../../unwired-modules/umdk-gps/include/
 
-ifeq ($(UNWD_TEMP),1)
-USEMODULE += umdk-temp
-CFLAGS += -D umdk_temp
-endif
-
-ifeq ($(UNWD_LM75A),1)
+ifeq ($(UNWD_LM75),1)
+USEMODULE += umdk-lm75
 USEMODULE += lm75a_new
-USEMODULE += printf_float
-CFLAGS += -D umdk_lm75a
+CFLAGS += -D umdk_lm75
 endif
 INCLUDES += -I../../unwired-modules/umdk-lm75/include/
 

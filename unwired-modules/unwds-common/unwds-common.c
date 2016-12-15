@@ -33,7 +33,7 @@ extern "C" {
 #include "unwds-gpio.h"
 #include "umdk-4btn.h"
 #include "umdk-gps.h"
-#include "umdk-temp.h"
+#include "umdk-lm75.h"
 #include "umdk-lsm6ds3.h"
 #include "umdk-lmt01.h"
 #include "umdk-uart.h"

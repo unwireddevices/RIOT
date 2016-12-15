@@ -370,21 +370,12 @@ bool lsm6ds3_get_raw(lsm6ds3_t *dev, lsm6ds3_data_t *data)
     return true;
 }
 
-static int16_t read_raw_temp(lsm6ds3_t *dev)
+int16_t lsm6ds3_read_temp_c(lsm6ds3_t *dev)
 {
-    int16_t output;
-
-    read_register_int16(dev, &output, LSM6DS3_ACC_GYRO_OUT_TEMP_L);
-
-    return output;
-}
-
-float lsm6ds3_read_temp_c(lsm6ds3_t *dev)
-{
-	float output = 0;
-	output = read_raw_temp(dev) / 16;
-	output += 25;
-	return output;
+	int16_t out = 0;
+	read_register_int16(dev, &out, LSM6DS3_ACC_GYRO_OUT_TEMP_L);
+	out += (75*16);
+	return out;
 }
 
 #ifdef __cplusplus

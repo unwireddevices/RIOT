@@ -20,17 +20,12 @@
 
 #include "mutex.h"
 
+#include "ls-frame-fifo.h"
 #include "ls-mac-types.h"
 #include "ls-crypto.h"
 #include "ls-gate-device-list.h"
-#include "ls-frame-fifo.h"
 
 #include "sx1276.h"
-
-/**
- * @brief Length of first RX window [us]
- */
-#define LS_GATE_RX1_LENGTH (1e6 * 2)
 
 /**
  * @brief Ping timeout in seconds.
@@ -77,8 +72,6 @@ typedef enum {
 typedef enum {
 	LS_GATE_PING = 0,
 	LS_GATE_KEEPALIVE,
-
-	LS_GATE_RX1_EXPIRED,
 } ls_gate_tim_cmd_t;
 
 /**
@@ -90,7 +83,6 @@ typedef enum {
 	LS_INIT_E_TIM_THREAD = 2,			/**< Unable to start timeout handler thread */
 	LS_GATE_E_NODEV = 3,				/**< Unable to send frame - device with address specified is not joined */
 	LS_E_PQ_OVERFLOW = 4,				/**< Unable to queue frame for sending - queue is overflowed */
-	LS_INIT_E_UQ_THREAD = 5,			/**< Unable to create uplink queue handler thread */
 
 	LS_GATE_OK,							/**< Initialized successfully */
 } ls_gate_init_status_t;
@@ -116,10 +108,6 @@ typedef struct {
 
 	ls_frame_t current_frame;	/**< Memory for current frame */
 	mutex_t channel_mutex;		/**< Mutex on the channel */
-
-	ls_frame_fifo_t ul_fifo;	/**< Uplink frame queue */
-
-	xtimer_t	rx_window1;		/**< First receive window timer */
 } ls_channel_internal_t;
 
 /**
@@ -136,11 +124,8 @@ typedef struct {
 	ls_channel_internal_t _internal;	/**< Internal channel-specific data */
 } ls_gate_channel_t;
 
-#define LS_UQ_HANDLER_STACKSIZE			(2048)
-#define LS_UQ_MSG_QUEUE_SIZE 8
-
-#define LS_TIM_HANDLER_STACKSIZE		(2048)
-#define LS_TIM_MSG_QUEUE_SIZE 8
+#define LS_TIM_HANDLER_STACKSIZE		(1 * THREAD_STACKSIZE_DEFAULT)
+#define LS_TIM_MSG_QUEUE_SIZE 10
 
 /**
  * @brief Lora-Star gate stack internal data.
@@ -151,13 +136,9 @@ typedef struct {
     xtimer_t keepalive_timer;			/**< Timer for periodic keepalive callback calls */
 
     /* Timeout message handler data */
-    kernel_pid_t tim_thread_pid;
     char tim_thread_stack[LS_TIM_HANDLER_STACKSIZE];
-
-    /* Uplink queue handler data */
-    kernel_pid_t uq_thread_pid;
-    char uq_thread_stack[LS_TIM_HANDLER_STACKSIZE];
-
+	kernel_pid_t tim_thread_pid;
+	msg_t tim_msg_queue[LS_TIM_MSG_QUEUE_SIZE];
 } ls_gate_internal_t;
 
 /**

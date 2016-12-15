@@ -46,9 +46,8 @@ INCLUDES += -I../../unwired-modules/rtc-timers/include/
 UNWD_GPIO   =   1
 UNWD_4BTN   =   1
 UNWD_GPS	=	1
-UNWD_TEMP	=	0
-UNWD_LM75A  =	0
-UNWD_ACC	=	0
+UNWD_LM75   =	1
+UNWD_ACC	=	1
 UNWD_LMT01  =	1
 UNWD_UART	=	1
 UNWD_SHT21  =	1
@@ -85,7 +84,7 @@ USEMODULE += lm75a_new
 USEMODULE += printf_float
 CFLAGS += -D umdk_lm75a
 endif
-INCLUDES += -I../../unwired-modules/umdk-temp/include/
+INCLUDES += -I../../unwired-modules/umdk-lm75/include/
 
 ifeq ($(UNWD_ACC),1)
 USEMODULE += umdk-acc

@@ -11,21 +11,21 @@
  * @ingroup     
  * @brief       
  * @{
- * @file		umdk-temp.h
- * @brief       umdk-temp temperature sensor module
+ * @file		umdk-lm75.h
+ * @brief       umdk-lm75 LM75erature sensor module
  * @author      Eugene Ponomarev
  */
-#ifndef UMDK_TEMP_H
-#define UMDK_TEMP_H
+#ifndef UMDK_LM75_H
+#define UMDK_LM75_H
 
 #include "unwds-common.h"
 #include "lm75a.h"
 
-#define UNWDS_TEMP_MODULE_ID 3
+#define UNWDS_LM75_MODULE_ID 3
 
-#define UMDK_TEMP_I2C I2C_0
+#define UMDK_LM75_I2C I2C_0
 
-void umdk_temp_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
-bool umdk_temp_cmd(module_data_t *data, module_data_t *reply);
+void umdk_lm75_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
+bool umdk_lm75_cmd(module_data_t *data, module_data_t *reply);
 
-#endif /* UMDK_TEMP_H */
+#endif /* UMDK_LM75_H */

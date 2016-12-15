@@ -29,7 +29,7 @@ extern "C" {
 #include "board.h"
 
 #include "unwds-common.h"
-#include "umdk-temp.h"
+#include "umdk-lm75.h"
 
 #include "thread.h"
 #include "xtimer.h"
@@ -40,19 +40,19 @@ static uwnds_cb_t *callback;
 
 static lm75a_t lm75a;
 
-void umdk_temp_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
+void umdk_lm75_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 {
     (void) non_gpio_pin_map;
 
     callback = event_callback;
 
     lm75a_param_t lm_params;
-    lm_params.i2c = UMDK_TEMP_I2C;
+    lm_params.i2c = UMDK_LM75_I2C;
 
     lm75a_init(&lm75a, &lm_params);
 }
 
-bool umdk_temp_cmd(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_LEN], char *reply)
+bool umdk_lm75_cmd(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_LEN], char *reply)
 {
     if (strcmp(argv[1], "get") == 0) {
         char buf[UNWDS_MAX_REPLY_LEN] = { '\0' };

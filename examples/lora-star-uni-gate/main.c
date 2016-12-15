@@ -45,10 +45,10 @@ static nvram_t nvram;
 void print_logo(void)
 {
 #ifdef SHORT_LOGO
-	puts("*****************************************");
-	puts("Unwired Range firmware by Unwired Devices");
-	puts("www.unwds.com - info@unwds.com");
-	puts("*****************************************");
+    puts("*****************************************");
+    puts("Unwired Range firmware by Unwired Devices");
+    puts("www.unwds.com - info@unwds.com");
+    puts("*****************************************");
 #else
     puts("                                                .@                           @  ");
     puts("                                                                             @  ");
@@ -96,29 +96,30 @@ void blink_led(void)
 
 static shell_command_t shell_commands[10] = {};
 
-static void init_role(config_role_t role) {
-	switch (role) {
-	case ROLE_GATE:
-		init_gate((shell_command_t **) &shell_commands);
-		break;
+static void init_role(config_role_t role)
+{
+    switch (role) {
+        case ROLE_GATE:
+            init_gate((shell_command_t **) &shell_commands);
+            break;
 
-	case ROLE_NO_EUI64:
-		init_no_eui64((shell_command_t **) &shell_commands);
-		break;
+        case ROLE_NO_EUI64:
+            init_no_eui64((shell_command_t **) &shell_commands);
+            break;
 
-	default:
-	case ROLE_NO_CFG:
-		init_no_cfg((shell_command_t **) &shell_commands);
+        default:
+        case ROLE_NO_CFG:
+            init_no_cfg((shell_command_t **) &shell_commands);
 
-		break;
-	}
+            break;
+    }
 }
 
 int main(void)
 {
-	/* Gate never sleeps */
-	lpm_prevent_sleep = 1;
-	
+    /* Gate never sleeps */
+    lpm_prevent_sleep = 1;
+
     print_logo();
     xtimer_init();
 
@@ -126,17 +127,18 @@ int main(void)
 
     /* Check EUI64 */
     if (!load_eui64_nvram(&nvram)) {
-    	puts("[config] No EUI64 defined for this device. Please provide EUI64 and reboot to apply changes.");
+        puts("[config] No EUI64 defined for this device. Please provide EUI64 and reboot to apply changes.");
     }
 
     /* It's first launch or config memory is corrupted */
     if (!load_config_nvram(&nvram)) {
-    	puts("[config] No valid configuration found in NVRAM. It's either first launch or NVRAM content is corrupted.");
-    	puts("[config] Please select role for this device and provide APPID64 and JOINKEY for this device.");
+        puts("[config] No valid configuration found in NVRAM. It's either first launch or NVRAM content is corrupted.");
+        puts("[config] Please select role for this device and provide APPID64 and JOINKEY for this device.");
 
-    	config_reset_nvram(&nvram);
-    } else {
-    	puts("[config] Configuration loaded from NVRAM");
+        config_reset_nvram(&nvram);
+    }
+    else {
+        puts("[config] Configuration loaded from NVRAM");
     }
 
     init_role(config_get_role());

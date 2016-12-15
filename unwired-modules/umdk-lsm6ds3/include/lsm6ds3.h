@@ -22,8 +22,8 @@
 #include <stdint.h>
 #include <math.h>
 
+#include "../../umdk-lsm6ds3/include/lsm6ds3_regs.h"
 #include "periph/i2c.h"
-#include "lsm6ds3_regs.h"
 
 /**
  * @brief Structure holds LSM6DS3 driver parameters

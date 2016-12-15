@@ -16,15 +16,16 @@
  * @author      EP <ep@unwds.com>
  */
 
+#include "../umdk-lsm6ds3/include/lsm6ds3.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 
+#include "../umdk-lsm6ds3/include/lsm6ds3_regs.h"
 #include "assert.h"
 #include "periph/i2c.h"
 
-#include "lsm6ds3.h"
-#include "lsm6ds3_regs.h"
 
 #ifdef __cplusplus
 extern "C" {

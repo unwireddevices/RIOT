@@ -54,6 +54,7 @@ UNWD_SHT21  =	1
 UNWD_PIR	=	1
 UNWD_6ADC	=	1
 UNWD_LPS331 =   1
+UNWD_4COUNTER =   1
 
 ####### UNWD MMODULES' includes & flags ############
 ifeq ($(UNWD_GPIO),1)
@@ -132,6 +133,11 @@ CFLAGS += -D umdk_lps331
 endif
 INCLUDES += -I../../unwired-modules/umdk-lps331/include/
 
+ifeq ($(UNWD_4COUNTER),1)
+USEMODULE += umdk-4counter
+CFLAGS += -D umdk_4counter
+endif
+INCLUDES += -I../../unwired-modules/umdk-4counter/include/
 
 ####################################################
 

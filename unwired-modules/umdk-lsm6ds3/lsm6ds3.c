@@ -371,12 +371,12 @@ bool lsm6ds3_get_raw(lsm6ds3_t *dev, lsm6ds3_data_t *data)
     return true;
 }
 
-int16_t lsm6ds3_read_temp_c(lsm6ds3_t *dev)
+uint16_t lsm6ds3_read_temp_c(lsm6ds3_t *dev)
 {
 	int16_t out = 0;
 	read_register_int16(dev, &out, LSM6DS3_ACC_GYRO_OUT_TEMP_L);
-	out += (75*16);
-	return out;
+	out += (125*16);
+	return (uint16_t)(out & 0x7FFF);
 }
 
 #ifdef __cplusplus

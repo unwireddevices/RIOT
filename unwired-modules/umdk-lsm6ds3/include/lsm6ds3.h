@@ -112,6 +112,6 @@ bool lsm6ds3_get_raw(lsm6ds3_t *dev, lsm6ds3_data_t *data);
  *
  * @return Temperature in Celsius degrees
  */
-int16_t lsm6ds3_read_temp_c(lsm6ds3_t *dev);
+uint16_t lsm6ds3_read_temp_c(lsm6ds3_t *dev);
 
 #endif /* LSM6DS3_H_ */

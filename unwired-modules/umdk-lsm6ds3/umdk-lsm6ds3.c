@@ -29,9 +29,9 @@ extern "C" {
 #include "board.h"
 
 #include "unwds-common.h"
-#include "umdk-acc.h"
+#include "include/umdk-lsm6ds3.h"
 
-#include "lsm6ds3.c"
+#include "lsm6ds3.h"
 
 #include "thread.h"
 #include "xtimer.h"
@@ -40,7 +40,7 @@ static uwnds_cb_t *callback;
 
 static lsm6ds3_t lsm6ds3;
 
-void umdk_acc_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
+void umdk_lsm6ds3_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 {
     (void) non_gpio_pin_map;
 
@@ -83,8 +83,22 @@ void umdk_acc_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     }
 }
 
-bool umdk_acc_cmd(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_LEN], char *reply)
+bool umdk_lsm6ds3_cmd(module_data_t *cmd, module_data_t *reply)
 {
+	/* Check for empty command */
+	if (cmd->length < 1)
+		return false;
+
+	umdk_lsm6ds3_cmd_t c = cmd->data[0];
+
+	switch (c) {
+	case UMDK_LSM6DS3_CMD_POLL:
+		// TODO: prepare reply in binary format
+		// example: sht21
+		return false;
+	}
+
+	/*
     if (strcmp(argv[1], "get") == 0) {
         char buf[UNWDS_MAX_REPLY_LEN] = { '\0' };
 
@@ -104,7 +118,7 @@ bool umdk_acc_cmd(int argc, char argv[UNWDS_MAX_PARAM_COUNT][UNWDS_MAX_PARAM_LEN
         return true;
     }
 
-    strcpy(reply, "{error:true, text:\"invalid params\"}");
+    strcpy(reply, "{error:true, text:\"invalid params\"}");*/
 
     return false;
 }

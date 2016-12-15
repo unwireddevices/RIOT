@@ -47,7 +47,7 @@ UNWD_GPIO   =   1
 UNWD_4BTN   =   1
 UNWD_GPS	=	1
 UNWD_LM75   =	1
-UNWD_ACC	=	1
+UNWD_LSM6DS3	=	1
 UNWD_LMT01  =	1
 UNWD_UART	=	1
 UNWD_SHT21  =	1
@@ -75,24 +75,19 @@ CFLAGS += -D umdk_gps
 endif
 INCLUDES += -I../../unwired-modules/umdk-gps/include/
 
-ifeq ($(UNWD_TEMP),1)
-USEMODULE += umdk-temp
-CFLAGS += -D umdk_temp
-endif
-
-ifeq ($(UNWD_LM75A),1)
+ifeq ($(UNWD_LM75),1)
+USEMODULE += umdk-lm75
 USEMODULE += lm75a_new
-USEMODULE += printf_float
-CFLAGS += -D umdk_lm75a
+CFLAGS += -D umdk_lm75
 endif
 INCLUDES += -I../../unwired-modules/umdk-lm75/include/
 
-ifeq ($(UNWD_ACC),1)
-USEMODULE += umdk-acc
+ifeq ($(UNWD_LSM6DS3),1)
+USEMODULE += umdk-lsm6ds3
 USEMODULE += printf_float
-CFLAGS += -D umdk_acc
+CFLAGS += -D umdk_lsm6ds3
 endif
-INCLUDES += -I../../unwired-modules/umdk-acc/include/
+INCLUDES += -I../../unwired-modules/umdk-lsm6ds3/include/
 
 ifeq ($(UNWD_LMT01),1)
 USEMODULE += umdk-lmt01

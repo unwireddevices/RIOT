@@ -24,7 +24,11 @@
 
 #define UMDK_ACC_I2C I2C_0
 
-void umdk_acc_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
-bool umdk_acc_cmd(module_data_t *data, module_data_t *reply);
+typedef enum {
+	UMDK_LSM6DS3_CMD_POLL = 0,
+} umdk_lsm6ds3_cmd_t;
+
+void umdk_lsm6ds3_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
+bool umdk_lsm6ds3_cmd(module_data_t *data, module_data_t *reply);
 
 #endif /* UMDK_ACC_H */

@@ -87,7 +87,7 @@ CFLAGS += -D umdk_lm75a
 endif
 INCLUDES += -I../../unwired-modules/umdk-lm75/include/
 
-ifeq ($(UNWD_ACC),1)
+ifeq ($(UNWD_LSM6DS3),1)
 USEMODULE += umdk-lsm6ds3
 USEMODULE += printf_float
 CFLAGS += -D umdk_lsm6ds3

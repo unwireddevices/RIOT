@@ -30,8 +30,7 @@ extern "C" {
 
 #include "unwds-common.h"
 #include "include/umdk-lsm6ds3.h"
-
-#include "lsm6ds3.h"
+#include "include/lsm6ds3.h"
 
 #include "thread.h"
 #include "xtimer.h"
@@ -48,7 +47,7 @@ void umdk_lsm6ds3_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 
     lsm6ds3_param_t lsm_params;
     lsm_params.i2c_addr = 0x6A;
-    lsm_params.i2c = UMDK_ACC_I2C;
+    lsm_params.i2c = UMDK_LSM6DS3_I2C;
 
     if (lsm6ds3_init(&lsm6ds3, &lsm_params) < 0) {
         puts("[umdk-acc] Initialization of LSM6DS3 failed");
@@ -93,34 +92,24 @@ bool umdk_lsm6ds3_cmd(module_data_t *cmd, module_data_t *reply)
 
 	switch (c) {
 	case UMDK_LSM6DS3_CMD_POLL:
-		// TODO: prepare reply in binary format
-		// example: sht21
-		return false;
+	{
+		lsm6ds3_data_t acc_data = {};
+        lsm6ds3_get_raw(&lsm6ds3, &acc_data);
+		uint16_t temp = lsm6ds3_read_temp_c(&lsm6ds3);
+		
+		reply->length = 1 + sizeof(lsm6ds3_data_t) + 2;
+		reply->data[0] = UNWDS_LSM6DS3_MODULE_ID;
+		
+		memcpy(reply->data + 1, &acc_data, sizeof(lsm6ds3_data_t));
+		memcpy(reply->data + 1 + sizeof(lsm6ds3_data_t), &temp, 2);
+		
+		break;
 	}
-
-	/*
-    if (strcmp(argv[1], "get") == 0) {
-        char buf[UNWDS_MAX_REPLY_LEN] = { '\0' };
-
-        lsm6ds3_data_t data = {};
-
-        lsm6ds3_get_raw(&lsm6ds3, &data);
-
-        float_t temp = lsm6ds3_read_temp_c(&lsm6ds3);
-
-        snprintf(buf, UNWDS_MAX_REPLY_LEN, "{ax:%.2f,ay:%.2f,az:%.2f,gx:%.2f,gy:%.2f,gz:%.2f,temp:%.2f}",
-                 data.acc_x, data.acc_y, data.acc_z,
-                 data.gyr_x, data.gyr_y, data.gyr_z,
-                 temp);
-
-        strcpy(reply, buf);
-
-        return true;
-    }
-
-    strcpy(reply, "{error:true, text:\"invalid params\"}");*/
-
-    return false;
+	default:
+		break;
+	}
+	
+    return true;
 }
 
 #ifdef __cplusplus

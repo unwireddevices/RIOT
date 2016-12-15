@@ -41,7 +41,7 @@ static uint32_t last_pressed[4] = {};
 
 static uwnds_cb_t *callback;
 
-void *handler(void *arg) {
+static void *handler(void *arg) {
     msg_t msg;
     msg_t msg_queue[2];
     msg_init_queue(msg_queue, 2);

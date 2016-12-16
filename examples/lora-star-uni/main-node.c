@@ -155,9 +155,14 @@ void appdata_received_cb(uint8_t *buf, size_t buflen)
     unwds_module_id_t modid = buf[0];
 
     module_data_t cmd;
+    /* Save command data */
     memcpy(cmd.data, buf + 1, buflen - 1);
     cmd.length = buflen - 1;
 
+    /* Save RSSI value */
+    cmd.rssi = ls._internal.last_rssi;
+
+    /* Send command to the module */
     module_data_t reply = {};
     if (!unwds_send_to_module(modid, &cmd, &reply)) {
         return;

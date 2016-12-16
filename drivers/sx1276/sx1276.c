@@ -412,7 +412,7 @@ static void setup_power_amplifier(sx1276_t *dev, sx1276_lora_settings_t *setting
     pa_config = sx1276_reg_read(dev, REG_PACONFIG);
     pa_dac = sx1276_reg_read(dev, REG_PADAC);
 
-    pa_config = (pa_config & RF_PACONFIG_PASELECT_MASK) | sx1276_get_pa_select(dev->settings.channel) << 7;
+    pa_config = (pa_config & RF_PACONFIG_PASELECT_MASK) | sx1276_get_pa_select(dev->settings.channel);
     pa_config = (pa_config & RF_PACONFIG_MAX_POWER_MASK) | (0x05 << 4); // max power is 14dBm
 
     sx1276_reg_write(dev, REG_PARAMP, RF_PARAMP_0050_US);

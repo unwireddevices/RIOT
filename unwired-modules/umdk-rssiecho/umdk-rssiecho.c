@@ -56,7 +56,7 @@ bool umdk_rssiecho_cmd(module_data_t *cmd, module_data_t *reply)
 
             /* Copy RSSI value into reply */
             int16_t rssi = cmd->rssi;
-            memcpy(reply->data[1], (uint8_t *) &rssi, 2);
+            memcpy(&reply->data[1], (uint8_t *) &rssi, 2);
 
             return true;
         }

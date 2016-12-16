@@ -80,6 +80,8 @@ uint8_t *allocate_stack(void);
 typedef struct {
 	uint8_t length;
 	uint8_t data[UNWDS_MAX_DATA_LEN];
+
+	int16_t rssi;
 } module_data_t;
 
 typedef void (uwnds_cb_t)(module_data_t *msg);

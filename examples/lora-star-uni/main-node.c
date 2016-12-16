@@ -414,6 +414,9 @@ int ls_cmd_cmd(int argc, char **argv)
     hex_to_bytes(argv[2], cmd.data, false);
     cmd.length = len / 2;
 
+    /* No RSSI from console commands */
+    cmd.rssi = 0;
+
     module_data_t reply = {};
     bool res = unwds_send_to_module(modid, &cmd, &reply);
     char replystr[2 * UNWDS_MAX_DATA_LEN] = {};

@@ -15,14 +15,14 @@
  * @brief       umdk-temp temperature sensor module
  * @author      Eugene Ponomarev
  */
-#ifndef UMDK_ACC_H
-#define UMDK_ACC_H
+#ifndef UMDK_LSM6DS3_H
+#define UMDK_LSM6DS3_H
 
 #include "unwds-common.h"
 
-#define UNWDS_ACC_MODULE_ID 4
+#define UNWDS_LSM6DS3_MODULE_ID 4
 
-#define UMDK_ACC_I2C I2C_0
+#define UMDK_LSM6DS3_I2C I2C_0
 
 typedef enum {
 	UMDK_LSM6DS3_CMD_POLL = 0,
@@ -31,4 +31,4 @@ typedef enum {
 void umdk_lsm6ds3_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
 bool umdk_lsm6ds3_cmd(module_data_t *data, module_data_t *reply);
 
-#endif /* UMDK_ACC_H */
+#endif /* UMDK_LSM6DS3_H */

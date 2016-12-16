@@ -89,7 +89,7 @@ static void *handler(void *arg)
 
 	/* Restart timer after delay */
 	if (conf_counter.publish_period)
-	  rtctimers_set_msg(&timer, 60 * conf_counter.publish_period, &handler_msg, handler_pid);
+	  rtctimers_set_msg(&timer, 3600 * conf_counter.publish_period, &handler_msg, handler_pid);
 	  /* Sleep */
 	lpm_prevent_sleep = 0;
     }
@@ -152,7 +152,7 @@ void umdk_4counter_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
   handler_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, handler, NULL, "4counter thread");
 
    /* Start publishing timer */
-   rtctimers_set_msg(&timer, 60 * conf_counter.publish_period, &handler_msg, handler_pid);
+   rtctimers_set_msg(&timer, 3600 * conf_counter.publish_period, &handler_msg, handler_pid);
 }
 
 
@@ -175,7 +175,7 @@ bool umdk_4counter_cmd(module_data_t *cmd, module_data_t *reply)
 
       /* Don't restart timer if new period is zero */
       if ((conf_counter.publish_period) && (conf_counter.publish_period < (UMDK_4COUNT_PUBLISH_PERIOD_MAX + 1))) {
-	  rtctimers_set_msg(&timer, 60 * conf_counter.publish_period, &handler_msg, handler_pid);
+	  rtctimers_set_msg(&timer, 3600 * conf_counter.publish_period, &handler_msg, handler_pid);
 	      printf("[4counter] Period set to %d hour (s)\n", conf_counter.publish_period);
       } else
 	      puts("[4counter] Timer stopped");

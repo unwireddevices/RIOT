@@ -65,10 +65,10 @@ static const unwd_module_t modules[] = {
     { UNWDS_GPS_MODULE_ID, "gps", umdk_gps_init, umdk_gps_cmd, 1 << 3, false },
 #endif
 #ifdef umdk_lm75
-    { UNWDS_LM75_MODULE_ID, "temp", umdk_lm75_init, umdk_lm75_cmd, 1 << 4, true },
+    { UNWDS_LM75_MODULE_ID, "lm75", umdk_lm75_init, umdk_lm75_cmd, 1 << 4, true },
 #endif
 #ifdef umdk_lsm6ds3
-	{ UNWDS_ACC_MODULE_ID, "lsm6ds3", umdk_lsm6ds3_init, umdk_lsm6ds3_cmd, 1 << 5, true },
+	{ UNWDS_LSM6DS3_MODULE_ID, "lsm6ds3", umdk_lsm6ds3_init, umdk_lsm6ds3_cmd, 1 << 5, true },
 #endif
 #ifdef umdk_lmt01
 	{ UNWDS_LMT01_MODULE_ID, "lmt01", umdk_lmt01_init, umdk_lmt01_cmd, 1 << 6, false },

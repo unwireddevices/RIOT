@@ -70,13 +70,13 @@ typedef struct {
  * @brief Structure holds raw LSM6DS3 acceleration and gyro data
  */
 typedef struct {
-    float_t acc_x;
-    float_t acc_y;
-    float_t acc_z;
+    float acc_x;
+    float acc_y;
+    float acc_z;
 
-    float_t gyr_x;
-    float_t gyr_y;
-    float_t gyr_z;
+    float gyr_x;
+    float gyr_y;
+    float gyr_z;
 } lsm6ds3_data_t;
 
 /**

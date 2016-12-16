@@ -11,8 +11,8 @@
  * @ingroup
  * @brief
  * @{
- * @file		umdk-4btn.c
- * @brief       umdk-4btn module implementation
+ * @file		umdk-lm75.c
+ * @brief       umdk-lm75 module implementation
  * @author      Eugene Ponomarev
  */
 
@@ -57,29 +57,27 @@ bool umdk_lm75_cmd(module_data_t *data, module_data_t *reply)
 	if (data->length < 1)
 		return false;
 
-
 	umdk_lm75_cmd_t c = data->data[0];
 
 	switch (c) {
 	case UMDK_LM75_CMD_POLL:
-		// TODO: send binary data
-		return true;
+	{
+		int16_t temp = lm75a_get_ambient_temperature(&lm75a);
+		/* LM75A scale: signed, 0 = 0°C, 1 bit = 0.125 °C */
+		/* our scale: unsigned, 0 = -100°C, 1 bit = 0.0625 °C */
+		temp += 400;
+		temp <<= 1;
+		
+		reply->length = 1 + 2;
+		reply->data[0] = UNWDS_LM75_MODULE_ID;
+		memcpy(reply->data + 1, &temp, 2);
+		break;
 	}
-	/*
-    if (strcmp(argv[1], "get") == 0) {
-        char buf[UNWDS_MAX_REPLY_LEN] = { '\0' };
+	default:
+		break;
+	}
 
-        float_t temp = lm75a_get_ambient_temperature(&lm75a);
-        sprintf(buf, "{temp:%.3f}", temp);
-        strcpy(reply, buf);
-
-        return true;
-    }
-
-    strcpy(reply, "{error:true, text:\"invalid params\"}");
-	 */
-
-    return false;
+    return true;
 }
 
 #ifdef __cplusplus

@@ -74,8 +74,6 @@ static void prepare_result(module_data_t *buf) {
 	sht21_measure_t measure = {};
 	sht21_measure(&dev, &measure);
 
-//	printf("[sth21] Temp: %.2f, humiditiy: %.1f%%\n", measure.temperature / 1000.0f, measure.humidity / 1000.0f);
-
 	uint16_t temp = convert_temp(measure.temperature);
 	uint8_t hum = convert_humid(measure.humidity);
 
@@ -188,8 +186,9 @@ bool umdk_sht21_cmd(module_data_t *cmd, module_data_t *reply) {
 		if (sht21_config.publish_period_min) {
 			rtctimers_set_msg(&timer, 60 * sht21_config.publish_period_min, &timer_msg, timer_pid);
 			printf("[sht21] Period set to %d minute (s)\n", sht21_config.publish_period_min);
-		} else
+		} else {
 			puts("[sht21] Timer stopped");
+		}
 
 		reply->length = 4;
 		reply->data[0] = UNWDS_SHT21_MODULE_ID;

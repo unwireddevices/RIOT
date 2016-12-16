@@ -73,6 +73,6 @@ int lm75a_init(lm75a_t *dev, lm75a_param_t *param);
  *
  * @param[in] dev pointer to the initialized LM75A device
  */
-float_t lm75a_get_ambient_temperature(lm75a_t *dev);
+int16_t lm75a_get_ambient_temperature(lm75a_t *dev);
 
 #endif /* LM75A_H_ */

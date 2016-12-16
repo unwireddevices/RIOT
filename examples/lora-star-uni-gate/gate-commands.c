@@ -38,7 +38,9 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 
 	switch (c) {
 	case CMD_PING:
+		/* Send pong response */
 		gc_pending_fifo_push(fifo, "!\n");
+
 		/* Send flush message */
 		msg_t msg;
 		msg_send(&msg, writer);
@@ -69,13 +71,13 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 	case CMD_IND: {
 		/* Minimum length is length of eui64 in hex + two hex digits of cmd + one character '\n' */
 		if (strlen(payload) < 16 + 2 + 1) {
-			printf("[error] Invalid command received: %s\n", payload);
+			printf("[error] Invalid command received: %s\n", data);
 			return;
 		}
 
 		uint64_t nodeid = 0;
 		if (!hex_to_bytesn(payload, 16, (uint8_t *) &nodeid, true)) {
-			printf("[error] Invalid command received: %s\n", payload);
+			printf("[error] Invalid command received: %s\n", data);
 			return;
 		}
 
@@ -91,13 +93,13 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 		/* Number of argument bytes is length of hex digits train except '\n' characer */
 		int numdigits = strlen(payload) - 1;
 		if (numdigits % 2 != 0) {
-			printf("[error] Invalid command data: %s, length must be even.\n", payload);
+			printf("[error] Invalid command data: %s, length must be even.\n", data);
 			return;
 		}
 
 		uint8_t a[UNWDS_MAX_DATA_LEN + 2];
 		if (!hex_to_bytesn(payload, numdigits, a, false)) {
-			printf("[error] Invalid command received: %s\n", payload);
+			printf("[error] Invalid command received: %s\n", data);
 			return;
 		}
 
@@ -116,13 +118,13 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 	case CMD_HAS_PENDING: {
 		/* Minimum length is length of eui64 in hex + two hex digits + one character '\n' */
 		if (strlen(payload) < 16 + 2 + 1) {
-			printf("[error] Invalid command received: %s\n", payload);
+			printf("[error] Invalid command received: %s\n", data);
 			return;
 		}
 
 		uint64_t nodeid = 0;
 		if (!hex_to_bytesn(payload, 16, (uint8_t *) &nodeid, true)) {
-			printf("[error] Invalid command received: %s\n", payload);
+			printf("[error] Invalid command received: %s\n", data);
 			return;
 		}
 
@@ -138,7 +140,9 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 		uint8_t num_pending = strtol(payload, NULL, 16);
 		node->num_pending = num_pending;
 
-		printf("[pending] setting node 0x%08X%08X has %u frames pending\n", (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF), num_pending);
+		printf("[pending] setting node 0x%08X%08X has %u frames pending\n",
+				(unsigned int) (node->node_id >> 32),
+				(unsigned int) (node->node_id & 0xFFFFFFFF), num_pending);
 
 		break;
 	}
@@ -146,23 +150,26 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 	case CMD_INVITE: {
 		/* Minimum length is length of eui64 in hex +  one character '\n' */
 		if (strlen(payload) < 16 + 1) {
-			printf("[error] Invalid command received: %s\n", payload);
+			printf("[error] Invalid command received: %s\n", data);
 			return;
 		}
 
 		uint64_t nodeid = 0;
 		if (!hex_to_bytesn(payload, 16, (uint8_t *) &nodeid, true)) {
-			printf("[error] Invalid command received: %s\n", payload);
+			printf("[error] Invalid command received: %s\n", data);
 			return;
 		}
 
-		printf("[invite] Sending invite to node with ID 0x%08X%08X\n", (unsigned int) (nodeid >> 32), (unsigned int) (nodeid & 0xFFFFFFFF));
+		printf("[invite] Sending invite to node with ID 0x%08X%08X\n",
+				(unsigned int) (nodeid >> 32),
+				(unsigned int) (nodeid & 0xFFFFFFFF));
+
 		ls_gate_invite(ls, nodeid);
 		break;
 	}
 
 	default:
-		printf("[gate-commands] Unsupported: %s\n", payload);
+		printf("[gate-commands] Unsupported: %s\n", data);
 		break;
 	}
 }

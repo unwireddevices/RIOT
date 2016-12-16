@@ -186,6 +186,8 @@ typedef struct {
 	/* Current frame to send (to reduce stack consumption) */
 	ls_frame_t current_frame;
 	mutex_t curr_frame_mutex; /**< Mutex on current frame */
+
+	int16_t last_rssi;		  /**< RSSI value of the last frame received */
 } ls_ed_internal_t;
 
 /**

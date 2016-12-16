@@ -335,6 +335,9 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
 		case SX1276_RX_DONE:
 			printf("RX: %u bytes, | RSSI: %d\n", packet->size, packet->rssi_value);
 
+			/* Save RSSI value of received frame */
+			ls->_internal.last_rssi = packet->rssi_value;
+
 			ls_frame_t *frame = (ls_frame_t *) packet->content;
 
 			/* Check frame format */
@@ -357,8 +360,8 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
 			}
 			else {
 				puts("ls-ed: malformed data discarded"); // XXX: debug
-
 			}
+
 			break;
 
 		case SX1276_RX_ERROR_CRC:

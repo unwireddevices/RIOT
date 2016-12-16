@@ -45,6 +45,14 @@ static uint8_t datarate_table[7][3] = {
 
 static msg_t msg_ping;
 static msg_t msg_keepalive;
+static msg_t msg_rx1_expired;
+
+static void schedule_tx(ls_gate_channel_t *ch) {
+	msg_t msg;
+	msg.content.ptr = (void *) ch;
+
+	msg_try_send(&msg, ((ls_gate_t *)ch->_internal.gate)->_internal.uq_thread_pid);
+}
 
 static void prepare_sx1276(ls_gate_channel_t *ch)
 {
@@ -76,8 +84,7 @@ static void prepare_sx1276(ls_gate_channel_t *ch)
     /* Setup channel */
     sx1276_set_channel(ch->_internal.sx1276, ch->frequency);
 }
-
-static int send_frame(ls_gate_channel_t *ch, ls_addr_t to, ls_type_t type, uint8_t *buf, size_t buflen)
+static int send_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame)
 {
     assert(ch != NULL);
 
@@ -97,9 +104,6 @@ static int send_frame(ls_gate_channel_t *ch, ls_addr_t to, ls_type_t type, uint8
     		break;
     }
 
-    ls_frame_t *frame = &ch->_internal.current_frame;
-    ls_assemble_frame(to, type, buf, buflen, frame);
-
     /* Send frame */
     size_t header_size = sizeof(ls_header_t) + sizeof(ls_payload_len_t);
     size_t payload_size = 0;
@@ -110,7 +114,7 @@ static int send_frame(ls_gate_channel_t *ch, ls_addr_t to, ls_type_t type, uint8
     uint8_t mic_key[AES_BLOCK_SIZE];
     uint8_t aes_key[AES_BLOCK_SIZE];
 
-    switch (type) {
+    switch (frame->header.type) {
         case LS_DL_JOIN_ACK:
         case LS_DL_INVITE:
             ls_encrypt_frame(ls->settings.join_key, ls->settings.join_key, frame, &payload_size);
@@ -118,14 +122,14 @@ static int send_frame(ls_gate_channel_t *ch, ls_addr_t to, ls_type_t type, uint8
 
         case LS_DL_ACK:
         case LS_DL_ACK_P:
-            node = ls_devlist_get(&ls->devices, to);
+            node = ls_devlist_get(&ls->devices, frame->header.dev_addr);
 
             ls_derive_keys(node->last_nonce, node->app_nonce, node->addr, mic_key, NULL);
             ls_encrypt_frame(mic_key, mic_key, frame, &payload_size);
             break;
 
         default:
-            node = ls_devlist_get(&ls->devices, to);
+            node = ls_devlist_get(&ls->devices, frame->header.dev_addr);
 
             ls_derive_keys(node->last_nonce, node->app_nonce, node->addr, mic_key, aes_key);
             ls_encrypt_frame(mic_key, aes_key, frame, &payload_size);
@@ -139,16 +143,47 @@ static int send_frame(ls_gate_channel_t *ch, ls_addr_t to, ls_type_t type, uint8
     return LS_GATE_OK;
 }
 
+static bool enqueue_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame) {
+	bool res = !ls_frame_fifo_push(&ch->_internal.ul_fifo, frame);
+
+	schedule_tx(ch);
+
+	return res;
+}
+
+static bool enqueue_frame(ls_gate_channel_t *ch, ls_addr_t to, ls_type_t type, uint8_t *buf, size_t buflen) {
+    ls_frame_t *frame = &ch->_internal.current_frame;
+    ls_assemble_frame(to, type, buf, buflen, frame);
+
+    return enqueue_frame_f(ch, frame);
+}
+
+static inline void close_rx_windows(ls_gate_channel_t *ch) {
+	xtimer_remove(&ch->_internal.rx_window1);
+}
+
+static inline void open_rx_windows(ls_gate_channel_t *ch) {
+	/* Launch RX window timeout timer */
+	msg_rx1_expired.content.ptr = (void *) ch;
+	xtimer_set_msg(&ch->_internal.rx_window1, LS_GATE_RX1_LENGTH, &msg_rx1_expired, ((ls_gate_t *)ch->_internal.gate)->_internal.tim_thread_pid);
+
+	/* Switch transceiver to RX mode */
+	prepare_sx1276(ch);
+	sx1276_set_rx(ch->_internal.sx1276, ch->_internal.sx1276->settings.lora.rx_timeout);
+
+	puts("ls-gate: rx1 window opened");
+}
+
 static inline void send_join_ack(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t dev_id, ls_addr_t addr, uint32_t app_nonce)
 {
     ls_join_ack_t ack = { .addr = addr, .dev_id = dev_id, .app_nonce = app_nonce };
 
-    send_frame(ch, addr, LS_DL_JOIN_ACK, (uint8_t *) &ack, sizeof(ls_join_ack_t));
+    enqueue_frame(ch, addr, LS_DL_JOIN_ACK, (uint8_t *) &ack, sizeof(ls_join_ack_t));
 }
 
 static inline void send_ack(ls_gate_t *ls, ls_gate_channel_t *ch, ls_addr_t addr, bool has_pending)
 {
-    send_frame(ch, addr, (has_pending) ? LS_DL_ACK_P : LS_DL_ACK, NULL, 0);
+	enqueue_frame(ch, addr, (has_pending) ? LS_DL_ACK_P : LS_DL_ACK, NULL, 0);
 }
 
 static void device_join_req(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t dev_id, uint64_t app_id, uint32_t dev_nonce, ls_node_class_t node_class, uint64_t ability)
@@ -386,9 +421,7 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
             break;
 
         case SX1276_TX_DONE:
-            //puts("sx1276: transmission done.");
-            prepare_sx1276(ch);
-            sx1276_set_rx(ch->_internal.sx1276, ch->_internal.sx1276->settings.lora.rx_timeout);
+            open_rx_windows(ch);
 
             break;
 
@@ -396,6 +429,7 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
             break;
 
         case SX1276_TX_TIMEOUT:
+        	puts("ls-gate: TX timeout");
             prepare_sx1276(ch);
             sx1276_set_rx(ch->_internal.sx1276, ch->_internal.sx1276->settings.lora.rx_timeout);
             break;
@@ -406,18 +440,75 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
     }
 }
 
+/**
+ * Uplink frame queue handler thread body.
+ */
+static void *uq_handler(void *arg)
+{
+    assert(arg != NULL);
+
+    //ls_gate_t *ls = (ls_gate_t *) arg;
+
+    msg_t msg_queue[LS_UQ_MSG_QUEUE_SIZE] = {};
+    msg_init_queue(msg_queue, LS_UQ_MSG_QUEUE_SIZE);
+
+    msg_t msg;
+
+    puts("ls-gate: uplink frame queue handler thread started"); // XXX: debug
+
+    while (1) {
+        msg_receive(&msg);
+
+        ls_gate_channel_t *ch = (ls_gate_channel_t *) msg.content.ptr;
+        ls_frame_fifo_t *fifo = &ch->_internal.ul_fifo;
+
+        if (ls_frame_fifo_empty(fifo)) {
+            continue;
+        }
+
+        /* Get frame from queue top */
+        ls_frame_t *f;
+        ls_frame_t frame;
+        if (!ls_frame_fifo_pop(fifo, &frame)) {
+            continue;
+        }
+
+        f = &frame;
+
+		/* Update frame's FID to the last one and advance it */
+		f->header.fid = 0;
+
+        // XXX: debug
+        printf(">mhdr=0x%02X, mic=0x%04X, addr=0x%02X, type=0x%02X, fid=0x%02X [%d left]\n", (unsigned int) f->header.mhdr,
+               (unsigned int) f->header.mic, (unsigned int) f->header.dev_addr,
+               (unsigned int) f->header.type,
+               (unsigned int) f->header.fid,
+			   ls_frame_fifo_size(fifo));
+
+        /* Send frame into LoRa PHY */
+        send_frame_f(ch, f);
+    }
+
+    return NULL;
+}
+
 static void *tim_handler(void *arg)
 {
     assert(arg != NULL);
 
     ls_gate_t *ls = (ls_gate_t *) arg;
-    msg_init_queue(ls->_internal.tim_msg_queue, sizeof(ls->_internal.tim_msg_queue));
+
+    msg_t queue[LS_TIM_MSG_QUEUE_SIZE] = {};
+    msg_init_queue(queue, LS_TIM_MSG_QUEUE_SIZE);
+
     msg_t msg;
+
+    puts("ls-gate: timeouts handler thread created");
 
     while (1) {
         msg_receive(&msg);
 
-        ls_gate_tim_cmd_t cmd = (ls_gate_tim_cmd_t) msg.content.value;
+        ls_gate_tim_cmd_t cmd = (ls_gate_tim_cmd_t) msg.type;
 
         switch (cmd) {
             case LS_GATE_PING:
@@ -454,6 +545,24 @@ static void *tim_handler(void *arg)
             	/* Restart timer */
             	xtimer_set_msg(&ls->_internal.keepalive_timer, 1000 * ls->settings.keepalive_period_ms, &msg_keepalive, ls->_internal.tim_thread_pid);
             	break;
+
+            case LS_GATE_RX1_EXPIRED: {
+            	ls_gate_channel_t *ch = (ls_gate_channel_t *) msg.content.ptr;
+            	if (!ch)
+            		break;
+
+
+            	/* RX window expired, if there are frames awaiting in queue, schedule TX operation */
+            	if (!ls_frame_fifo_empty(&ch->_internal.ul_fifo)) {
+            		puts("ls-gate: rx1 window expired, sending next frame from queue");
+
+            		close_rx_windows(ch);
+            		schedule_tx(ch);
+            	} else
+            		puts("ls-gate: rx1 window expired, staying in RX");
+            }
+            break;
+
         }
     }
 
@@ -465,14 +574,14 @@ static void *tim_handler(void *arg)
  */
 static bool create_tim_handler_thread(ls_gate_t *ls)
 {
-    puts("ls_init: creating timeouts handler thread...");
+    puts("ls-gate: creating timeouts handler thread...");
 
-    kernel_pid_t pid_tim = thread_create(ls->_internal.tim_thread_stack, sizeof(ls->_internal.tim_thread_stack), THREAD_PRIORITY_MAIN - 2,
+    kernel_pid_t pid_tim = thread_create(ls->_internal.tim_thread_stack, LS_TIM_HANDLER_STACKSIZE, THREAD_PRIORITY_MAIN - 2,
                                          THREAD_CREATE_STACKTEST, tim_handler, ls,
-                                         "LS timeouts handler thread");
+                                         "timeouts thread");
 
     if (pid_tim <= KERNEL_PID_UNDEF) {
-        puts("ls_init: creation of timer handler thread failed");
+        puts("ls-gate: creation of timer handler thread failed");
         return false;
     }
 
@@ -481,10 +590,34 @@ static bool create_tim_handler_thread(ls_gate_t *ls)
     return true;
 }
 
+/**
+ * @brief Creates uplink queue handler thread
+ */
+static bool create_uq_handler_thread(ls_gate_t *ls)
+{
+    puts("ls-gate: creating uplink queue handler thread...");
+
+    kernel_pid_t pid_uq = thread_create(ls->_internal.uq_thread_stack, LS_UQ_HANDLER_STACKSIZE, THREAD_PRIORITY_MAIN - 2,
+                                         THREAD_CREATE_STACKTEST, uq_handler, ls,
+                                         "uplink queue thread");
+
+    if (pid_uq <= KERNEL_PID_UNDEF) {
+        puts("ls-gate: creation of uplink queue handler thread failed");
+        return false;
+    }
+
+    ls->_internal.uq_thread_pid = pid_uq;
+
+    return true;
+}
+
 static bool open_channel(ls_gate_channel_t *ch)
 {
     assert(ch != NULL);
     printf("ls_gate_init: opening channel %d Hz with datarate DR%d\n", (unsigned int) ch->frequency, (unsigned int) ch->dr);
+
+    /* Initialize uplink queue */
+    ls_frame_fifo_init(&ch->_internal.ul_fifo);
 
     sx1276_t *sx1276 = ch->_internal.sx1276;
 
@@ -527,11 +660,16 @@ int ls_gate_init(ls_gate_t *ls)
     assert(ls->channels != NULL);
     assert(ls->num_channels > 0);
 
-    msg_ping.content.value = LS_GATE_PING;
-    msg_keepalive.content.value = LS_GATE_KEEPALIVE;
+    msg_ping.type = LS_GATE_PING;
+    msg_keepalive.type = LS_GATE_KEEPALIVE;
+    msg_rx1_expired.type = LS_GATE_RX1_EXPIRED;
 
     if (!create_tim_handler_thread(ls)) {
         return -LS_INIT_E_TIM_THREAD;
+    }
+
+    if (!create_uq_handler_thread(ls)) {
+    	return -LS_INIT_E_UQ_THREAD;
     }
 
     /* Start ping timer */
@@ -566,19 +704,19 @@ int ls_gate_send_to(ls_gate_t *ls, ls_addr_t addr, uint8_t *buf, size_t bufsize)
     printf("Sending %u bytes to 0x%08X\n", (unsigned) bufsize, (unsigned) addr);
 
     /* Send frame as soon as possible */
-    send_frame((ls_gate_channel_t *) node->node_ch, addr, LS_DL, buf, bufsize);
+    enqueue_frame((ls_gate_channel_t *) node->node_ch, addr, LS_DL, buf, bufsize);
 
     return LS_GATE_OK;
 }
 
 int ls_gate_invite(ls_gate_t *ls, uint64_t nodeid) {
-	/* Iterate throug all channels and send invitation */
+	/* Iterate through all channels and send invitation */
     for (int i = 0; i < ls->num_channels; i++) {
         ls_gate_channel_t *ch = &ls->channels[i];
         assert(ch->_internal.sx1276 != NULL);
 
         ls_invite_t invite = { .dev_id = nodeid };
-        send_frame(ch, LS_ADDR_UNDEFINED, LS_DL_INVITE, (uint8_t *) &invite, sizeof(ls_invite_t));
+        enqueue_frame(ch, LS_ADDR_UNDEFINED, LS_DL_INVITE, (uint8_t *) &invite, sizeof(ls_invite_t));
     }
 
     return LS_GATE_OK;

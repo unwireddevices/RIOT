@@ -82,7 +82,16 @@ ls_mic_t ls_calculate_mic(uint8_t *key, ls_frame_t *frame, uint8_t payload_size)
 bool ls_validate_frame_mic(uint8_t *key, ls_frame_t *frame)
 {
     /* Payload size is zero or matched to the AES block size + AES-CBC IV length */
-    uint8_t payload_size = (frame->payload.len == 0) ? 0 : resize(frame->payload.len) + AES_BLOCK_SIZE;
+	uint8_t payload_size;
+	if (frame->payload.len == 0) {
+		payload_size = 0;
+	} else {
+		if (frame->payload.len <= LS_ECB_ENCRYPTION_MAX_SIZE) {
+			payload_size = resize(frame->payload.len);
+		} else {
+			payload_size = resize(frame->payload.len) + AES_BLOCK_SIZE;
+		}
+	}
 
     /* Compare MIC from header and actual */
     ls_mic_t expected_mic = ls_calculate_mic(key, frame, payload_size);
@@ -105,27 +114,41 @@ int ls_encrypt_frame_payload(uint8_t *key, ls_payload_t *payload)
         return 0; /* Nothing to do with empty payload */
 
     }
+	
     uint8_t size = resize(payload->len);
-
-    /* Get pointer to the payload buffer which starts after the payload length byte */
+	/* Get pointer to the payload buffer which starts after the payload length byte */
     uint8_t *ptr = payload->data;
+	
+	/* Buffer for the payload ciphertext */
+	uint8_t bufout[LS_PAYLOAD_SIZE_MAX];
+	memset(bufout, 0, LS_PAYLOAD_SIZE_MAX);
+	
+	if (payload->len <= LS_ECB_ENCRYPTION_MAX_SIZE) {
+		/* Add some salt */
+		int i;
+		for (i = payload->len; i < AES_BLOCK_SIZE; i++) {
+			ptr[i] = random_uint32_range(0, 255);
+		}
+				
+		/* Encrypt payload */
+		cipher_context_t context;
+		aes_init(&context, key, AES_KEY_SIZE);
+		aes_encrypt(&context, ptr, bufout);
+	}
+	else {
+		/* Generate random AES-CBC initialization vector */
+		uint8_t iv[AES_BLOCK_SIZE];
+		generate_iv(iv);
 
-    /* Generate random AES-CBC initialization vector */
-    uint8_t iv[AES_BLOCK_SIZE];
-    generate_iv(iv);
+		/* Write IV to the end of the payload buffer */
+		memcpy(ptr + size, iv, AES_BLOCK_SIZE);
 
-    /* Write IV to the end of the payload buffer */
-    memcpy(ptr + size, iv, AES_BLOCK_SIZE);
-
-    /* Buffer for the payload ciphertext */
-    uint8_t bufout[LS_PAYLOAD_SIZE_MAX];
-    memset(bufout, 0, LS_PAYLOAD_SIZE_MAX);
-
-    /* Encrypt payload */
-    aes_cbc_encrypt(ptr, size, key, iv, bufout);
-
-    /* Copy the ciphertext back into the payload buffer */
-    memcpy(payload->data, bufout, size);
+		/* Encrypt payload */
+		aes_cbc_encrypt(ptr, size, key, iv, bufout);
+	}
+	
+	/* Copy the ciphertext back into the payload buffer */
+	memcpy(payload->data, bufout, size);
 
     return size;
 }
@@ -136,6 +159,7 @@ void ls_decrypt_frame_payload(uint8_t *key, ls_payload_t *payload)
         return; /* Nothing to do with empty payload */
 
     }
+	
     /* Payload is guaranteed to be matched to the AES block size */
     uint8_t size = resize(payload->len);
 
@@ -148,12 +172,19 @@ void ls_decrypt_frame_payload(uint8_t *key, ls_payload_t *payload)
     uint8_t bufout[LS_PAYLOAD_SIZE_MAX];
     memset(bufout, 0, LS_PAYLOAD_SIZE_MAX);
 
-    /* Extract IV from the buffer */
-    uint8_t iv[AES_BLOCK_SIZE];
-    memcpy(iv, payload->data + size, AES_BLOCK_SIZE);
+	if (payload->len <= LS_ECB_ENCRYPTION_MAX_SIZE) {
+		/* Decrypt payload */
+		cipher_context_t context;
+		aes_init(&context, key, AES_KEY_SIZE);
+		aes_decrypt(&context, buf, bufout);
+	} else {
+		/* Extract IV from the buffer */
+		uint8_t iv[AES_BLOCK_SIZE];
+		memcpy(iv, payload->data + size, AES_BLOCK_SIZE);
 
-    /* Decipher the payload */
-    aes_cbc_decrypt(buf, size, key, iv, bufout);
+		/* Decipher the payload */
+		aes_cbc_decrypt(buf, size, key, iv, bufout);
+	}
 
     /* Copy payload cleartext back to the payload buffer */
     memcpy(payload->data, bufout, payload->len);
@@ -161,10 +192,13 @@ void ls_decrypt_frame_payload(uint8_t *key, ls_payload_t *payload)
 
 void ls_encrypt_frame(uint8_t *key_mic, uint8_t *key_aes, ls_frame_t *frame, size_t *newsize) {
 	if (frame->payload.len > 0) {
-		/*
-		 * The AES-CBC initialization vector block is appended to the payload, take it's size into account
-		 */
-		*newsize = AES_BLOCK_SIZE + ls_encrypt_frame_payload(key_aes, &frame->payload);
+		if (frame->payload.len <= LS_ECB_ENCRYPTION_MAX_SIZE) {
+			/* simplified encryption */
+			*newsize = ls_encrypt_frame_payload(key_aes, &frame->payload);
+		} else {
+			/* AES-CBC initialization vector block is added */
+			*newsize = AES_BLOCK_SIZE + ls_encrypt_frame_payload(key_aes, &frame->payload);
+		}
 	} else
 		*newsize = 0;
 

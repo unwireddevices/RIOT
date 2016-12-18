@@ -23,6 +23,8 @@
 
 #define LS_MIC_KEY_LEN AES_KEY_SIZE
 
+#define LS_ECB_ENCRYPTION_MAX_SIZE 14
+
 /**
  * @brief Cryptography settings for the device.
  */

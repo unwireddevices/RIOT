@@ -84,7 +84,7 @@ extern "C" {
 
 /** "Connect" Button */
 #define UNWD_USE_CONNECT_BTN	1
-#define UNWD_CONNECT_BTN		GPIO_PIN(PORT_B, 1)
+#define UNWD_CONNECT_BTN		UNWD_GPIO_1
 
 /** GPIO Ports */
 #define UNWD_GPIO_1 GPIO_PIN(PORT_B, 1)

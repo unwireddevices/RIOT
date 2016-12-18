@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2014 Freie Universität Berlin
+ * Copyright (C) 2016 Unwired Devices LLC
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
@@ -14,6 +15,7 @@
  * @brief       Implementation of the kernel's lpm interface
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
+ * @author      Oleg Artamonov <info@unwds.com>
  *
  * @}
  */
@@ -45,25 +47,47 @@ static void lpm_before_i_go_to_sleep (void) {
 	ahb_gpio_clocks = RCC->AHBENR & 0xFF;
 	RCC->AHBENR |= 0xFF;
 	
+	uint8_t i;
+	uint8_t pin;
+	uint32_t mask;
+	GPIO_TypeDef *port;
+	
+	for (i = 0; i < 8; i++) {
+		port = GPIOA + i*0x100;
+		lpm_gpio_moder[i] = port->MODER;
+		
+		mask = 0xFFFFFFFF;
+		
+		/* ignore GPIOs used for EXTI */
+		for (pin = 0; pin < 16; pin ++) {
+			if (SYSCFG->EXTICR[pin >> 2] & (i << ((pin & 0x03) * 4))) {
+				mask &= (0xFF << pin);
+			}
+		}
+		port->MODER |= mask;
+	}
+		
+/*
 	lpm_gpio_moder[0] = GPIOA->MODER;
 	lpm_gpio_moder[1] = GPIOB->MODER;
 	lpm_gpio_moder[2] = GPIOC->MODER;
 	lpm_gpio_moder[3] = GPIOD->MODER;
 	lpm_gpio_moder[4] = GPIOE->MODER;
-	lpm_gpio_moder[5] = GPIOF->MODER;
-	lpm_gpio_moder[6] = GPIOG->MODER;
-	lpm_gpio_moder[7] = GPIOH->MODER;
-	
+	lpm_gpio_moder[5] = GPIOH->MODER;
+	lpm_gpio_moder[6] = GPIOF->MODER;
+	lpm_gpio_moder[7] = GPIOG->MODER;
+*/	
 	/* switch GPIOs to analog input mode */
+/*
 	GPIOA->MODER |= 0xFFFFFFFF;
 	GPIOB->MODER |= 0xFFFFFFFF;
 	GPIOC->MODER |= 0xFFFFFFFF;
 	GPIOD->MODER |= 0xFFFFFFFF;
 	GPIOE->MODER |= 0xFFFFFFFF;
+	GPIOH->MODER |= 0xFFFFFFFF;
 	GPIOF->MODER |= 0xFFFFFFFF;
 	GPIOG->MODER |= 0xFFFFFFFF;
-	GPIOH->MODER |= 0xFFFFFFFF;
-	
+*/	
 	RCC->AHBENR &= ~((uint32_t)0xFF);
 	RCC->AHBENR |= ahb_gpio_clocks;
 }
@@ -72,15 +96,24 @@ static void lpm_before_i_go_to_sleep (void) {
 static void lpm_when_i_wake_up (void) {
 	RCC->AHBENR |= 0xFF;
 	
+	uint8_t i;
+	GPIO_TypeDef *port;
+	
+	for (i = 0; i < 8; i++) {
+		port = GPIOA + i*0x100;
+		port->MODER |= lpm_gpio_moder[i];
+	}
+	
+/*
 	GPIOA->MODER = lpm_gpio_moder[0];
 	GPIOB->MODER = lpm_gpio_moder[1];
 	GPIOC->MODER = lpm_gpio_moder[2];
 	GPIOD->MODER = lpm_gpio_moder[3];
 	GPIOE->MODER = lpm_gpio_moder[4];
-	GPIOF->MODER = lpm_gpio_moder[5];
-	GPIOG->MODER = lpm_gpio_moder[6];
-	GPIOH->MODER = lpm_gpio_moder[7];
-	
+	GPIOH->MODER = lpm_gpio_moder[5];
+	GPIOF->MODER = lpm_gpio_moder[6];
+	GPIOG->MODER = lpm_gpio_moder[7];
+*/	
 	RCC->AHBENR &= ~((uint32_t)0xFF);
 	RCC->AHBENR |= ahb_gpio_clocks;
 }

@@ -37,6 +37,54 @@
 #define ULP_BitNumber           0x09
 #define CR_ULP_BB               (PERIPH_BB_BASE + (CR_OFFSET * 32) + (ULP_BitNumber * 4))
 
+static uint32_t lpm_gpio_moder[8];
+static uint8_t ahb_gpio_clocks;
+
+/* put GPIOs in low-power state */
+static void lpm_before_i_go_to_sleep (void) {
+	ahb_gpio_clocks = RCC->AHBENR & 0xFF;
+	RCC->AHBENR |= 0xFF;
+	
+	lpm_gpio_moder[0] = GPIOA->MODER;
+	lpm_gpio_moder[1] = GPIOB->MODER;
+	lpm_gpio_moder[2] = GPIOC->MODER;
+	lpm_gpio_moder[3] = GPIOD->MODER;
+	lpm_gpio_moder[4] = GPIOE->MODER;
+	lpm_gpio_moder[5] = GPIOF->MODER;
+	lpm_gpio_moder[6] = GPIOG->MODER;
+	lpm_gpio_moder[7] = GPIOH->MODER;
+	
+	/* switch GPIOs to analog input mode */
+	GPIOA->MODER |= 0xFFFFFFFF;
+	GPIOB->MODER |= 0xFFFFFFFF;
+	GPIOC->MODER |= 0xFFFFFFFF;
+	GPIOD->MODER |= 0xFFFFFFFF;
+	GPIOE->MODER |= 0xFFFFFFFF;
+	GPIOF->MODER |= 0xFFFFFFFF;
+	GPIOG->MODER |= 0xFFFFFFFF;
+	GPIOH->MODER |= 0xFFFFFFFF;
+	
+	RCC->AHBENR &= 0xFFFFFF00;
+	RCC->AHBENR |= ahb_gpio_clocks;
+}
+
+/* restore GPIO settings */
+static void lpm_when_i_wake_up (void) {
+	RCC->AHBENR |= 0xFF;
+	
+	GPIOA->MODER = lpm_gpio_moder[0];
+	GPIOB->MODER = lpm_gpio_moder[1];
+	GPIOC->MODER = lpm_gpio_moder[2];
+	GPIOD->MODER = lpm_gpio_moder[3];
+	GPIOE->MODER = lpm_gpio_moder[4];
+	GPIOF->MODER = lpm_gpio_moder[5];
+	GPIOG->MODER = lpm_gpio_moder[6];
+	GPIOH->MODER = lpm_gpio_moder[7];
+	
+	RCC->AHBENR &= 0xFFFFFF00;
+	RCC->AHBENR |= ahb_gpio_clocks;
+}
+
 void lpm_arch_init(void)
 {
     /* Disable peripherals in Sleep mode */
@@ -115,6 +163,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             break;
 
         case LPM_POWERDOWN:         /* STOP mode */
+			lpm_before_i_go_to_sleep();
 			/* Clear Wakeup flag */	
 			PWR->CR |= PWR_CR_CWUF;
 		
@@ -144,6 +193,8 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 			restore_default_clock();
 
             __enable_irq();
+			
+			lpm_when_i_wake_up();
 
             break;
 

@@ -31,13 +31,16 @@ extern "C" {
 
 #include "lmt01.h"
 
-static void start_counter_timer(lmt01_t *lmt01) {
-	RCC->APB1ENR |= 0x02; /* Clock for timer 3 */
+#define DONT_USE_TIMER
 
+static void start_counter_timer(lmt01_t *lmt01) {
 	/* Enable timer GPIO */
 	gpio_init(lmt01->sens_pin, GPIO_IN_PU);
+	
+#ifndef DONT_USE_TIMER
 	gpio_init_af(lmt01->sens_pin, 2);
-
+	
+	RCC->APB1ENR |= 0x02; /* Clock for timer 3 */
 	TIM3->CNT = 0;				/* Reset counter value */
 
 	/* Start timer in pulse clock mode */
@@ -45,14 +48,17 @@ static void start_counter_timer(lmt01_t *lmt01) {
 	TIM3->SMCR    |= 0x0007;    /* External clock mode 1 */
 	TIM3->SMCR    |= 0x0060;    /* TI2FP2 as ext. clock */
 	TIM3->CR1     |= 0x0001;    /* Enable counting */
+#endif
 }
 
 static inline void lmt01_off(lmt01_t *lmt01) {
 	gpio_clear(lmt01->en_pin);
 	gpio_init(lmt01->sens_pin, GPIO_IN); /* disable pull-up */
 
+#ifndef DONT_USE_TIMER
 	TIM3->CR1 &= ~0x01;			/* Disable timer */
 	RCC->APB1ENR &= ~0x02;		/* Disable timer clocking */
+#endif
 
 	lmt01->_internal.do_count = false;
 	lmt01->_internal.pulse_count = 0;
@@ -92,10 +98,11 @@ static int count_pulses(lmt01_t *lmt01) {
 
 	/* Wait minimum time for sensor wake up and all transitions are done */
 	xtimer_usleep(1e3 * LMT01_MIN_TIMEOUT_MS);
-
+	
 	/* Init timer in counter mode */
 	start_counter_timer(lmt01);
 
+#ifndef DONT_USE_TIMER
 	int prev = TIM3->CNT;
 	int ms_idle = 0;
 
@@ -116,7 +123,34 @@ static int count_pulses(lmt01_t *lmt01) {
 
 	/* Get counted pulses */
 	int pulse_count = TIM3->CNT;
+#else
+	uint16_t timeout_us = 0;
+	uint16_t pulse_count = 0;
+	uint8_t gpio_prev_value = 0;
+	uint8_t gpio_curr_value;
 
+	while (1) {
+		if ((gpio_curr_value = gpio_read(lmt01->sens_pin)) != gpio_prev_value) {
+			pulse_count++;
+			gpio_prev_value = gpio_curr_value;
+			timeout_us = 0;
+		} else {
+			xtimer_usleep(1);
+			timeout_us++;
+		}
+
+		if (pulse_count > 10) { /* sensor is alive, some pulses were detected */
+			if (timeout_us > 100) {
+				break;
+			}
+		} else {
+			if (timeout_us > 1000*LMT01_MAX_IDLE_TIME_MS) { /* no sensor detected */
+				break;
+			}	
+		}
+	}
+#endif
+	
 	/* Disable sensor */
 	lmt01_off(lmt01);
 

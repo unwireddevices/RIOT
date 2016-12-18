@@ -139,7 +139,7 @@ static int count_pulses(lmt01_t *lmt01) {
 			timeout_us++;
 		}
 
-		if (pulse_count > 10) { /* sensor is alive, some pulses were detected */
+		if (pulse_count) { /* sensor is alive, at least one pulse was detected */
 			if (timeout_us > 100) {
 				break;
 			}

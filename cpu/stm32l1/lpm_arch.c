@@ -53,15 +53,17 @@ static void lpm_before_i_go_to_sleep (void) {
 	GPIO_TypeDef *port;
 	
 	for (i = 0; i < 8; i++) {
-		port = GPIOA + i*0x100;
+		port = &GPIOA[i*0x100];
 		lpm_gpio_moder[i] = port->MODER;
 		
 		mask = 0xFFFFFFFF;
 		
 		/* ignore GPIOs used for EXTI */
 		for (pin = 0; pin < 16; pin ++) {
-			if (SYSCFG->EXTICR[pin >> 2] & (i << ((pin & 0x03) * 4))) {
-				mask &= (0xFF << pin);
+			if (EXTI->IMR & (1 << pin)) {
+				if (((SYSCFG->EXTICR[pin >> 2]) >> (pin & 0x03) * 4) == i) {
+					mask &= ~((uint32_t)0xFF << pin);
+				}
 			}
 		}
 		port->MODER |= mask;
@@ -100,7 +102,7 @@ static void lpm_when_i_wake_up (void) {
 	GPIO_TypeDef *port;
 	
 	for (i = 0; i < 8; i++) {
-		port = GPIOA + i*0x100;
+		port = &GPIOA[i*0x100];
 		port->MODER |= lpm_gpio_moder[i];
 	}
 	

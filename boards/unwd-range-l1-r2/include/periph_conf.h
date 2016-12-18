@@ -293,6 +293,8 @@ static const timer_conf_t timer_config[] = {
 #define PWM_1_PORT_CLKEN()  (RCC->AHBENR |= RCC_AHBENR_GPIOAEN)
 #define PWM_1_PIN_CH0       6
 #define PWM_1_PIN_CH1       7
+#define PWM_1_PIN_CH2       0 /* do not use */
+#define PWM_1_PIN_CH3       0 /* do not use */
 #define PWM_1_PIN_AF        2
 
 /* PWM 2 device configuration */

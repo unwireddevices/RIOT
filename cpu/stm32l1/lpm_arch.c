@@ -64,7 +64,7 @@ static void lpm_before_i_go_to_sleep (void) {
 	GPIOG->MODER |= 0xFFFFFFFF;
 	GPIOH->MODER |= 0xFFFFFFFF;
 	
-	RCC->AHBENR &= ~(0xFF);
+	RCC->AHBENR &= ~((uint32_t)0xFF);
 	RCC->AHBENR |= ahb_gpio_clocks;
 }
 
@@ -81,7 +81,7 @@ static void lpm_when_i_wake_up (void) {
 	GPIOG->MODER = lpm_gpio_moder[6];
 	GPIOH->MODER = lpm_gpio_moder[7];
 	
-	RCC->AHBENR &= ~(0xFF);
+	RCC->AHBENR &= ~((uint32_t)0xFF);
 	RCC->AHBENR |= ahb_gpio_clocks;
 }
 

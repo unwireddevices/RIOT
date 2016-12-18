@@ -62,7 +62,7 @@ static void lpm_before_i_go_to_sleep (void) {
 		for (pin = 0; pin < 16; pin ++) {
 			if (EXTI->IMR & (1 << pin)) {
 				if (((SYSCFG->EXTICR[pin >> 2]) >> ((pin & 0x03) * 4)) == i) {
-					mask &= ~((uint32_t)0xFF << pin);
+					mask &= ~((uint32_t)0x03 << (pin*2));
 				}
 			}
 		}

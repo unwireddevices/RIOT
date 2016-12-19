@@ -89,10 +89,12 @@ static void configure_sx1276(ls_ed_t *ls, bool tx)
 
 static void anticollision_delay(void) {
 	/* Pseudorandom delay up to 8 seconds for collision avoidance */
-	unsigned int delay = random_uint32_range(1, 8);
+	unsigned int delay = random_uint32_range(1, 8); // XXX: return to original
 
 	printf("ls-ed: random delay %d s\n", (unsigned int) (delay));
 	rtctimers_sleep(delay);
+
+	puts("ls-ed: delay end");
 }
 
 static void enter_rx(ls_ed_t *ls)
@@ -620,6 +622,8 @@ static void *tim_handler(void *arg)
                     /* Do a retransmission */
                 	anticollision_delay();
                     ls->_internal.num_retr++;
+
+                    ls->state = LS_ED_IDLE;
 
                     send_next(ls);
                 }

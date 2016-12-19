@@ -56,6 +56,7 @@ UNWD_6ADC	=	1
 UNWD_LPS331 =   1
 UNWD_4COUNTER =   1
 UNWD_RSSIECHO = 1
+UNWD_PWM		= 1
 
 ####### UNWD MMODULES' includes & flags ############
 ifeq ($(UNWD_GPIO),1)
@@ -141,6 +142,11 @@ CFLAGS += -D umdk_rssiecho
 endif
 INCLUDES += -I../../unwired-modules/umdk-rssiecho/include/
 
+ifeq ($(UNWD_PWM),1)
+USEMODULE += umdk-pwm
+CFLAGS += -D umdk_pwm
+endif
+INCLUDES += -I../../unwired-modules/umdk-pwm/include/
 ####################################################
 
 

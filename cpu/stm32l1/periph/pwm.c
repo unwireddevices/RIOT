@@ -140,9 +140,6 @@ uint32_t pwm_init(pwm_t dev, pwm_mode_t mode, uint32_t freq, uint16_t res)
     /* enable output on PWM pins */
     tim->CCER |= (TIM_CCER_CC1E | TIM_CCER_CC2E | TIM_CCER_CC3E | TIM_CCER_CC4E);
 
-    /* enable PWM generation */
-    pwm_start(dev);
-
     return freq;
 }
 

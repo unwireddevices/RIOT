@@ -40,29 +40,6 @@ extern "C" {
 #include "rtc-timers.h"
 
 static  uwnds_cb_t *callback;
-/*static kernel_pid_t pwm_pid;*/
-
-/*static void *pwm_handler(void *arg)
-{
-    (void)arg;
-
-    msg_t msg;
-    msg_t msg_queue[2];
-
-    msg_init_queue(msg_queue, 2);
-
-    while (1)
-      {
-        msg_receive(&msg);*/
-
-        /* Notify the application */
-       /* callback(&data);*/
-
-/*        msg_send(&msg, pwm_pid);
-    }
-
-    return NULL;
-}*/
 
 void umdk_pwm_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 {
@@ -87,19 +64,6 @@ void umdk_pwm_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
   pwm_set(PWM_2, UNWDS_PWM_CH_2, UNWDS_PWM_DUTY_DEFAULT);
   pwm_set(PWM_2, UNWDS_PWM_CH_3, UNWDS_PWM_DUTY_DEFAULT);
 
-
-  /* Create handler thread */
- /* char *stack = (char *) allocate_stack();
-  if (!stack) {
-  	puts("umdk-pwm: unable to allocate memory. Is too many modules enabled?");
-  	return;
-  }*/
-
- /* printf("[pwm] Current freq period: %d hour(s)\n", conf_counter.publish_period);*/
-
-  /*pwm_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, pwm_handler, NULL, "pwm thread");*/
-
-  /*msg_send(&msg, pwm_pid);*/
 }
 
 

@@ -43,7 +43,7 @@ extern "C" {
 
 
 
-void umdk_pwm_init(void)
+void umdk_pwm_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 {
   pwm_init(PWM_0_EN, PWM_LEFT, 100, 10);
 }

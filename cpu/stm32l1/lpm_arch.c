@@ -57,8 +57,12 @@ static void lpm_before_i_go_to_sleep (void) {
 	uint32_t mask;
 	GPIO_TypeDef *port;
 	
-	for (i = 0; i < 8; i++) {
-		port = (GPIO_TypeDef *)(GPIOA_BASE + (0x100*i));
+	uint32_t addr_diff = GPIOB_BASE - GPIOA_BASE;
+	uint32_t gpio_base_addr = 0;
+	
+	for (i = 0; i < 1; i++) {
+		gpio_base_addr = GPIOA_BASE + i*addr_diff;
+		port = (GPIO_TypeDef *)gpio_base_addr;
 		lpm_gpio_moder[i] = port->MODER;
 		lpm_gpio_pupdr[i] = port->PUPDR;
 		
@@ -92,9 +96,13 @@ static void lpm_when_i_wake_up (void) {
 	
 	uint8_t i;
 	GPIO_TypeDef *port;
+	uint32_t addr_diff = GPIOB_BASE - GPIOA_BASE;
+	uint32_t gpio_base_addr = 0;
 	
-	for (i = 0; i < 8; i++) {
-		port = (GPIO_TypeDef *)(GPIOA_BASE + (0x100*i));
+	for (i = 0; i < 1; i++) {
+		gpio_base_addr = GPIOA_BASE + i*addr_diff;
+		port = (GPIO_TypeDef *)gpio_base_addr;
+		
 		port->MODER = lpm_gpio_moder[i];
 		port->PUPDR = lpm_gpio_pupdr[i];
 	}

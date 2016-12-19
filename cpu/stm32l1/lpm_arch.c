@@ -43,7 +43,8 @@
 
 #ifdef GPIO_LOW_POWER
 static uint32_t lpm_gpio_moder[8];
-static uint8_t ahb_gpio_clocks;
+static uint32_t lpm_gpio_pupdr[8];
+static uint32_t ahb_gpio_clocks;
 
 /* put GPIOs in low-power state */
 static void lpm_before_i_go_to_sleep (void) {
@@ -58,6 +59,7 @@ static void lpm_before_i_go_to_sleep (void) {
 	for (i = 0; i < 8; i++) {
 		port = (GPIO_TypeDef *)(GPIOA_BASE + (0x100*i));
 		lpm_gpio_moder[i] = port->MODER;
+		lpm_gpio_pupdr[i] = port->PUPDR;
 		
 		mask = 0xFFFFFFFF;
 		
@@ -69,6 +71,7 @@ static void lpm_before_i_go_to_sleep (void) {
 				}
 			}
 		}
+		port->PUPDR &= ~mask;
 		port->MODER |= mask;
 	}
 
@@ -87,6 +90,7 @@ static void lpm_when_i_wake_up (void) {
 	for (i = 0; i < 8; i++) {
 		port = (GPIO_TypeDef *)(GPIOA_BASE + (0x100*i));
 		port->MODER = lpm_gpio_moder[i];
+		port->PUPDR = lpm_gpio_pupdr[i];
 	}
 
 	RCC->AHBENR &= ~((uint32_t)0xFF);
@@ -172,9 +176,6 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             break;
 
         case LPM_POWERDOWN:         /* STOP mode */
-#ifdef GPIO_LOW_POWER
-			lpm_before_i_go_to_sleep();
-#endif
 			/* Clear Wakeup flag */	
 			PWR->CR |= PWR_CR_CWUF;
 		
@@ -189,6 +190,10 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 
             __disable_irq();
 
+#ifdef GPIO_LOW_POWER
+			lpm_before_i_go_to_sleep();
+#endif
+			
 			/* Request Wait For Interrupt */
             asm ("DMB");
             __WFI();
@@ -203,10 +208,12 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 			/* Restore clocks and PLL */
 			restore_default_clock();
 
-            __enable_irq();
 #ifdef GPIO_LOW_POWER
 			lpm_when_i_wake_up();
 #endif
+			
+            __enable_irq();
+
             break;
 
         case LPM_OFF:               /* Standby mode */

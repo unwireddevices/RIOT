@@ -131,16 +131,20 @@ static int count_pulses(lmt01_t *lmt01) {
 
 	while (1) {
 		if ((gpio_curr_value = gpio_read(lmt01->sens_pin)) != gpio_prev_value) {
-			pulse_count++;
+			/* count positive pulses only */
+			if (gpio_curr_value) {
+				pulse_count++;
+			}
 			gpio_prev_value = gpio_curr_value;
 			timeout_us = 0;
 		} else {
-			xtimer_usleep(1);
+			/* xtimer_usleep(1); */ /* xtimer is sooooo sloooooow */
+			asm("nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;");
 			timeout_us++;
 		}
 
 		if (pulse_count) { /* sensor is alive, at least one pulse was detected */
-			if (timeout_us > 100) {
+			if (timeout_us > 1000) {
 				break;
 			}
 		} else {

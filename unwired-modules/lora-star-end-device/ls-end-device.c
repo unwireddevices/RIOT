@@ -143,6 +143,8 @@ static void open_rx_windows(ls_ed_t *ls)
 }
 
 static void send_next(ls_ed_t *ls) {
+	ls->_internal.confirmation_required = false;
+
     /* Schedule RX windows */
     if (ls->settings.class != LS_ED_CLASS_A) {
         open_rx_windows(ls);
@@ -202,6 +204,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
         case LS_DL_ACK:                             /* Downlink frame acknowledge for confirmed messages */
         case LS_DL_ACK_P:							/* Downlink frame acknowledge with frames pending */
             if (!ls_validate_frame_mic(ls->settings.crypto.mic_key, frame)) {
+            	puts("ls-ed: invalid MIC");
                 return false;
             }
 
@@ -212,6 +215,8 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             ls->_internal.last_fid++;
 
             puts("ls-ed: confirmation received");   // XXX: debug
+
+            ls->_internal.confirmation_required = false;
 
             /* Remove timeout timer */
             rtctimers_remove(&ls->_internal.conf_ack_expired);
@@ -438,6 +443,9 @@ static void *uq_handler(void *arg)
         } else {
             /* Update frame's FID to the last one */
             f->header.fid = ls->_internal.last_fid;
+
+            /* Start retransmission timer */
+            rtctimers_set_msg(&ls->_internal.conf_ack_expired, LS_ACK_TIMEOUT, &msg_ack_timeout, ls->_internal.tim_thread_pid);
         }
 
         /* Wakeup peripherals */
@@ -543,8 +551,15 @@ static void *tim_handler(void *arg)
 				else if (ls->settings.class == LS_ED_CLASS_C) {
                     /* Transmit next frame from queue */
                     if (!ls_frame_fifo_empty(&ls->_internal.uplink_queue)) {
-                    	puts("ls: sending next frame");
-                        schedule_tx(ls);
+                    	/* If current frame in a head of a queue doesn't awaiting confirmation, schedule it for sending
+                    	 * Otherwise, current frame will be retransmitted after confirmation timeout
+                    	 */
+                    	if (!ls->_internal.confirmation_required)
+                    		schedule_tx(ls);
+                    	else {
+                    		enter_rx(ls);
+                    		puts("ls-ed: awaiting confirmation");
+                    	}
                     }
                     else {
                     	puts("ls: staying in RX mode");
@@ -561,8 +576,14 @@ static void *tim_handler(void *arg)
                 ls->_internal.use_rx_window_2_settings = false;
 
                 /* Transmit next frame from queue */
-                if (!ls_frame_fifo_empty(&ls->_internal.uplink_queue)/* && !ls->_internal.confirmation_required*/) {
-                    schedule_tx(ls);
+                if (!ls_frame_fifo_empty(&ls->_internal.uplink_queue)) {
+                	/* If current frame in a head of a queue doesn't awaiting confirmation, schedule it for sending
+                	 * Otherwise, current frame will be retransmitted after confirmation timeout
+                	 */
+                	if (!ls->_internal.confirmation_required)
+                		schedule_tx(ls);
+                	else
+                		puts("ls-ed: awaiting confirmation");
                 } else {
 					/* Put transceiver into sleep with low power mode */
 					ls_ed_sleep(ls);
@@ -598,9 +619,7 @@ static void *tim_handler(void *arg)
                 else {
                     /* Do a retransmission */
                 	anticollision_delay();
-					
                     ls->_internal.num_retr++;
-                    rtctimers_set_msg(&ls->_internal.conf_ack_expired, LS_ACK_TIMEOUT, &msg_ack_timeout, ls->_internal.tim_thread_pid);
 
                     send_next(ls);
                 }
@@ -697,13 +716,11 @@ int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed
     	return -LS_SEND_E_NOT_JOINED;
     }
 
+    ls->_internal.confirmation_required = false;
+
     int res = send_frame(ls, (confirmed) ? LS_UL_CONF : LS_UL_UNC, buf, buflen);
     if (res < 0) {
         return res;
-    }
-
-    if (confirmed) {
-    	rtctimers_set_msg(&ls->_internal.conf_ack_expired, LS_ACK_TIMEOUT, &msg_ack_timeout, ls->_internal.tim_thread_pid);
     }
 
     return LS_OK;

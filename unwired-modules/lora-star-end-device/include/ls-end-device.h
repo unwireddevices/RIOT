@@ -47,12 +47,12 @@
 /**
  * @brief Duration of the first receive window in seconds.
  */
-#define LS_RX_DELAY1		2
+#define LS_RX_DELAY1		3
 
 /**
  * @brief Duration of the second receive window in seconds.
  */
-#define LS_RX_DELAY2		2
+#define LS_RX_DELAY2		1
 
 /**
  * Sleep request delay

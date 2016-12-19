@@ -39,7 +39,9 @@
 #define ULP_BitNumber           0x09
 #define CR_ULP_BB               (PERIPH_BB_BASE + (CR_OFFSET * 32) + (ULP_BitNumber * 4))
 
-#if 0
+#define GPIO_LOW_POWER
+
+// #ifdef GPIO_LOW_POWER
 static uint32_t lpm_gpio_moder[8];
 static uint8_t ahb_gpio_clocks;
 
@@ -54,7 +56,7 @@ static void lpm_before_i_go_to_sleep (void) {
 	GPIO_TypeDef *port;
 	
 	for (i = 0; i < 8; i++) {
-		port = &GPIOA[i*0x100];
+		port = (GPIO_TypeDef *)(GPIOA_BASE + (0x100*i));
 		lpm_gpio_moder[i] = port->MODER;
 		
 		mask = 0xFFFFFFFF;
@@ -69,28 +71,7 @@ static void lpm_before_i_go_to_sleep (void) {
 		}
 		port->MODER |= mask;
 	}
-		
-/*
-	lpm_gpio_moder[0] = GPIOA->MODER;
-	lpm_gpio_moder[1] = GPIOB->MODER;
-	lpm_gpio_moder[2] = GPIOC->MODER;
-	lpm_gpio_moder[3] = GPIOD->MODER;
-	lpm_gpio_moder[4] = GPIOE->MODER;
-	lpm_gpio_moder[5] = GPIOH->MODER;
-	lpm_gpio_moder[6] = GPIOF->MODER;
-	lpm_gpio_moder[7] = GPIOG->MODER;
-*/	
-	/* switch GPIOs to analog input mode */
-/*
-	GPIOA->MODER |= 0xFFFFFFFF;
-	GPIOB->MODER |= 0xFFFFFFFF;
-	GPIOC->MODER |= 0xFFFFFFFF;
-	GPIOD->MODER |= 0xFFFFFFFF;
-	GPIOE->MODER |= 0xFFFFFFFF;
-	GPIOH->MODER |= 0xFFFFFFFF;
-	GPIOF->MODER |= 0xFFFFFFFF;
-	GPIOG->MODER |= 0xFFFFFFFF;
-*/	
+
 	RCC->AHBENR &= ~((uint32_t)0xFF);
 	RCC->AHBENR |= ahb_gpio_clocks;
 }
@@ -104,20 +85,10 @@ static void lpm_when_i_wake_up (void) {
 	GPIO_TypeDef *port;
 	
 	for (i = 0; i < 8; i++) {
-		port = &GPIOA[i*0x100];
+		port = (GPIO_TypeDef *)(GPIOA_BASE + (0x100*i));
 		port->MODER |= lpm_gpio_moder[i];
 	}
-	
-/*
-	GPIOA->MODER = lpm_gpio_moder[0];
-	GPIOB->MODER = lpm_gpio_moder[1];
-	GPIOC->MODER = lpm_gpio_moder[2];
-	GPIOD->MODER = lpm_gpio_moder[3];
-	GPIOE->MODER = lpm_gpio_moder[4];
-	GPIOH->MODER = lpm_gpio_moder[5];
-	GPIOF->MODER = lpm_gpio_moder[6];
-	GPIOG->MODER = lpm_gpio_moder[7];
-*/	
+
 	RCC->AHBENR &= ~((uint32_t)0xFF);
 	RCC->AHBENR |= ahb_gpio_clocks;
 }
@@ -201,7 +172,9 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             break;
 
         case LPM_POWERDOWN:         /* STOP mode */
-			//lpm_before_i_go_to_sleep();
+#ifdef GPIO_LOW_POWER
+			lpm_before_i_go_to_sleep();
+#endif
 			/* Clear Wakeup flag */	
 			PWR->CR |= PWR_CR_CWUF;
 		
@@ -231,9 +204,9 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 			restore_default_clock();
 
             __enable_irq();
-			
-			//lpm_when_i_wake_up();
-
+#ifdef GPIO_LOW_POWER
+			lpm_when_i_wake_up();
+#endif
             break;
 
         case LPM_OFF:               /* Standby mode */

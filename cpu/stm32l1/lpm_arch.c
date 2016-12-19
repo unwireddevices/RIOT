@@ -41,7 +41,7 @@
 
 #define GPIO_LOW_POWER
 
-// #ifdef GPIO_LOW_POWER
+#ifdef GPIO_LOW_POWER
 static uint32_t lpm_gpio_moder[8];
 static uint8_t ahb_gpio_clocks;
 
@@ -86,7 +86,7 @@ static void lpm_when_i_wake_up (void) {
 	
 	for (i = 0; i < 8; i++) {
 		port = (GPIO_TypeDef *)(GPIOA_BASE + (0x100*i));
-		port->MODER |= lpm_gpio_moder[i];
+		port->MODER = lpm_gpio_moder[i];
 	}
 
 	RCC->AHBENR &= ~((uint32_t)0xFF);

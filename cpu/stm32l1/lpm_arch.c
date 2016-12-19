@@ -39,6 +39,7 @@
 #define ULP_BitNumber           0x09
 #define CR_ULP_BB               (PERIPH_BB_BASE + (CR_OFFSET * 32) + (ULP_BitNumber * 4))
 
+#if 0
 static uint32_t lpm_gpio_moder[8];
 static uint8_t ahb_gpio_clocks;
 
@@ -94,6 +95,7 @@ static void lpm_before_i_go_to_sleep (void) {
 	RCC->AHBENR |= ahb_gpio_clocks;
 }
 
+
 /* restore GPIO settings */
 static void lpm_when_i_wake_up (void) {
 	RCC->AHBENR |= 0xFF;
@@ -119,6 +121,7 @@ static void lpm_when_i_wake_up (void) {
 	RCC->AHBENR &= ~((uint32_t)0xFF);
 	RCC->AHBENR |= ahb_gpio_clocks;
 }
+#endif
 
 void lpm_arch_init(void)
 {
@@ -198,7 +201,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             break;
 
         case LPM_POWERDOWN:         /* STOP mode */
-			lpm_before_i_go_to_sleep();
+			//lpm_before_i_go_to_sleep();
 			/* Clear Wakeup flag */	
 			PWR->CR |= PWR_CR_CWUF;
 		
@@ -229,7 +232,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 
             __enable_irq();
 			
-			lpm_when_i_wake_up();
+			//lpm_when_i_wake_up();
 
             break;
 

@@ -43,6 +43,7 @@ extern "C" {
 #include "umdk-lps331.h"
 #include "umdk-4counter.h"
 #include "umdk-rssiecho.h"
+#include "umdk-pwm.h"
 
 /**
  * @brief Bitmap of occupied pins that cannot be used as gpio in-out
@@ -94,6 +95,9 @@ static const unwd_module_t modules[] = {
 #endif
 #ifdef umdk_rssiecho
 	{ UNWDS_RSSIECHO_MODULE_ID, "echo", umdk_rssiecho_init, umdk_rssiecho_cmd, 1 << 13, false },
+#endif
+#ifdef umdk_pwm
+	{ UNWDS_PWM_MODULE_ID, "pwm", umdk_pwm_init, umdk_pwm_cmd, 1 << 14, false },
 #endif
 
     { 0, "", NULL, NULL },

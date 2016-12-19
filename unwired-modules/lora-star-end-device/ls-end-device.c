@@ -561,7 +561,7 @@ static void *tim_handler(void *arg)
                 ls->_internal.use_rx_window_2_settings = false;
 
                 /* Transmit next frame from queue */
-                if (!ls_frame_fifo_empty(&ls->_internal.uplink_queue) && !ls->_internal.confirmation_required) {
+                if (!ls_frame_fifo_empty(&ls->_internal.uplink_queue)/* && !ls->_internal.confirmation_required*/) {
                     schedule_tx(ls);
                 } else {
 					/* Put transceiver into sleep with low power mode */

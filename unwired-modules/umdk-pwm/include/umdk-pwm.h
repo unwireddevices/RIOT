@@ -22,6 +22,16 @@
 
 #define UNWDS_PWM_MODULE_ID 14
 
+#define UNWDS_PWM_CH_0 0
+#define UNWDS_PWM_CH_1 1
+#define UNWDS_PWM_CH_2 2
+#define UNWDS_PWM_CH_3 3
+
+#define UNWDS_PWM_DUTY_DEFAULT 50
+#define UNWDS_PWM_FREQ_DEFAULT (100000U)
+#define UNWDS_PWM_RES_DEFAULT 255
+
+
 
 void umdk_pwm_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
 bool umdk_pwm_cmd(module_data_t *data, module_data_t *reply);

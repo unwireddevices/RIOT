@@ -71,6 +71,20 @@ uint32_t pwm_init(pwm_t dev, pwm_mode_t mode, uint32_t freq, uint16_t res)
             PWM_1_PORT_CLKEN();
             break;
 #endif
+#if PWM_2_EN
+        case PWM_2:
+            tim = PWM_2_DEV;
+            port = PWM_2_PORT;
+            pins[0] = PWM_2_PIN_CH0;
+            pins[1] = PWM_2_PIN_CH1;
+            pins[2] = PWM_2_PIN_CH2;
+            pins[3] = PWM_2_PIN_CH3;
+            af = PWM_2_PIN_AF;
+            channels = PWM_2_CHANNELS;
+            pwm_clk = PWM_2_CLK;
+            PWM_2_PORT_CLKEN();
+            break;
+#endif
         default:
             pwm_poweroff(dev);
             return 0;
@@ -143,6 +157,10 @@ uint8_t pwm_channels(pwm_t dev)
         case PWM_1:
             return PWM_1_CHANNELS;
 #endif
+#if PWM_2_EN
+        case PWM_2:
+            return PWM_2_CHANNELS;
+#endif
         default:
             return 0;
     }
@@ -161,6 +179,11 @@ void pwm_set(pwm_t dev, uint8_t channel, uint16_t value)
 #if PWM_1_EN
         case PWM_1:
             tim = PWM_1_DEV;
+            break;
+#endif
+#if PWM_2_EN
+        case PWM_2:
+            tim = PWM_2_DEV;
             break;
 #endif
         default:
@@ -198,6 +221,11 @@ void pwm_start(pwm_t dev)
             PWM_1_DEV->CR1 |= TIM_CR1_CEN;
             break;
 #endif
+#if PWM_2_EN
+        case PWM_2:
+            PWM_2_DEV->CR1 |= TIM_CR1_CEN;
+            break;
+#endif
     }
 }
 
@@ -212,6 +240,11 @@ void pwm_stop(pwm_t dev)
 #if PWM_1_EN
         case PWM_1:
             PWM_1_DEV->CR1 &= ~(TIM_CR1_CEN);
+            break;
+#endif
+#if PWM_2_EN
+        case PWM_2:
+            PWM_2_DEV->CR1 &= ~(TIM_CR1_CEN);
             break;
 #endif
     }
@@ -230,6 +263,11 @@ void pwm_poweron(pwm_t dev)
             PWM_1_CLKEN();
             break;
 #endif
+#if PWM_2_EN
+        case PWM_2:
+            PWM_2_CLKEN();
+            break;
+#endif
     }
 }
 
@@ -246,7 +284,12 @@ void pwm_poweroff(pwm_t dev)
             PWM_1_CLKDIS();
             break;
 #endif
+#if PWM_2_EN
+        case PWM_2:
+            PWM_2_CLKDIS();
+            break;
+#endif
     }
 }
 
-#endif /* (PWM_0_EN || PWM_1_EN) */
+#endif /* (PWM_0_EN || PWM_1_EN || PWM_2_EN) */

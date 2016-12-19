@@ -177,7 +177,7 @@ void appdata_received_cb(uint8_t *buf, size_t buflen)
 static void standby_mode_cb(void)
 {
 	//puts("Entering LPM");
-    //lpm_prevent_sleep = 0;
+    lpm_prevent_sleep = 0;
 }
 
 static void wakeup_cb(void)

@@ -45,6 +45,7 @@
 static uint32_t lpm_gpio_moder[8];
 static uint32_t lpm_gpio_pupdr[8];
 static uint32_t ahb_gpio_clocks;
+static uint32_t tmpreg;
 
 /* put GPIOs in low-power state */
 static void lpm_before_i_go_to_sleep (void) {
@@ -71,8 +72,13 @@ static void lpm_before_i_go_to_sleep (void) {
 				}
 			}
 		}
-		port->PUPDR &= ~mask;
-		port->MODER |= mask;
+		tmpreg = port->PUPDR;
+		tmpreg &= ~mask;
+		port->PUPDR = tmpreg;
+		
+		tmpreg = port->MODER;
+		tmpreg |= mask;
+		port->MODER = tmpreg;
 	}
 
 	RCC->AHBENR &= ~((uint32_t)0xFF);

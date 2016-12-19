@@ -69,7 +69,7 @@ static sx1276_t sx1276;
 static ls_gate_t ls;
 
 static ls_gate_channel_t channels[1] = {
-    { LS_DR6, 0, 0, { &sx1276, &ls } },        /* DR, frequency, sx1276 & LS instance */
+    { LS_DR6, 0, 0, LS_GATE_CHANNEL_STATE_IDLE, { &sx1276, &ls } },        /* DR, frequency, rssi, state, sx1276 & LS instance */
 };
 
 /* UART interaction */

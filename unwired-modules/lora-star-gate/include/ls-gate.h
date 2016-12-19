@@ -28,9 +28,14 @@
 #include "sx1276.h"
 
 /**
+ * @brief Delay before sending frame from queue
+ */
+#define LS_GATE_TX_DELAY_MS 1000//500
+
+/**
  * @brief Length of first RX window [us]
  */
-#define LS_GATE_RX1_LENGTH (1e6 * 2)
+#define LS_GATE_RX1_LENGTH (1e6 * 4)
 
 /**
  * @brief Ping timeout in seconds.
@@ -122,16 +127,24 @@ typedef struct {
 	xtimer_t	rx_window1;		/**< First receive window timer */
 } ls_channel_internal_t;
 
+typedef enum {
+	LS_GATE_CHANNEL_STATE_IDLE = 0,
+	LS_GATE_CHANNEL_STATE_RX,
+	LS_GATE_CHANNEL_STATE_TX,
+} ls_channel_state_t;
+
 /**
  * @brief Holds channel-related information.
  *
  * One sx1276 transceiver per channel
  */
 typedef struct {
-	ls_datarate_t dr;	/**< Data rate for this channel */
-	uint32_t frequency;	/**< LoRa frequency */
+	ls_datarate_t dr;					/**< Data rate for this channel */
+	uint32_t frequency;					/**< LoRa frequency */
 
-	int16_t	last_rssi;	/**< RSSI of last received packet on this channel */
+	int16_t	last_rssi;					/**< RSSI of last received packet on this channel */
+
+	ls_channel_state_t state;			/**< State of the channel */
 
 	ls_channel_internal_t _internal;	/**< Internal channel-specific data */
 } ls_gate_channel_t;

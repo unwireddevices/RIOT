@@ -48,6 +48,12 @@ static msg_t msg_keepalive;
 static msg_t msg_rx1_expired;
 
 static void schedule_tx(ls_gate_channel_t *ch) {
+	/* Can send next frame only if channel is doing nothing */
+	if (ch->state != LS_GATE_CHANNEL_STATE_IDLE) {
+		puts("ls-gate: frame enqueued until channel is free");
+		return;
+	}
+
 	msg_t msg;
 	msg.content.ptr = (void *) ch;
 
@@ -90,20 +96,6 @@ static int send_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame)
 
     ls_gate_t *ls = (ls_gate_t *) ch->_internal.gate;
 
-    prepare_sx1276(ch);
-
-    /* Capture channel */
-    mutex_lock(&ch->_internal.channel_mutex);
-
-    /* Wait for TX operation */
-    volatile long time = 0;
-    while (sx1276_get_status(ch->_internal.sx1276) == SX1276_RF_TX_RUNNING) {
-    	time++;
-
-    	if (time > 1000000)
-    		break;
-    }
-
     /* Send frame */
     size_t header_size = sizeof(ls_header_t) + sizeof(ls_payload_len_t);
     size_t payload_size = 0;
@@ -135,6 +127,14 @@ static int send_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame)
             ls_encrypt_frame(mic_key, aes_key, frame, &payload_size);
     }
 
+    /* Capture channel */
+    mutex_lock(&ch->_internal.channel_mutex);
+
+    ch->state = LS_GATE_CHANNEL_STATE_TX;
+
+    /* Prepare transceiver */
+    prepare_sx1276(ch);
+
     /* Send frame into LoRa PHY */
     sx1276_send(ch->_internal.sx1276, (uint8_t *) frame, header_size + payload_size);
 
@@ -144,6 +144,8 @@ static int send_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame)
 }
 
 static bool enqueue_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame) {
+	xtimer_usleep(1e3 * LS_GATE_TX_DELAY_MS);
+
 	bool res = !ls_frame_fifo_push(&ch->_internal.ul_fifo, frame);
 
 	schedule_tx(ch);
@@ -160,6 +162,10 @@ static bool enqueue_frame(ls_gate_channel_t *ch, ls_addr_t to, ls_type_t type, u
 
 static inline void close_rx_windows(ls_gate_channel_t *ch) {
 	xtimer_remove(&ch->_internal.rx_window1);
+	ch->state = LS_GATE_CHANNEL_STATE_IDLE;
+
+	/* Free channel for TX */
+	//mutex_unlock(&ch->_internal.channel_mutex);
 }
 
 static inline void open_rx_windows(ls_gate_channel_t *ch) {
@@ -170,6 +176,10 @@ static inline void open_rx_windows(ls_gate_channel_t *ch) {
 	/* Switch transceiver to RX mode */
 	prepare_sx1276(ch);
 	sx1276_set_rx(ch->_internal.sx1276, ch->_internal.sx1276->settings.lora.rx_timeout);
+
+    /* Capture channel on RX */
+    //mutex_lock(&ch->_internal.channel_mutex);
+    ch->state = LS_GATE_CHANNEL_STATE_RX;
 
 	puts("ls-gate: rx1 window opened");
 }
@@ -309,7 +319,7 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
     				}
                 }
             } else {
-            	printf("[!] Frame dropped: %d != %d\n", frame->header.fid, node->last_fid); // XXX: debug
+            	printf("[!] Frame dropped: %d != %d\n", frame->header.fid, (uint8_t) (node->last_fid + 1)); // XXX: debug
             }
 
             return true;
@@ -338,7 +348,7 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
 					return false;
 				}
             } else {
-            	printf("[!] Frame dropped: %d != %d\n", frame->header.fid, node->last_fid); // XXX: debug
+            	printf("[!] Frame dropped: %d != %d\n", frame->header.fid, (uint8_t) (node->last_fid + 1)); // XXX: debug
             }
 
             send_ack(ls, ch, frame->header.dev_addr, node->num_pending > 0);
@@ -558,8 +568,10 @@ static void *tim_handler(void *arg)
 
             		close_rx_windows(ch);
             		schedule_tx(ch);
-            	} else
-            		puts("ls-gate: rx1 window expired, staying in RX");
+            	} else {
+            		ch->state = LS_GATE_CHANNEL_STATE_IDLE;
+            		puts("ls-gate: rx1 window expired, staying in RX, but IDLE");
+            	}
             }
             break;
 

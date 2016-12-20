@@ -25,7 +25,6 @@ extern "C" {
 #include <string.h>
 #include <limits.h>
 
-#include "lpm.h"
 
 #include "periph/gpio.h"
 #include "periph/pwm.h"
@@ -36,8 +35,7 @@ extern "C" {
 #include "include/umdk-pwm.h"
 
 #include "thread.h"
-#include "xtimer.h"
-#include "rtc-timers.h"
+
 
 static  uwnds_cb_t *callback;
 

@@ -29,11 +29,11 @@
 #define UMDK_PWM_CH_3 3
 
 #define UMDK_PWM_DUTY_DEFAULT 0
-#define UMDK_PWM_FREQ_DEFAULT (100000U)
+#define UMDK_PWM_FREQ_DEFAULT (1000U)
 #define UMDK_PWM_RES_DEFAULT 255
 
 #define UMDK_PWM_NUM_DEVS 3
-#define UMDK_PWM_NUM_CH 10
+#define UMDK_PWM_NUM_CH 8
 
 /**
  * @brief PWM device structure

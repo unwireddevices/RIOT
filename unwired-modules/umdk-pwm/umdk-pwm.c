@@ -25,10 +25,6 @@ extern "C" {
 #include <string.h>
 #include <limits.h>
 
-
-#include "periph/gpio.h"
-#include "periph/pwm.h"
-
 #include "board.h"
 
 #include "unwds-common.h"

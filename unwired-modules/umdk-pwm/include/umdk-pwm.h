@@ -19,6 +19,7 @@
 #define UMDK_PWM_H
 
 #include "unwds-common.h"
+#include "periph/pwm.h"
 
 #define UNWDS_PWM_MODULE_ID 14
 
@@ -30,6 +31,30 @@
 #define UMDK_PWM_DUTY_DEFAULT 0
 #define UMDK_PWM_FREQ_DEFAULT (100000U)
 #define UMDK_PWM_RES_DEFAULT 255
+
+#define UMDK_PWM_NUM_DEVS 3
+#define UMDK_PWM_NUM_CH 10
+
+/**
+ * @brief PWM device structure
+ */
+typedef struct {
+	pwm_t dev;			/**< PWM device number*/
+
+	pwm_mode_t mode;	/**< PWM device mode */
+	uint32_t freq;		/**< PWM device frequency */
+	uint16_t res;		/**< PWM device resolution */
+} umdk_pwm_dev_t;
+
+/**
+ * @brief PWM channel structure
+ */
+typedef struct {
+	uint8_t dev;			/**< PWM device number */
+
+	uint8_t ch;				/**< PWM channel number */
+	uint16_t duty_cycle;	/**< Current channel duty cycle */
+} umdk_pwm_ch_t;
 
 /**
  * @brief UMDK-PWM module commands list

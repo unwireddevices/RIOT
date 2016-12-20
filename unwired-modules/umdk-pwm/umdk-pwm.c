@@ -36,8 +36,6 @@ extern "C" {
 
 #include "thread.h"
 
-
-
 /**
  * @brief Possible PWM frequencies table
  */
@@ -63,34 +61,53 @@ static uint32_t freq_table_hz[16] = {
 	150000,
 };
 
-static  uwnds_cb_t *callback;
+static umdk_pwm_dev_t pwm_devs[UMDK_PWM_NUM_DEVS] = {
+	{ PWM_0, PWM_LEFT, UMDK_PWM_FREQ_DEFAULT, UMDK_PWM_RES_DEFAULT },
+	{ PWM_1, PWM_LEFT, UMDK_PWM_FREQ_DEFAULT, UMDK_PWM_RES_DEFAULT },
+	{ PWM_2, PWM_LEFT, UMDK_PWM_FREQ_DEFAULT, UMDK_PWM_RES_DEFAULT },
+};
+
+static umdk_pwm_ch_t pwm_chs[UMDK_PWM_NUM_CH] = {
+	{ PWM_0, UMDK_PWM_CH_0, UMDK_PWM_DUTY_DEFAULT },
+	{ PWM_0, UMDK_PWM_CH_1, UMDK_PWM_DUTY_DEFAULT },
+	{ PWM_0, UMDK_PWM_CH_2, UMDK_PWM_DUTY_DEFAULT },
+	{ PWM_0, UMDK_PWM_CH_3, UMDK_PWM_DUTY_DEFAULT },
+
+	{ PWM_1, UMDK_PWM_CH_0, UMDK_PWM_DUTY_DEFAULT },
+	{ PWM_1, UMDK_PWM_CH_1, UMDK_PWM_DUTY_DEFAULT },
+
+	{ PWM_2, UMDK_PWM_CH_0, UMDK_PWM_DUTY_DEFAULT },
+	{ PWM_2, UMDK_PWM_CH_1, UMDK_PWM_DUTY_DEFAULT },
+	{ PWM_2, UMDK_PWM_CH_2, UMDK_PWM_DUTY_DEFAULT },
+	{ PWM_2, UMDK_PWM_CH_3, UMDK_PWM_DUTY_DEFAULT },
+};
+
+static uwnds_cb_t *callback;
 
 void umdk_pwm_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 {
-  (void)non_gpio_pin_map;
+	(void)non_gpio_pin_map;
 
-  callback = event_callback;
+	callback = event_callback;
 
-  pwm_init(PWM_0, PWM_LEFT, UMDK_PWM_FREQ_DEFAULT, UMDK_PWM_RES_DEFAULT);
-  pwm_init(PWM_1, PWM_LEFT, UMDK_PWM_FREQ_DEFAULT, UMDK_PWM_RES_DEFAULT);
-  pwm_init(PWM_2, PWM_LEFT, UMDK_PWM_FREQ_DEFAULT, UMDK_PWM_RES_DEFAULT);
+	for (int i = 0; i < UMDK_PWM_NUM_DEVS; i++) {
+		umdk_pwm_dev_t *dev = &pwm_devs[i];
 
-  pwm_set(PWM_0, UMDK_PWM_CH_0, UMDK_PWM_DUTY_DEFAULT);
-  pwm_set(PWM_0, UMDK_PWM_CH_1, UMDK_PWM_DUTY_DEFAULT);
-  pwm_set(PWM_0, UMDK_PWM_CH_2, UMDK_PWM_DUTY_DEFAULT);
-  pwm_set(PWM_0, UMDK_PWM_CH_3, UMDK_PWM_DUTY_DEFAULT);
+		pwm_init(dev->dev, dev->mode, dev->freq, dev->res);
+	}
 
-  pwm_set(PWM_1, UMDK_PWM_CH_0, UMDK_PWM_DUTY_DEFAULT);
-  pwm_set(PWM_1, UMDK_PWM_CH_1, UMDK_PWM_DUTY_DEFAULT);
+	for (int i = 0; i < UMDK_PWM_NUM_CH; i++) {
+	  umdk_pwm_ch_t *ch = &pwm_chs[i];
 
-  pwm_set(PWM_2, UMDK_PWM_CH_0, UMDK_PWM_DUTY_DEFAULT);
-  pwm_set(PWM_2, UMDK_PWM_CH_1, UMDK_PWM_DUTY_DEFAULT);
-  pwm_set(PWM_2, UMDK_PWM_CH_2, UMDK_PWM_DUTY_DEFAULT);
-  pwm_set(PWM_2, UMDK_PWM_CH_3, UMDK_PWM_DUTY_DEFAULT);
-
+	  pwm_set(ch->dev, ch->ch, ch->duty_cycle);
+	}
 }
 
+static inline void update_pwm_freq(umdk_pwm_dev_t *dev, uint32_t freq) {
+	dev->freq = freq;
 
+	pwm_init(dev->dev, dev->mode, dev->freq, dev->res);
+}
 
 bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
 {
@@ -103,14 +120,23 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
 	switch(c) {
 	case UMDK_PWM_CMD_SET: {
 
-		uint8_t ch = (cmd.data[1] >> 4) & 0x0F;
+		uint8_t ch_num = (cmd->data[1] >> 4) & 0x0F;
 		uint32_t freq = freq_table_hz[cmd->data[1] & 0x0F];
 
 		uint8_t value = cmd->data[2];
 
-		/* TODO: set corresponding PWM channel */
+		/* Update corresponding PWM channel */
+		umdk_pwm_ch_t *ch = &pwm_chs[ch_num];
+		ch->duty_cycle = value;
+
+		umdk_pwm_dev_t *dev = &pwm_devs[ch->dev];
+		if (dev->freq != freq) {
+			update_pwm_freq(dev, freq);
 		}
 
+		pwm_set(pwm_devs[ch->dev].dev, ch->ch, ch->duty_cycle);
+
+		}
 		break;
 	}
 

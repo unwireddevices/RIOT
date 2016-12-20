@@ -62,12 +62,6 @@ void umdk_pwm_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
   pwm_set(PWM_2, UMDK_PWM_CH_2, UMDK_PWM_DUTY_DEFAULT);
   pwm_set(PWM_2, UMDK_PWM_CH_3, UMDK_PWM_DUTY_DEFAULT);
 
-  pwm_set(PWM_0, UMDK_PWM_CH_0, 50);
-
-  pwm_start(PWM_0);
-
-  printf("[pwm] start");
-
 }
 
 

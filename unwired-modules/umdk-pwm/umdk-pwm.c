@@ -37,6 +37,7 @@ extern "C" {
 #include "thread.h"
 
 
+
 /**
  * @brief Possible PWM frequencies table
  */
@@ -103,7 +104,7 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
 	case UMDK_PWM_CMD_SET: {
 
 		uint8_t ch = (cmd.data[1] >> 4) & 0x0F;
-		uint32_t freq = freq_table_hz[cmd->data & 0x0F];
+		uint32_t freq = freq_table_hz[cmd->data[1] & 0x0F];
 
 		uint8_t value = cmd->data[2];
 

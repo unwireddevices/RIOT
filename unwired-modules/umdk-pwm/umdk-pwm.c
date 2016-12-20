@@ -112,7 +112,7 @@ static inline void update_pwm_freq(umdk_pwm_dev_t *dev, uint32_t freq) {
 bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
 {
 	/* Check minimum command length */
-	if (cmd->length < 1)
+	if (cmd->length < 2)
 		return false;
 
 	umdk_pwm_cmd_t c = cmd->data[0];

@@ -22,14 +22,14 @@
 
 #define UNWDS_PWM_MODULE_ID 14
 
-#define UNWDS_PWM_CH_0 0
-#define UNWDS_PWM_CH_1 1
-#define UNWDS_PWM_CH_2 2
-#define UNWDS_PWM_CH_3 3
+#define UMDK_PWM_CH_0 0
+#define UMDK_PWM_CH_1 1
+#define UMDK_PWM_CH_2 2
+#define UMDK_PWM_CH_3 3
 
-#define UNWDS_PWM_DUTY_DEFAULT 50
-#define UNWDS_PWM_FREQ_DEFAULT (100000U)
-#define UNWDS_PWM_RES_DEFAULT 255
+#define UMDK_PWM_DUTY_DEFAULT 0
+#define UMDK_PWM_FREQ_DEFAULT (100000U)
+#define UMDK_PWM_RES_DEFAULT 255
 
 /**
  * @brief UMDK-PWM module commands list

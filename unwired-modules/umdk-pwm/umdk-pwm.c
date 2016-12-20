@@ -25,7 +25,6 @@ extern "C" {
 #include <string.h>
 #include <limits.h>
 
-#include "lpm.h"
 
 #include "periph/gpio.h"
 #include "periph/pwm.h"
@@ -36,8 +35,7 @@ extern "C" {
 #include "include/umdk-pwm.h"
 
 #include "thread.h"
-#include "xtimer.h"
-#include "rtc-timers.h"
+
 
 /**
  * @brief Possible PWM frequencies table
@@ -72,22 +70,22 @@ void umdk_pwm_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 
   callback = event_callback;
 
-  pwm_init(PWM_0, PWM_LEFT, UNWDS_PWM_FREQ_DEFAULT, UNWDS_PWM_RES_DEFAULT);
-  pwm_init(PWM_1, PWM_LEFT, UNWDS_PWM_FREQ_DEFAULT, UNWDS_PWM_RES_DEFAULT);
-  pwm_init(PWM_2, PWM_LEFT, UNWDS_PWM_FREQ_DEFAULT, UNWDS_PWM_RES_DEFAULT);
+  pwm_init(PWM_0, PWM_LEFT, UMDK_PWM_FREQ_DEFAULT, UMDK_PWM_RES_DEFAULT);
+  pwm_init(PWM_1, PWM_LEFT, UMDK_PWM_FREQ_DEFAULT, UMDK_PWM_RES_DEFAULT);
+  pwm_init(PWM_2, PWM_LEFT, UMDK_PWM_FREQ_DEFAULT, UMDK_PWM_RES_DEFAULT);
 
-  pwm_set(PWM_0, UNWDS_PWM_CH_0, UNWDS_PWM_DUTY_DEFAULT);
-  pwm_set(PWM_0, UNWDS_PWM_CH_1, UNWDS_PWM_DUTY_DEFAULT);
-  pwm_set(PWM_0, UNWDS_PWM_CH_2, UNWDS_PWM_DUTY_DEFAULT);
-  pwm_set(PWM_0, UNWDS_PWM_CH_3, UNWDS_PWM_DUTY_DEFAULT);
+  pwm_set(PWM_0, UMDK_PWM_CH_0, UMDK_PWM_DUTY_DEFAULT);
+  pwm_set(PWM_0, UMDK_PWM_CH_1, UMDK_PWM_DUTY_DEFAULT);
+  pwm_set(PWM_0, UMDK_PWM_CH_2, UMDK_PWM_DUTY_DEFAULT);
+  pwm_set(PWM_0, UMDK_PWM_CH_3, UMDK_PWM_DUTY_DEFAULT);
 
-  pwm_set(PWM_1, UNWDS_PWM_CH_0, UNWDS_PWM_DUTY_DEFAULT);
-  pwm_set(PWM_1, UNWDS_PWM_CH_1, UNWDS_PWM_DUTY_DEFAULT);
+  pwm_set(PWM_1, UMDK_PWM_CH_0, UMDK_PWM_DUTY_DEFAULT);
+  pwm_set(PWM_1, UMDK_PWM_CH_1, UMDK_PWM_DUTY_DEFAULT);
 
-  pwm_set(PWM_2, UNWDS_PWM_CH_0, UNWDS_PWM_DUTY_DEFAULT);
-  pwm_set(PWM_2, UNWDS_PWM_CH_1, UNWDS_PWM_DUTY_DEFAULT);
-  pwm_set(PWM_2, UNWDS_PWM_CH_2, UNWDS_PWM_DUTY_DEFAULT);
-  pwm_set(PWM_2, UNWDS_PWM_CH_3, UNWDS_PWM_DUTY_DEFAULT);
+  pwm_set(PWM_2, UMDK_PWM_CH_0, UMDK_PWM_DUTY_DEFAULT);
+  pwm_set(PWM_2, UMDK_PWM_CH_1, UMDK_PWM_DUTY_DEFAULT);
+  pwm_set(PWM_2, UMDK_PWM_CH_2, UMDK_PWM_DUTY_DEFAULT);
+  pwm_set(PWM_2, UMDK_PWM_CH_3, UMDK_PWM_DUTY_DEFAULT);
 
 }
 

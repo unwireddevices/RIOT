@@ -72,8 +72,6 @@ static umdk_pwm_ch_t pwm_chs[UMDK_PWM_NUM_CH] = {
 	{ 1, UMDK_PWM_CH_0, UMDK_PWM_DUTY_DEFAULT },
 	{ 1, UMDK_PWM_CH_1, UMDK_PWM_DUTY_DEFAULT },
 
-	{ 2, UMDK_PWM_CH_0, UMDK_PWM_DUTY_DEFAULT },
-	{ 2, UMDK_PWM_CH_1, UMDK_PWM_DUTY_DEFAULT },
 	{ 2, UMDK_PWM_CH_2, UMDK_PWM_DUTY_DEFAULT },
 	{ 2, UMDK_PWM_CH_3, UMDK_PWM_DUTY_DEFAULT },
 };
@@ -89,13 +87,22 @@ void umdk_pwm_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 	for (int i = 0; i < UMDK_PWM_NUM_DEVS; i++) {
 		umdk_pwm_dev_t *dev = &pwm_devs[i];
 
+		printf("[umdk-pwm] Initializing PWM#%d with frequency %d Hz and resolution up to %d\n", dev->dev, (int) dev->freq, dev->res);
+
 		pwm_init(dev->dev, dev->mode, dev->freq, dev->res);
+		pwm_start(dev->dev);
 	}
+
+	puts("[umdk-pwm] Initializing PWM channels...");
 
 	for (int i = 0; i < UMDK_PWM_NUM_CH; i++) {
 	  umdk_pwm_ch_t *ch = &pwm_chs[i];
 
-	  pwm_set(ch->dev, ch->ch, ch->duty_cycle);
+	  printf("[umdk-pwm] Setting PWM#%d ch: %d to %d/%d with frequency %d Hz\n",
+		ch->dev, ch->ch, 127, 255, 100000U);
+
+	  pwm_set(ch->dev, ch->ch, 127);//ch->duty_cycle);
+
 	}
 }
 
@@ -116,8 +123,9 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
 	switch(c) {
 	case UMDK_PWM_CMD_SET: {
 		uint8_t ch_num = (cmd->data[1] >> 4) & 0x0F;
-		uint32_t freq = freq_table_hz[cmd->data[1] & 0x0F];
+		uint8_t freq_num = cmd->data[1] & 0x0F;
 
+		uint32_t freq = freq_table_hz[freq_num];
 		uint8_t value = cmd->data[2];
 
 		if (ch_num >= UMDK_PWM_NUM_CH) {

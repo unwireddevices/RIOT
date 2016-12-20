@@ -39,6 +39,31 @@ extern "C" {
 #include "xtimer.h"
 #include "rtc-timers.h"
 
+/**
+ * @brief Possible PWM frequencies table
+ */
+static uint32_t freq_table_hz[16] = {
+	10,
+	50,
+	100,
+	150,
+
+	200,
+	250,
+	500,
+	750,
+
+	1000,
+	2000,
+	5000,
+	10000,
+
+	25000,
+	50000,
+	100000,
+	150000,
+};
+
 static  uwnds_cb_t *callback;
 
 void umdk_pwm_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
@@ -70,6 +95,26 @@ void umdk_pwm_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 
 bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
 {
+	/* Check minimum command length */
+	if (cmd->length < 1)
+		return false;
+
+	umdk_pwm_cmd_t c = cmd->data[0];
+
+	switch(c) {
+	case UMDK_PWM_CMD_SET: {
+
+		uint8_t ch = (cmd.data[1] >> 4) & 0x0F;
+		uint32_t freq = freq_table_hz[cmd->data & 0x0F];
+
+		uint8_t value = cmd->data[2];
+
+		/* TODO: set corresponding PWM channel */
+		}
+
+		break;
+	}
+
   return false;
 }
 

@@ -115,11 +115,15 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
 
 	switch(c) {
 	case UMDK_PWM_CMD_SET: {
-
 		uint8_t ch_num = (cmd->data[1] >> 4) & 0x0F;
 		uint32_t freq = freq_table_hz[cmd->data[1] & 0x0F];
 
 		uint8_t value = cmd->data[2];
+
+		if (ch_num >= UMDK_PWM_NUM_CH) {
+			printf("[umdk-pwm] Invalid channel selected: %d >= %d\n", ch_num, UMDK_PWM_NUM_CH);
+			return false;
+		}
 
 		/* Update corresponding PWM channel */
 		umdk_pwm_ch_t *ch = &pwm_chs[ch_num];
@@ -130,7 +134,10 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
 			update_pwm_freq(dev, freq);
 		}
 
-		pwm_set(pwm_devs[ch->dev].dev, ch->ch, ch->duty_cycle);
+		printf("[umdk-pwm] Setting PWM#%d ch: %d to %d/%d with frequency %d Hz\n",
+				dev->dev, ch_num, value, dev->res, (int) freq);
+
+		pwm_set(dev->dev, ch->ch, ch->duty_cycle);
 
 		}
 		break;

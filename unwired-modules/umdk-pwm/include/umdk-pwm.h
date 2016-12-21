@@ -39,30 +39,30 @@
  * @brief PWM device structure
  */
 typedef struct {
-	pwm_t dev;			/**< PWM device number*/
+    pwm_t dev;          /**< PWM device number*/
 
-	pwm_mode_t mode;	/**< PWM device mode */
-	uint32_t freq;		/**< PWM device frequency */
-	uint16_t res;		/**< PWM device resolution */
+    pwm_mode_t mode;    /**< PWM device mode */
+    uint32_t freq;      /**< PWM device frequency */
+    uint16_t res;       /**< PWM device resolution */
 
-	bool is_started;	/**< PWM device is running */
+    bool is_started;    /**< PWM device is running */
 } umdk_pwm_dev_t;
 
 /**
  * @brief PWM channel structure
  */
 typedef struct {
-	uint8_t dev;			/**< PWM device number */
+    uint8_t dev;            /**< PWM device number */
 
-	uint8_t ch;				/**< PWM channel number */
-	uint16_t duty_cycle;	/**< Current channel duty cycle */
+    uint8_t ch;             /**< PWM channel number */
+    uint16_t duty_cycle;    /**< Current channel duty cycle */
 } umdk_pwm_ch_t;
 
 /**
  * @brief UMDK-PWM module commands list
  */
 typedef enum {
-	UMDK_PWM_CMD_SET = 0, /**< Sets frequency and duty cycle for specified PWM channel  */
+    UMDK_PWM_CMD_SET = 0, /**< Sets frequency and duty cycle for specified PWM channel  */
 } umdk_pwm_cmd_t;
 
 void umdk_pwm_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);

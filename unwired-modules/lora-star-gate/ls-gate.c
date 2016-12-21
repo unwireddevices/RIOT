@@ -113,7 +113,6 @@ static int send_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame)
             break;
 
         case LS_DL_ACK:
-        case LS_DL_ACK_P:
             node = ls_devlist_get(&ls->devices, frame->header.dev_addr);
 
             ls_derive_keys(node->last_nonce, node->app_nonce, node->addr, mic_key, NULL);
@@ -144,8 +143,6 @@ static int send_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame)
 }
 
 static bool enqueue_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame) {
-	xtimer_usleep(1e3 * LS_GATE_TX_DELAY_MS);
-
 	bool res = !ls_frame_fifo_push(&ch->_internal.ul_fifo, frame);
 
 	schedule_tx(ch);
@@ -191,9 +188,9 @@ static inline void send_join_ack(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t 
     enqueue_frame(ch, addr, LS_DL_JOIN_ACK, (uint8_t *) &ack, sizeof(ls_join_ack_t));
 }
 
-static inline void send_ack(ls_gate_t *ls, ls_gate_channel_t *ch, ls_addr_t addr, bool has_pending)
+static inline void send_ack(ls_gate_t *ls, ls_gate_channel_t *ch, ls_addr_t addr)
 {
-	enqueue_frame(ch, addr, (has_pending) ? LS_DL_ACK_P : LS_DL_ACK, NULL, 0);
+	enqueue_frame(ch, addr, LS_DL_ACK, NULL, 0);
 }
 
 static void device_join_req(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t dev_id, uint64_t app_id, uint32_t dev_nonce, ls_node_class_t node_class, uint64_t ability)
@@ -280,6 +277,58 @@ static bool app_data_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *fram
 static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
 {
     switch (frame->header.type) {
+    	case LS_UL_UNC_ACK: { /* Unconfirmed data with ack for previous data */
+            /* Address must be defined */
+            if (frame->header.dev_addr == LS_ADDR_UNDEFINED) {
+                return false;
+            }
+
+            ls_gate_node_t *node = ls_devlist_get(&ls->devices, frame->header.dev_addr);
+            if (node == NULL) { /* The node must be joined to the network */
+                return false;
+            }
+
+            /* Derive encryption keys */
+            uint8_t mic_key[AES_BLOCK_SIZE];
+            uint8_t aes_key[AES_BLOCK_SIZE];
+            ls_derive_keys(node->last_nonce, node->app_nonce, node->addr, mic_key, aes_key);
+
+            /* Validate MIC */
+            if (!ls_validate_frame_mic(mic_key, frame)) {
+                return false;
+            }
+
+            /*
+             * Process as acknowledge frame
+             */
+            if (frame->header.fid >= (uint8_t) (node->last_fid + 1)) {
+            	/* Update frame ID */
+            	node->last_fid = frame->header.fid;
+
+                if (ls->app_data_ack_cb != NULL) {
+                    ls->app_data_ack_cb(node, ch);
+                }
+
+                /* Decrease pending frames counter */
+                if (node->node_class == LS_ED_CLASS_A) {
+    				if (node->num_pending) {
+    					node->num_pending--;
+    				}
+                }
+            } else {
+            	printf("[!] Frame dropped: %d != %d\n", frame->header.fid, (uint8_t) (node->last_fid + 1)); // XXX: debug
+            }
+
+            /*
+             * Process as app. data frame too
+             */
+			if (!app_data_recv(ls, ch, frame)) {
+				return false;
+			}
+
+			return true;
+    	}
+
         case LS_UL_ACK: {
             /* Address must be defined */
             if (frame->header.dev_addr == LS_ADDR_UNDEFINED) {
@@ -351,7 +400,15 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
             	printf("[!] Frame dropped: %d != %d\n", frame->header.fid, (uint8_t) (node->last_fid + 1)); // XXX: debug
             }
 
-            send_ack(ls, ch, frame->header.dev_addr, node->num_pending > 0);
+            /*
+             * Plain ACK if there's no data pending for this node
+             * Otherwise, ask upper level to give us a frame to send as acknowledge to the node
+             */
+            if (node->num_pending == 0)
+            	send_ack(ls, ch, frame->header.dev_addr);
+            /*else
+            	ls->next_pending_frame_req_cb(node);*/
+
             return true;
         }
 
@@ -489,7 +546,8 @@ static void *uq_handler(void *arg)
 		f->header.fid = 0;
 
         // XXX: debug
-        printf(">mhdr=0x%02X, mic=0x%04X, addr=0x%02X, type=0x%02X, fid=0x%02X [%d left]\n", (unsigned int) f->header.mhdr,
+        printf(">mhdr=0x%02X, mic=0x%04X, addr=0x%02X, type=0x%02X, fid=0x%02X [%d left]\n",
+        		(unsigned int) f->header.mhdr,
                (unsigned int) f->header.mic, (unsigned int) f->header.dev_addr,
                (unsigned int) f->header.type,
                (unsigned int) f->header.fid,
@@ -715,8 +773,9 @@ int ls_gate_send_to(ls_gate_t *ls, ls_addr_t addr, uint8_t *buf, size_t bufsize)
 
     printf("Sending %u bytes to 0x%08X\n", (unsigned) bufsize, (unsigned) addr);
 
-    /* Send frame as soon as possible */
-    enqueue_frame((ls_gate_channel_t *) node->node_ch, addr, LS_DL, buf, bufsize);
+    /* Send next data frame as ack to the previous if number of pending frames is > 0 (class A) */
+    bool send_ack_with_data = node->num_pending > 0;
+    enqueue_frame((ls_gate_channel_t *) node->node_ch, addr, (send_ack_with_data) ? LS_DL_ACK_W_DATA : LS_DL, buf, bufsize);
 
     return LS_GATE_OK;
 }

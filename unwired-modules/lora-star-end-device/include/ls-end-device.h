@@ -202,7 +202,7 @@ typedef struct {
 	void (*joined_cb)(void);
 	void (*join_timeout_cb)(void);
 
-	void (*appdata_received_cb)(uint8_t *buf, size_t buflen);
+	bool (*appdata_received_cb)(uint8_t *buf, size_t buflen);
 	void (*appdata_send_failed_cb)(void);
 
 	void (*standby_mode_cb)(void);
@@ -213,7 +213,7 @@ typedef struct {
 
 int ls_ed_init(ls_ed_t *ls);
 
-int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed);
+int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed, bool with_ack);
 
 int ls_ed_join(ls_ed_t *ls);
 

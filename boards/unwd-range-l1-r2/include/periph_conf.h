@@ -299,15 +299,15 @@ static const timer_conf_t timer_config[] = {
 
 /* PWM 2 device configuration */
 #define PWM_2_DEV           TIM4
-#define PWM_2_CHANNELS      4
+#define PWM_2_CHANNELS      2
 #define PWM_2_CLK           (32000000U)
 #define PWM_2_CLKEN()       (RCC->APB1ENR |= RCC_APB1ENR_TIM4EN)
 #define PWM_2_CLKDIS()      (RCC->APB1ENR &= ~(RCC_APB1ENR_TIM4EN))
 /* PWM 2 pin configuration */
 #define PWM_2_PORT          GPIOB
 #define PWM_2_PORT_CLKEN()  (RCC->AHBENR |= RCC_AHBENR_GPIOBEN)
-#define PWM_2_PIN_CH0       6
-#define PWM_2_PIN_CH1       7
+#define PWM_2_PIN_CH0       0 /* do not use */
+#define PWM_2_PIN_CH1       0 /* do not use */
 #define PWM_2_PIN_CH2       8
 #define PWM_2_PIN_CH3       9
 #define PWM_2_PIN_AF        2

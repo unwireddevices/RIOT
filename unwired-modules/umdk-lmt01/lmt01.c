@@ -93,7 +93,6 @@ int lmt01_init(lmt01_t *lmt01, gpio_t en_pin, gpio_t sens_pin) {
 }
 
 static int count_pulses(lmt01_t *lmt01) {
-	lmt01_off(lmt01);
 	lmt01_on(lmt01);
 
 	/* Wait minimum time for sensor wake up and all transitions are done */
@@ -127,10 +126,11 @@ static int count_pulses(lmt01_t *lmt01) {
 	uint16_t timeout_us = 0;
 	uint16_t pulse_count = 0;
 	uint8_t gpio_prev_value = 0;
-	uint8_t gpio_curr_value;
+	uint8_t gpio_curr_value = 0;
 
 	while (1) {
-		if ((gpio_curr_value = gpio_read(lmt01->sens_pin)) != gpio_prev_value) {
+		gpio_curr_value = gpio_read(lmt01->sens_pin);
+		if (gpio_curr_value != gpio_prev_value) {
 			/* count positive pulses only */
 			if (gpio_curr_value) {
 				pulse_count++;
@@ -174,7 +174,6 @@ int lmt01_get_temp(lmt01_t *lmt01, float *temp) {
 		puts("[lmt01] no pulses detected");
 
 		lmt01->_internal.state = LMT01_UNKNOWN;
-		lmt01_off(lmt01);
 		return 0;
 	}
 
@@ -182,9 +181,6 @@ int lmt01_get_temp(lmt01_t *lmt01, float *temp) {
 
 	/* Convert counted pulses into temperature */
 	*temp = pulses_to_temp(pulse_count);
-
-	/* Disable sensor */
-	lmt01_off(lmt01);
 
 	return pulse_count;
 }

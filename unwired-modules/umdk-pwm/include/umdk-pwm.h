@@ -44,6 +44,8 @@ typedef struct {
 	pwm_mode_t mode;	/**< PWM device mode */
 	uint32_t freq;		/**< PWM device frequency */
 	uint16_t res;		/**< PWM device resolution */
+
+	bool is_started;	/**< PWM device is running */
 } umdk_pwm_dev_t;
 
 /**

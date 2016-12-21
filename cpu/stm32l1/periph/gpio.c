@@ -175,7 +175,7 @@ int gpio_read(gpio_t pin)
 
     uint8_t port_mode = port->MODER & (3 << (pin_num * 2)) >> (pin_num *2);
 	
-    if (port_mode > 1) {   /* if configured as output */
+    if (port_mode == 1) {   /* if configured as output */
         return (port->ODR & (1 << pin_num)) >> pin_num;      /* read output data reg */
     }
     if (port_mode == 0) {

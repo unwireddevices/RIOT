@@ -82,8 +82,9 @@ int gpio_init(gpio_t pin, gpio_mode_t mode)
     port->OTYPER |=  (((mode >> 4) & 0x1) << pin_num);
     /* finally set pin speed to maximum and reset output */
     port->OSPEEDR |= (3 << (2 * pin_num));
+#if defined (STM32L1XX_HD) || defined (STM32L1XX_XL)
     port->BRR = (1 << pin_num);
-
+#endif
     return 0;
 }
 
@@ -172,12 +173,17 @@ int gpio_read(gpio_t pin)
     GPIO_TypeDef *port = _port(pin);
     uint32_t pin_num = _pin_num(pin);
 
-    if (port->MODER & (3 << (pin_num * 2))) {   /* if configured as output */
-        return port->ODR & (1 << pin_num);      /* read output data reg */
+    uint8_t port_mode = port->MODER & (3 << (pin_num * 2)) >> (pin_num *2);
+	
+    if (port_mode > 1) {   /* if configured as output */
+        return (port->ODR & (1 << pin_num)) >> pin_num;      /* read output data reg */
     }
-    else {
-        return port->IDR & (1 << pin_num);      /* else read input data reg */
+    if (port_mode == 0) {
+        return (port->IDR & (1 << pin_num)) >> pin_num;      /* else read input data reg */
     }
+	
+    /* configured as AF or AIN */
+	return -1;
 }
 
 void gpio_set(gpio_t pin)

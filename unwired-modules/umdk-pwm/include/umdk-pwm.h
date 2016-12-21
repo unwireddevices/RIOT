@@ -14,6 +14,7 @@
  * @file		umdk-pwm.h
  * @brief       umdk-pwm driver module definitions
  * @author      Mikhail Perkov
+ * @author		Eugene Ponomarev
  */
 #ifndef UMDK_PWM_H
 #define UMDK_PWM_H

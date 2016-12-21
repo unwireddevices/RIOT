@@ -14,6 +14,7 @@
  * @file	umdk-pwm.c
  * @brief       umdk-pwm module implementation
  * @author      Mikhail Perkov
+ * @author		Eugene Ponomarev
  */
 
 #ifdef __cplusplus

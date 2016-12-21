@@ -262,6 +262,15 @@ static void keepalive_cb(void) {
 }
 #endif
 
+static void pending_frames_req_cb(ls_gate_node_t *node) {
+	printf("ls-gate: requesting next pending frame for 0x%08X%08X\n", (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF));
+
+    char str[18] = {};
+    sprintf(str, "%c%08X%08X\n", REPLY_PENDING_REQ,
+    		(unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF));
+    gc_pending_fifo_push(&fifo, str);
+}
+
 static void ls_setup(ls_gate_t *ls)
 {
     ls->settings.gate_id = config_get_nodeid();
@@ -293,6 +302,8 @@ static void ls_setup(ls_gate_t *ls)
 #else
     ls->keepalive_cb = NULL;
 #endif
+
+    ls->pending_frames_req = pending_frames_req_cb;
 }
 
 static int ls_set_cmd(int argc, char **argv)

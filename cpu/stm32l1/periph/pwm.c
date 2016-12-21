@@ -63,8 +63,6 @@ uint32_t pwm_init(pwm_t dev, pwm_mode_t mode, uint32_t freq, uint16_t res)
             port = PWM_1_PORT;
             pins[0] = PWM_1_PIN_CH0;
             pins[1] = PWM_1_PIN_CH1;
-            pins[2] = PWM_1_PIN_CH2;
-            pins[3] = PWM_1_PIN_CH3;
             af = PWM_1_PIN_AF;
             channels = PWM_1_CHANNELS;
             pwm_clk = PWM_1_CLK;
@@ -75,10 +73,8 @@ uint32_t pwm_init(pwm_t dev, pwm_mode_t mode, uint32_t freq, uint16_t res)
         case PWM_2:
             tim = PWM_2_DEV;
             port = PWM_2_PORT;
-            pins[0] = PWM_2_PIN_CH0;
-            pins[1] = PWM_2_PIN_CH1;
-            pins[2] = PWM_2_PIN_CH2;
-            pins[3] = PWM_2_PIN_CH3;
+            pins[0] = PWM_2_PIN_CH2;
+            pins[1] = PWM_2_PIN_CH3;
             af = PWM_2_PIN_AF;
             channels = PWM_2_CHANNELS;
             pwm_clk = PWM_2_CLK;
@@ -139,9 +135,6 @@ uint32_t pwm_init(pwm_t dev, pwm_mode_t mode, uint32_t freq, uint16_t res)
 
     /* enable output on PWM pins */
     tim->CCER |= (TIM_CCER_CC1E | TIM_CCER_CC2E | TIM_CCER_CC3E | TIM_CCER_CC4E);
-
-    /* enable PWM generation */
-    pwm_start(dev);
 
     return freq;
 }

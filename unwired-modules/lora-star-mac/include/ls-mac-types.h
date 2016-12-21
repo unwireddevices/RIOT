@@ -65,23 +65,23 @@ typedef enum {
  * @brief Types of a frame
  */
 typedef enum {
-	LS_DL,			/**< Downlink application data frame */
-	LS_UL_ACK,		/**< Uplink acknowledge from the end device */
+	LS_DL,				/**< Downlink application data frame */
+	LS_UL_ACK,			/**< Uplink acknowledge from the end device */
 
-	LS_UL_CONF,		/**< Uplink application data confirmed */
-	LS_UL_UNC,		/**< Uplink application data unconfirmed */
+	LS_UL_CONF,			/**< Uplink application data confirmed */
+	LS_UL_UNC,			/**< Uplink application data unconfirmed */
 
-	LS_DL_ACK,		/**< Downlink application data acknowledge for confirmed messages */
+	LS_DL_ACK,			/**< Downlink application data acknowledge for confirmed messages */
 
 
-	LS_RFU1,
-	LS_RFU2,
+	LS_UL_UNC_ACK,		/**< Uplink application data unconfirmed with ACK for previous app. data */
+	LS_DL_ACK_W_DATA,	/**< Downlink appdata acknowledge with additional app. data */
 	LS_RFU3,
 
 	LS_UL_JOIN_REQ,	/**< Join request */
 	LS_DL_JOIN_ACK,	/**< Join acknowledge */
 
-	LS_DL_ACK_P,		/**< Application data acknowledge with frames pending */
+	RFU4,
 	LS_DL_INVITE,		/**< Individual join invitation for the class C (always listening) devices */
 
 	/* Reserved for future use */

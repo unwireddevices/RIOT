@@ -52,7 +52,7 @@ static uint32_t freq_table_hz[16] = {
 	25000,
 	50000,
 	100000,
-	135000,
+	125000,
 };
 
 static umdk_pwm_dev_t pwm_devs[UMDK_PWM_NUM_DEVS] = {

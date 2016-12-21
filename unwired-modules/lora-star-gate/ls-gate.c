@@ -404,10 +404,12 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
              * Plain ACK if there's no data pending for this node
              * Otherwise, ask upper level to give us a frame to send as acknowledge to the node
              */
-            if (node->num_pending == 0)
+            if (node->num_pending == 0) {
             	send_ack(ls, ch, frame->header.dev_addr);
-            /*else
-            	ls->next_pending_frame_req_cb(node);*/
+            } else {
+            	if (ls->pending_frames_req)
+            		ls->pending_frames_req(node);
+            }
 
             return true;
         }

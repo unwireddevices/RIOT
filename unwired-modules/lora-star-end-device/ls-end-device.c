@@ -152,6 +152,7 @@ static void send_next(ls_ed_t *ls) {
         open_rx_windows(ls);
     }
     else if (ls->state == LS_ED_IDLE || ls->state == LS_ED_SLEEP) {
+    	puts("ls-ed: scheduling TX");
         schedule_tx(ls);
     }
 }
@@ -200,32 +201,69 @@ static void close_rx_windows(ls_ed_t *ls)
     schedule_tx(ls);
 }
 
+static bool ack_recv(ls_ed_t *ls, ls_frame_t  *frame) {
+	/* Pop frame from uplink queue */
+	ls_frame_fifo_pop(&ls->_internal.uplink_queue, NULL);
+
+	/* Advance frame ID */
+	ls->_internal.last_fid++;
+
+	puts("ls-ed: confirmation received");   // XXX: debug
+
+	ls->_internal.confirmation_required = false;
+
+	/* Remove timeout timer */
+	rtctimers_remove(&ls->_internal.conf_ack_expired);
+
+	/* Close RX window only if we haven't pending frames (regular app. data acknowledge received) */
+	bool close_rx_window = frame->header.type == LS_DL_ACK;
+	return close_rx_window;
+}
+
+static void data_recv(ls_ed_t *ls, ls_frame_t *frame) {
+	/* Notify application about the data */
+	if (ls->appdata_received_cb != NULL) {
+		/* Send acknowledge if app. data wasn't sent already */
+		if (ls->appdata_received_cb(frame->payload.data, frame->payload.len)) {
+			send_frame(ls, LS_UL_ACK, NULL, 0);
+		}
+	}
+}
+
 static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 {
     switch (frame->header.type) {
-        case LS_DL_ACK:                             /* Downlink frame acknowledge for confirmed messages */
-        case LS_DL_ACK_P:							/* Downlink frame acknowledge with frames pending */
+    	case LS_DL_ACK_W_DATA: /* Acknowledge with additional data */
             if (!ls_validate_frame_mic(ls->settings.crypto.mic_key, frame)) {
             	puts("ls-ed: invalid MIC");
                 return false;
             }
 
-            /* Pop frame from uplink queue */
-            ls_frame_fifo_pop(&ls->_internal.uplink_queue, NULL);
+            /* Must be joined to the network first */
+            if (!ls->_internal.is_joined) {
+                return false;
+            }
 
-            /* Advance frame ID */
-            ls->_internal.last_fid++;
+            if (!ls_validate_frame_mic(ls->settings.crypto.mic_key, frame)) {
+                return false;
+            }
 
-            puts("ls-ed: confirmation received");   // XXX: debug
+            ls_decrypt_frame_payload(ls->settings.crypto.aes_key, &frame->payload);
 
-            ls->_internal.confirmation_required = false;
+            bool close_rx_window = ack_recv(ls, frame);
+            data_recv(ls, frame);
 
-            /* Remove timeout timer */
-            rtctimers_remove(&ls->_internal.conf_ack_expired);
-
-            /* Close RX window only if we haven't pending frames (regular app. data acknowledge received) */
-            bool close_rx_window = frame->header.type == LS_DL_ACK;
             return close_rx_window;
+
+    		break;
+
+        case LS_DL_ACK:                             /* Downlink frame acknowledge for confirmed messages */
+            if (!ls_validate_frame_mic(ls->settings.crypto.mic_key, frame)) {
+            	puts("ls-ed: invalid MIC");
+                return false;
+            }
+
+            return ack_recv(ls, frame);
 
         case LS_DL:         /* Downlink frame */
             /* Must be joined to the network first */
@@ -239,14 +277,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
             ls_decrypt_frame_payload(ls->settings.crypto.aes_key, &frame->payload);
 
-            /* Send acknowledge */
-            send_frame(ls, LS_UL_ACK, NULL, 0);
-
-            /* Notify application about the data */
-            if (ls->appdata_received_cb != NULL) {
-                ls->appdata_received_cb(frame->payload.data, frame->payload.len);
-            }
-
+            data_recv(ls, frame);
             return true;
 
         case LS_DL_JOIN_ACK: /* Downlink join acknowledge */
@@ -403,6 +434,35 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
 	}
 }
 
+static void get_type_str(ls_type_t type, char *str) {
+	switch (type) {
+	case LS_UL_ACK:		/**< Uplink acknowledge from the end device */
+		strcpy(str, "ACK");
+		break;
+
+	case LS_UL_CONF:		/**< Uplink application data confirmed */
+		strcpy(str, "CONF");
+		break;
+
+
+	case LS_UL_UNC:		/**< Uplink application data unconfirmed */
+		strcpy(str, "UNC");
+		break;
+
+	case LS_UL_UNC_ACK:	/**< Uplink application data unconfirmed with ACK for previous app. data */
+		strcpy(str, "UNC_ACK");
+		break;
+
+	case LS_UL_JOIN_REQ:	/**< Join request */
+		strcpy(str, "JOIN_REQ");
+		break;
+
+	default:
+		strcpy(str, "?");
+		break;
+	}
+}
+
 /**
  * Uplink frame queue handler thread body.
  */
@@ -474,9 +534,12 @@ static void *uq_handler(void *arg)
         }
 
         // XXX: debug
-        printf(">mhdr=0x%02X, mic=0x%04X, addr=0x%02X, type=0x%02X, fid=0x%02X (%d bytes) [%d left]\n", (unsigned int) f->header.mhdr,
+        char type_str[10] = {};
+        get_type_str(f->header.type, type_str);
+
+        printf(">mhdr=0x%02X, mic=0x%04X, addr=0x%02X, <%s> fid=0x%02X (%d bytes) [%d left]\n", (unsigned int) f->header.mhdr,
                (unsigned int) f->header.mic, (unsigned int) f->header.dev_addr,
-               (unsigned int) f->header.type,
+               type_str,
                (unsigned int) f->header.fid, header_size + payload_size,
 			   ls_frame_fifo_size(&ls->_internal.uplink_queue));
 
@@ -622,7 +685,6 @@ static void *tim_handler(void *arg)
                     /* Do a retransmission */
                 	anticollision_delay();
                     ls->_internal.num_retr++;
-
                     ls->state = LS_ED_IDLE;
 
                     send_next(ls);
@@ -704,7 +766,7 @@ int ls_ed_init(ls_ed_t *ls)
     return LS_OK;
 }
 
-int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed)
+int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed, bool with_ack)
 {
     assert(ls != NULL);
     assert(buf != NULL);
@@ -722,7 +784,9 @@ int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed
 
     ls->_internal.confirmation_required = false;
 
-    int res = send_frame(ls, (confirmed) ? LS_UL_CONF : LS_UL_UNC, buf, buflen);
+    ls_type_t type = (with_ack) ? LS_UL_UNC_ACK : (confirmed) ? LS_UL_CONF : LS_UL_UNC;
+
+    int res = send_frame(ls, type, buf, buflen);
     if (res < 0) {
         return res;
     }

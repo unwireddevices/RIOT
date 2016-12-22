@@ -232,13 +232,16 @@ void app_data_received_cb(ls_gate_node_t *node, ls_gate_channel_t *ch, uint8_t *
 
     int16_t rssi = ch->last_rssi;
 
+    char buf_rssi[5] = {};
+    bytes_to_hex((uint8_t *) &rssi, 2, buf_rssi, true);
+
     bytes_to_hex(buf, bufsize, hex, false);
     printf("[recv] %d bytes: %s | rssi: %d\n", bufsize, hex, rssi);
 
     char str[GC_MAX_REPLY_LEN] = { };
-    sprintf(str, "%c%08X%08X%04X%s\n", REPLY_IND,
+    sprintf(str, "%c%08X%08X%s%s\n", REPLY_IND,
     		(unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF),
-			(unsigned int) -rssi,
+			buf_rssi,
 			hex);
 
     gc_pending_fifo_push(&fifo, str);

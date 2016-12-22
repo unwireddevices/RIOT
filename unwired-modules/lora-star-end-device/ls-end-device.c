@@ -202,6 +202,10 @@ static void close_rx_windows(ls_ed_t *ls)
 }
 
 static bool ack_recv(ls_ed_t *ls, ls_frame_t  *frame) {
+    if (frame->header.dev_addr != ls->_internal.dev_addr) {
+    	return false;
+    }
+
 	/* Pop frame from uplink queue */
 	ls_frame_fifo_pop(&ls->_internal.uplink_queue, NULL);
 
@@ -221,6 +225,10 @@ static bool ack_recv(ls_ed_t *ls, ls_frame_t  *frame) {
 }
 
 static void data_recv(ls_ed_t *ls, ls_frame_t *frame) {
+    if (frame->header.dev_addr != ls->_internal.dev_addr) {
+    	return;
+    }
+
 	/* Notify application about the data */
 	if (ls->appdata_received_cb != NULL) {
 		/* Send acknowledge if app. data wasn't sent already */
@@ -234,14 +242,13 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 {
     switch (frame->header.type) {
     	case LS_DL_ACK_W_DATA: /* Acknowledge with additional data */
-            if (!ls_validate_frame_mic(ls->settings.crypto.mic_key, frame)) {
-            	puts("ls-ed: invalid MIC");
-                return false;
-            }
-
             /* Must be joined to the network first */
             if (!ls->_internal.is_joined) {
                 return false;
+            }
+
+            if (frame->header.dev_addr != ls->_internal.dev_addr) {
+            	return false;
             }
 
             if (!ls_validate_frame_mic(ls->settings.crypto.mic_key, frame)) {
@@ -258,8 +265,11 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
     		break;
 
         case LS_DL_ACK:                             /* Downlink frame acknowledge for confirmed messages */
+            if (frame->header.dev_addr != ls->_internal.dev_addr) {
+            	return false;
+            }
+
             if (!ls_validate_frame_mic(ls->settings.crypto.mic_key, frame)) {
-            	puts("ls-ed: invalid MIC");
                 return false;
             }
 
@@ -269,6 +279,10 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             /* Must be joined to the network first */
             if (!ls->_internal.is_joined) {
                 return false;
+            }
+
+            if (frame->header.dev_addr != ls->_internal.dev_addr) {
+            	return false;
             }
 
             if (!ls_validate_frame_mic(ls->settings.crypto.mic_key, frame)) {
@@ -285,6 +299,11 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
                 return false;
             }
 
+            /* This join ack is not for us */
+            if (ack.dev_id != ls->settings.node_id) {
+                return false;
+            }
+
             if (!ls_validate_frame_mic(ls->settings.crypto.join_key, frame)) {
                 return false;
             }
@@ -293,11 +312,6 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
             ls_join_ack_t ack;
             memcpy(&ack, frame->payload.data, sizeof(ls_join_ack_t));
-
-            /* This join ack is not for us */
-            if (ack.dev_id != ls->settings.node_id) {
-                return false;
-            }
 
             /* Setup device address */
             ls->_internal.dev_addr = ack.addr;

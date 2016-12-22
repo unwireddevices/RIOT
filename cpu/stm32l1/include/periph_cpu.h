@@ -28,6 +28,11 @@ extern "C" {
 #endif
 
 /**
+ * @brief   Available number of ADC devices
+ */
+#define ADC_DEVS            (1U)
+
+/**
  * @brief   Generate GPIO mode bitfields
  *
  * We use 5 bit to encode the mode:
@@ -37,7 +42,6 @@ extern "C" {
  */
 #define GPIO_MODE(io, pr, ot)   ((io << 0) | (pr << 2) | (ot << 4))
 
-#ifndef DOXYGEN
 /**
  * @brief   Override GPIO mode options
  * @{
@@ -52,7 +56,6 @@ typedef enum {
     GPIO_OD_PU = GPIO_MODE(1, 1, 1)     /**< open-drain with pull-up */
 } gpio_mode_t;
 /** @} */
-#endif /* ndef DOXYGEN */
 
 /**
  * @brief   Available ports on the STM32L1 family
@@ -67,6 +70,55 @@ enum {
     PORT_G = 7,             /**< port G */
     PORT_H = 5,             /**< port H */
 };
+
+/**
+ * @brief   Available MUX values for configuring a pin's alternate function
+ */
+typedef enum {
+    GPIO_AF0 = 0,           /**< use alternate function 0 */
+    GPIO_AF1,               /**< use alternate function 1 */
+    GPIO_AF2,               /**< use alternate function 2 */
+    GPIO_AF3,               /**< use alternate function 3 */
+    GPIO_AF4,               /**< use alternate function 4 */
+    GPIO_AF5,               /**< use alternate function 5 */
+    GPIO_AF6,               /**< use alternate function 6 */
+    GPIO_AF7,               /**< use alternate function 7 */
+    GPIO_AF8,               /**< use alternate function 8 */
+    GPIO_AF9,               /**< use alternate function 9 */
+    GPIO_AF10,              /**< use alternate function 10 */
+    GPIO_AF11,              /**< use alternate function 11 */
+    GPIO_AF12,              /**< use alternate function 12 */
+    GPIO_AF13,              /**< use alternate function 13 */
+    GPIO_AF14               /**< use alternate function 14 */
+} gpio_af_t;
+
+/**
+ * @brief   Override ADC resolution values
+ * @{
+ */
+
+ /* ADC channels 16 and 17 are not connected to any GPIO */
+#define ADC_VREF_CHANNEL 17
+#define ADC_TEMPERATURE_CHANNEL 16
+ 
+#define HAVE_ADC_RES_T
+#ifdef HAVE_ADC_RES_T
+typedef enum {
+    ADC_RES_6BIT  = (ADC_CR1_RES_0 | ADC_CR1_RES_1),    /**< ADC resolution: 6 bit */
+    ADC_RES_8BIT  = (ADC_CR1_RES_1),                    /**< ADC resolution: 8 bit */
+    ADC_RES_10BIT = (ADC_CR1_RES_0),                    /**< ADC resolution: 10 bit */
+    ADC_RES_12BIT = (0x00000000),                       /**< ADC resolution: 12 bit */
+} adc_res_t;
+#endif
+/** @} */
+
+/**
+ * @brief   ADC line configuration values
+ */
+typedef struct {
+    gpio_t pin;             /**< pin to use */
+    uint8_t chan;           /**< internal channel the pin is connected to */
+} adc_conf_t;
 
 /**
  * @brief   DAC line configuration data
@@ -87,6 +139,15 @@ typedef struct {
 void gpio_init_af(gpio_t pin, gpio_af_t af);
 
 /**
+ * @brief   Timer configuration data structure
+ */
+typedef struct {
+    TIM_TypeDef *dev;       /**< timer device */
+    uint8_t rcc;            /**< bit in the RCC register */
+    uint8_t irqn;           /**< IRQ vector entry number */
+} timer_conf_t;
+
+/**
  * @brief   I2C configuration data structure
  */
 typedef struct {
@@ -97,6 +158,7 @@ typedef struct {
     gpio_af_t af;           /**< I2C alternate function value */
     uint8_t er_irqn;        /**< error IRQ */
     uint8_t ev_irqn;        /**< event IRQ */
+    uint8_t apb_bit;        /**< No. of CLKEN bit on APB bus */
 } i2c_conf_t;
 
 #ifdef __cplusplus

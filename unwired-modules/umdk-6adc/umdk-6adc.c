@@ -41,18 +41,53 @@ static uwnds_cb_t *callback;
 
 static kernel_pid_t timer_pid;
 
-static int publish_period_min;
-static bool adc_lines_en[ADC_NUMOF] = {
-};
-static gpio_t out_pin = UMDK_6ADC_OUT_PIN;
-
 static msg_t timer_msg = {};
 static rtctimer_t timer;
 
+static struct {
+	uint8_t is_valid;
+	uint8_t publish_period_min;
+
+	bool adc_lines_en[ADC_NUMOF];
+
+	gpio_t out_pin;
+} adc_config;
+
+static void reset_config(void) {
+	adc_config.is_valid = 0;
+
+	adc_config.publish_period_min = UMDK_6ADC_PUBLISH_PERIOD_MIN;
+
+	for (int i = 0; i < ADC_NUMOF; i++) {
+		adc_config.adc_lines_en[i] = true;
+	}
+
+	adc_config.out_pin = UMDK_6ADC_OUT_PIN;
+}
+
+static void init_config(void) {
+	reset_config();
+
+	if (!unwds_read_nvram_config(UNWDS_6ADC_MODULE_ID, (uint8_t *) &adc_config, sizeof(adc_config)))
+		return;
+
+	if ((adc_config.is_valid == 0xFF) || (adc_config.is_valid == 0)) {
+		reset_config();
+		return;
+	}
+
+	printf("[6adc] Publish period: %d min\n", adc_config.publish_period_min);
+}
+
+static inline void save_config(void) {
+	adc_config.is_valid = 1;
+	unwds_write_nvram_config(UNWDS_6ADC_MODULE_ID, (uint8_t *) &adc_config, sizeof(adc_config));
+}
+
 static void init_gpio(void)
 {
-    gpio_init(out_pin, GPIO_OUT);
-    gpio_clear(out_pin);
+    gpio_init(adc_config.out_pin, GPIO_OUT);
+    gpio_clear(adc_config.out_pin);
 }
 
 static void init_adc(bool enable_all)
@@ -66,7 +101,7 @@ static void init_adc(bool enable_all)
         }
 
         if (enable_all) {
-            adc_lines_en[i] = true;
+            adc_config.adc_lines_en[i] = true;
         }
     }
 }
@@ -78,7 +113,7 @@ static void prepare_result(module_data_t *buf)
     uint16_t samples[ADC_NUMOF] = {};
 
     for (i = 0; i < ADC_NUMOF; i++) {
-        if (!adc_lines_en[i]) {
+        if (!adc_config.adc_lines_en[i]) {
             samples[i] = 0xFFFF;
             printf("[umdk-6adc] Reading line #%d: <disabled>\n", i + 1);
             continue;
@@ -153,12 +188,12 @@ static void *timer_thread(void *arg)
 
         rtctimers_remove(&timer);
 
-        gpio_set(out_pin);
+        gpio_set(adc_config.out_pin);
 
         module_data_t data = {};
         prepare_result(&data);
 
-        gpio_clear(out_pin);
+        gpio_clear(adc_config.out_pin);
 
         /* Notify the application */
         callback(&data);
@@ -166,7 +201,7 @@ static void *timer_thread(void *arg)
         lpm_prevent_sleep = 0;
 
         /* Restart after delay */
-        rtctimers_set_msg(&timer, 60 * publish_period_min, &timer_msg, timer_pid);
+        rtctimers_set_msg(&timer, 60 * adc_config.publish_period_min, &timer_msg, timer_pid);
     }
 
     return NULL;
@@ -177,7 +212,7 @@ void umdk_6adc_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     (void) non_gpio_pin_map;
 
     callback = event_callback;
-    publish_period_min = UMDK_6ADC_PUBLISH_PERIOD_MIN; /* Set to default */
+    init_config();
 
     init_gpio();
     init_adc(true);
@@ -192,27 +227,21 @@ void umdk_6adc_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "6ADC thread");
 
     /* Start publishing timer */
-    rtctimers_set_msg(&timer, 60 * publish_period_min, &timer_msg, timer_pid);
+    rtctimers_set_msg(&timer, 60 * adc_config.publish_period_min, &timer_msg, timer_pid);
 }
 
 static void reply_ok(module_data_t *reply)
 {
-    reply->length = 4;
+    reply->length = 2;
     reply->data[0] = UNWDS_6ADC_MODULE_ID;
-    reply->data[1] = 'o';
-    reply->data[2] = 'k';
-    reply->data[3] = '\0';
+    reply->data[1] = UMDK_6ADC_REPLY_OK;
 }
 
 static void reply_fail(module_data_t *reply)
 {
-    reply->length = 6;
+    reply->length = 2;
     reply->data[0] = UNWDS_6ADC_MODULE_ID;
-    reply->data[1] = 'f';
-    reply->data[2] = 'a';
-    reply->data[2] = 'i';
-    reply->data[2] = 'l';
-    reply->data[3] = '\0';
+    reply->data[1] = UMDK_6ADC_REPLY_FAIL;
 }
 
 bool umdk_6adc_cmd(module_data_t *cmd, module_data_t *reply)
@@ -231,12 +260,13 @@ bool umdk_6adc_cmd(module_data_t *cmd, module_data_t *reply)
             uint8_t period = cmd->data[1];
             rtctimers_remove(&timer);
 
-            publish_period_min = period;
+            adc_config.publish_period_min = period;
+            save_config();
 
             /* Don't restart timer if new period is zero */
-            if (publish_period_min) {
-                rtctimers_set_msg(&timer, 60 * publish_period_min, &timer_msg, timer_pid);
-                printf("[umdk-6adc] Period set to %d minutes\n", publish_period_min);
+            if (adc_config.publish_period_min) {
+                rtctimers_set_msg(&timer, 60 * adc_config.publish_period_min, &timer_msg, timer_pid);
+                printf("[umdk-6adc] Period set to %d minutes\n", adc_config.publish_period_min);
             }
             else {
                 puts("[umdk-6adc] Timer stopped");
@@ -251,12 +281,6 @@ bool umdk_6adc_cmd(module_data_t *cmd, module_data_t *reply)
             /* Send signal to publisher thread */
             msg_send(&timer_msg, timer_pid);
 
-            reply->length = 4;
-            reply->data[0] = UNWDS_6ADC_MODULE_ID;
-            reply->data[1] = 'o';
-            reply->data[2] = 'k';
-            reply->data[3] = '\0';
-
             return false; /* Don't reply */
 
             break;
@@ -266,7 +290,9 @@ bool umdk_6adc_cmd(module_data_t *cmd, module_data_t *reply)
 
             gpio_t pin = unwds_gpio_pin(gpio);
             if (pin) {
-                out_pin = pin;
+                adc_config.out_pin = pin;
+                save_config();
+
                 printf("[umdk-6adc] Out GPIO set to #%d\n", gpio);
 
                 /* Re-initialize GPIO */
@@ -277,7 +303,6 @@ bool umdk_6adc_cmd(module_data_t *cmd, module_data_t *reply)
             }
 
             reply_fail(reply);
-
             break;
         }
 
@@ -286,17 +311,18 @@ bool umdk_6adc_cmd(module_data_t *cmd, module_data_t *reply)
             uint8_t line_num;
 
             for (line_num = 0; line_num < ADC_NUMOF; line_num++) {
-                adc_lines_en[line_num] = (lines >> line_num) & 1;
+                adc_config.adc_lines_en[line_num] = (lines >> line_num) & 1;
 
-                if (adc_lines_en[line_num])
+                if (adc_config.adc_lines_en[line_num])
                 	printf("[umdk-6adc] Line #%d enabled\n", line_num);
             }
+
+            save_config();
 
             /* Re-initialize ADC lines */
             init_adc(false);
 
             reply_ok(reply);
-
             break;
         }
 

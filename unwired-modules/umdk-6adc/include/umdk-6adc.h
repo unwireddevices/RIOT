@@ -35,6 +35,11 @@ typedef enum {
 	UMDK_6ADC_SET_LINES = 3,
 } umdk_6adc_cmd_t;
 
+typedef enum {
+	UMDK_6ADC_REPLY_FAIL = 1,
+	UMDK_6ADC_REPLY_OK = 0,
+} umdk_6adc_reply_t;
+
 void umdk_6adc_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
 bool umdk_6adc_cmd(module_data_t *data, module_data_t *reply);
 

@@ -29,8 +29,8 @@
  * @{
  */
 
-#define DE_PIN            UNWD_GPIO_30
-#define RE_PIN            UNWD_GPIO_29 
+#define DE_PIN            UNWD_GPIO_4
+#define RE_PIN            UNWD_GPIO_5 
 
 /** @} */
 

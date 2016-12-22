@@ -106,13 +106,6 @@ void lnkchk_timeout_cb(void)
     ls_ed_join(&ls);
 }
 
-void link_good_cb(void)
-{
-    puts("lnkchk: link good");
-
-    blink_led();
-}
-
 void joined_timeout_cb(void)
 {
     puts("ls: join request timed out, resending");
@@ -125,7 +118,6 @@ void joined_timeout_cb(void)
 
     ls_ed_join(&ls);
 }
-
 
 void joined_cb(void)
 {

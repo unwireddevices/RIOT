@@ -194,6 +194,12 @@ typedef struct {
 	/* Gate will call this callback periodically to make sure that watchdog timer (if used) is reset in time  */
 	void (*keepalive_cb)(void);
 
+	/*
+	 * Request for pending frames for specified node.
+	 * This function will be called when node has pending frames and within it's receive window
+	 */
+	void (*pending_frames_req) (ls_gate_node_t *node);
+
 	ls_gate_devices_t devices;		/**< Devices list */
 
 	ls_gate_internal_t _internal;

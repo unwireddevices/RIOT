@@ -299,11 +299,6 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
                 return false;
             }
 
-            /* This join ack is not for us */
-            if (ack.dev_id != ls->settings.node_id) {
-                return false;
-            }
-
             if (!ls_validate_frame_mic(ls->settings.crypto.join_key, frame)) {
                 return false;
             }
@@ -312,6 +307,11 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
             ls_join_ack_t ack;
             memcpy(&ack, frame->payload.data, sizeof(ls_join_ack_t));
+
+            /* This join ack is not for us */
+            if (ack.dev_id != ls->settings.node_id) {
+                return false;
+            }
 
             /* Setup device address */
             ls->_internal.dev_addr = ack.addr;

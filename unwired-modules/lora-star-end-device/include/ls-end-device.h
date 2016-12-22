@@ -30,6 +30,12 @@
 #define LS_RX2_CH 0
 
 /**
+ * @brief Maximum number of RX window reopens.
+ * To prevent class C devices stuck on endless RX reopening while frames awaiting in queue
+ */
+#define LS_ED_RX_NUM_REOPEN 2
+
+/**
  * @brief RSSI of the channel considered free.
  */
 #define LS_CHANNEL_FREE_RSSI -100
@@ -188,6 +194,8 @@ typedef struct {
 	mutex_t curr_frame_mutex; /**< Mutex on current frame */
 
 	int16_t last_rssi;		  /**< RSSI value of the last frame received */
+
+	uint8_t num_reopened;		/**< Number of RX window reopening */
 } ls_ed_internal_t;
 
 /**

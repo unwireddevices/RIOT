@@ -185,6 +185,8 @@ static void close_rx_windows(ls_ed_t *ls)
 {
     assert(ls != NULL);
 
+    ls->_internal.num_reopened = 0;
+
     /* Clear the default settings flag just in case the second rx window is not expired yet */
     ls->_internal.use_rx_window_2_settings = false;
 
@@ -401,13 +403,24 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
 						close_rx_windows(ls);
 					}
 				} else {
-					puts("ls-ed: first RX window reopened");
+					if (ls->_internal.num_reopened++ < LS_ED_RX_NUM_REOPEN) {
+						puts("ls-ed: first RX window reopened");
 
-					/* Reopen RX window */
-					rtctimers_remove(&ls->_internal.rx_window1);
-					rtctimers_remove(&ls->_internal.rx_window2);
+						/* Reopen RX window */
+						rtctimers_remove(&ls->_internal.rx_window1);
+						rtctimers_remove(&ls->_internal.rx_window2);
 
-					open_rx_windows(ls);
+						open_rx_windows(ls);
+					} else {
+						puts("ls-ed: forcing RX window expiring");
+
+						ls->_internal.num_reopened = 0;
+						rtctimers_remove(&ls->_internal.rx_window1);
+						rtctimers_remove(&ls->_internal.rx_window2);
+
+						/* Notify timeouts thread about RX window expiration */
+						msg_send(&msg_rx1, ls->_internal.tim_thread_pid);
+					}
 				}
 			}
 			else {

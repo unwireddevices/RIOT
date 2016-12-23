@@ -159,13 +159,17 @@ bool appdata_received_cb(uint8_t *buf, size_t buflen)
     bool has_app_data = unwds_send_to_module(modid, &cmd, &reply);
 
     /* Send app. data */
-    int res = ls_ed_send_app_data(&ls, reply.data, reply.length, true, has_app_data);
-    if (res < 0) {
-        printf("send: error #%d\n", res);
+    if (has_app_data) {
+		int res = ls_ed_send_app_data(&ls, reply.data, reply.length, true, true);
+		if (res < 0) {
+			printf("send: error #%d\n", res);
+		}
     }
 
-    /* Allow to send app. data ack by the network */
-    return !has_app_data;
+    /* Don't allow to send app. data ACK by the network.
+     * The ACK will be sent either by the callback with the actual app. data or
+     * with the command response itself */
+    return false;
 }
 
 static void standby_mode_cb(void)
@@ -527,7 +531,7 @@ static const shell_command_t shell_commands[] = {
 
 static void unwds_callback(module_data_t *buf)
 {
-    int res = ls_ed_send_app_data(&ls, buf->data, buf->length, true, false);
+    int res = ls_ed_send_app_data(&ls, buf->data, buf->length, true, buf->as_ack);
 
     if (res < 0) {
         if (res == -LS_SEND_E_FQ_OVERFLOW) {

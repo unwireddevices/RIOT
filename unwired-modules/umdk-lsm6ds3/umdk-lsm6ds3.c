@@ -106,7 +106,7 @@ bool umdk_lsm6ds3_cmd(module_data_t *cmd, module_data_t *reply)
 		break;
 	}
 	default:
-		break;
+		return false;
 	}
 	
     return true;

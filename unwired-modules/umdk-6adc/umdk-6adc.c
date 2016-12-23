@@ -252,14 +252,16 @@ static void reply_fail(module_data_t *reply)
 bool umdk_6adc_cmd(module_data_t *cmd, module_data_t *reply)
 {
     if (cmd->length < 1) {
-        return false;
+    	reply_fail(reply);
+        return true;
     }
 
     umdk_6adc_cmd_t c = cmd->data[0];
     switch (c) {
         case UMDK_6ADC_CMD_SET_PERIOD: {
             if (cmd->length != 2) {
-                return false;
+                reply_fail(reply);
+                break;
             }
 
             uint8_t period = cmd->data[1];
@@ -278,7 +280,6 @@ bool umdk_6adc_cmd(module_data_t *cmd, module_data_t *reply)
             }
 
             reply_ok(reply);
-
             break;
         }
 

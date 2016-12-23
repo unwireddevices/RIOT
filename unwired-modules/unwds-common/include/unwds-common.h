@@ -82,6 +82,8 @@ typedef struct {
 	uint8_t data[UNWDS_MAX_DATA_LEN];
 
 	int16_t rssi;
+
+	bool as_ack;	/**< This data could be sended as ACK for downlink command */
 } module_data_t;
 
 typedef void (uwnds_cb_t)(module_data_t *msg);

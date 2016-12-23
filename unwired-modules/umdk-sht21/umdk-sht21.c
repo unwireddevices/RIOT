@@ -48,6 +48,8 @@ static kernel_pid_t timer_pid;
 static msg_t timer_msg = {};
 static rtctimer_t timer;
 
+static bool is_polled = false;
+
 static struct {
 	uint8_t is_valid;
 	uint8_t publish_period_min;
@@ -101,6 +103,9 @@ static void *timer_thread(void *arg) {
         rtctimers_remove(&timer);
 
         module_data_t data = {};
+        data.as_ack = is_polled;
+        is_polled = false;
+
         prepare_result(&data);
 
         /* Notify the application */
@@ -166,15 +171,37 @@ void umdk_sht21_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	rtctimers_set_msg(&timer, 60 * sht21_config.publish_period_min, &timer_msg, timer_pid);
 }
 
+static void reply_fail(module_data_t *reply) {
+	reply->length = 6;
+	reply->data[0] = UNWDS_SHT21_MODULE_ID;
+	reply->data[1] = 'f';
+	reply->data[2] = 'a';
+	reply->data[3] = 'i';
+	reply->data[4] = 'l';
+	reply->data[5] = '\0';
+}
+
+static void reply_ok(module_data_t *reply) {
+	reply->length = 4;
+	reply->data[0] = UNWDS_SHT21_MODULE_ID;
+	reply->data[1] = 'o';
+	reply->data[2] = 'k';
+	reply->data[3] = '\0';
+}
+
 bool umdk_sht21_cmd(module_data_t *cmd, module_data_t *reply) {
-	if (cmd->length < 1)
-		return false;
+	if (cmd->length < 1) {
+		reply_fail(reply);
+		return true;
+	}
 
 	umdk_sht21_cmd_t c = cmd->data[0];
 	switch (c) {
 	case UMDK_SHT21_CMD_SET_PERIOD: {
-		if (cmd->length != 2)
-			return false;
+		if (cmd->length != 2) {
+			reply_fail(reply);
+			break;
+		}
 
 		uint8_t period = cmd->data[1];
 		rtctimers_remove(&timer);
@@ -190,22 +217,17 @@ bool umdk_sht21_cmd(module_data_t *cmd, module_data_t *reply) {
 			puts("[sht21] Timer stopped");
 		}
 
-		reply->length = 4;
-		reply->data[0] = UNWDS_SHT21_MODULE_ID;
-		reply->data[1] = 'o';
-		reply->data[2] = 'k';
-		reply->data[3] = '\0';
-
+		reply_ok(reply);
 		break;
 	}
 
 	case UMDK_SHT21_CMD_POLL:
+		is_polled = true;
+
 		/* Send signal to publisher thread */
 		msg_send(&timer_msg, timer_pid);
 
 		return false; /* Don't reply */
-
-		break;
 
 	case UMDK_SHT21_CMD_SET_I2C: {
 		i2c_t i2c = (i2c_t) cmd->data[1];
@@ -215,16 +237,12 @@ bool umdk_sht21_cmd(module_data_t *cmd, module_data_t *reply) {
 
 		init_sensor();
 
-		reply->length = 4;
-		reply->data[0] = UNWDS_SHT21_MODULE_ID;
-		reply->data[1] = 'o';
-		reply->data[2] = 'k';
-		reply->data[3] = '\0';
-
+		reply_ok(reply);
 		break;
 	}
 
 	default:
+		reply_fail(reply);
 		break;
 	}
 

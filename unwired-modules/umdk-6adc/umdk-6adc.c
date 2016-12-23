@@ -44,6 +44,8 @@ static kernel_pid_t timer_pid;
 static msg_t timer_msg = {};
 static rtctimer_t timer;
 
+static bool is_polled = false;
+
 static struct {
 	uint8_t is_valid;
 	uint8_t publish_period_min;
@@ -191,6 +193,9 @@ static void *timer_thread(void *arg)
         gpio_set(adc_config.out_pin);
 
         module_data_t data = {};
+        data.as_ack = is_polled;
+        is_polled = false;
+
         prepare_result(&data);
 
         gpio_clear(adc_config.out_pin);
@@ -214,8 +219,8 @@ void umdk_6adc_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     callback = event_callback;
     init_config();
 
-    init_gpio();
-    init_adc(true);
+    //init_gpio();
+    //init_adc(true);
 
     /* Create handler thread */
     char *stack = (char *) allocate_stack();
@@ -278,6 +283,8 @@ bool umdk_6adc_cmd(module_data_t *cmd, module_data_t *reply)
         }
 
         case UMDK_6ADC_CMD_POLL:
+        	is_polled = true;
+
             /* Send signal to publisher thread */
             msg_send(&timer_msg, timer_pid);
 

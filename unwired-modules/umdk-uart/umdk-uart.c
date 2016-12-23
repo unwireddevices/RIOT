@@ -188,7 +188,7 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
 {
     if (data->length < 1) {
         do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
-        return false;
+        return true;
     }
 
     umdk_uart_prefix_t prefix = data->data[0];
@@ -197,7 +197,7 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             /* Cannot send nothing */
             if (data->length == 1) {
                 do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
-                return false;
+                break;
             }
 
             /* Send data */
@@ -215,13 +215,13 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
         case UMDK_UART_SET_BAUDRATE:
             if (data->length != 2) { /* Must be one byte of prefix and one byte of BR index */
                 do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
-                return false;
+                break;
             }
 
             uint8_t br = data->data[1];
             if (br >= UMDK_UART_NUM_BAUDRATES) {	/* This BR index is not supported */
                 do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
-                return false;
+                break;
             }
 
             /* Set baudrate and reinitialize UART */
@@ -230,7 +230,7 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             uart_config.current_baudrate_idx = br;
             if (uart_init(uart_config.uart_dev, baudrates[uart_config.current_baudrate_idx], rx_cb, NULL)) {
                 do_reply(reply, UMDK_UART_ERR); /* UART error, baud rate not supported? */
-                return false;
+                break;
             }
 
             save_config();
@@ -238,12 +238,11 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             gpio_set(RE_PIN);
 
             do_reply(reply, UMDK_UART_REPLY_BAUDRATE_SET);
-
         	break;
 
         default:
         	do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
-        	return false;
+        	break;
     }
 
     return true;

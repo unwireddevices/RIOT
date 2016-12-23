@@ -219,8 +219,8 @@ void umdk_6adc_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     callback = event_callback;
     init_config();
 
-    //init_gpio();
-    //init_adc(true);
+    init_gpio();
+    init_adc(true);
 
     /* Create handler thread */
     char *stack = (char *) allocate_stack();

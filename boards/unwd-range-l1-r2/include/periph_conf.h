@@ -274,6 +274,7 @@ static const timer_conf_t timer_config[] = {
 #define PWM_0_CLK           (32000000U)
 #define PWM_0_CLKEN()       (RCC->APB1ENR |= RCC_APB1ENR_TIM2EN)
 #define PWM_0_CLKDIS()      (RCC->APB1ENR &= ~(RCC_APB1ENR_TIM2EN))
+#define PWM_0_ISON()		(RCC->APB1ENR & RCC_APB1ENR_TIM2EN)
 /* PWM 0 pin configuration */
 #define PWM_0_PORT          GPIOA
 #define PWM_0_PORT_CLKEN()  (RCC->AHBENR |= RCC_AHBENR_GPIOAEN)
@@ -289,6 +290,7 @@ static const timer_conf_t timer_config[] = {
 #define PWM_1_CLK           (32000000U)
 #define PWM_1_CLKEN()       (RCC->APB1ENR |= RCC_APB1ENR_TIM3EN)
 #define PWM_1_CLKDIS()      (RCC->APB1ENR &= ~(RCC_APB1ENR_TIM3EN))
+#define PWM_1_ISON()		(RCC->APB1ENR & RCC_APB1ENR_TIM3EN)
 /* PWM 1 pin configuration */
 #define PWM_1_PORT          GPIOA
 #define PWM_1_PORT_CLKEN()  (RCC->AHBENR |= RCC_AHBENR_GPIOAEN)
@@ -304,6 +306,7 @@ static const timer_conf_t timer_config[] = {
 #define PWM_2_CLK           (32000000U)
 #define PWM_2_CLKEN()       (RCC->APB1ENR |= RCC_APB1ENR_TIM4EN)
 #define PWM_2_CLKDIS()      (RCC->APB1ENR &= ~(RCC_APB1ENR_TIM4EN))
+#define PWM_2_ISON()		(RCC->APB1ENR & RCC_APB1ENR_TIM4EN)
 /* PWM 2 pin configuration */
 #define PWM_2_PORT          GPIOB
 #define PWM_2_PORT_CLKEN()  (RCC->AHBENR |= RCC_AHBENR_GPIOBEN)

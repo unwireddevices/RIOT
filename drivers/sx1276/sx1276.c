@@ -926,6 +926,18 @@ void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode)
         /* Replace previous mode value and setup new mode value */
         sx1276_reg_write(dev, REG_OPMODE, (op_mode_prev & RF_OPMODE_MASK) | op_mode);
     }
+	
+	if (op_mode == RF_OPMODE_SLEEP) {
+		gpio_irq_disable(dev->dio0_pin);
+		gpio_irq_disable(dev->dio1_pin);
+		gpio_irq_disable(dev->dio2_pin);
+		gpio_irq_disable(dev->dio3_pin);
+	} else {
+		gpio_irq_enable(dev->dio0_pin);
+		gpio_irq_enable(dev->dio1_pin);
+		gpio_irq_enable(dev->dio2_pin);
+		gpio_irq_enable(dev->dio3_pin);
+	}
 }
 
 void sx1276_set_max_payload_len(sx1276_t *dev, sx1276_radio_modems_t modem, uint8_t maxlen)

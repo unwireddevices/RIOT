@@ -326,6 +326,7 @@ static const timer_conf_t timer_config[] = {
 #define SPI_0_DEV           SPI1
 #define SPI_0_CLKEN()       (RCC->APB2ENR |= RCC_APB2ENR_SPI1EN)
 #define SPI_0_CLKDIS()      (RCC->APB2ENR  &= ~(RCC_APB2ENR_SPI1EN))
+#define SPI_0_ISON()		(RCC->APB2ENR & RCC_APB2ENR_SPI1EN)
 #define SPI_0_IRQ           SPI1_IRQn
 #define SPI_0_ISR           isr_spi1
 /* SPI 0 pin configuration */
@@ -338,14 +339,15 @@ static const timer_conf_t timer_config[] = {
 
 #define SPI_0_PIN_AF        5
 
-/* SPI 0 device configuration */
+/* SPI 1 device configuration */
 #define SPI_1_DEV           SPI2
 #define SPI_1_CLKEN()       (RCC->APB1ENR |= RCC_APB1ENR_SPI2EN)
 #define SPI_1_ISON()        (RCC->APB1ENR & RCC_APB1ENR_SPI2EN)
 #define SPI_1_CLKDIS()      (RCC->APB1ENR &= ~(RCC_APB1ENR_SPI2EN))
+#define SPI_1_ISON()		(RCC->APB1ENR & RCC_APB1ENR_SPI2EN)
 #define SPI_1_IRQ           SPI2_IRQn
 #define SPI_1_ISR           isr_spi2
-/* SPI 0 pin configuration */
+/* SPI 1 pin configuration */
 #define SPI_1_PORT_CLKEN()  (RCC->AHBENR |= RCC_AHBENR_GPIOBEN)
 #define SPI_1_PORT          GPIOB
 #define SPI_1_PIN_NSS       12

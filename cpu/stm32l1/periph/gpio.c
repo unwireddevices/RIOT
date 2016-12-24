@@ -160,12 +160,24 @@ void gpio_init_analog(gpio_t pin)
 
 void gpio_irq_enable(gpio_t pin)
 {
-    EXTI->IMR |= (1 << _pin_num(pin));
+	int pin_num = _pin_num(pin);
+    int port_num = _port_num(pin);
+	
+	/* check if IRQ is actually configured for this pin and port */
+	if (!((SYSCFG->EXTICR[pin_num >> 2] & (0xf << ((pin_num & 0x03) * 4))) ^ (port_num << ((pin_num & 0x03) * 4)))) {
+		EXTI->IMR |= (1 << _pin_num(pin));
+	}
 }
 
 void gpio_irq_disable(gpio_t pin)
 {
-    EXTI->IMR &= ~(1 << _pin_num(pin));
+	int pin_num = _pin_num(pin);
+    int port_num = _port_num(pin);
+	
+	/* check if IRQ is actually configured for this pin and port */
+	if (!((SYSCFG->EXTICR[pin_num >> 2] & (0xf << ((pin_num & 0x03) * 4))) ^ (port_num << ((pin_num & 0x03) * 4)))) {
+		EXTI->IMR &= ~(1 << pin_num);
+	}
 }
 
 int gpio_read(gpio_t pin)

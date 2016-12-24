@@ -83,6 +83,7 @@ static const timer_conf_t timer_config[] = {
 #define UART_0_DEV          USART1
 #define UART_0_CLKEN()      (RCC->APB2ENR |= RCC_APB2ENR_USART1EN)
 #define UART_0_CLKDIS()		(RCC->APB2ENR &= ~RCC_APB2ENR_USART1EN)
+#define UART_0_ISON()		(RCC->APB2ENR & RCC_APB2ENR_USART1EN)
 #define UART_0_CLK          (CLOCK_CORECLOCK)   /* UART clock runs with 32MHz (F_CPU / 1) */
 #define UART_0_IRQ          USART1_IRQn
 #define UART_0_ISR          isr_usart1

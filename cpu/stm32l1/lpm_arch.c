@@ -44,160 +44,252 @@
 #ifdef GPIO_LOW_POWER
 static uint32_t lpm_gpio_moder[8];
 static uint32_t lpm_gpio_pupdr[8];
+static uint16_t lpm_gpio_otyper[8];
+static uint32_t lpm_gpio_ospeedr[8];
+static uint16_t lpm_gpio_odr[8];
 static uint32_t ahb_gpio_clocks;
 static uint32_t tmpreg;
 
+static void pin_set(GPIO_TypeDef* port, uint8_t pin, uint8_t value){
+    port->MODER &= ~(3 << (2*pin));
+    port->MODER |= (1 << (2*pin));
+    port->PUPDR &= ~(3 << (2*pin));
+    port->OTYPER &= ~(1 << pin);
+    if (value) {
+        port->ODR |= (1 << pin);
+    } else {
+        port->ODR &= ~(1 << pin);
+    }
+}
+
 /* put GPIOs in low-power state */
 static void lpm_before_i_go_to_sleep (void) {
-	ahb_gpio_clocks = RCC->AHBENR & 0xFF;
-	RCC->AHBENR |= 0xFF;
-	
-	uint8_t i;
-	uint8_t pin;
-	uint32_t mask;
-	GPIO_TypeDef *port;
-	
-	uint32_t addr_diff = GPIOB_BASE - GPIOA_BASE;
-	uint32_t gpio_base_addr = 0;
-	
-	for (i = 0; i < 1; i++) {
-		gpio_base_addr = GPIOA_BASE + i*addr_diff;
-		port = (GPIO_TypeDef *)gpio_base_addr;
-		lpm_gpio_moder[i] = port->MODER;
-		lpm_gpio_pupdr[i] = port->PUPDR;
-		
-		mask = 0xFFFFFFFF;
-		
-		/* ignore GPIOs used for EXTI */
-		for (pin = 0; pin < 16; pin ++) {
-			if (EXTI->IMR & (1 << pin)) {
-				if (((SYSCFG->EXTICR[pin >> 2]) >> ((pin & 0x03) * 4)) == i) {
-					mask &= ~((uint32_t)0x03 << (pin*2));
-				}
-			}
-		}
-		tmpreg = port->PUPDR;
-		tmpreg &= ~mask;
-		port->PUPDR = tmpreg;
-		
-		tmpreg = port->MODER;
-		tmpreg |= mask;
-		port->MODER = tmpreg;
-	}
+    /* save GPIO clock configuration */
+    ahb_gpio_clocks = RCC->AHBENR & 0xFF;
+    /* enable all GPIO clocks */
+    RCC->AHBENR |= 0xFF;
+    
+    uint8_t i;
+    uint8_t pin;
+    uint32_t mask;
+    GPIO_TypeDef *port;
+    
+    uint32_t addr_diff = GPIOB_BASE - GPIOA_BASE;
+    uint32_t gpio_base_addr = 0;
+    
+    for (i = 0; i < 8; i++) {
+        gpio_base_addr = GPIOA_BASE + i*addr_diff;
+        port = (GPIO_TypeDef *)gpio_base_addr;
+        
+        /* save GPIO registers values */
+        lpm_gpio_moder[i] = port->MODER;
+        lpm_gpio_pupdr[i] = port->PUPDR;
+        lpm_gpio_otyper[i] = (port->OTYPER & 0xFFFF);
+        lpm_gpio_ospeedr[i] = port->OSPEEDR;
+        lpm_gpio_odr[i] = (port->ODR & 0xFFFF);
+        
+        mask = 0xFFFFFFFF;
+        
+        /* ignore GPIOs registered for external interrupts */
+        /* they may be used as wakeup sources */
+        for (pin = 0; pin < 16; pin ++) {
+            if (EXTI->IMR & (1 << pin)) {
+                if (((SYSCFG->EXTICR[pin >> 2]) >> ((pin & 0x03) * 4)) == i) {
+                    mask &= ~((uint32_t)0x03 << (pin*2));
+                }
+            }
+        }
+        
+        /* disable pull-ups on GPIOs */
+        tmpreg = port->PUPDR;
+        tmpreg &= ~mask;
+        port->PUPDR = tmpreg;
+        
+        /* set GPIOs to AIN mode */
+        tmpreg = port->MODER;
+        tmpreg |= mask;
+        port->MODER = tmpreg;
+        
+        /* set lowest speed */
+        port->OSPEEDR = 0;
+    }
+    
+    /* specifically set GPIOs used for external SPI devices */
+    /* NSS = 1, MOSI = 0, SCK = 0, MISO doesn't matter */
+    /* NSS = 1, MOSI = 0, SCK = 0, MISO doesn't matter */
+#if SPI_0_EN
+    if (SPI_0_ISON()) {
+        pin_set(SPI_0_PORT, SPI_0_PIN_NSS, 1);
+        pin_set(SPI_0_PORT, SPI_0_PIN_SCK, 0);
+        pin_set(SPI_0_PORT, SPI_0_PIN_MOSI, 0);
+    }
+#endif
+#if SPI_1_EN
+    if (SPI_1_ISON()) {
+        pin_set(SPI_1_PORT, SPI_1_PIN_NSS, 1);
+        pin_set(SPI_1_PORT, SPI_1_PIN_SCK, 0);
+        pin_set(SPI_1_PORT, SPI_1_PIN_MOSI, 0);
+    }
+#endif
+#if SPI_2_EN
+    if (SPI_2_ISON()) {
+        pin_set(SPI_2_PORT, SPI_2_PIN_NSS, 1);
+        pin_set(SPI_2_PORT, SPI_2_PIN_SCK, 0);
+        pin_set(SPI_2_PORT, SPI_2_PIN_MOSI, 0);
+    }
+#endif
 
-	RCC->AHBENR &= ~((uint32_t)0xFF);
-	RCC->AHBENR |= ahb_gpio_clocks;
+    /* set UART TX pin to 1 */
+#if UART_0_EN
+    if (UART_0_ISON()) {
+        pin_set((GPIO_TypeDef *)(UART_0_TX_PIN & ~(0x0f)), UART_0_TX_PIN & 0x0f, 1);
+    }
+#endif
+
+#if UART_1_EN
+    if (UART_1_ISON()) {
+        pin_set((GPIO_TypeDef *)(UART_1_TX_PIN & ~(0x0f)), UART_1_TX_PIN & 0x0f, 1);    }
+#endif
+
+#if UART_2_EN
+    if (UART_2_ISON()) {
+        pin_set((GPIO_TypeDef *)(UART_2_TX_PIN & ~(0x0f)), UART_2_TX_PIN & 0x0f, 1);
+    }
+#endif
+
+    /* restore GPIO clocks */
+    tmpreg = RCC->AHBENR;
+    tmpreg &= ~((uint32_t)0xFF);
+    tmpreg |= ahb_gpio_clocks;
+    RCC->AHBENR = tmpreg;
 }
 
 
 /* restore GPIO settings */
 static void lpm_when_i_wake_up (void) {
-	RCC->AHBENR |= 0xFF;
-	
-	uint8_t i;
-	GPIO_TypeDef *port;
-	uint32_t addr_diff = GPIOB_BASE - GPIOA_BASE;
-	uint32_t gpio_base_addr = 0;
-	
-	for (i = 0; i < 1; i++) {
-		gpio_base_addr = GPIOA_BASE + i*addr_diff;
-		port = (GPIO_TypeDef *)gpio_base_addr;
-		
-		port->MODER = lpm_gpio_moder[i];
-		port->PUPDR = lpm_gpio_pupdr[i];
-	}
+    /* enable all GPIO clocks */
+    RCC->AHBENR |= 0xFF;
+    
+    uint8_t i;
+    GPIO_TypeDef *port;
+    uint32_t addr_diff = GPIOB_BASE - GPIOA_BASE;
+    uint32_t gpio_base_addr = 0;
+    
+    /* restore GPIO settings */
+    for (i = 0; i < 8; i++) {
+        gpio_base_addr = GPIOA_BASE + i*addr_diff;
+        port = (GPIO_TypeDef *)gpio_base_addr;
+        
+        port->MODER = lpm_gpio_moder[i];
+        port->PUPDR = lpm_gpio_pupdr[i];
+        port->OTYPER = lpm_gpio_otyper[i];
+        port->OSPEEDR = lpm_gpio_ospeedr[i];
+        port->ODR = lpm_gpio_odr[i];
+    }
 
-	RCC->AHBENR &= ~((uint32_t)0xFF);
-	RCC->AHBENR |= ahb_gpio_clocks;
+    /* restore GPIO clocks */
+    tmpreg = RCC->AHBENR;
+    tmpreg &= ~((uint32_t)0xFF);
+    tmpreg |= ahb_gpio_clocks;
+    RCC->AHBENR = tmpreg;
 }
 #endif
 
 void lpm_arch_init(void)
 {
     /* Disable peripherals in Sleep mode */
-	RCC->APB1LPENR &= ~(RCC_APB1LPENR_TIM2LPEN);
-	RCC->APB1LPENR &= ~(RCC_APB1LPENR_TIM3LPEN);
-	RCC->APB1LPENR &= ~(RCC_APB1LPENR_TIM4LPEN);
-	RCC->APB1LPENR &= ~(RCC_APB1LPENR_TIM5LPEN);
-	RCC->APB1LPENR &= ~(RCC_APB1LPENR_TIM6LPEN);
-	RCC->APB1LPENR &= ~(RCC_APB1LPENR_TIM7LPEN);
-	RCC->APB1LPENR &= ~(RCC_APB1LPENR_LCDLPEN);
-	RCC->APB1LPENR &= ~(RCC_APB1LPENR_WWDGLPEN);
-	RCC->APB1LPENR &= ~(RCC_APB1LPENR_SPI2LPEN);
-	RCC->APB1LPENR &= ~(RCC_APB1LPENR_SPI3LPEN);
-	RCC->APB1LPENR &= ~(RCC_APB1LPENR_USART2LPEN);
-	RCC->APB1LPENR &= ~(RCC_APB1LPENR_USART3LPEN);
-	RCC->APB1LPENR &= ~(RCC_APB1LPENR_UART4LPEN);
-	RCC->APB1LPENR &= ~(RCC_APB1LPENR_UART5LPEN);
-	RCC->APB1LPENR &= ~(RCC_APB1LPENR_I2C1LPEN);
-	RCC->APB1LPENR &= ~(RCC_APB1LPENR_I2C2LPEN);
-	RCC->APB1LPENR &= ~(RCC_APB1LPENR_USBLPEN);
-	RCC->APB1LPENR &= ~(RCC_APB1LPENR_PWRLPEN);
-	RCC->APB1LPENR &= ~(RCC_APB1LPENR_DACLPEN);
-	RCC->APB1LPENR &= ~(RCC_APB1LPENR_COMPLPEN);
+    RCC->APB1LPENR &= ~(RCC_APB1LPENR_TIM2LPEN);
+    RCC->APB1LPENR &= ~(RCC_APB1LPENR_TIM3LPEN);
+    RCC->APB1LPENR &= ~(RCC_APB1LPENR_TIM4LPEN);
+    RCC->APB1LPENR &= ~(RCC_APB1LPENR_TIM5LPEN);
+    RCC->APB1LPENR &= ~(RCC_APB1LPENR_TIM6LPEN);
+    RCC->APB1LPENR &= ~(RCC_APB1LPENR_TIM7LPEN);
+    RCC->APB1LPENR &= ~(RCC_APB1LPENR_LCDLPEN);
+    RCC->APB1LPENR &= ~(RCC_APB1LPENR_WWDGLPEN);
+    RCC->APB1LPENR &= ~(RCC_APB1LPENR_SPI2LPEN);
+    RCC->APB1LPENR &= ~(RCC_APB1LPENR_SPI3LPEN);
+    RCC->APB1LPENR &= ~(RCC_APB1LPENR_USART2LPEN);
+    RCC->APB1LPENR &= ~(RCC_APB1LPENR_USART3LPEN);
+    RCC->APB1LPENR &= ~(RCC_APB1LPENR_UART4LPEN);
+    RCC->APB1LPENR &= ~(RCC_APB1LPENR_UART5LPEN);
+    RCC->APB1LPENR &= ~(RCC_APB1LPENR_I2C1LPEN);
+    RCC->APB1LPENR &= ~(RCC_APB1LPENR_I2C2LPEN);
+    RCC->APB1LPENR &= ~(RCC_APB1LPENR_USBLPEN);
+    RCC->APB1LPENR &= ~(RCC_APB1LPENR_PWRLPEN);
+    RCC->APB1LPENR &= ~(RCC_APB1LPENR_DACLPEN);
+    RCC->APB1LPENR &= ~(RCC_APB1LPENR_COMPLPEN);
 
-	RCC->APB2LPENR &= ~(RCC_APB2LPENR_SYSCFGLPEN);
-	RCC->APB2LPENR &= ~(RCC_APB2LPENR_TIM9LPEN);
-	RCC->APB2LPENR &= ~(RCC_APB2LPENR_TIM10LPEN);
-	RCC->APB2LPENR &= ~(RCC_APB2LPENR_TIM11LPEN);
-	RCC->APB2LPENR &= ~(RCC_APB2LPENR_ADC1LPEN);
-	RCC->APB2LPENR &= ~(RCC_APB2LPENR_SDIOLPEN);
-	RCC->APB2LPENR &= ~(RCC_APB2LPENR_SPI1LPEN);
-	RCC->APB2LPENR &= ~(RCC_APB2LPENR_USART1LPEN);
+    RCC->APB2LPENR &= ~(RCC_APB2LPENR_SYSCFGLPEN);
+    RCC->APB2LPENR &= ~(RCC_APB2LPENR_TIM9LPEN);
+    RCC->APB2LPENR &= ~(RCC_APB2LPENR_TIM10LPEN);
+    RCC->APB2LPENR &= ~(RCC_APB2LPENR_TIM11LPEN);
+    RCC->APB2LPENR &= ~(RCC_APB2LPENR_ADC1LPEN);
+    RCC->APB2LPENR &= ~(RCC_APB2LPENR_SDIOLPEN);
+    RCC->APB2LPENR &= ~(RCC_APB2LPENR_SPI1LPEN);
+    RCC->APB2LPENR &= ~(RCC_APB2LPENR_USART1LPEN);
 
-	/* RCC->AHBLPENR &= ~(RCC_AHBLPENR_GPIOALPEN); */
-	/* RCC->AHBLPENR &= ~(RCC_AHBLPENR_GPIOBLPEN); */
-	RCC->AHBLPENR &= ~(RCC_AHBLPENR_GPIOCLPEN);
-	RCC->AHBLPENR &= ~(RCC_AHBLPENR_GPIODLPEN);
-	RCC->AHBLPENR &= ~(RCC_AHBLPENR_GPIOELPEN);
-	RCC->AHBLPENR &= ~(RCC_AHBLPENR_GPIOHLPEN);
-	RCC->AHBLPENR &= ~(RCC_AHBLPENR_GPIOFLPEN);
-	RCC->AHBLPENR &= ~(RCC_AHBLPENR_GPIOGLPEN);
-	RCC->AHBLPENR &= ~(RCC_AHBLPENR_CRCLPEN);
-	RCC->AHBLPENR &= ~(RCC_AHBLPENR_FLITFLPEN);
-	RCC->AHBLPENR &= ~(RCC_AHBLPENR_SRAMLPEN);
-	RCC->AHBLPENR &= ~(RCC_AHBLPENR_DMA1LPEN);
-	RCC->AHBLPENR &= ~(RCC_AHBLPENR_DMA2LPEN);
-	RCC->AHBLPENR &= ~(RCC_AHBLPENR_AESLPEN);
-	RCC->AHBLPENR &= ~(RCC_AHBLPENR_FSMCLPEN);
+    RCC->AHBLPENR &= ~(RCC_AHBLPENR_CRCLPEN);
+    RCC->AHBLPENR &= ~(RCC_AHBLPENR_FLITFLPEN);
+    RCC->AHBLPENR &= ~(RCC_AHBLPENR_SRAMLPEN);
+    RCC->AHBLPENR &= ~(RCC_AHBLPENR_DMA1LPEN);
+    RCC->AHBLPENR &= ~(RCC_AHBLPENR_DMA2LPEN);
+    RCC->AHBLPENR &= ~(RCC_AHBLPENR_AESLPEN);
+    RCC->AHBLPENR &= ~(RCC_AHBLPENR_FSMCLPEN);
+    
+    /* disable only GPIO ports which do not have IRQs assotiated */
+    uint8_t port;
+    uint8_t pin;
+    uint8_t is_irq_enabled;
+    for (port = 0; port < 8; port++) {
+        is_irq_enabled = 0;
+        for (pin = 0; pin < 16; pin ++) {
+            if (EXTI->IMR & (1 << pin)) {
+                if (((SYSCFG->EXTICR[pin >> 2]) >> ((pin & 0x03) * 4)) == port) {
+                    is_irq_enabled = 1;
+                }
+            }
+        }
+        if (is_irq_enabled) {
+            RCC->AHBLPENR &= ~(1 << port);
+        }
+    }
 }
 
 enum lpm_mode lpm_arch_set(enum lpm_mode target)
 {
     switch (target) {
         case LPM_SLEEP:               /* Low-power sleep mode */
-			/* Clear Wakeup flag */	
-			PWR->CR |= PWR_CR_CWUF;
-			/* Enable low-power mode of the voltage regulator */
+            /* Clear Wakeup flag */    
+            PWR->CR |= PWR_CR_CWUF;
+            /* Enable low-power mode of the voltage regulator */
             PWR->CR = (PWR->CR & CR_DS_MASK) | PWR_CR_LPSDSR;
-			/* Clear SLEEPDEEP bit */
+            /* Clear SLEEPDEEP bit */
             SCB->SCR &= (uint32_t) ~((uint32_t)SCB_SCR_SLEEPDEEP);
 
             __disable_irq();
-			
-			/* Switch to 65kHz medium-speed clock */
+            
+            /* Switch to 65kHz medium-speed clock */
             default_to_msi_clock(RCC_ICSCR_MSIRANGE_0, RCC_CFGR_HPRE_DIV1);
-			
-			/* Request Wait For Interrupt */
+            
+            /* Request Wait For Interrupt */
             asm ("DMB");
             __WFI();
-            /* asm ("nop; nop; nop; nop"); */
 
-			/* Switch back to full speed */
-			restore_default_clock();
-			
+            /* Switch back to full speed */
+            restore_default_clock();
+            
             __enable_irq();
             break;
 
         case LPM_POWERDOWN:         /* STOP mode */
-			/* Clear Wakeup flag */	
-			PWR->CR |= PWR_CR_CWUF;
-		
+            /* Clear Wakeup flag */    
+            PWR->CR |= PWR_CR_CWUF;
+        
             /* Regulator in LP mode */
             PWR->CR = (PWR->CR & CR_DS_MASK) | PWR_CR_LPSDSR;
 
             /* Enable Ultra Low Power mode */
-			PWR->CR |= PWR_CR_ULP;
+            PWR->CR |= PWR_CR_ULP;
 
             /* Set SLEEPDEEP bit of Cortex System Control Register */
             SCB->SCR |= (uint32_t)SCB_SCR_SLEEPDEEP;
@@ -205,35 +297,34 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             __disable_irq();
 
 #ifdef GPIO_LOW_POWER
-			lpm_before_i_go_to_sleep();
+            lpm_before_i_go_to_sleep();
 #endif
-			
-			/* Request Wait For Interrupt */
+            
+            /* Request Wait For Interrupt */
             asm ("DMB");
             __WFI();
-            /* asm ("nop; nop; nop; nop"); */
 
             /* Clear SLEEPDEEP bit */
             SCB->SCR &= (uint32_t) ~((uint32_t)SCB_SCR_SLEEPDEEP);
-			
-			/* Wait for the reference voltage */
-			while(!(PWR->CSR & PWR_CSR_VREFINTRDYF)) {}
-			
-			/* Restore clocks and PLL */
-			restore_default_clock();
+            
+            /* Wait for the reference voltage */
+            while(!(PWR->CSR & PWR_CSR_VREFINTRDYF)) {}
+            
+            /* Restore clocks and PLL */
+            restore_default_clock();
 
 #ifdef GPIO_LOW_POWER
-			lpm_when_i_wake_up();
+            lpm_when_i_wake_up();
 #endif
-			
+            
             __enable_irq();
 
             break;
 
         case LPM_OFF:               /* Standby mode */
-			/* Clear Wakeup flag */	
-			PWR->CR |= PWR_CR_CWUF;
-		
+            /* Clear Wakeup flag */    
+            PWR->CR |= PWR_CR_CWUF;
+        
             /* Select STANDBY mode */
             PWR->CR |= PWR_CR_PDDS;
 

@@ -193,7 +193,7 @@ static inline void send_ack(ls_gate_t *ls, ls_gate_channel_t *ch, ls_addr_t addr
 	enqueue_frame(ch, addr, LS_DL_ACK, NULL, 0);
 }
 
-static void device_join_req(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t dev_id, uint64_t app_id, uint32_t dev_nonce, ls_node_class_t node_class, uint64_t ability)
+static void device_join_req(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t dev_id, uint64_t app_id, uint32_t dev_nonce, ls_node_class_t node_class)
 {
     /* Check node acceptance */
     if (ls->accept_node_join_cb != NULL) {
@@ -229,9 +229,6 @@ static void device_join_req(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t dev_i
 
     /* Call join handler which returns an app nonce from the application side */
     node->app_nonce = ls->node_joined_cb(node);
-
-    /* Set node's ability bit map */
-    node->node_ability = ability;
 
     /* Reset last frame ID counter */
     node->last_fid = 0;
@@ -445,9 +442,8 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
             uint64_t app_id = req.app_id;
             uint32_t dev_nonce = req.dev_nonce;
             ls_node_class_t node_class = req.node_class;
-            uint64_t node_ability = req.node_ability;
 
-            device_join_req(ls, ch, dev_id, app_id, dev_nonce, node_class, node_ability);
+            device_join_req(ls, ch, dev_id, app_id, dev_nonce, node_class);
 
             return true;
 

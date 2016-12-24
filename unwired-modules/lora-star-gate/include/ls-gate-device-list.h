@@ -50,7 +50,6 @@ typedef struct {
 	uint64_t app_id;			/**< Application unique ID */
 
 	ls_node_class_t node_class;	/**< Node's class */
-	uint64_t node_ability;		/**< Node's ability */
 
 	ls_addr_t addr;				/**< Node unique address in network */
 	uint32_t last_seen;			/**< Time of the last node's activity in network */

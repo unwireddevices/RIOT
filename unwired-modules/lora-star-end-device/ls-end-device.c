@@ -865,8 +865,6 @@ int ls_ed_join(ls_ed_t *ls)
     req.node_class = ls->settings.class;
     req.dev_nonce = sx1276_random(ls->_internal.sx1276);
 
-    req.node_ability = ls->settings.ability;
-
     ls->_internal.last_nonce = req.dev_nonce;
 
     /* Reset frame ID */

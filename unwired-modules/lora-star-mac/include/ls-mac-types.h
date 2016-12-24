@@ -145,8 +145,6 @@ typedef struct {
 
 	uint32_t dev_nonce;			/**< Random number generated on the device */
 	ls_node_class_t node_class;	/**< Node's device class */
-
-	uint64_t node_ability;		/**< Ability bit map of this node */
 } ls_join_req_t;
 
 /**

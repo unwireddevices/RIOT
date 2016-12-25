@@ -21,6 +21,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 
 #include "arch/lpm_arch.h"
 
@@ -47,6 +48,7 @@ static uint32_t lpm_gpio_pupdr[8];
 static uint16_t lpm_gpio_otyper[8];
 static uint32_t lpm_gpio_ospeedr[8];
 static uint16_t lpm_gpio_odr[8];
+static uint8_t  lpm_usart[5];
 static uint32_t ahb_gpio_clocks;
 static uint32_t tmpreg;
 
@@ -65,13 +67,46 @@ static void pin_set(GPIO_TypeDef* port, uint8_t pin, uint8_t value){
 
 /* put GPIOs in low-power state */
 static void lpm_before_i_go_to_sleep (void) {
+memset(lpm_usart, 0, sizeof(lpm_usart));
+#if UART_0_EN
+    if (UART_0_ISON()) {
+		UART_0_CLKDIS();
+		lpm_usart[0] = 1;
+    }
+#endif
+#if UART_1_EN
+    if (UART_1_ISON()) {
+		UART_1_CLKDIS();
+        lpm_usart[1] = 1;
+	}
+#endif
+#if UART_2_EN
+    if (UART_2_ISON()) {
+		UART_2_CLKDIS();
+        lpm_usart[2] = 1;
+    }
+#endif
+#if UART_3_EN
+    if (UART_3_ISON()) {
+		UART_3_CLKDIS();
+        lpm_usart[3] = 1;
+	}
+#endif
+#if UART_4_EN
+    if (UART_4_ISON()) {
+		UART_4_CLKDIS();
+        lpm_usart[4] = 1;
+    }
+#endif
+	
+	
     /* save GPIO clock configuration */
     ahb_gpio_clocks = RCC->AHBENR & 0xFF;
     /* enable all GPIO clocks */
 	periph_clk_en(AHB, 0xFF);
     
     uint8_t i;
-    uint8_t pin;
+    uint8_t p;
     uint32_t mask;
     GPIO_TypeDef *port;
     
@@ -93,10 +128,10 @@ static void lpm_before_i_go_to_sleep (void) {
         
         /* ignore GPIOs registered for external interrupts */
         /* they may be used as wakeup sources */
-        for (pin = 0; pin < 16; pin ++) {
-            if (EXTI->IMR & (1 << pin)) {
-                if (((SYSCFG->EXTICR[pin >> 2]) >> ((pin & 0x03) * 4)) == i) {
-                    mask &= ~((uint32_t)0x03 << (pin*2));
+        for (p = 0; p < 16; p ++) {
+            if (EXTI->IMR & (1 << p)) {
+                if (((SYSCFG->EXTICR[p >> 2]) >> ((p & 0x03) * 4)) == i) {
+                    mask &= ~((uint32_t)0x03 << (p*2));
                 }
             }
         }
@@ -143,27 +178,27 @@ static void lpm_before_i_go_to_sleep (void) {
     /* set UART TX pin to 1 */
 #if UART_0_EN
     if (UART_0_ISON()) {
-        pin_set((GPIO_TypeDef *)(UART_0_TX_PIN & ~(0x0f)), UART_0_TX_PIN & 0x0f, 0);
+        pin_set((GPIO_TypeDef *)(UART_0_TX_PIN & ~(0x0f)), UART_0_TX_PIN & 0x0f, 1);
     }
 #endif
 #if UART_1_EN
     if (UART_1_ISON()) {
-        pin_set((GPIO_TypeDef *)(UART_1_TX_PIN & ~(0x0f)), UART_1_TX_PIN & 0x0f, 0);
+        pin_set((GPIO_TypeDef *)(UART_1_TX_PIN & ~(0x0f)), UART_1_TX_PIN & 0x0f, 1);
 	}
 #endif
 #if UART_2_EN
     if (UART_2_ISON()) {
-        pin_set((GPIO_TypeDef *)(UART_2_TX_PIN & ~(0x0f)), UART_2_TX_PIN & 0x0f, 0);
+        pin_set((GPIO_TypeDef *)(UART_2_TX_PIN & ~(0x0f)), UART_2_TX_PIN & 0x0f, 1);
     }
 #endif
 #if UART_3_EN
     if (UART_3_ISON()) {
-        pin_set((GPIO_TypeDef *)(UART_3_TX_PIN & ~(0x0f)), UART_3_TX_PIN & 0x0f, 0);
+        pin_set((GPIO_TypeDef *)(UART_3_TX_PIN & ~(0x0f)), UART_3_TX_PIN & 0x0f, 1);
 	}
 #endif
 #if UART_4_EN
     if (UART_4_ISON()) {
-        pin_set((GPIO_TypeDef *)(UART_4_TX_PIN & ~(0x0f)), UART_4_TX_PIN & 0x0f, 0);
+        pin_set((GPIO_TypeDef *)(UART_4_TX_PIN & ~(0x0f)), UART_4_TX_PIN & 0x0f, 1);
     }
 #endif
 
@@ -184,7 +219,7 @@ static void lpm_when_i_wake_up (void) {
     GPIO_TypeDef *port;
     uint32_t addr_diff = GPIOB_BASE - GPIOA_BASE;
     uint32_t gpio_base_addr = 0;
-    
+	  
     /* restore GPIO settings */
     for (i = 0; i < 8; i++) {
         gpio_base_addr = GPIOA_BASE + i*addr_diff;
@@ -202,6 +237,23 @@ static void lpm_when_i_wake_up (void) {
     tmpreg &= ~((uint32_t)0xFF);
     tmpreg |= ahb_gpio_clocks;
     periph_clk_en(AHB, tmpreg);
+	
+	/* restore USART clocks */
+#if UART_0_EN
+	if (lpm_usart[0]) { UART_0_CLKEN(); };
+#endif
+#if UART_1_EN
+	if (lpm_usart[1]) { UART_1_CLKEN(); };
+#endif
+#if UART_2_EN
+	if (lpm_usart[2]) { UART_2_CLKEN(); };
+#endif
+#if UART_3_EN
+	if (lpm_usart[3]) { UART_3_CLKEN(); };
+#endif
+#if UART_4_EN
+	if (lpm_usart[4]) { UART_4_CLKEN(); };
+#endif
 }
 #endif
 

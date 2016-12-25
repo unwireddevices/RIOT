@@ -50,6 +50,7 @@ static uint16_t lpm_gpio_odr[8];
 static uint32_t ahb_gpio_clocks;
 static uint32_t tmpreg;
 
+/* We are not using gpio_init as it sets GPIO clock speed to maximum */
 static void pin_set(GPIO_TypeDef* port, uint8_t pin, uint8_t value){
     port->MODER &= ~(3 << (2*pin));
     port->MODER |= (1 << (2*pin));
@@ -67,7 +68,7 @@ static void lpm_before_i_go_to_sleep (void) {
     /* save GPIO clock configuration */
     ahb_gpio_clocks = RCC->AHBENR & 0xFF;
     /* enable all GPIO clocks */
-    RCC->AHBENR |= 0xFF;
+	periph_clk_en(AHB, 0xFF);
     
     uint8_t i;
     uint8_t pin;
@@ -99,7 +100,7 @@ static void lpm_before_i_go_to_sleep (void) {
                 }
             }
         }
-        
+
         /* disable pull-ups on GPIOs */
         tmpreg = port->PUPDR;
         tmpreg &= ~mask;
@@ -142,18 +143,27 @@ static void lpm_before_i_go_to_sleep (void) {
     /* set UART TX pin to 1 */
 #if UART_0_EN
     if (UART_0_ISON()) {
-        pin_set((GPIO_TypeDef *)(UART_0_TX_PIN & ~(0x0f)), UART_0_TX_PIN & 0x0f, 1);
+        pin_set((GPIO_TypeDef *)(UART_0_TX_PIN & ~(0x0f)), UART_0_TX_PIN & 0x0f, 0);
     }
 #endif
-
 #if UART_1_EN
     if (UART_1_ISON()) {
-        pin_set((GPIO_TypeDef *)(UART_1_TX_PIN & ~(0x0f)), UART_1_TX_PIN & 0x0f, 1);    }
+        pin_set((GPIO_TypeDef *)(UART_1_TX_PIN & ~(0x0f)), UART_1_TX_PIN & 0x0f, 0);
+	}
 #endif
-
 #if UART_2_EN
     if (UART_2_ISON()) {
-        pin_set((GPIO_TypeDef *)(UART_2_TX_PIN & ~(0x0f)), UART_2_TX_PIN & 0x0f, 1);
+        pin_set((GPIO_TypeDef *)(UART_2_TX_PIN & ~(0x0f)), UART_2_TX_PIN & 0x0f, 0);
+    }
+#endif
+#if UART_3_EN
+    if (UART_3_ISON()) {
+        pin_set((GPIO_TypeDef *)(UART_3_TX_PIN & ~(0x0f)), UART_3_TX_PIN & 0x0f, 0);
+	}
+#endif
+#if UART_4_EN
+    if (UART_4_ISON()) {
+        pin_set((GPIO_TypeDef *)(UART_4_TX_PIN & ~(0x0f)), UART_4_TX_PIN & 0x0f, 0);
     }
 #endif
 
@@ -161,14 +171,14 @@ static void lpm_before_i_go_to_sleep (void) {
     tmpreg = RCC->AHBENR;
     tmpreg &= ~((uint32_t)0xFF);
     tmpreg |= ahb_gpio_clocks;
-    RCC->AHBENR = tmpreg;
+	periph_clk_en(AHB, tmpreg);
 }
 
 
 /* restore GPIO settings */
 static void lpm_when_i_wake_up (void) {
     /* enable all GPIO clocks */
-    RCC->AHBENR |= 0xFF;
+	periph_clk_en(AHB, 0xFF);
     
     uint8_t i;
     GPIO_TypeDef *port;
@@ -180,18 +190,18 @@ static void lpm_when_i_wake_up (void) {
         gpio_base_addr = GPIOA_BASE + i*addr_diff;
         port = (GPIO_TypeDef *)gpio_base_addr;
         
-        port->MODER = lpm_gpio_moder[i];
-        port->PUPDR = lpm_gpio_pupdr[i];
-        port->OTYPER = lpm_gpio_otyper[i];
+		port->PUPDR = lpm_gpio_pupdr[i];
+		port->OTYPER = lpm_gpio_otyper[i];
         port->OSPEEDR = lpm_gpio_ospeedr[i];
         port->ODR = lpm_gpio_odr[i];
+        port->MODER = lpm_gpio_moder[i];
     }
 
     /* restore GPIO clocks */
     tmpreg = RCC->AHBENR;
     tmpreg &= ~((uint32_t)0xFF);
     tmpreg |= ahb_gpio_clocks;
-    RCC->AHBENR = tmpreg;
+    periph_clk_en(AHB, tmpreg);
 }
 #endif
 
@@ -236,7 +246,7 @@ void lpm_arch_init(void)
     RCC->AHBLPENR &= ~(RCC_AHBLPENR_AESLPEN);
     RCC->AHBLPENR &= ~(RCC_AHBLPENR_FSMCLPEN);
     
-    /* disable only GPIO ports which do not have IRQs assotiated */
+    /* disable only GPIO ports which do not have IRQs associated */
     uint8_t port;
     uint8_t pin;
     uint8_t is_irq_enabled;
@@ -261,73 +271,69 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
         case LPM_SLEEP:               /* Low-power sleep mode */
             /* Clear Wakeup flag */    
             PWR->CR |= PWR_CR_CWUF;
-			
             /* Enable low-power mode of the voltage regulator */
             PWR->CR |= PWR_CR_LPSDSR;
-			
             /* Clear SLEEPDEEP bit */
             SCB->SCR &= ~((uint32_t)SCB_SCR_SLEEPDEEP);
 
-            __disable_irq();
+            irq_disable();
             
 #ifdef GPIO_LOW_POWER
             lpm_before_i_go_to_sleep();
 #endif
-			
-            /* Switch to 65kHz medium-speed clock */
-            switch_to_msi(RCC_ICSCR_MSIRANGE_0);
-            		
-            /* Request Wait For Interrupt */
-            asm ("DMB");
-            __WFI();
 
-            /* Switch back to full speed */
-            restore_default_clock();
+            /* Switch to 65kHz clock */
+            switch_to_msi(RCC_ICSCR_MSIRANGE_0, RCC_CFGR_HPRE_DIV1);
+
+            /* Request Wait For Interrupt */
+            asm ("DSB");
+            __WFI();
+			
+            /* Switch back to default speed */
+			clk_init();
 
 #ifdef GPIO_LOW_POWER
             lpm_when_i_wake_up();
 #endif
 			
-            __enable_irq();
+            irq_enable();
             break;
 
         case LPM_POWERDOWN:         /* STOP mode */
             /* Clear Wakeup flag */    
             PWR->CR |= PWR_CR_CWUF;
-        
             /* Regulator in LP mode */
             PWR->CR |= PWR_CR_LPSDSR;
-
             /* Enable Ultra Low Power mode */
             PWR->CR |= PWR_CR_ULP;
-
             /* Set SLEEPDEEP bit of Cortex System Control Register */
             SCB->SCR |= (uint32_t)SCB_SCR_SLEEPDEEP;
 
-            __disable_irq();
+            irq_disable();
 
 #ifdef GPIO_LOW_POWER
             lpm_before_i_go_to_sleep();
 #endif
             
             /* Request Wait For Interrupt */
-            asm ("DMB");
+            asm ("DSB");
             __WFI();
 
             /* Clear SLEEPDEEP bit */
             SCB->SCR &= (uint32_t) ~((uint32_t)SCB_SCR_SLEEPDEEP);
+			
+			/* Restore clocks and PLL */
+			/* (MCU is running on MSI clock after STOP) */
+			clk_init();
             
             /* Wait for the reference voltage */
             while(!(PWR->CSR & PWR_CSR_VREFINTRDYF)) {}
-            
-            /* Restore clocks and PLL */
-            restore_default_clock();
-
+			
 #ifdef GPIO_LOW_POWER
             lpm_when_i_wake_up();
 #endif
             
-            __enable_irq();
+            irq_enable();
 
             break;
 
@@ -348,7 +354,11 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             #if defined (__CC_ARM)
             __force_stores();
             #endif
+			
+			__disable_irq();
+			
             /* Request Wait For Interrupt */
+			asm ("DSB");
             __WFI();
             break;
 

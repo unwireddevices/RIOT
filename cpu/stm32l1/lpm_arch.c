@@ -259,7 +259,6 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 {
     switch (target) {
         case LPM_SLEEP:               /* Low-power sleep mode */
-			lpm_arch_init();
             /* Clear Wakeup flag */    
             PWR->CR |= PWR_CR_CWUF;
 			

@@ -67,6 +67,8 @@ static void pin_set(GPIO_TypeDef* port, uint8_t pin, uint8_t value){
 
 /* put GPIOs in low-power state */
 static void lpm_before_i_go_to_sleep (void) {
+	/* Disable all USART interfaces in use */
+	/* without it, RX will receive some garbage when MODER is changed */
 memset(lpm_usart, 0, sizeof(lpm_usart));
 #if UART_0_EN
     if (UART_0_ISON()) {
@@ -98,8 +100,7 @@ memset(lpm_usart, 0, sizeof(lpm_usart));
         lpm_usart[4] = 1;
     }
 #endif
-	
-	
+
     /* save GPIO clock configuration */
     ahb_gpio_clocks = RCC->AHBENR & 0xFF;
     /* enable all GPIO clocks */

@@ -259,25 +259,36 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 {
     switch (target) {
         case LPM_SLEEP:               /* Low-power sleep mode */
+			lpm_arch_init();
             /* Clear Wakeup flag */    
             PWR->CR |= PWR_CR_CWUF;
+			
             /* Enable low-power mode of the voltage regulator */
-            PWR->CR = (PWR->CR & CR_DS_MASK) | PWR_CR_LPSDSR;
+            PWR->CR |= PWR_CR_LPSDSR;
+			
             /* Clear SLEEPDEEP bit */
-            SCB->SCR &= (uint32_t) ~((uint32_t)SCB_SCR_SLEEPDEEP);
+            SCB->SCR &= ~((uint32_t)SCB_SCR_SLEEPDEEP);
 
             __disable_irq();
             
+#ifdef GPIO_LOW_POWER
+            lpm_before_i_go_to_sleep();
+#endif
+			
             /* Switch to 65kHz medium-speed clock */
-            default_to_msi_clock(RCC_ICSCR_MSIRANGE_0, RCC_CFGR_HPRE_DIV1);
-            
+            switch_to_msi(RCC_ICSCR_MSIRANGE_0);
+            		
             /* Request Wait For Interrupt */
             asm ("DMB");
             __WFI();
 
             /* Switch back to full speed */
             restore_default_clock();
-            
+
+#ifdef GPIO_LOW_POWER
+            lpm_when_i_wake_up();
+#endif
+			
             __enable_irq();
             break;
 
@@ -286,7 +297,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             PWR->CR |= PWR_CR_CWUF;
         
             /* Regulator in LP mode */
-            PWR->CR = (PWR->CR & CR_DS_MASK) | PWR_CR_LPSDSR;
+            PWR->CR |= PWR_CR_LPSDSR;
 
             /* Enable Ultra Low Power mode */
             PWR->CR |= PWR_CR_ULP;

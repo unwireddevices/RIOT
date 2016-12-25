@@ -22,8 +22,6 @@
 #include "cpu.h"
 #include "periph/rtc.h"
 #include "periph_conf.h"
-#include "sched.h"
-#include "thread.h"
 
 /* guard file in case no RTC device was specified */
 #if RTC_NUMOF
@@ -260,9 +258,7 @@ void isr_rtc_alarm(void)
         rtc_callback.cb(rtc_callback.arg);
     }
 
-    if (sched_context_switch_request) {
-        thread_yield_higher();
-    }
+    cortexm_isr_end();
 }
 
 
@@ -275,9 +271,7 @@ void isr_rtc_wkup(void)
         rtc_callback.wkup_cb(rtc_callback.arg);
     }
 
-    if (sched_context_switch_request) {
-        thread_yield_higher();
-    }
+    cortexm_isr_end();
 }
 
 /**

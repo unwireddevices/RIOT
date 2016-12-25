@@ -33,6 +33,8 @@
 #include <stdio.h>
 
 #include "cpu_conf.h"
+#include "sched.h"
+#include "thread.h"
 #include "irq.h"
 
 #ifdef __cplusplus
@@ -77,6 +79,18 @@ static inline void cpu_print_last_instruction(void)
 static inline void cpu_sleep_until_event(void)
 {
     __WFE();
+}
+
+/**
+ * @brief   Trigger a conditional context scheduler run / context switch
+ *
+ * This function is supposed to be called in the end of each ISR.
+ */
+static inline void cortexm_isr_end(void)
+{
+    if (sched_context_switch_request) {
+        thread_yield();
+    }
 }
 
 #ifdef __cplusplus

@@ -43,12 +43,9 @@ extern "C" {
 /**
  * @brief   Switch to MSI clock
  */
-void switch_to_msi(uint32_t msi_range);
+void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider);
 
-/**
- * @brief   Switch back to default clock settings
- */
-void restore_default_clock(void);
+void clk_init(void);
 
 #ifdef __cplusplus
 }

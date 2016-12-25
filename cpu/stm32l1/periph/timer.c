@@ -20,8 +20,6 @@
  */
 
 #include "cpu.h"
-#include "sched.h"
-#include "thread.h"
 #include "periph_conf.h"
 #include "periph/timer.h"
 
@@ -58,7 +56,7 @@ int timer_init(tim_t dev, unsigned long freq, timer_cb_t cb, void *arg)
     isr_ctx[dev].cb = cb;
     isr_ctx[dev].arg = arg;
     /* enable peripheral clock */
-    RCC->APB1ENR |= (1 << timer_config[dev].rcc);
+	periph_clk_en(APB1, timer_config[dev].rcc_mask);
     /* reset timer and configure to up-counting mode */
     tim->CR1 = 0;
     tim->CR2 = 0;
@@ -143,9 +141,7 @@ static inline void irq_handler(tim_t num, TIM_TypeDef *tim)
             isr_ctx[num].cb(isr_ctx[num].arg, i);
         }
     }
-    if (sched_context_switch_request) {
-        thread_yield();
-    }
+    cortexm_isr_end();
 }
 
 #ifdef TIMER_0_ISR

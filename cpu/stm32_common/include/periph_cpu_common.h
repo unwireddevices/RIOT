@@ -31,6 +31,11 @@ extern "C" {
 #define CPUID_LEN           (12U)
 
 /**
+ * @brief   All STM timers have 4 capture-compare channels
+ */
+#define TIMER_CHAN          (4U)
+
+/**
  * @brief   Use the shared SPI functions
  * @{
  */
@@ -42,10 +47,20 @@ extern "C" {
 /**
  * @brief   Available peripheral buses
  */
-enum {
+typedef enum {
     APB1,           /**< APB1 bus */
-    APB2            /**< APB2 bus */
-};
+    APB2,           /**< APB2 bus */
+#if defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L1) || defined(CPU_FAM_STM32F1)\
+    || defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F3)
+    AHB,            /**< AHB bus */
+#elif defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4)
+    AHB1,           /**< AHB1 bus */
+    AHB2,           /**< AHB2 bus */
+    AHB3            /**< AHB3 bus */
+#else
+#warning "unsupported stm32XX family"
+#endif
+} bus_t;
 
 /**
  * @brief   Overwrite the default gpio_t type definition
@@ -66,12 +81,68 @@ typedef uint32_t gpio_t;
 #define GPIO_PIN(x, y)      ((GPIOA_BASE + (x << 10)) | y)
 
 /**
+ * @brief   Available MUX values for configuring a pin's alternate function
+ */
+typedef enum {
+    GPIO_AF0 = 0,           /**< use alternate function 0 */
+    GPIO_AF1,               /**< use alternate function 1 */
+    GPIO_AF2,               /**< use alternate function 2 */
+    GPIO_AF3,               /**< use alternate function 3 */
+#ifndef CPU_FAM_STM32F0
+    GPIO_AF4,               /**< use alternate function 4 */
+    GPIO_AF5,               /**< use alternate function 5 */
+    GPIO_AF6,               /**< use alternate function 6 */
+    GPIO_AF7,               /**< use alternate function 7 */
+    GPIO_AF8,               /**< use alternate function 8 */
+    GPIO_AF9,               /**< use alternate function 9 */
+    GPIO_AF10,              /**< use alternate function 10 */
+    GPIO_AF11,              /**< use alternate function 11 */
+    GPIO_AF12,              /**< use alternate function 12 */
+    GPIO_AF13,              /**< use alternate function 13 */
+    GPIO_AF14,              /**< use alternate function 14 */
+    GPIO_AF15               /**< use alternate function 15 */
+#endif
+} gpio_af_t;
+
+/**
+ * @brief   Timer configuration
+ */
+typedef struct {
+    TIM_TypeDef *dev;       /**< timer device */
+    uint32_t max;           /**< maximum value to count to (16/32 bit) */
+    uint32_t rcc_mask;      /**< corresponding bit in the RCC register */
+    uint8_t bus;            /**< APBx bus the timer is clock from */
+    uint8_t irqn;           /**< global IRQ channel */
+} timer_conf_t;
+
+/**
+ * @brief   PWM configuration
+ */
+typedef struct {
+    TIM_TypeDef *dev;       /**< Timer used */
+    uint32_t rcc_mask;      /**< bit in clock enable register */
+    gpio_t pins[4];         /**< pins used, set to GPIO_UNDEF if not used */
+    gpio_af_t af;           /**< alternate function used */
+    uint8_t chan;           /**< number of configured channels */
+    uint8_t bus;            /**< APB bus */
+} pwm_conf_t;
+
+/**
+ * @brief   Get the actual bus clock frequency for the APB buses
+ *
+ * @param[in] bus       target APBx bus
+ *
+ * @return              bus clock frequency in Hz
+ */
+uint32_t periph_apb_clk(uint8_t bus);
+
+/**
  * @brief   Enable the given peripheral clock
  *
  * @param[in] bus       bus the peripheral is connected to
  * @param[in] mask      bit in the RCC enable register
  */
-void periph_clk_en(uint8_t bus, uint32_t mask);
+void periph_clk_en(bus_t bus, uint32_t mask);
 
 /**
  * @brief   Disable the given peripheral clock
@@ -79,7 +150,7 @@ void periph_clk_en(uint8_t bus, uint32_t mask);
  * @param[in] bus       bus the peripheral is connected to
  * @param[in] mask      bit in the RCC enable register
  */
-void periph_clk_dis(uint8_t bus, uint32_t mask);
+void periph_clk_dis(bus_t bus, uint32_t mask);
 
 /**
  * @brief   Configure the given pin to be used as ADC input

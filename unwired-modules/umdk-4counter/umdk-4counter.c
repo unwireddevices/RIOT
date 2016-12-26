@@ -78,6 +78,9 @@ static void umdk_4count_gpio_mode(gpio_t pin, gpio_mode_t mode, umdk_4counter_si
             break;
 
         case ANALOG:
+	    /* disable pull-ups on GPIOs */
+            port->PUPDR &= ~(0x3 << (2 * pin_num));
+
             port->MODER &= ~(0x3 << (2 * pin_num));
             port->MODER |= (0x3 << (2 * pin_num));
             break;

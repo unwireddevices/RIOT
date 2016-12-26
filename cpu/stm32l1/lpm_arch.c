@@ -260,6 +260,12 @@ static void lpm_when_i_wake_up (void) {
 
 void lpm_arch_init(void)
 {
+	/* Unlock the RUN_PD bit to change flash settings */  
+	FLASH->PDKEYR = FLASH_PDKEY1;
+	FLASH->PDKEYR = FLASH_PDKEY2;
+	/* Enable flash power down during sleep */
+	FLASH->ACR |= FLASH_ACR_SLEEP_PD;
+	
     /* Disable peripherals in Sleep mode */
     RCC->APB1LPENR &= ~(RCC_APB1LPENR_TIM2LPEN);
     RCC->APB1LPENR &= ~(RCC_APB1LPENR_TIM3LPEN);
@@ -300,6 +306,8 @@ void lpm_arch_init(void)
     RCC->AHBLPENR &= ~(RCC_AHBLPENR_FSMCLPEN);
     
     /* disable only GPIO ports which do not have IRQs associated */
+	/* SEEMS WE DO NOT NEED CLOCK RUNNING FOR EXT IRQ IN SLEEP MODE */
+	/*
     uint8_t port;
     uint8_t pin;
     uint8_t is_irq_enabled;
@@ -316,6 +324,7 @@ void lpm_arch_init(void)
             RCC->AHBLPENR &= ~(1 << port);
         }
     }
+	*/
 }
 
 enum lpm_mode lpm_arch_set(enum lpm_mode target)

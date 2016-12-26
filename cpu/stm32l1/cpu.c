@@ -126,32 +126,41 @@ void clk_init(void)
      * NOTE: the MCU will stay here forever if you use an external clock source and it's not connected */
     while (!(RCC->CR & CLOCK_CR_SOURCE_RDY)) {}
 	
-	/* Unlock the RUN_PD bit to change flash settings */  
-	FLASH->PDKEYR = FLASH_PDKEY1;
-	FLASH->PDKEYR = FLASH_PDKEY2;
-	/* Enable flash power down during sleep */
-	FLASH->ACR |= FLASH_ACR_SLEEP_PD;
-	/* Enable 64-bit access */
+	/* Choose the most efficient flash configuration */
+#if (CLOCK_CORECLOCK > 8000000U)
+	/* Enable 64-bit access, prefetch and 1 wait state */
+	/* (at F > 8MHz/16MHz WS must be 1) */
     FLASH->ACR |= FLASH_ACR_ACC64;
-    /* Enable Prefetch Buffer */
+	FLASH->ACR |= CLOCK_FLASH_LATENCY;
     FLASH->ACR |= FLASH_ACR_PRFTEN;
-    /* Flash 1 wait state */
-    FLASH->ACR |= CLOCK_FLASH_LATENCY;
 	/* Wait for flash to become ready */
 	while (!(FLASH->SR & FLASH_SR_READY)) {}
-	
-    /* Power enable */
+#elif
+	/* Set 0 wait state, 32-bit access and no prefetch */
+	/* LATENCY and PRFTEN can be changed with 64-bit access enabled only */
+	FLASH->ACR |= FLASH_ACR_ACC64;
+	FLASH->ACR &= ~FLASH_ACR_LATENCY;
+	FLASH->ACR &= ~FLASH_ACR_PRFTEN;
+	FLASH->ACR &= ~FLASH_ACR_ACC64;
+	/* Wait for flash to become ready */
+	while (!(FLASH->SR & FLASH_SR_READY)) {}
+#endif
+
+    /* Power domain enable */
 	periph_clk_en(APB1, RCC_APB1ENR_PWREN);
-	
     /* Select the Voltage Range */
 	tmpreg = PWR->CR;
 	tmpreg &= ~PWR_CR_VOS;
-    tmpreg |= CLOCK_CR_SOURCE;
+    tmpreg |= CORE_VOLTAGE;
 	PWR->CR = tmpreg;
     /* Wait until the Voltage Regulator is ready */
     while((PWR->CSR & PWR_CSR_VOSF) != 0) {}
+
+	/* Enable low-power run if permitted */
 #if CLOCK_MSI
-    PWR->CR |= PWR_CR_LPSDSR | PWR_CR_LPRUN;
+    if ((CLOCK_MSIRANGE == RCC_ICSCR_MSIRANGE_1) || (msi_range == RCC_ICSCR_MSIRANGE_0)) {
+		PWR->CR |= PWR_CR_LPSDSR | PWR_CR_LPRUN;
+	}
 #endif
 
     /* set AHB, APB1 and APB2 clock dividers */
@@ -172,8 +181,10 @@ void clk_init(void)
     /* Wait till PLL is ready */
     while ((RCC->CR & RCC_CR_PLLRDY) == 0) {}
 #elif CLOCK_MSI
-    RCC->ICSCR &= ~(RCC_ICSCR_MSIRANGE);
-    RCC->ICSCR |= CLOCK_MSIRANGE;
+	tmpreg = RCC->ICSCR;
+	tmpreg &= ~(RCC_ICSCR_MSIRANGE);
+    tmpreg |= CLOCK_MSIRANGE;
+	RCC->ICSCR = tmpreg;
 #endif
 
 	/* Select system clock source */
@@ -201,14 +212,20 @@ void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider)
 	tmpreg = RCC->CFGR;
 	tmpreg &= ~RCC_CFGR_HPRE;
 	tmpreg |= ahb_divider;
-	RCC->CFGR = tmpreg;
-	
-	tmpreg = RCC->CFGR;
 	tmpreg &= ~RCC_CFGR_SW;
 	tmpreg |= RCC_CFGR_SW_MSI;
 	RCC->CFGR = tmpreg;
 	
 	while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS) != RCC_CFGR_SWS_MSI) {}
+	
+	if ((msi_range == RCC_ICSCR_MSIRANGE_1) || (msi_range == RCC_ICSCR_MSIRANGE_0)) {
+		/* Low-power run is only allowed at MSI Range 0 and 1 */
+		PWR->CR |= PWR_CR_LPSDSR | PWR_CR_LPRUN;
+	} else {
+		/* set Voltage Range 3 (1.2V) */
+		PWR->CR |= (PWR_CR_VOS_1 | PWR_CR_VOS_0);
+		while((PWR->CSR & PWR_CSR_VOSF) != 0) {}
+	}
 	
 	/* Set latency = 0, disable prefetch and 64-bit access */
 	FLASH->ACR &= ~FLASH_ACR_LATENCY;

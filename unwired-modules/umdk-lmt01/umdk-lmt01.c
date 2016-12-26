@@ -24,7 +24,6 @@ extern "C" {
 #include <stdbool.h>
 #include <string.h>
 
-#include "lpm.h"
 #include "periph/gpio.h"
 #include "board.h"
 
@@ -113,8 +112,6 @@ void *timer_thread(void *arg) {
     while (1) {
         msg_receive(&msg);
 
-        lpm_prevent_sleep = 1;
-
         rtctimers_remove(&timer);
 
         module_data_t data = {};
@@ -125,8 +122,6 @@ void *timer_thread(void *arg) {
 
         /* Notify the application */
         callback(&data);
-
-        lpm_prevent_sleep = 0;
 
         /* Restart after delay */
         rtctimers_set_msg(&timer, 60 * publish_period_min, &timer_msg, timer_pid);

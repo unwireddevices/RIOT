@@ -107,11 +107,9 @@ static void umdk_4count_counter_int(void)
 
             if (now_value[j] == 0) {
                 accept_value[j] = 0;
-                printf("[umdk-4counter] Counting %d rejected	%d/%d\n", j + 1, i + 1, UMDK_4COUNT_DETECT_COUNT);
             }
             else if (last_value[j] == 1) {
                 accept_value[j] = i + 1;
-                printf("[umdk-4counter] Counting %d accept	%d/%d\n", j + 1, i + 1, UMDK_4COUNT_DETECT_COUNT);
             }
 
             last_value[j] = now_value[j];
@@ -119,11 +117,8 @@ static void umdk_4count_counter_int(void)
             /* Increase pulses count for current input */
             if (accept_value[j] == UMDK_4COUNT_DETECT_COUNT) {
                 conf_counter.count_value[j]++;
-                printf("[umdk-4counter] Count %d   Value %d\n", j + 1, (int)conf_counter.count_value[j]);
             }
         }
-        printf("\n");
-
         /* Delay */
         xtimer_usleep(time_detect * 1000);
     }

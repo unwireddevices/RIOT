@@ -161,6 +161,8 @@ static void *handler(void *arg)
                 break;
 
             case PUBLISHING:
+            	;
+
                 module_data_t data;
                 data.length = 1 + 4 * UMDK_4COUNT_NUM_SENS;
 

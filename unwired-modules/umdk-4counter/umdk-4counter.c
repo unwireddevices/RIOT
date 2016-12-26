@@ -99,9 +99,6 @@ static void umdk_4count_counter_int(void)
     int8_t last_value[UMDK_4COUNT_NUM_SENS] = {0};
     bool accept_value[UMDK_4COUNT_NUM_SENS] = {false};
 
-    /* Prevent low power mode */
-    lpm_prevent_sleep = 1;
-
     /* Set GPIO mode: Digital with pull-up */
     for(int i=0;i<UMDK_4COUNT_NUM_SENS;i++)
       {
@@ -132,7 +129,9 @@ static void umdk_4count_counter_int(void)
 	printf("\n");
 
 	/* Delay */
+	printf("delay begins: %d us\n", time_detect * 1000);
 	xtimer_usleep(time_detect * 1000);
+	puts("delay end");
       }
 
 
@@ -156,9 +155,6 @@ static void umdk_4count_counter_int(void)
 
     /* Restart counting timer */
     rtctimers_set_msg(&counter_timer, UMDK_4COUNT_SLEEP_TIME_SEC , &counter_msg, handler_pid);
-
-    /* Allow sleep */
-    lpm_prevent_sleep = 0;
 }
 
 static inline void save_config(void)
@@ -183,11 +179,10 @@ static void *handler(void *arg)
         {
           case COUNTING:
 		umdk_4count_counter_int();
+		puts("counting stopped");
             break;
 
           case PUBLISHING:
-	        lpm_prevent_sleep = 1;
-
 	        module_data_t data;
 	        data.length = 1 + 4 * UMDK_4COUNT_NUM_SENS;
 
@@ -210,9 +205,6 @@ static void *handler(void *arg)
 	        if (conf_counter.publish_period) {
 	            rtctimers_set_msg(&publishing_timer, UMDK_4COUNT_VALUE_PERIOD_PER_SEC * conf_counter.publish_period, &publishing_msg, handler_pid);
 	        }
-
-	        /* Allow sleep */
-	        lpm_prevent_sleep = 0;
 	  break;
 
 	  default:

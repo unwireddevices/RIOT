@@ -109,6 +109,7 @@ static int send_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame)
     switch (frame->header.type) {
         case LS_DL_JOIN_ACK:
         case LS_DL_INVITE:
+        case LS_DL_BROADCAST:
             ls_encrypt_frame(ls->settings.join_key, ls->settings.join_key, frame, &payload_size);
             break;
 
@@ -792,10 +793,18 @@ int ls_gate_invite(ls_gate_t *ls, uint64_t nodeid) {
 }
 
 /**
- * @brief Broadcasts a packet to all nodes and channels.
+ * @brief Broadcasts a packet to all channels.
  */
 int ls_gate_broadcast(ls_gate_t *ls, uint8_t *buf, size_t bufsize)
 {
+	/* Iterate through all channels and send broadcast message */
+    for (int i = 0; i < ls->num_channels; i++) {
+        ls_gate_channel_t *ch = &ls->channels[i];
+        assert(ch->_internal.sx1276 != NULL);
+
+        enqueue_frame(ch, LS_ADDR_UNDEFINED, LS_DL_BROADCAST, buf, bufsize);
+    }
+
     return LS_GATE_OK;
 }
 

@@ -44,6 +44,7 @@ typedef enum {
 #define UNWDS_GPIO_ACT_SHIFT 6
 
 void unwds_gpio_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
+bool unwds_gpio_broadcast(module_data_t *cmd, module_data_t *reply);
 bool unwds_gpio_cmd(module_data_t *cmd, module_data_t *reply);
 
 gpio_t unwds_gpio_pin(int pin);

@@ -221,7 +221,7 @@ int ls_gate_send_to(ls_gate_t *ls, ls_addr_t devaddr, uint8_t *buf, size_t bufsi
 int ls_gate_invite(ls_gate_t *ls, uint64_t nodeid);
 
 /**
- * @brief Broadcasts a packet to all nodes and channels.
+ * @brief Broadcasts a packet to all channels.
  */
 int ls_gate_broadcast(ls_gate_t *ls, uint8_t *buf, size_t bufsize);
 

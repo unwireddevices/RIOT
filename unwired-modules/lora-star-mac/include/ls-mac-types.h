@@ -76,7 +76,8 @@ typedef enum {
 
 	LS_UL_UNC_ACK,		/**< Uplink application data unconfirmed with ACK for previous app. data */
 	LS_DL_ACK_W_DATA,	/**< Downlink appdata acknowledge with additional app. data */
-	LS_RFU3,
+
+	LS_DL_BROADCAST,	/**< Unconfirmed downlink broadcasted message */
 
 	LS_UL_JOIN_REQ,	/**< Join request */
 	LS_DL_JOIN_ACK,	/**< Join acknowledge */

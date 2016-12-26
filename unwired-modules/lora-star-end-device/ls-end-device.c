@@ -243,6 +243,22 @@ static void data_recv(ls_ed_t *ls, ls_frame_t *frame) {
 static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 {
     switch (frame->header.type) {
+    	case LS_DL_BROADCAST: { /* Downlink broadcast message */
+    		/* Validate and decipher incoming broadcast message */
+            if (!ls_validate_frame_mic(ls->settings.crypto.join_key, frame)) {
+                return false;
+            }
+            ls_decrypt_frame_payload(ls->settings.crypto.join_key, &frame->payload);
+
+            /* Notify application code about incoming data */
+            if (ls->broadcast_appdata_received_cb != NULL) {
+            	return ls->broadcast_appdata_received_cb(frame->payload.data, frame->payload.len);
+            }
+
+            return false;
+    	}
+    	break;
+
     	case LS_DL_ACK_W_DATA: /* Acknowledge with additional data */
             /* Must be joined to the network first */
             if (!ls->_internal.is_joined) {

@@ -94,6 +94,8 @@ typedef struct {
 	void (*init_cb)(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
 	bool (*cmd_cb)(module_data_t *data, module_data_t *reply);
 
+	bool (*cmb_broadcast_cb)(module_data_t *data, module_data_t *reply);
+
 	uint64_t ability_mask;
 
 	bool uses_i2c;
@@ -101,6 +103,7 @@ typedef struct {
 
 void unwds_init_modules(uwnds_cb_t *event_callback);
 bool unwds_send_to_module(unwds_module_id_t modid, module_data_t *data, module_data_t *reply);
+bool unwds_send_broadcast(unwds_module_id_t modid, module_data_t *data, module_data_t *reply);
 
 uint64_t unwds_get_ability(void);
 void unwds_set_ability(uint64_t ability);

@@ -131,7 +131,7 @@ void appdata_send_failed_cb(void)
 	joined_timeout_cb();
 }
 
-bool appdata_received_cb(uint8_t *buf, size_t buflen)
+static bool appdata_received_cb(uint8_t *buf, size_t buflen)
 {
     char hex[100] = {};
 
@@ -172,6 +172,34 @@ bool appdata_received_cb(uint8_t *buf, size_t buflen)
     return false;
 }
 
+static bool broadcast_appdata_received_cb(uint8_t *buf, size_t buflen) {
+    char hex[100] = {};
+
+    bytes_to_hex(buf, buflen, hex, false);
+
+    printf("ls-ed: received broadcast data: \"%s\"\n", hex);
+    blink_led();
+
+    if (buflen < 2) {
+        return true;
+    }
+
+    unwds_module_id_t modid = buf[0];
+    (void) modid; // XXX: warning suppress, not used yet
+
+    module_data_t cmd;
+    /* Save command data */
+    memcpy(cmd.data, buf + 1, buflen - 1);
+    cmd.length = buflen - 1;
+
+    /* Save RSSI value */
+    cmd.rssi = ls._internal.last_rssi;
+
+    unwds_send_broadcast(modid, &cmd, NULL);
+
+    return false;
+}
+
 static void standby_mode_cb(void)
 {
 	//puts("Entering LPM");
@@ -207,6 +235,7 @@ static void ls_setup(ls_ed_t *ls)
     ls->settings.max_retr = node_settings.max_retr;     /* Maximum number of confirmed data retransmissions */
 
     ls->appdata_received_cb = appdata_received_cb;
+    ls->broadcast_appdata_received_cb = broadcast_appdata_received_cb;
 
     ls->standby_mode_cb = standby_mode_cb;
     ls->wakeup_cb = wakeup_cb;

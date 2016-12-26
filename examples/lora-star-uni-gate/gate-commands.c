@@ -89,7 +89,7 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 		/* Skip nodeid */
 		payload += 16;
 
-		/* Number of argument bytes is length of hex digits train except '\n' characer */
+		/* Number of argument bytes is length of hex digits train except '\n' character */
 		int numdigits = strlen(payload) - 1;
 		if (numdigits % 2 != 0) {
 			printf("[error] Invalid command data: %s, length must be even.\n", data);
@@ -164,6 +164,25 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 				(unsigned int) (nodeid & 0xFFFFFFFF));
 
 		ls_gate_invite(ls, nodeid);
+		break;
+	}
+
+	case CMD_BROADCAST: {
+		/* Number of argument bytes is length of hex digits train except '\n' character */
+		int numdigits = strlen(payload) - 1;
+		if (numdigits % 2 != 0) {
+			printf("[error] Invalid command data: %s, length must be even.\n", data);
+			return;
+		}
+
+		uint8_t a[UNWDS_MAX_DATA_LEN + 2];
+		if (!hex_to_bytesn(payload, numdigits, a, false)) {
+			printf("[error] Invalid command received: %s\n", data);
+			return;
+		}
+
+		ls_gate_broadcast(ls, a, numdigits / 2);
+
 		break;
 	}
 

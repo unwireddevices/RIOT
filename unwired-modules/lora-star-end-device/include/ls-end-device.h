@@ -213,6 +213,8 @@ typedef struct {
 	bool (*appdata_received_cb)(uint8_t *buf, size_t buflen);
 	void (*appdata_send_failed_cb)(void);
 
+	bool (*broadcast_appdata_received_cb)(uint8_t *buf, size_t buflen);
+
 	void (*standby_mode_cb)(void);
 	void (*wakeup_cb)(void);
 

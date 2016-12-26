@@ -39,13 +39,13 @@
 #define UMDK_4COUNT_PUBLISH_PERIOD_MAX 24
 
 typedef enum {
-  DIGITAL = 1,
-  ANALOG = 0,
+    DIGITAL = 1,
+    ANALOG = 0,
 } umdk_4counter_signal_t;
 
 typedef enum {
-  COUNTING = 0,
-  PUBLISHING = 1,
+    COUNTING = 0,
+    PUBLISHING = 1,
 } umdk_4counter_msg_t;
 
 typedef enum {

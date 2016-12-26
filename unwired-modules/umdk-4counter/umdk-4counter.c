@@ -25,8 +25,6 @@ extern "C" {
 #include <string.h>
 #include <limits.h>
 
-#include "lpm.h"
-
 #include "periph/gpio.h"
 
 #include "board.h"
@@ -97,7 +95,7 @@ static void umdk_4count_counter_int(void)
 
     int8_t now_value[UMDK_4COUNT_NUM_SENS] = {0};
     int8_t last_value[UMDK_4COUNT_NUM_SENS] = {0};
-    bool accept_value[UMDK_4COUNT_NUM_SENS] = {false};
+    int8_t accept_value[UMDK_4COUNT_NUM_SENS] = {1};
 
     /* Set GPIO mode: Digital with pull-up */
     for(int i=0;i<UMDK_4COUNT_NUM_SENS;i++)
@@ -115,36 +113,28 @@ static void umdk_4count_counter_int(void)
 
 	    if(now_value[j] == 0)
 	      {
+		accept_value[j] = 0;
 		printf("[umdk-4counter] Counting %d rejected	%d/%d\n", j+1, i+1, UMDK_4COUNT_DETECT_COUNT);
-		accept_value[j] = false;
 	      }
 	    else if(last_value[j] == 1)
 	      {
+		accept_value[j] = i + 1;
 		printf("[umdk-4counter] Counting %d accept	%d/%d\n", j+1, i+1, UMDK_4COUNT_DETECT_COUNT);
-		accept_value[j] = true;
 	      }
 
 	    last_value[j] = now_value[j];
+
+	    /* Increase pulses count for current input */
+	    if(accept_value[j] == UMDK_4COUNT_DETECT_COUNT)
+	      {
+		  conf_counter.count_value[j]++;
+		  printf("[umdk-4counter] Count %d   Value %d\n", j+1, (int)conf_counter.count_value[j]);
+	      }
 	  }
 	printf("\n");
 
 	/* Delay */
-	printf("delay begins: %d us\n", time_detect * 1000);
 	xtimer_usleep(time_detect * 1000);
-	puts("delay end");
-      }
-
-
-    /* Increase pulses count for current input */
-    for(int i=0;i<UMDK_4COUNT_NUM_SENS;i++)
-      {
-	/* If the value of sensor is accepted(5 values of impulses in a row identical) */
-      if(accept_value[i] == true)
-	{
-	  conf_counter.count_value[i]++;
-	  printf("[umdk-4counter] Count %d   Value %d\n", i+1, (int)conf_counter.count_value[i]);
-	  accept_value[i] = false;
-	}
       }
 
     /* Set GPIO mode: Analog */
@@ -179,7 +169,6 @@ static void *handler(void *arg)
         {
           case COUNTING:
 		umdk_4count_counter_int();
-		puts("counting stopped");
             break;
 
           case PUBLISHING:

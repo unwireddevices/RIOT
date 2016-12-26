@@ -80,7 +80,7 @@ static void umdk_4count_gpio_mode(gpio_t pin, gpio_mode_t mode, umdk_4counter_si
         case ANALOG:
 	    /* disable pull-ups on GPIOs */
             port->PUPDR &= ~(0x3 << (2 * pin_num));
-
+            /*  Set analog mode */
             port->MODER &= ~(0x3 << (2 * pin_num));
             port->MODER |= (0x3 << (2 * pin_num));
             break;
@@ -105,7 +105,7 @@ static void umdk_4count_counter_int(void)
     /* Detecting impulses */
     for (int8_t i = 0; i < UMDK_4COUNT_DETECT_COUNT; i++) {
         for (int j = 0; j < UMDK_4COUNT_NUM_SENS; j++) {
-            /* Read the value from gpio pins */
+            /* Read the value from gpio pins (Invert value because gpio init as pull-up)*/
             now_value[j] = !gpio_read(pins_sens[j]);
 
             if (now_value[j] == 0) {
@@ -117,8 +117,9 @@ static void umdk_4count_counter_int(void)
 
             last_value[j] = now_value[j];
 
-            /* Increase pulses count for current input */
+            /* If value accepted "UMDK_4COUNT_DETECT_COUNT" times in a row */
             if (accept_value[j] == UMDK_4COUNT_DETECT_COUNT) {
+                /* Increase pulses count for current input */
                 conf_counter.count_value[j]++;
             }
         }
@@ -192,7 +193,6 @@ static void *handler(void *arg)
 
     return NULL;
 }
-
 
 
 void umdk_4counter_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)

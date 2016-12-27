@@ -67,38 +67,40 @@ static void pin_set(GPIO_TypeDef* port, uint8_t pin, uint8_t value){
 
 /* put GPIOs in low-power state */
 static void lpm_before_i_go_to_sleep (void) {
+#ifdef STM32L1XX_XL
 	/* Disable all USART interfaces in use */
 	/* without it, RX will receive some garbage when MODER is changed */
-memset(lpm_usart, 0, sizeof(lpm_usart));
-#if UART_0_EN
-    if (UART_0_ISON()) {
-		UART_0_CLKDIS();
-		lpm_usart[0] = 1;
-    }
-#endif
-#if UART_1_EN
-    if (UART_1_ISON()) {
-		UART_1_CLKDIS();
-        lpm_usart[1] = 1;
-	}
-#endif
-#if UART_2_EN
-    if (UART_2_ISON()) {
-		UART_2_CLKDIS();
-        lpm_usart[2] = 1;
-    }
-#endif
-#if UART_3_EN
-    if (UART_3_ISON()) {
-		UART_3_CLKDIS();
-        lpm_usart[3] = 1;
-	}
-#endif
-#if UART_4_EN
-    if (UART_4_ISON()) {
-		UART_4_CLKDIS();
-        lpm_usart[4] = 1;
-    }
+	memset(lpm_usart, 0, sizeof(lpm_usart));
+	#if UART_0_EN
+		if (UART_0_ISON()) {
+			UART_0_CLKDIS();
+			lpm_usart[0] = 1;
+		}
+	#endif
+	#if UART_1_EN
+		if (UART_1_ISON()) {
+			UART_1_CLKDIS();
+			lpm_usart[1] = 1;
+		}
+	#endif
+	#if UART_2_EN
+		if (UART_2_ISON()) {
+			UART_2_CLKDIS();
+			lpm_usart[2] = 1;
+		}
+	#endif
+	#if UART_3_EN
+		if (UART_3_ISON()) {
+			UART_3_CLKDIS();
+			lpm_usart[3] = 1;
+		}
+	#endif
+	#if UART_4_EN
+		if (UART_4_ISON()) {
+			UART_4_CLKDIS();
+			lpm_usart[4] = 1;
+		}
+	#endif
 #endif
 
     /* save GPIO clock configuration */

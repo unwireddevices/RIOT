@@ -135,7 +135,7 @@ void clk_init(void)
     FLASH->ACR |= FLASH_ACR_PRFTEN;
 	/* Wait for flash to become ready */
 	while (!(FLASH->SR & FLASH_SR_READY)) {}
-#elif
+#else
 	/* Set 0 wait state, 32-bit access and no prefetch */
 	/* LATENCY and PRFTEN can be changed with 64-bit access enabled only */
 	FLASH->ACR |= FLASH_ACR_ACC64;

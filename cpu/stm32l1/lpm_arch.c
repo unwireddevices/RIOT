@@ -71,12 +71,14 @@ static void lpm_before_i_go_to_sleep (void) {
 	/* Disable all USART interfaces in use */
 	/* without it, RX will receive some garbage when MODER is changed */
 	memset(lpm_usart, 0, sizeof(lpm_usart));
+	/*
 	#if UART_0_EN
 		if (UART_0_ISON()) {
 			UART_0_CLKDIS();
 			lpm_usart[0] = 1;
 		}
 	#endif
+	*/
 	#if UART_1_EN
 		if (UART_1_ISON()) {
 			UART_1_CLKDIS();
@@ -112,13 +114,13 @@ static void lpm_before_i_go_to_sleep (void) {
     uint8_t p;
     uint32_t mask;
     GPIO_TypeDef *port;
+	GPIO_TypeDef gpio_struct;
     
     uint32_t addr_diff = GPIOB_BASE - GPIOA_BASE;
     uint32_t gpio_base_addr = 0;
     
     for (i = 0; i < 8; i++) {
-    	GPIO_TypeDef gpio_struct;
-
+		if (i != 1) {
         gpio_base_addr = GPIOA_BASE + i*addr_diff;
         port = (GPIO_TypeDef *)gpio_base_addr;
         
@@ -127,9 +129,9 @@ static void lpm_before_i_go_to_sleep (void) {
         /* save GPIO registers values */
         lpm_gpio_moder[i] = gpio_struct.MODER;
         lpm_gpio_pupdr[i] = gpio_struct.PUPDR;
-        lpm_gpio_otyper[i] = (gpio_struct.OTYPER & 0xFFFF);
+        lpm_gpio_otyper[i] = (uint16_t)(gpio_struct.OTYPER & 0xFFFF);
         lpm_gpio_ospeedr[i] = gpio_struct.OSPEEDR;
-        lpm_gpio_odr[i] = (gpio_struct.ODR & 0xFFFF);
+        lpm_gpio_odr[i] = (uint16_t)(gpio_struct.ODR & 0xFFFF);
         
         mask = 0xFFFFFFFF;
         
@@ -155,6 +157,7 @@ static void lpm_before_i_go_to_sleep (void) {
         
         /* set lowest speed */
         port->OSPEEDR = 0;
+		}
     }
     
     /* specifically set GPIOs used for external SPI devices */
@@ -183,11 +186,13 @@ static void lpm_before_i_go_to_sleep (void) {
 #endif
 
     /* set UART TX pin to 1 */
+	/*
 #if UART_0_EN
     if (UART_0_ISON()) {
         pin_set((GPIO_TypeDef *)(UART_0_TX_PIN & ~(0x0f)), UART_0_TX_PIN & 0x0f, 1);
     }
 #endif
+	*/
 #if UART_1_EN
     if (UART_1_ISON()) {
         pin_set((GPIO_TypeDef *)(UART_1_TX_PIN & ~(0x0f)), UART_1_TX_PIN & 0x0f, 1);
@@ -224,19 +229,24 @@ static void lpm_when_i_wake_up (void) {
     
     uint8_t i;
     GPIO_TypeDef *port;
+	GPIO_TypeDef gpio_struct;
     uint32_t addr_diff = GPIOB_BASE - GPIOA_BASE;
     uint32_t gpio_base_addr = 0;
 	  
     /* restore GPIO settings */
     for (i = 0; i < 8; i++) {
+		if (i != 1) {
         gpio_base_addr = GPIOA_BASE + i*addr_diff;
         port = (GPIO_TypeDef *)gpio_base_addr;
         
-		port->PUPDR = lpm_gpio_pupdr[i];
-		port->OTYPER = lpm_gpio_otyper[i];
-        port->OSPEEDR = lpm_gpio_ospeedr[i];
-        port->ODR = lpm_gpio_odr[i];
-        port->MODER = lpm_gpio_moder[i];
+		gpio_struct.PUPDR = lpm_gpio_pupdr[i];
+		gpio_struct.OTYPER = lpm_gpio_otyper[i];
+        gpio_struct.OSPEEDR = lpm_gpio_ospeedr[i];
+        gpio_struct.ODR = lpm_gpio_odr[i];
+        gpio_struct.MODER = lpm_gpio_moder[i];
+		
+		memcpy(port, &gpio_struct, sizeof(GPIO_TypeDef));
+		}
     }
 
     /* restore GPIO clocks */

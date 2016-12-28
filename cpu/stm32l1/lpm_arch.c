@@ -117,15 +117,19 @@ static void lpm_before_i_go_to_sleep (void) {
     uint32_t gpio_base_addr = 0;
     
     for (i = 0; i < 8; i++) {
+    	GPIO_TypeDef gpio_struct;
+
         gpio_base_addr = GPIOA_BASE + i*addr_diff;
         port = (GPIO_TypeDef *)gpio_base_addr;
         
+        memcpy(&gpio_struct, port, sizeof(GPIO_TypeDef));
+
         /* save GPIO registers values */
-        lpm_gpio_moder[i] = port->MODER;
-        lpm_gpio_pupdr[i] = port->PUPDR;
-        lpm_gpio_otyper[i] = (port->OTYPER & 0xFFFF);
-        lpm_gpio_ospeedr[i] = port->OSPEEDR;
-        lpm_gpio_odr[i] = (port->ODR & 0xFFFF);
+        lpm_gpio_moder[i] = gpio_struct.MODER;
+        lpm_gpio_pupdr[i] = gpio_struct.PUPDR;
+        lpm_gpio_otyper[i] = (gpio_struct.OTYPER & 0xFFFF);
+        lpm_gpio_ospeedr[i] = gpio_struct.OSPEEDR;
+        lpm_gpio_odr[i] = (gpio_struct.ODR & 0xFFFF);
         
         mask = 0xFFFFFFFF;
         

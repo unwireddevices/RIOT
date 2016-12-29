@@ -44,6 +44,8 @@ static uint32_t tmpreg;
 static uint16_t lpm_portmask_system[CPU_NUMBER_OF_PORTS] = { 0 };
 static uint16_t lpm_portmask_user[CPU_NUMBER_OF_PORTS] = { 0 };
 
+volatile uint8_t lpm_run_mode;
+
 /* We are not using gpio_init as it sets GPIO clock speed to maximum */
 /* We add GPIOs we touched to exclusion mask lpm_portmask_system */
 static void pin_set(GPIO_TypeDef* port, uint8_t pin, uint8_t value) {
@@ -259,6 +261,7 @@ static void lpm_when_i_wake_up (void) {
 #endif
 }
 
+/* Do not change GPIO state in sleep mode */
 void lpm_arch_add_gpio_exclusion(gpio_t gpio) {
 	uint8_t port = ((uint32_t)gpio >> 10) & 0x0f;
 	uint8_t pin = ((uint32_t)gpio & 0x0f);
@@ -266,6 +269,7 @@ void lpm_arch_add_gpio_exclusion(gpio_t gpio) {
 	lpm_portmask_user[port] |= (uint16_t)(1<<pin);
 }
 
+/* Change GPIO state to AIN in sleep mode */
 void lpm_arch_del_gpio_exclusion(gpio_t gpio) {
 	uint8_t port = ((uint32_t)gpio >> 10) & 0x0f;
 	uint8_t pin = ((uint32_t)gpio & 0x0f);
@@ -273,8 +277,25 @@ void lpm_arch_del_gpio_exclusion(gpio_t gpio) {
 	lpm_portmask_user[port] &= ~(uint16_t)(1<<pin);
 }
 
+/* Select CPU clocking between default (LPM_ON) and medium-speed (LPM_IDLE) */
+static void lpm_select_run_mode(uint8_t lpm_mode) {
+	switch(lpm_run_mode) {
+		case LPM_ON:
+			clk_init();
+			break;
+		case LPM_IDLE:
+			switch_to_msi(RCC_ICSCR_MSIRANGE_6, RCC_CFGR_HPRE_DIV1);
+			break;
+		default:
+			clk_init();
+		break;
+	}
+}
+
 void lpm_arch_init(void)
 {
+	lpm_run_mode = LPM_ON;
+	
     /* Unlock the RUN_PD bit to change flash settings */  
     FLASH->PDKEYR = FLASH_PDKEY1;
     FLASH->PDKEYR = FLASH_PDKEY2;
@@ -365,7 +386,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             __WFI();
             
             /* Switch back to default speed */
-            clk_init();
+			lpm_select_run_mode(lpm_run_mode);
 
             lpm_when_i_wake_up();
           
@@ -395,7 +416,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             
             /* Restore clocks and PLL */
             /* (MCU is running on MSI clock after STOP) */
-            clk_init();
+			lpm_select_run_mode(lpm_run_mode);
             
             lpm_when_i_wake_up();
 
@@ -430,8 +451,19 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 
         /* do nothing here */
         case LPM_UNKNOWN:
+			break;
         case LPM_ON:
+			irq_disable();
+			lpm_run_mode = LPM_ON;
+			lpm_select_run_mode(lpm_run_mode);
+			irq_enable();
+			break;
         case LPM_IDLE:
+			irq_disable();
+			lpm_run_mode = LPM_IDLE;
+			lpm_select_run_mode(lpm_run_mode);
+			irq_enable();
+			break;
         default:
             break;
     }

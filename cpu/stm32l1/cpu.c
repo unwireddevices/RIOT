@@ -92,6 +92,7 @@
 
 static uint32_t tmpreg;
 static unsigned long timer_freq[TIMER_NUMOF];
+static unsigned long uart_baudrate[UART_NUMOF];
 uint32_t cpu_clock_global;
 
 void cpu_init(void)
@@ -102,14 +103,28 @@ void cpu_init(void)
     clk_init();
 }
 
+static void clk_store_clocks() {
+	/* store timers frequencies */
+	for (tmpreg = 0; tmpreg < TIMER_NUMOF; tmpreg++) {
+        timer_freq[tmpreg] = timer_get_freq((tim_t)tmpreg);
+    }
+}
+
+static void clk_restore_clocks(void) {
+	/* restore timers frequencies */
+	for (tmpreg = 0; tmpreg < TIMER_NUMOF; tmpreg++) {
+        if (timer_freq[tmpreg]) {
+            timer_set_freq((tim_t)tmpreg, timer_freq[tmpreg]);
+        }
+    }
+}
+
 /**
  * @brief Configure the clock system of the stm32f1
  */
 void clk_init(void)
 {
-    for (tmpreg = 0; tmpreg < TIMER_NUMOF; tmpreg++) {
-        timer_freq[tmpreg] = timer_get_freq((tim_t)tmpreg);
-    }
+    clk_store_clocks();
     
     /* Reset the RCC clock configuration to the default reset state(for debug purpose) */
     /* Set MSION bit */
@@ -206,18 +221,12 @@ void clk_init(void)
     
     cpu_clock_global = CLOCK_CORECLOCK;
     /* reclock timers */
-    for (tmpreg = 0; tmpreg < TIMER_NUMOF; tmpreg++) {
-        if (timer_freq[tmpreg]) {
-            timer_set_freq((tim_t)tmpreg, timer_freq[tmpreg]);
-        }
-    }
+    clk_restore_clocks();
 }
 
 void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider)
 {
-    for (tmpreg = 0; tmpreg < TIMER_NUMOF; tmpreg++) {
-        timer_freq[tmpreg] = timer_get_freq((tim_t)tmpreg);
-    }
+    clk_store_clocks();
     
     RCC->CR |= RCC_CR_MSION;
     while (!(RCC->CR & RCC_CR_MSIRDY)) {}
@@ -260,9 +269,5 @@ void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider)
     cpu_clock_global = 65536 * (1 << msi_range);
     
     /* reclock timers */
-    for (tmpreg = 0; tmpreg < TIMER_NUMOF; tmpreg++) {
-        if (timer_freq[tmpreg]) {
-            timer_set_freq((tim_t)tmpreg, timer_freq[tmpreg]);
-        }
-    }
+    clk_restore_clocks();
 }

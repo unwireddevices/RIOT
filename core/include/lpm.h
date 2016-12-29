@@ -79,6 +79,7 @@ void lpm_del_gpio_exclusion(gpio_t gpio);
  * @brief LPM-internal variables
  */
 extern volatile int lpm_prevent_sleep;
+extern volatile int lpm_run_mode;
 
 #ifdef __cplusplus
 }

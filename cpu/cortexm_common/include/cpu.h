@@ -93,6 +93,11 @@ static inline void cortexm_isr_end(void)
     }
 }
 
+/**
+ * @brief   Holds current CPU clock frequency
+ */
+extern uint32_t cpu_clock_global;
+
 #ifdef __cplusplus
 }
 #endif

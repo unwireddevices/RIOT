@@ -63,7 +63,7 @@ int timer_init(tim_t dev, unsigned long freq, timer_cb_t cb, void *arg)
     tim->SR = 0;
     /* configure reload and pre-scaler values */
     tim->ARR = 0xffffffff;
-    tim->PSC = (CLOCK_CORECLOCK / freq) - 1;
+    tim->PSC = (cpu_clock_global / freq) - 1;
     /* trigger update event to make pre-scaler value effective */
     tim->EGR = TIM_EGR_UG;
     /* enable interrupts and start the timer */

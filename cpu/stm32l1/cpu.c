@@ -90,7 +90,7 @@
 #endif
 
 static uint32_t tmpreg;
-// static void clk_init(void);
+uint32_t cpu_clock_global;
 
 void cpu_init(void)
 {
@@ -197,6 +197,8 @@ void clk_init(void)
 
     /* Disable other clock sources */
     RCC->CR &= ~(CLOCK_DISABLE_OTHERS);
+	
+	cpu_clock_global = CLOCK_CORECLOCK;
 }
 
 void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider)
@@ -238,4 +240,6 @@ void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider)
     tmpreg &= ~(RCC_CR_HSION | RCC_CR_HSEON);
     tmpreg &= ~(RCC_CR_HSEBYP | RCC_CR_CSSON | RCC_CR_PLLON);
     RCC->CR = tmpreg;
+	
+	cpu_clock_global = 65536 * (1 << msi_range);
 }

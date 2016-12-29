@@ -110,8 +110,8 @@ void joined_timeout_cb(void)
 {
     puts("ls: join request timed out, resending");
 
-	/* Pseudorandom delay up to 8 seconds for collision avoidance */
-	unsigned int delay = random_uint32_range(1, 8);
+	/* Pseudorandom delay 5 to 30 seconds for collision avoidance */
+	unsigned int delay = random_uint32_range(5, 30);
 
 	printf("ls-ed: random delay %d s\n", (unsigned int) (delay));
 	rtctimers_sleep(delay);

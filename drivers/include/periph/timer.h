@@ -98,6 +98,18 @@ typedef struct {
 int timer_init(tim_t dev, unsigned long freq, timer_cb_t cb, void *arg);
 
 /**
+ * @brief Change frequency of the given timer
+ *
+ */
+int timer_set_freq(tim_t dev, unsigned long freq);
+
+/**
+ * @brief Get frequency of the given timer
+ *
+ */
+unsigned long timer_get_freq(tim_t dev);
+
+/**
  * @brief Set a given timer channel for the given timer device
  *
  * The callback given during initialization is called when timeout ticks have

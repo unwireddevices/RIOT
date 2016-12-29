@@ -24,6 +24,7 @@
 #include "cpu.h"
 #include "board.h"
 #include "periph_conf.h"
+#include "periph/timer.h"
 
 /* See if we want to use the PLL */
 #if defined(CLOCK_PLL_DIV) || defined(CLOCK_PLL_MUL)
@@ -90,6 +91,7 @@
 #endif
 
 static uint32_t tmpreg;
+static unsigned long timer_freq[TIMER_NUMOF];
 uint32_t cpu_clock_global;
 
 void cpu_init(void)
@@ -105,6 +107,10 @@ void cpu_init(void)
  */
 void clk_init(void)
 {
+    for (tmpreg = 0; tmpreg < TIMER_NUMOF; tmpreg++) {
+        timer_freq[tmpreg] = timer_get_freq((tim_t)tmpreg);
+    }
+    
     /* Reset the RCC clock configuration to the default reset state(for debug purpose) */
     /* Set MSION bit */
     RCC->CR |= RCC_CR_MSION;
@@ -197,12 +203,22 @@ void clk_init(void)
 
     /* Disable other clock sources */
     RCC->CR &= ~(CLOCK_DISABLE_OTHERS);
-	
-	cpu_clock_global = CLOCK_CORECLOCK;
+    
+    cpu_clock_global = CLOCK_CORECLOCK;
+    /* reclock timers */
+    for (tmpreg = 0; tmpreg < TIMER_NUMOF; tmpreg++) {
+        if (timer_freq[tmpreg]) {
+            timer_set_freq((tim_t)tmpreg, timer_freq[tmpreg]);
+        }
+    }
 }
 
 void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider)
 {
+    for (tmpreg = 0; tmpreg < TIMER_NUMOF; tmpreg++) {
+        timer_freq[tmpreg] = timer_get_freq((tim_t)tmpreg);
+    }
+    
     RCC->CR |= RCC_CR_MSION;
     while (!(RCC->CR & RCC_CR_MSIRDY)) {}
     
@@ -240,6 +256,13 @@ void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider)
     tmpreg &= ~(RCC_CR_HSION | RCC_CR_HSEON);
     tmpreg &= ~(RCC_CR_HSEBYP | RCC_CR_CSSON | RCC_CR_PLLON);
     RCC->CR = tmpreg;
-	
-	cpu_clock_global = 65536 * (1 << msi_range);
+    
+    cpu_clock_global = 65536 * (1 << msi_range);
+    
+    /* reclock timers */
+    for (tmpreg = 0; tmpreg < TIMER_NUMOF; tmpreg++) {
+        if (timer_freq[tmpreg]) {
+            timer_set_freq((tim_t)tmpreg, timer_freq[tmpreg]);
+        }
+    }
 }

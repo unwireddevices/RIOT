@@ -35,14 +35,16 @@
 #define GPIO_LOW_POWER
 
 #ifdef GPIO_LOW_POWER
-static uint32_t lpm_gpio_moder[8];
-static uint32_t lpm_gpio_pupdr[8];
-static uint16_t lpm_gpio_otyper[8];
-static uint32_t lpm_gpio_ospeedr[8];
-static uint16_t lpm_gpio_odr[8];
-static uint8_t  lpm_usart[5];
+static uint32_t lpm_gpio_moder[CPU_NUMBER_OF_PORTS];
+static uint32_t lpm_gpio_pupdr[CPU_NUMBER_OF_PORTS];
+static uint16_t lpm_gpio_otyper[CPU_NUMBER_OF_PORTS];
+static uint32_t lpm_gpio_ospeedr[CPU_NUMBER_OF_PORTS];
+static uint16_t lpm_gpio_odr[CPU_NUMBER_OF_PORTS];
+static uint8_t  lpm_usart[UART_NUMOF];
 static uint32_t ahb_gpio_clocks;
 static uint32_t tmpreg;
+
+static uint16_t lpm_portmask[CPU_NUMBER_OF_PORTS];
 
 /* We are not using gpio_init as it sets GPIO clock speed to maximum */
 static void pin_set(GPIO_TypeDef* port, uint8_t pin, uint8_t value) {
@@ -58,90 +60,55 @@ static void pin_set(GPIO_TypeDef* port, uint8_t pin, uint8_t value) {
     } else {
         port->ODR &= ~(1 << pin);
     }
+	
+	lpm_portmask[((uint32_t)port >> 10) & 0x0f] |= 1 << pin;
 }
 
 /* put GPIOs in low-power state */
 static void lpm_before_i_go_to_sleep (void) {
+
+/* initialize lpm_portmask with zeros */
+memset(lpm_portmask, 0, sizeof(lpm_portmask));
+	
 /* Disable all USART interfaces in use */
 /* without it, RX will receive some garbage when MODER is changed */
 memset(lpm_usart, 0, sizeof(lpm_usart));
 #if UART_0_EN
 	if (UART_0_ISON()) {
 		UART_0_CLKDIS();
+		pin_set((GPIO_TypeDef *)(UART_0_TX_PIN & ~(0x0f)), UART_0_TX_PIN & 0x0f, 1);
 		lpm_usart[0] = 1;
 	}
 #endif
 #if UART_1_EN
 	if (UART_1_ISON()) {
 		UART_1_CLKDIS();
+		pin_set((GPIO_TypeDef *)(UART_1_TX_PIN & ~(0x0f)), UART_1_TX_PIN & 0x0f, 1);
 		lpm_usart[1] = 1;
 	}
 #endif
 #if UART_2_EN
 	if (UART_2_ISON()) {
 		UART_2_CLKDIS();
+		pin_set((GPIO_TypeDef *)(UART_2_TX_PIN & ~(0x0f)), UART_2_TX_PIN & 0x0f, 1);
 		lpm_usart[2] = 1;
 	}
 #endif
 #if UART_3_EN
 	if (UART_3_ISON()) {
 		UART_3_CLKDIS();
+		pin_set((GPIO_TypeDef *)(UART_3_TX_PIN & ~(0x0f)), UART_3_TX_PIN & 0x0f, 1);
 		lpm_usart[3] = 1;
 	}
 #endif
 #if UART_4_EN
 	if (UART_4_ISON()) {
 		UART_4_CLKDIS();
+		pin_set((GPIO_TypeDef *)(UART_4_TX_PIN & ~(0x0f)), UART_4_TX_PIN & 0x0f, 1);
 		lpm_usart[4] = 1;
 	}
 #endif
 
-    /* save GPIO clock configuration */
-    ahb_gpio_clocks = RCC->AHBENR & 0xFF;
-    /* enable all GPIO clocks */
-	periph_clk_en(AHB, 0xFF);
-    
-    uint8_t i;
-    uint8_t p;
-    uint32_t mask;
-    GPIO_TypeDef *port;
-    
-    for (i = 0; i < CPU_NUMBER_OF_PORTS; i++) {
-        port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
-
-        /* save GPIO registers values */
-        lpm_gpio_moder[i] = port->MODER;
-        lpm_gpio_pupdr[i] = port->PUPDR;
-        lpm_gpio_otyper[i] = (uint16_t)(port->OTYPER & 0xFFFF);
-        lpm_gpio_ospeedr[i] = port->OSPEEDR;
-        lpm_gpio_odr[i] = (uint16_t)(port->ODR & 0xFFFF);
-        
-        mask = 0xFFFFFFFF;
-        
-        /* ignore GPIOs registered for external interrupts */
-        /* they may be used as wakeup sources */
-        for (p = 0; p < 16; p ++) {
-            if (EXTI->IMR & (1 << p)) {
-                if (((SYSCFG->EXTICR[p >> 2]) >> ((p & 0x03) * 4)) == i) {
-                    mask &= ~((uint32_t)0x03 << (p*2));
-                }
-            }
-        }
-
-        /* disable pull-ups on GPIOs */
-        tmpreg = port->PUPDR;
-        tmpreg &= ~mask;
-        port->PUPDR = tmpreg;
-        
-        /* set GPIOs to AIN mode */
-        tmpreg = port->MODER;
-        tmpreg |= mask;
-        port->MODER = tmpreg;
-        
-        /* set lowest speed */
-        port->OSPEEDR = 0;
-    }
-    
     /* specifically set GPIOs used for external SPI devices */
     /* NSS = 1, MOSI = 0, SCK = 0, MISO doesn't matter */
     /* NSS = 1, MOSI = 0, SCK = 0, MISO doesn't matter */
@@ -167,32 +134,56 @@ memset(lpm_usart, 0, sizeof(lpm_usart));
     }
 #endif
 
-    /* set UART TX pin to 1 */
-#if UART_0_EN
-    if (UART_0_ISON()) {
-        pin_set((GPIO_TypeDef *)(UART_0_TX_PIN & ~(0x0f)), UART_0_TX_PIN & 0x0f, 1);
+    /* save GPIO clock configuration */
+    ahb_gpio_clocks = RCC->AHBENR & 0xFF;
+    /* enable all GPIO clocks */
+	periph_clk_en(AHB, 0xFF);
+    
+    uint8_t i;
+    uint8_t p;
+    uint32_t mask;
+    GPIO_TypeDef *port;
+    
+    for (i = 0; i < CPU_NUMBER_OF_PORTS; i++) {
+        port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
+
+        /* save GPIO registers values */
+        lpm_gpio_moder[i] = port->MODER;
+        lpm_gpio_pupdr[i] = port->PUPDR;
+        lpm_gpio_otyper[i] = (uint16_t)(port->OTYPER & 0xFFFF);
+        lpm_gpio_ospeedr[i] = port->OSPEEDR;
+        lpm_gpio_odr[i] = (uint16_t)(port->ODR & 0xFFFF);
+        
+        mask = 0xFFFFFFFF;
+        
+        for (p = 0; p < 16; p ++) {
+			/* exclude GPIOs registered for external interrupts */
+			/* they may be used as wakeup sources */
+            if (EXTI->IMR & (1 << p)) {
+                if (((SYSCFG->EXTICR[p >> 2]) >> ((p & 0x03) * 4)) == i) {
+                    mask &= ~((uint32_t)0x03 << (p*2));
+                }
+            }
+			
+			/* exclude GPIOs we previously set with pin_set */
+			if (lpm_portmask[i] & (1 << p)) {
+				mask &= ~((uint32_t)0x03 << (p*2));
+			}
+        }
+
+        /* disable pull-ups on GPIOs */
+        tmpreg = port->PUPDR;
+        tmpreg &= ~mask;
+        port->PUPDR = tmpreg;
+        
+        /* set GPIOs to AIN mode */
+        tmpreg = port->MODER;
+        tmpreg |= mask;
+        port->MODER = tmpreg;
+        
+        /* set lowest speed */
+        port->OSPEEDR = 0;
     }
-#endif
-#if UART_1_EN
-    if (UART_1_ISON()) {
-        pin_set((GPIO_TypeDef *)(UART_1_TX_PIN & ~(0x0f)), UART_1_TX_PIN & 0x0f, 1);
-	}
-#endif
-#if UART_2_EN
-    if (UART_2_ISON()) {
-        pin_set((GPIO_TypeDef *)(UART_2_TX_PIN & ~(0x0f)), UART_2_TX_PIN & 0x0f, 1);
-    }
-#endif
-#if UART_3_EN
-    if (UART_3_ISON()) {
-        pin_set((GPIO_TypeDef *)(UART_3_TX_PIN & ~(0x0f)), UART_3_TX_PIN & 0x0f, 1);
-	}
-#endif
-#if UART_4_EN
-    if (UART_4_ISON()) {
-        pin_set((GPIO_TypeDef *)(UART_4_TX_PIN & ~(0x0f)), UART_4_TX_PIN & 0x0f, 1);
-    }
-#endif
 
     /* restore GPIO clocks */
     tmpreg = RCC->AHBENR;

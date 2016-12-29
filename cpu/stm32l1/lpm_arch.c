@@ -45,9 +45,12 @@ static uint32_t ahb_gpio_clocks;
 static uint32_t tmpreg;
 
 /* We are not using gpio_init as it sets GPIO clock speed to maximum */
-static void pin_set(GPIO_TypeDef* port, uint8_t pin, uint8_t value){
-    port->MODER &= ~(3 << (2*pin));
-    port->MODER |= (1 << (2*pin));
+static void pin_set(GPIO_TypeDef* port, uint8_t pin, uint8_t value) {
+	tmpreg = port->MODER;
+    tmpreg &= ~(3 << (2*pin));
+    tmpreg |= (1 << (2*pin));
+	port->MODER = tmpreg;
+
     port->PUPDR &= ~(3 << (2*pin));
     port->OTYPER &= ~(1 << pin);
     if (value) {
@@ -59,38 +62,38 @@ static void pin_set(GPIO_TypeDef* port, uint8_t pin, uint8_t value){
 
 /* put GPIOs in low-power state */
 static void lpm_before_i_go_to_sleep (void) {
-	/* Disable all USART interfaces in use */
-	/* without it, RX will receive some garbage when MODER is changed */
+/* Disable all USART interfaces in use */
+/* without it, RX will receive some garbage when MODER is changed */
 memset(lpm_usart, 0, sizeof(lpm_usart));
 #if UART_0_EN
-    if (UART_0_ISON()) {
+	if (UART_0_ISON()) {
 		UART_0_CLKDIS();
 		lpm_usart[0] = 1;
-    }
+	}
 #endif
 #if UART_1_EN
-    if (UART_1_ISON()) {
+	if (UART_1_ISON()) {
 		UART_1_CLKDIS();
-        lpm_usart[1] = 1;
+		lpm_usart[1] = 1;
 	}
 #endif
 #if UART_2_EN
-    if (UART_2_ISON()) {
+	if (UART_2_ISON()) {
 		UART_2_CLKDIS();
-        lpm_usart[2] = 1;
-    }
+		lpm_usart[2] = 1;
+	}
 #endif
 #if UART_3_EN
-    if (UART_3_ISON()) {
+	if (UART_3_ISON()) {
 		UART_3_CLKDIS();
-        lpm_usart[3] = 1;
+		lpm_usart[3] = 1;
 	}
 #endif
 #if UART_4_EN
-    if (UART_4_ISON()) {
+	if (UART_4_ISON()) {
 		UART_4_CLKDIS();
-        lpm_usart[4] = 1;
-    }
+		lpm_usart[4] = 1;
+	}
 #endif
 
     /* save GPIO clock configuration */
@@ -103,19 +106,15 @@ memset(lpm_usart, 0, sizeof(lpm_usart));
     uint32_t mask;
     GPIO_TypeDef *port;
     
-    uint32_t addr_diff = GPIOB_BASE - GPIOA_BASE;
-    uint32_t gpio_base_addr = 0;
-    
     for (i = 0; i < CPU_NUMBER_OF_PORTS; i++) {
-        gpio_base_addr = GPIOA_BASE + i*addr_diff;
-        port = (GPIO_TypeDef *)gpio_base_addr;
-        
+        port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
+
         /* save GPIO registers values */
         lpm_gpio_moder[i] = port->MODER;
         lpm_gpio_pupdr[i] = port->PUPDR;
-        lpm_gpio_otyper[i] = (port->OTYPER & 0xFFFF);
+        lpm_gpio_otyper[i] = (uint16_t)(port->OTYPER & 0xFFFF);
         lpm_gpio_ospeedr[i] = port->OSPEEDR;
-        lpm_gpio_odr[i] = (port->ODR & 0xFFFF);
+        lpm_gpio_odr[i] = (uint16_t)(port->ODR & 0xFFFF);
         
         mask = 0xFFFFFFFF;
         
@@ -210,13 +209,11 @@ static void lpm_when_i_wake_up (void) {
     
     uint8_t i;
     GPIO_TypeDef *port;
-    uint32_t addr_diff = GPIOB_BASE - GPIOA_BASE;
-    uint32_t gpio_base_addr = 0;
+	GPIO_TypeDef gpio_struct;
 	  
     /* restore GPIO settings */
     for (i = 0; i < CPU_NUMBER_OF_PORTS; i++) {
-        gpio_base_addr = GPIOA_BASE + i*addr_diff;
-        port = (GPIO_TypeDef *)gpio_base_addr;
+        port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
         
 		port->PUPDR = lpm_gpio_pupdr[i];
 		port->OTYPER = lpm_gpio_otyper[i];
@@ -409,7 +406,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             __force_stores();
             #endif
 			
-			__disable_irq();
+			irq_disable();
 			
             /* Request Wait For Interrupt */
 			__DSB();
@@ -437,7 +434,6 @@ void lpm_arch_awake(void)
 {
     /* Disable Ultra Low Power mode */
     PWR->CR &= ~PWR_CR_ULP;
-
     PWR->CR &= ~((uint32_t)PWR_CR_LPRUN);
     PWR->CR &= ~((uint32_t)PWR_CR_LPSDSR);
 }

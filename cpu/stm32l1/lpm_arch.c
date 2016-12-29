@@ -48,10 +48,10 @@ static uint16_t lpm_portmask[CPU_NUMBER_OF_PORTS];
 
 /* We are not using gpio_init as it sets GPIO clock speed to maximum */
 static void pin_set(GPIO_TypeDef* port, uint8_t pin, uint8_t value) {
-	tmpreg = port->MODER;
+    tmpreg = port->MODER;
     tmpreg &= ~(3 << (2*pin));
     tmpreg |= (1 << (2*pin));
-	port->MODER = tmpreg;
+    port->MODER = tmpreg;
 
     port->PUPDR &= ~(3 << (2*pin));
     port->OTYPER &= ~(1 << pin);
@@ -60,53 +60,53 @@ static void pin_set(GPIO_TypeDef* port, uint8_t pin, uint8_t value) {
     } else {
         port->ODR &= ~(1 << pin);
     }
-	
-	lpm_portmask[((uint32_t)port >> 10) & 0x0f] |= 1 << pin;
+    
+    lpm_portmask[((uint32_t)port >> 10) & 0x0f] |= 1 << pin;
 }
 
 /* put GPIOs in low-power state */
 static void lpm_before_i_go_to_sleep (void) {
 
-/* initialize lpm_portmask with zeros */
-memset(lpm_portmask, 0, sizeof(lpm_portmask));
-	
-/* Disable all USART interfaces in use */
-/* without it, RX will receive some garbage when MODER is changed */
-memset(lpm_usart, 0, sizeof(lpm_usart));
+    /* initialize lpm_portmask with zeros */
+    memset(lpm_portmask, 0, sizeof(lpm_portmask));
+    
+    /* Disable all USART interfaces in use */
+    /* without it, RX will receive some garbage when MODER is changed */
+    memset(lpm_usart, 0, sizeof(lpm_usart));
 #if UART_0_EN
-	if (UART_0_ISON()) {
-		UART_0_CLKDIS();
-		pin_set((GPIO_TypeDef *)(UART_0_TX_PIN & ~(0x0f)), UART_0_TX_PIN & 0x0f, 1);
-		lpm_usart[0] = 1;
-	}
+    if (UART_0_ISON()) {
+        UART_0_CLKDIS();
+        pin_set((GPIO_TypeDef *)(UART_0_TX_PIN & ~(0x0f)), UART_0_TX_PIN & 0x0f, 1);
+        lpm_usart[0] = 1;
+    }
 #endif
 #if UART_1_EN
-	if (UART_1_ISON()) {
-		UART_1_CLKDIS();
-		pin_set((GPIO_TypeDef *)(UART_1_TX_PIN & ~(0x0f)), UART_1_TX_PIN & 0x0f, 1);
-		lpm_usart[1] = 1;
-	}
+    if (UART_1_ISON()) {
+        UART_1_CLKDIS();
+        pin_set((GPIO_TypeDef *)(UART_1_TX_PIN & ~(0x0f)), UART_1_TX_PIN & 0x0f, 1);
+        lpm_usart[1] = 1;
+    }
 #endif
 #if UART_2_EN
-	if (UART_2_ISON()) {
-		UART_2_CLKDIS();
-		pin_set((GPIO_TypeDef *)(UART_2_TX_PIN & ~(0x0f)), UART_2_TX_PIN & 0x0f, 1);
-		lpm_usart[2] = 1;
-	}
+    if (UART_2_ISON()) {
+        UART_2_CLKDIS();
+        pin_set((GPIO_TypeDef *)(UART_2_TX_PIN & ~(0x0f)), UART_2_TX_PIN & 0x0f, 1);
+        lpm_usart[2] = 1;
+    }
 #endif
 #if UART_3_EN
-	if (UART_3_ISON()) {
-		UART_3_CLKDIS();
-		pin_set((GPIO_TypeDef *)(UART_3_TX_PIN & ~(0x0f)), UART_3_TX_PIN & 0x0f, 1);
-		lpm_usart[3] = 1;
-	}
+    if (UART_3_ISON()) {
+        UART_3_CLKDIS();
+        pin_set((GPIO_TypeDef *)(UART_3_TX_PIN & ~(0x0f)), UART_3_TX_PIN & 0x0f, 1);
+        lpm_usart[3] = 1;
+    }
 #endif
 #if UART_4_EN
-	if (UART_4_ISON()) {
-		UART_4_CLKDIS();
-		pin_set((GPIO_TypeDef *)(UART_4_TX_PIN & ~(0x0f)), UART_4_TX_PIN & 0x0f, 1);
-		lpm_usart[4] = 1;
-	}
+    if (UART_4_ISON()) {
+        UART_4_CLKDIS();
+        pin_set((GPIO_TypeDef *)(UART_4_TX_PIN & ~(0x0f)), UART_4_TX_PIN & 0x0f, 1);
+        lpm_usart[4] = 1;
+    }
 #endif
 
     /* specifically set GPIOs used for external SPI devices */
@@ -137,7 +137,7 @@ memset(lpm_usart, 0, sizeof(lpm_usart));
     /* save GPIO clock configuration */
     ahb_gpio_clocks = RCC->AHBENR & 0xFF;
     /* enable all GPIO clocks */
-	periph_clk_en(AHB, 0xFF);
+    periph_clk_en(AHB, 0xFF);
     
     uint8_t i;
     uint8_t p;
@@ -157,18 +157,18 @@ memset(lpm_usart, 0, sizeof(lpm_usart));
         mask = 0xFFFFFFFF;
         
         for (p = 0; p < 16; p ++) {
-			/* exclude GPIOs registered for external interrupts */
-			/* they may be used as wakeup sources */
+            /* exclude GPIOs registered for external interrupts */
+            /* they may be used as wakeup sources */
             if (EXTI->IMR & (1 << p)) {
                 if (((SYSCFG->EXTICR[p >> 2]) >> ((p & 0x03) * 4)) == i) {
                     mask &= ~((uint32_t)0x03 << (p*2));
                 }
             }
-			
-			/* exclude GPIOs we previously set with pin_set */
-			if (lpm_portmask[i] & (1 << p)) {
-				mask &= ~((uint32_t)0x03 << (p*2));
-			}
+            
+            /* exclude GPIOs we previously set with pin_set */
+            if (lpm_portmask[i] & (1 << p)) {
+                mask &= ~((uint32_t)0x03 << (p*2));
+            }
         }
 
         /* disable pull-ups on GPIOs */
@@ -189,24 +189,24 @@ memset(lpm_usart, 0, sizeof(lpm_usart));
     tmpreg = RCC->AHBENR;
     tmpreg &= ~((uint32_t)0xFF);
     tmpreg |= ahb_gpio_clocks;
-	periph_clk_en(AHB, tmpreg);
+    periph_clk_en(AHB, tmpreg);
 }
 
 
 /* restore GPIO settings */
 static void lpm_when_i_wake_up (void) {
     /* enable all GPIO clocks */
-	periph_clk_en(AHB, 0xFF);
+    periph_clk_en(AHB, 0xFF);
     
     uint8_t i;
     GPIO_TypeDef *port;
-	  
+      
     /* restore GPIO settings */
     for (i = 0; i < CPU_NUMBER_OF_PORTS; i++) {
         port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
         
-		port->PUPDR = lpm_gpio_pupdr[i];
-		port->OTYPER = lpm_gpio_otyper[i];
+        port->PUPDR = lpm_gpio_pupdr[i];
+        port->OTYPER = lpm_gpio_otyper[i];
         port->OSPEEDR = lpm_gpio_ospeedr[i];
         port->ODR = lpm_gpio_odr[i];
         port->MODER = lpm_gpio_moder[i];
@@ -217,34 +217,34 @@ static void lpm_when_i_wake_up (void) {
     tmpreg &= ~((uint32_t)0xFF);
     tmpreg |= ahb_gpio_clocks;
     periph_clk_en(AHB, tmpreg);
-	
-	/* restore USART clocks */
+    
+    /* restore USART clocks */
 #if UART_0_EN
-	if (lpm_usart[0]) { UART_0_CLKEN(); };
+    if (lpm_usart[0]) { UART_0_CLKEN(); };
 #endif
 #if UART_1_EN
-	if (lpm_usart[1]) { UART_1_CLKEN(); };
+    if (lpm_usart[1]) { UART_1_CLKEN(); };
 #endif
 #if UART_2_EN
-	if (lpm_usart[2]) { UART_2_CLKEN(); };
+    if (lpm_usart[2]) { UART_2_CLKEN(); };
 #endif
 #if UART_3_EN
-	if (lpm_usart[3]) { UART_3_CLKEN(); };
+    if (lpm_usart[3]) { UART_3_CLKEN(); };
 #endif
 #if UART_4_EN
-	if (lpm_usart[4]) { UART_4_CLKEN(); };
+    if (lpm_usart[4]) { UART_4_CLKEN(); };
 #endif
 }
 #endif
 
 void lpm_arch_init(void)
 {
-	/* Unlock the RUN_PD bit to change flash settings */  
-	FLASH->PDKEYR = FLASH_PDKEY1;
-	FLASH->PDKEYR = FLASH_PDKEY2;
-	/* Enable flash power down during sleep */
-	FLASH->ACR |= FLASH_ACR_SLEEP_PD;
-	
+    /* Unlock the RUN_PD bit to change flash settings */  
+    FLASH->PDKEYR = FLASH_PDKEY1;
+    FLASH->PDKEYR = FLASH_PDKEY2;
+    /* Enable flash power down during sleep */
+    FLASH->ACR |= FLASH_ACR_SLEEP_PD;
+    
     /* Disable peripherals in Sleep mode */
     RCC->APB1LPENR &= ~(RCC_APB1LPENR_TIM2LPEN);
     RCC->APB1LPENR &= ~(RCC_APB1LPENR_TIM3LPEN);
@@ -285,8 +285,8 @@ void lpm_arch_init(void)
     RCC->AHBLPENR &= ~(RCC_AHBLPENR_FSMCLPEN);
     
     /* disable only GPIO ports which do not have IRQs associated */
-	/* SEEMS WE DO NOT NEED CLOCK RUNNING FOR EXT IRQ IN SLEEP MODE */
-	/*
+    /* SEEMS WE DO NOT NEED CLOCK RUNNING FOR EXT IRQ IN SLEEP MODE */
+    /*
     uint8_t port;
     uint8_t pin;
     uint8_t is_irq_enabled;
@@ -303,7 +303,7 @@ void lpm_arch_init(void)
             RCC->AHBLPENR &= ~(1 << port);
         }
     }
-	*/
+    */
 }
 
 enum lpm_mode lpm_arch_set(enum lpm_mode target)
@@ -329,14 +329,14 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             /* Request Wait For Interrupt */
             __DSB();
             __WFI();
-			
+            
             /* Switch back to default speed */
-			clk_init();
+            clk_init();
 
 #ifdef GPIO_LOW_POWER
             lpm_when_i_wake_up();
 #endif
-			
+            
             irq_enable();
             break;
 
@@ -362,14 +362,14 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 
             /* Clear SLEEPDEEP bit */
             SCB->SCR &= (uint32_t) ~((uint32_t)SCB_SCR_SLEEPDEEP);
-			
-			/* Restore clocks and PLL */
-			/* (MCU is running on MSI clock after STOP) */
-			clk_init();
+            
+            /* Restore clocks and PLL */
+            /* (MCU is running on MSI clock after STOP) */
+            clk_init();
             
             /* Wait for the reference voltage */
             /* while(!(PWR->CSR & PWR_CSR_VREFINTRDYF)) {} */
-			
+            
 #ifdef GPIO_LOW_POWER
             lpm_when_i_wake_up();
 #endif
@@ -395,11 +395,11 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             #if defined (__CC_ARM)
             __force_stores();
             #endif
-			
-			irq_disable();
-			
+            
+            irq_disable();
+            
             /* Request Wait For Interrupt */
-			__DSB();
+            __DSB();
             __WFI();
             break;
 

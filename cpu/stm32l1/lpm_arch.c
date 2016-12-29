@@ -355,9 +355,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 
             irq_disable();
             
-#ifdef GPIO_LOW_POWER
             lpm_before_i_go_to_sleep();
-#endif
 
             /* Switch to 65kHz clock */
             switch_to_msi(RCC_ICSCR_MSIRANGE_0, RCC_CFGR_HPRE_DIV1);
@@ -369,10 +367,8 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             /* Switch back to default speed */
             clk_init();
 
-#ifdef GPIO_LOW_POWER
             lpm_when_i_wake_up();
-#endif
-            
+          
             irq_enable();
             break;
 
@@ -388,10 +384,8 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 
             irq_disable();
 
-#ifdef GPIO_LOW_POWER
             lpm_before_i_go_to_sleep();
-#endif
-            
+           
             /* Request Wait For Interrupt */
             __DSB();
             __WFI();
@@ -403,14 +397,9 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             /* (MCU is running on MSI clock after STOP) */
             clk_init();
             
-            /* Wait for the reference voltage */
-            /* while(!(PWR->CSR & PWR_CSR_VREFINTRDYF)) {} */
-            
-#ifdef GPIO_LOW_POWER
             lpm_when_i_wake_up();
-#endif
-            
-            irq_enable();
+
+			irq_enable();
 
             break;
 

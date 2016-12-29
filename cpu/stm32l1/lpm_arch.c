@@ -209,7 +209,6 @@ static void lpm_when_i_wake_up (void) {
     
     uint8_t i;
     GPIO_TypeDef *port;
-	GPIO_TypeDef gpio_struct;
 	  
     /* restore GPIO settings */
     for (i = 0; i < CPU_NUMBER_OF_PORTS; i++) {

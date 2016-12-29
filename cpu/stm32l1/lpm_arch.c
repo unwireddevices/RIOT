@@ -32,14 +32,6 @@
 #include "board.h"
 #include "periph_conf.h"
 
-#define CR_DS_MASK               ((uint32_t)0xFFFFFFFC)
-
-/* Ultra Low Power mode definitions */
-#define PWR_OFFSET               (PWR_BASE - PERIPH_BASE)
-#define CR_OFFSET                (PWR_OFFSET + 0x00)
-#define ULP_BitNumber           0x09
-#define CR_ULP_BB               (PERIPH_BB_BASE + (CR_OFFSET * 32) + (ULP_BitNumber * 4))
-
 #define GPIO_LOW_POWER
 
 #ifdef GPIO_LOW_POWER
@@ -114,7 +106,7 @@ memset(lpm_usart, 0, sizeof(lpm_usart));
     uint32_t addr_diff = GPIOB_BASE - GPIOA_BASE;
     uint32_t gpio_base_addr = 0;
     
-    for (i = 0; i < 8; i++) {
+    for (i = 0; i < CPU_NUMBER_OF_PORTS; i++) {
         gpio_base_addr = GPIOA_BASE + i*addr_diff;
         port = (GPIO_TypeDef *)gpio_base_addr;
         
@@ -222,7 +214,7 @@ static void lpm_when_i_wake_up (void) {
     uint32_t gpio_base_addr = 0;
 	  
     /* restore GPIO settings */
-    for (i = 0; i < 8; i++) {
+    for (i = 0; i < CPU_NUMBER_OF_PORTS; i++) {
         gpio_base_addr = GPIOA_BASE + i*addr_diff;
         port = (GPIO_TypeDef *)gpio_base_addr;
         
@@ -348,7 +340,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             switch_to_msi(RCC_ICSCR_MSIRANGE_0, RCC_CFGR_HPRE_DIV1);
 
             /* Request Wait For Interrupt */
-            asm ("DSB");
+            __DSB();
             __WFI();
 			
             /* Switch back to default speed */
@@ -378,7 +370,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 #endif
             
             /* Request Wait For Interrupt */
-            asm ("DSB");
+            __DSB();
             __WFI();
 
             /* Clear SLEEPDEEP bit */
@@ -389,7 +381,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 			clk_init();
             
             /* Wait for the reference voltage */
-            while(!(PWR->CSR & PWR_CSR_VREFINTRDYF)) {}
+            /* while(!(PWR->CSR & PWR_CSR_VREFINTRDYF)) {} */
 			
 #ifdef GPIO_LOW_POWER
             lpm_when_i_wake_up();
@@ -420,7 +412,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 			__disable_irq();
 			
             /* Request Wait For Interrupt */
-			asm ("DSB");
+			__DSB();
             __WFI();
             break;
 
@@ -444,10 +436,10 @@ enum lpm_mode lpm_arch_get(void)
 void lpm_arch_awake(void)
 {
     /* Disable Ultra Low Power mode */
-    *(__IO uint32_t *) CR_ULP_BB = 0;
+    PWR->CR &= ~PWR_CR_ULP;
 
-    PWR->CR &= (uint32_t) ~((uint32_t)PWR_CR_LPRUN);
-    PWR->CR &= (uint32_t) ~((uint32_t)PWR_CR_LPSDSR);
+    PWR->CR &= ~((uint32_t)PWR_CR_LPRUN);
+    PWR->CR &= ~((uint32_t)PWR_CR_LPSDSR);
 }
 
 void lpm_arch_begin_awake(void)

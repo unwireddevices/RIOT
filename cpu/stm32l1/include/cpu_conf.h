@@ -27,7 +27,7 @@
 #define  FLASH_PDKEY1                        ((uint32_t)0x04152637)       /*!< FLASH_PEC and data matrix Key 1 */
 #define  FLASH_PDKEY2                        ((uint32_t)0xFAFBFCFD)       /*!< FLASH_PEC and data matrix Key 2 */
 
-#define CPU_NUMBER_OF_PORTS 
+#define CPU_NUMBER_OF_PORTS 6
 
 #ifdef __cplusplus
 extern "C" {

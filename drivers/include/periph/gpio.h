@@ -137,6 +137,15 @@ typedef struct {
 /** @} */
 
 /**
+ * @brief   Extract the port number form the given identifier
+ */
+int gpio_port_num(gpio_t pin);
+/**
+ * @brief   Extract the pin number from the pin identifier
+ */
+int gpio_pin_num(gpio_t pin);
+
+/**
  * @brief   Initialize the given pin as general purpose input or output
  *
  * @param[in] pin       pin to initialize

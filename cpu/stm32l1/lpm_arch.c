@@ -67,10 +67,22 @@ static void pin_set(GPIO_TypeDef* port, uint8_t pin, uint8_t value) {
 
 /* put GPIOs in low-power state */
 static void lpm_before_i_go_to_sleep (void) {
+	uint8_t i;
+    uint8_t p;
+    uint32_t mask;
+    GPIO_TypeDef *port;
+	
+	for (i = 0; i < CPU_NUMBER_OF_PORTS; i++) {
+        port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
 
-    /* initialize lpm_portmask with zeros */
-    memset(lpm_portmask, 0, sizeof(lpm_portmask));
-    
+        /* save GPIO registers values */
+        lpm_gpio_moder[i] = port->MODER;
+        lpm_gpio_pupdr[i] = port->PUPDR;
+        lpm_gpio_otyper[i] = (uint16_t)(port->OTYPER & 0xFFFF);
+        lpm_gpio_ospeedr[i] = port->OSPEEDR;
+        lpm_gpio_odr[i] = (uint16_t)(port->ODR & 0xFFFF);
+	}
+	
     /* Disable all USART interfaces in use */
     /* without it, RX will receive some garbage when MODER is changed */
     memset(lpm_usart, 0, sizeof(lpm_usart));
@@ -140,21 +152,8 @@ static void lpm_before_i_go_to_sleep (void) {
     /* enable all GPIO clocks */
     periph_clk_en(AHB, 0xFF);
     
-    uint8_t i;
-    uint8_t p;
-    uint32_t mask;
-    GPIO_TypeDef *port;
-    
     for (i = 0; i < CPU_NUMBER_OF_PORTS; i++) {
         port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
-
-        /* save GPIO registers values */
-        lpm_gpio_moder[i] = port->MODER;
-        lpm_gpio_pupdr[i] = port->PUPDR;
-        lpm_gpio_otyper[i] = (uint16_t)(port->OTYPER & 0xFFFF);
-        lpm_gpio_ospeedr[i] = port->OSPEEDR;
-        lpm_gpio_odr[i] = (uint16_t)(port->ODR & 0xFFFF);
-        
         mask = 0xFFFFFFFF;
         
         for (p = 0; p < 16; p ++) {
@@ -238,8 +237,25 @@ static void lpm_when_i_wake_up (void) {
 }
 #endif
 
+void lpm_arch_add_gpio_exclusion(gpio_t gpio) {
+	uint8_t port = ((uint32_t)gpio >> 10) & 0x0f;
+	uint8_t pin = ((uint32_t)gpio & 0x0f);
+	
+	lpm_portmask[port] |= (uint16_t)(1<<pin);
+}
+
+void lpm_arch_del_gpio_exclusion(gpio_t gpio) {
+	uint8_t port = ((uint32_t)gpio >> 10) & 0x0f;
+	uint8_t pin = ((uint32_t)gpio & 0x0f);
+	
+	lpm_portmask[port] &= ~(uint16_t)(1<<pin);
+}
+
 void lpm_arch_init(void)
 {
+	/* initialize lpm_portmask with zeros */
+    memset(lpm_portmask, 0, sizeof(lpm_portmask));
+	
     /* Unlock the RUN_PD bit to change flash settings */  
     FLASH->PDKEYR = FLASH_PDKEY1;
     FLASH->PDKEYR = FLASH_PDKEY2;

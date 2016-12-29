@@ -26,6 +26,8 @@
  extern "C" {
 #endif
 
+#include "periph/gpio.h"
+
 /**
  * @brief Define the mapping between the architecture independent interfaces
           and the kernel internal interfaces
@@ -41,6 +43,9 @@
 #define lpm_awake           lpm_arch_awake
 #define lpm_begin_awake     lpm_arch_begin_awake
 #define lpm_end_awake       lpm_arch_end_awake
+#define lpm_prevent_sleep   lpm_arch_prevent_sleep
+#define lpm_add_gpio_exclusion    lpm_arch_add_gpio_exclusion
+#define lpm_del_gpio_exclusion    lpm_arch_del_gpio_exclusion
 #endif
 /** @} */
 
@@ -91,6 +96,16 @@ void lpm_arch_begin_awake(void);
  * @brief This hook is called on the end of a wake-up phase
  */
 void lpm_arch_end_awake(void);
+
+/**
+ * @brief This hook is called to exclude GPIO from LPM
+ */
+void lpm_arch_add_gpio_exclusion(gpio_t gpio);
+
+/**
+ * @brief This hook is called to remove GPIO exclusion
+ */
+void lpm_arch_del_gpio_exclusion(gpio_t gpio);
 
 #ifdef __cplusplus
 }

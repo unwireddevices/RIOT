@@ -47,6 +47,7 @@ static uint32_t tmpreg;
 static uint16_t lpm_portmask[CPU_NUMBER_OF_PORTS];
 
 /* We are not using gpio_init as it sets GPIO clock speed to maximum */
+/* We add GPIOs we touched to exclusion mask lpm_portmask */
 static void pin_set(GPIO_TypeDef* port, uint8_t pin, uint8_t value) {
     tmpreg = port->MODER;
     tmpreg &= ~(3 << (2*pin));
@@ -422,10 +423,7 @@ enum lpm_mode lpm_arch_get(void)
 
 void lpm_arch_awake(void)
 {
-    /* Disable Ultra Low Power mode */
-    PWR->CR &= ~PWR_CR_ULP;
-    PWR->CR &= ~((uint32_t)PWR_CR_LPRUN);
-    PWR->CR &= ~((uint32_t)PWR_CR_LPSDSR);
+    /* TODO */
 }
 
 void lpm_arch_begin_awake(void)

@@ -32,9 +32,6 @@
 #include "board.h"
 #include "periph_conf.h"
 
-#define GPIO_LOW_POWER
-
-#ifdef GPIO_LOW_POWER
 static uint32_t lpm_gpio_moder[CPU_NUMBER_OF_PORTS];
 static uint32_t lpm_gpio_pupdr[CPU_NUMBER_OF_PORTS];
 static uint16_t lpm_gpio_otyper[CPU_NUMBER_OF_PORTS];
@@ -44,10 +41,11 @@ static uint8_t  lpm_usart[UART_NUMOF];
 static uint32_t ahb_gpio_clocks;
 static uint32_t tmpreg;
 
-static uint16_t lpm_portmask[CPU_NUMBER_OF_PORTS];
+static uint16_t lpm_portmask_system[CPU_NUMBER_OF_PORTS] = { 0 };
+static uint16_t lpm_portmask_user[CPU_NUMBER_OF_PORTS] = { 0 };
 
 /* We are not using gpio_init as it sets GPIO clock speed to maximum */
-/* We add GPIOs we touched to exclusion mask lpm_portmask */
+/* We add GPIOs we touched to exclusion mask lpm_portmask_system */
 static void pin_set(GPIO_TypeDef* port, uint8_t pin, uint8_t value) {
     tmpreg = port->MODER;
     tmpreg &= ~(3 << (2*pin));
@@ -62,7 +60,7 @@ static void pin_set(GPIO_TypeDef* port, uint8_t pin, uint8_t value) {
         port->ODR &= ~(1 << pin);
     }
     
-    lpm_portmask[((uint32_t)port >> 10) & 0x0f] |= 1 << pin;
+    lpm_portmask_system[((uint32_t)port >> 10) & 0x0f] |= 1 << pin;
 }
 
 /* put GPIOs in low-power state */
@@ -91,35 +89,45 @@ static void lpm_before_i_go_to_sleep (void) {
         UART_0_CLKDIS();
         pin_set((GPIO_TypeDef *)(UART_0_TX_PIN & ~(0x0f)), UART_0_TX_PIN & 0x0f, 1);
         lpm_usart[0] = 1;
-    }
+    } else {
+		lpm_portmask_system[(UART_0_TX_PIN >> 10) & 0x0f] &= ~(uint16_t)(1 << (UART_0_TX_PIN & 0x0f));
+	}
 #endif
 #if UART_1_EN
     if (UART_1_ISON()) {
         UART_1_CLKDIS();
         pin_set((GPIO_TypeDef *)(UART_1_TX_PIN & ~(0x0f)), UART_1_TX_PIN & 0x0f, 1);
         lpm_usart[1] = 1;
-    }
+    } else {
+		lpm_portmask_system[(UART_1_TX_PIN >> 10) & 0x0f] &= ~(uint16_t)(1 << (UART_1_TX_PIN & 0x0f));
+	}
 #endif
 #if UART_2_EN
     if (UART_2_ISON()) {
         UART_2_CLKDIS();
         pin_set((GPIO_TypeDef *)(UART_2_TX_PIN & ~(0x0f)), UART_2_TX_PIN & 0x0f, 1);
         lpm_usart[2] = 1;
-    }
+    } else {
+		lpm_portmask_system[(UART_2_TX_PIN >> 10) & 0x0f] &= ~(uint16_t)(1 << (UART_2_TX_PIN & 0x0f));
+	}
 #endif
 #if UART_3_EN
     if (UART_3_ISON()) {
         UART_3_CLKDIS();
         pin_set((GPIO_TypeDef *)(UART_3_TX_PIN & ~(0x0f)), UART_3_TX_PIN & 0x0f, 1);
         lpm_usart[3] = 1;
-    }
+    } else {
+		lpm_portmask_system[(UART_3_TX_PIN >> 10) & 0x0f] &= ~(uint16_t)(1 << (UART_3_TX_PIN & 0x0f));
+	}
 #endif
 #if UART_4_EN
     if (UART_4_ISON()) {
         UART_4_CLKDIS();
         pin_set((GPIO_TypeDef *)(UART_4_TX_PIN & ~(0x0f)), UART_4_TX_PIN & 0x0f, 1);
         lpm_usart[4] = 1;
-    }
+    } else {
+		lpm_portmask_system[(UART_4_TX_PIN >> 10) & 0x0f] &= ~(uint16_t)(1 << (UART_4_TX_PIN & 0x0f));
+	}
 #endif
 
     /* specifically set GPIOs used for external SPI devices */
@@ -130,21 +138,36 @@ static void lpm_before_i_go_to_sleep (void) {
         pin_set(SPI_0_PORT, SPI_0_PIN_NSS, 1);
         pin_set(SPI_0_PORT, SPI_0_PIN_SCK, 0);
         pin_set(SPI_0_PORT, SPI_0_PIN_MOSI, 0);
-    }
+    } else {
+		p = ((uint32_t)SPI_0_PORT >> 10) & 0x0f;
+		lpm_portmask_system[p] &= ~(uint16_t)(1 << SPI_0_PIN_NSS);
+		lpm_portmask_system[p] &= ~(uint16_t)(1 << SPI_0_PIN_SCK);
+		lpm_portmask_system[p] &= ~(uint16_t)(1 << SPI_0_PIN_MOSI);
+	}
 #endif
 #if SPI_1_EN
     if (SPI_1_ISON()) {
         pin_set(SPI_1_PORT, SPI_1_PIN_NSS, 1);
         pin_set(SPI_1_PORT, SPI_1_PIN_SCK, 0);
         pin_set(SPI_1_PORT, SPI_1_PIN_MOSI, 0);
-    }
+    } else {
+		p = ((uint32_t)SPI_1_PORT >> 10) & 0x0f;
+		lpm_portmask_system[p] &= ~(uint16_t)(1 << SPI_1_PIN_NSS);
+		lpm_portmask_system[p] &= ~(uint16_t)(1 << SPI_1_PIN_SCK);
+		lpm_portmask_system[p] &= ~(uint16_t)(1 << SPI_1_PIN_MOSI);
+	}
 #endif
 #if SPI_2_EN
     if (SPI_2_ISON()) {
         pin_set(SPI_2_PORT, SPI_2_PIN_NSS, 1);
         pin_set(SPI_2_PORT, SPI_2_PIN_SCK, 0);
         pin_set(SPI_2_PORT, SPI_2_PIN_MOSI, 0);
-    }
+    } else {
+		p = ((uint32_t)SPI_2_PORT >> 10) & 0x0f;
+		lpm_portmask_system[p] &= ~(uint16_t)(1 << SPI_2_PIN_NSS);
+		lpm_portmask_system[p] &= ~(uint16_t)(1 << SPI_2_PIN_SCK);
+		lpm_portmask_system[p] &= ~(uint16_t)(1 << SPI_2_PIN_MOSI);
+	}
 #endif
 
     /* save GPIO clock configuration */
@@ -166,7 +189,7 @@ static void lpm_before_i_go_to_sleep (void) {
             }
             
             /* exclude GPIOs we previously set with pin_set */
-            if (lpm_portmask[i] & (1 << p)) {
+            if ((lpm_portmask_system[i] | lpm_portmask_user[i]) & (1 << p)) {
                 mask &= ~((uint32_t)0x03 << (p*2));
             }
         }
@@ -235,27 +258,23 @@ static void lpm_when_i_wake_up (void) {
     if (lpm_usart[4]) { UART_4_CLKEN(); };
 #endif
 }
-#endif
 
 void lpm_arch_add_gpio_exclusion(gpio_t gpio) {
 	uint8_t port = ((uint32_t)gpio >> 10) & 0x0f;
 	uint8_t pin = ((uint32_t)gpio & 0x0f);
 	
-	lpm_portmask[port] |= (uint16_t)(1<<pin);
+	lpm_portmask_user[port] |= (uint16_t)(1<<pin);
 }
 
 void lpm_arch_del_gpio_exclusion(gpio_t gpio) {
 	uint8_t port = ((uint32_t)gpio >> 10) & 0x0f;
 	uint8_t pin = ((uint32_t)gpio & 0x0f);
 	
-	lpm_portmask[port] &= ~(uint16_t)(1<<pin);
+	lpm_portmask_user[port] &= ~(uint16_t)(1<<pin);
 }
 
 void lpm_arch_init(void)
 {
-	/* initialize lpm_portmask with zeros */
-    memset(lpm_portmask, 0, sizeof(lpm_portmask));
-	
     /* Unlock the RUN_PD bit to change flash settings */  
     FLASH->PDKEYR = FLASH_PDKEY1;
     FLASH->PDKEYR = FLASH_PDKEY2;

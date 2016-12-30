@@ -26,7 +26,7 @@
 #include "arch/lpm_arch.h"
 
 #include "stm32l1xx.h"
-#include "xtimer.h"
+//#include "xtimer.h"
 
 #include "cpu.h"
 #include "board.h"
@@ -449,7 +449,6 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             __WFI();
             break;
 
-        /* do nothing here */
         case LPM_UNKNOWN:
 			break;
         case LPM_ON:
@@ -473,8 +472,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 
 enum lpm_mode lpm_arch_get(void)
 {
-    /* TODO */
-    return 0;
+    return lpm_run_mode;
 }
 
 void lpm_arch_awake(void)

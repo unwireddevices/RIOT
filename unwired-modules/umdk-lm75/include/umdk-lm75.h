@@ -23,7 +23,7 @@
 
 #define UNWDS_LM75_MODULE_ID 5
 
-#define UMDK_LM75_I2C I2C_0
+#define UMDK_LM75_I2C I2C_1
 
 typedef enum {
 	UMDK_LM75_CMD_POLL = 0,

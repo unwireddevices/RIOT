@@ -32,9 +32,16 @@ int lm75a_init(lm75a_t *dev, lm75a_param_t *param)
 {
     assert(dev != NULL);
     assert(param != NULL);
-
+	
     /* Copy parameters */
     dev->params = *param;
+	
+	/* initialize underlying I2C bus */
+    if (i2c_init_master(dev->params.i2c, I2C_SPEED_NORMAL) < 0) {
+        /* Release the bus for other threads. */
+        i2c_release(dev->params.i2c);
+        return -1;
+    }
 
     /* Modify the actual I2C address with respect to A1-A3 pins state */
     dev->address = LM75A_ADDRESS;

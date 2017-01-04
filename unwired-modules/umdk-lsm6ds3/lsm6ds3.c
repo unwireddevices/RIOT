@@ -97,6 +97,13 @@ int lsm6ds3_init(lsm6ds3_t *dev, lsm6ds3_param_t *param)
 
     /* Copy settings */
     dev->params = *param;
+	
+	/* Initialize I2C bus */
+	if (i2c_init_master(dev->params.i2c, I2C_SPEED_NORMAL) < 0) {
+		i2c_release(dev->params.i2c);
+		
+		return -1;
+	}
 
     /* Check device ID */
     uint8_t id;

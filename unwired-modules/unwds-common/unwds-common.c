@@ -58,46 +58,46 @@ static uint64_t ability_map;
 static const unwd_module_t modules[] = {
 
 #ifdef umdk_gpio
-    { UNWDS_GPIO_MODULE_ID, "gpio", unwds_gpio_init, unwds_gpio_cmd, unwds_gpio_broadcast, 1 << 1, false },
+    { UNWDS_GPIO_MODULE_ID, "gpio", unwds_gpio_init, unwds_gpio_cmd, unwds_gpio_broadcast, 1 << 1 },
 #endif
 #ifdef umdk_4btn
-    { UNWDS_4BTN_MODULE_ID, "4btn", umdk_4btn_init, umdk_4btn_cmd, NULL, 1 << 2, false },
+    { UNWDS_4BTN_MODULE_ID, "4btn", umdk_4btn_init, umdk_4btn_cmd, NULL, 1 << 2 },
 #endif
 #ifdef umdk_gps
-    { UNWDS_GPS_MODULE_ID, "gps", umdk_gps_init, umdk_gps_cmd, NULL, 1 << 3, false },
+    { UNWDS_GPS_MODULE_ID, "gps", umdk_gps_init, umdk_gps_cmd, NULL, 1 << 3 },
 #endif
 #ifdef umdk_lsm6ds3
-	{ UNWDS_LSM6DS3_MODULE_ID, "lsm6ds3", umdk_lsm6ds3_init, umdk_lsm6ds3_cmd, NULL, 1 << 5, true },
+	{ UNWDS_LSM6DS3_MODULE_ID, "lsm6ds3", umdk_lsm6ds3_init, umdk_lsm6ds3_cmd, NULL, 1 << 5 },
 #endif
 #ifdef umdk_lm75
-    { UNWDS_LM75_MODULE_ID, "lm75", umdk_lm75_init, umdk_lm75_cmd, NULL, 1 << 4, true },
+    { UNWDS_LM75_MODULE_ID, "lm75", umdk_lm75_init, umdk_lm75_cmd, NULL, 1 << 4 },
 #endif
 #ifdef umdk_lmt01
-	{ UNWDS_LMT01_MODULE_ID, "lmt01", umdk_lmt01_init, umdk_lmt01_cmd, NULL, 1 << 6, false },
+	{ UNWDS_LMT01_MODULE_ID, "lmt01", umdk_lmt01_init, umdk_lmt01_cmd, NULL, 1 << 6 },
 #endif
 #ifdef umdk_uart
-	{ UNWDS_UART_MODULE_ID, "uart", umdk_uart_init, umdk_uart_cmd, NULL, 1 << 7, false },
+	{ UNWDS_UART_MODULE_ID, "uart", umdk_uart_init, umdk_uart_cmd, NULL, 1 << 7 },
 #endif
 #ifdef umdk_sht21
-	{ UNWDS_SHT21_MODULE_ID, "sht21", umdk_sht21_init, umdk_sht21_cmd, NULL, 1 << 8, true },
+	{ UNWDS_SHT21_MODULE_ID, "sht21", umdk_sht21_init, umdk_sht21_cmd, NULL, 1 << 8 },
 #endif
 #ifdef umdk_pir
-	{ UNWDS_PIR_MODULE_ID, "pir", umdk_pir_init, umdk_pir_cmd, NULL, 1 << 9, false },
+	{ UNWDS_PIR_MODULE_ID, "pir", umdk_pir_init, umdk_pir_cmd, NULL, 1 << 9 },
 #endif
 #ifdef umdk_6adc
-	{ UNWDS_6ADC_MODULE_ID, "6adc", umdk_6adc_init, umdk_6adc_cmd, NULL, 1 << 10, false },
+	{ UNWDS_6ADC_MODULE_ID, "6adc", umdk_6adc_init, umdk_6adc_cmd, NULL, 1 << 10 },
 #endif
 #ifdef umdk_lps331
-	{ UNWDS_LPS331_MODULE_ID, "lps331", umdk_lps331_init, umdk_lps331_cmd, NULL, 1 << 11, true },
+	{ UNWDS_LPS331_MODULE_ID, "lps331", umdk_lps331_init, umdk_lps331_cmd, NULL, 1 << 11 },
 #endif
 #ifdef umdk_4counter
-	{ UNWDS_4COUNTER_MODULE_ID, "4counter", umdk_4counter_init, umdk_4counter_cmd, NULL, 1 << 12, false },
+	{ UNWDS_4COUNTER_MODULE_ID, "4counter", umdk_4counter_init, umdk_4counter_cmd, NULL, 1 << 12 },
 #endif
 #ifdef umdk_rssiecho
-	{ UNWDS_RSSIECHO_MODULE_ID, "echo", umdk_rssiecho_init, umdk_rssiecho_cmd, NULL, 1 << 13, false },
+	{ UNWDS_RSSIECHO_MODULE_ID, "echo", umdk_rssiecho_init, umdk_rssiecho_cmd, NULL, 1 << 13 },
 #endif
 #ifdef umdk_pwm
-	{ UNWDS_PWM_MODULE_ID, "pwm", umdk_pwm_init, umdk_pwm_cmd, NULL, 1 << 14, false },
+	{ UNWDS_PWM_MODULE_ID, "pwm", umdk_pwm_init, umdk_pwm_cmd, NULL, 1 << 14 },
 #endif
 
     { 0, "", NULL, NULL },
@@ -172,32 +172,8 @@ uint8_t *allocate_stack(void) {
 void unwds_init_modules(uwnds_cb_t *event_callback)
 {
     int i = 0;
-	bool i2c0_en = false;
-	bool i2c1_en = false;
-
-	/* Pre-initialize I2Cs */
-	while (modules[i].init_cb != NULL && modules[i].cmd_cb != NULL) {
-    	if (ability_map & modules[i].ability_mask) {
-			if (modules[i].uses_i2c) {
-				i2c0_en = true;
-				/*i2c1_en = true;*/
-			}
-    	}
-
-        i++;
-    }
-	
-	if (i2c0_en) {
-		printf("[unwds] initializing I2C bus 0\n");
-		i2c_init_master(I2C_0, I2C_SPEED_NORMAL);		
-	}
-	if (i2c1_en) {
-		printf("[unwds] initializing I2C bus 1\n");
-		i2c_init_master(I2C_1, I2C_SPEED_NORMAL);
-	}
 
 	/* Initialize modules */
-	i = 0;
     while (modules[i].init_cb != NULL && modules[i].cmd_cb != NULL) {
     	if (ability_map & modules[i].ability_mask) {	/* Module enabled */
     		printf("[unwds] initializing \"%s\" module...\n", modules[i].name);

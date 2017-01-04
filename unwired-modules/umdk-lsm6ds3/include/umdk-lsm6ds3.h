@@ -22,7 +22,7 @@
 
 #define UNWDS_LSM6DS3_MODULE_ID 4
 
-#define UMDK_LSM6DS3_I2C I2C_0
+#define UMDK_LSM6DS3_I2C I2C_1
 
 typedef enum {
 	UMDK_LSM6DS3_CMD_POLL = 0,

@@ -57,11 +57,11 @@ int lps331ap_init(lps331ap_t *dev, i2c_t i2c, uint8_t address, lps331ap_rate_t r
     /* Acquire exclusive access to the bus. */
     i2c_acquire(dev->i2c);
     /* initialize underlying I2C bus */
-    //if (i2c_init_master(dev->i2c, BUS_SPEED) < 0) {
+    if (i2c_init_master(dev->i2c, BUS_SPEED) < 0) {
         /* Release the bus for other threads. */
-      //  i2c_release(dev->i2c);
-        //return -1;
-    //}
+        i2c_release(dev->i2c);
+        return -1;
+    }
 
     /* configure device, for simple operation only CTRL_REG1 needs to be touched */
     tmp = LPS331AP_CTRL_REG1_DBDU | LPS331AP_CTRL_REG1_PD |

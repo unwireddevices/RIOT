@@ -97,8 +97,6 @@ typedef struct {
 	bool (*cmb_broadcast_cb)(module_data_t *data, module_data_t *reply);
 
 	uint64_t ability_mask;
-
-	bool uses_i2c;
 } unwd_module_t;
 
 void unwds_init_modules(uwnds_cb_t *event_callback);

@@ -20,7 +20,7 @@
 
 #include "unwds-common.h"
 
-#define UMDK_LPS331_I2C 0
+#define UMDK_LPS331_I2C 1
 
 #define UMDK_LPS331_PUBLISH_PERIOD_MIN 1
 

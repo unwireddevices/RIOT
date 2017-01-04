@@ -21,8 +21,6 @@
 #ifndef PERIPH_TIMER_H
 #define PERIPH_TIMER_H
 
-#include <limits.h>
-
 #include "periph_cpu.h"
 /** @todo remove dev_enums.h include once all platforms are ported to the updated periph interface */
 #include "periph/dev_enums.h"
@@ -44,7 +42,7 @@ extern "C" {
  * @brief   Default value for timer not defined
  */
 #ifndef TIMER_UNDEF
-#define TIMER_UNDEF         (UINT_MAX)
+#define TIMER_UNDEF         (-1)
 #endif
 
 /**
@@ -100,6 +98,18 @@ typedef struct {
 int timer_init(tim_t dev, unsigned long freq, timer_cb_t cb, void *arg);
 
 /**
+ * @brief Change frequency of the given timer
+ *
+ */
+int timer_set_freq(tim_t dev, unsigned long freq);
+
+/**
+ * @brief Get frequency of the given timer
+ *
+ */
+unsigned long timer_get_freq(tim_t dev);
+
+/**
  * @brief Set a given timer channel for the given timer device
  *
  * The callback given during initialization is called when timeout ticks have
@@ -153,7 +163,7 @@ unsigned int timer_read(tim_t dev);
  *
  * This function is only needed if the timer was stopped manually before.
  *
- * @param[in] dev           the timer device to start
+ * @param[in] dev           the timer device to stop
  */
 void timer_start(tim_t dev);
 

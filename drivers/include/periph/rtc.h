@@ -44,6 +44,11 @@ extern "C" {
 typedef void(*rtc_alarm_cb_t)(void *arg);
 
 /**
+ * @brief Signaure for wakeup callback
+ */
+typedef void(*rtc_wkup_cb_t)(void *arg);
+
+/**
  * @brief Initialize RTC module
  */
 void rtc_init(void);
@@ -82,6 +87,21 @@ int rtc_get_time(struct tm *time);
  * @return -1 other errors
  */
 int rtc_set_alarm(struct tm *time, rtc_alarm_cb_t cb, void *arg);
+
+/**
+ * @brief Set an RTC wakup timer
+ *
+ * @note Any already set alarm will be overwritten.
+ *
+ * @param[in] time          The value to trigger an alarm when hit.
+ * @param[in] cb            Callback executed when alarm is hit.
+ * @param[in] arg           Argument passed to callback when alarm is hit.
+ *
+ * @return  0 for success
+ * @return -2 invalid `time` parameter
+ * @return -1 other errors
+ */
+int rtc_set_wakeup(struct tm *time, rtc_wkup_cb_t cb, void *arg);
 
 /**
  * @brief Gets the current alarm setting

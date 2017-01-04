@@ -39,6 +39,7 @@
 
 typedef struct {
     rtc_alarm_cb_t cb;        /**< callback called from RTC interrupt */
+    rtc_wkup_cb_t wkup_cb;      /**< Wake up timer callback */
     void *arg;                /**< argument passed to the callback */
 } rtc_state_t;
 
@@ -173,8 +174,9 @@ int rtc_get_alarm(struct tm *time)
     time->tm_mon  = (((RTC->DR     & RTC_DR_MT)      >> 12) * 10) + ((RTC->DR & RTC_DR_MU)          >>  8) - 1;
     time->tm_mday = (((RTC->ALRMAR & RTC_ALRMAR_DT)  >> 28) * 10) + ((RTC->ALRMAR & RTC_ALRMAR_DU)  >> 24);
     time->tm_hour = (((RTC->ALRMAR & RTC_ALRMAR_HT)  >> 20) * 10) + ((RTC->ALRMAR & RTC_ALRMAR_HU)  >> 16);
-    if ( (RTC->ALRMAR & RTC_ALRMAR_PM) && (RTC->CR & RTC_CR_FMT) )
+    if ( (RTC->ALRMAR & RTC_ALRMAR_PM) && (RTC->CR & RTC_CR_FMT) ) {
         time->tm_hour += 12;
+    }
     time->tm_min  = (((RTC->ALRMAR & RTC_ALRMAR_MNT) >> 12) * 10) + ((RTC->ALRMAR & RTC_ALRMAR_MNU) >>  8);
     time->tm_sec  = (((RTC->ALRMAR & RTC_ALRMAR_ST)  >>  4) * 10) + ((RTC->ALRMAR & RTC_ALRMAR_SU)  >>  0);
     return 0;
@@ -188,6 +190,24 @@ void rtc_clear_alarm(void)
 
     rtc_callback.cb = NULL;
     rtc_callback.arg = NULL;
+}
+
+void rtc_set_wakeup_counter(uint16_t value) {
+    assert(value <= 0xFFFF);
+
+    /* Disable the write protection for RTC registers */
+    RTC->WPR = 0xCA;
+    RTC->WPR = 0x53;
+
+    /* Configure the Wakeup Timer counter */
+    RTC->WUTR = (uint32_t)value;
+
+    /* Enable the write protection for RTC registers */
+    RTC->WPR = 0xFF;
+}
+
+uint32_t rtc_get_wakeup_counter(void) {
+    return ((uint32_t)(RTC->WUTR & RTC_WUTR_WUT));
 }
 
 void rtc_poweron(void)
@@ -232,9 +252,24 @@ void rtc_poweroff(void)
 void isr_rtc_alarm(void)
 {
     if ((RTC->ISR & RTC_ISR_ALRAF) && (rtc_callback.cb != NULL)) {
-        rtc_callback.cb(rtc_callback.arg);
         RTC->ISR &= ~RTC_ISR_ALRAF;
+        EXTI->PR = EXTI_PR_PR17;
+        rtc_callback.cb(rtc_callback.arg);
     }
+    if (sched_context_switch_request) {
+        thread_yield();
+    }
+}
+
+void isr_rtc_wkup(void)
+{
+    if ((RTC->ISR & RTC_ISR_WUTF) && (rtc_callback.cb != NULL)) {
+        RTC->ISR &= ~RTC_ISR_WUTF;
+        EXTI->PR = EXTI_PR_PR20;
+
+        rtc_callback.wkup_cb(rtc_callback.arg);
+    }
+
     if (sched_context_switch_request) {
         thread_yield();
     }

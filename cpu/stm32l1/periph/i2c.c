@@ -35,16 +35,19 @@
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
 
-
 /* guard file in case no I2C device is defined */
 #if I2C_NUMOF
 
 /* static function definitions */
 static void _i2c_init(I2C_TypeDef *i2c, int ccr);
-static void _start(I2C_TypeDef *i2c, uint8_t address, uint8_t rw_flag);
+static int _start(I2C_TypeDef *i2c, uint8_t address, uint8_t rw_flag);
 static inline void _clear_addr(I2C_TypeDef *i2c);
 static inline void _write(I2C_TypeDef *i2c, char *data, int length);
 static inline void _stop(I2C_TypeDef *i2c);
+static inline void _i2c_irq(I2C_TypeDef *i2c);
+
+static volatile int8_t i2c_bus_error = 0;
+static int8_t i2c_bus_result = 0;
 
 /**
  * @brief Array holding one pre-initialized mutex for each I2C device
@@ -158,7 +161,10 @@ int i2c_read_bytes(i2c_t dev, uint8_t address, char *data, int length)
     switch (length) {
         case 1:
             DEBUG("Send Slave address and wait for ADDR == 1\n");
-            _start(i2c, address, I2C_FLAG_READ);
+           	i2c_bus_result = _start(i2c, address, I2C_FLAG_READ);
+			if (i2c_bus_result < 0) {
+				return i2c_bus_result;
+			}
 
             DEBUG("Set ACK = 0\n");
             i2c->CR1 &= ~(I2C_CR1_ACK);
@@ -185,7 +191,10 @@ int i2c_read_bytes(i2c_t dev, uint8_t address, char *data, int length)
 
         case 2:
             DEBUG("Send Slave address and wait for ADDR == 1\n");
-            _start(i2c, address, I2C_FLAG_READ);
+           	i2c_bus_result = _start(i2c, address, I2C_FLAG_READ);
+			if (i2c_bus_result < 0) {
+				return i2c_bus_result;
+			}
             DEBUG("Set POS bit\n");
             i2c->CR1 |= (I2C_CR1_POS | I2C_CR1_ACK);
             DEBUG("Crit block: Clear ADDR bit and clear ACK flag\n");
@@ -218,7 +227,10 @@ int i2c_read_bytes(i2c_t dev, uint8_t address, char *data, int length)
 
         default:
             DEBUG("Send Slave address and wait for ADDR == 1\n");
-            _start(i2c, address, I2C_FLAG_READ);
+			i2c_bus_result = _start(i2c, address, I2C_FLAG_READ);
+			if (i2c_bus_result < 0) {
+				return i2c_bus_result;
+			}
             _clear_addr(i2c);
 
             while (i < (length - 3)) {
@@ -279,7 +291,10 @@ int i2c_read_regs(i2c_t dev, uint8_t address, uint8_t reg, char *data, int lengt
 
     /* send start condition and slave address */
     DEBUG("Send slave address and clear ADDR flag\n");
-    _start(i2c, address, I2C_FLAG_WRITE);
+    i2c_bus_result = _start(i2c, address, I2C_FLAG_WRITE);
+    if (i2c_bus_result < 0) {
+		return i2c_bus_result;
+	}
     _clear_addr(i2c);
     DEBUG("Write reg into DR\n");
     i2c->DR = reg;
@@ -303,7 +318,10 @@ int i2c_write_bytes(i2c_t dev, uint8_t address, char *data, int length)
 
     /* start transmission and send slave address */
     DEBUG("sending start sequence\n");
-    _start(i2c, address, I2C_FLAG_WRITE);
+	i2c_bus_result = _start(i2c, address, I2C_FLAG_WRITE);
+    if (i2c_bus_result < 0) {
+		return i2c_bus_result;
+	}
     _clear_addr(i2c);
     /* send out data bytes */
     _write(i2c, data, length);
@@ -328,7 +346,10 @@ int i2c_write_regs(i2c_t dev, uint8_t address, uint8_t reg, char *data, int leng
     I2C_TypeDef *i2c = i2c_config[dev].dev;
 
     /* start transmission and send slave address */
-    _start(i2c, address, I2C_FLAG_WRITE);
+	i2c_bus_result = _start(i2c, address, I2C_FLAG_WRITE);
+    if (i2c_bus_result < 0) {
+		return i2c_bus_result;
+	}
     _clear_addr(i2c);
     /* send register address and wait for complete transfer to be finished*/
     _write(i2c, (char *)(&reg), 1);
@@ -355,7 +376,7 @@ void i2c_poweroff(i2c_t dev)
     }
 }
 
-static void _start(I2C_TypeDef *i2c, uint8_t address, uint8_t rw_flag)
+static int _start(I2C_TypeDef *i2c, uint8_t address, uint8_t rw_flag)
 {
     /* wait for device to be ready */
     DEBUG("Wait for device to be ready\n");
@@ -371,11 +392,18 @@ static void _start(I2C_TypeDef *i2c, uint8_t address, uint8_t rw_flag)
 
     /* send address and read/write flag */
     DEBUG("Send address\n");
+	i2c_bus_error = 0;
     i2c->DR = (address << 1) | rw_flag;
     /* clear ADDR flag by reading first SR1 and then SR2 */
     DEBUG("Wait for ADDR flag to be set\n");
 
-    while (!(i2c->SR1 & I2C_SR1_ADDR)) {}
+    while (!(i2c->SR1 & I2C_SR1_ADDR)) {
+		/* I2C bus failure */
+		if (i2c_bus_error) {
+			return i2c_bus_error;
+		}
+	}
+	return 0;
 }
 
 static inline void _clear_addr(I2C_TypeDef *i2c)
@@ -412,69 +440,57 @@ static inline void _stop(I2C_TypeDef *i2c)
     i2c->CR1 |= I2C_CR1_STOP;
 }
 
+static inline void _i2c_irq(I2C_TypeDef *i2c) {
+	unsigned state = i2c->SR1;
+	DEBUG("\n\n### I2C ERROR OCCURED ###\n");
+	/* printf("status: %08x\n", state); */
+    if (state & I2C_SR1_OVR) {
+		i2c_bus_error = -1;
+    	DEBUG("OVR\n");
+    }
+    if (state & I2C_SR1_AF) {
+		i2c_bus_error = -2;
+    	i2c->SR1 &= ~I2C_SR1_AF;
+    	DEBUG("NACK");
+    }
+    if (state & I2C_SR1_ARLO) {
+		i2c_bus_error = -3;
+    	i2c->SR1 &= ~I2C_SR1_ARLO;
+    	DEBUG("ARLO\n");
+    }
+    if (state & I2C_SR1_BERR) {
+		i2c_bus_error = -4;
+    	DEBUG("BERR\n");
+    }
+    if (state & I2C_SR1_PECERR) {
+		i2c_bus_error = -5;
+    	DEBUG("PECERR\n");
+    }
+    if (state & I2C_SR1_TIMEOUT) {
+		i2c_bus_error = -6;
+    	DEBUG("TIMEOUT\n");
+    }
+    if (state & I2C_SR1_SMBALERT) {
+		i2c_bus_error = -7;
+    	DEBUG("SMBALERT\n");
+    }
+}
+
 #if I2C_0_EN
 void I2C_0_ERR_ISR(void)
 {
-    unsigned state = I2C1->SR1;
-    DEBUG("\n\n### I2C1 ERROR OCCURED ###\n");
-//    printf("status: %08x\n", state);
-    if (state & I2C_SR1_OVR) {
-    	puts("OVR\n");
-    }
-    if (state & I2C_SR1_AF) {
-    	I2C1->SR1 &= ~I2C_SR1_AF;
-    	puts("I2C1 NACK");
-    }
-    if (state & I2C_SR1_ARLO) {
-    	I2C1->SR1 &= ~I2C_SR1_ARLO;
-    	puts("ARLO\n");
-    }
-    if (state & I2C_SR1_BERR) {
-    	puts("BERR\n");
-    }
-    if (state & I2C_SR1_PECERR) {
-    	puts("PECERR\n");
-    }
-    if (state & I2C_SR1_TIMEOUT) {
-    	puts("TIMEOUT\n");
-    }
-    if (state & I2C_SR1_SMBALERT) {
-    	puts("SMBALERT\n");
-    }
-    //while (1) {}
+	I2C_TypeDef *i2c;
+	i2c = I2C1;
+	_i2c_irq(i2c);
 }
 #endif /* I2C_0_EN */
 
 #if I2C_1_EN
 void I2C_1_ERR_ISR(void)
 {
-    unsigned state = I2C2->SR1;
-    DEBUG("\n\n### I2C2 ERROR OCCURED ###\n");
-//    printf("status: %08x\n", state);
-    if (state & I2C_SR1_OVR) {
-        puts("OVR\n");
-    }
-    if (state & I2C_SR1_AF) {
-    	I2C2->SR1 &= ~I2C_SR1_AF;
-        puts("I2C2 NACK");
-    }
-    if (state & I2C_SR1_ARLO) {
-    	I2C2->SR1 &= ~I2C_SR1_ARLO;
-    	puts("ARLO\n");
-    }
-    if (state & I2C_SR1_BERR) {
-    	puts("BERR\n");
-    }
-    if (state & I2C_SR1_PECERR) {
-    	puts("PECERR\n");
-    }
-    if (state & I2C_SR1_TIMEOUT) {
-    	puts("TIMEOUT\n");
-    }
-    if (state & I2C_SR1_SMBALERT) {
-    	puts("SMBALERT\n");
-    }
-    //while (1) {}
+	I2C_TypeDef *i2c;
+	i2c = I2C2;
+	_i2c_irq(i2c);
 }
 #endif /* I2C_1_EN */
 

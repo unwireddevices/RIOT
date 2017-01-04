@@ -250,5 +250,7 @@ void isr_exti(void)
             exti_chan[i].cb(exti_chan[i].arg);
         }
     }
-    cortexm_isr_end();
+    if (sched_context_switch_request) {
+        thread_yield();
+    }
 }

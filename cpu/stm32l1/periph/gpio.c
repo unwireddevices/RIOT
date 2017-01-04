@@ -21,8 +21,6 @@
  */
 
 #include "cpu.h"
-#include "sched.h"
-#include "thread.h"
 #include "periph/gpio.h"
 #include "periph_conf.h"
 
@@ -30,6 +28,8 @@
  * @brief   Number of available external interrupt lines
  */
 #define GPIO_ISR_CHAN_NUMOF             (16U)
+
+static uint32_t tmpreg;
 
 /**
  * @brief   Hold one callback function pointer for each interrupt line
@@ -72,18 +72,25 @@ int gpio_init(gpio_t pin, gpio_mode_t mode)
     periph_clk_en(AHB, (RCC_AHBENR_GPIOAEN << _port_num(pin)));
 
     /* set mode */
-    port->MODER &= ~(0x3 << (2 * pin_num));
-    port->MODER |=  ((mode & 0x3) << (2 * pin_num));
+	tmpreg = port->MODER;
+    tmpreg &= ~(0x3 << (2 * pin_num));
+    tmpreg |=  ((mode & 0x3) << (2 * pin_num));
+	port->MODER = tmpreg;
     /* set pull resistor configuration */
-    port->PUPDR &= ~(0x3 << (2 * pin_num));
-    port->PUPDR |=  (((mode >> 2) & 0x3) << (2 * pin_num));
+	tmpreg = port->PUPDR;
+    tmpreg &= ~(0x3 << (2 * pin_num));
+    tmpreg |=  (((mode >> 2) & 0x3) << (2 * pin_num));
+	port->PUPDR = tmpreg;
     /* set output mode */
-    port->OTYPER &= ~(1 << pin_num);
-    port->OTYPER |=  (((mode >> 4) & 0x1) << pin_num);
+	tmpreg = port->OTYPER;
+    tmpreg &= ~(1 << pin_num);
+    tmpreg |=  (((mode >> 4) & 0x1) << pin_num);
+	port->OTYPER = tmpreg;
     /* finally set pin speed to maximum and reset output */
     port->OSPEEDR |= (3 << (2 * pin_num));
+#if defined (STM32L1XX_HD) || defined (STM32L1XX_XL)
     port->BRR = (1 << pin_num);
-
+#endif
     return 0;
 }
 
@@ -126,8 +133,10 @@ int gpio_init_int(gpio_t pin, gpio_mode_t mode, gpio_flank_t flank,
             break;
     }
     /* enable specific pin as exti sources */
-    SYSCFG->EXTICR[pin_num >> 2] &= ~(0xf << ((pin_num & 0x03) * 4));
-    SYSCFG->EXTICR[pin_num >> 2] |= (port_num << ((pin_num & 0x03) * 4));
+	tmpreg = SYSCFG->EXTICR[pin_num >> 2];
+    tmpreg &= ~(0xf << ((pin_num & 0x03) * 4));
+    tmpreg |= (port_num << ((pin_num & 0x03) * 4));
+	SYSCFG->EXTICR[pin_num >> 2] = tmpreg;
     /* clear any pending requests */
     EXTI->PR = (1 << pin_num);
     /* enable interrupt for EXTI line */
@@ -141,11 +150,15 @@ void gpio_init_af(gpio_t pin, gpio_af_t af)
     uint32_t pin_num = _pin_num(pin);
 
     /* set pin to AF mode */
-    port->MODER &= ~(3 << (2 * pin_num));
-    port->MODER |= (2 << (2 * pin_num));
+	tmpreg = port->MODER;
+    tmpreg &= ~(3 << (2 * pin_num));
+    tmpreg |= (2 << (2 * pin_num));
+	port->MODER = tmpreg;
     /* set selected function */
-    port->AFR[(pin_num > 7) ? 1 : 0] &= ~(0xf << ((pin_num & 0x07) * 4));
-    port->AFR[(pin_num > 7) ? 1 : 0] |= (af << ((pin_num & 0x07) * 4));
+	tmpreg = port->AFR[(pin_num > 7) ? 1 : 0];
+    tmpreg &= ~(0xf << ((pin_num & 0x07) * 4));
+    tmpreg |= (af << ((pin_num & 0x07) * 4));
+	port->AFR[(pin_num > 7) ? 1 : 0] = tmpreg;
 }
 
 void gpio_init_analog(gpio_t pin)
@@ -159,12 +172,24 @@ void gpio_init_analog(gpio_t pin)
 
 void gpio_irq_enable(gpio_t pin)
 {
-    EXTI->IMR |= (1 << _pin_num(pin));
+	int pin_num = _pin_num(pin);
+    int port_num = _port_num(pin);
+	
+	/* check if IRQ is actually configured for this pin and port */
+	if (!((SYSCFG->EXTICR[pin_num >> 2] & (0xf << ((pin_num & 0x03) * 4))) ^ (port_num << ((pin_num & 0x03) * 4)))) {
+		EXTI->IMR |= (1 << _pin_num(pin));
+	}
 }
 
 void gpio_irq_disable(gpio_t pin)
 {
-    EXTI->IMR &= ~(1 << _pin_num(pin));
+	int pin_num = _pin_num(pin);
+    int port_num = _port_num(pin);
+	
+	/* check if IRQ is actually configured for this pin and port */
+	if (!((SYSCFG->EXTICR[pin_num >> 2] & (0xf << ((pin_num & 0x03) * 4))) ^ (port_num << ((pin_num & 0x03) * 4)))) {
+		EXTI->IMR &= ~(1 << pin_num);
+	}
 }
 
 int gpio_read(gpio_t pin)
@@ -172,12 +197,17 @@ int gpio_read(gpio_t pin)
     GPIO_TypeDef *port = _port(pin);
     uint32_t pin_num = _pin_num(pin);
 
-    if (port->MODER & (3 << (pin_num * 2))) {   /* if configured as output */
-        return port->ODR & (1 << pin_num);      /* read output data reg */
+    uint8_t port_mode = (port->MODER & (3 << (pin_num * 2))) >> (pin_num * 2);
+	
+    if (port_mode == 1) {   /* if configured as output */
+        return (port->ODR & (1 << pin_num)) >> pin_num;      /* read output data reg */
     }
-    else {
-        return port->IDR & (1 << pin_num);      /* else read input data reg */
+    if (port_mode == 0) {
+        return (port->IDR & (1 << pin_num)) >> pin_num;      /* else read input data reg */
     }
+	
+    /* configured as AF or AIN */
+	return -1;
 }
 
 void gpio_set(gpio_t pin)
@@ -220,7 +250,5 @@ void isr_exti(void)
             exti_chan[i].cb(exti_chan[i].arg);
         }
     }
-    if (sched_context_switch_request) {
-        thread_yield();
-    }
+    cortexm_isr_end();
 }

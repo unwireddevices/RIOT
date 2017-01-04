@@ -92,6 +92,10 @@ int i2c_init_master(i2c_t dev, i2c_speed_t speed)
 
     /* enable I2C clock */
     i2c_poweron(dev);
+	
+	/* disable device */
+	/* operations on running I2C device will result in BERR error */
+    i2c->CR1 &= ~I2C_CR1_PE;
 
     /* set IRQn priority */
     NVIC_SetPriority(i2c_config[dev].er_irqn, I2C_IRQ_PRIO);

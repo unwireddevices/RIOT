@@ -24,6 +24,10 @@
 #include "cpu_conf_common.h"
 
 #include "stm32l1xx.h"
+#define  FLASH_PDKEY1                        ((uint32_t)0x04152637)       /*!< FLASH_PEC and data matrix Key 1 */
+#define  FLASH_PDKEY2                        ((uint32_t)0xFAFBFCFD)       /*!< FLASH_PEC and data matrix Key 2 */
+
+#define CPU_NUMBER_OF_PORTS 6
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,6 +41,16 @@ extern "C" {
 #define CPU_IRQ_NUMOF                   (57U)
 #define CPU_FLASH_BASE                  FLASH_BASE
 /** @} */
+
+/**
+ * @brief   Switch to MSI clock
+ */
+void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider);
+
+/**
+ * @brief   Initizliaze clocks (switch to default clock)
+ */
+void clk_init(void);
 
 #ifdef __cplusplus
 }

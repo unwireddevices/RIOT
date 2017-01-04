@@ -88,6 +88,11 @@ static inline void cpu_sleep_until_event(void)
     __WFE();
 }
 
+/**
+ * @brief   Holds current CPU clock frequency
+ */
+extern uint32_t cpu_clock_global;
+
 #ifdef __cplusplus
 }
 #endif

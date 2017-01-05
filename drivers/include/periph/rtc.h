@@ -89,7 +89,7 @@ int rtc_get_time(struct tm *time);
 int rtc_set_alarm(struct tm *time, rtc_alarm_cb_t cb, void *arg);
 
 /**
- * @brief Set an RTC wakup timer
+ * @brief Set an RTC wakeup timer
  *
  * @note Any already set alarm will be overwritten.
  *

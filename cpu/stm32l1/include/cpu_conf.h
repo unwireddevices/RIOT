@@ -47,6 +47,9 @@ extern "C" {
  */
 void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider);
 
+/**
+ * @brief   Initizliaze clocks (switch to default clock)
+ */
 void clk_init(void);
 
 #ifdef __cplusplus

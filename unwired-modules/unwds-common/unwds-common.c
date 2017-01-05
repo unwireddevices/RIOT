@@ -44,6 +44,7 @@ extern "C" {
 #include "umdk-4counter.h"
 #include "umdk-rssiecho.h"
 #include "umdk-pwm.h"
+#include "umdk-opt3001.h"
 
 /**
  * @brief Bitmap of occupied pins that cannot be used as gpio in-out
@@ -98,6 +99,9 @@ static const unwd_module_t modules[] = {
 #endif
 #ifdef umdk_pwm
 	{ UNWDS_PWM_MODULE_ID, "pwm", umdk_pwm_init, umdk_pwm_cmd, NULL, 1 << 14 },
+#endif
+#ifdef umdk_opt3001
+	{ UNWDS_OPT3001_MODULE_ID, "opt3001", umdk_opt3001_init, umdk_opt3001_cmd, NULL, 1 << 15 },
 #endif
 
     { 0, "", NULL, NULL },

@@ -57,6 +57,7 @@ UNWD_LPS331   = 1
 UNWD_4COUNTER = 1
 UNWD_RSSIECHO = 1
 UNWD_PWM      = 1
+UNWD_OPT3001  = 1
 
 ####### UNWD MMODULES' includes & flags ############
 ifeq ($(UNWD_GPIO),1)
@@ -147,6 +148,13 @@ USEMODULE += umdk-pwm
 CFLAGS += -D umdk_pwm
 endif
 INCLUDES += -I../../unwired-modules/umdk-pwm/include/
+
+ifeq ($(UNWD_OPT3001),1)
+USEMODULE += umdk-opt3001
+USEMODULE += opt3001
+CFLAGS += -D umdk_opt3001
+endif
+INCLUDES += -I../../unwired-modules/umdk-opt3001/include/
 ####################################################
 
 

@@ -63,7 +63,7 @@ static void *handler(void *arg) {
 	return NULL;
 }
 
-static void pir_rising_cb(void *arg) {
+static void pir_int_cb(void *arg) {
 	(void) arg;
 
     int now = xtimer_now();
@@ -73,6 +73,9 @@ static void pir_rising_cb(void *arg) {
     	return;
 	}
     last_pressed[0] = now;
+    
+    /* Prepare event messages */
+    pir.content.value = gpio_read(UMDK_PIR);
 
 	msg_send_int(&pir, handler_pid);
 }
@@ -82,11 +85,8 @@ void umdk_pir_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 
 	callback = event_callback;
 
-	/* Prepare event messages */
-	pir.content.value = 1;
-
 	/* Initialize interrupts */
-	gpio_init_int(UMDK_PIR, GPIO_IN_PD, GPIO_RISING, pir_rising_cb, NULL);
+	gpio_init_int(UMDK_PIR, GPIO_IN_PD, GPIO_BOTH, pir_int_cb, NULL);
 
 	/* Create handler thread */
 	char *stack = (char *) allocate_stack();

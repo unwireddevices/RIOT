@@ -102,6 +102,13 @@ void cpu_init(void)
     cortexm_init();
     /* initialize system clocks */
     clk_init();
+    /* switch all GPIOs to AIN mode to minimize power consumption */
+    uint8_t i;
+    GPIO_TypeDef *port;
+    for (i = 0; i < CPU_NUMBER_OF_PORTS; i++) {
+        port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
+        port->MODER = 0xffffffff;
+    }
 }
 
 static void clk_store_clocks(void) {

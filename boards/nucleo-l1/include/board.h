@@ -41,7 +41,7 @@ extern "C" {
  * @name default STDIO UART port configuration
  * @{
  */
-#define UART_STDIO_DEV      (UART_DEV(0))
+#define UART_STDIO_NUM      0
 #define UART_STDIO_BAUDRATE (115200U)
 /** @} */
 

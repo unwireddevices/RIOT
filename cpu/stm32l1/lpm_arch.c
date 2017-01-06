@@ -85,51 +85,13 @@ static void lpm_before_i_go_to_sleep (void) {
     /* Disable all USART interfaces in use */
     /* without it, RX will receive some garbage when MODER is changed */
     memset(lpm_usart, 0, sizeof(lpm_usart));
-#if UART_0_EN
-    if (UART_0_ISON()) {
-        UART_0_CLKDIS();
-        pin_set((GPIO_TypeDef *)(UART_0_TX_PIN & ~(0x0f)), UART_0_TX_PIN & 0x0f, 1);
-        lpm_usart[0] = 1;
-    } else {
-		lpm_portmask_system[(UART_0_TX_PIN >> 10) & 0x0f] &= ~(uint16_t)(1 << (UART_0_TX_PIN & 0x0f));
-	}
-#endif
-#if UART_1_EN
-    if (UART_1_ISON()) {
-        UART_1_CLKDIS();
-        pin_set((GPIO_TypeDef *)(UART_1_TX_PIN & ~(0x0f)), UART_1_TX_PIN & 0x0f, 1);
-        lpm_usart[1] = 1;
-    } else {
-		lpm_portmask_system[(UART_1_TX_PIN >> 10) & 0x0f] &= ~(uint16_t)(1 << (UART_1_TX_PIN & 0x0f));
-	}
-#endif
-#if UART_2_EN
-    if (UART_2_ISON()) {
-        UART_2_CLKDIS();
-        pin_set((GPIO_TypeDef *)(UART_2_TX_PIN & ~(0x0f)), UART_2_TX_PIN & 0x0f, 1);
-        lpm_usart[2] = 1;
-    } else {
-		lpm_portmask_system[(UART_2_TX_PIN >> 10) & 0x0f] &= ~(uint16_t)(1 << (UART_2_TX_PIN & 0x0f));
-	}
-#endif
-#if UART_3_EN
-    if (UART_3_ISON()) {
-        UART_3_CLKDIS();
-        pin_set((GPIO_TypeDef *)(UART_3_TX_PIN & ~(0x0f)), UART_3_TX_PIN & 0x0f, 1);
-        lpm_usart[3] = 1;
-    } else {
-		lpm_portmask_system[(UART_3_TX_PIN >> 10) & 0x0f] &= ~(uint16_t)(1 << (UART_3_TX_PIN & 0x0f));
-	}
-#endif
-#if UART_4_EN
-    if (UART_4_ISON()) {
-        UART_4_CLKDIS();
-        pin_set((GPIO_TypeDef *)(UART_4_TX_PIN & ~(0x0f)), UART_4_TX_PIN & 0x0f, 1);
-        lpm_usart[4] = 1;
-    } else {
-		lpm_portmask_system[(UART_4_TX_PIN >> 10) & 0x0f] &= ~(uint16_t)(1 << (UART_4_TX_PIN & 0x0f));
-	}
-#endif
+    for (i = 0; i < UART_NUMOF; i++) {
+        if (uart_config[i].bus & uart_config[i].rcc_mask) {
+            periph_clk_dis(uart_config[i].bus, uart_config[i].rcc_mask);
+            pin_set((GPIO_TypeDef *)(uart_config[i].tx_pin & ~(0x0f)), uart_config[i].tx_pin & 0x0f, 1);
+            lpm_usart[i] = 1;
+        }
+    }
 
     /* specifically set GPIOs used for external SPI devices */
     /* NSS = 1, MOSI = 0, SCK = 0, MISO doesn't matter */
@@ -243,21 +205,11 @@ static void lpm_when_i_wake_up (void) {
     periph_clk_en(AHB, tmpreg);
     
     /* restore USART clocks */
-#if UART_0_EN
-    if (lpm_usart[0]) { UART_0_CLKEN(); };
-#endif
-#if UART_1_EN
-    if (lpm_usart[1]) { UART_1_CLKEN(); };
-#endif
-#if UART_2_EN
-    if (lpm_usart[2]) { UART_2_CLKEN(); };
-#endif
-#if UART_3_EN
-    if (lpm_usart[3]) { UART_3_CLKEN(); };
-#endif
-#if UART_4_EN
-    if (lpm_usart[4]) { UART_4_CLKEN(); };
-#endif
+    for (i = 0; i < UART_NUMOF; i++) {
+        if (lpm_usart[i]) {
+            periph_clk_en(uart_config[i].bus, uart_config[i].rcc_mask);
+        }
+    }
 }
 
 /* Do not change GPIO state in sleep mode */

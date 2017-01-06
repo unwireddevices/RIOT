@@ -19,7 +19,6 @@
 #define SHT21_H_ 1
 
 #include "thread.h"
-#include "ringbuffer.h"
 #include "periph/i2c.h"
 
 #include <stdlib.h>

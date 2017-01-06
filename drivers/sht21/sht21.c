@@ -10,10 +10,10 @@
  * @ingroup
  * @brief
  * @{
- * @file		sht21.c
+ * @file        sht21.c
  * @brief       driver for SHT21 sensor
  * @author      SmallSharky
- * @authoh		Eugene P. [ep@unwds.com]
+ * @authoh        Eugene P. [ep@unwds.com]
  */
 
 
@@ -46,12 +46,12 @@ int sht21_init(sht21_t *dev)
     i2c_acquire(dev->i2c);
 
     if (i2c_init_master(dev->i2c, I2C_SPEED_NORMAL) < 0) {
-		i2c_release(dev->i2c);
-		puts("[sht21 driver] Error initializing I2C bus");
-		
-		return -1;
-	}
-	
+        i2c_release(dev->i2c);
+        puts("[sht21 driver] Error initializing I2C bus");
+        
+        return -1;
+    }
+    
     if (i2c_read_reg(dev->i2c, SHT21_ADDRESS, SHT21_USER_REG_READ, (char *)&config) != 1) {
       puts("[sht21 driver] Error: sensor not found");
       i2c_release(dev->i2c);
@@ -68,50 +68,52 @@ int sht21_init(sht21_t *dev)
     puts("[sht21 driver] Setting configuration register");
     i2c_write_reg(dev->i2c, SHT21_ADDRESS, SHT21_USER_REG_WRITE, config);
     i2c_release(dev->i2c);
-	
+    
     return 0;
 }
 
 static inline int ticks_to_millicelsius(int ticks)
 {
-	ticks &= ~0x0003; /* clear status bits */
-	/*
-	 * Formula T = -46.85 + 175.72 * ST / 2^16 from data sheet 6.2,
-	 * optimized for integer fixed point (3 digits) arithmetic
-	 */
-	return ((21965 * ticks) >> 13) - 46850;
+    ticks &= ~0x0003; /* clear status bits */
+    /*
+     * Formula T = -46.85 + 175.72 * ST / 2^16 from data sheet 6.2,
+     * optimized for integer fixed point (3 digits) arithmetic
+     */
+    return ((21965 * ticks) >> 13) - 46850;
 }
 
 static inline int ticks_to_per_cent_mille(int ticks)
 {
-	ticks &= ~0x0003; /* clear status bits */
-	/*
-	 * Formula RH = -6 + 125 * SRH / 2^16 from data sheet 6.1,
-	 * optimized for integer fixed point (3 digits) arithmetic
-	 */
-	return ((15625 * ticks) >> 13) - 6000;
+    ticks &= ~0x0003; /* clear status bits */
+    /*
+     * Formula RH = -6 + 125 * SRH / 2^16 from data sheet 6.1,
+     * optimized for integer fixed point (3 digits) arithmetic
+     */
+    return ((15625 * ticks) >> 13) - 6000;
 }
 
 static uint16_t read_sensor_no_hold(sht21_t *dev, bool need_rh) {
-	/* Choose measurement command: humidity or temperature */
-	uint8_t cmd = (need_rh) ? SHT21_REG_RH_NACK : SHT21_REG_T_NACK;
+    /* Choose measurement command: humidity or temperature */
+    uint8_t cmd = (need_rh) ? SHT21_REG_RH_HOLD : SHT21_REG_T_HOLD;
 
-	/* Send T/RH measurement command without SCK holding */
-	volatile long i;
-	for(i = 0; i < 100000; i++);
+    i2c_write_byte(dev->i2c, SHT21_ADDRESS, cmd);
 
-	i2c_write_byte(dev->i2c, SHT21_ADDRESS, cmd);
+    /* At least STM32 works well with slave holding SCL line */
+    /* So no need to sleep */
+    
+    /* Sleep long enough (250 ms) */
+    /* 
+    volatile long i;
+    for(i = 0; i < 100000; i++);
+    */
 
-	/* Sleep long enough (250 ms) */
-	/* TODO: polling with tracking of NACK's */
-	for(i = 0; i < 100000; i++);
+    /* Read back measurements: MSB, LSB and checksum byte */
+    
+    uint8_t bytes[3];
+    i2c_read_bytes(dev->i2c, SHT21_ADDRESS, (char *) bytes, 3);
 
-	/* Read back measurements: MSB, LSB and checksum byte */
-	uint8_t bytes[3];
-	i2c_read_bytes(dev->i2c, SHT21_ADDRESS, (char *) bytes, 3);
-
-	/* Compose 16 bit integer */
-	return bytes[0] << 8 | bytes[1];
+    /* Compose 16 bit integer */
+    return bytes[0] << 8 | bytes[1];
 }
 
 /**

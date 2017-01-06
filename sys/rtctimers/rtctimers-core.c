@@ -13,7 +13,7 @@
  * @{
  * @file
  * @brief       
- * @author      Eugeny P <ep@unwds.com>
+ * @author      EP <ep@unwds.com>
  */
 
 #ifdef __cplusplus
@@ -24,7 +24,7 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "rtc-timers.h"
+#include "rtctimers.h"
 #include "periph/rtc.h"
 
 #include "debug.h"
@@ -46,46 +46,46 @@ static inline int _is_set(rtctimer_t *timer)
 static void _lltimer_set(uint32_t sec) {
     struct tm time;
 
-    rtc_get_time(&time);
+	rtc_get_time(&time);
 
-    DEBUG("[rtctimers] %d %d:%d:%d -> ", time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
+	DEBUG("[rtctimers] %d %d:%d:%d -> ", time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
 
-    int days = sec / (3600 * 24);
-    sec -= days * (3600 * 24);
+	int days = sec / (3600 * 24);
+	sec -= days * (3600 * 24);
 
-    int hours = sec / 3600;
-    sec -= hours * 3600;
+	int hours = sec / 3600;
+	sec -= hours * 3600;
 
-    int mins = sec / 60;
-    sec -= mins * 60;
+	int mins = sec / 60;
+	sec -= mins * 60;
 
-    time.tm_mday = days;
-    time.tm_hour = hours;
-    time.tm_min = mins;
-    time.tm_sec = sec;
+	time.tm_mday = days;
+	time.tm_hour = hours;
+	time.tm_min = mins;
+	time.tm_sec = sec;
 
-    rtc_clear_alarm();
-    rtc_set_alarm(&time, _rtc_callback, NULL);
+	rtc_clear_alarm();
+	rtc_set_alarm(&time, _rtc_callback, NULL);
 
-    rtc_get_alarm(&time);
-    DEBUG("%d %d:%d:%d\n", time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
+	rtc_get_alarm(&time);
+	DEBUG("%d %d:%d:%d\n", time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
 }
 
 static void _rtc_callback(void *arg) {
-    _timer_callback();
+	_timer_callback();
 }
 
 void rtctimers_init(void) {
-    rtc_init();
+	rtc_init();
 }
 
 uint32_t rtctimers_now(void) {
-    struct tm time;
-    rtc_get_time(&time);
+	struct tm time;
+	rtc_get_time(&time);
 
-    return (time.tm_mday * 3600 * 24)
-            + (time.tm_hour * 60 * 60)
-            + (time.tm_min * 60) + time.tm_sec;
+	return (time.tm_mday * 3600 * 24)
+			+ (time.tm_hour * 60 * 60)
+			+ (time.tm_min * 60) + time.tm_sec;
 }
 
 int _rtctimers_set_absolute(rtctimer_t *timer, uint32_t target)
@@ -104,16 +104,16 @@ int _rtctimers_set_absolute(rtctimer_t *timer, uint32_t target)
 
     timer->target = target;
 
-    if (now >= target) {
-        DEBUG("[rtctimers] now >= target!\n");
-    }
-    else {
-        _add_timer_to_list(&timer_list_head, timer);
+	if (now >= target) {
+		DEBUG("[rtctimers] now >= target!\n");
+	}
+	else {
+		_add_timer_to_list(&timer_list_head, timer);
 
-        if (timer_list_head == timer) {
-            _lltimer_set(target - RTCTIMERS_OVERHEAD);
-        }
-    }
+		if (timer_list_head == timer) {
+			_lltimer_set(target - RTCTIMERS_OVERHEAD);
+		}
+	}
 
     irq_restore(state);
 
@@ -128,8 +128,8 @@ void rtctimers_set(rtctimer_t *timer, uint32_t offset) {
 
     rtctimers_remove(timer);
 
-    uint32_t target = rtctimers_now() + offset;
-    _rtctimers_set_absolute(timer, target);
+	uint32_t target = rtctimers_now() + offset;
+	_rtctimers_set_absolute(timer, target);
 }
 
 static void _add_timer_to_list(rtctimer_t **list_head, rtctimer_t *timer)
@@ -173,7 +173,7 @@ static void _remove(rtctimer_t *timer)
     }
     else {
         if (!_remove_timer_from_list(&timer_list_head, timer)) {
-            //DEBUG("[rtctimers] Unable to remove timer from list!\n");
+        	//DEBUG("[rtctimers] Unable to remove timer from list!\n");
         }
     }
 }
@@ -189,7 +189,7 @@ void rtctimers_remove(rtctimer_t *timer) {
 }
 
 static inline void _shoot(rtctimer_t *timer) {
-    timer->callback(timer->arg);
+	timer->callback(timer->arg);
 }
 
 static void _timer_callback(void)
@@ -198,7 +198,7 @@ static void _timer_callback(void)
     uint32_t reference;
 
     //_in_handler = 1;
-    reference = rtctimers_now();
+	reference = rtctimers_now();
 
     /* check if next timers are close to expiring */
     while (timer_list_head && (timer_list_head->target - reference <= 0/* RTCTIMERS_ISR_BACKOFF*/)) {
@@ -227,7 +227,7 @@ static void _timer_callback(void)
 
     /* set low level timer */
     if (next_target)
-        _lltimer_set(next_target);
+    	_lltimer_set(next_target);
 }
 
 #ifdef __cplusplus

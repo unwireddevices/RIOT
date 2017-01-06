@@ -13,7 +13,7 @@
  * @{
  * @file
  * @brief       
- * @author      Eugeny P <ep@unwds.com>
+ * @author      Eugeny P. <ep@unwds.com>
  */
 
 #ifdef __cplusplus
@@ -28,7 +28,7 @@ extern "C" {
 #include "thread.h"
 #include "irq.h"
 #include "div.h"
-#include "rtc-timers.h"
+#include "rtctimers.h"
 
 static void _callback_unlock_mutex(void* arg)
 {

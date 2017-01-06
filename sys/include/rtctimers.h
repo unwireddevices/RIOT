@@ -13,7 +13,7 @@
  * @{
  * @file
  * @brief       
- * @author      Eugeny P <ep@unwds.com>
+ * @author      EP <ep@unwds.com>
  */
 #ifndef RTC_TIMERS_H_
 #define RTC_TIMERS_H_
@@ -25,12 +25,12 @@
 typedef void (*rtctimer_cb_t)(void*);
 
 typedef struct rtctimer {
-    struct rtctimer *next;
+	struct rtctimer *next;
 
-    uint32_t target;
+	uint32_t target;
 
-    rtctimer_cb_t callback;
-    void *arg;
+	rtctimer_cb_t callback;
+	void *arg;
 } rtctimer_t;
 
 #define RTCTIMERS_OVERHEAD 0

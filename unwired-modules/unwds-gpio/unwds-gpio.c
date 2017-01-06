@@ -277,12 +277,10 @@ static bool gpio_cmd(module_data_t *cmd, module_data_t *reply, bool with_reply)
 
     switch (act) {
         case UNWDS_GPIO_GET:
-            if (get(pin)) {
-                if (with_reply) {
+            if (with_reply) {
+                if (get(pin)) {
                     do_reply(reply, UNWD_GPIO_REPLY_OK_1);
-                }
-                else
-                if (with_reply) {
+                } else {
                     do_reply(reply, UNWD_GPIO_REPLY_OK_0);
                 }
             }

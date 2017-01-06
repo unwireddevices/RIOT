@@ -32,8 +32,10 @@
 
 #include <stdio.h>
 
-#include "cpu_conf.h"
 #include "irq.h"
+#include "sched.h"
+#include "thread.h"
+#include "cpu_conf.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -92,6 +94,18 @@ static inline void cpu_sleep_until_event(void)
  * @brief   Holds current CPU clock frequency
  */
 extern uint32_t cpu_clock_global;
+
+/**
+ * @brief   Trigger a conditional context scheduler run / context switch
+ *
+ * This function is supposed to be called in the end of each ISR.
+ */
+static inline void cortexm_isr_end(void)
+{
+    if (sched_context_switch_request) {
+        thread_yield();
+    }
+}
 
 #ifdef __cplusplus
 }

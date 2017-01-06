@@ -24,8 +24,6 @@
 #include "periph/gpio.h"
 #include "periph_cpu.h"
 #include "periph_conf.h"
-#include "thread.h"
-#include "sched.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -136,7 +134,7 @@ int gpio_init_int(gpio_t pin, gpio_mode_t mode, gpio_flank_t flank,
     return 0;
 }
 
-void gpio_init_af(gpio_t pin, gpio_af_out_t af)
+void gpio_init_af(gpio_t pin, gpio_af_t af)
 {
     int pin_num = _pin_num(pin);
     GPIO_TypeDef *port = _port(pin);
@@ -223,7 +221,5 @@ void isr_exti(void)
             exti_ctx[i].cb(exti_ctx[i].arg);
         }
     }
-    if (sched_context_switch_request) {
-        thread_yield();
-    }
+    cortexm_isr_end();
 }

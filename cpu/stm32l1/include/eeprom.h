@@ -10,17 +10,15 @@
  * @ingroup     nvram
  * @{
  *
- * @file		l1-nvram-eeprom.h
+ * @file		eeprom.h
  *
- * @brief       STM32L1 Data EEPROM driver definitions
+ * @brief       STM32L1 EEPROM driver definitions
  *
- * Tested on:
- * - STM32L151CCU6
  *
- * @author      EP <ep@unwds.com>
+ * @author      Eugeny P. <ep@unwds.com>
  */
-#ifndef L1_NVRAM_EEPROM_H_
-#define L1_NVRAM_EEPROM_H_
+#ifndef EEPROM_H
+#define EEPROM_H
 
 #include "nvram.h"
 
@@ -32,7 +30,7 @@
  * @return	0 on success
  * @return	<0 on error
  */
-int nvram_l1_eeprom_init(nvram_t *dev);
+int nvram_eeprom_init(nvram_t *dev);
 
 /** @defgroup FLASH_Flags
  * @{
@@ -81,4 +79,4 @@ int nvram_l1_eeprom_init(nvram_t *dev);
  */
 #define EEPROM_BASE ((uint32_t) 0x08080000)
 
-#endif /* L1_NVRAM_EEPROM_H_ */
+#endif /* EEPROM_H */

@@ -28,7 +28,7 @@
 
 #include "board.h"
 #include "nvram.h"
-#include "l1-nvram-eeprom.h"
+#include "eeprom.h"
 
 #include "stm32l1xx.h"
 
@@ -49,7 +49,7 @@ int main(void)
     lpm_prevent_sleep = 1;
     puts("= STM32L1 NVRAM Cleaning test =");
 
-    nvram_l1_eeprom_init(&nvram);
+    nvram_eeprom_init(&nvram);
 
     gpio_init_int(GPIO_PIN(PORT_C, 1), GPIO_IN, GPIO_RISING, gcb, NULL);
 

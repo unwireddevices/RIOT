@@ -26,7 +26,7 @@
 #include "xtimer.h"
 #include "random.h"
 
-#include "l1-nvram-eeprom.h"
+#include "eeprom.h"
 
 #define TEST_NVRAM_SIZE 4096 * 2
 
@@ -95,7 +95,7 @@ int main(void)
     random_init(xtimer_now());
 
     puts("NVRAM STM32L1 EEPROM test application starting...");
-    nvram_l1_eeprom_init(&dev);
+    nvram_eeprom_init(&dev);
 
     puts("Reading current memory contents...");
     for (i = 0; i < TEST_NVRAM_SIZE; ++i) {

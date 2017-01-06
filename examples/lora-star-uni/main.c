@@ -32,7 +32,7 @@
 #include "periph/rtc.h"
 #include "random.h"
 
-#include "l1-nvram-eeprom.h"
+#include "eeprom.h"
 
 #include "board.h"
 
@@ -129,7 +129,7 @@ int main(void)
     print_logo();
     xtimer_init();
 
-    nvram_l1_eeprom_init(&nvram);
+    nvram_eeprom_init(&nvram);
 
     /* Check EUI64 */
     if (!load_eui64_nvram(&nvram)) {

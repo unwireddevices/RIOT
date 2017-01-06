@@ -15,20 +15,15 @@
 #include "xtimer.h"
 #include "assert.h"
 
-#include "l1-nvram-eeprom.h"
+#include "eeprom.h"
 
 /**
  * @ingroup     nvram
  * @{
  *
- * @file	l1-nvram-eeprom.c
- *
- * @brief       STM32L1 Data EEPROM driver
- *
- * Tested on:
- * - STM32L151CCU6
- *
- * @author      EP <ep@unwds.com>
+ * @file        eeprom.c
+ * @brief       STM32L1 EEPROM driver
+ * @author      Eugeny P. <ep@unwds.com>
  */
 
 #ifdef __cplusplus
@@ -220,12 +215,12 @@ static int nvram_clear(nvram_t *dev);
  */
 static int nvram_clear_bytes(nvram_t *dev, uint32_t start, size_t size);
 
-int nvram_l1_eeprom_init(nvram_t *dev)
+int nvram_eeprom_init(nvram_t *dev)
 {
     dev->write = nvram_write;
     dev->read = nvram_read;
     dev->clear = nvram_clear;
-	dev->clearpart = nvram_clear_bytes;
+    dev->clearpart = nvram_clear_bytes;
 
     return 0;
 }
@@ -279,7 +274,7 @@ static int nvram_clear_bytes(nvram_t *dev, uint32_t start, size_t size)
 {
     eeprom_unlock();
 
-	uint32_t i = 0;
+    uint32_t i = 0;
     for (i = 0; i < size; i++) {
         /* Program byte */
         program_byte(EEPROM_BASE + start + i, 0xFF);

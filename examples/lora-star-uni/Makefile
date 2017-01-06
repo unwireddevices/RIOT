@@ -26,7 +26,6 @@ USEMODULE += random
 USEMODULE += hashes
 USEMODULE += checksum
 
-USEMODULE += l1-nvram-eeprom
 USEMODULE += sx1276
 USEMODULE += rtctimers
 

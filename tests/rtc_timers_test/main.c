@@ -29,7 +29,7 @@
 #include "board.h"
 #include "mutex.h"
 
-#include "rtc-timers.h"
+#include "rtctimers.h"
 
 #include "sx1276.h"
 

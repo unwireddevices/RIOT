@@ -32,7 +32,7 @@ extern "C" {
 #include "ls-mac.h"
 #include "ls-end-device.h"
 
-#include "rtc-timers.h"
+#include "rtctimers.h"
 
 static msg_t msg_rx1;
 static msg_t msg_rx2;

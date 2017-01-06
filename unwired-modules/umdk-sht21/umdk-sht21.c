@@ -37,7 +37,7 @@ extern "C" {
 #include "unwds-gpio.h"
 
 #include "thread.h"
-#include "rtc-timers.h"
+#include "rtctimers.h"
 
 static sht21_t dev;
 

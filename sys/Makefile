@@ -85,6 +85,10 @@ ifneq (,$(filter sema,$(USEMODULE)))
     DIRS += sema
 endif
 
+ifneq (,$(filter rtctimers,$(USEMODULE)))
+    DIRS += rtctimers
+endif
+
 DIRS += $(dir $(wildcard $(addsuffix /Makefile, ${USEMODULE})))
 
 include $(RIOTBASE)/Makefile.base

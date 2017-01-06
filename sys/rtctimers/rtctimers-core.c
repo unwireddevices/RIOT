@@ -24,7 +24,7 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "rtc-timers.h"
+#include "rtctimers.h"
 #include "periph/rtc.h"
 
 #include "debug.h"

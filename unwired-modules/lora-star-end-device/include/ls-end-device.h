@@ -18,7 +18,7 @@
 #ifndef UNWIRED_MODULES_LORA_STAR_INCLUDE_LS_H_
 #define UNWIRED_MODULES_LORA_STAR_INCLUDE_LS_H_
 
-#include "rtc-timers.h"
+#include "rtctimers.h"
 
 #include "ls-frame-fifo.h"
 #include "ls-mac-types.h"

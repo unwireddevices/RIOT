@@ -38,7 +38,7 @@ extern "C" {
 
 #include "thread.h"
 #include "xtimer.h"
-#include "rtc-timers.h"
+#include "rtctimers.h"
 
 static lps331ap_t dev;
 

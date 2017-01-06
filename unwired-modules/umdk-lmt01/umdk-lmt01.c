@@ -35,7 +35,7 @@ extern "C" {
 
 #include "thread.h"
 #include "xtimer.h"
-#include "rtc-timers.h"
+#include "rtctimers.h"
 
 static gpio_t en_pins[UMDK_LMT01_MAX_SENSOR_COUNT] = UMDK_LMT01_SENSOR_EN_PINS;
 static lmt01_t sensors[UMDK_LMT01_MAX_SENSOR_COUNT];

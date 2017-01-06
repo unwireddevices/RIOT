@@ -47,7 +47,7 @@ extern "C" {
 
 #include "ls-regions.h"
 
-#include "rtc-timers.h"
+#include "rtctimers.h"
 
 #define DISPLAY_JOINKEY_2BYTES 1
 

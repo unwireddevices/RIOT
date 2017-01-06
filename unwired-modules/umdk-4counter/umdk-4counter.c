@@ -34,7 +34,7 @@ extern "C" {
 
 #include "thread.h"
 #include "xtimer.h"
-#include "rtc-timers.h"
+#include "rtctimers.h"
 
 
 static uint8_t time_detect = (uint8_t)(UMDK_4COUNT_DEBOUNCE_TIME_MS / UMDK_4COUNT_DETECT_COUNT);

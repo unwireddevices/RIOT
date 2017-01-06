@@ -34,7 +34,7 @@ extern "C" {
 #include "umdk-6adc.h"
 
 #include "thread.h"
-#include "rtc-timers.h"
+#include "rtctimers.h"
 
 static uwnds_cb_t *callback;
 

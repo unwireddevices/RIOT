@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 cr0s
+ * Copyright (C) 2016 Unwired Devices <info@unwds.com>
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -13,7 +13,7 @@
  * @{
  * @file
  * @brief       
- * @author      cr0s
+ * @author      Eugeny P. <ep@unwds.com>
  */
 
 #ifdef __cplusplus
@@ -28,7 +28,7 @@ extern "C" {
 #include "thread.h"
 #include "irq.h"
 #include "div.h"
-#include "rtc-timers.h"
+#include "rtctimers.h"
 
 static void _callback_unlock_mutex(void* arg)
 {

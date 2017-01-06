@@ -12,8 +12,7 @@
  * @{
  * @file        sht21.c
  * @brief       driver for SHT21 sensor
- * @author      SmallSharky
- * @authoh        Eugene P. [ep@unwds.com]
+ * @author      Eugene P. [ep@unwds.com]
  */
 
 

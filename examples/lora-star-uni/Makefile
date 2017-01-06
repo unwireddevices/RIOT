@@ -28,18 +28,17 @@ USEMODULE += checksum
 
 USEMODULE += l1-nvram-eeprom
 USEMODULE += sx1276
+USEMODULE += rtctimers
 
 EXTERNAL_MODULE_DIRS += ../../unwired-modules/
 USEMODULE += lora-star-mac
 USEMODULE += lora-star-end-device
 USEMODULE += unwds-common
-USEMODULE += rtc-timers
 
 INCLUDES += -I../../unwired-modules/lora-star-mac/include/
 INCLUDES += -I../../unwired-modules/lora-star-end-device/include/
 INCLUDES += -I../../unwired-modules/lora-star-gate/include/
 INCLUDES += -I../../unwired-modules/unwds-common/include/
-INCLUDES += -I../../unwired-modules/rtc-timers/include/
 
 ############ UNWD MODULES USED #####################
 

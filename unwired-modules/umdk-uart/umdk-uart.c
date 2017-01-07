@@ -56,9 +56,9 @@ typedef struct {
 	uint8_t is_valid;
 	uint8_t uart_dev;
 	uint8_t current_baudrate_idx;
-} uart_config_t;
+} umdk_uart_config_t;
 
-static uart_config_t uart_config = { 0, UMDK_UART_DEV, UMDK_UART_BAUDRATE_NO };
+static umdk_uart_config_t umdk_uart_config = { 0, UMDK_UART_DEV, UMDK_UART_BAUDRATE_NO };
 
 void *writer(void *arg) {
   msg_t msg;
@@ -111,36 +111,36 @@ void rx_cb(void *arg, uint8_t data)
 }
 
 static void reset_config(void) {
-	uart_config.is_valid = 0;
-	uart_config.current_baudrate_idx = UMDK_UART_BAUDRATE_NO;
-	uart_config.uart_dev = UMDK_UART_DEV;
+	umdk_uart_config.is_valid = 0;
+	umdk_uart_config.current_baudrate_idx = UMDK_UART_BAUDRATE_NO;
+	umdk_uart_config.uart_dev = UMDK_UART_DEV;
 }
 
 static void init_config(void) {
 	reset_config();
 
-	if (!unwds_read_nvram_config(UNWDS_UART_MODULE_ID, (uint8_t *) &uart_config, sizeof(uart_config)))
+	if (!unwds_read_nvram_config(UNWDS_UART_MODULE_ID, (uint8_t *) &umdk_uart_config, sizeof(umdk_uart_config)))
 		return;
 
-	if ((uart_config.is_valid == 0xFF) || (uart_config.is_valid == 0))  {
+	if ((umdk_uart_config.is_valid == 0xFF) || (umdk_uart_config.is_valid == 0))  {
 		reset_config();
 		return;
 	}
 
-	if (uart_config.current_baudrate_idx >= UMDK_UART_NUM_BAUDRATES) {
+	if (umdk_uart_config.current_baudrate_idx >= UMDK_UART_NUM_BAUDRATES) {
 		reset_config();
 		return;
 	}
 
-	if (uart_config.uart_dev >= UART_NUMOF) {
+	if (umdk_uart_config.uart_dev >= UART_NUMOF) {
 		reset_config();
 		return;
 	}
 }
 
 static inline void save_config(void) {
-	uart_config.is_valid = 1;
-	unwds_write_nvram_config(UNWDS_UART_MODULE_ID, (uint8_t *) &uart_config, sizeof(uart_config));
+	umdk_uart_config.is_valid = 1;
+	unwds_write_nvram_config(UNWDS_UART_MODULE_ID, (uint8_t *) &umdk_uart_config, sizeof(umdk_uart_config));
 }
 
 void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
@@ -150,10 +150,10 @@ void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 
     init_config();
 
-    printf("[umdk-uart] Baudrate: %d\n", baudrates[uart_config.current_baudrate_idx]);
+    printf("[umdk-uart] Baudrate: %d\n", baudrates[umdk_uart_config.current_baudrate_idx]);
 
     /* Initialize the UART */
-    if (uart_init(UART_DEV(uart_config.uart_dev), baudrates[uart_config.current_baudrate_idx], rx_cb, NULL)) {
+    if (uart_init(UART_DEV(umdk_uart_config.uart_dev), baudrates[umdk_uart_config.current_baudrate_idx], rx_cb, NULL)) {
         return;
     }
 
@@ -227,8 +227,8 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             /* Set baudrate and reinitialize UART */
             gpio_clear(RE_PIN);
 
-            uart_config.current_baudrate_idx = br;
-            if (uart_init(uart_config.uart_dev, baudrates[uart_config.current_baudrate_idx], rx_cb, NULL)) {
+            umdk_uart_config.current_baudrate_idx = br;
+            if (uart_init(umdk_uart_config.uart_dev, baudrates[umdk_uart_config.current_baudrate_idx], rx_cb, NULL)) {
                 do_reply(reply, UMDK_UART_ERR); /* UART error, baud rate not supported? */
                 break;
             }

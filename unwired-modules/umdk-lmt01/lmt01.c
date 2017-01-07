@@ -139,7 +139,7 @@ static int count_pulses(lmt01_t *lmt01) {
 			timeout_us = 0;
 		} else {
 			/* xtimer_usleep(1); */ /* xtimer is sooooo sloooooow */
-			asm("nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;");
+			__asm("nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;");
 			timeout_us++;
 		}
 

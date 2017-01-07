@@ -66,7 +66,7 @@ static void *handler(void *arg) {
 static void pir_int_cb(void *arg) {
 	(void) arg;
 
-    int now = xtimer_now();
+    int now = xtimer_now().ticks32;
     /* Don't accept a press of current button if it did occur earlier than last press plus debouncing time */
     if (now - last_pressed[0] <= UMDK_PIR_DEBOUNCE_TIME_MS * 1000) {
     	last_pressed[0] = now;

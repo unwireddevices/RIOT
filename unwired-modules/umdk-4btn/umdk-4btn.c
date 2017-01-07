@@ -66,7 +66,7 @@ static void *handler(void *arg) {
 static void btn_pressed_int(void *arg) {
 	int btn_num = ((int) arg) - 1;
 
-    uint32_t now = xtimer_now();
+    uint32_t now = xtimer_now().ticks32;
     /* Timer overflows every ~71 minutes */
 	uint32_t overflow = 0;
 	if (last_pressed[btn_num] > now) {

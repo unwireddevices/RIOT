@@ -102,14 +102,11 @@ static inline void cortexm_isr_end(void)
     }
 }
 
-<<<<<<< HEAD
 /**
  * @brief   Holds current CPU clock frequency
  */
 extern uint32_t cpu_clock_global;
 
-=======
->>>>>>> RIOT/master
 #ifdef __cplusplus
 }
 #endif

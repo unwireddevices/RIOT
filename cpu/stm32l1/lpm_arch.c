@@ -86,7 +86,7 @@ static void lpm_before_i_go_to_sleep (void) {
     /* without it, RX will receive some garbage when MODER is changed */
     memset(lpm_usart, 0, sizeof(lpm_usart));
     for (i = 0; i < UART_NUMOF; i++) {
-        if (uart_config[i].bus & uart_config[i].rcc_mask) {
+        if (is_periph_clk(uart_config[i].bus, uart_config[i].rcc_mask) == 1) {
             periph_clk_dis(uart_config[i].bus, uart_config[i].rcc_mask);
             pin_set((GPIO_TypeDef *)(uart_config[i].tx_pin & ~(0x0f)), uart_config[i].tx_pin & 0x0f, 1);
             lpm_usart[i] = 1;

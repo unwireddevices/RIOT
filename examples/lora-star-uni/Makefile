@@ -60,97 +60,97 @@ UNWD_OPT3001  = 1
 ####### UNWD MMODULES' includes & flags ############
 ifeq ($(UNWD_GPIO),1)
 USEMODULE += unwds-gpio
-CFLAGS += -D umdk_gpio
+CFLAGS += -Dumdk_gpio
 endif
 INCLUDES += -I../../unwired-modules/unwds-gpio/include/
 
 ifeq ($(UNWD_4BTN),1)
 USEMODULE += umdk-4btn
-CFLAGS += -D umdk_4btn
+CFLAGS += -Dumdk_4btn
 endif
 INCLUDES += -I../../unwired-modules/umdk-4btn/include/
 
 ifeq ($(UNWD_GPS),1)
 USEMODULE += umdk-gps
-CFLAGS += -D umdk_gps
+CFLAGS += -Dumdk_gps
 endif
 INCLUDES += -I../../unwired-modules/umdk-gps/include/
 
 ifeq ($(UNWD_LM75),1)
 USEMODULE += umdk-lm75
 USEMODULE += lm75a_new
-CFLAGS += -D umdk_lm75
+CFLAGS += -Dumdk_lm75
 endif
 INCLUDES += -I../../unwired-modules/umdk-lm75/include/
 
 ifeq ($(UNWD_LSM6DS3),1)
 USEMODULE += umdk-lsm6ds3
 USEMODULE += printf_float
-CFLAGS += -D umdk_lsm6ds3
+CFLAGS += -Dumdk_lsm6ds3
 endif
 INCLUDES += -I../../unwired-modules/umdk-lsm6ds3/include/
 
 ifeq ($(UNWD_LMT01),1)
 USEMODULE += umdk-lmt01
-CFLAGS += -D umdk_lmt01
+CFLAGS += -Dumdk_lmt01
 endif
 INCLUDES += -I../../unwired-modules/umdk-lmt01/include/
 
 ifeq ($(UNWD_UART),1)
 USEMODULE += umdk-uart
-CFLAGS += -D umdk_uart
+CFLAGS += -Dumdk_uart
 endif
 INCLUDES += -I../../unwired-modules/umdk-uart/include/
 
 ifeq ($(UNWD_SHT21),1)
 USEMODULE += umdk-sht21
 USEMODULE += sht21
-CFLAGS += -D umdk_sht21
+CFLAGS += -Dumdk_sht21
 endif
 INCLUDES += -I../../unwired-modules/umdk-sht21/include/
 
 ifeq ($(UNWD_PIR),1)
 USEMODULE += umdk-pir
 USEMODULE += pir
-CFLAGS += -D umdk_pir
+CFLAGS += -Dumdk_pir
 endif
 INCLUDES += -I../../unwired-modules/umdk-pir/include/
 
 ifeq ($(UNWD_6ADC),1)
 USEMODULE += umdk-6adc
-CFLAGS += -D umdk_6adc
+CFLAGS += -Dumdk_6adc
 endif
 INCLUDES += -I../../unwired-modules/umdk-6adc/include/
 
 ifeq ($(UNWD_LPS331),1)
 USEMODULE += umdk-lps331
 USEMODULE += lps331ap
-CFLAGS += -D umdk_lps331
+CFLAGS += -Dumdk_lps331
 endif
 INCLUDES += -I../../unwired-modules/umdk-lps331/include/
 
 ifeq ($(UNWD_4COUNTER),1)
 USEMODULE += umdk-4counter
-CFLAGS += -D umdk_4counter
+CFLAGS += -Dumdk_4counter
 endif
 INCLUDES += -I../../unwired-modules/umdk-4counter/include/
 
 ifeq ($(UNWD_RSSIECHO),1)
 USEMODULE += umdk-rssiecho
-CFLAGS += -D umdk_rssiecho
+CFLAGS += -Dumdk_rssiecho
 endif
 INCLUDES += -I../../unwired-modules/umdk-rssiecho/include/
 
 ifeq ($(UNWD_PWM),1)
 USEMODULE += umdk-pwm
-CFLAGS += -D umdk_pwm
+CFLAGS += -Dumdk_pwm
 endif
 INCLUDES += -I../../unwired-modules/umdk-pwm/include/
 
 ifeq ($(UNWD_OPT3001),1)
 USEMODULE += umdk-opt3001
 USEMODULE += opt3001
-CFLAGS += -D umdk_opt3001
+CFLAGS += -Dumdk_opt3001
 endif
 INCLUDES += -I../../unwired-modules/umdk-opt3001/include/
 ####################################################

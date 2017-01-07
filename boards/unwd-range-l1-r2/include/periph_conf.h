@@ -85,53 +85,43 @@ static const timer_conf_t timer_config[] = {
 /**
  * @brief UART configuration
  */
-#define UART_NUMOF          (3U)
-#define UART_0_EN           1
-#define UART_1_EN           1
-#define UART_2_EN           0
-#define UART_IRQ_PRIO       1
+static const uart_conf_t uart_config[] = {
+    {
+        .dev      = USART1,
+        .rcc_mask = RCC_APB2ENR_USART1EN,
+        .rx_pin   = GPIO_PIN(PORT_B, 7),
+        .tx_pin   = GPIO_PIN(PORT_B, 6),
+        .rx_af    = GPIO_AF7,
+        .tx_af    = GPIO_AF7,
+        .bus      = APB2,
+        .irqn     = USART1_IRQn
+    },
+    {
+        .dev      = USART2,
+        .rcc_mask = RCC_APB1ENR_USART2EN,
+        .rx_pin   = GPIO_PIN(PORT_A, 3),
+        .tx_pin   = GPIO_PIN(PORT_A, 2),
+        .rx_af    = GPIO_AF7,
+        .tx_af    = GPIO_AF7,
+        .bus      = APB1,
+        .irqn     = USART2_IRQn
+    },
+    {
+        .dev      = USART3,
+        .rcc_mask = RCC_APB1ENR_USART3EN,
+        .rx_pin   = GPIO_PIN(PORT_B, 11),
+        .tx_pin   = GPIO_PIN(PORT_B, 10),
+        .rx_af    = GPIO_AF7,
+        .tx_af    = GPIO_AF7,
+        .bus      = APB1,
+        .irqn     = USART3_IRQn
+    }
+};
 
-/* UART 0 (USART1) device configuration */
-#define UART_0_DEV          USART1
-#define UART_0_CLKEN()      (periph_clk_en(APB2, RCC_APB2ENR_USART1EN))
-#define UART_0_CLKDIS()		(periph_clk_dis(APB2, RCC_APB2ENR_USART1EN))
-#define UART_0_ISON()		(RCC->APB2ENR & RCC_APB2ENR_USART1EN)
-#define UART_0_CLK          (CLOCK_CORECLOCK)   /* UART clock runs with 32MHz (F_CPU / 1) */
-#define UART_0_IRQ          USART1_IRQn
-#define UART_0_ISR          isr_usart1
-#define UART_0_BUS_FREQ     32000000
-/* UART 0 pin configuration */
-#define UART_0_RX_PIN       GPIO_PIN(PORT_B, 7)
-#define UART_0_TX_PIN       GPIO_PIN(PORT_B, 6)
-#define UART_0_AF           GPIO_AF7
+#define UART_0_ISR          (isr_usart1)
 
-/* UART 1 (USART2) device configuration */
-#define UART_1_DEV          USART2
-#define UART_1_CLKEN()      (periph_clk_en(APB1, RCC_APB1ENR_USART2EN))
-#define UART_1_CLKDIS()     (periph_clk_dis(APB1, RCC_APB1ENR_USART2EN))
-#define UART_1_ISON()		(RCC->APB1ENR & RCC_APB1ENR_USART2EN)
-#define UART_1_CLK          (CLOCK_CORECLOCK)   /* UART clock runs with 32MHz (F_CPU / 1) */
-#define UART_1_IRQ          USART2_IRQn
-#define UART_1_ISR          isr_usart2
-#define UART_1_BUS_FREQ     32000000
-/* UART 1 pin configuration */
-#define UART_1_RX_PIN       GPIO_PIN(PORT_A, 3)
-#define UART_1_TX_PIN       GPIO_PIN(PORT_A, 2)
-#define UART_1_AF           GPIO_AF7
-
-/* UART 2 (USART3) device configuration */
-#define UART_2_DEV          USART3
-#define UART_2_CLKEN()      (periph_clk_en(APB1, RCC_APB1ENR_USART3EN))
-#define UART_2_CLKDIS()     (periph_clk_dis(APB1, RCC_APB1ENR_USART3EN))
-#define UART_2_ISON()		(RCC->APB1ENR & RCC_APB1ENR_USART3EN)
-#define UART_2_CLK          (CLOCK_CORECLOCK)   /* UART clock runs with 32MHz (F_CPU / 1) */
-#define UART_2_IRQ          USART3_IRQn
-#define UART_2_ISR          isr_usart3
-#define UART_2_BUS_FREQ     32000000
-/* UART 2 pin configuration */
-#define UART_2_RX_PIN       GPIO_PIN(PORT_B, 11)
-#define UART_2_TX_PIN       GPIO_PIN(PORT_B, 10)
-#define UART_2_AF           GPIO_AF7
+#define UART_NUMOF          (sizeof(uart_config) / sizeof(uart_config[0]))
+/** @} */
 
 /**
  * @brief GPIO configuration
@@ -270,10 +260,39 @@ static const timer_conf_t timer_config[] = {
 #define GPIO_15_IRQ         EXTI15_10_IRQn
 
 /**
+ * @brief   PWM configuration
+ * @{
+ */
+static const pwm_conf_t pwm_config[] = {
+    {
+        .dev      = TIM2,
+        .rcc_mask = RCC_APB1ENR_TIM2EN,
+        .pins     = { GPIO_PIN(PORT_A,  5), GPIO_PIN(PORT_A, 1),
+                      GPIO_PIN(PORT_A, 2), GPIO_PIN(PORT_A, 3) },
+        .af       = GPIO_AF1,
+        .chan     = 4,
+        .bus      = APB1
+    },
+    {
+        .dev      = TIM3,
+        .rcc_mask = RCC_APB1ENR_TIM3EN,
+        .pins     = { GPIO_PIN(PORT_B, 4), GPIO_PIN(PORT_B, 5),
+                      GPIO_PIN(PORT_B, 0), GPIO_PIN(PORT_B, 1) },
+        .af       = GPIO_AF2,
+        .chan     = 4,
+        .bus      = APB1
+    }
+};
+
+#define PWM_NUMOF           (sizeof(pwm_config) / sizeof(pwm_config[0]))
+/** @} */
+
+
+/**
  * @brief PWM configuration
  * @{
  */
-#define PWM_NUMOF           (3U)
+// #define PWM_NUMOF           (3U)
 #define PWM_0_EN            1
 #define PWM_1_EN            1
 #define PWM_2_EN            1

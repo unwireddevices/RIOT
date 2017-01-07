@@ -131,34 +131,9 @@ static void clk_restore_clocks(void) {
 	clk /= UART_STDIO_BAUDRATE;
     uint16_t mantissa = (uint16_t)(clk / 16);
     uint8_t fraction = (uint8_t)(clk - (mantissa << 4));
+    
 	USART_TypeDef *uart_dev = 0;
-	switch (UART_STDIO_DEV) {
-#if UART_0_EN
-		case UART_0:
-			uart_dev = UART_0_DEV;
-			break;
-#endif
-#if UART_1_EN
-		case UART_1:
-			uart_dev = UART_1_DEV;
-			break;
-#endif
-#if UART_2_EN
-		case UART_2:
-			uart_dev = UART_2_DEV;
-			break;
-#endif
-#if UART_3_EN
-		case UART_3:
-			uart_dev = UART_3_DEV;
-			break;
-#endif
-#if UART_4_EN
-		case UART_4:
-			uart_dev = UART_4_DEV;
-			break;
-#endif
-	}
+    uart_dev = uart_config[UART_STDIO_NUM].dev;
     uart_dev->BRR = ((mantissa & 0x0fff) << 4) | (0x0f & fraction);
 }
 

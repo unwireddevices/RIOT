@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Unwired Devices
+ * Copyright (C) 2016 Unwired Devices <info@unwds.com>
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
@@ -7,13 +7,14 @@
  */
 
 /**
- * @ingroup     boards_unwd-range-l1
+ * @ingroup     boards_unwd-range-l1-r2
  * @{
  *
  * @file
- * @brief       Peripheral MCU configuration for the unwd-range-l1 R160829 board
+ * @brief       Peripheral MCU configuration for the Unwired Range (R160829) board
  *
  * @author      Mikhail Churikov
+ * @author      Oleg Artamonov <oleg@unwds.com>
  */
 
 #ifndef PERIPH_CONF_H_
@@ -267,8 +268,8 @@ static const pwm_conf_t pwm_config[] = {
     {
         .dev      = TIM2,
         .rcc_mask = RCC_APB1ENR_TIM2EN,
-        .pins     = { GPIO_PIN(PORT_A,  5), GPIO_PIN(PORT_A, 1),
-                      GPIO_PIN(PORT_A, 2), GPIO_PIN(PORT_A, 3) },
+        .pins     = { GPIO_PIN(PORT_A, 1), GPIO_PIN(PORT_A, 2),
+                      GPIO_PIN(PORT_A, 3), GPIO_PIN(PORT_A, 5) },
         .af       = GPIO_AF1,
         .chan     = 4,
         .bus      = APB1
@@ -276,76 +277,22 @@ static const pwm_conf_t pwm_config[] = {
     {
         .dev      = TIM3,
         .rcc_mask = RCC_APB1ENR_TIM3EN,
-        .pins     = { GPIO_PIN(PORT_B, 4), GPIO_PIN(PORT_B, 5),
-                      GPIO_PIN(PORT_B, 0), GPIO_PIN(PORT_B, 1) },
+        .pins     = { GPIO_PIN(PORT_A, 6), GPIO_PIN(PORT_A, 7) },
         .af       = GPIO_AF2,
-        .chan     = 4,
+        .chan     = 2,
+        .bus      = APB1
+    },
+        {
+        .dev      = TIM4,
+        .rcc_mask = RCC_APB1ENR_TIM4EN,
+        .pins     = { GPIO_PIN(PORT_B, 8), GPIO_PIN(PORT_B, 9) },
+        .af       = GPIO_AF2,
+        .chan     = 2,
         .bus      = APB1
     }
 };
 
 #define PWM_NUMOF           (sizeof(pwm_config) / sizeof(pwm_config[0]))
-/** @} */
-
-
-/**
- * @brief PWM configuration
- * @{
- */
-// #define PWM_NUMOF           (3U)
-#define PWM_0_EN            1
-#define PWM_1_EN            1
-#define PWM_2_EN            1
-
-#define PWM_MAX_CHANNELS    4
-
-/* PWM 0 device configuration */
-#define PWM_0_DEV           TIM2
-#define PWM_0_CHANNELS      4
-#define PWM_0_CLK           (32000000U)
-#define PWM_0_CLKEN()       (periph_clk_en(APB1, RCC_APB1ENR_TIM2EN))
-#define PWM_0_CLKDIS()      (periph_clk_dis(APB1, RCC_APB1ENR_TIM2EN))
-#define PWM_0_ISON()		(RCC->APB1ENR & RCC_APB1ENR_TIM2EN)
-/* PWM 0 pin configuration */
-#define PWM_0_PORT          GPIOA
-#define PWM_0_PORT_CLKEN()  (periph_clk_en(AHB, RCC_AHBENR_GPIOAEN))
-#define PWM_0_PIN_CH0       5
-#define PWM_0_PIN_CH1       1
-#define PWM_0_PIN_CH2       2
-#define PWM_0_PIN_CH3       3
-#define PWM_0_PIN_AF        1
-
-/* PWM 1 device configuration */
-#define PWM_1_DEV           TIM3
-#define PWM_1_CHANNELS      2
-#define PWM_1_CLK           (32000000U)
-#define PWM_1_CLKEN()       (periph_clk_en(APB1, RCC_APB1ENR_TIM3EN))
-#define PWM_1_CLKDIS()      (periph_clk_dis(APB1, RCC_APB1ENR_TIM3EN))
-#define PWM_1_ISON()		(RCC->APB1ENR & RCC_APB1ENR_TIM3EN)
-/* PWM 1 pin configuration */
-#define PWM_1_PORT          GPIOA
-#define PWM_1_PORT_CLKEN()  (periph_clk_en(AHB, RCC_AHBENR_GPIOAEN))
-#define PWM_1_PIN_CH0       6
-#define PWM_1_PIN_CH1       7
-#define PWM_1_PIN_CH2       0 /* do not use */
-#define PWM_1_PIN_CH3       0 /* do not use */
-#define PWM_1_PIN_AF        2
-
-/* PWM 2 device configuration */
-#define PWM_2_DEV           TIM4
-#define PWM_2_CHANNELS      2
-#define PWM_2_CLK           (32000000U)
-#define PWM_2_CLKEN()       (periph_clk_en(APB1, RCC_APB1ENR_TIM4EN))
-#define PWM_2_CLKDIS()      (periph_clk_dis(APB1, RCC_APB1ENR_TIM4EN))
-#define PWM_2_ISON()		(RCC->APB1ENR & RCC_APB1ENR_TIM4EN)
-/* PWM 2 pin configuration */
-#define PWM_2_PORT          GPIOB
-#define PWM_2_PORT_CLKEN()  (periph_clk_en(AHB, RCC_AHBENR_GPIOBEN))
-#define PWM_2_PIN_CH0       0 /* do not use */
-#define PWM_2_PIN_CH1       0 /* do not use */
-#define PWM_2_PIN_CH2       8
-#define PWM_2_PIN_CH3       9
-#define PWM_2_PIN_AF        2
 /** @} */
 
 /**

@@ -26,6 +26,7 @@
 #include <stdint.h>
 
 #include "mutex.h"
+#include "xtimer.h"
 #include "periph/uart.h"
 #include "periph/gpio.h"
 #include "net/gnrc.h"
@@ -38,7 +39,11 @@ extern "C" {
 /**
  * @brief   Maximum payload length that can be send
  */
+#ifdef MODULE_XBEE_ENCRYPTION
+#define XBEE_MAX_PAYLOAD_LENGTH     (95U)
+#else
 #define XBEE_MAX_PAYLOAD_LENGTH     (100U)
+#endif
 
 /**
  * @brief   Maximum packet length, including XBee API frame overhead
@@ -62,14 +67,12 @@ extern "C" {
 /**
  * @brief   Default PAN ID used after initialization
  */
-#define XBEE_DEFAULT_PANID          (0x0023)
+#define XBEE_DEFAULT_PANID          (IEEE802154_DEFAULT_PANID)
 
 /**
  * @brief   Default channel used after initialization
  */
-#ifndef XBEE_DEFAULT_CHANNEL
-#define XBEE_DEFAULT_CHANNEL        (26U)
-#endif
+#define XBEE_DEFAULT_CHANNEL        (IEEE802154_DEFAULT_CHANNEL)
 
 /**
  * @name    Address flags

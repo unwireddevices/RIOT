@@ -61,6 +61,7 @@ typedef uint16_t gpio_t;
  */
 #define GPIO_MODE(pu, pe, od, out)   (pu | (pe << 1) | (od << 5) | (out << 7))
 
+#ifndef DOXYGEN
 /**
  * @brief   Override GPIO modes
  * @{
@@ -75,6 +76,7 @@ typedef enum {
     GPIO_OD_PU = GPIO_MODE(1, 1, 1, 1),     /**< OD with pull-up */
 } gpio_mode_t;
 /** @} */
+#endif /* ndef DOXYGEN */
 
 /**
  * @brief   Define a condensed set of PORT PCR values
@@ -95,6 +97,7 @@ enum {
     GPIO_PCR_PU    = (PORT_PCR_PE_MASK | PORT_PCR_PS_MASK)  /**< enable PU */
 };
 
+#ifndef DOXYGEN
 /**
  * @brief   Override flank configuration values
  * @{
@@ -106,6 +109,7 @@ typedef enum {
     GPIO_BOTH    = PORT_PCR_IRQC(0xb),  /**< emit interrupt on both flanks */
 } gpio_flank_t;
 /** @} */
+#endif /* ndef DOXYGEN */
 
 /**
  * @brief   Available ports on the Kinetis family
@@ -123,6 +127,7 @@ enum {
     GPIO_PORTS_NUMOF        /**< overall number of available ports */
 };
 
+#ifndef DOXYGEN
 /**
  * @brief   Override default ADC resolution values
  * @{
@@ -137,6 +142,7 @@ typedef enum {
     ADC_RES_16BIT = ADC_CFG1_MODE(3)    /**< ADC resolution: 16 bit */
 } adc_res_t;
 /** @} */
+#endif /* ndef DOXYGEN */
 
 /**
  * @brief   CPU specific ADC configuration
@@ -157,6 +163,42 @@ typedef struct {
     /** Pointer to module clock gate bit in bitband region, use BITBAND_REGADDR() */
     uint32_t volatile *clk_gate;
 } dac_conf_t;
+
+/**
+ * @brief   CPU specific timer PIT module configuration
+ */
+typedef struct {
+    /** Prescaler channel */
+    uint8_t prescaler_ch;
+    /** Counting channel, will be linked to the prescaler channel */
+    uint8_t count_ch;
+} pit_conf_t;
+
+/**
+ * @brief   CPU specific timer LPTMR module configuration
+ */
+typedef struct {
+    /** LPTMR device base pointer */
+    LPTMR_Type *dev;
+    /** Pointer to module clock gate bit in bitband region, use BITBAND_REGADDR() */
+    uint32_t volatile *clk_gate;
+    /** LPTMR device index */
+    uint8_t index;
+} lptmr_conf_t;
+
+/**
+ * @brief   Possible timer module types
+ */
+enum {
+    TIMER_PIT,
+    TIMER_LPTMR,
+};
+
+/**
+ * @brief   Hardware timer type-specific device macros
+ */
+#define TIMER_PIT_DEV(x)   (TIMER_DEV(0 + (x)))
+#define TIMER_LPTMR_DEV(x) (TIMER_DEV(PIT_NUMOF + (x)))
 
 /**
  * @brief   CPU internal function for initializing PORTs

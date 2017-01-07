@@ -34,15 +34,15 @@
 #define SHA1_K40 0x8f1bbcdc
 #define SHA1_K60 0xca62c1d6
 
-void sha1_init(sha1_context *s)
+void sha1_init(sha1_context *ctx)
 {
-    s->state[0] = 0x67452301;
-    s->state[1] = 0xefcdab89;
-    s->state[2] = 0x98badcfe;
-    s->state[3] = 0x10325476;
-    s->state[4] = 0xc3d2e1f0;
-    s->byte_count = 0;
-    s->buffer_offset = 0;
+    ctx->state[0] = 0x67452301;
+    ctx->state[1] = 0xefcdab89;
+    ctx->state[2] = 0x98badcfe;
+    ctx->state[3] = 0x10325476;
+    ctx->state[4] = 0xc3d2e1f0;
+    ctx->byte_count = 0;
+    ctx->buffer_offset = 0;
 }
 
 static uint32_t sha1_rol32(uint32_t number, uint8_t bits)
@@ -108,16 +108,17 @@ static void sha1_add_uncounted(sha1_context *s, uint8_t data)
     }
 }
 
-static void sha1_update_byte(sha1_context *s, unsigned char data)
+static void sha1_update_byte(sha1_context *ctx, uint8_t data)
 {
-    ++s->byte_count;
-    sha1_add_uncounted(s, data++);
+    ++ctx->byte_count;
+    sha1_add_uncounted(ctx, data);
 }
 
-void sha1_update(sha1_context *s, const unsigned char *data, size_t len)
+void sha1_update(sha1_context *ctx, const void *data, size_t len)
 {
+    const uint8_t *d = data;
     while (len--) {
-        sha1_update_byte(s, *(data++));
+        sha1_update_byte(ctx, *(d++));
     }
 }
 
@@ -142,73 +143,75 @@ static void sha1_pad(sha1_context *s)
     sha1_add_uncounted(s, s->byte_count << 3);
 }
 
-uint8_t *sha1_final(sha1_context *s)
+void sha1_final(sha1_context *ctx, void *digest)
 {
     /* Pad to complete the last block */
-    sha1_pad(s);
+    sha1_pad(ctx);
 
     /* Swap byte order back */
     for (int i = 0; i < 5; i++) {
-        s->state[i] =
-            (((s->state[i]) << 24) & 0xff000000)
-            | (((s->state[i]) << 8) & 0x00ff0000)
-            | (((s->state[i]) >> 8) & 0x0000ff00)
-            | (((s->state[i]) >> 24) & 0x000000ff);
+        ctx->state[i] =
+            (((ctx->state[i]) << 24) & 0xff000000)
+            | (((ctx->state[i]) << 8) & 0x00ff0000)
+            | (((ctx->state[i]) >> 8) & 0x0000ff00)
+            | (((ctx->state[i]) >> 24) & 0x000000ff);
     }
 
-    /* Return pointer to hash (20 characters) */
-    return (uint8_t *) s->state;
+    /* Copy the content of the hash (20 characters) */
+    memcpy(digest, ctx->state, 20);
 }
 
-void sha1(uint8_t *dst, const uint8_t *src, size_t len)
+void sha1(void *digest, const void *data, size_t len)
 {
     sha1_context ctx;
 
     sha1_init(&ctx);
-    sha1_update(&ctx, (unsigned char *) src, len);
-    memcpy(dst, sha1_final(&ctx), SHA1_DIGEST_LENGTH);
+    sha1_update(&ctx, (unsigned char *) data, len);
+    sha1_final(&ctx, digest);
 }
 
 #define HMAC_IPAD 0x36
 #define HMAC_OPAD 0x5c
 
-void sha1_init_hmac(sha1_context *s, const unsigned char *key, size_t key_length)
+void sha1_init_hmac(sha1_context *ctx, const void *key, size_t key_length)
 {
     uint8_t i;
+    const uint8_t *k = key;
 
-    memset(s->key_buffer, 0, SHA1_BLOCK_LENGTH);
+    memset(ctx->key_buffer, 0, SHA1_BLOCK_LENGTH);
     if (key_length > SHA1_BLOCK_LENGTH) {
         /* Hash long keys */
-        sha1_init(s);
-        while(key_length--) {
-            sha1_update_byte(s, (unsigned char) *key++);
+        sha1_init(ctx);
+        while (key_length--) {
+            sha1_update_byte(ctx, *k++);
         }
-        memcpy(s->key_buffer, sha1_final(s), SHA1_DIGEST_LENGTH);
+        sha1_final(ctx, ctx->key_buffer);
     }
     else {
         /* Block length keys are used as is */
-        memcpy(s->key_buffer, key, key_length);
+        memcpy(ctx->key_buffer, key, key_length);
     }
     /* Start inner hash */
-    sha1_init(s);
+    sha1_init(ctx);
     for (i = 0; i < SHA1_BLOCK_LENGTH; i++) {
-        sha1_update_byte(s, s->key_buffer[i] ^ HMAC_IPAD);
+        sha1_update_byte(ctx, ctx->key_buffer[i] ^ HMAC_IPAD);
     }
 }
 
-uint8_t *sha1_final_hmac(sha1_context *s)
+void sha1_final_hmac(sha1_context *ctx, void *digest)
 {
     uint8_t i;
 
     /* Complete inner hash */
-    memcpy(s->inner_hash, sha1_final(s), SHA1_DIGEST_LENGTH);
+    sha1_final(ctx, ctx->inner_hash);
     /* Calculate outer hash */
-    sha1_init(s);
+    sha1_init(ctx);
     for (i = 0; i < SHA1_BLOCK_LENGTH; i++) {
-        sha1_update_byte(s, s->key_buffer[i] ^ HMAC_OPAD);
+        sha1_update_byte(ctx, ctx->key_buffer[i] ^ HMAC_OPAD);
     }
     for (i = 0; i < SHA1_DIGEST_LENGTH; i++) {
-        sha1_update_byte(s, s->inner_hash[i]);
+        sha1_update_byte(ctx, ctx->inner_hash[i]);
     }
-    return sha1_final(s);
+
+    sha1_final(ctx, digest);
 }

@@ -32,10 +32,10 @@
 
 #include <stdio.h>
 
-#include "cpu_conf.h"
+#include "irq.h"
 #include "sched.h"
 #include "thread.h"
-#include "irq.h"
+#include "cpu_conf.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -49,6 +49,15 @@ extern "C" {
     defined(CPU_ARCH_CORTEX_M4F)
 #define ARCH_HAS_ATOMIC_COMPARE_AND_SWAP 1
 #endif
+
+/**
+ * @brief Interrupt stack canary value
+ *
+ * @note 0xe7fe is the ARM Thumb machine code equivalent of asm("bl #-2\n") or
+ * 'while (1);', i.e. an infinite loop.
+ * @internal
+ */
+#define STACK_CANARY_WORD   (0xE7FEE7FEu)
 
 /**
  * @brief   Initialization of the CPU
@@ -65,7 +74,7 @@ void cortexm_init(void);
  */
 static inline void cpu_print_last_instruction(void)
 {
-    register uint32_t *lr_ptr;
+    uint32_t *lr_ptr;
     __asm__ __volatile__("mov %0, lr" : "=r"(lr_ptr));
     printf("%p\n", (void*) lr_ptr);
 }
@@ -93,11 +102,14 @@ static inline void cortexm_isr_end(void)
     }
 }
 
+<<<<<<< HEAD
 /**
  * @brief   Holds current CPU clock frequency
  */
 extern uint32_t cpu_clock_global;
 
+=======
+>>>>>>> RIOT/master
 #ifdef __cplusplus
 }
 #endif

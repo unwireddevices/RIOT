@@ -33,8 +33,8 @@
 #define CLOCK_CORECLOCK     (72000000U)             /* targeted core clock frequency */
 /* configuration of PLL prescaler and multiply values */
 /* CORECLOCK := HSE / PLL_HSE_DIV * PLL_HSE_MUL */
-#define CLOCK_PLL_DIV       RCC_CFGR_PLLXTPRE_HSE  /* not divided */
-#define CLOCK_PLL_MUL       RCC_CFGR_PLLMULL9
+#define CLOCK_PLL_DIV       (1)
+#define CLOCK_PLL_MUL       (9)
 /* configuration of peripheral bus clock prescalers */
 #define CLOCK_AHB_DIV       RCC_CFGR_HPRE_DIV1      /* AHB clock -> 72MHz */
 #define CLOCK_APB2_DIV      RCC_CFGR_PPRE2_DIV1     /* APB2 clock -> 72MHz */
@@ -67,12 +67,14 @@
 static const timer_conf_t timer_config[] = {
     {
         .dev      = TIM2,
+        .max      = 0x0000ffff,
         .rcc_mask = RCC_APB1ENR_TIM2EN,
         .bus      = APB1,
         .irqn     = TIM2_IRQn
     },
     {
         .dev      = TIM3,
+        .max      = 0x0000ffff,
         .rcc_mask = RCC_APB1ENR_TIM3EN,
         .bus      = APB1,
         .irqn     = TIM3_IRQn
@@ -86,21 +88,21 @@ static const timer_conf_t timer_config[] = {
 /** @} */
 
 /**
- * @brief UART configuration
+ * @brief   UART configuration
  * @{
  */
 static const uart_conf_t uart_config[] = {
     {
-        .dev     = USART2,
-        .rx_pin  = GPIO_PIN(PORT_A, 3),
-        .tx_pin  = GPIO_PIN(PORT_A, 2),
-        .rcc_pin = RCC_APB1ENR_USART2EN,
-        .bus     = APB1,
-        .irqn    = USART2_IRQn
+        .dev      = USART2,
+        .rcc_mask = RCC_APB1ENR_USART2EN,
+        .rx_pin   = GPIO_PIN(PORT_A, 3),
+        .tx_pin   = GPIO_PIN(PORT_A, 2),
+        .bus      = APB1,
+        .irqn     = USART2_IRQn
     }
 };
 
-#define UART_0_ISR          isr_usart2
+#define UART_0_ISR          (isr_usart2)
 
 #define UART_NUMOF          (sizeof(uart_config) / sizeof(uart_config[0]))
 /** @} */
@@ -114,8 +116,8 @@ static const uart_conf_t uart_config[] = {
 
 /* SPI 0 device configuration */
 #define SPI_0_DEV           SPI1
-#define SPI_0_CLKEN()       (RCC->APB2ENR |= RCC_APB2ENR_SPI1EN)
-#define SPI_0_CLKDIS()      (RCC->APB2ENR &= ~(RCC_APB2ENR_SPI1EN))
+#define SPI_0_CLKEN()       (periph_clk_en(APB2, RCC_APB2ENR_SPI1EN))
+#define SPI_0_CLKDIS()      (periph_clk_dis(APB2, RCC_APB2ENR_SPI1EN))
 #define SPI_0_BUS_DIV       0   /* 1 -> SPI runs with full CPU clock, 0 -> half CPU clock */
 /* SPI 0 pin configuration */
 #define SPI_0_CLK_PIN       GPIO_PIN(PORT_B,15)

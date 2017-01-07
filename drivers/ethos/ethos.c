@@ -26,6 +26,7 @@
 #include "ethos.h"
 #include "periph/uart.h"
 #include "tsrb.h"
+#include "irq.h"
 
 #include "net/netdev2.h"
 #include "net/netdev2/eth.h"
@@ -34,6 +35,8 @@
 
 #ifdef USE_ETHOS_FOR_STDIO
 #include "uart_stdio.h"
+#include "isrpipe.h"
+extern isrpipe_t uart_stdio_isrpipe;
 #endif
 
 #define ENABLE_DEBUG (0)
@@ -41,7 +44,7 @@
 
 static void _get_mac_addr(netdev2_t *dev, uint8_t* buf);
 static void ethos_isr(void *arg, uint8_t c);
-const static netdev2_driver_t netdev2_driver_ethos;
+static const netdev2_driver_t netdev2_driver_ethos;
 
 static const uint8_t _esc_esc[] = {ETHOS_ESC_CHAR, (ETHOS_ESC_CHAR ^ 0x20)};
 static const uint8_t _esc_delim[] = {ETHOS_ESC_CHAR, (ETHOS_FRAME_DELIMITER ^ 0x20)};
@@ -99,7 +102,7 @@ static void _handle_char(ethos_t *dev, char c)
 #ifdef USE_ETHOS_FOR_STDIO
         case ETHOS_FRAME_TYPE_TEXT:
             dev->framesize++;
-            uart_stdio_rx_cb(NULL, c);
+            isrpipe_write_one(&uart_stdio_isrpipe, c);
 #endif
     }
 }
@@ -110,7 +113,7 @@ static void _end_of_frame(ethos_t *dev)
         case ETHOS_FRAME_TYPE_DATA:
             if (dev->framesize) {
                 dev->last_framesize = dev->framesize;
-                dev->netdev.event_callback((netdev2_t*) dev, NETDEV2_EVENT_ISR, dev->netdev.isr_arg);
+                dev->netdev.event_callback((netdev2_t*) dev, NETDEV2_EVENT_ISR);
             }
             break;
         case ETHOS_FRAME_TYPE_HELLO:
@@ -176,7 +179,7 @@ static void ethos_isr(void *arg, uint8_t c)
 static void _isr(netdev2_t *netdev)
 {
     ethos_t *dev = (ethos_t *) netdev;
-    dev->netdev.event_callback((netdev2_t*) dev, NETDEV2_EVENT_RX_COMPLETE, NULL);
+    dev->netdev.event_callback((netdev2_t*) dev, NETDEV2_EVENT_RX_COMPLETE);
 }
 
 static int _init(netdev2_t *encdev)
@@ -253,7 +256,7 @@ void ethos_send_frame(ethos_t *dev, const uint8_t *data, size_t len, unsigned fr
     }
 }
 
-static int _send(netdev2_t *netdev, const struct iovec *vector, int count)
+static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
 {
     ethos_t * dev = (ethos_t *) netdev;
     (void)dev;
@@ -291,14 +294,14 @@ static void _get_mac_addr(netdev2_t *encdev, uint8_t* buf)
     memcpy(buf, dev->mac_addr, 6);
 }
 
-static int _recv(netdev2_t *netdev, char* buf, int len, void* info)
+static int _recv(netdev2_t *netdev, void *buf, size_t len, void* info)
 {
     (void) info;
     ethos_t * dev = (ethos_t *) netdev;
 
     if (buf) {
-        if (len < dev->last_framesize) {
-            DEBUG("ethos _recv(): receive buffer too small.");
+        if (len < (int)dev->last_framesize) {
+            DEBUG("ethos _recv(): receive buffer too small.\n");
             return -1;
         }
 
@@ -306,18 +309,18 @@ static int _recv(netdev2_t *netdev, char* buf, int len, void* info)
         dev->last_framesize = 0;
 
         if ((tsrb_get(&dev->inbuf, buf, len) != len)) {
-            DEBUG("ethos _recv(): inbuf doesn't contain enough bytes.");
+            DEBUG("ethos _recv(): inbuf doesn't contain enough bytes.\n");
             return -1;
         }
 
-        return len;
+        return (int)len;
     }
     else {
         return dev->last_framesize;
     }
 }
 
-int _get(netdev2_t *dev, netopt_t opt, void *value, size_t max_len)
+static int _get(netdev2_t *dev, netopt_t opt, void *value, size_t max_len)
 {
     int res = 0;
 
@@ -340,7 +343,7 @@ int _get(netdev2_t *dev, netopt_t opt, void *value, size_t max_len)
 }
 
 /* netdev2 interface */
-const static netdev2_driver_t netdev2_driver_ethos = {
+static const netdev2_driver_t netdev2_driver_ethos = {
     .send = _send,
     .recv = _recv,
     .init = _init,

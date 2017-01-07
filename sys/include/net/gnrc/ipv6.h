@@ -14,10 +14,7 @@
  * The IPv6 control thread understands messages of type
  *
  *  * @ref GNRC_NETAPI_MSG_TYPE_RCV, and
- *  * @ref GNRC_NETAPI_MSG_TYPE_SND.
- *
- * If the message is of type @ref GNRC_NETAPI_MSG_TYPE_RCV the provided @ref
- * gnrc_pktsnip_t must contain a snip of type @ref GNRC_NETTYPE_NETIF.
+ *  * @ref GNRC_NETAPI_MSG_TYPE_SND,
  *
  * @{
  *
@@ -136,6 +133,19 @@ kernel_pid_t gnrc_ipv6_init(void);
  * @param[in] nh        A protocol number (see @ref net_protnum) of the current snip.
  */
 void gnrc_ipv6_demux(kernel_pid_t iface, gnrc_pktsnip_t *current, gnrc_pktsnip_t *pkt, uint8_t nh);
+
+/**
+ * @brief   Get the IPv6 header from a given list of @ref gnrc_pktsnip_t
+ *
+ *          This function may be used with e.g. a pointer to a (full) UDP datagram.
+ *
+ * @param[in] pkt    The pointer to the first @ref gnrc_pktsnip_t of the
+ *                   packet.
+ *
+ * @return A pointer to the @ref ipv6_hdr_t of the packet.
+ * @return NULL if the packet does not contain an IPv6 header.
+ */
+ipv6_hdr_t *gnrc_ipv6_get_header(gnrc_pktsnip_t *pkt);
 
 #ifdef __cplusplus
 }

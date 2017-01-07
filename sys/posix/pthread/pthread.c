@@ -46,16 +46,16 @@
 
 #include "debug.h"
 
-enum pthread_thread_status {
+typedef enum {
     PTS_RUNNING,
     PTS_DETACHED,
     PTS_ZOMBIE,
-};
+} pthread_thread_status_t;
 
-typedef struct pthread_thread {
+typedef struct {
     kernel_pid_t thread_pid;
 
-    enum pthread_thread_status status;
+    pthread_thread_status_t status;
     kernel_pid_t joining_thread;
     void *returnval;
     bool should_cancel;
@@ -108,7 +108,7 @@ static void *pthread_reaper(void *arg)
     while (1) {
         msg_t m;
         msg_receive(&m);
-        DEBUG("pthread_reaper(): free(%p)\n", (void *)m.content.ptr);
+        DEBUG("pthread_reaper(): free(%p)\n", m.content.ptr);
         free(m.content.ptr);
     }
 

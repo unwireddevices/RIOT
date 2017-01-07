@@ -66,7 +66,7 @@ uint8_t counter_Decreasing = 0;
 volatile uint16_t interruptTicksSMB380;
 
 typedef struct {
-    u_int writePointerPos;  //Writepointer position
+    unsigned writePointerPos;  //Writepointer position
     /*
      * check value for updated range settings (only needed for multiplication
      * in Float-mode
@@ -401,7 +401,7 @@ uint8_t writeRingBuff(int16_t *value)
 
         /* measuring temperature dependent internal sample rate of SMB380 */
         if (smb380_mode == SMB380_CONTINOUS) {
-            tickLastSample = xtimer_now();
+            tickLastSample = xtimer_now_usec();
             tickCurrentSamples++;
         }
 
@@ -1030,7 +1030,7 @@ void SMB380_enableNewDataInt(void)
     SMB380_ssp_read();
     SMB380_Unprepare();
     // measuring temperature dependent internal sample rate of SMB380
-    tickStart = xtimer_now();
+    tickStart = xtimer_now_usec();
     tickCurrentSamples = 0;
     irq_restore(cpsr);
 }

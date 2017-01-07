@@ -73,7 +73,7 @@ static ipv6_addr_t *_add_addr_to_entry(gnrc_ipv6_netif_t *entry, const ipv6_addr
     }
 
     if (!tmp_addr) {
-        DEBUG("ipv6 netif: couldn't add %s/%" PRIu8 " to interface %" PRIkernel_pid "\n: No space left.",
+        DEBUG("ipv6 netif: couldn't add %s/%" PRIu8 " to interface %" PRIkernel_pid "\n: No space left.\n",
               ipv6_addr_to_str(addr_str, addr, sizeof(addr_str)),
               prefix_len, entry->pid);
         return NULL;
@@ -156,7 +156,7 @@ static ipv6_addr_t *_add_addr_to_entry(gnrc_ipv6_netif_t *entry, const ipv6_addr
     }
 
     tmp_addr->valid_timeout_msg.type = GNRC_NDP_MSG_ADDR_TIMEOUT;
-    tmp_addr->valid_timeout_msg.content.ptr = (char *) &tmp_addr->addr;
+    tmp_addr->valid_timeout_msg.content.ptr = &tmp_addr->addr;
 
     return &(tmp_addr->addr);
 }
@@ -863,7 +863,7 @@ void gnrc_ipv6_netif_init_by_dev(void)
              * gnrc_ipv6_netif_add() */
         }
 
-        if (gnrc_netapi_get(ifs[i], NETOPT_IS_WIRED, 0, &tmp, sizeof(int)) > 0) {
+        if (gnrc_netapi_get(ifs[i], NETOPT_IS_WIRED, 0, NULL, 0) > 0) {
             ipv6_if->flags |= GNRC_IPV6_NETIF_FLAGS_IS_WIRED;
         }
         else {
@@ -896,6 +896,14 @@ void gnrc_ipv6_netif_init_by_dev(void)
 #endif
     }
 }
+
+#ifdef MODULE_NETSTATS_IPV6
+netstats_t *gnrc_ipv6_netif_get_stats(kernel_pid_t pid)
+{
+    gnrc_ipv6_netif_t *iface = gnrc_ipv6_netif_get(pid);
+    return &(iface->stats);
+}
+#endif
 
 /**
  * @}

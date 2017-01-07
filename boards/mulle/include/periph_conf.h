@@ -61,29 +61,34 @@ extern "C"
  * @name Timer configuration
  * @{
  */
-#define TIMER_NUMOF             (1U)
-#define TIMER_0_EN              1
-#define TIMER_1_EN              0
-#define TIMER_IRQ_PRIO          CPU_DEFAULT_IRQ_PRIO
-#define TIMER_BASE              PIT
-#define TIMER_MAX_VALUE         (0xffffffff)
-#define TIMER_CLOCK             SystemBusClock
-#define TIMER_CLKEN()           (BITBAND_REG32(SIM->SCGC6, SIM_SCGC6_PIT_SHIFT) = 1)
+#define PIT_NUMOF               (2U)
+#define PIT_CONFIG {                 \
+        {                            \
+            .prescaler_ch = 0,       \
+            .count_ch = 1,           \
+        },                           \
+        {                            \
+            .prescaler_ch = 2,       \
+            .count_ch = 3,           \
+        },                           \
+    }
+#define LPTMR_NUMOF             (1U)
+#define LPTMR_CONFIG { \
+        { \
+            .dev = LPTMR0, \
+            .clk_gate = (uint32_t volatile *)BITBAND_REGADDR(SIM->SCGC5, SIM_SCGC5_LPTIMER_SHIFT), \
+            .index = 0, \
+        } \
+    }
+#define TIMER_NUMOF             ((PIT_NUMOF) + (LPTMR_NUMOF))
 
-/* Timer 0 configuration */
-#define TIMER_0_PRESCALER_CH    0
-#define TIMER_0_COUNTER_CH      1
-#define TIMER_0_ISR             isr_pit1
-#define TIMER_0_IRQ_CHAN        PIT1_IRQn
-
-/* Timer 1 configuration */
-#define TIMER_1_PRESCALER_CH    2
-#define TIMER_1_COUNTER_CH      3
-#define TIMER_1_ISR             isr_pit3
-#define TIMER_1_IRQ_CHAN        PIT3_IRQn
+#define PIT_BASECLOCK           (CLOCK_BUSCLOCK)
+#define PIT_CLOCKGATE           (BITBAND_REG32(SIM->SCGC6, SIM_SCGC6_PIT_SHIFT))
+#define PIT_ISR_0               isr_pit1
+#define PIT_ISR_1               isr_pit3
+#define LPTMR_ISR_0             isr_lptmr0
 
 /** @} */
-
 
 /**
  * @name UART configuration
@@ -151,7 +156,7 @@ static const adc_conf_t adc_config[] = {
     [ 7] = { ADC1, GPIO_UNDEF, 19 },       /* on board connection to Mulle Vchr/2 on PGA1_DM pin */
     [ 8] = { ADC0, GPIO_UNDEF,  0 },       /* expansion port PGA0_DP pin */
     [ 9] = { ADC0, GPIO_UNDEF, 19 },       /* expansion port PGA0_DM pin */
-    [10] = { ADC0, GPIO_PIN(PORT_A, 17), 17 }, /* expansion port PTA17 */
+    [10] = { ADC1, GPIO_PIN(PORT_A, 17), 17 }, /* expansion port PTA17 */
     [11] = { ADC1, GPIO_PIN(PORT_B,  0),  8 }, /* expansion port PTB0  */
     [12] = { ADC0, GPIO_PIN(PORT_C,  0), 14 }, /* expansion port PTC0  */
     [13] = { ADC1, GPIO_PIN(PORT_C,  8),  4 }, /* expansion port PTC8  */

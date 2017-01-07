@@ -42,6 +42,7 @@ extern "C" {
  */
 #define GPIO_MODE(io, pr, ot)   ((io << 0) | (pr << 2) | (ot << 4))
 
+#ifndef DOXYGEN
 /**
  * @brief   Override GPIO mode options
  * @{
@@ -56,6 +57,7 @@ typedef enum {
     GPIO_OD_PU = GPIO_MODE(1, 1, 1)     /**< open-drain with pull-up */
 } gpio_mode_t;
 /** @} */
+#endif /* ndef DOXYGEN */
 
 /**
  * @brief   Available ports on the STM32L1 family
@@ -108,16 +110,6 @@ typedef struct {
     gpio_t pin;             /**< pin connected to the line */
     uint8_t chan;           /**< DAC device used for this line */
 } dac_conf_t;
-
-/**
- * @brief   Configure the alternate function for the given pin
- *
- * @note    This is meant for internal use in STM32L1 peripheral drivers only
- *
- * @param[in] pin       pin to configure
- * @param[in] af        alternate function to use
- */
-void gpio_init_af(gpio_t pin, gpio_af_t af);
 
 /**
  * @brief   I2C configuration data structure

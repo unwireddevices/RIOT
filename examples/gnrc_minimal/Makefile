@@ -9,6 +9,21 @@ RIOTBASE ?= $(CURDIR)/../..
 
 BOARD_INSUFFICIENT_MEMORY := chronos msb-430 msb-430h
 
+## Uncomment to support the XBee module and nomac
+#USEMODULE += xbee
+#USEMODULE += gnrc_nomac
+
+## set default UART to use in case none was defined
+#XBEE_UART ?= "UART_NUMOF-1"
+
+## export UART to params file
+#CFLAGS += -DXBEE_UART=$(XBEE_UART)
+
+## add current directory to the include path. Putting it in CFLAGS will make
+## it go to the beginning, before the standard includes.
+## That way xbee_params.h get's included and auto configuration can pick it up.
+#CFLAGS += -I$(CURDIR)
+
 # Include packages that pull up and auto-init the link layer.
 # NOTE: 6LoWPAN will be included if IEEE802.15.4 devices are present
 USEMODULE += gnrc_netdev_default
@@ -21,17 +36,23 @@ USEMODULE += gnrc_icmpv6_echo
 # Use minimal standard PRNG
 USEMODULE += prng_minstd
 
-CFLAGS += -DGNRC_IPV6_NETIF_ADDR_NUMOF=4
-# Reduce sizes for GNRC's packet buffer and neighbor cache
-# (for native we need a bigger buffer, because the tap driver temporarily
-# allocates ~1500 bytes)
-ifneq (,$(filter native,$(BOARD)))
-    CFLAGS += -DGNRC_PKTBUF_SIZE=2048 -DGNRC_IPV6_NC_SIZE=1
-else
-    CFLAGS += -DGNRC_PKTBUF_SIZE=512 -DGNRC_IPV6_NC_SIZE=0
-endif
+CFLAGS += -DGNRC_PKTBUF_SIZE=512 -DGNRC_IPV6_NETIF_ADDR_NUMOF=4 -DGNRC_IPV6_NC_SIZE=1
 
 # Change this to 0 show compiler invocation lines by default:
 QUIET ?= 1
 
 include $(RIOTBASE)/Makefile.include
+
+# Set a custom channel if needed
+ifneq (,$(filter cc110x,$(USEMODULE)))          # radio is cc110x sub-GHz
+  DEFAULT_CHANNEL ?= 0
+  CFLAGS += -DCC110X_DEFAULT_CHANNEL=$(DEFAULT_CHANNEL)
+else
+  ifneq (,$(filter at86rf212b,$(USEMODULE)))    # radio is IEEE 802.15.4 sub-GHz
+    DEFAULT_CHANNEL ?= 5
+    CFLAGS += -DIEEE802154_DEFAULT_SUBGHZ_CHANNEL=$(DEFAULT_CHANNEL)
+  else                                          # radio is IEEE 802.15.4 2.4 GHz
+    DEFAULT_CHANNEL ?= 26
+    CFLAGS += -DIEEE802154_DEFAULT_CHANNEL=$(DEFAULT_CHANNEL)
+  endif
+endif

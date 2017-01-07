@@ -37,7 +37,7 @@
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
 
-static int _send(netdev2_t *dev, const struct iovec *vector, int count)
+static int _send(netdev2_t *dev, const struct iovec *vector, unsigned count)
 {
     DEBUG("%s:%u\n", __func__, __LINE__);
 
@@ -47,7 +47,7 @@ static int _send(netdev2_t *dev, const struct iovec *vector, int count)
     return cc110x_send(&netdev2_cc110x->cc110x, cc110x_pkt);
 }
 
-static int _recv(netdev2_t *dev, char* buf, int len, void *info)
+static int _recv(netdev2_t *dev, void *buf, size_t len, void *info)
 {
     DEBUG("%s:%u\n", __func__, __LINE__);
 
@@ -164,7 +164,7 @@ static int _set(netdev2_t *dev, netopt_t opt, void *value, size_t value_len)
 static void _netdev2_cc110x_isr(void *arg)
 {
     netdev2_t *netdev2 = (netdev2_t*) arg;
-    netdev2->event_callback(netdev2, NETDEV2_EVENT_ISR, netdev2->isr_arg);
+    netdev2->event_callback(netdev2, NETDEV2_EVENT_ISR);
 }
 
 static void _netdev2_cc110x_rx_callback(void *arg)
@@ -172,7 +172,7 @@ static void _netdev2_cc110x_rx_callback(void *arg)
     netdev2_t *netdev2 = (netdev2_t*) arg;
     cc110x_t *cc110x = &((netdev2_cc110x_t*) arg)->cc110x;
     gpio_irq_disable(cc110x->params.gdo2);
-    netdev2->event_callback(netdev2, NETDEV2_EVENT_RX_COMPLETE, NULL);
+    netdev2->event_callback(netdev2, NETDEV2_EVENT_RX_COMPLETE);
 }
 
 static void _isr(netdev2_t *dev)

@@ -28,6 +28,7 @@
 #include "msg.h"
 #include "ringbuffer.h"
 #include "periph/uart.h"
+#include "uart_stdio.h"
 
 #define SHELL_BUFSIZE       (128U)
 #define UART_BUFSIZE        (128U)
@@ -51,14 +52,14 @@ static char printer_stack[THREAD_STACKSIZE_MAIN];
 
 static int parse_dev(char *arg)
 {
-    int dev = atoi(arg);
-    if (dev == UART_STDIO_DEV) {
-        printf("Error: The selected UART_DEV(%i) is used for the shell!\n", dev);
-        return -2;
-    }
-    if (dev < 0 || (uart_t) dev >= UART_NUMOF) {
-        printf("Error: Invalid UART_DEV device specified (%i).\n", dev);
+    unsigned dev = (unsigned)atoi(arg);
+    if (dev >= UART_NUMOF) {
+        printf("Error: Invalid UART_DEV device specified (%u).\n", dev);
         return -1;
+    }
+    else if (UART_DEV(dev) == UART_STDIO_DEV) {
+        printf("Error: The selected UART_DEV(%u) is used for the shell!\n", dev);
+        return -2;
     }
     return dev;
 }
@@ -124,11 +125,11 @@ static int cmd_init(int argc, char **argv)
 
     /* initialize UART */
     res = uart_init(UART_DEV(dev), baud, rx_cb, (void *)dev);
-    if (res == -1) {
+    if (res == UART_NOBAUD) {
         printf("Error: Given baudrate (%u) not possible\n", (unsigned int)baud);
         return 1;
     }
-    else if (res < -1) {
+    else if (res != UART_OK) {
         puts("Error: Unable to initialize UART device\n");
         return 1;
     }
@@ -179,7 +180,7 @@ int main(void)
     printf("UART used for STDIO (the shell): UART_DEV(%i)\n\n", UART_STDIO_DEV);
 
     /* initialize ringbuffers */
-    for (uart_t i = 0; i < UART_NUMOF; i++) {
+    for (unsigned i = 0; i < UART_NUMOF; i++) {
         ringbuffer_init(&(ctx[i].rx_buf), ctx[i].rx_mem, UART_BUFSIZE);
     }
 

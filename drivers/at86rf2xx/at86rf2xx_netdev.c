@@ -40,8 +40,8 @@
 
 #define _MAX_MHR_OVERHEAD   (25)
 
-static int _send(netdev2_t *netdev, const struct iovec *vector, int count);
-static int _recv(netdev2_t *netdev, char *buf, int len, void *info);
+static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count);
+static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info);
 static int _init(netdev2_t *netdev);
 static void _isr(netdev2_t *netdev);
 static int _get(netdev2_t *netdev, netopt_t opt, void *val, size_t max_len);
@@ -61,7 +61,7 @@ static void _irq_handler(void *arg)
     netdev2_t *dev = (netdev2_t *) arg;
 
     if (dev->event_callback) {
-        dev->event_callback(dev, NETDEV2_EVENT_ISR, NULL);
+        dev->event_callback(dev, NETDEV2_EVENT_ISR);
     }
 }
 
@@ -97,7 +97,7 @@ static int _init(netdev2_t *netdev)
     return 0;
 }
 
-static int _send(netdev2_t *netdev, const struct iovec *vector, int count)
+static int _send(netdev2_t *netdev, const struct iovec *vector, unsigned count)
 {
     at86rf2xx_t *dev = (at86rf2xx_t *)netdev;
     const struct iovec *ptr = vector;
@@ -106,11 +106,11 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, int count)
     at86rf2xx_tx_prepare(dev);
 
     /* load packet data into FIFO */
-    for (int i = 0; i < count; i++, ptr++) {
+    for (unsigned i = 0; i < count; i++, ptr++) {
         /* current packet data + FCS too long */
         if ((len + ptr->iov_len + 2) > AT86RF2XX_MAX_PKT_LENGTH) {
-            printf("[at86rf2xx] error: packet too large (%u byte) to be send\n",
-                   (unsigned)len + 2);
+            DEBUG("[at86rf2xx] error: packet too large (%u byte) to be send\n",
+                  (unsigned)len + 2);
             return -EOVERFLOW;
         }
 #ifdef MODULE_NETSTATS_L2
@@ -127,7 +127,7 @@ static int _send(netdev2_t *netdev, const struct iovec *vector, int count)
     return (int)len;
 }
 
-static int _recv(netdev2_t *netdev, char *buf, int len, void *info)
+static int _recv(netdev2_t *netdev, void *buf, size_t len, void *info)
 {
     at86rf2xx_t *dev = (at86rf2xx_t *)netdev;
     uint8_t phr;
@@ -140,23 +140,23 @@ static int _recv(netdev2_t *netdev, char *buf, int len, void *info)
     /* get the size of the received packet */
     at86rf2xx_fb_read(dev, &phr, 1);
 
-    /* Ignore FCS for packet length */
-    pkt_len = phr - 2;
+    /* ignore MSB (refer p.80) and substract length of FCS field */
+    pkt_len = (phr & 0x7f) - 2;
 
     /* just return length when buf == NULL */
     if (buf == NULL) {
         at86rf2xx_fb_stop(dev);
         return pkt_len;
     }
-#ifdef MODULE_NETSTATS_L2
-    netdev->stats.rx_count++;
-    netdev->stats.rx_bytes += pkt_len;
-#endif
     /* not enough space in buf */
     if (pkt_len > len) {
         at86rf2xx_fb_stop(dev);
         return -ENOBUFS;
     }
+    #ifdef MODULE_NETSTATS_L2
+        netdev->stats.rx_count++;
+        netdev->stats.rx_bytes += pkt_len;
+    #endif
     /* copy payload */
     at86rf2xx_fb_read(dev, (uint8_t *)buf, pkt_len);
 
@@ -383,7 +383,7 @@ static int _set(netdev2_t *netdev, netopt_t opt, void *val, size_t len)
 {
     at86rf2xx_t *dev = (at86rf2xx_t *) netdev;
     uint8_t old_state = at86rf2xx_get_status(dev);
-    int res = 0;
+    int res = -ENOTSUP;
 
     if (dev == NULL) {
         return -ENODEV;
@@ -433,7 +433,7 @@ static int _set(netdev2_t *netdev, netopt_t opt, void *val, size_t len)
                 uint8_t chan = ((uint8_t *)val)[0];
                 if (chan < AT86RF2XX_MIN_CHANNEL ||
                     chan > AT86RF2XX_MAX_CHANNEL) {
-                    res = -ENOTSUP;
+                    res = -EINVAL;
                     break;
                 }
                 at86rf2xx_set_chan(dev, chan);
@@ -449,7 +449,7 @@ static int _set(netdev2_t *netdev, netopt_t opt, void *val, size_t len)
                 uint8_t page = ((uint8_t *)val)[0];
 #ifdef MODULE_AT86RF212B
                 if ((page != 0) && (page != 2)) {
-                    res = -ENOTSUP;
+                    res = -EINVAL;
                 }
                 else {
                     at86rf2xx_set_page(dev, page);
@@ -458,7 +458,7 @@ static int _set(netdev2_t *netdev, netopt_t opt, void *val, size_t len)
 #else
                 /* rf23x only supports page 0, no need to configure anything in the driver. */
                 if (page != 0) {
-                    res = -ENOTSUP;
+                    res = -EINVAL;
                 }
                 else {
                     res = sizeof(uint16_t);
@@ -549,11 +549,8 @@ static int _set(netdev2_t *netdev, netopt_t opt, void *val, size_t len)
                 (*((uint8_t *)val) > 5)) {
                 res = -EOVERFLOW;
             }
-            else if (!(dev->netdev.flags & AT86RF2XX_OPT_CSMA)) {
-                /* If CSMA is disabled, don't allow setting retries */
-                res = -ENOTSUP;
-            }
-            else {
+            else if (dev->netdev.flags & AT86RF2XX_OPT_CSMA) {
+                /* only set if CSMA is enabled */
                 at86rf2xx_set_csma_max_retries(dev, *((uint8_t *)val));
                 res = sizeof(uint8_t);
             }
@@ -570,7 +567,7 @@ static int _set(netdev2_t *netdev, netopt_t opt, void *val, size_t len)
             break;
 
         default:
-            res = -ENOTSUP;
+            break;
     }
 
     /* go back to sleep if were sleeping and state hasn't been changed */
@@ -609,7 +606,7 @@ static void _isr(netdev2_t *netdev)
                   AT86RF2XX_TRX_STATE_MASK__TRAC;
 
     if (irq_mask & AT86RF2XX_IRQ_STATUS_MASK__RX_START) {
-        netdev->event_callback(netdev, NETDEV2_EVENT_RX_STARTED, NULL);
+        netdev->event_callback(netdev, NETDEV2_EVENT_RX_STARTED);
         DEBUG("[at86rf2xx] EVT - RX_START\n");
     }
 
@@ -620,35 +617,33 @@ static void _isr(netdev2_t *netdev)
             if (!(dev->netdev.flags & AT86RF2XX_OPT_TELL_RX_END)) {
                 return;
             }
-            netdev->event_callback(netdev, NETDEV2_EVENT_RX_COMPLETE, NULL);
+            netdev->event_callback(netdev, NETDEV2_EVENT_RX_COMPLETE);
         }
         else if (state == AT86RF2XX_STATE_TX_ARET_ON ||
                  state == AT86RF2XX_STATE_BUSY_TX_ARET) {
             /* check for more pending TX calls and return to idle state if
              * there are none */
-            if (dev->pending_tx == 0) {
+            assert(dev->pending_tx != 0);
+            if ((--dev->pending_tx) == 0) {
                 at86rf2xx_set_state(dev, dev->idle_state);
-            }
-            else {
-                dev->pending_tx--;
+                DEBUG("[at86rf2xx] return to state 0x%x\n", dev->idle_state);
             }
 
             DEBUG("[at86rf2xx] EVT - TX_END\n");
-            DEBUG("[at86rf2xx] return to state 0x%x\n", dev->idle_state);
 
             if (netdev->event_callback && (dev->netdev.flags & AT86RF2XX_OPT_TELL_TX_END)) {
                 switch (trac_status) {
                     case AT86RF2XX_TRX_STATE__TRAC_SUCCESS:
                     case AT86RF2XX_TRX_STATE__TRAC_SUCCESS_DATA_PENDING:
-                        netdev->event_callback(netdev, NETDEV2_EVENT_TX_COMPLETE, NULL);
+                        netdev->event_callback(netdev, NETDEV2_EVENT_TX_COMPLETE);
                         DEBUG("[at86rf2xx] TX SUCCESS\n");
                         break;
                     case AT86RF2XX_TRX_STATE__TRAC_NO_ACK:
-                        netdev->event_callback(netdev, NETDEV2_EVENT_TX_NOACK, NULL);
+                        netdev->event_callback(netdev, NETDEV2_EVENT_TX_NOACK);
                         DEBUG("[at86rf2xx] TX NO_ACK\n");
                         break;
                     case AT86RF2XX_TRX_STATE__TRAC_CHANNEL_ACCESS_FAILURE:
-                        netdev->event_callback(netdev, NETDEV2_EVENT_TX_MEDIUM_BUSY, NULL);
+                        netdev->event_callback(netdev, NETDEV2_EVENT_TX_MEDIUM_BUSY);
                         DEBUG("[at86rf2xx] TX_CHANNEL_ACCESS_FAILURE\n");
                         break;
                     default:

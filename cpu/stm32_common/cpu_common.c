@@ -97,3 +97,48 @@ void periph_clk_dis(bus_t bus, uint32_t mask)
             break;
     }
 }
+
+int is_periph_clk(bus_t bus, uint32_t mask)
+{
+    switch (bus) {
+        case APB1:
+            if (RCC->APB1ENR & mask) {
+                   return 1;
+            }
+            break;
+        case APB2:
+            if (RCC->APB2ENR & mask) {
+                return 1;
+            }
+            break;
+#if defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L1) || defined(CPU_FAM_STM32F1) \
+            || defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F3)
+        case AHB:
+            if (RCC->AHBENR & mask) {
+                return 1;
+            }
+            break;
+#elif defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4)
+        case AHB1:
+            if (RCC->AHB1ENR & mask) {
+                return 1;
+            }
+            break;
+        case AHB2:
+            if (RCC->AHB2ENR & mask) {
+                return 1;
+            }
+            break;
+        case AHB3:
+            if (RCC->AHB3ENR & mask) {
+                return 1;
+            }
+            break;
+#endif
+        default:
+            DEBUG("unsupported bus %d\n", (int)bus);
+            return -1;
+            break;
+    }
+    return 0;
+}

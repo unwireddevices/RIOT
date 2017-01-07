@@ -178,6 +178,15 @@ void periph_clk_en(bus_t bus, uint32_t mask);
 void periph_clk_dis(bus_t bus, uint32_t mask);
 
 /**
+ * @brief   Check if given peripheral clock is enabled
+ *
+ * @param[in] bus       bus the peripheral is connected to
+ * @param[in] mask      bit in the RCC enable register
+ * @param[out]          1 if clock is enabled, 0 if clock is disabled, -1 if unsupported bus
+ */
+int is_periph_clk(bus_t bus, uint32_t mask);
+
+/**
  * @brief   Configure the alternate function for the given pin
  *
  * @param[in] pin       pin to configure

@@ -127,14 +127,14 @@ static void clk_restore_clocks(void) {
     }
 	
 	/* set default UART baudrate for stdio */
-    float clk = cpu_clock_global;
-	clk /= UART_STDIO_BAUDRATE;
-    uint16_t mantissa = (uint16_t)(clk / 16);
-    uint8_t fraction = (uint8_t)(clk - (mantissa << 4));
-    
-	USART_TypeDef *uart_dev = 0;
-    uart_dev = uart_config[UART_STDIO_NUM].dev;
-    uart_dev->BRR = ((mantissa & 0x0fff) << 4) | (0x0f & fraction);
+    uint16_t mantissa;
+    uint8_t fraction;
+    uint32_t clk;
+
+    clk = periph_apb_clk(uart_config[UART_STDIO_NUM].bus) / UART_STDIO_BAUDRATE;
+    mantissa = (uint16_t)(clk / 16);
+    fraction = (uint8_t)(clk - (mantissa * 16));
+    uart_config[UART_STDIO_NUM].dev->BRR = ((mantissa & 0x0fff) << 4) | (fraction & 0x0f);
 }
 
 /**

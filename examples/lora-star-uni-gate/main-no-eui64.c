@@ -110,7 +110,7 @@ static int save_cmd(int argc, char **argv)
 
 		puts("");
 
-		agreekey = xtimer_now() & 0xFF;
+		agreekey = xtimer_now().ticks32 & 0xFF;
 
 		puts("[warning] Saving current configuration is permanent!");
 		printf("Verify your setup and type:\n\n\tsave %d\n\nto permanently save current configuration and reboot.\n", agreekey);

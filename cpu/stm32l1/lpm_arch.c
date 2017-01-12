@@ -146,7 +146,6 @@ static void lpm_before_i_go_to_sleep (void) {
             /* exclude GPIOs registered for external interrupts */
             /* they may be used as wakeup sources */
             if (EXTI->IMR & (1 << p)) {
-                // printf("Port %d, pin %d, EXTICR %lu\n", i, p, SYSCFG->EXTICR[p >> 2]);
                 if ((((SYSCFG->EXTICR[p >> 2]) >> ((p & 0x03) * 4)) & 0xF) == i) {
                     mask &= ~((uint32_t)0x03 << (p*2));
                 }

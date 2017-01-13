@@ -24,6 +24,10 @@
 
 #define UNWDS_PWM_MODULE_ID 14
 
+#define PWM_0 0
+#define PWM_1 1
+#define PWM_2 2
+
 #define UMDK_PWM_CH_0 0
 #define UMDK_PWM_CH_1 1
 #define UMDK_PWM_CH_2 2
@@ -33,8 +37,19 @@
 #define UMDK_PWM_FREQ_DEFAULT (1000U)
 #define UMDK_PWM_RES_DEFAULT 255
 
+#define UMDK_PWM_DUTY_MAX 100
+#define UMDK_PWM_FREQ_MAX (100000U)
+
 #define UMDK_PWM_NUM_DEVS 3
 #define UMDK_PWM_NUM_CH 8
+
+#define UMDK_PWM_0_NUM_CH_MAX 4
+#define UMDK_PWM_1_NUM_CH_MAX 2
+#define UMDK_PWM_2_NUM_CH_MAX 2
+
+#define UMDK_PWM_STATUS_DEFAULT 0
+#define UMDK_PWM_CH_TURN_ON 1
+#define UMDK_PWM_CH_TURN_OFF 0
 
 /**
  * @brief PWM device structure
@@ -42,6 +57,7 @@
 typedef struct {
     pwm_t dev;          /**< PWM device number*/
 
+    uint8_t num_chan;	/**< Number of channels of the PWM device*/
     pwm_mode_t mode;    /**< PWM device mode */
     uint32_t freq;      /**< PWM device frequency */
     uint16_t res;       /**< PWM device resolution */
@@ -56,6 +72,7 @@ typedef struct {
     uint8_t dev;            /**< PWM device number */
 
     uint8_t ch;             /**< PWM channel number */
+    uint8_t status;	/**< Status of work PWM channel */
     uint16_t duty_cycle;    /**< Current channel duty cycle */
 } umdk_pwm_ch_t;
 

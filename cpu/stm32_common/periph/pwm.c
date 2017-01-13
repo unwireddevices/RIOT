@@ -57,12 +57,6 @@ uint32_t pwm_init(pwm_t pwm, pwm_mode_t mode, uint32_t freq, uint16_t res)
         dev(pwm)->CCR[i] = 0;
     }
 
-    /* configure the used pins */
-    for (unsigned i = 0; i < pwm_config[pwm].chan; i++) {
-        gpio_init(pwm_config[pwm].pins[i], GPIO_OUT);
-        gpio_init_af(pwm_config[pwm].pins[i], pwm_config[pwm].af);
-    }
-
     /* configure the PWM frequency and resolution by setting the auto-reload
      * and prescaler registers */
     dev(pwm)->PSC = (bus_clk / (res * freq)) - 1;

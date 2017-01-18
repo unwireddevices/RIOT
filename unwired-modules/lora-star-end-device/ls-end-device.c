@@ -43,7 +43,7 @@ static msg_t msg_ack_timeout;
 /**
  * Data rates table.
  */
-static uint8_t datarate_table[7][3] = {
+static const uint8_t datarate_table[7][3] = {
     { SX1276_SF12, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR0 */
     { SX1276_SF11, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR1 */
     { SX1276_SF10, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR2 */
@@ -57,7 +57,7 @@ static void configure_sx1276(ls_ed_t *ls, bool tx)
 {
     /* Choose data rate */
     ls_datarate_t dr = (!ls->_internal.use_rx_window_2_settings) ? ls->settings.dr : LS_RX2_DR;
-    uint8_t *datarate = datarate_table[dr];
+    const uint8_t *datarate = datarate_table[dr];
 
     /* Setup channel */
     ls_channel_t ch = (!ls->_internal.use_rx_window_2_settings) ? ls->settings.channel : LS_RX2_CH;

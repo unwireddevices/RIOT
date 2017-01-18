@@ -209,6 +209,7 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
             umdk_pwm_dev_t *dev = &pwm_devs[dev_id];
             umdk_pwm_ch_t *ch = &(dev->pwm_chs[ch_num]);
 
+
 	    if(status == UMDK_PWM_CH_TURN_OFF) {
 		if(ch->status == UMDK_PWM_CH_TURN_OFF) {
 		    printf("[umdk-pwm] Channel %d of the #%d PWM device turned off YET\n", ch_num, dev_id);
@@ -219,11 +220,14 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
 		    ch->status = UMDK_PWM_CH_TURN_OFF;
 		}
 	    }
+	    else {
 
 	    if(status == UMDK_PWM_CH_TURN_ON) {
 		if(ch->status == UMDK_PWM_CH_TURN_OFF) {
 		    gpio_init(pwm_config[dev_id].pins[ch_num], GPIO_OUT);
 		    gpio_init_af(pwm_config[dev_id].pins[ch_num], pwm_config[dev_id].af);
+
+		    printf("[umdk-pwm] Channel %d of the #%d PWM device turned on\n", ch_num, dev_id);
 		    ch->status = UMDK_PWM_CH_TURN_ON;
 		}
 
@@ -235,8 +239,10 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
 	    printf("[umdk-pwm] Setting PWM#%d ch: %d to %d/%d with frequency %d Hz\n",
 		   dev->dev, ch_num, duty_value, UMDK_PWM_DUTY_MAX, (int) freq);
 	    }
-
+        }
 	    set_pwm_value(dev, ch, duty_value);
+
+            printf("[umdk-pwm] Need:	/PWM#%d	  set %d   %d   %d \n", dev->dev, ch->ch, (int)dev->freq, ch->duty_cycle);
 
 	    reply->length = 4;
 	     reply->data[0] = UNWDS_PWM_MODULE_ID;

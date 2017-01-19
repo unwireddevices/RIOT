@@ -90,6 +90,8 @@ void umdk_pwm_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
         printf("[umdk-pwm] Initializing PWM#%d with frequency %d Hz and resolution up to %d\n", dev->dev, (int) dev->freq, dev->res);
 
         pwm_init(dev->dev, dev->mode, dev->freq, dev->res);
+        pwm_start(dev->dev);
+        pwm_stop(dev->dev);
     }
 }
 
@@ -112,13 +114,18 @@ static void set_pwm_value(umdk_pwm_dev_t *dev, umdk_pwm_ch_t *ch, uint8_t value)
     bool need_to_start = !dev->is_started;
     bool can_be_stopped = true;
 
+    uint8_t channel = ch->ch;
+
     for (int i = 0; i < dev->num_chan; i++) {
-        umdk_pwm_ch_t *ch = &(dev->pwm_chs[i]);
+        umdk_pwm_ch_t *chan = &(dev->pwm_chs[i]);
             /* Device can't be stopped if it has initialization channels */
-            if (ch->status == UMDK_PWM_CH_TURN_ON) {
+            if (chan->status == UMDK_PWM_CH_TURN_ON) {
                 can_be_stopped = false;
             }
+            printf("[umdk-pwm] Device#%d	Chan#%d(%d)  ->  %d	%d%% \n", dev->dev, chan->ch, dev->pwm_chs[i].ch, chan->status, chan->duty_cycle );
     }
+
+    printf("[umdk-pwm] Device is start:  %d\n", (int)dev->is_started);
 
     if (can_be_stopped) {
 	/* Stop current device if it was started */
@@ -143,10 +150,12 @@ static void set_pwm_value(umdk_pwm_dev_t *dev, umdk_pwm_ch_t *ch, uint8_t value)
 
 	  /* Set value for the current channel in current PWM device if it's running */
 	   if (dev->is_started) {
-	       pwm_set(dev->dev, ch->ch, ch->duty_cycle);
-	       printf("[umdk-pwm] Set pwm #%d channel #%d to %d%%\n", dev->dev, ch->ch, value);
+	       pwm_set(dev->dev, channel, ch->duty_cycle);
+	       printf("[umdk-pwm] Set PWM device #%d channel #%d to %d%%(%d)\n", dev->dev, channel, value, ch->duty_cycle);
 	   }
     }
+
+    printf("[umdk-pwm] Device is start:  %d\n", (int)dev->is_started);
 }
 
 static inline void umdk_pwm_turn_off_pin(gpio_t pin)
@@ -212,10 +221,10 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
 
 	    if(status == UMDK_PWM_CH_TURN_OFF) {
 		if(ch->status == UMDK_PWM_CH_TURN_OFF) {
-		    printf("[umdk-pwm] Channel %d of the #%d PWM device turned off YET\n", ch_num, dev_id);
+		    printf("[umdk-pwm] Channel %d(%d) of the #%d(%d) PWM device turned off YET\n", ch->ch, ch_num, dev->dev, dev_id);
 		}
 		else {
-		    printf("[umdk-pwm] Channel %d of the #%d PWM device turned off\n", ch_num, dev_id);
+		    printf("[umdk-pwm] Channel %d(%d) of the #%d(%d) PWM device turned off\n", ch->ch, ch_num, dev->dev, dev_id);
 		    umdk_pwm_turn_off_pin(pwm_config[dev_id].pins[ch_num]);
 		    ch->status = UMDK_PWM_CH_TURN_OFF;
 		}
@@ -227,7 +236,7 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
 		    gpio_init(pwm_config[dev_id].pins[ch_num], GPIO_OUT);
 		    gpio_init_af(pwm_config[dev_id].pins[ch_num], pwm_config[dev_id].af);
 
-		    printf("[umdk-pwm] Channel %d of the #%d PWM device turned on\n", ch_num, dev_id);
+		    printf("[umdk-pwm] Channel %d(%d) of the #%d(%d) PWM device turned on\n", ch->ch, ch_num, dev->dev, dev_id);
 		    ch->status = UMDK_PWM_CH_TURN_ON;
 		}
 
@@ -241,8 +250,6 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
 	    }
         }
 	    set_pwm_value(dev, ch, duty_value);
-
-            printf("[umdk-pwm] Need:	/PWM#%d	  set %d   %d   %d \n", dev->dev, ch->ch, (int)dev->freq, ch->duty_cycle);
 
 	    reply->length = 4;
 	     reply->data[0] = UNWDS_PWM_MODULE_ID;

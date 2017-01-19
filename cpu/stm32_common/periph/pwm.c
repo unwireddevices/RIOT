@@ -85,8 +85,9 @@ uint32_t pwm_init(pwm_t pwm, pwm_mode_t mode, uint32_t freq, uint16_t res)
 #endif
     dev(pwm)->CCER = (TIM_CCER_CC1E | TIM_CCER_CC2E |
                       TIM_CCER_CC3E | TIM_CCER_CC4E);
-    dev(pwm)->CR1 |= TIM_CR1_CEN;
 
+    dev(pwm)->CR1 |= TIM_CR1_CEN;
+    printf("START_init: %X\n",dev(pwm)->CR1);
     /* return the actual used PWM frequency */
     return (bus_clk / (res * (dev(pwm)->PSC + 1)));
 }
@@ -107,18 +108,24 @@ void pwm_set(pwm_t pwm, uint8_t channel, uint16_t value)
     }
     /* set new value */
     dev(pwm)->CCR[channel] = value;
+    printf("SET: %X	",dev(pwm)->CR1);
+    printf("SET_val: %d   ",(int)(dev(pwm)->CCR[channel]));
+    printf("SET_ch: %d\n", channel);
 }
 
 void pwm_start(pwm_t pwm)
 {
     assert(pwm < PWM_NUMOF);
     dev(pwm)->CR1 |= TIM_CR1_CEN;
+
+    printf("START: %X\n",dev(pwm)->CR1);
 }
 
 void pwm_stop(pwm_t pwm)
 {
     assert(pwm < PWM_NUMOF);
     dev(pwm)->CR1 &= ~TIM_CR1_CEN;
+    printf("STOP: %X\n",(int)(dev(pwm)->CR1));
 }
 
 void pwm_poweron(pwm_t pwm)

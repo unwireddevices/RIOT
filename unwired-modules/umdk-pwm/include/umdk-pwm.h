@@ -35,7 +35,7 @@
 
 #define UMDK_PWM_DUTY_DEFAULT 0
 #define UMDK_PWM_FREQ_DEFAULT (1000U)
-#define UMDK_PWM_RES_DEFAULT 255
+#define UMDK_PWM_RES_DEFAULT 300
 
 #define UMDK_PWM_DUTY_MAX 100
 #define UMDK_PWM_FREQ_MAX (100000U)
@@ -72,7 +72,7 @@ typedef struct {
     uint32_t freq;      /**< PWM device frequency */
     uint16_t res;       /**< PWM device resolution */
 
-    umdk_pwm_ch_t pwm_chs[UMDK_PWM_NUM_CH_MAX];
+    umdk_pwm_ch_t pwm_chs[UMDK_PWM_NUM_CH_MAX];	/**< Configuration of PWM channels*/
 
     bool is_started;    /**< PWM device is running */
 } umdk_pwm_dev_t;

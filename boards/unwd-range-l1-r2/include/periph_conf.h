@@ -270,8 +270,8 @@ static const pwm_conf_t pwm_config[] = {
     {
         .dev      = TIM2,
         .rcc_mask = RCC_APB1ENR_TIM2EN,
-        .pins     = { GPIO_PIN(PORT_A, 1), GPIO_PIN(PORT_A, 2),
-                      GPIO_PIN(PORT_A, 3), GPIO_PIN(PORT_A, 5) },
+        .pins     = { GPIO_PIN(PORT_A, 5), GPIO_PIN(PORT_A, 1),
+                      GPIO_PIN(PORT_A, 2), GPIO_PIN(PORT_A, 3) },
         .af       = GPIO_AF1,
         .chan     = 4,
         .bus      = APB1
@@ -287,9 +287,9 @@ static const pwm_conf_t pwm_config[] = {
         {
         .dev      = TIM4,
         .rcc_mask = RCC_APB1ENR_TIM4EN,
-        .pins     = { GPIO_PIN(PORT_B, 8), GPIO_PIN(PORT_B, 9) },
+        .pins     = { 0, 0, GPIO_PIN(PORT_B, 8), GPIO_PIN(PORT_B, 9) },
         .af       = GPIO_AF2,
-        .chan     = 2,
+        .chan     = 4,
         .bus      = APB1
     }
 };

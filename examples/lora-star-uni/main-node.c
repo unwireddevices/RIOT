@@ -73,7 +73,7 @@ static node_role_settings_t node_settings;
 static sx1276_t sx1276;
 static ls_ed_t ls;
 
-// static unsigned int join_retr_count;
+static unsigned int current_join_retries = 0;
 
 void radio_init(void)
 {
@@ -99,13 +99,6 @@ void radio_init(void)
     puts("init_radio: sx1276 initialization done");
 }
 
-void lnkchk_timeout_cb(void)
-{
-    puts("lnkchk: check failed, link is unavailable");
-
-    ls_ed_join(&ls);
-}
-
 void joined_timeout_cb(void)
 {
     puts("ls: join request timed out, resending");
@@ -116,11 +109,18 @@ void joined_timeout_cb(void)
 	printf("ls-ed: random delay %d s\n", (unsigned int) (delay));
 	rtctimers_sleep(delay);
 
-    ls_ed_join(&ls);
+	if (current_join_retries++ < node_settings.max_retr) {
+		printf("ls-ed: rejoining, attempt %d / %d\n", current_join_retries, node_settings.max_retr);
+		ls_ed_join(&ls);
+	} else {
+		puts("ls-ed: maximum join retries exceeded, stopping");
+	}
 }
 
 void joined_cb(void)
 {
+	current_join_retries = 0;
+
     puts("ls-ed: successfully joined to the network");
     blink_led();
 }
@@ -185,7 +185,6 @@ static bool broadcast_appdata_received_cb(uint8_t *buf, size_t buflen) {
     }
 
     unwds_module_id_t modid = buf[0];
-    (void) modid; // XXX: warning suppress, not used yet
 
     module_data_t cmd;
     /* Save command data */
@@ -568,6 +567,10 @@ static void unwds_callback(module_data_t *buf)
         }
         if (res == -LS_SEND_E_NOT_JOINED) {
             puts("[error] Cannot send app. data: not joined to the network");
+
+            /* Try to join to the network */
+            current_join_retries = 0;
+            ls_ed_join(&ls);
         }
         else {
             printf("send: error #%d\n", res);

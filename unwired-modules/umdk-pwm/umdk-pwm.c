@@ -90,6 +90,7 @@ void umdk_pwm_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
         printf("[umdk-pwm] Initializing PWM#%d with frequency %d Hz and resolution up to %d\n", dev->dev, (int) dev->freq, dev->res);
 
         pwm_init(dev->dev, dev->mode, dev->freq, dev->res);
+        pwm_stop(dev->dev);
     }
 }
 

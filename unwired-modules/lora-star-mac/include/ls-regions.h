@@ -27,7 +27,7 @@ typedef struct {
 
 #define LS_UNI_NUM_REGIONS 2
 
-static ls_region_t regions[LS_UNI_NUM_REGIONS] = {
+static const ls_region_t regions[LS_UNI_NUM_REGIONS] = {
 		{ "Europe 868", 3,
 			{
 				868100000,

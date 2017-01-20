@@ -54,7 +54,7 @@ UNWD_6ADC	  =	1
 UNWD_LPS331   = 1
 UNWD_4COUNTER = 1
 UNWD_RSSIECHO = 1
-UNWD_PWM      = 0
+UNWD_PWM      = 1
 UNWD_OPT3001  = 1
 
 ####### UNWD MMODULES' includes & flags ############

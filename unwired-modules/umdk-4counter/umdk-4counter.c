@@ -36,8 +36,7 @@ extern "C" {
 #include "xtimer.h"
 #include "rtctimers.h"
 
-
-static uint8_t time_detect = (uint8_t)(UMDK_4COUNT_DEBOUNCE_TIME_MS / UMDK_4COUNT_DETECT_COUNT);
+static  uint32_t tim_delay = ( (uint16_t)(UMDK_4COUNT_DEBOUNCE_TIME_MS / UMDK_4COUNT_DETECT_COUNT) ) * UMDK_4COUNT_INSTRUCTION_PER_MS;
 
 static kernel_pid_t handler_pid;
 
@@ -90,6 +89,11 @@ static void umdk_4count_gpio_mode(gpio_t pin, gpio_mode_t mode, umdk_4counter_si
     }
 }
 
+static inline void umdk_4count_delay(void) {
+
+  for(volatile uint32_t i = 0; i < tim_delay; i++){}
+}
+
 static void umdk_4count_counter_int(void)
 {
 
@@ -124,14 +128,14 @@ static void umdk_4count_counter_int(void)
             }
         }
         /* Delay */
-        xtimer_usleep(time_detect * 1000);
+        umdk_4count_delay();
     }
-
+printf("\n");
     /* Set GPIO mode: Analog */
     for (int i = 0; i < UMDK_4COUNT_NUM_SENS; i++) {
         umdk_4count_gpio_mode(pins_sens[i], GPIO_IN_PU, ANALOG);
     }
-
+printf("\n");
     /* Restart counting timer */
     rtctimers_set_msg(&counter_timer, UMDK_4COUNT_SLEEP_TIME_SEC, &counter_msg, handler_pid);
 }

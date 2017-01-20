@@ -312,7 +312,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             data_recv(ls, frame);
             return true;
 
-        case LS_DL_JOIN_ACK: /* Downlink join acknowledge */
+        case LS_DL_JOIN_ACK: { /* Downlink join acknowledge */
             if (frame->payload.len != sizeof(ls_join_ack_t)) {
                 return false;
             }
@@ -348,7 +348,23 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
                 ls->joined_cb();
             }
 
+            /* Check for queued data to send after join */
+            appdata_fifo_t *fifo = &ls->_internal.appdata_fifo;
+
+    		while(!appdata_fifo_empty(fifo)) {
+    			appdata_fifo_entry_t e;
+
+    			if (!appdata_fifo_pop(fifo, &e)) {
+    				break;
+    			}
+
+    			printf("ls-ed: sending delayed app. data [fid: %d, size: %d]\n", e.id, e.size);
+
+    			ls_ed_send_app_data(ls, e.data, e.size, e.is_confirmed, e.is_with_ack);
+    		}
+
             return true;
+        }
 
         case LS_DL_INVITE: { /* Individual join invitation for class C devices */
         	if (ls->settings.class != LS_ED_CLASS_C) /* Only for class C */
@@ -775,6 +791,9 @@ int ls_ed_init(ls_ed_t *ls)
     mutex_init(&ls->_internal.curr_frame_mutex);
     memset(&ls->status, 0, sizeof(ls_device_status_t));
 
+    /* Initialize appdata queue */
+    appdata_fifo_init(&ls->_internal.appdata_fifo);
+
     /* Initialize uplink frame queue */
     ls_frame_fifo_init(&ls->_internal.uplink_queue);
 
@@ -817,10 +836,21 @@ int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed
     if (ls->wakeup_cb != NULL)
     	ls->wakeup_cb();
 
-    /* Has to be joined to network */
+    /* Not joined to the network, delay appdata frame until device is joined */
     if (!ls->_internal.is_joined) {
     	if (ls->standby_mode_cb)
     		ls->standby_mode_cb();
+
+    	appdata_fifo_t *fifo = &ls->_internal.appdata_fifo;
+
+    	/* Last data has priority, so we can pop oldest item from the queue if it's full */
+		if (appdata_fifo_full(fifo)) {
+			appdata_fifo_pop(fifo, NULL);
+		}
+
+		appdata_fifo_push(fifo, buf, buflen, ls->_internal.last_fid, confirmed, with_ack);
+
+		puts("ls-ed: app. data delayed until node is joined");
 
     	return -LS_SEND_E_NOT_JOINED;
     }

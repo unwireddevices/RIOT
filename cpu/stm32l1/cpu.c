@@ -120,11 +120,13 @@ static void clk_store_clocks(void) {
 
 static void clk_restore_clocks(void) {
 	/* restore timers frequencies */
+    /*
 	for (tmpreg = 0; tmpreg < TIMER_NUMOF; tmpreg++) {
         if (timer_freq[tmpreg]) {
             timer_set_freq((tim_t)tmpreg, timer_freq[tmpreg]);
         }
     }
+    */
 	
 	/* set default UART baudrate for stdio */
     uint16_t mantissa;

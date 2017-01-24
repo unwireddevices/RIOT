@@ -27,6 +27,7 @@ extern "C" {
 
 #include "lpm.h"
 #include "periph/rtc.h"
+#include "periph/adc.h"
 
 #include "ls-mac-types.h"
 #include "ls-mac.h"
@@ -157,6 +158,19 @@ static void send_next(ls_ed_t *ls) {
     }
 }
 
+static uint8_t get_node_status(void)
+{
+    if (adc_init(ADC_LINE(ADC_VREF_INDEX)) < 0) {
+        return 0;
+    }
+    uint16_t vdd;
+    vdd = adc_sample(ADC_LINE(ADC_VREF_INDEX), ADC_RES_12BIT);
+    vdd -= 2000; /* 2000 mV min voltage */
+    vdd /= 50; /* 50 mV per bit resolution */
+    
+    return (uint8_t)(vdd & 0x1F);
+}
+
 static int send_frame(ls_ed_t *ls, ls_type_t type, uint8_t *buf, size_t buflen)
 {
     assert(ls != NULL);
@@ -167,6 +181,7 @@ static int send_frame(ls_ed_t *ls, ls_type_t type, uint8_t *buf, size_t buflen)
     ls_assemble_frame(ls->_internal.dev_addr, type, buf, buflen, frame);
 
     frame->header.fid = ls->_internal.last_fid;
+    frame->header.status = get_node_status();
 
     /* Enqueue frame */
     if (!ls_frame_fifo_push(&ls->_internal.uplink_queue, frame)) {

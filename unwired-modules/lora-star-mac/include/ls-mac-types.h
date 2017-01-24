@@ -99,6 +99,7 @@ typedef struct {
     ls_addr_t dev_addr;				/**< Destination address */
     ls_type_t type;					/**< Type of a frame */
     ls_frame_id_t fid;				/**< Frame serial number */
+    uint8_t status;                 /**< Node status */
 } ls_header_t;
 
 /**

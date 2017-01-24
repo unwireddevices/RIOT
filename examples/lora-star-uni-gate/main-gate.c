@@ -224,7 +224,7 @@ static bool accept_node_join_cb(uint64_t dev_id, uint64_t app_id)
     return true; /* Stub */
 }
 
-void app_data_received_cb(ls_gate_node_t *node, ls_gate_channel_t *ch, uint8_t *buf, size_t bufsize)
+void app_data_received_cb(ls_gate_node_t *node, ls_gate_channel_t *ch, uint8_t *buf, size_t bufsize, uint8_t status)
 {
     char hex[GC_MAX_REPLY_LEN - 19] = {};
     if (bufsize > sizeof(hex))
@@ -234,14 +234,18 @@ void app_data_received_cb(ls_gate_node_t *node, ls_gate_channel_t *ch, uint8_t *
 
     char buf_rssi[5] = {};
     bytes_to_hex((uint8_t *) &rssi, 2, buf_rssi, true);
+    
+    char buf_status[5]  = {};
+    bytes_to_hex(&status, 1, buf_status, true);
 
     bytes_to_hex(buf, bufsize, hex, false);
     printf("[recv] %d bytes: %s | rssi: %d\n", bufsize, hex, rssi);
 
     char str[GC_MAX_REPLY_LEN] = { };
-    sprintf(str, "%c%08X%08X%s%s\n", REPLY_IND,
+    sprintf(str, "%c%08X%08X%s%s%s\n", REPLY_IND,
     		(unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF),
 			buf_rssi,
+            buf_status,
 			hex);
 
     gc_pending_fifo_push(&fifo, str);

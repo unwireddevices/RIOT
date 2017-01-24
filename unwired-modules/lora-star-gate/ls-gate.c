@@ -267,7 +267,7 @@ static bool app_data_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *fram
     ls_decrypt_frame_payload(aes_key, &frame->payload);
 
     /* Call handler callback */
-    ls->app_data_received_cb(node, ch, frame->payload.data, frame->payload.len);
+    ls->app_data_received_cb(node, ch, frame->payload.data, frame->payload.len, frame->header.status);
 
     return true;
 }

@@ -157,10 +157,11 @@ static void *handler(void *arg)
         switch (type) {
             case COUNTING:
                 umdk_4count_counter_int();
+                puts("Counting");
                 break;
 
             case PUBLISHING:
-            	;
+            	puts("Sending");
 
                 module_data_t data;
                 data.length = 1 + 4 * UMDK_4COUNT_NUM_SENS;
@@ -194,6 +195,11 @@ static void *handler(void *arg)
     return NULL;
 }
 
+static void reset_config(void) {
+	conf_counter.is_valid = 0;
+	memset(&conf_counter.count_value[0], 0, sizeof(conf_counter.count_value));
+	conf_counter.publish_period = UMDK_4COUNT_PUBLISH_PERIOD_MIN;
+}
 
 void umdk_4counter_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 {
@@ -215,7 +221,13 @@ void umdk_4counter_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     }
 
     /* Load config from NVRAM */
-    unwds_read_nvram_config(UNWDS_4COUNTER_MODULE_ID, (uint8_t *) &conf_counter, sizeof(conf_counter));
+    if (!unwds_read_nvram_config(UNWDS_4COUNTER_MODULE_ID, (uint8_t *) &conf_counter, sizeof(conf_counter))) {
+        return;
+    }
+    
+    if ((conf_counter.is_valid == 0xFF) || (conf_counter.is_valid == 0))  {
+		reset_config();
+	}
 
     printf("[umdk-4counter] Current publish period: %d hour(s)\n", conf_counter.publish_period);
 

@@ -21,6 +21,7 @@
 #include "rtctimers.h"
 
 #include "ls-frame-fifo.h"
+#include "appdata-fifo.h"
 #include "ls-mac-types.h"
 #include "ls-crypto.h"
 
@@ -130,7 +131,7 @@ typedef struct {
 	ls_datarate_t dr;							/**< End-device data rate */
 	ls_channel_t channel;						/**< Channel for the end-device */
 
-	uint32_t *channels_table;					/**< Table of frequencies [Hz] of possible channels */
+	const uint32_t *channels_table;				/**< Table of frequencies [Hz] of possible channels */
 	size_t channels_table_size;					/**< Size of the channels table */
 
 	ls_crypto_t crypto;							/**< Cryptography settings */
@@ -196,6 +197,12 @@ typedef struct {
 	int16_t last_rssi;		  /**< RSSI value of the last frame received */
 
 	uint8_t num_reopened;		/**< Number of RX window reopening */
+
+	/*
+	 * Since network's uplink queue stores network frames, we should use separate queue of raw app. data
+	 * messages to preserve them from losing if network key is changed and encrypted frames are invalid.
+	 */
+	appdata_fifo_t appdata_fifo; /**< Application data FIFO */
 } ls_ed_internal_t;
 
 /**

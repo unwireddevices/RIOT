@@ -187,7 +187,7 @@ typedef struct {
 	bool (*accept_node_join_cb)(uint64_t dev_id, uint64_t app_id);
 	uint32_t (*node_joined_cb) (ls_gate_node_t *node);
 	void (*node_kicked_cb) (ls_gate_node_t *node);
-	void (*app_data_received_cb) (ls_gate_node_t *node, ls_gate_channel_t *ch, uint8_t *buf, size_t bufsize);
+	void (*app_data_received_cb) (ls_gate_node_t *node, ls_gate_channel_t *ch, uint8_t *buf, size_t bufsize, uint8_t status);
 
 	void (*app_data_ack_cb)(ls_gate_node_t *node, ls_gate_channel_t *ch);
 

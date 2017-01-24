@@ -33,7 +33,7 @@ extern "C" {
 /**
  * Data rates table.
  */
-static uint8_t datarate_table[7][3] = {
+static const uint8_t datarate_table[7][3] = {
     { SX1276_SF12, SX1276_BW_125_KHZ, SX1276_CR_4_5 },          /* DR0 */
     { SX1276_SF11, SX1276_BW_125_KHZ, SX1276_CR_4_5 },          /* DR1 */
     { SX1276_SF10, SX1276_BW_125_KHZ, SX1276_CR_4_5 },          /* DR2 */
@@ -63,7 +63,7 @@ static void schedule_tx(ls_gate_channel_t *ch) {
 static void prepare_sx1276(ls_gate_channel_t *ch)
 {
     /* Choose data rate */
-    uint8_t *datarate = datarate_table[ch->dr];
+    const uint8_t *datarate = datarate_table[ch->dr];
 
     /* Setup transceiver settings according to datarate */
     sx1276_lora_settings_t settings;
@@ -267,7 +267,7 @@ static bool app_data_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *fram
     ls_decrypt_frame_payload(aes_key, &frame->payload);
 
     /* Call handler callback */
-    ls->app_data_received_cb(node, ch, frame->payload.data, frame->payload.len);
+    ls->app_data_received_cb(node, ch, frame->payload.data, frame->payload.len, frame->header.status);
 
     return true;
 }

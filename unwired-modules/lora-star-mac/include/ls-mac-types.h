@@ -28,11 +28,12 @@
 /**
  * @brief Types of values
  */
-typedef uint8_t ls_mhdr_t;		/**< 1 byte LoRaWAN MHDR */
-typedef uint32_t ls_addr_t;     /**< 4 byte node address */
-typedef uint8_t ls_frame_id_t;	/**< 1 byte frame ID */
-typedef uint32_t ls_mic_t;     	/**< 4 byte message integrity check value */
-typedef uint8_t ls_channel_t;	/**< 1 byte channel number */
+typedef uint8_t ls_mhdr_t;			/**< 1 byte LoRaWAN MHDR */
+typedef uint32_t ls_addr_t;     	/**< 4 byte node address */
+typedef uint8_t ls_frame_id_t;		/**< 1 byte frame ID */
+typedef uint16_t ls_bc_frame_id_t;	/**< 2 byte broadcast frame ID */
+typedef uint32_t ls_mic_t;     		/**< 4 byte message integrity check value */
+typedef uint8_t ls_channel_t;		/**< 1 byte channel number */
 
 /**
  * End device class
@@ -98,6 +99,7 @@ typedef struct {
     ls_addr_t dev_addr;				/**< Destination address */
     ls_type_t type;					/**< Type of a frame */
     ls_frame_id_t fid;				/**< Frame serial number */
+    uint8_t status;                 /**< Node status */
 } ls_header_t;
 
 /**

@@ -114,6 +114,7 @@ void joined_timeout_cb(void)
 		ls_ed_join(&ls);
 	} else {
 		puts("ls-ed: maximum join retries exceeded, stopping");
+        lpm_prevent_sleep = 0;
 	}
 }
 

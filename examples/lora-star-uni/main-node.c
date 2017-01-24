@@ -73,7 +73,7 @@ static node_role_settings_t node_settings;
 static sx1276_t sx1276;
 static ls_ed_t ls;
 
-static unsigned int current_join_retries = 0;
+static uint8_t current_join_retries = 0;
 
 void radio_init(void)
 {
@@ -103,18 +103,20 @@ void joined_timeout_cb(void)
 {
     puts("ls: join request timed out, resending");
 
-	/* Pseudorandom delay 5 to 30 seconds for collision avoidance */
-	unsigned int delay = random_uint32_range(5, 30);
+	/* Pseudorandom delay for collision avoidance */
+	unsigned int delay = random_uint32_range(5 + current_join_retries*30, 30 + current_join_retries*30);
 
 	printf("ls-ed: random delay %d s\n", (unsigned int) (delay));
 	rtctimers_sleep(delay);
 
-	if (current_join_retries++ < node_settings.max_retr) {
-		printf("ls-ed: rejoining, attempt %d / %d\n", current_join_retries, node_settings.max_retr);
-		ls_ed_join(&ls);
-	} else {
-		puts("ls-ed: maximum join retries exceeded, stopping");
+    /* class A node: go to sleep */
+    /* class B and C nodes: keep trying */   
+	if ((current_join_retries++ >= node_settings.max_retr) && (node_settings.class == LS_ED_CLASS_A)) {
+        puts("ls-ed: maximum join retries exceeded, stopping");
         lpm_prevent_sleep = 0;
+    } else {
+        printf("ls-ed: rejoining, attempt %d / %d\n", current_join_retries, node_settings.max_retr);
+		ls_ed_join(&ls);
 	}
 }
 

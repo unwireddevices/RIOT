@@ -113,17 +113,24 @@ int rtc_set_time(struct tm *time)
 int rtc_get_time(struct tm *time)
 {
     time->tm_year = MCU_YEAR_OFFSET;
+    
+    /* clear RSF bit */
+    RTC->ISR &= ~RTC_ISR_RSF;
+    
+    /* wait for RSF to be set by hardware */
+    while (!(RTC->ISR & RTC_ISR_RSF)) {}
+    
     /* RTC registers need to be read at least twice when running at f < 32768*7 = 229376 Hz APB1 clock */
-    /* first read */
+    /* reading TR locks registers so it must be read first, DR must be read last */
     uint32_t rtc_time_reg = RTC->TR;
-    uint32_t rtc_date_reg = RTC->DR;
 
     /* second read */
     if (RTC->TR != rtc_time_reg) {
         /* 3rd read if 1st and 2nd don't match */
         rtc_time_reg = RTC->TR;
-        rtc_date_reg = RTC->DR;
     }
+    
+    uint32_t rtc_date_reg = RTC->DR;
     
     time->tm_year += (((rtc_date_reg & RTC_DR_YT)  >> 20) * 10) + ((rtc_date_reg & RTC_DR_YU)  >> 16);
     time->tm_mon  = (((rtc_date_reg & RTC_DR_MT)  >> 12) * 10) + ((rtc_date_reg & RTC_DR_MU)  >>  8) - 1;

@@ -40,6 +40,7 @@
 #endif
 
 volatile int lpm_prevent_sleep = 0;
+volatile int lpm_prevent_switch = 0;
 
 extern int main(void);
 static void *main_trampoline(void *arg)

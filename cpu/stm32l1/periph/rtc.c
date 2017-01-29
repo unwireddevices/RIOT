@@ -113,15 +113,27 @@ int rtc_set_time(struct tm *time)
 int rtc_get_time(struct tm *time)
 {
     time->tm_year = MCU_YEAR_OFFSET;
-    time->tm_year += (((RTC->DR & RTC_DR_YT)  >> 20) * 10) + ((RTC->DR & RTC_DR_YU)  >> 16);
-    time->tm_mon  = (((RTC->DR & RTC_DR_MT)  >> 12) * 10) + ((RTC->DR & RTC_DR_MU)  >>  8) - 1;
-    time->tm_mday = (((RTC->DR & RTC_DR_DT)  >>  4) * 10) + ((RTC->DR & RTC_DR_DU)  >>  0);
-    time->tm_hour = (((RTC->TR & RTC_TR_HT)  >> 20) * 10) + ((RTC->TR & RTC_TR_HU)  >> 16);
-    if ((RTC->TR & RTC_TR_PM) && (RTC->CR & RTC_CR_FMT)) {
+    /* RTC registers need to be read at least twice when running at f < 32768*7 = 229376 Hz APB1 clock */
+    /* first read */
+    uint32_t rtc_time_reg = RTC->TR;
+    uint32_t rtc_date_reg = RTC->DR;
+
+    /* second read */
+    if (RTC->TR != rtc_time_reg) {
+        /* 3rd read if 1st and 2nd don't match */
+        rtc_time_reg = RTC->TR;
+        rtc_date_reg = RTC->DR;
+    }
+    
+    time->tm_year += (((rtc_date_reg & RTC_DR_YT)  >> 20) * 10) + ((rtc_date_reg & RTC_DR_YU)  >> 16);
+    time->tm_mon  = (((rtc_date_reg & RTC_DR_MT)  >> 12) * 10) + ((rtc_date_reg & RTC_DR_MU)  >>  8) - 1;
+    time->tm_mday = (((rtc_date_reg & RTC_DR_DT)  >>  4) * 10) + ((rtc_date_reg & RTC_DR_DU)  >>  0);
+    time->tm_hour = (((rtc_time_reg & RTC_TR_HT)  >> 20) * 10) + ((rtc_time_reg & RTC_TR_HU)  >> 16);
+    if ((rtc_time_reg & RTC_TR_PM) && (RTC->CR & RTC_CR_FMT)) {
         time->tm_hour += 12;
     }
-    time->tm_min  = (((RTC->TR & RTC_TR_MNT) >> 12) * 10) + ((RTC->TR & RTC_TR_MNU) >>  8);
-    time->tm_sec  = (((RTC->TR & RTC_TR_ST)  >>  4) * 10) + ((RTC->TR & RTC_TR_SU)  >>  0);
+    time->tm_min  = (((rtc_time_reg & RTC_TR_MNT) >> 12) * 10) + ((rtc_time_reg & RTC_TR_MNU) >>  8);
+    time->tm_sec  = (((rtc_time_reg & RTC_TR_ST)  >>  4) * 10) + ((rtc_time_reg & RTC_TR_SU)  >>  0);
     return 0;
 }
 

@@ -29,7 +29,6 @@ extern "C" {
 #include "shell.h"
 #include "shell_commands.h"
 #include "thread.h"
-#include "lpm.h"
 #include "periph/rtc.h"
 #include "periph/gpio.h"
 #include "random.h"
@@ -621,6 +620,7 @@ void init_node(shell_command_t **commands)
 
     rtctimers_init();
     lpm_prevent_sleep = 1;
+    lpm_prevent_switch = 1;
 
     if (!load_config()) {
         puts("[!] Device is not configured yet. Type \"help\" to see list of possible configuration commands.");
@@ -659,6 +659,7 @@ void init_node(shell_command_t **commands)
 
         blink_led();
     }
+    lpm_prevent_switch = 0;
 }
 
 #ifdef __cplusplus

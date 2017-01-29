@@ -120,21 +120,47 @@ static void clk_store_clocks(void) {
 
 static void clk_restore_clocks(void) {
 	/* restore timers frequencies */
+    /*
 	for (tmpreg = 0; tmpreg < TIMER_NUMOF; tmpreg++) {
         if (timer_freq[tmpreg]) {
             timer_set_freq((tim_t)tmpreg, timer_freq[tmpreg]);
         }
     }
+    */
 	
 	/* set default UART baudrate for stdio */
-    float clk = cpu_clock_global;
-	clk /= UART_STDIO_BAUDRATE;
-    uint16_t mantissa = (uint16_t)(clk / 16);
-    uint8_t fraction = (uint8_t)(clk - (mantissa << 4));
+    uint16_t mantissa;
+    uint8_t fraction;
+    uint32_t clk;
     
-	USART_TypeDef *uart_dev = 0;
-    uart_dev = uart_config[UART_STDIO_NUM].dev;
-    uart_dev->BRR = ((mantissa & 0x0fff) << 4) | (0x0f & fraction);
+    clk = periph_apb_clk(uart_config[UART_STDIO_NUM].bus);
+
+    if (clk < (8 * UART_STDIO_BAUDRATE)) {
+        /* clock is too slow for using UART with specified baudrate */
+        periph_clk_dis(uart_config[UART_STDIO_NUM].bus, uart_config[UART_STDIO_NUM].rcc_mask);
+    } else {
+        periph_clk_en(uart_config[UART_STDIO_NUM].bus, uart_config[UART_STDIO_NUM].rcc_mask);
+        
+        /* choose between 8x and 16x oversampling */
+        /* 16x is preferred, but is not possible on low clock frequency */
+        if (clk < (16 * UART_STDIO_BAUDRATE)) {
+            uart_config[UART_STDIO_NUM].dev->CR1 |= USART_CR1_OVER8;
+        } else {
+            uart_config[UART_STDIO_NUM].dev->CR1 &= ~USART_CR1_OVER8;
+        }
+        
+        clk /= UART_STDIO_BAUDRATE;
+       
+        if (uart_config[UART_STDIO_NUM].dev->CR1 & USART_CR1_OVER8) {
+            mantissa = (uint16_t)(clk / 8);
+            fraction = (uint8_t)(clk - (mantissa * 8));
+            uart_config[UART_STDIO_NUM].dev->BRR = ((mantissa & 0x0fff) << 4) | (fraction & 0x07);
+        } else {
+            mantissa = (uint16_t)(clk / 16);
+            fraction = (uint8_t)(clk - (mantissa * 16));
+            uart_config[UART_STDIO_NUM].dev->BRR = ((mantissa & 0x0fff) << 4) | (fraction & 0x0f);
+        }
+    }
 }
 
 /**
@@ -262,7 +288,7 @@ void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider)
     RCC->CFGR = tmpreg;
     
     while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS) != RCC_CFGR_SWS_MSI) {}
-    
+
     if ((msi_range == RCC_ICSCR_MSIRANGE_1) || (msi_range == RCC_ICSCR_MSIRANGE_0)) {
         /* Low-power run is only allowed at MSI Range 0 and 1 */
         PWR->CR |= PWR_CR_LPSDSR | PWR_CR_LPRUN;
@@ -271,7 +297,7 @@ void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider)
         PWR->CR |= (PWR_CR_VOS_1 | PWR_CR_VOS_0);
         while((PWR->CSR & PWR_CSR_VOSF) != 0) {}
     }
-    
+
     /* Set latency = 0, disable prefetch and 64-bit access */
     FLASH->ACR &= ~FLASH_ACR_LATENCY;
     FLASH->ACR &= ~FLASH_ACR_PRFTEN;
@@ -284,7 +310,7 @@ void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider)
     tmpreg &= ~(RCC_CR_HSEBYP | RCC_CR_CSSON | RCC_CR_PLLON);
     RCC->CR = tmpreg;
     
-    cpu_clock_global = 65536 * (1 << msi_range);
+    cpu_clock_global = 65536 * (1 << (msi_range >> 13));
     
     /* reclock timers */
     clk_restore_clocks();

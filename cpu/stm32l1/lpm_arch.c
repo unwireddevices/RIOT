@@ -27,6 +27,7 @@
 
 #include "stm32l1xx.h"
 
+#include "lpm.h"
 #include "cpu.h"
 #include "board.h"
 #include "periph_conf.h"
@@ -43,7 +44,7 @@ static uint32_t tmpreg;
 static uint16_t lpm_portmask_system[CPU_NUMBER_OF_PORTS] = { 0 };
 static uint16_t lpm_portmask_user[CPU_NUMBER_OF_PORTS] = { 0 };
 
-volatile uint8_t lpm_run_mode;
+volatile int lpm_run_mode;
 
 /* We are not using gpio_init as it sets GPIO clock speed to maximum */
 /* We add GPIOs we touched to exclusion mask lpm_portmask_system */
@@ -160,6 +161,7 @@ static void lpm_before_i_go_to_sleep (void) {
         /* disable pull-ups on GPIOs */
         tmpreg = port->PUPDR;
         tmpreg &= ~mask;
+        
         port->PUPDR = tmpreg;
         
         /* set GPIOs to AIN mode */
@@ -235,7 +237,10 @@ static void lpm_select_run_mode(uint8_t lpm_mode) {
 			clk_init();
 			break;
 		case LPM_IDLE:
-			switch_to_msi(RCC_ICSCR_MSIRANGE_6, RCC_CFGR_HPRE_DIV1);
+            /* 115200 bps stdio UART with default 16x oversamplig needs 2 MHz or 4 MHz MSI clock */
+            /* at 1 MHz, it will be switched to 8x oversampling with 3.55 % baudrate error */
+            /* if you need stdio UART at lower frequencies, change its settings to lower baudrate */
+			switch_to_msi(RCC_ICSCR_MSIRANGE_4, RCC_CFGR_HPRE_DIV1);
 			break;
 		default:
 			clk_init();
@@ -403,16 +408,20 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
         case LPM_UNKNOWN:
 			break;
         case LPM_ON:
+            puts("Switching to LPM_ON");
 			irq_disable();
 			lpm_run_mode = LPM_ON;
 			lpm_select_run_mode(lpm_run_mode);
 			irq_enable();
 			break;
         case LPM_IDLE:
-			irq_disable();
-			lpm_run_mode = LPM_IDLE;
-			lpm_select_run_mode(lpm_run_mode);
-			irq_enable();
+            if (!lpm_prevent_switch) {
+                puts("Switching to LPM_IDLE");
+                irq_disable();
+                lpm_run_mode = LPM_IDLE;
+                lpm_select_run_mode(lpm_run_mode);
+                irq_enable();
+            }
 			break;
         default:
             break;

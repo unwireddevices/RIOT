@@ -24,6 +24,7 @@
 #define LPM_H_
 
 #include "arch/lpm_arch.h"
+#include "periph/gpio.h"
 
 #ifdef __cplusplus
  extern "C" {
@@ -65,9 +66,21 @@ void lpm_end_awake(void);
 enum lpm_mode lpm_get(void);
 
 /**
- * @brief LPM-internal variable
+ * @brief This hook is called to exclude GPIO from LPM
+ */
+void lpm_add_gpio_exclusion(gpio_t gpio);
+
+/**
+ * @brief This hook is called to remove GPIO exclusion
+ */
+void lpm_del_gpio_exclusion(gpio_t gpio);
+
+/**
+ * @brief LPM-internal variables
  */
 extern volatile int lpm_prevent_sleep;
+extern volatile int lpm_run_mode;
+extern volatile int lpm_prevent_switch;
 
 #ifdef __cplusplus
 }

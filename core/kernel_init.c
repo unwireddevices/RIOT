@@ -40,6 +40,7 @@
 #endif
 
 volatile int lpm_prevent_sleep = 0;
+volatile int lpm_prevent_switch = 0;
 
 extern int main(void);
 static void *main_trampoline(void *arg)
@@ -67,12 +68,13 @@ static void *idle_thread(void *arg)
 
     while (1) {
         if (lpm_prevent_sleep) {
-            lpm_set(LPM_IDLE);
+            //lpm_set(LPM_IDLE);
         }
         else {
-            lpm_set(LPM_IDLE);
+            //lpm_set(LPM_IDLE);
             /* lpm_set(LPM_SLEEP); */
-            /* lpm_set(LPM_POWERDOWN); */
+            lpm_set(LPM_POWERDOWN);
+			/* lpm_set(LPM_OFF); */
         }
     }
 

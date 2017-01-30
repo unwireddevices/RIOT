@@ -67,9 +67,12 @@ void umdk_dali_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     (void)non_gpio_pin_map;
 
     callback = event_callback;
-    for(int i = 0; i < UMDK_DALI_NUM_CHANNELS; i++) {
-	    gpio_init(dali_chs[i], GPIO_OUT);
-    }
+
+    gpio_init(dali_chs[0], GPIO_OUT);
+
+//    for(int i = 0; i < UMDK_DALI_NUM_CHANNELS; i++) {
+//	    gpio_init(dali_chs[i], GPIO_OUT);
+//    }
 }
 
 

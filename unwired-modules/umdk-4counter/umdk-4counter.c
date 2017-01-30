@@ -26,6 +26,7 @@ extern "C" {
 #include <limits.h>
 
 #include "periph/gpio.h"
+#include "lpm.h"
 
 #include "board.h"
 
@@ -36,16 +37,16 @@ extern "C" {
 #include "xtimer.h"
 #include "rtctimers.h"
 
-static  uint32_t tim_delay = ( (uint16_t)(UMDK_4COUNT_DEBOUNCE_TIME_MS / UMDK_4COUNT_DETECT_COUNT) ) * UMDK_4COUNT_INSTRUCTION_PER_MS;
-
 static kernel_pid_t handler_pid;
 
 static uwnds_cb_t *callback;
-static rtctimer_t counter_timer;
+static rtctimer_t counter_timer[4];
 static rtctimer_t publishing_timer;
 
-static msg_t counter_msg = { .type = 0 };
-static msg_t publishing_msg = { .type = 1 };
+static uint8_t ignore_irq[4];
+
+static msg_t counter_msg[4];
+static msg_t publishing_msg = { .type = MESSAGE_TYPE_PUBLISHER };
 
 
 static struct  {
@@ -56,10 +57,10 @@ static struct  {
 
 static gpio_t pins_sens[UMDK_4COUNT_NUM_SENS] = { UMDK_4COUNT_1, UMDK_4COUNT_2, UMDK_4COUNT_3, UMDK_4COUNT_4 };
 
-
 static void umdk_4count_gpio_mode(gpio_t pin, gpio_mode_t mode, umdk_4counter_signal_t signal  )
 {
     GPIO_TypeDef *port = (GPIO_TypeDef *)(pin & ~(0x0f));
+    uint32_t tmpreg;
 
     int pin_num =  (pin & 0x0f);
 
@@ -68,20 +69,26 @@ static void umdk_4count_gpio_mode(gpio_t pin, gpio_mode_t mode, umdk_4counter_si
     switch (sign) {
         case DIGITAL:
             /* set mode */
-            port->MODER &= ~(0x3 << (2 * pin_num));
-            port->MODER |=  ((mode & 0x3) << (2 * pin_num));
+            tmpreg = port->MODER;
+            tmpreg &= ~(0x3 << (2 * pin_num));
+            tmpreg |=  ((mode & 0x3) << (2 * pin_num));
+            port->MODER = tmpreg;
 
             /* set pull resistor configuration */
-            port->PUPDR &= ~(0x3 << (2 * pin_num));
-            port->PUPDR |=  (((mode >> 2) & 0x3) << (2 * pin_num));
+            tmpreg = port->PUPDR;
+            tmpreg &= ~(0x3 << (2 * pin_num));
+            tmpreg |=  (((mode >> 2) & 0x3) << (2 * pin_num));
+            port->PUPDR = tmpreg;
             break;
 
         case ANALOG:
 	    /* disable pull-ups on GPIOs */
             port->PUPDR &= ~(0x3 << (2 * pin_num));
             /*  Set analog mode */
-            port->MODER &= ~(0x3 << (2 * pin_num));
-            port->MODER |= (0x3 << (2 * pin_num));
+            tmpreg = port->MODER;
+            tmpreg &= ~(0x3 << (2 * pin_num));
+            tmpreg |= (0x3 << (2 * pin_num));
+            port->MODER = tmpreg;
             break;
 
         default:
@@ -89,54 +96,106 @@ static void umdk_4count_gpio_mode(gpio_t pin, gpio_mode_t mode, umdk_4counter_si
     }
 }
 
-static inline void umdk_4count_delay(void) {
+static void umdk_4count_counter_int(void* arg)
+{
+    int num = (int)arg;
+    if (ignore_irq[num]) {
+        return;
+    }
+    ignore_irq[num] = 1;
+    
+    gpio_irq_disable(pins_sens[num]);
+    umdk_4count_gpio_mode(pins_sens[num], GPIO_IN_PU, ANALOG);
+    
+    uint8_t now_value = 0;
+    /*
+    uint8_t last_value = gpio_read(pins_sens[num]);
+    uint8_t value_counter = 0;
 
-  for(volatile uint32_t i = 0; i < tim_delay; i++){}
+    volatile int delay = 0;
+    do {
+        for (delay = 0; delay < 1000; delay++) {}
+        now_value = gpio_read(pins_sens[num]);
+        if (now_value == last_value) {
+            value_counter++;
+            last_value = now_value;
+        } else {
+            value_counter = 0;
+        }
+    }
+    while (value_counter < 5);
+    */
+    
+    /* increase counter value */
+    if (now_value == 0) {
+        conf_counter.count_value[num]++;
+        /* Start counting timer */
+        counter_msg[num].type = MESSAGE_TYPE_COUNTER;
+        counter_msg[num].content.value = num;
+        rtctimers_set_msg(&counter_timer[num], UMDK_4COUNT_SLEEP_TIME_SEC, &counter_msg[num], handler_pid);
+    }
 }
 
-static void umdk_4count_counter_int(void)
+static void umdk_4count_counter_tim(uint32_t num)
 {
-
-    int8_t now_value[UMDK_4COUNT_NUM_SENS] = { 0 };
-    int8_t last_value[UMDK_4COUNT_NUM_SENS] = { 0 };
-    int8_t accept_value[UMDK_4COUNT_NUM_SENS] = { 1 };
-
-    /* Set GPIO mode: Digital with pull-up */
-    for (int i = 0; i < UMDK_4COUNT_NUM_SENS; i++) {
-        umdk_4count_gpio_mode(pins_sens[i], GPIO_IN_PU, DIGITAL);
+    umdk_4count_gpio_mode(pins_sens[num], GPIO_IN_PU, DIGITAL);
+    __asm("nop; nop; nop; nop; nop;");
+    uint8_t last_value = gpio_read(pins_sens[num]);
+    __asm("nop; nop; nop; nop; nop;");
+    umdk_4count_gpio_mode(pins_sens[num], GPIO_IN_PU, ANALOG);
+    
+    /* still zero, let's check again a bit later */
+    if (last_value == 0) {
+        /* Restart counting timer */
+        counter_msg[num].type = MESSAGE_TYPE_COUNTER;
+        counter_msg[num].content.value = num;
+        rtctimers_set_msg(&counter_timer[num], UMDK_4COUNT_SLEEP_TIME_SEC, &counter_msg[num], handler_pid);
+        return;
     }
 
-    /* Detecting impulses */
-    for (int8_t i = 0; i < UMDK_4COUNT_DETECT_COUNT; i++) {
-        for (int j = 0; j < UMDK_4COUNT_NUM_SENS; j++) {
-            /* Read the value from gpio pins (Invert value because gpio init as pull-up)*/
-            now_value[j] = !gpio_read(pins_sens[j]);
-
-            if (now_value[j] == 0) {
-                accept_value[j] = 0;
-            }
-            else if (last_value[j] == 1) {
-                accept_value[j] = i + 1;
-            }
-
-            last_value[j] = now_value[j];
-
-            /* If value accepted "UMDK_4COUNT_DETECT_COUNT" times in a row */
-            if (accept_value[j] == UMDK_4COUNT_DETECT_COUNT) {
-                /* Increase pulses count for current input */
-                conf_counter.count_value[j]++;
-            }
+    uint8_t now_value = 0;    
+    uint8_t value_counter = 0;
+    uint8_t error_counter = 0;
+    volatile int delay = 0;
+    
+    do {
+        for (delay = 0; delay < 1000; delay ++) {}
+        
+        umdk_4count_gpio_mode(pins_sens[num], GPIO_IN_PU, DIGITAL);
+        __asm("nop; nop; nop; nop; nop;");
+        now_value = gpio_read(pins_sens[num]);
+        __asm("nop; nop; nop; nop; nop;");
+        umdk_4count_gpio_mode(pins_sens[num], GPIO_IN_PU, ANALOG);
+        
+        if (now_value == last_value) {
+            value_counter++;
+            last_value = now_value;
+        } else {
+            value_counter = 0;
+            error_counter++;
         }
-        /* Delay */
-        umdk_4count_delay();
+    } while ((value_counter < 5) && (error_counter < 100));
+    
+    /* shit is happening now, let's try later */
+    if (error_counter > 100) {
+        counter_msg[num].type = MESSAGE_TYPE_COUNTER;
+        counter_msg[num].content.value = num;
+        rtctimers_set_msg(&counter_timer[num], UMDK_4COUNT_SLEEP_TIME_SEC, &counter_msg[num], handler_pid);
+        return;
     }
-
-    /* Set GPIO mode: Analog */
-    for (int i = 0; i < UMDK_4COUNT_NUM_SENS; i++) {
-        umdk_4count_gpio_mode(pins_sens[i], GPIO_IN_PU, ANALOG);
+    
+    /* if still 0, check a bit later */
+    if (last_value == 0) {
+        counter_msg[num].type = MESSAGE_TYPE_COUNTER;
+        counter_msg[num].content.value = num;
+        rtctimers_set_msg(&counter_timer[num], UMDK_4COUNT_SLEEP_TIME_SEC, &counter_msg[num], handler_pid);
+        return;
     }
-    /* Restart counting timer */
-    rtctimers_set_msg(&counter_timer, UMDK_4COUNT_SLEEP_TIME_SEC, &counter_msg, handler_pid);
+    
+    /* enable pull-up, wait for next interrupt */
+    umdk_4count_gpio_mode(pins_sens[num], GPIO_IN_PU, DIGITAL);
+    ignore_irq[num] = 0;
+    gpio_irq_enable(pins_sens[num]);
 }
 
 static inline void save_config(void)
@@ -148,22 +207,24 @@ static inline void save_config(void)
 static void *handler(void *arg)
 {
     msg_t msg;
-    msg_t msg_queue[4];
+    msg_t msg_queue[16];
 
-    msg_init_queue(msg_queue, 4);
+    msg_init_queue(msg_queue, 16);
 
     while (1) {
         msg_receive(&msg);
-
         umdk_4counter_msg_t type = msg.type;
 
         switch (type) {
             case COUNTING:
-                umdk_4count_counter_int();
-                puts("Counting");
+                umdk_4count_counter_tim(msg.content.value);
+                printf("Counting, channel %lu\n", msg.content.value);
                 break;
 
             case PUBLISHING:
+                if (lpm_run_mode != LPM_ON) {
+                    lpm_set(LPM_ON);
+                }
             	puts("Sending");
 
                 module_data_t data;
@@ -186,16 +247,24 @@ static void *handler(void *arg)
 
                 /* Restart timer */
                 if (conf_counter.publish_period) {
-                    rtctimers_set_msg(&publishing_timer, UMDK_4COUNT_VALUE_PERIOD_PER_SEC * conf_counter.publish_period, &publishing_msg, handler_pid);
+                    rtctimers_set_msg(&publishing_timer, \
+                                      UMDK_4COUNT_VALUE_PERIOD_PER_SEC * conf_counter.publish_period, \
+                                      &publishing_msg, handler_pid);
                 }
+                gpio_irq_enable(UMDK_4COUNT_BTN);
                 break;
 
             default:
                 break;
         }
     }
-
     return NULL;
+}
+
+static void umdk_4count_connect(void* arg) {
+    /* connect button pressed — publish to LoRa in 1 second */
+    gpio_irq_disable(UMDK_4COUNT_BTN);
+    rtctimers_set_msg(&publishing_timer, 1, &publishing_msg, handler_pid);
 }
 
 static void reset_config(void) {
@@ -213,8 +282,11 @@ void umdk_4counter_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     callback = event_callback;
 
     for (int i = 0; i < UMDK_4COUNT_NUM_SENS; i++) {
-        gpio_init(pins_sens[i], GPIO_IN_PU);
+        gpio_init_int(pins_sens[i], GPIO_IN_PU, GPIO_FALLING, umdk_4count_counter_int, (void *) i);
+        ignore_irq[i] = 0;
     }
+    
+    gpio_init_int(UMDK_4COUNT_BTN, GPIO_IN_PU, GPIO_FALLING, umdk_4count_connect, NULL);
 
     /* Create handler thread */
     char *stack = (char *) allocate_stack();
@@ -234,13 +306,16 @@ void umdk_4counter_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 
     printf("[umdk-4counter] Current publish period: %d hour(s)\n", conf_counter.publish_period);
 
-    handler_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, handler, NULL, "4counter thread");
+    handler_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, \
+                                THREAD_CREATE_STACKTEST, handler, NULL, "4counter thread");
 
     /* Start publishing timer */
-    rtctimers_set_msg(&publishing_timer, UMDK_4COUNT_VALUE_PERIOD_PER_SEC * conf_counter.publish_period, &publishing_msg, handler_pid);
+    rtctimers_set_msg(&publishing_timer, \
+                      UMDK_4COUNT_VALUE_PERIOD_PER_SEC * conf_counter.publish_period, \
+                      &publishing_msg, handler_pid);
 
     /* Start counting timer */
-    rtctimers_set_msg(&counter_timer, UMDK_4COUNT_SLEEP_TIME_SEC, &counter_msg, handler_pid);
+    /* rtctimers_set_msg(&counter_timer, UMDK_4COUNT_SLEEP_TIME_SEC, &counter_msg, handler_pid); */
 }
 
 
@@ -265,7 +340,9 @@ bool umdk_4counter_cmd(module_data_t *cmd, module_data_t *reply)
 
             /* Don't restart timer if new period is zero and if new period more max */
             if ((conf_counter.publish_period) && (conf_counter.publish_period < (UMDK_4COUNT_PUBLISH_PERIOD_MAX + 1))) {
-                rtctimers_set_msg(&publishing_timer, UMDK_4COUNT_VALUE_PERIOD_PER_SEC * conf_counter.publish_period, &publishing_msg, handler_pid);
+                rtctimers_set_msg(&publishing_timer, \
+                                  UMDK_4COUNT_VALUE_PERIOD_PER_SEC * conf_counter.publish_period, \
+                                  &publishing_msg, handler_pid);
                 printf("[umdk-4counter] Period set to %d hour (s)\n", conf_counter.publish_period);
             }
             else {

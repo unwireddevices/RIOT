@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Unwired Devices [info@unwds.com]
+ * Copyright (C) 2017 Unwired Devices [info@unwds.com]
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -35,34 +35,41 @@ extern "C" {
 #include "thread.h"
 #include "xtimer.h"
 
-static kernel_pid_t handler_pid;
-
 static uwnds_cb_t *callback;
 
-static xtimer_t pack_timer;
-static msg_t pack_msg;
+static gpio_t dali_chs[UMDK_DALI_NUM_CHANNELS] = { UMDK_DALI_1, UMDK_DALI_2, UMDK_DALI_3, UMDK_DALI_4 };
 
-static uint32_t pack_dali;
+static uint32_t pack_dali = 0;
+
+static void umdk_dali_transmit(uint32_t dali_pack, gpio_t pin)
+{
+  /* Sending DALI pack(19 bits) */
+  for(int i = UMDK_DALI_LENGTH_PACK - 1; i >= 0; i--)  {
+      if(_CHKBIT(dali_pack, i)) {		/* If value of bit = 1 */
+	  /* Set  01 (1 in manchester code) */
+	  gpio_clear(pin);
+	  xtimer_usleep(UMDK_DALI_TIME_MANCHESTER_USEC);
+	  gpio_set(pin);
+	  xtimer_usleep(UMDK_DALI_TIME_MANCHESTER_USEC);
+      }
+      else {					/* If value of bit = 0 */
+	  /* Set  10 (0 in manchester code) */
+	  gpio_set(pin);
+	  xtimer_usleep(UMDK_DALI_TIME_MANCHESTER_USEC);
+	  gpio_clear(pin);
+	  xtimer_usleep(UMDK_DALI_TIME_MANCHESTER_USEC);
+      }
+  }
+}
 
 void umdk_dali_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 {
     (void)non_gpio_pin_map;
 
     callback = event_callback;
-
-    gpio_init(UMDK_DALI_1, GPIO_IN_PU);
-
-    /* Create handler thread */
-     char *stack = (char *) allocate_stack();
-     if (!stack) {
-         puts("umdk-dali: unable to allocate memory. Is too many modules enabled?");
-         return;
-     }
-
-     handler_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, handler, NULL, "Dali thread");
-
-     xtimer_set_msg(&pack_timer, UMDK_DALI_TIME_TX_PACK_USEC, &pack_msg, handler_pid);
-
+    for(int i = 0; i < UMDK_DALI_NUM_CHANNELS; i++) {
+	    gpio_init(dali_chs[i], GPIO_OUT);
+    }
 }
 
 
@@ -89,7 +96,10 @@ bool umdk_dali_cmd(module_data_t *cmd, module_data_t *reply)
     }
 
     /* Pack DALI is 19 bits */
-    pack_dali = ((0 << 18) + (0 << 17) + (cmd->data[1] << 9) + (cmd->data[0] << 1) + (1 << 0)) & 0x0007FFFF;
+    pack_dali = ((1 << 18) + (cmd->data[0] << 10) + (cmd->data[1] << 2) + (0 << 1) + (0 << 0)) & 0x0007FFFF;
+
+    /* TODO: Now only for one channel */
+    umdk_dali_transmit(pack_dali, dali_chs[0]);
 
     reply->length = 4;
     reply->data[0] = UNWDS_DALI_MODULE_ID;

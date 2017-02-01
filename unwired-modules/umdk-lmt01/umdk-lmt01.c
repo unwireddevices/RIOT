@@ -94,7 +94,7 @@ static void prepare_result(module_data_t *buf) {
 		}
 
 		/* Delay between sensor switching */
-		xtimer_usleep(1e3 * 100);
+        xtimer_spin(xtimer_ticks_from_usec(1e3 * 100));
 	}
 
 	buf->data[0] = UNWDS_LMT01_MODULE_ID;
@@ -146,7 +146,8 @@ void umdk_lmt01_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "lmt01 thread");
 
     /* Start publishing timer */
-	rtctimers_set_msg(&timer, 60 * publish_period_min, &timer_msg, timer_pid);
+    printf("Publish period: %d min\n", publish_period_min);
+	rtctimers_set_msg(&timer, 10 * publish_period_min, &timer_msg, timer_pid);
 }
 
 static void reply_fail(module_data_t *reply) {

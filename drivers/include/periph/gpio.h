@@ -102,8 +102,9 @@ typedef enum {
     GPIO_OUT,               /**< configure as output in push-pull mode */
     GPIO_OD,                /**< configure as output in open-drain mode without
                              *   pull resistor */
-    GPIO_OD_PU              /**< configure as output in open-drain mode with
+    GPIO_OD_PU,             /**< configure as output in open-drain mode with
                              *   pull resistor enabled */
+    GPIO_AIN                /**<configure as analog input */
 } gpio_mode_t;
 #endif
 

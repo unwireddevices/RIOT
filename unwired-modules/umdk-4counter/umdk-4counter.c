@@ -236,10 +236,15 @@ static void *handler(void *arg)
                 /* Write four counter values */
                 uint32_t *tmp = (uint32_t *)(&data.data[1]);
 
-                *(tmp + 0)  = conf_counter.count_value[0];
-                *(tmp + 1)  = conf_counter.count_value[1];
-                *(tmp + 2)  = conf_counter.count_value[2];
-                *(tmp + 3)  = conf_counter.count_value[3];
+                /* Compress 4 values to 12 bytes total */
+                *(tmp + 0)  = conf_counter.count_value[0] << 8;
+                *(tmp + 0) |= (conf_counter.count_value[1] >> 16) & 0xFF;
+                
+                *(tmp + 1) = conf_counter.count_value[1] << 16;
+                *(tmp + 1) |= (conf_counter.count_value[2] >> 8) & 0xFFFF;
+                
+                *(tmp + 3) = (conf_counter.count_value[2] << 24);
+                *(tmp + 3) |= conf_counter.count_value[3] & 0xFFFFFF;
 
                 save_config(); /* Save values into NVRAM */
 

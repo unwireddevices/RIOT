@@ -159,7 +159,7 @@ static void umdk_4count_counter_tim(uint32_t num)
     volatile int delay = 0;
     
     do {
-        for (delay = 0; delay < 1000; delay ++) {}
+        for (delay = 0; delay < 32000; delay ++) {}
         
         umdk_4count_gpio_mode(pins_sens[num], GPIO_IN_PU, DIGITAL);
         __asm("nop; nop; nop; nop; nop;");
@@ -222,9 +222,6 @@ static void *handler(void *arg)
                 break;
 
             case PUBLISHING:
-                if (lpm_run_mode != LPM_ON) {
-                    lpm_set(LPM_ON);
-                }
             	puts("Sending");
 
                 module_data_t data;

@@ -41,21 +41,21 @@ INCLUDES += -I../../unwired-modules/unwds-common/include/
 
 ############ UNWD MODULES USED #####################
 
-UNWD_GPIO     = 0
-UNWD_4BTN     = 0
-UNWD_GPS	  =	0
-UNWD_LM75     =	0
-UNWD_LSM6DS3  =	0
-UNWD_LMT01    =	0
-UNWD_UART	  =	0
-UNWD_SHT21    =	0
-UNWD_PIR	  =	0
-UNWD_6ADC	  =	0
-UNWD_LPS331   = 0
-UNWD_4COUNTER = 0
-UNWD_RSSIECHO = 0
-UNWD_PWM      = 0
-UNWD_OPT3001  = 0
+UNWD_GPIO     = 1
+UNWD_4BTN     = 1
+UNWD_GPS	  =	1
+UNWD_LM75     =	1
+UNWD_LSM6DS3  =	1
+UNWD_LMT01    =	1
+UNWD_UART	  =	1
+UNWD_SHT21    =	1
+UNWD_PIR	  =	1
+UNWD_6ADC	  =	1
+UNWD_LPS331   = 1
+UNWD_4COUNTER = 1
+UNWD_RSSIECHO = 1
+UNWD_PWM      = 1
+UNWD_OPT3001  = 1
 UNWD_DALI	  = 1
 
 ####### UNWD MMODULES' includes & flags ############

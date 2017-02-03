@@ -32,6 +32,7 @@ extern "C" {
 
 static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *fifo, char *data) {
 	ls_gate_devices_t *devs = &ls->devices;
+	ls_gate_channel_t *channels = ls->channels;
 
 	gate_cmd_type_t c = data[0];
 	char *payload = data + 1;
@@ -182,6 +183,92 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 		}
 
 		ls_gate_broadcast(ls, a, numdigits / 2);
+
+		break;
+	}
+
+	case CMD_ADD_DEV: {
+		/* Minimum length is length of network address in hex + EUI64 in hex + APPID64 in hex + device nonce + no of channel in hex and character '\n' */
+		if (strlen(payload) < 16 + 16 + 8 + 8 + 2 + 1) {
+			printf("[error] Invalid command received: %s\n", data);
+			return;
+		}
+
+		uint64_t nodeid = 0;
+		if (!hex_to_bytesn(payload, 16, (uint8_t *) &nodeid, true)) {
+			printf("[error] Invalid command received: %s\n", data);
+			return;
+		}
+
+		/* Skip node ID */
+		payload += 16;
+
+		uint64_t appid = 0;
+		if (!hex_to_bytesn(payload, 16, (uint8_t *) &appid, true)) {
+			printf("[error] Invalid command received: %s\n", data);
+			return;
+		}
+
+		/* Skip app. ID */
+		payload += 16;
+
+		ls_addr_t addr = 0;
+		if (!hex_to_bytesn(payload, 8, (uint8_t *) &addr, true)) {
+			printf("[error] Invalid command received: %s\n", data);
+			return;
+		}
+
+		if (addr >= LS_GATE_MAX_NODES) {
+			printf("[error] Unable to add node with address %u >= %u\n", (unsigned int) addr, (unsigned int) LS_GATE_MAX_NODES);
+			return;
+		}
+
+		/* Skip address */
+		payload += 8;
+
+		uint32_t dev_nonce = 0;
+		if (!hex_to_bytesn(payload, 8, (uint8_t *) &dev_nonce, true)) {
+			printf("[error] Invalid command received: %s\n", data);
+			return;
+		}
+
+		/* Skip nonce */
+		payload += 8;
+
+		uint8_t channel = 0;
+		if (!hex_to_bytesn(payload, 2, (uint8_t *) &channel, true)) {
+			printf("[error] Invalid command received: %s\n", data);
+			return;
+		}
+
+		puts("Adding device:");
+		printf("nodeid = 0x%08X%08X\n",
+						(unsigned int) (nodeid >> 32),
+						(unsigned int) (nodeid & 0xFFFFFFFF));
+		printf("appid = 0x%08X%08X\n",
+						(unsigned int) (appid >> 32),
+						(unsigned int) (appid & 0xFFFFFFFF));
+
+		printf("address = 0x%08X\n", (unsigned int) addr);
+		printf("nonce = 0x%08X\n", (unsigned int) dev_nonce);
+		printf("ch = 0x%02X\n", (unsigned int) channel);
+
+		/* Kick previous device if present */
+		if (ls_devlist_is_in_network(devs, addr)) {
+			ls_devlist_remove_device(devs, addr);
+		}
+
+		/* Add device with specified nonce and address */
+		ls_gate_node_t *node = ls_devlist_add_by_addr(devs, addr, nodeid, appid, dev_nonce, &channels[channel]);
+		if (node == NULL)
+			return;
+
+		node->app_nonce = 0;
+
+		break;
+	}
+
+	case CMD_KICK: {
 
 		break;
 	}

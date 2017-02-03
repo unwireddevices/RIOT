@@ -29,6 +29,9 @@ typedef enum {
 	CMD_INVITE = 'V',		/* Individual invite to join network for class C devices */
 	CMD_BROADCAST = 'B',	/* Broadcast message */
 
+	CMD_ADD_DEV = 'A',		/* Sets nonce from which key will be derived for the specified network address and channel (for statically personalized devices) */
+	CMD_KICK = 'K',			/* Kicks device by specified network address via removing it from devices list */
+
 	CMD_FLUSH = 'F',		/* Command to get all pending info */
 } gate_cmd_type_t;
 

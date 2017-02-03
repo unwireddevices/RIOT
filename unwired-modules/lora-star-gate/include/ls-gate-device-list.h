@@ -65,6 +65,8 @@ typedef struct {
 	uint8_t num_pending;		/**< Number of frames pending */
 
 	ls_frame_id_t last_fid;		/**< Last received frame ID */
+
+	bool is_static;				/**< Statically personalized device, won't be kicked for idle */
 } ls_gate_node_t;
 
 typedef struct {
@@ -78,6 +80,7 @@ typedef struct {
 
 void ls_devlist_init(ls_gate_devices_t *devlist);
 ls_gate_node_t *ls_devlist_add(ls_gate_devices_t *devlist, uint64_t node_id, uint64_t app_id, uint32_t nonce, void *ch);
+ls_gate_node_t *ls_devlist_add_by_addr(ls_gate_devices_t *devlist, ls_addr_t addr, uint64_t node_id, uint64_t app_id, uint32_t nonce, void *ch);
 
 bool ls_devlist_check_nonce(ls_gate_devices_t *devlist, uint64_t node_id, uint32_t nonce);
 ls_gate_node_t *add_nonce(ls_gate_devices_t *devlist, uint64_t node_id, uint32_t nonce);

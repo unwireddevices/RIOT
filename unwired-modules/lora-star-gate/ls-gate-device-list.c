@@ -89,14 +89,77 @@ ls_gate_node_t *add_nonce(ls_gate_devices_t *devlist, uint64_t node_id, uint32_t
 	return NULL;
 }
 
-ls_gate_node_t *ls_devlist_add(ls_gate_devices_t *devlist, uint64_t node_id, uint64_t app_id, uint32_t nonce, void *ch) {
+static void init_node(ls_gate_devices_t *devlist, ls_gate_node_t *node, ls_addr_t addr, uint64_t node_id, uint64_t app_id, uint32_t nonce, void *ch) {
+	node->node_ch = ch;
+
+	node->node_id = node_id;
+	node->app_id = app_id;
+	node->addr = addr;
+	node->is_static = false;
+
+	node->last_nonce = nonce;
+
+	/* Clear nonces list if it's full */
+	if (node->num_nonces >= LS_GATE_MAX_NONCES) {
+		puts("gate: nonces list cleared"); // XXX: debug
+		clear_nonce_list(devlist, addr);
+	}
+
+	/* Append nonce to the nonce list */
+	ls_gate_node_nl_entry_t *e = malloc(sizeof(ls_gate_node_nl_entry_t));
+	e->nonce = nonce;
+	e->next = node->nonce_list;
+	node->nonce_list = e;
+
+	node->last_fid = 0;
+	node->num_pending = 0;
+}
+
+ls_gate_node_t *ls_devlist_add_by_addr(ls_gate_devices_t *devlist, ls_addr_t addr, uint64_t node_id, uint64_t app_id, uint32_t nonce, void *ch) {
 	/* List is full? */
 	if(ls_devlist_is_full(devlist))
-		return false;
+		return NULL;
 
 	/* Device is already added? */
 	if (ls_devlist_is_added(devlist, node_id))
-		return false;
+		return NULL;
+
+	if (addr >= LS_GATE_MAX_NODES)
+		return NULL;
+
+	/* This network address is occupied */
+	if (!devlist->nodes_free_list[addr])
+		return NULL;
+
+	mutex_lock(&devlist->mutex);
+
+	/* Occupy node record */
+	devlist->nodes_free_list[addr] = false;
+
+	/* Fill node record */
+	ls_gate_node_t *node = &devlist->nodes[addr];
+	init_node(devlist, node, addr, node_id, app_id, nonce, ch);
+
+	node->last_fid = 255;
+	node->app_nonce = 0;
+	node->is_static = true;
+
+	/* Increase number of connected devices */
+	devlist->num_nodes++;
+
+	mutex_unlock(&devlist->mutex);
+
+	return node;
+}
+
+ls_gate_node_t *ls_devlist_add(ls_gate_devices_t *devlist, uint64_t node_id, uint64_t app_id, uint32_t nonce, void *ch) {
+	/* List is full? */
+	if(ls_devlist_is_full(devlist))
+		return NULL;
+
+	/* Device is already added? */
+	if (ls_devlist_is_added(devlist, node_id))
+		return NULL;
 
 	mutex_lock(&devlist->mutex);
 
@@ -108,28 +171,7 @@ ls_gate_node_t *ls_devlist_add(ls_gate_devices_t *devlist, uint64_t node_id, uin
 
 			/* Fill node record */
 			ls_gate_node_t *node = &devlist->nodes[i];
-			node->node_ch = ch;
-
-			node->node_id = node_id;
-			node->app_id = app_id;
-			node->addr = i;
-
-			node->last_nonce = nonce;
-
-			/* Clear nonces list if it's full */
-			if (node->num_nonces >= LS_GATE_MAX_NONCES) {
-				puts("gate: nonces list cleared"); // XXX: debug
-				clear_nonce_list(devlist, i);
-			}
-
-			/* Append nonce to the nonce list */
-			ls_gate_node_nl_entry_t *e = malloc(sizeof(ls_gate_node_nl_entry_t));
-			e->nonce = nonce;
-			e->next = node->nonce_list;
-			node->nonce_list = e;
-
-			node->last_fid = 0;
-			node->num_pending = 0;
+			init_node(devlist, node, i, node_id, app_id, nonce, ch);
 
 			/* Increase number of connected devices */
 			devlist->num_nodes++;

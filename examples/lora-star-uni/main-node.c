@@ -49,6 +49,7 @@ extern "C" {
 #include "rtctimers.h"
 
 #define DISPLAY_JOINKEY_2BYTES 1
+#define DISPLAY_DEVNONCE_BYTE 1
 
 typedef struct {
     bool is_valid;
@@ -65,6 +66,9 @@ typedef struct {
 
     bool region_not_set;
     uint8_t region_index;   /**< Selected channels region index */
+
+    bool no_join;			/**< Statically personalized device, no join required to send data */
+    ls_addr_t dev_addr;		/**< Predefined device's network address */
 } node_role_settings_t;
 
 static node_role_settings_t node_settings;
@@ -100,6 +104,9 @@ void radio_init(void)
 
 void joined_timeout_cb(void)
 {
+	if (node_settings.no_join)
+		return;
+
     puts("ls: join request timed out, resending");
 
 	/* Pseudorandom delay for collision avoidance */
@@ -129,8 +136,11 @@ void joined_cb(void)
 
 void appdata_send_failed_cb(void)
 {
-	puts("ls-ed: application data confirmation timeout. Rejoining...");
-	joined_timeout_cb();
+	if (!node_settings.no_join) {
+		puts("ls-ed: application data confirmation timeout. Rejoining...");
+		joined_timeout_cb();
+	} else
+		puts("ls-ed: failed to send confirmed application data");
 }
 
 static bool appdata_received_cb(uint8_t *buf, size_t buflen)
@@ -227,8 +237,13 @@ static void ls_setup(ls_ed_t *ls)
     ls->settings.app_id = config_get_appid();
     ls->settings.node_id = config_get_nodeid();
 
-    memcpy(ls->settings.crypto.join_key, config_get_joinkey(), LS_MIC_KEY_LEN);
-
+    ls->settings.no_join = node_settings.no_join;
+    if (node_settings.no_join) {
+    	ls_derive_keys(config_get_devnonce(), 0, node_settings.dev_addr, ls->settings.crypto.mic_key, ls->settings.crypto.aes_key);
+    	ls->_internal.dev_addr = node_settings.dev_addr;
+    } else {
+    	memcpy(ls->settings.crypto.join_key, config_get_joinkey(), LS_MIC_KEY_LEN);
+    }
     ls->join_timeout_cb = joined_timeout_cb;
     ls->joined_cb = joined_cb;
 
@@ -249,6 +264,10 @@ int ls_set_cmd(int argc, char **argv)
     if (argc != 3) {
         puts("usage: get <key> <value>");
         puts("keys:");
+        if (node_settings.no_join)
+        	puts("\taddr <address> -- sets predefined device address for statically personalized devices");
+
+        puts("\tnojoin <0/1> -- selecting wether device is statically personalized or not");
         printf("\tregion <0-%d> -- sets channels region\n", LS_UNI_NUM_REGIONS - 1);
         puts("\tch <ch> -- sets device channel in selected region");
         puts("\tdr <0-6> -- sets device data rate [0 - slowest, 3 - average, 6 - fastest]");
@@ -317,6 +336,30 @@ int ls_set_cmd(int argc, char **argv)
             ls.settings.class = LS_ED_CLASS_C;
         }
     }
+    else if (strcmp(key, "nojoin") == 0) {
+    	char v = value[0];
+
+    	ls.settings.no_join = (v == '1');
+    }
+    else if (strcmp(key, "addr") == 0) {
+        if (strlen(value) != 8) {
+            puts("[error] There must be 8 hexadecimal digits in lower case");
+            return 1;
+        }
+
+        uint32_t addr = 0;
+
+        if (!hex_to_bytesn(value, 8, (uint8_t *) &addr, true)) {
+            puts("[error] Pardon me, but that's not a hex number!");
+            return 1;
+        }
+
+        ls._internal.dev_addr = addr;
+    }
+
+    node_settings.no_join = ls.settings.no_join;
+    if (node_settings.no_join)
+    	node_settings.dev_addr = ls._internal.dev_addr;
 
     node_settings.channel = ls.settings.channel;
     node_settings.dr = ls.settings.dr;
@@ -358,10 +401,20 @@ static void print_config(void)
     uint64_t eui64 = config_get_nodeid();
     uint64_t appid = config_get_appid();
 
-    if (DISPLAY_JOINKEY_2BYTES) {
+    printf("NOJOIN = %s\n", (node_settings.no_join) ? "yes" : "no");
+
+    if (!node_settings.no_join && DISPLAY_JOINKEY_2BYTES) {
         uint8_t *key = config_get_joinkey();
-        printf("JOINKEY = 0x....%01x%01x\n", key[14], key[15]);
+        printf("JOINKEY = 0x....%01X%01X\n", key[14], key[15]);
     }
+
+    if (node_settings.no_join && DISPLAY_DEVNONCE_BYTE) {
+    	uint8_t devnonce = config_get_devnonce();
+    	printf("DEVNONCE = 0x...%01X\n", devnonce & 0x0F);
+    }
+
+    if (node_settings.no_join)
+    	printf("ADDR = 0x%08X\n", (unsigned int) node_settings.dev_addr);
 
     printf("EUI64 = 0x%08x%08x\n", (unsigned int) (eui64 >> 32), (unsigned int) (eui64 & 0xFFFFFFFF));
     printf("APPID64 = 0x%08x%08x\n", (unsigned int) (appid >> 32), (unsigned int) (appid & 0xFFFFFFFF));
@@ -498,7 +551,7 @@ static int ls_module_cmd(int argc, char **argv)
 static int ls_clear_nvram(int argc, char **argv)
 {
     if (argc < 2) {
-        puts("Usage: clear <all|key> -- clear all NVRAM contents or just the security key.");
+        puts("Usage: clear <all|keys> -- clear all NVRAM contents or just the security key.");
         return 1;
     }
 
@@ -514,11 +567,11 @@ static int ls_clear_nvram(int argc, char **argv)
             puts("[error] Unable to clear NVRAM");
         }
     }
-    else if (strcmp(key, "key") == 0) {
+    else if (strcmp(key, "keys") == 0) {
         uint8_t joinkey_zero[16];
         memset(joinkey_zero, 0, 16);
-        if (config_write_main_block(config_get_appid(), joinkey_zero)) {
-            puts("[ok] Security key was zeroed. Rebooting.");
+        if (config_write_main_block(config_get_appid(), joinkey_zero, 0)) {
+            puts("[ok] Security key and device nonce was zeroed. Rebooting.");
             NVIC_SystemReset();
         }
         else {
@@ -552,7 +605,7 @@ static const shell_command_t shell_commands[] = {
 
     { "save", "-- saves current configuration", ls_save_cmd },
 
-    { "clear", "<all|key> -- clear settings stored in NVRAM", ls_clear_nvram },
+    { "clear", "<all|keys> -- settings stored in NVRAM", ls_clear_nvram },
 
     { "cmd", "<modid> <cmdhex> -- send command to another UNWDS devices", ls_cmd_cmd },
 
@@ -655,9 +708,12 @@ void init_node(shell_command_t **commands)
         }
 
         rtctimers_sleep(1);
-        ls_ed_join(&ls);
-
         blink_led();
+
+        if (!node_settings.no_join)
+        	ls_ed_join(&ls);
+        else
+        	ls.standby_mode_cb();
     }
     lpm_prevent_switch = 0;
 }

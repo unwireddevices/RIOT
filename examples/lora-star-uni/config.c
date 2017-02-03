@@ -117,7 +117,7 @@ bool save_eui64_nvram(nvram_t *nvram)
 
 bool save_config_nvram(nvram_t *nvram)
 {
-    /* Calculate checksum */
+    /* Calculate checksum excluding old CRC field at the end*/
     config.cfg_crc = get_crc((uint8_t *) &config, CONFIG_SIZE - 4);
 
     /* Write to NVRAM */
@@ -131,20 +131,28 @@ bool clear_nvram(void)
 
 config_role_t config_get_role(void)
 {
-    if (!eui64_valid) {
+    if (!config_valid) {
+    	return ROLE_NO_CFG;
+    }
+
+	if (!eui64_valid) {
         return ROLE_NO_EUI64;
     }
+
 	if (!key_valid) {
 		return ROLE_EMPTY_KEY;
 	}
+
     if (config_valid) {
         return ROLE_NODE;
     }
-    else { return ROLE_NO_CFG; }
+
+    return ROLE_NO_CFG;
 }
 
-bool config_write_main_block(uint64_t appid64, uint8_t joinkey[16])
+bool config_write_main_block(uint64_t appid64, uint8_t joinkey[16], uint32_t devnonce)
 {
+	config.dev_nonce = devnonce;
     config.appid64 = appid64;
     memcpy(config.nwk_key, joinkey, 16);
 
@@ -190,6 +198,11 @@ uint64_t config_get_appid(void)
 uint8_t *config_get_joinkey(void)
 {
     return config.nwk_key;
+}
+
+uint32_t config_get_devnonce(void)
+{
+	return config.dev_nonce;
 }
 
 bool config_write_role_block(uint8_t *buf, size_t size)

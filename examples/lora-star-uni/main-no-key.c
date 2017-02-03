@@ -35,12 +35,16 @@ extern "C" {
 static uint8_t joinkey[16];
 static bool joinkey_set = false;
 
+static uint32_t devnonce;
+static bool devnonce_set = false;
 
 static int set_cmd(int argc, char **argv)
 {
     if (argc < 3) {
         puts("set joinkey <32 hex digits> -- sets the join (network) encryption key. Must be shared between all nodes in the same network");
+        puts("set devnonce <8 gex digits> -- sets device nonce (random number is preferred). Must be shared between gate and this node");
         puts("\tExample: set joinkey aabbccddeeff00112233445566778899");
+        puts("\tExample: set devnonce aabbccdd");
 
         return 1;
     }
@@ -79,29 +83,47 @@ static int set_cmd(int argc, char **argv)
         printf("[ok] That's a nice key, thank you!\n \
 Don't forget to save it and write it down for future use, as there's no way to get it back from the programmed LoRa modem.\n \
 JOINKEY = %s\n", s);
-    }
+    } else if (strcmp(type, "devnonce") == 0) {
+        if (strlen(arg) != 8) {
+            puts("[error] There must be 8 hexadecimal digits in lower case");
+            return 1;
+        }
 
+        uint32_t d = 0;
+
+        if (!hex_to_bytesn(arg, 4, (uint8_t *) &d, true)) {
+            puts("[error] Pardon me, but that's not a hex number!");
+            return 1;
+        }
+
+        printf("[ok] That's a nice nonce, thank you!\n \
+Don't forget to save it and write it down for future use, as there's no way to get it back from the programmed LoRa modem.\n \
+DEVNONCE = %s\n", arg);
+
+        devnonce_set = true;
+        devnonce = d;
+    }
 
     return 0;
 }
 
 static int save_cmd(int argc, char **argv)
 {
-	if (!joinkey_set) {
-		puts("[error] I'm deeply sorry, but you have provided no key.");
+	if (!joinkey_set || !devnonce) {
+		puts("[error] I'm deeply sorry, but you have provided no key or device nonce");
 		return -1;
 	}
 	
 	if (argc == 1) {
-		puts("[!] Saving security key...");
+		puts("[!] Saving...");
 		
-		if (config_write_main_block(config_get_appid(), joinkey)) {
-			puts("[ok] Security key was written. Rebooting.");
+		if (config_write_main_block(config_get_appid(), joinkey, devnonce)) {
+			puts("[ok] Data was written. Rebooting.");
 
 			/* Reboot */
 			NVIC_SystemReset();
 		} else {
-			puts("[error] An error occurred trying to save the key");
+			puts("[error] An error occurred trying to save the data");
 		}
 	}
 
@@ -109,7 +131,7 @@ static int save_cmd(int argc, char **argv)
 }
 
 static const shell_command_t shell_commands[] = {
-    { "set", "joinkey <value> -- set up security key", set_cmd },
+    { "set", "joinkey|devnonce <value> -- set up network key or device nonce", set_cmd },
 
     { "save", "Save the configuration to non-volatile memory", save_cmd },
 

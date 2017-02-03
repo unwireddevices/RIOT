@@ -276,7 +276,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
     	case LS_DL_ACK_W_DATA: /* Acknowledge with additional data */
             /* Must be joined to the network first */
-            if (!ls->_internal.is_joined) {
+            if (!ls->settings.no_join && !ls->_internal.is_joined) {
                 return false;
             }
 
@@ -310,7 +310,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
         case LS_DL:         /* Downlink frame */
             /* Must be joined to the network first */
-            if (!ls->_internal.is_joined) {
+            if (!ls->settings.no_join && !ls->_internal.is_joined) {
                 return false;
             }
 
@@ -328,6 +328,10 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             return true;
 
         case LS_DL_JOIN_ACK: { /* Downlink join acknowledge */
+        	/* Joins are disabled */
+        	if (ls->settings.no_join)
+        		return false;
+
             if (frame->payload.len != sizeof(ls_join_ack_t)) {
                 return false;
             }
@@ -801,7 +805,9 @@ int ls_ed_init(ls_ed_t *ls)
     ls->_internal.last_fid = 0;
     ls->_internal.num_retr = 0;
     ls->_internal.is_joined = false;
-    ls->_internal.dev_addr = LS_ADDR_UNDEFINED;
+
+    if (!ls->settings.no_join)
+    	ls->_internal.dev_addr = LS_ADDR_UNDEFINED;
 
     mutex_init(&ls->_internal.curr_frame_mutex);
     memset(&ls->status, 0, sizeof(ls_device_status_t));
@@ -852,7 +858,7 @@ int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed
     	ls->wakeup_cb();
 
     /* Not joined to the network, delay appdata frame until device is joined */
-    if (!ls->_internal.is_joined) {
+    if (!ls->settings.no_join && !ls->_internal.is_joined) {
     	if (ls->standby_mode_cb)
     		ls->standby_mode_cb();
 
@@ -884,6 +890,9 @@ int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed
 
 void ls_ed_unjoin(ls_ed_t *ls)
 {
+	if (ls->settings.no_join)
+		return;
+
     /* Clear uplink queue */
     ls_frame_fifo_clear(&ls->_internal.uplink_queue);
     ls->_internal.confirmation_required = false;

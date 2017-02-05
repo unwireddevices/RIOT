@@ -168,7 +168,15 @@ static uint8_t get_node_status(void)
     vdd -= 2000; /* 2000 mV min voltage */
     vdd /= 50; /* 50 mV per bit resolution */
     
-    return (uint8_t)(vdd & 0x1F);
+    if (adc_init(ADC_LINE(ADC_TEMPERATURE_INDEX)) < 0) {
+        return 0;
+    }
+    int16_t temp;
+    temp = adc_sample(ADC_LINE(ADC_TEMPERATURE_INDEX), ADC_RES_12BIT);
+    temp += 40; /* -40 is the minimim */
+    temp /= 20; /* 20 deg C per bit */  
+    
+    return (uint8_t)((vdd & 0x1F) & ((temp & 0x7) << 5));
 }
 
 static int send_frame(ls_ed_t *ls, ls_type_t type, uint8_t *buf, size_t buflen)

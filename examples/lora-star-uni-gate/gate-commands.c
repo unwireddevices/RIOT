@@ -241,7 +241,7 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 			return;
 		}
 
-		puts("[gate-commands] Added device: ");
+		printf("[gate-commands] Added device: ");
 		printf("eui: 0x%08X%08X ",
 						(unsigned int) (nodeid >> 32),
 						(unsigned int) (nodeid & 0xFFFFFFFF));

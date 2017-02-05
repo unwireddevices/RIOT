@@ -82,8 +82,6 @@ enum {
  /* ADC channels 16 and 17 are not connected to any GPIO */
 #define ADC_VREF_CHANNEL 17
 #define ADC_TEMPERATURE_CHANNEL 16
-#define ADC_VREF_CHANNEL_PIN (GPIO_UNDEF - 1)
-#define ADC_TEMPERATURE_CHANNEL_PIN (GPIO_UNDEF - 2)
  
 #define HAVE_ADC_RES_T
 #ifdef HAVE_ADC_RES_T

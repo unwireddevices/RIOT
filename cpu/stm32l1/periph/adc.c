@@ -165,16 +165,25 @@ int adc_sample(adc_t line,  adc_res_t res)
     tmpreg1 |= (uint32_t)(align | edge | etrig | ((uint32_t)continuous_conv_mode << 1));
     ADC1->CR2 = tmpreg1;
 
-    uint8_t channels[1] = { (uint8_t) adc_config[line].chan };
-    adc_set_regular_sequence(1, channels);
+    if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL) {
+        uint8_t channels[2] = { ADC_TEMPERATURE_CHANNEL, ADC_VREF_CHANNEL };
+        adc_set_regular_sequence(2, channels);
+        ADC1->CR1 |= ADC_CR1_SCAN;
+        ADC1->CR2 &= ~ADC_CR2_DELS;
+        ADC1->CR2 |= ADC_CR2_DELS_0;
+    } else {
+        uint8_t channels[1] = { (uint8_t) adc_config[line].chan };
+        adc_set_regular_sequence(1, channels);
+    }
 
-	/* Enable temperature and Vref conversion */
-	if ((adc_config[line].pin == GPIO_UNDEF)) {
-		ADC->CCR = ADC_CCR_TSVREFE;
-	}
-	
-	/* Enable ADC */
+    /* Enable ADC */
     ADC1->CR2 |= (uint32_t)ADC_CR2_ADON;
+    
+	/* Enable temperature and Vref conversion */
+	if (adc_config[line].pin == GPIO_UNDEF) {
+		ADC->CCR |= ADC_CCR_TSVREFE;
+        while ((PWR->CSR & PWR_CSR_VREFINTRDYF) == 0);
+	}
 	
 	/* Wait for ADC to become ready */
 	while ((ADC1->SR & ADC_SR_ADONS) == 0);
@@ -189,18 +198,31 @@ int adc_sample(adc_t line,  adc_res_t res)
 
     /* read result */
     sample = (int)ADC1->DR;
+    
+    int sample_ts;
+    if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL) {
+        sample_ts = sample;
+        while ((ADC1->SR & ADC_SR_EOC) == 0);
+        sample = (int)ADC1->DR;
+    }
 	
 	/* VDD calculation based on VREFINT */
-	if (adc_config[line].chan == 17) { /* VREFINT is ADC channel 17 */
+	if ((adc_config[line].chan == ADC_VREF_CHANNEL) || (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL)) {
 		uint16_t *cal = ADC_VREFINT_CAL;
 		sample = 3000 * (*cal) / sample;
 	}
 	
 	/* Chip temperature calculation */
-	if (adc_config[line].chan == 16) { /* Temperature Sensor is ADC channel 16 */
+	if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL) {
+        sample_ts = sample_ts * 3000 / sample;
+        
 		uint16_t *cal1 = ADC_TS_CAL1;
 		uint16_t *cal2 = ADC_TS_CAL2;
-		sample = 80 / (*cal2 - *cal1) * (sample - *cal1) + 30;
+        
+        sample = (80 * (sample_ts - *cal1)) / (*cal2 - *cal1) + 30;
+        
+        ADC1->CR1 &= ~ADC_CR1_SCAN;
+        ADC1->CR2 &= ~ADC_CR2_DELS;
 	}
 
 	/* Disable temperature and Vref conversion */

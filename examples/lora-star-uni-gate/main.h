@@ -20,7 +20,7 @@
 
 #include "shell.h"
 
-#define FIRMWARE_VERSION "1.11"
+#define FIRMWARE_VERSION "1.12"
 
 #define SHORT_LOGO 1
 

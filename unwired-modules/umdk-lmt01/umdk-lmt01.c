@@ -44,12 +44,15 @@ static uwnds_cb_t *callback;
 
 static kernel_pid_t timer_pid;
 
-static int publish_period_min;
-
 static msg_t timer_msg = {};
 static rtctimer_t timer;
 
 static bool is_polled = false;
+
+static struct {
+	uint8_t is_valid;
+	uint8_t publish_period_min;
+} lmt01_config;
 
 static void init_sensors(void) {
 	int i = 0;
@@ -94,7 +97,7 @@ static void prepare_result(module_data_t *buf) {
 		}
 
 		/* Delay between sensor switching */
-		xtimer_usleep(1e3 * 100);
+        xtimer_spin(xtimer_ticks_from_usec(1e3 * 100));
 	}
 
 	buf->data[0] = UNWDS_LMT01_MODULE_ID;
@@ -124,15 +127,38 @@ void *timer_thread(void *arg) {
         callback(&data);
 
         /* Restart after delay */
-        rtctimers_set_msg(&timer, 60 * publish_period_min, &timer_msg, timer_pid);
+        rtctimers_set_msg(&timer, 60 * lmt01_config.publish_period_min, &timer_msg, timer_pid);
     }
+}
+
+static void reset_config(void) {
+	lmt01_config.is_valid = 0;
+	lmt01_config.publish_period_min = UMDK_LMT01_PUBLISH_PERIOD_MIN;
+}
+
+static void init_config(void) {
+	reset_config();
+
+	if (!unwds_read_nvram_config(UNWDS_LMT01_MODULE_ID, (uint8_t *) &lmt01_config, sizeof(lmt01_config)))
+		return;
+
+	if ((lmt01_config.is_valid == 0xFF) || (lmt01_config.is_valid == 0)) {
+		reset_config();
+		return;
+	}
+}
+
+static inline void save_config(void) {
+	lmt01_config.is_valid = 1;
+	unwds_write_nvram_config(UNWDS_LMT01_MODULE_ID, (uint8_t *) &lmt01_config, sizeof(lmt01_config));
 }
 
 void umdk_lmt01_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	(void) non_gpio_pin_map;
 
 	callback = event_callback;
-	publish_period_min = UMDK_LMT01_PUBLISH_PERIOD_MIN; /* Set to default */
+	init_config();
+    printf("[lmt01] Publish period: %d min\n", lmt01_config.publish_period_min);
 
 	init_sensors();
 
@@ -146,7 +172,7 @@ void umdk_lmt01_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "lmt01 thread");
 
     /* Start publishing timer */
-	rtctimers_set_msg(&timer, 60 * publish_period_min, &timer_msg, timer_pid);
+	rtctimers_set_msg(&timer, 60 * lmt01_config.publish_period_min, &timer_msg, timer_pid);
 }
 
 static void reply_fail(module_data_t *reply) {
@@ -184,12 +210,12 @@ bool umdk_lmt01_cmd(module_data_t *cmd, module_data_t *reply) {
 		uint8_t period = cmd->data[1];
 		rtctimers_remove(&timer);
 
-		publish_period_min = period;
+		lmt01_config.publish_period_min = period;
 
 		/* Don't restart timer if new period is zero */
-		if (publish_period_min) {
-			rtctimers_set_msg(&timer, 60 * publish_period_min, &timer_msg, timer_pid);
-			printf("[lmt01] Period set to %d minutes\n", publish_period_min);
+		if (lmt01_config.publish_period_min) {
+			rtctimers_set_msg(&timer, 60 * lmt01_config.publish_period_min, &timer_msg, timer_pid);
+			printf("[lmt01] Period set to %d minutes\n", lmt01_config.publish_period_min);
 		} else
 			puts("[lmt01] Timer stopped");
 

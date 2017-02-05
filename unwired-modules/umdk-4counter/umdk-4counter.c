@@ -57,45 +57,6 @@ static struct  {
 
 static gpio_t pins_sens[UMDK_4COUNT_NUM_SENS] = { UMDK_4COUNT_1, UMDK_4COUNT_2, UMDK_4COUNT_3, UMDK_4COUNT_4 };
 
-static void umdk_4count_gpio_mode(gpio_t pin, gpio_mode_t mode, umdk_4counter_signal_t signal  )
-{
-    GPIO_TypeDef *port = (GPIO_TypeDef *)(pin & ~(0x0f));
-    uint32_t tmpreg;
-
-    int pin_num =  (pin & 0x0f);
-
-    umdk_4counter_signal_t sign = signal;
-
-    switch (sign) {
-        case DIGITAL:
-            /* set mode */
-            tmpreg = port->MODER;
-            tmpreg &= ~(0x3 << (2 * pin_num));
-            tmpreg |=  ((mode & 0x3) << (2 * pin_num));
-            port->MODER = tmpreg;
-
-            /* set pull resistor configuration */
-            tmpreg = port->PUPDR;
-            tmpreg &= ~(0x3 << (2 * pin_num));
-            tmpreg |=  (((mode >> 2) & 0x3) << (2 * pin_num));
-            port->PUPDR = tmpreg;
-            break;
-
-        case ANALOG:
-	    /* disable pull-ups on GPIOs */
-            port->PUPDR &= ~(0x3 << (2 * pin_num));
-            /*  Set analog mode */
-            tmpreg = port->MODER;
-            tmpreg &= ~(0x3 << (2 * pin_num));
-            tmpreg |= (0x3 << (2 * pin_num));
-            port->MODER = tmpreg;
-            break;
-
-        default:
-            break;
-    }
-}
-
 static void umdk_4count_counter_int(void* arg)
 {
     int num = (int)arg;
@@ -105,7 +66,7 @@ static void umdk_4count_counter_int(void* arg)
     ignore_irq[num] = 1;
     
     gpio_irq_disable(pins_sens[num]);
-    umdk_4count_gpio_mode(pins_sens[num], GPIO_IN_PU, ANALOG);
+    gpio_init(pins_sens[num], GPIO_AIN);
     
     uint8_t now_value = 0;
     /*
@@ -138,11 +99,11 @@ static void umdk_4count_counter_int(void* arg)
 
 static void umdk_4count_counter_tim(uint32_t num)
 {
-    umdk_4count_gpio_mode(pins_sens[num], GPIO_IN_PU, DIGITAL);
+    gpio_init(pins_sens[num], GPIO_IN_PU);
     __asm("nop; nop; nop; nop; nop;");
     uint8_t last_value = gpio_read(pins_sens[num]);
     __asm("nop; nop; nop; nop; nop;");
-    umdk_4count_gpio_mode(pins_sens[num], GPIO_IN_PU, ANALOG);
+    gpio_init(pins_sens[num], GPIO_AIN);
     
     /* still zero, let's check again a bit later */
     if (last_value == 0) {
@@ -159,13 +120,13 @@ static void umdk_4count_counter_tim(uint32_t num)
     volatile int delay = 0;
     
     do {
-        for (delay = 0; delay < 1000; delay ++) {}
+        for (delay = 0; delay < 32000; delay ++) {}
         
-        umdk_4count_gpio_mode(pins_sens[num], GPIO_IN_PU, DIGITAL);
+        gpio_init(pins_sens[num], GPIO_IN_PU);
         __asm("nop; nop; nop; nop; nop;");
         now_value = gpio_read(pins_sens[num]);
         __asm("nop; nop; nop; nop; nop;");
-        umdk_4count_gpio_mode(pins_sens[num], GPIO_IN_PU, ANALOG);
+        gpio_init(pins_sens[num], GPIO_AIN);
         
         if (now_value == last_value) {
             value_counter++;
@@ -193,7 +154,7 @@ static void umdk_4count_counter_tim(uint32_t num)
     }
     
     /* enable pull-up, wait for next interrupt */
-    umdk_4count_gpio_mode(pins_sens[num], GPIO_IN_PU, DIGITAL);
+    gpio_init(pins_sens[num], GPIO_IN_PU);
     ignore_irq[num] = 0;
     gpio_irq_enable(pins_sens[num]);
 }
@@ -222,9 +183,6 @@ static void *handler(void *arg)
                 break;
 
             case PUBLISHING:
-                if (lpm_run_mode != LPM_ON) {
-                    lpm_set(LPM_ON);
-                }
             	puts("Sending");
 
                 module_data_t data;
@@ -236,10 +194,15 @@ static void *handler(void *arg)
                 /* Write four counter values */
                 uint32_t *tmp = (uint32_t *)(&data.data[1]);
 
-                *(tmp + 0)  = conf_counter.count_value[0];
-                *(tmp + 1)  = conf_counter.count_value[1];
-                *(tmp + 2)  = conf_counter.count_value[2];
-                *(tmp + 3)  = conf_counter.count_value[3];
+                /* Compress 4 values to 12 bytes total */
+                *(tmp + 0)  = conf_counter.count_value[0] << 8;
+                *(tmp + 0) |= (conf_counter.count_value[1] >> 16) & 0xFF;
+                
+                *(tmp + 1) = conf_counter.count_value[1] << 16;
+                *(tmp + 1) |= (conf_counter.count_value[2] >> 8) & 0xFFFF;
+                
+                *(tmp + 3) = (conf_counter.count_value[2] << 24);
+                *(tmp + 3) |= conf_counter.count_value[3] & 0xFFFFFF;
 
                 save_config(); /* Save values into NVRAM */
 

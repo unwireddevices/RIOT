@@ -187,7 +187,7 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 		break;
 	}
 
-	case CMD_ADD_DEV: {
+	case CMD_ADD_STATIC_DEV: {
 		/* Minimum length is length of network address in hex + EUI64 in hex + APPID64 in hex + device nonce + no of channel in hex and character '\n' */
 		if (strlen(payload) < 16 + 16 + 8 + 8 + 2 + 1) {
 			printf("[error] Invalid command received: %s\n", data);
@@ -241,17 +241,17 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 			return;
 		}
 
-		puts("Adding device:");
-		printf("nodeid = 0x%08X%08X\n",
+		puts("[gate-commands] Added device: ");
+		printf("eui: 0x%08X%08X ",
 						(unsigned int) (nodeid >> 32),
 						(unsigned int) (nodeid & 0xFFFFFFFF));
-		printf("appid = 0x%08X%08X\n",
+		printf("appid: 0x%08X%08X ",
 						(unsigned int) (appid >> 32),
 						(unsigned int) (appid & 0xFFFFFFFF));
 
-		printf("address = 0x%08X\n", (unsigned int) addr);
-		printf("nonce = 0x%08X\n", (unsigned int) dev_nonce);
-		printf("ch = 0x%02X\n", (unsigned int) channel);
+		printf("addr: 0x%08X ", (unsigned int) addr);
+		printf("nonce: 0x%08X ", (unsigned int) dev_nonce);
+		printf("ch: 0x%02X\n", (unsigned int) channel);
 
 		/* Kick previous device if present */
 		if (ls_devlist_is_in_network(devs, addr)) {
@@ -268,7 +268,17 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 		break;
 	}
 
-	case CMD_KICK: {
+	case CMD_KICK_ALL_STATIC: {
+		for (int i = 0; i < LS_GATE_MAX_NODES; i++) {
+			if (!devs->nodes_free_list[i]) {
+				if (devs->nodes[i].is_static) {
+					/* Remove device */
+					ls_devlist_remove_device(devs, i);
+				}
+			}
+		}
+
+		puts("[gate-commands] All statically personalized devices are kicked");
 
 		break;
 	}

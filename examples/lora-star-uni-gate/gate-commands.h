@@ -22,17 +22,17 @@
 #include "pending-fifo.h"
 
 typedef enum {
-	CMD_PING = 'P',			/* Command to ping/pong with client */
-	CMD_DEVLIST = 'L',		/* Command to get devices list from a gate */
-	CMD_IND = 'I',			/* Individual command to the mote by address */
-	CMD_HAS_PENDING = '?',	/* Individual device has N pending packets */
-	CMD_INVITE = 'V',		/* Individual invite to join network for class C devices */
-	CMD_BROADCAST = 'B',	/* Broadcast message */
+	CMD_PING = 'P',				/* Command to ping/pong with client */
+	CMD_DEVLIST = 'L',			/* Command to get devices list from a gate */
+	CMD_IND = 'I',				/* Individual command to the mote by address */
+	CMD_HAS_PENDING = '?',		/* Individual device has N pending packets */
+	CMD_INVITE = 'V',			/* Individual invite to join network for class C devices */
+	CMD_BROADCAST = 'B',		/* Broadcast message */
 
-	CMD_ADD_DEV = 'A',		/* Sets nonce from which key will be derived for the specified network address and channel (for statically personalized devices) */
-	CMD_KICK = 'K',			/* Kicks device by specified network address via removing it from devices list */
+	CMD_ADD_STATIC_DEV = 'A',	/* Sets nonce from which key will be derived for the specified network address and channel (for statically personalized devices) */
+	CMD_KICK_ALL_STATIC = 'K',	/* Kicks device by specified network address via removing it from devices list */
 
-	CMD_FLUSH = 'F',		/* Command to get all pending info */
+	CMD_FLUSH = 'F',			/* Command to get all pending info */
 } gate_cmd_type_t;
 
 typedef enum {

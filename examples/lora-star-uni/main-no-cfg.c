@@ -39,6 +39,9 @@ static uint8_t joinkey[16] = {
 
 bool joinkey_set = false;
 
+uint32_t devnonce = 0;
+bool devnonce_set = false;
+
 static void print_appid64(void)
 {
     if (appid) {
@@ -61,12 +64,23 @@ static void print_joinkey(void)
     }
 }
 
+static void print_devnonce(void)
+{
+    if (devnonce_set) {
+        printf("DEVNONCE = 0x%04X\n", (unsigned int) devnonce);
+    }
+    else {
+        puts("DEVNONCE = <not set>");
+    }
+}
+
 static void print_config(void)
 {
     puts("[config] Current configuration:");
 
     print_appid64();
     print_joinkey();
+    print_devnonce();
 }
 
 static int unk_set_cmd(int argc, char **argv)
@@ -99,7 +113,7 @@ static int unk_set_cmd(int argc, char **argv)
             return 1;
         }
 
-        printf("[ok] EUI64 = 0x%08x%08x\n", (unsigned int) (id >> 32), (unsigned int) (id & 0xFFFFFFFF));
+        printf("[ok] APPID64 = 0x%08x%08x\n", (unsigned int) (id >> 32), (unsigned int) (id & 0xFFFFFFFF));
         appid = id;
     }
     else if (strcmp(type, "joinkey") == 0) {
@@ -119,6 +133,25 @@ static int unk_set_cmd(int argc, char **argv)
         joinkey_set = true;
 
         printf("[ok] JOINKEY = %s\n", s);
+    } if (strcmp(type, "devnonce") == 0) {
+        if (strlen(arg) != 8) {
+            puts("[error] There must be 8 hexadecimal digits in lower case");
+            return 1;
+        }
+
+        uint32_t d = 0;
+
+        if (!hex_to_bytes(arg, (uint8_t *) &d, true)) {
+            puts("[error] Pardon me, but that's not a hex number!");
+            return 1;
+        }
+
+        printf("[ok] That's a nice nonce, thank you!\n \
+Don't forget to save it and write it down for future use, as there's no way to get it back from the programmed LoRa modem.\n \
+DEVNONCE = %s\n", arg);
+
+        devnonce_set = true;
+        devnonce = d;
     }
 
     print_config();
@@ -131,6 +164,7 @@ int unk_get_cmd(int argc, char **argv)
     if (argc < 2) {
         puts("get appid64 -- gets sets application ID");
         puts("get joinkey -- gets the join (network) encryption key");
+        puts("get devnonce -- gets the device nonce value");
     }
 
     char *type = argv[1];
@@ -140,6 +174,8 @@ int unk_get_cmd(int argc, char **argv)
     }
     else if (strcmp(type, "joinkey") == 0) {
     	print_joinkey();
+    } else if (strcmp(type, "devnonce") == 0) {
+    	print_devnonce();
     } else {
     	puts("[error] Unknown get parameter");
     }
@@ -155,7 +191,7 @@ int unk_save_cmd(int argc, char **argv)
 
 		puts("[!] Saving current configuration...");
 
-		if (config_write_main_block(appid, joinkey)) {
+		if (config_write_main_block(appid, joinkey, devnonce)) {
 			puts("[ok] Configuration is written. Rebooting...");
 
 			/* Reboot */

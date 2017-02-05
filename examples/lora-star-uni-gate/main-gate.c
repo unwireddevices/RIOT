@@ -519,6 +519,63 @@ static int ls_clear_nvram(int argc, char **argv)
     return 0;
 }
 
+static int add_cmd(int argc, char **argv) {
+	if (argc != 6) {
+		puts("usage: add <nodeid> <appid> <addr> <devnonce> <channel>");
+		return - 1;
+	}
+
+	uint64_t nodeid = 0;
+	if (!hex_to_bytes(argv[1], (uint8_t *) &nodeid, true)) {
+		return -1;
+	}
+
+	uint64_t appid = 0;
+	if (!hex_to_bytes(argv[2], (uint8_t *) &appid, true)) {
+		return -1;
+	}
+
+	ls_addr_t addr = 0;
+	if (!hex_to_bytes(argv[3], (uint8_t *) &addr, true)) {
+		return -1;
+	}
+
+	uint32_t dev_nonce = 0;
+	if (!hex_to_bytes(argv[4], (uint8_t *) &dev_nonce, true)) {
+		return -1;
+	}
+
+	uint8_t channel = atoi(argv[5]);
+
+	puts("Adding device:");
+	printf("nodeid = 0x%08X%08X\n",
+					(unsigned int) (nodeid >> 32),
+					(unsigned int) (nodeid & 0xFFFFFFFF));
+	printf("appid = 0x%08X%08X\n",
+					(unsigned int) (appid >> 32),
+					(unsigned int) (appid & 0xFFFFFFFF));
+
+	printf("address = 0x%08X\n", (unsigned int) addr);
+	printf("nonce = 0x%08X\n", (unsigned int) dev_nonce);
+	printf("ch = 0x%02X\n", (unsigned int) channel);
+
+	/* Kick previous device if present */
+	if (ls_devlist_is_in_network(&ls.devices, addr)) {
+		ls_devlist_remove_device(&ls.devices, addr);
+	}
+
+	/* Add device with specified nonce and address */
+	ls_gate_node_t *node = ls_devlist_add_by_addr(&ls.devices, addr, nodeid, appid, dev_nonce, &ls.channels[channel]);
+	if (node == NULL)
+		return -1;
+
+	return 0;
+}
+
+static int kick_cmd(int argc, char **argv) {
+	return -1;
+}
+
 static const shell_command_t shell_commands[] = {
     { "set", "<config> <value> -- sets up value for the config entry", ls_set_cmd },
     { "listconfig", "-- prints out current configuration", ls_printc_cmd },
@@ -527,7 +584,8 @@ static const shell_command_t shell_commands[] = {
 	{ "clear", "<all | joinkey> clears settings in NVRAM", ls_clear_nvram },
 
     { "list", "-- prints list of connected devices", ls_list_cmd },
-
+	{ "add", "<nodeid> <appid> <addr> <devnonce> <channel> -- adds node to the list", add_cmd },
+	{ "kick", "<addr> -- kicks node from the list by its address", kick_cmd},
     { NULL, NULL, NULL }
 };
 

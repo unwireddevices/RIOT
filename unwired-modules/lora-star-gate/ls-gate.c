@@ -586,6 +586,10 @@ static void *tim_handler(void *arg)
 					if (!ls->devices.nodes_free_list[i]) {
 						ls_gate_node_t *node = &ls->devices.nodes[i];
 
+						/* Don't kick static nodes */
+						if (node->is_static)
+							continue;
+
 						int diff = ls->_internal.ping_count - node->last_seen;
 
 						if (diff >= LS_MAX_PING_DIFFERENCE) {
@@ -599,7 +603,6 @@ static void *tim_handler(void *arg)
 						}
 					}
 				}
-
 
                 /* Restart timer */
                 xtimer_set_msg(&ls->_internal.ping_timer, LS_PING_TIMEOUT, &msg_ping, ls->_internal.tim_thread_pid);

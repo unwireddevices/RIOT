@@ -140,6 +140,8 @@ typedef struct {
 
 	ls_node_class_t class;						/**< Device class */
 	uint64_t ability;							/**< Device abilities set up by the used modules */
+
+	bool no_join;								/**< Statically personalized device, no join required */
 } ls_ed_settings_t;
 
 typedef struct {

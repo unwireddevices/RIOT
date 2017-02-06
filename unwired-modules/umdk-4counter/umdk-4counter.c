@@ -201,8 +201,8 @@ static void *handler(void *arg)
                 *(tmp + 1) = conf_counter.count_value[1] << 16;
                 *(tmp + 1) |= (conf_counter.count_value[2] >> 8) & 0xFFFF;
                 
-                *(tmp + 3) = (conf_counter.count_value[2] << 24);
-                *(tmp + 3) |= conf_counter.count_value[3] & 0xFFFFFF;
+                *(tmp + 2) = (conf_counter.count_value[2] << 24);
+                *(tmp + 2) |= conf_counter.count_value[3] & 0xFFFFFF;
 
                 save_config(); /* Save values into NVRAM */
 

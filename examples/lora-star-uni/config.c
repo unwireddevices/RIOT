@@ -82,7 +82,7 @@ bool load_config_nvram(nvram_t *nvram)
     if (nvram->read(nvram, (uint8_t *) &temp_config, CONFIG_ADDR, CONFIG_SIZE)) {
         /* Check magic */
         if (temp_config.magic != CONFIG_MAGIC) {
-            puts("Magic is worng");
+            puts("Magic is wrong");
             return false;
         }
 

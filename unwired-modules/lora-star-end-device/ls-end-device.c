@@ -176,7 +176,7 @@ static uint8_t get_node_status(void)
     temp += 40; /* -40 is the minimim */
     temp /= 20; /* 20 deg C per bit */  
     
-    return (uint8_t)((vdd & 0x1F) & ((temp & 0x7) << 5));
+    return (uint8_t)((vdd & 0x1F) | ((temp & 0x7) << 5));
 }
 
 static int send_frame(ls_ed_t *ls, ls_type_t type, uint8_t *buf, size_t buflen)

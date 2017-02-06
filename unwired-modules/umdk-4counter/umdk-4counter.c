@@ -296,21 +296,23 @@ bool umdk_4counter_cmd(module_data_t *cmd, module_data_t *reply)
             }
 
             uint8_t period = cmd->data[1];
+            /* do not change period if new one is 0 or > max */
+            if ((!period) || (period > UMDK_4COUNT_PUBLISH_PERIOD_MAX)) {
+                reply->length = 2;
+                reply->data[0] = UNWDS_4COUNTER_MODULE_ID;
+                reply->data[1] = 253;
+                return true;
+            }
+            
             rtctimers_remove(&publishing_timer);
 
             conf_counter.publish_period = period;
             save_config();
 
-            /* Don't restart timer if new period is zero and if new period more max */
-            if ((conf_counter.publish_period) && (conf_counter.publish_period < (UMDK_4COUNT_PUBLISH_PERIOD_MAX + 1))) {
-                rtctimers_set_msg(&publishing_timer, \
-                                  UMDK_4COUNT_VALUE_PERIOD_PER_SEC * conf_counter.publish_period, \
-                                  &publishing_msg, handler_pid);
-                printf("[umdk-4counter] Period set to %d hour (s)\n", conf_counter.publish_period);
-            }
-            else {
-                puts("[umdk-4counter] Timer stopped");
-            }
+            rtctimers_set_msg(&publishing_timer, \
+                              UMDK_4COUNT_VALUE_PERIOD_PER_SEC * conf_counter.publish_period, \
+                              &publishing_msg, handler_pid);
+            printf("[umdk-4counter] Period set to %d hour (s)\n", conf_counter.publish_period);
 
             reply->length = 4;
             reply->data[0] = UNWDS_4COUNTER_MODULE_ID;

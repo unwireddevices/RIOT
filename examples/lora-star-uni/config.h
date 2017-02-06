@@ -46,15 +46,21 @@ typedef struct {
 typedef struct {
 	uint32_t magic;							/**< Structure magic */
 	uint8_t version;						/**< Structure version */
-
 	uint64_t appid64;						/**< Application ID */
 	uint8_t nwk_key[16];					/**< Network AES-128 key */
-	uint32_t dev_nonce;
-
 	uint8_t role_config[ROLE_CONFIG_SIZE];	/**< Role specific configuration block */
-
+    uint32_t dev_nonce;
 	uint32_t cfg_crc;						/**< Configuration's CRC block */
 } nvram_config_t;
+
+typedef struct {
+	uint32_t magic;							/**< Structure magic */
+	uint8_t version;						/**< Structure version */
+	uint64_t appid64;						/**< Application ID */
+	uint8_t nwk_key[16];					/**< Network AES-128 key */
+	uint8_t role_config[ROLE_CONFIG_SIZE];	/**< Role specific configuration block */
+	uint32_t cfg_crc;						/**< Configuration's CRC block */
+} nvram_old_config_t;
 
 #define CONFIG_SIZE (sizeof(nvram_config_t))
 

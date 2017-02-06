@@ -82,12 +82,26 @@ bool load_config_nvram(nvram_t *nvram)
     if (nvram->read(nvram, (uint8_t *) &temp_config, CONFIG_ADDR, CONFIG_SIZE)) {
         /* Check magic */
         if (temp_config.magic != CONFIG_MAGIC) {
+            puts("Magic is worng");
             return false;
         }
 
         /* Check CRC */
         if (!check_crc_config(&temp_config, temp_config.cfg_crc)) {
-            return false;
+            /* let's check if it's an old config version */
+            
+            nvram_old_config_t old_config;
+            if (nvram->read(nvram, (uint8_t *) &old_config, CONFIG_ADDR, CONFIG_SIZE - 4)) {
+                uint16_t actual_crc = get_crc((uint8_t *) &old_config, CONFIG_SIZE - 4 - 4);
+                if (actual_crc != old_config.cfg_crc) {
+                    puts("CRC is wrong");
+                    return false;
+                } else {
+                    puts ("Converting old config to a new one");
+                    memcpy(&config, &temp_config, sizeof(nvram_config_t));
+                    save_config_nvram(nvram);
+                }
+            }
         }
 
         memcpy(&config, &temp_config, sizeof(nvram_config_t));

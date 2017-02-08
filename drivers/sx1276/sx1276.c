@@ -208,7 +208,7 @@ sx1276_init_result_t sx1276_init(sx1276_t *dev)
     sx1276_set_channel(dev, dev->settings.channel);
 
     /* Create DIO event lines handler */
-    kernel_pid_t pid = thread_create((char *) dev->_internal.dio_polling_thread_stack, sizeof(dev->_internal.dio_polling_thread_stack), THREAD_PRIORITY_MAIN,
+    kernel_pid_t pid = thread_create((char *) dev->_internal.dio_polling_thread_stack, sizeof(dev->_internal.dio_polling_thread_stack), THREAD_PRIORITY_MAIN - 2,
                                      THREAD_CREATE_STACKTEST, dio_polling_thread, dev,
                                      "sx1276 DIO handler");
 

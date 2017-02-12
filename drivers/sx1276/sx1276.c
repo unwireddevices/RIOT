@@ -172,6 +172,11 @@ static int _init_peripherals(sx1276_t *dev)
                (long)dev->nss_pin, res);
         return 0;
     }
+    
+    #ifdef SX1276_RFSWITCH
+        gpio_init(SX1276_RFSWITCH, GPIO_OUT);
+        gpio_set(SX1276_RFSWITCH);
+    #endif
 
     gpio_set(dev->nss_pin);
 
@@ -932,11 +937,20 @@ void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode)
 		gpio_irq_disable(dev->dio1_pin);
 		gpio_irq_disable(dev->dio2_pin);
 		gpio_irq_disable(dev->dio3_pin);
+        
+        #ifdef SX1276_RFSWITCH
+            /* disable RF switch power */
+            gpio_set(SX1276_RFSWITCH);
+        #endif
 	} else {
 		gpio_irq_enable(dev->dio0_pin);
 		gpio_irq_enable(dev->dio1_pin);
 		gpio_irq_enable(dev->dio2_pin);
 		gpio_irq_enable(dev->dio3_pin);
+        #ifdef SX1276_RFSWITCH
+            /* enable RF switch power */
+            gpio_clear(SX1276_RFSWITCH);
+        #endif
 	}
 }
 

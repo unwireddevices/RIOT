@@ -95,20 +95,21 @@ extern "C" {
 #define UNWD_GPIO_16 GPIO_PIN(PORT_B, 1)
 #define UNWD_GPIO_17 GPIO_PIN(PORT_B, 2)
 
-
 #define UNWD_GPIO_30 GPIO_PIN(PORT_B, 1)
 #define UNWD_GPIO_29 GPIO_PIN(PORT_B, 10)
 #define UNWD_GPIO_28 GPIO_PIN(PORT_B, 9)
 #define UNWD_GPIO_27 GPIO_PIN(PORT_B, 8)
+#define UNWD_GPIO_26 GPIO_PIN(PORT_B, 7)
+#define UNWD_GPIO_25 GPIO_PIN(PORT_B, 6)
 #define UNWD_GPIO_24 GPIO_PIN(PORT_B, 5)
 
 /** @} */
 
-#define UART_STDIO_DEV              (UART_DEV(0))
+#define UART_STDIO_NUM              (1)
 #define UART_STDIO_BAUDRATE         (115200U)
 #define UART_STDIO_RX_BUFSIZE       (64U)
 
-#define GATE_COMM_UART              (UART_DEV(1))
+#define GATE_COMM_UART              (UART_DEV(0))
 
 #define UMDK_UART_DEV 1
 #define UMDK_UART_BAUDRATE_NO 7 /* 115200 */

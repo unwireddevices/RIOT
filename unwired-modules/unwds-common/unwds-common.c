@@ -46,6 +46,7 @@ extern "C" {
 #include "umdk-pwm.h"
 #include "umdk-opt3001.h"
 #include "umdk-dali.h"
+#include "umdk-bme280.h"
 
 /**
  * @brief Bitmap of occupied pins that cannot be used as gpio in-out
@@ -106,6 +107,9 @@ static const unwd_module_t modules[] = {
 #endif
 #ifdef umdk_dali
 	{ UNWDS_DALI_MODULE_ID, "dali", umdk_dali_init, umdk_dali_cmd, NULL, 1 << 16 },
+#endif
+#ifdef umdk_dali
+	{ UNWDS_BME280_MODULE_ID, "bme280", umdk_bme280_init, umdk_bme280_cmd, NULL, 1 << 17 },
 #endif
     { 0, "", NULL, NULL },
 };

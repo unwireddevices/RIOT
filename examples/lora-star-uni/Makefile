@@ -57,6 +57,7 @@ UNWD_RSSIECHO = 1
 UNWD_PWM      = 1
 UNWD_OPT3001  = 1
 UNWD_DALI	  = 1
+UNWD_BME280   = 1
 
 ####### UNWD MMODULES' includes & flags ############
 ifeq ($(UNWD_GPIO),1)
@@ -160,6 +161,13 @@ USEMODULE += umdk-dali
 CFLAGS += -Dumdk_dali
 endif
 INCLUDES += -I../../unwired-modules/umdk-dali/include/
+
+ifeq ($(UNWD_BME280),1)
+USEMODULE += umdk-bme280
+USEMODULE += bme280
+CFLAGS += -Dumdk_bme280
+endif
+INCLUDES += -I../../unwired-modules/umdk-bme280/include/
 ####################################################
 
 

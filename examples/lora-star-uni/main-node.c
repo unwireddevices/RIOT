@@ -688,8 +688,6 @@ void init_node(shell_command_t **commands)
         ls_setup(&ls);
         ls_ed_init(&ls);
 
-        wakeup_cb();
-
         unwds_set_ability(node_settings.ability);
         ls.settings.ability = node_settings.ability;
         ls.settings.class = node_settings.class;
@@ -712,8 +710,9 @@ void init_node(shell_command_t **commands)
 
         if (!node_settings.no_join)
         	ls_ed_join(&ls);
-        else
+        else if (node_settings.class == LS_ED_CLASS_A) {
         	ls.standby_mode_cb();
+        }
     }
     lpm_prevent_switch = 0;
 }

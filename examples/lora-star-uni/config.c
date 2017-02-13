@@ -175,6 +175,8 @@ bool config_write_main_block(uint64_t appid64, uint8_t joinkey[16], uint32_t dev
 
 bool load_eui64_nvram(nvram_t *nvram)
 {
+    nv = nvram;
+    
     config_eui64_t temp_eui64;
 
     if (nvram->read(nvram, (uint8_t *) &temp_eui64, CONFIG_EUI64_ADDR, sizeof(config_eui64_t))) {

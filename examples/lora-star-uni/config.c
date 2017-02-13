@@ -131,6 +131,9 @@ bool save_eui64_nvram(nvram_t *nvram)
 
 bool save_config_nvram(nvram_t *nvram)
 {
+    config.magic = CONFIG_MAGIC;
+    config.version = CONFIG_FORMAT_VER;
+
     /* Calculate checksum excluding old CRC field at the end*/
     config.cfg_crc = get_crc((uint8_t *) &config, CONFIG_SIZE - 4);
 

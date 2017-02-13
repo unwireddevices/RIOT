@@ -124,6 +124,31 @@ enum {
     UART_NOMODE     = -4    /**< given mode is not applicable */
 };
 
+enum {
+    UART_DATABITS_8 = 0,
+    UART_DATABITS_9 = 1
+};
+
+enum {
+    UART_PARITY_NOPARITY = 0,
+    UART_PARITY_ODD = 1,
+    UART_PARITY_EVEN = 2
+};
+
+enum {
+    UART_STOPBITS_05 = 0,
+    UART_STOPBITS_10 = 1,
+    UART_STOPBITS_15 = 2,
+    UART_STOPBITS_20 = 3
+};
+
+typedef struct {
+    uint32_t baudrate;
+    uint8_t  databits;
+    uint8_t  parity;
+    uint8_t  stopbits;
+} uart_params_t;
+
 /**
  * @brief   Initialize a given UART device
  *
@@ -145,6 +170,13 @@ enum {
  * @return                  UART_INTERR on other errors
  */
 int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg);
+
+
+/**
+ * @brief   Initialize a given UART device with extended parameters
+ *
+ */
+int uart_init_ext(uart_t uart, uart_params_t *params, uart_rx_cb_t rx_cb, void *arg);
 
 /**
  * @brief   Write data from the given buffer to the specified UART device

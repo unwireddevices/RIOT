@@ -44,7 +44,7 @@ static inline USART_TypeDef *dev(uart_t uart)
     return uart_config[uart].dev;
 }
 
-int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
+int uart_init_ext(uart_t uart, uart_params_t *params, uart_rx_cb_t rx_cb, void *arg)
 {
     uint16_t mantissa;
     uint8_t fraction;
@@ -75,9 +75,39 @@ int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
     dev(uart)->CR1 = 0;
     dev(uart)->CR2 = 0;
     dev(uart)->CR3 = 0;
-
+    
+    if (params->databits == UART_DATABITS_9) {
+        dev(uart)->CR1 |= USART_CR1_M;
+    }
+    
+    switch (params->parity) {
+        case UART_PARITY_ODD:
+            dev(uart)->CR1 |= USART_CR1_PCE;
+            dev(uart)->CR1 |= USART_CR1_PS;
+            break;
+        case UART_PARITY_EVEN:
+            dev(uart)->CR1 |= USART_CR1_PCE;
+            break;
+        default:
+            break;
+    }
+    
+    switch (params->stopbits) {
+        case UART_STOPBITS_05:
+            dev(uart)->CR2 |= USART_CR2_STOP_0;
+            break;
+        case UART_STOPBITS_15:
+            dev(uart)->CR2 |= (USART_CR2_STOP_0 | USART_CR2_STOP_1);
+            break;
+        case UART_STOPBITS_20:
+            dev(uart)->CR2 |= USART_CR2_STOP_1;
+            break;
+        default:
+            break;
+    }
+    
     /* calculate and apply baudrate */
-    clk = periph_apb_clk(uart_config[uart].bus) / baudrate;
+    clk = periph_apb_clk(uart_config[uart].bus) / params->baudrate;
     mantissa = (uint16_t)(clk / 16);
     fraction = (uint8_t)(clk - (mantissa * 16));
     dev(uart)->BRR = ((mantissa & 0x0fff) << 4) | (fraction & 0x0f);
@@ -92,6 +122,16 @@ int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
     }
 
     return UART_OK;
+}
+
+int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg) {
+    uart_params_t params;
+    params.baudrate = baudrate;
+    params.databits = UART_DATABITS_8;
+    params.parity = UART_PARITY_NOPARITY;
+    params.stopbits = UART_STOPBITS_10;
+    
+    return uart_init_ext(uart, &params, rx_cb, arg);
 }
 
 void uart_write(uart_t uart, const uint8_t *data, size_t len)

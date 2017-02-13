@@ -129,6 +129,12 @@ static void init_config(void) {
 		reset_config();
 		return;
 	}
+    
+    /* simple check if we're upgrading from previous version */
+    if (umdk_uart_config.stopbits > UART_STOPBITS_20) {
+		reset_config();
+		return;
+    }
 
 	if (umdk_uart_config.uart_dev >= UART_NUMOF) {
 		reset_config();
@@ -276,15 +282,14 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
                 break;
             }
 
-            uint32_t baud; // = data->data[1];
-            uint8_t databits;
-            uint8_t stopbits;
+            uint32_t baud;
+            int databits;
+            int stopbits;
             char parity;
             
             uart_params_t uart_params;
             
-            if (sscanf((char *)&data->data[1], "%lu-%hhu%c%hhu", &baud, &databits, &parity, &stopbits) != 4) {
-                puts("umdk-uart: Invalid parameters string");
+            if (sscanf((char *)&data->data[1], "%lu-%d%c%d", &baud, &databits, &parity, &stopbits) != 4) {
                 do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
                 return true;
             }

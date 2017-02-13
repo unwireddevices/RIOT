@@ -37,6 +37,7 @@
 typedef enum {
 	UMDK_UART_SEND_ALL = 0,
 	UMDK_UART_SET_BAUDRATE = 1,
+    UMDK_UART_SET_PARAMETERS = 2,
 } umdk_uart_prefix_t;
 
 typedef enum {

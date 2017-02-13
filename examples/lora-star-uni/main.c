@@ -134,17 +134,17 @@ int main(void)
     /* Check EUI64 */
     if (!load_eui64_nvram(&nvram)) {
     	puts("[config] No EUI64 defined for this device. Please provide EUI64 and reboot to apply changes.");
-    }
-	
-	/* It's first launch or config memory is corrupted */
-	if (!load_config_nvram(&nvram)) {
-		puts("[config] No valid configuration found in NVRAM. It's either first launch or NVRAM content is corrupted.");
-		puts("[config] Could you please provide APPID64 and JOINKEY for this device?");
+    } else {
+        if (!load_config_nvram(&nvram)) {
+            /* It's first launch or config memory is corrupted */
+            puts("[config] No valid configuration found in NVRAM. It's either first launch or NVRAM content is corrupted.");
+            puts("[config] Could you please provide APPID64 and JOINKEY for this device?");
 
-		//config_reset_nvram(&nvram);
-	} else {
-		puts("[config] Configuration loaded from NVRAM");
-	}
+            //config_reset_nvram(&nvram);
+        } else {
+            puts("[config] Configuration loaded from NVRAM");
+        }
+    }
 
     init_role(config_get_role());
 

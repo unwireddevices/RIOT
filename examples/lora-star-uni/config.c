@@ -145,14 +145,14 @@ bool clear_nvram(void)
 
 config_role_t config_get_role(void)
 {
-    if (!config_valid) {
-    	return ROLE_NO_CFG;
-    }
-
 	if (!eui64_valid) {
         return ROLE_NO_EUI64;
     }
 
+    if (!config_valid) {
+    	return ROLE_NO_CFG;
+    }
+    
 	if (!key_valid) {
 		return ROLE_EMPTY_KEY;
 	}
@@ -180,6 +180,7 @@ bool load_eui64_nvram(nvram_t *nvram)
     if (nvram->read(nvram, (uint8_t *) &temp_eui64, CONFIG_EUI64_ADDR, sizeof(config_eui64_t))) {
         /* Check CRC */
         if (!check_crc_eui64(&temp_eui64, temp_eui64.crc)) {
+            puts("EUI64 CRC check failed");
             return false;
         }
 

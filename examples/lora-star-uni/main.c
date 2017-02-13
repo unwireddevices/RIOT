@@ -140,7 +140,7 @@ int main(void)
             puts("[config] No valid configuration found in NVRAM. It's either first launch or NVRAM content is corrupted.");
             puts("[config] Could you please provide APPID64 and JOINKEY for this device?");
 
-            //config_reset_nvram(&nvram);
+            config_reset_nvram(&nvram);
         } else {
             puts("[config] Configuration loaded from NVRAM");
         }

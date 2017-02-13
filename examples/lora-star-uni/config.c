@@ -145,12 +145,12 @@ bool clear_nvram(void)
 
 config_role_t config_get_role(void)
 {
-    if (!config_valid) {
-    	return ROLE_NO_CFG;
-    }
-
 	if (!eui64_valid) {
         return ROLE_NO_EUI64;
+    }
+
+	if (!config_valid) {
+    	return ROLE_NO_CFG;
     }
 
 	if (!key_valid) {

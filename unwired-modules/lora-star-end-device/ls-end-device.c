@@ -867,7 +867,7 @@ int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed
 
     /* Not joined to the network, delay appdata frame until device is joined */
     if (!ls->settings.no_join && !ls->_internal.is_joined) {
-    	if (ls->standby_mode_cb)
+    	if (ls->standby_mode_cb && ls->settings.class == LS_ED_CLASS_A)
     		ls->standby_mode_cb();
 
     	appdata_fifo_t *fifo = &ls->_internal.appdata_fifo;
@@ -964,7 +964,7 @@ void ls_ed_sleep(ls_ed_t *ls)
     ls->state = LS_ED_SLEEP;
     sx1276_set_sleep(ls->_internal.sx1276);
 
-    if (ls->standby_mode_cb != NULL)
+    if (ls->standby_mode_cb != NULL && ls->settings.class == LS_ED_CLASS_A)
     	ls->standby_mode_cb();
 }
 

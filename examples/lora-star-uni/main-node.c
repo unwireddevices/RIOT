@@ -62,7 +62,7 @@ typedef struct {
 
     ls_node_class_t class;
 
-    uint64_t ability;       /**< Defines ability mask - list of enabled UNWDS modules */
+    uint64_t enabled_mods;       /**< Defines ability mask - list of enabled UNWDS modules */
 
     bool region_not_set;
     uint8_t region_index;   /**< Selected channels region index */
@@ -442,7 +442,7 @@ static void print_config(void)
     printf("MAXRETR = %d\n", node_settings.max_retr);
 
     puts("[ enabled modules ]");
-    unwds_list_modules(node_settings.ability, true);
+    unwds_list_modules(node_settings.enabled_mods, true);
 }
 
 static int ls_printc_cmd(int argc, char **argv)
@@ -516,7 +516,7 @@ int ls_cmd_cmd(int argc, char **argv)
 static int ls_listmodules_cmd(int argc, char **argv)
 {
     puts("[ available modules ]");
-    unwds_list_modules(node_settings.ability, false);
+    unwds_list_modules(node_settings.enabled_mods, false);
 
     return 0;
 }
@@ -529,6 +529,7 @@ static int ls_module_cmd(int argc, char **argv)
     }
 
     uint8_t modid = atoi(argv[1]);
+    uint64_t mask = (uint64_t) (1 << modid);
     if (!unwds_is_module_exists(modid)) {
         puts("mod: module with specified id doesn't exist");
         return 1;
@@ -536,12 +537,12 @@ static int ls_module_cmd(int argc, char **argv)
 
     if (atoi(argv[2])) {
         /* Enable module */
-        node_settings.ability |= unwds_get_ability_mask(modid);
+        node_settings.enabled_mods |= mask;
         printf("mod: %s [%d] enabled. Save and reboot to apply changes\n", unwds_get_module_name(modid), modid);
     }
     else {
         /* Disable module */
-        node_settings.ability &= ~unwds_get_ability_mask(modid);
+        node_settings.enabled_mods &= ~(mask);
         printf("mod: %s [%d] disabled. Save and reboot to apply changes\n", unwds_get_module_name(modid), modid);
     }
 
@@ -688,8 +689,8 @@ void init_node(shell_command_t **commands)
         ls_setup(&ls);
         ls_ed_init(&ls);
 
-        unwds_set_ability(node_settings.ability);
-        ls.settings.ability = node_settings.ability;
+        unwds_set_enabled(node_settings.enabled_mods);
+        ls.settings.ability = node_settings.enabled_mods;
         ls.settings.class = node_settings.class;
 
         unwds_setup_nvram_config(config_get_nvram(), UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);

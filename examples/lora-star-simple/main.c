@@ -485,7 +485,7 @@ int main(void)
 
     unwds_init(unwds_callback);
 
-    ls.settings.ability = unwds_get_ability();
+    ls.settings.ability = unwds_get_enabled();
 
     xtimer_usleep(1e6 * 1);
     ls_ed_join(&ls);

@@ -95,16 +95,14 @@ typedef struct {
 	bool (*cmd_cb)(module_data_t *data, module_data_t *reply);
 
 	bool (*cmb_broadcast_cb)(module_data_t *data, module_data_t *reply);
-
-	uint64_t ability_mask;
 } unwd_module_t;
 
 void unwds_init_modules(uwnds_cb_t *event_callback);
 bool unwds_send_to_module(unwds_module_id_t modid, module_data_t *data, module_data_t *reply);
 bool unwds_send_broadcast(unwds_module_id_t modid, module_data_t *data, module_data_t *reply);
 
-uint64_t unwds_get_ability(void);
-void unwds_set_ability(uint64_t ability);
+uint64_t unwds_get_enabled(void);
+void unwds_set_enabled(uint64_t ability);
 
 char *unwds_get_module_name(unwds_module_id_t modid);
 

@@ -54,62 +54,62 @@ extern "C" {
 static uint32_t non_gpio_pin_map;
 
 /**
- * @brief Device abilities enabled by the used modules mask
+ * @brief Bitmap of enabled modules
  */
-static uint64_t ability_map;
+static uint64_t enabled_bitmap;
 
 static const unwd_module_t modules[] = {
 
 #ifdef umdk_gpio
-    { UNWDS_GPIO_MODULE_ID, "gpio", unwds_gpio_init, unwds_gpio_cmd, unwds_gpio_broadcast, 1 << 1 },
+    { UNWDS_GPIO_MODULE_ID, "gpio", unwds_gpio_init, unwds_gpio_cmd, unwds_gpio_broadcast },
 #endif
 #ifdef umdk_4btn
-    { UNWDS_4BTN_MODULE_ID, "4btn", umdk_4btn_init, umdk_4btn_cmd, NULL, 1 << 2 },
+    { UNWDS_4BTN_MODULE_ID, "4btn", umdk_4btn_init, umdk_4btn_cmd, NULL },
 #endif
 #ifdef umdk_gps
-    { UNWDS_GPS_MODULE_ID, "gps", umdk_gps_init, umdk_gps_cmd, NULL, 1 << 3 },
+    { UNWDS_GPS_MODULE_ID, "gps", umdk_gps_init, umdk_gps_cmd, NULL },
 #endif
 #ifdef umdk_lsm6ds3
-	{ UNWDS_LSM6DS3_MODULE_ID, "lsm6ds3", umdk_lsm6ds3_init, umdk_lsm6ds3_cmd, NULL, 1 << 5 },
+	{ UNWDS_LSM6DS3_MODULE_ID, "lsm6ds3", umdk_lsm6ds3_init, umdk_lsm6ds3_cmd, NULL },
 #endif
 #ifdef umdk_lm75
-    { UNWDS_LM75_MODULE_ID, "lm75", umdk_lm75_init, umdk_lm75_cmd, NULL, 1 << 4 },
+    { UNWDS_LM75_MODULE_ID, "lm75", umdk_lm75_init, umdk_lm75_cmd, NULL },
 #endif
 #ifdef umdk_lmt01
-	{ UNWDS_LMT01_MODULE_ID, "lmt01", umdk_lmt01_init, umdk_lmt01_cmd, NULL, 1 << 6 },
+	{ UNWDS_LMT01_MODULE_ID, "lmt01", umdk_lmt01_init, umdk_lmt01_cmd, NULL},
 #endif
 #ifdef umdk_uart
-	{ UNWDS_UART_MODULE_ID, "uart", umdk_uart_init, umdk_uart_cmd, NULL, 1 << 7 },
+	{ UNWDS_UART_MODULE_ID, "uart", umdk_uart_init, umdk_uart_cmd, NULL },
 #endif
 #ifdef umdk_sht21
-	{ UNWDS_SHT21_MODULE_ID, "sht21", umdk_sht21_init, umdk_sht21_cmd, NULL, 1 << 8 },
+	{ UNWDS_SHT21_MODULE_ID, "sht21", umdk_sht21_init, umdk_sht21_cmd, NULL },
 #endif
 #ifdef umdk_pir
-	{ UNWDS_PIR_MODULE_ID, "pir", umdk_pir_init, umdk_pir_cmd, NULL, 1 << 9 },
+	{ UNWDS_PIR_MODULE_ID, "pir", umdk_pir_init, umdk_pir_cmd, NULL },
 #endif
 #ifdef umdk_6adc
-	{ UNWDS_6ADC_MODULE_ID, "6adc", umdk_6adc_init, umdk_6adc_cmd, NULL, 1 << 10 },
+	{ UNWDS_6ADC_MODULE_ID, "6adc", umdk_6adc_init, umdk_6adc_cmd, NULL },
 #endif
 #ifdef umdk_lps331
-	{ UNWDS_LPS331_MODULE_ID, "lps331", umdk_lps331_init, umdk_lps331_cmd, NULL, 1 << 11 },
+	{ UNWDS_LPS331_MODULE_ID, "lps331", umdk_lps331_init, umdk_lps331_cmd, NULL },
 #endif
 #ifdef umdk_4counter
-	{ UNWDS_4COUNTER_MODULE_ID, "4counter", umdk_4counter_init, umdk_4counter_cmd, NULL, 1 << 12 },
+	{ UNWDS_4COUNTER_MODULE_ID, "4counter", umdk_4counter_init, umdk_4counter_cmd, NULL },
 #endif
 #ifdef umdk_rssiecho
-	{ UNWDS_RSSIECHO_MODULE_ID, "echo", umdk_rssiecho_init, umdk_rssiecho_cmd, NULL, 1 << 13 },
+	{ UNWDS_RSSIECHO_MODULE_ID, "echo", umdk_rssiecho_init, umdk_rssiecho_cmd, NULL },
 #endif
 #ifdef umdk_pwm
-	{ UNWDS_PWM_MODULE_ID, "pwm", umdk_pwm_init, umdk_pwm_cmd, NULL, 1 << 14 },
+	{ UNWDS_PWM_MODULE_ID, "pwm", umdk_pwm_init, umdk_pwm_cmd, NULL },
 #endif
 #ifdef umdk_opt3001
-	{ UNWDS_OPT3001_MODULE_ID, "opt3001", umdk_opt3001_init, umdk_opt3001_cmd, NULL, 1 << 15 },
+	{ UNWDS_OPT3001_MODULE_ID, "opt3001", umdk_opt3001_init, umdk_opt3001_cmd, NULL },
 #endif
 #ifdef umdk_dali
-	{ UNWDS_DALI_MODULE_ID, "dali", umdk_dali_init, umdk_dali_cmd, NULL, 1 << 16 },
+	{ UNWDS_DALI_MODULE_ID, "dali", umdk_dali_init, umdk_dali_cmd, NULL },
 #endif
 #ifdef umdk_bme280
-	{ UNWDS_BME280_MODULE_ID, "bme280", umdk_bme280_init, umdk_bme280_cmd, NULL, 1 << 17 },
+	{ UNWDS_BME280_MODULE_ID, "bme280", umdk_bme280_init, umdk_bme280_cmd, NULL },
 #endif
     { 0, "", NULL, NULL },
 };
@@ -186,7 +186,7 @@ void unwds_init_modules(uwnds_cb_t *event_callback)
 
 	/* Initialize modules */
     while (modules[i].init_cb != NULL && modules[i].cmd_cb != NULL) {
-    	if (ability_map & modules[i].ability_mask) {	/* Module enabled */
+    	if (enabled_bitmap & (1 << modules[i].module_id)) {	/* Module enabled */
     		printf("[unwds] initializing \"%s\" module...\n", modules[i].name);
         	modules[i].init_cb(&non_gpio_pin_map, event_callback);
     	}
@@ -207,11 +207,11 @@ static unwd_module_t *find_module(unwds_module_id_t modid) {
     return NULL;
 }
 
-void unwds_list_modules(uint64_t ability, bool enabled_only) {
+void unwds_list_modules(uint64_t enabled_mods, bool enabled_only) {
 	int i = 0;
 	int modcount = 0;
     while (modules[i].init_cb != NULL && modules[i].cmd_cb != NULL) {
-    	bool enabled = (ability & modules[i].ability_mask);
+    	bool enabled = (enabled_mods & (1 << modules[i].module_id));
     	unwds_module_id_t modid = modules[i].module_id;
 
     	if (enabled_only && !enabled) {
@@ -229,16 +229,8 @@ void unwds_list_modules(uint64_t ability, bool enabled_only) {
     	puts("<no modules enabled>");
 }
 
-void unwds_set_ability(uint64_t ability) {
-	ability_map = ability;
-}
-
-uint64_t unwds_get_ability_mask(unwds_module_id_t modid) {
-	unwd_module_t *module = find_module(modid);
-	if (!module)
-		return 0;
-
-	return module->ability_mask;
+void unwds_set_enabled(uint64_t enabled_mods) {
+	enabled_bitmap = enabled_mods;
 }
 
 char *unwds_get_module_name(unwds_module_id_t modid) {
@@ -279,9 +271,9 @@ bool unwds_is_pin_occupied(uint32_t pin)
     return ((non_gpio_pin_map >> pin) & 0x1);
 }
 
-uint64_t unwds_get_ability(void)
+uint64_t unwds_get_enabled(void)
 {
-    return ability_map;
+    return enabled_bitmap;
 }
 
 #ifdef __cplusplus

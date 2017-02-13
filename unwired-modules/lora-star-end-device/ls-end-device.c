@@ -237,6 +237,9 @@ static bool ack_recv(ls_ed_t *ls, ls_frame_t  *frame) {
 	/* Advance frame ID */
 	ls->_internal.last_fid++;
 
+	/* Reset number of retries */
+	ls->_internal.num_retr = 0;
+
 	puts("ls-ed: confirmation received");   // XXX: debug
 
 	ls->_internal.confirmation_required = false;

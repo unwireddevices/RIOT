@@ -37,7 +37,8 @@ extern "C" {
 
 static kernel_pid_t handler_pid;
 
-static uint32_t last_pressed[4] = {};
+#define UMDK_4BTN_NUM_BUTTONS 4
+static gpio_t buttons[UMDK_4BTN_NUM_BUTTONS] = {UMDK_4BTN_1, UMDK_4BTN_2, UMDK_4BTN_3, UMDK_4BTN_4};
 
 static uwnds_cb_t *callback;
 
@@ -48,14 +49,15 @@ static void *handler(void *arg) {
 
     while (1) {
         msg_receive(&msg);
-        int btn = msg.type + 1;
+        int btn = msg.type;
 
         //printf("[4btn] Pressed: %d\n", btn);
 
         module_data_t data;
-        data.length = 2;
+        data.length = 3;
         data.data[0] = UNWDS_4BTN_MODULE_ID;
-        data.data[1] = btn;
+        data.data[1] = (btn & 0xFF) + 1;
+        data.data[2] = (btn >> 16);
 
         callback(&data);
     }
@@ -64,27 +66,48 @@ static void *handler(void *arg) {
 }
 
 static void btn_pressed_int(void *arg) {
-	int btn_num = ((int) arg) - 1;
+	int btn_num = (int) arg;
+    
+    gpio_irq_disable(buttons[btn_num]);
+    
+    uint8_t now_value = 0;
+    uint8_t last_value = gpio_read(buttons[btn_num]);
 
-    uint32_t now = xtimer_now().ticks32;
-    /* Timer overflows every ~71 minutes */
-	uint32_t overflow = 0;
-	if (last_pressed[btn_num] > now) {
-		overflow = UINT32_MAX - last_pressed[btn_num];
-	}
-	/* Don't accept a press of current button if it did occur earlier than last press plus debouncing time */
-    if (overflow + now - last_pressed[btn_num] <= UMDK_4BTN_DEBOUNCE_TIME_MS * 1000) {
-    	puts("[4btn] Press rejected");
-    	return;
-	}
-
+    uint8_t value_counter = 0;
+    uint8_t error_counter = 0;
+    volatile int delay = 0;
+    
+    do {
+        for (delay = 0; delay < 10000; delay ++) {}       
+        now_value = gpio_read(buttons[btn_num]);
+        
+        if (now_value == last_value) {
+            value_counter++;
+            last_value = now_value;
+        } else {
+            value_counter = 0;
+            error_counter++;
+        }
+    } while ((value_counter < 5) && (error_counter < 100));
+    
+    if (error_counter == 100) {
+        puts("[4btn] Press rejected");
+        gpio_irq_enable(buttons[btn_num]);
+        return;
+    }
+    
     printf("[4btn] Pressed: %d\n", btn_num + 1);
-    last_pressed[btn_num] = now;
 
     msg_t msg;
     msg.type = btn_num;
+    if (last_value) {
+        /* button released */
+        msg.type |= 1 << 16;
+    }
 
 	msg_send_int(&msg, handler_pid);
+    
+    gpio_irq_enable(buttons[btn_num]);
 }
 
 void umdk_4btn_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
@@ -93,10 +116,10 @@ void umdk_4btn_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	callback = event_callback;
 
 	/* Initialize interrupts */
-	gpio_init_int(UMDK_4BTN_1, GPIO_IN_PU, GPIO_FALLING, btn_pressed_int, (void *) 1);
-	gpio_init_int(UMDK_4BTN_2, GPIO_IN_PU, GPIO_FALLING, btn_pressed_int, (void *) 2);
-	gpio_init_int(UMDK_4BTN_3, GPIO_IN_PU, GPIO_FALLING, btn_pressed_int, (void *) 3);
-	gpio_init_int(UMDK_4BTN_4, GPIO_IN_PU, GPIO_FALLING, btn_pressed_int, (void *) 4);
+    int i = 0;
+    for (i = 0; i < UMDK_4BTN_NUM_BUTTONS; i++) {
+        gpio_init_int(buttons[i], GPIO_IN_PU, GPIO_BOTH, btn_pressed_int, (void *) i);
+    }
 
 	/* Create handler thread */
 	char *stack = (char *) allocate_stack();

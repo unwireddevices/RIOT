@@ -79,6 +79,13 @@ void print_logo(void)
     puts("");
 }
 
+static void __cycle_delay(void) {
+    volatile int t;
+    for (t = 0; t < 50000; t++) {
+        __asm("nop;");
+    }
+}
+
 void blink_led(void)
 {
     volatile int i;
@@ -87,10 +94,10 @@ void blink_led(void)
 
     for (i = 0; i < 2; i++) {
         LED0_TOGGLE;
-        xtimer_usleep(50000);
+        __cycle_delay();
 
         LED0_TOGGLE;
-        xtimer_usleep(50000);
+        __cycle_delay();
     }
 
     LED0_OFF;

@@ -199,7 +199,7 @@ int adc_sample(adc_t line,  adc_res_t res)
     /* read result */
     sample = (int)ADC1->DR;
     
-    int sample_ts;
+    int sample_ts = 0;
     if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL) {
         sample_ts = sample;
         while ((ADC1->SR & ADC_SR_EOC) == 0);

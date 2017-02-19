@@ -548,7 +548,13 @@ void sx1276_configure_lora(sx1276_t *dev, sx1276_lora_settings_t *settings)
         /* ERRATA 2.1 - Sensitivity Optimization with another Bandwidth */
         sx1276_reg_write(dev, REG_LR_TEST36, 0x03);
     }
-
+    
+    /* Enable LNA HF boost, as recommended in AN1200.23 */
+    sx1276_reg_write(dev, REG_LR_LNA, RFLR_LNA_BOOST_HF_ON);
+    
+    /* Enable Automatic Gain Control */
+    sx1276_reg_write(dev, REG_LR_MODEMCONFIG3, RFLR_MODEMCONFIG3_AGCAUTO_ON);
+    
     sx1276_reg_write(dev, REG_LR_DETECTOPTIMIZE, RFLR_DETECTIONOPTIMIZE_SF7_TO_SF12);
     sx1276_reg_write(dev, REG_LR_DETECTIONTHRESHOLD, RFLR_DETECTIONTHRESH_SF7_TO_SF12);
 }

@@ -127,20 +127,14 @@ typedef enum {
 typedef struct {
 	uint64_t node_id;							/**< Unique node ID */
 	uint64_t app_id;							/**< Unique application ID */
-
-	ls_datarate_t dr;							/**< End-device data rate */
-	ls_channel_t channel;						/**< Channel for the end-device */
-
+    uint64_t ability;							/**< Device abilities set up by the used modules */
 	const uint32_t *channels_table;				/**< Table of frequencies [Hz] of possible channels */
 	size_t channels_table_size;					/**< Size of the channels table */
-
-	ls_crypto_t crypto;							/**< Cryptography settings */
-
-	uint8_t max_retr;							/**< Maximum number of retransmissions */
-
+    ls_crypto_t crypto;							/**< Cryptography settings */
+	ls_datarate_t dr;							/**< End-device data rate */
+	ls_channel_t channel;						/**< Channel for the end-device */
 	ls_node_class_t class;						/**< Device class */
-	uint64_t ability;							/**< Device abilities set up by the used modules */
-
+	uint8_t max_retr;							/**< Maximum number of retransmissions */
 	bool no_join;								/**< Statically personalized device, no join required */
 } ls_ed_settings_t;
 

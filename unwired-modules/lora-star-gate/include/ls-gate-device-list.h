@@ -44,38 +44,27 @@ typedef struct {
 } ls_gate_node_nl_entry_t;
 
 typedef struct {
-	void *node_ch;				/**< Node's channel */
-
-	uint64_t node_id;			/**< Node unique ID */
-	uint64_t app_id;			/**< Application unique ID */
-
-	ls_node_class_t node_class;	/**< Node's class */
-
-	ls_addr_t addr;				/**< Node unique address in network */
+    uint64_t node_id;			/**< Node unique ID */
+	uint64_t app_id;			/**< Application unique ID */    
 	uint32_t last_seen;			/**< Time of the last node's activity in network */
-
-	uint32_t last_nonce;		/**< Last actual device nonce*/
+    uint32_t last_nonce;		/**< Last actual device nonce*/
 	uint32_t app_nonce;			/**< Application nonce */
-
-	ls_gate_node_nl_entry_t *nonce_list; /**< List of accepted device nonces */
-	uint8_t num_nonces;			/**< Number of remembered nonces  */
-
-	ls_device_status_t status;	/**< Last received device status */
-
-	uint8_t num_pending;		/**< Number of frames pending */
-
+    ls_addr_t addr;				/**< Node unique address in network */
+	void *node_ch;				/**< Node's channel */
+    ls_gate_node_nl_entry_t *nonce_list; /**< List of accepted device nonces */
+	ls_node_class_t node_class;	/**< Node's class */ /* UINT8 */
+    ls_device_status_t status;	/**< Last received device status */
 	ls_frame_id_t last_fid;		/**< Last received frame ID */
-
+	uint8_t num_nonces;			/**< Number of remembered nonces  */
+	uint8_t num_pending;		/**< Number of frames pending */
 	bool is_static;				/**< Statically personalized device, won't be kicked for idle */
 } ls_gate_node_t;
 
 typedef struct {
 	ls_gate_node_t nodes[LS_GATE_MAX_NODES];
 	bool nodes_free_list[LS_GATE_MAX_NODES];
-
-	size_t num_nodes;
-
-	mutex_t mutex;
+    size_t num_nodes;
+    mutex_t mutex;
 } ls_gate_devices_t;
 
 void ls_devlist_init(ls_gate_devices_t *devlist);

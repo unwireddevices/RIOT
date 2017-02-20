@@ -94,7 +94,7 @@
 
 static uint32_t tmpreg;
 static unsigned long timer_freq[TIMER_NUMOF];
-uint32_t cpu_clock_global;
+volatile uint32_t cpu_clock_global;
 
 void cpu_init(void)
 {

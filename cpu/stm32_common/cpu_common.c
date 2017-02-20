@@ -71,7 +71,7 @@ uint32_t periph_apb_clk(uint8_t bus)
     return cpu_clock_global/divider;
 }
 
-void periph_clk_en(bus_t bus, uint32_t mask)
+void __attribute__((optimize("O3"))) periph_clk_en(bus_t bus, uint32_t mask)
 {
     switch (bus) {
         case APB1:

@@ -43,7 +43,7 @@ typedef struct {
 	void* next;
 } ls_gate_node_nl_entry_t;
 
-typedef struct {
+typedef struct __attribute__((__packed__)){
     uint64_t node_id;			/**< Node unique ID */
 	uint64_t app_id;			/**< Application unique ID */    
 	uint32_t last_seen;			/**< Time of the last node's activity in network */

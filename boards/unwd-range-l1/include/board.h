@@ -88,6 +88,8 @@ extern "C" {
 
 /** GPIO Ports */
 #define UNWD_GPIO_1 GPIO_PIN(PORT_A, 1)
+#define UNWD_GPIO_2 GPIO_PIN(PORT_A, 2)
+#define UNWD_GPIO_3 GPIO_PIN(PORT_A, 3)
 #define UNWD_GPIO_4 GPIO_PIN(PORT_A, 4)
 #define UNWD_GPIO_5 GPIO_PIN(PORT_A, 5)
 #define UNWD_GPIO_6 GPIO_PIN(PORT_A, 6)
@@ -111,7 +113,7 @@ extern "C" {
 
 #define GATE_COMM_UART              (UART_DEV(0))
 
-#define UMDK_UART_DEV 1
+#define UMDK_UART_DEV 2
 #define UMDK_UART_BAUDRATE_NO 7 /* 115200 */
 
 /**

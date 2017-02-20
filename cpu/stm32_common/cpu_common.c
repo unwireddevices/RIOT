@@ -104,7 +104,7 @@ void __attribute__((optimize("O3"))) periph_clk_en(bus_t bus, uint32_t mask)
     __DSB();
 }
 
-void periph_clk_dis(bus_t bus, uint32_t mask)
+void __attribute__((optimize("O3"))) periph_clk_dis(bus_t bus, uint32_t mask)
 {
     switch (bus) {
         case APB1:

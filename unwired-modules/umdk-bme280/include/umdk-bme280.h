@@ -25,7 +25,7 @@
 #define UNWDS_BME280_MODULE_ID 17
 
 #define UMDK_BME280_I2C 1
-#define UMDK_BME280_I2C_ADDR        (0x77)
+#define UMDK_BME280_I2C_ADDR        (0x76)
 #define BME280_PARAMS_BOARD               \
     {                                      \
         .i2c_dev = UMDK_BME280_I2C,   \

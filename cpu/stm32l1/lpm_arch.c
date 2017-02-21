@@ -358,6 +358,9 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             PWR->CR |= PWR_CR_ULP;
             /* Set SLEEPDEEP bit of Cortex System Control Register */
             SCB->SCR |= (uint32_t)SCB_SCR_SLEEPDEEP;
+            
+            /* Enable debug in STOP mode */
+            /* DBGMCU->CR |= DBGMCU_CR_DBG_STOP; */
 
             irq_disable();
 

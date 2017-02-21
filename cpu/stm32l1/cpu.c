@@ -166,7 +166,7 @@ static void __attribute__((optimize("O3"))) clk_restore_clocks(void) {
 /**
  * @brief Configure the clock system of the stm32f1
  */
-void __attribute__((optimize("O3"))) clk_init(void)
+void clk_init(void)
 {
     clk_store_clocks();
     

@@ -45,11 +45,16 @@ extern "C" {
 #include "utils.h"
 
 #include "ls-regions.h"
-
+#include "periph/wdg.h"
 #include "rtctimers.h"
 
 #define DISPLAY_JOINKEY_2BYTES 1
 #define DISPLAY_DEVNONCE_BYTE 1
+
+static kernel_pid_t iwdg_pid;
+static msg_t iwdg_msg = {};
+static rtctimer_t iwdg_timer;
+static char iwdg_stack[512];
 
 typedef struct {
     bool is_valid;
@@ -665,6 +670,17 @@ static bool is_connect_button_pressed(void)
     return false;
 }
 
+static void *iwdg_thread (void *arg) {
+    msg_t msg;
+    while (1) {
+        msg_receive(&msg);
+        wdg_reload();
+        rtctimers_remove(&iwdg_timer);
+        rtctimers_set_msg(&iwdg_timer, 15, &iwdg_msg, iwdg_pid);
+    }
+    return NULL;
+}
+
 void init_node(shell_command_t **commands)
 {
     puts("[node] Initializing...");
@@ -704,6 +720,16 @@ void init_node(shell_command_t **commands)
         }
         else {
             unwds_init_modules(unwds_callback);
+            
+            /* reset IWDG timer every 15 seconds */
+            iwdg_pid = thread_create(iwdg_stack, sizeof(iwdg_stack), 1, THREAD_CREATE_STACKTEST, iwdg_thread, NULL, "IWDG thread");
+            rtctimers_set_msg(&iwdg_timer, 15, &iwdg_msg, iwdg_pid);
+            
+            /* IWDG period is 18 seconds minimum, 28 seconds typical */
+            wdg_set_prescaler(6);
+            wdg_set_reload((uint16_t) 0x0FFF);
+            wdg_reload();
+            wdg_enable();
         }
 
         rtctimers_sleep(1);

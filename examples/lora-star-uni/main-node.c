@@ -143,7 +143,8 @@ void appdata_send_failed_cb(void)
 {
 	if (!node_settings.no_join) {
 		puts("ls-ed: application data confirmation timeout. Rejoining...");
-		joined_timeout_cb();
+//		joined_timeout_cb();
+        ls_ed_join(&ls);
 	} else
 		puts("ls-ed: failed to send confirmed application data");
 }

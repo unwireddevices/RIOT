@@ -723,7 +723,10 @@ void init_node(shell_command_t **commands)
             unwds_init_modules(unwds_callback);
             
             /* reset IWDG timer every 15 seconds */
-            iwdg_pid = thread_create(iwdg_stack, sizeof(iwdg_stack), 1, THREAD_CREATE_STACKTEST, iwdg_thread, NULL, "IWDG thread");
+            /* thread priority as the same as userspace unwired-modules threads */
+            /* so if some unwired-module get stuck, IWDG will reboot the system */
+            /* NB: unwired-module MUST NOT need more than 3 seconds to finish its job */
+            iwdg_pid = thread_create(iwdg_stack, sizeof(iwdg_stack), THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, iwdg_thread, NULL, "IWDG thread");
             rtctimers_set_msg(&iwdg_timer, 15, &iwdg_msg, iwdg_pid);
             
             /* IWDG period is 18 seconds minimum, 28 seconds typical */

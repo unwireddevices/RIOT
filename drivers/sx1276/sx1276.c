@@ -172,6 +172,11 @@ static int _init_peripherals(sx1276_t *dev)
                (long)dev->nss_pin, res);
         return 0;
     }
+    
+    #ifdef SX1276_RFSWITCH
+        gpio_init(SX1276_RFSWITCH, GPIO_OUT);
+        gpio_set(SX1276_RFSWITCH);
+    #endif
 
     gpio_set(dev->nss_pin);
 
@@ -208,7 +213,7 @@ sx1276_init_result_t sx1276_init(sx1276_t *dev)
     sx1276_set_channel(dev, dev->settings.channel);
 
     /* Create DIO event lines handler */
-    kernel_pid_t pid = thread_create((char *) dev->_internal.dio_polling_thread_stack, sizeof(dev->_internal.dio_polling_thread_stack), THREAD_PRIORITY_MAIN,
+    kernel_pid_t pid = thread_create((char *) dev->_internal.dio_polling_thread_stack, sizeof(dev->_internal.dio_polling_thread_stack), THREAD_PRIORITY_MAIN - 2,
                                      THREAD_CREATE_STACKTEST, dio_polling_thread, dev,
                                      "sx1276 DIO handler");
 
@@ -543,7 +548,14 @@ void sx1276_configure_lora(sx1276_t *dev, sx1276_lora_settings_t *settings)
         /* ERRATA 2.1 - Sensitivity Optimization with another Bandwidth */
         sx1276_reg_write(dev, REG_LR_TEST36, 0x03);
     }
-
+    
+    /* Enable LNA HF boost, as recommended in AN1200.23 */
+    sx1276_reg_write(dev, REG_LR_LNA, (sx1276_reg_read(dev, REG_LR_LNA) & RFLR_LNA_BOOST_HF_MASK) | RFLR_LNA_BOOST_HF_ON);
+    
+    /* Enable Automatic Gain Control */
+    sx1276_reg_write(dev, REG_LR_MODEMCONFIG3, \
+                     (sx1276_reg_read(dev, REG_LR_MODEMCONFIG3) & RFLR_MODEMCONFIG3_AGCAUTO_MASK) | RFLR_MODEMCONFIG3_AGCAUTO_ON);
+    
     sx1276_reg_write(dev, REG_LR_DETECTOPTIMIZE, RFLR_DETECTIONOPTIMIZE_SF7_TO_SF12);
     sx1276_reg_write(dev, REG_LR_DETECTIONTHRESHOLD, RFLR_DETECTIONTHRESH_SF7_TO_SF12);
 }
@@ -932,11 +944,20 @@ void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode)
 		gpio_irq_disable(dev->dio1_pin);
 		gpio_irq_disable(dev->dio2_pin);
 		gpio_irq_disable(dev->dio3_pin);
+        
+        #ifdef SX1276_RFSWITCH
+            /* disable RF switch power */
+            gpio_set(SX1276_RFSWITCH);
+        #endif
 	} else {
 		gpio_irq_enable(dev->dio0_pin);
 		gpio_irq_enable(dev->dio1_pin);
 		gpio_irq_enable(dev->dio2_pin);
 		gpio_irq_enable(dev->dio3_pin);
+        #ifdef SX1276_RFSWITCH
+            /* enable RF switch power */
+            gpio_clear(SX1276_RFSWITCH);
+        #endif
 	}
 }
 

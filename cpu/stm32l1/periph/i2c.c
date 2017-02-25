@@ -405,6 +405,9 @@ static int _start(I2C_TypeDef *i2c, uint8_t address, uint8_t rw_flag)
     while (!(i2c->SR1 & I2C_SR1_ADDR)) {
 		/* I2C bus failure */
 		if (i2c_bus_error) {
+            /* reset I2C bus */
+            i2c->CR1 |= I2C_CR1_SWRST;
+            i2c->CR1 &= ~I2C_CR1_SWRST;
 			return i2c_bus_error;
 		}
 	}

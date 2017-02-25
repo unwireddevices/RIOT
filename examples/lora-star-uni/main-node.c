@@ -54,7 +54,7 @@ extern "C" {
 static kernel_pid_t iwdg_pid;
 static msg_t iwdg_msg = {};
 static rtctimer_t iwdg_timer;
-static char iwdg_stack[512];
+static char iwdg_stack[256];
 
 typedef struct {
     bool is_valid;

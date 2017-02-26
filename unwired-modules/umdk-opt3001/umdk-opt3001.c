@@ -144,6 +144,56 @@ static inline void save_config(void) {
 	unwds_write_nvram_config(UNWDS_OPT3001_MODULE_ID, (uint8_t *) &opt3001_config, sizeof(opt3001_config));
 }
 
+static void set_period (int period) {
+    rtctimers_remove(&timer);
+
+    opt3001_config.publish_period_min = period;
+	save_config();
+
+	/* Don't restart timer if new period is zero */
+	if (opt3001_config.publish_period_min) {
+        rtctimers_set_msg(&timer, 60 * opt3001_config.publish_period_min, &timer_msg, timer_pid);
+		printf("[opt3001] Period set to %d minute (s)\n", opt3001_config.publish_period_min);
+    } else {
+        puts("[opt3001] Timer stopped");
+    }
+}
+
+int umdk_opt3001_shell_cmd(int argc, char **argv) {
+    if (argc == 1) {
+        puts ("opt3001 get - get results now");
+        puts ("opt3001 send - get and send results now");
+        puts ("opt3001 period <N> - set period to N minutes");
+        puts ("opt3001 reset - reset settings to default");
+        return 0;
+    }
+    
+    char *cmd = argv[1];
+	
+    if (strcmp(cmd, "get") == 0) {
+        module_data_t data = {};
+        prepare_result(&data);
+    }
+    
+    if (strcmp(cmd, "send") == 0) {
+        is_polled = true;
+		/* Send signal to publisher thread */
+		msg_send(&timer_msg, timer_pid);
+    }
+    
+    if (strcmp(cmd, "period") == 0) {
+        char *val = argv[2];
+        set_period(atoi(val));
+    }
+    
+    if (strcmp(cmd, "reset") == 0) {
+        reset_config();
+        save_config();
+    }
+    
+    return 1;
+}
+
 void umdk_opt3001_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	(void) non_gpio_pin_map;
 
@@ -163,6 +213,9 @@ void umdk_opt3001_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 		puts("umdk-opt3001: unable to allocate memory. Are too many modules enabled?");
 		return;
 	}
+    
+    shell_command_t command = {"opt3001", "type 'opt3001' for commands list", umdk_opt3001_shell_cmd};
+    unwds_add_shell_command(command);
 
 	timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "opt3001 thread");
 
@@ -197,18 +250,7 @@ bool umdk_opt3001_cmd(module_data_t *cmd, module_data_t *reply) {
 		}
 
 		uint8_t period = cmd->data[1];
-		rtctimers_remove(&timer);
-
-		opt3001_config.publish_period_min = period;
-		save_config();
-
-		/* Don't restart timer if new period is zero */
-		if (opt3001_config.publish_period_min) {
-			rtctimers_set_msg(&timer, 60 * opt3001_config.publish_period_min, &timer_msg, timer_pid);
-			printf("[opt3001] Period set to %d minute (s)\n", opt3001_config.publish_period_min);
-		} else {
-			puts("[opt3001] Timer stopped");
-		}
+		set_period(period);
 
 		reply_ok(reply);
 		break;

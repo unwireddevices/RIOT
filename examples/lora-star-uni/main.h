@@ -18,7 +18,7 @@
 #ifndef LORA_STAR_UNI_MAIN_H_
 #define LORA_STAR_UNI_MAIN_H_
 
-#include "shell.h"
+#include "unwds-common.h"
 
 #define FIRMWARE_VERSION "1.10"
 

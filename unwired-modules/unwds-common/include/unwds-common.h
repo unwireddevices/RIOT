@@ -20,6 +20,9 @@
 
 #include <stdint.h>
 
+#include "shell.h"
+#include "shell_commands.h"
+
 #include "nvram.h"
 
 typedef uint8_t unwds_module_id_t;
@@ -73,6 +76,12 @@ uint8_t *allocate_stack(void);
 
 #define UNWDS_MAX_MODULE_NAME 10
 #define UNWDS_MAX_DATA_LEN 126
+
+/**
+ * Shell commands
+ */
+#define UNWDS_SHELL_COMMANDS_MAX (10 + UNWDS_STACK_POOL_SIZE)
+extern shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX];
 
 /**
  * @brief Holds data transferred to/from module

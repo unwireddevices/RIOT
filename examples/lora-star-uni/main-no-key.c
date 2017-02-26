@@ -27,7 +27,6 @@ extern "C" {
 #include "xtimer.h"
 #include "cpu.h"
 
-#include "shell.h"
 #include "main.h"
 #include "utils.h"
 #include "config.h"
@@ -130,7 +129,7 @@ static int save_cmd(int argc, char **argv)
     return 0;
 }
 
-static const shell_command_t shell_commands[] = {
+static const shell_command_t shell_commands_nokey[] = {
     { "set", "joinkey|devnonce <value> -- set up network key or device nonce", set_cmd },
 
     { "save", "Save the configuration to non-volatile memory", save_cmd },
@@ -141,7 +140,7 @@ static const shell_command_t shell_commands[] = {
 void init_no_key(shell_command_t **commands)
 {
     /* Set our commands for shell */
-    memcpy(commands, shell_commands, sizeof(shell_commands));
+    memcpy(commands, shell_commands_nokey, sizeof(shell_commands_nokey));
 
     blink_led();
 

@@ -135,6 +135,16 @@ static inline void save_config(void) {
 	unwds_write_nvram_config(UNWDS_BME280_MODULE_ID, (uint8_t *) &bme280_config, sizeof(bme280_config));
 }
 
+int umdk_bme280_shell_cmd(int argc, char **argv) {
+    if (argc == 1) {
+        puts ("bme280 get - get results now");
+        puts ("bme280 send - get and send results now");
+        puts ("bme280 period <N> - set period to N minutes");
+        puts ("bme280 reset - reset settings to default");
+    }
+    return 0;
+}
+
 void umdk_bme280_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	(void) non_gpio_pin_map;
 
@@ -150,9 +160,20 @@ void umdk_bme280_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	/* Create handler thread */
 	char *stack = (char *) allocate_stack();
 	if (!stack) {
-		puts("umdk-bme280: unable to allocate memory. Are too many modules enabled?");
+		puts("[umdk-bme280]: unable to allocate memory. Are too many modules enabled?");
 		return;
 	}
+    
+    int i = 0;
+    for (i = 0; i < UNWDS_SHELL_COMMANDS_MAX; i++) {
+        if (shell_commands[i].name == NULL) {
+            shell_commands[i].name = "bme280";
+            shell_commands[i].desc = "type 'bme280' for commands list";
+            shell_commands[i].handler = umdk_bme280_shell_cmd;
+            puts("[umdk-bme280]: module-specific shell commands added");
+            break;
+        }
+    }
 
 	timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "bme280 thread");
 

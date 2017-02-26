@@ -27,7 +27,6 @@ extern "C" {
 #include "xtimer.h"
 #include "cpu.h"
 
-#include "shell.h"
 #include "main.h"
 #include "utils.h"
 #include "config.h"
@@ -204,7 +203,7 @@ int unk_save_cmd(int argc, char **argv)
     return 0;
 }
 
-static const shell_command_t shell_commands[] = {
+static const shell_command_t shell_commands_nocfg[] = {
     { "set", "<config> <value> -- sets up value for the config entry", unk_set_cmd },
     { "get", "<config> -- gets value for the config entry", unk_get_cmd },
 
@@ -216,7 +215,7 @@ static const shell_command_t shell_commands[] = {
 void init_no_cfg(shell_command_t **commands)
 {
     /* Set our commands for shell */
-    memcpy(commands, shell_commands, sizeof(shell_commands));
+    memcpy(commands, shell_commands_nocfg, sizeof(shell_commands_nocfg));
 
     blink_led();
 

@@ -26,8 +26,6 @@ extern "C" {
 
 #include "lpm.h"
 #include "arch/lpm_arch.h"
-#include "shell.h"
-#include "shell_commands.h"
 #include "thread.h"
 #include "periph/rtc.h"
 #include "periph/gpio.h"
@@ -599,7 +597,7 @@ static int print_regions_cmd(int argc, char **argv)
     return 0;
 }
 
-static const shell_command_t shell_commands[] = {
+shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX] = {
     { "set", "<config> <value> -- set value for the configuration entry", ls_set_cmd },
 
     { "lscfg", "-- print out current configuration", ls_printc_cmd },
@@ -686,8 +684,19 @@ void init_node(shell_command_t **commands)
 {
     puts("[node] Initializing...");
 
-    /* Set our commands for shell */
-    memcpy(commands, shell_commands, sizeof(shell_commands));
+    /* fill the rest of shell_commands array with NULLs */
+    int i = 0;
+    bool fillzeros = false;
+    for (i = 0; i < UNWDS_SHELL_COMMANDS_MAX; i++) {
+        if (shell_commands[i].name == NULL) {
+            fillzeros = true;
+        }
+        if (fillzeros) {
+            shell_commands[i].name = NULL;
+            shell_commands[i].desc = NULL;
+            shell_commands[i].handler = NULL;
+        }
+    }
 
     rtctimers_init();
     lpm_prevent_sleep = 1;
@@ -721,6 +730,9 @@ void init_node(shell_command_t **commands)
         }
         else {
             unwds_init_modules(unwds_callback);
+            
+            /* Set our commands for shell */
+            memcpy(commands, shell_commands, sizeof(shell_commands));
             
             /* reset IWDG timer every 15 seconds */
             /* thread priority as the same as userspace unwired-modules threads */

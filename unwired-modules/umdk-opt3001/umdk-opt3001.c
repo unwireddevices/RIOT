@@ -90,9 +90,6 @@ static void prepare_result(module_data_t *buf) {
 
 static void *timer_thread(void *arg) {
     msg_t msg;
-    msg_t msg_queue[8];
-    msg_init_queue(msg_queue, 8);
-
     puts("[umdk-opt3001] Periodic publisher thread started");
 
     while (1) {
@@ -171,21 +168,15 @@ void umdk_opt3001_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 }
 
 static void reply_fail(module_data_t *reply) {
-	reply->length = 6;
+	reply->length = 2;
 	reply->data[0] = UNWDS_OPT3001_MODULE_ID;
-	reply->data[1] = 'f';
-	reply->data[2] = 'a';
-	reply->data[3] = 'i';
-	reply->data[4] = 'l';
-	reply->data[5] = '\0';
+	reply->data[1] = 255;
 }
 
 static void reply_ok(module_data_t *reply) {
-	reply->length = 4;
+	reply->length = 2;
 	reply->data[0] = UNWDS_OPT3001_MODULE_ID;
-	reply->data[1] = 'o';
-	reply->data[2] = 'k';
-	reply->data[3] = '\0';
+	reply->data[1] = 0;
 }
 
 bool umdk_opt3001_cmd(module_data_t *cmd, module_data_t *reply) {

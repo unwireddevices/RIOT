@@ -170,21 +170,15 @@ void umdk_lmt01_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 }
 
 static void reply_fail(module_data_t *reply) {
-	reply->length = 6;
+	reply->length = 2;
 	reply->data[0] = UNWDS_LMT01_MODULE_ID;
-	reply->data[1] = 'f';
-	reply->data[2] = 'a';
-	reply->data[3] = 'i';
-	reply->data[4] = 'l';
-	reply->data[5] = '\0';
+	reply->data[1] = 255;
 }
 
 static void reply_ok(module_data_t *reply) {
-	reply->length = 4;
+	reply->length = 2;
 	reply->data[0] = UNWDS_LMT01_MODULE_ID;
-	reply->data[1] = 'o';
-	reply->data[2] = 'k';
-	reply->data[3] = '\0';
+	reply->data[1] = 0;
 }
 
 bool umdk_lmt01_cmd(module_data_t *cmd, module_data_t *reply) {

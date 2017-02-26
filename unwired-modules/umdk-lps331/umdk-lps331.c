@@ -67,30 +67,28 @@ static bool init_sensor(void)
 
 static void prepare_result(module_data_t *buf)
 {
-    uint16_t temperature_mc, pressure_mbar;
-	uint16_t temperature_unwds;
+    int temperature_mc, pressure_mbar;
+	int16_t temperature_unwds;
 
     temperature_mc = lps331ap_read_temp(&dev);
-	temperature_unwds = (temperature_mc/1000.0f + 100.0f) * 16.0f;
+	temperature_unwds = (temperature_mc + 50)/100;
 	
     pressure_mbar = lps331ap_read_pres(&dev);
-	printf("[lps331] T: %d C, P: %d mbar\n", (temperature_unwds >> 4)-100, pressure_mbar);
+	printf("[lps331] T: %d.%d C, P: %d mbar\n", temperature_unwds/10, abs(temperature_unwds%10), pressure_mbar);
 
-    buf->length = 1 + 2 + 2; /* One byte for module ID, two bytes for temperature, two bytes for pressure*/
+     /* One byte for module ID, two bytes for temperature, two bytes for pressure*/
+    buf->length = 1 + sizeof(temperature_unwds) + sizeof(pressure_mbar);
 
     buf->data[0] = UNWDS_LPS331_MODULE_ID;
 
     /* Copy measurements into response */
-    memcpy(buf->data + 1, &temperature_unwds, 2);
-    memcpy(buf->data + 1 + 2, &pressure_mbar, 2);
+    memcpy(buf->data + 1, &temperature_unwds, sizeof(temperature_unwds));
+    memcpy(buf->data + 1 + sizeof(temperature_unwds), &pressure_mbar, sizeof(pressure_mbar));
 }
 
 static void *timer_thread(void *arg)
 {
     msg_t msg;
-    msg_t msg_queue[8];
-
-    msg_init_queue(msg_queue, 8);
 
     puts("[umdk-lps331] Periodic publisher thread started");
 
@@ -174,21 +172,15 @@ void umdk_lps331_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 }
 
 static void reply_fail(module_data_t *reply) {
-	reply->length = 6;
+	reply->length = 2;
 	reply->data[0] = UNWDS_LPS331_MODULE_ID;
-	reply->data[1] = 'f';
-	reply->data[2] = 'a';
-	reply->data[3] = 'i';
-	reply->data[4] = 'l';
-	reply->data[5] = '\0';
+	reply->data[1] = 255;
 }
 
 static void reply_ok(module_data_t *reply) {
-	reply->length = 4;
+	reply->length = 2;
 	reply->data[0] = UNWDS_LPS331_MODULE_ID;
-	reply->data[1] = 'o';
-	reply->data[2] = 'k';
-	reply->data[3] = '\0';
+	reply->data[1] = 0;
 }
 
 bool umdk_lps331_cmd(module_data_t *cmd, module_data_t *reply)

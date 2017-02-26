@@ -79,7 +79,7 @@ static void prepare_result(module_data_t *buf) {
 	int16_t temp = convert_temp(measure.temperature);
 	int16_t hum = convert_humid(measure.humidity);
 
-	printf("[sht21] Temperature %d C, humidity: %d%%\n", (temp >> 4)-100, hum);
+	printf("[sht21] Temperature %d.%d C, humidity: %d.%d%%\n", temp/10, abs(temp%10), hum/10, hum%10);
 
     /* One byte for module ID, two bytes for temperature, two bytes for humidity */
 	buf->length = 1 + sizeof(temp) + sizeof(hum);
@@ -173,21 +173,15 @@ void umdk_sht21_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 }
 
 static void reply_fail(module_data_t *reply) {
-	reply->length = 6;
+	reply->length = 2;
 	reply->data[0] = UNWDS_SHT21_MODULE_ID;
-	reply->data[1] = 'f';
-	reply->data[2] = 'a';
-	reply->data[3] = 'i';
-	reply->data[4] = 'l';
-	reply->data[5] = '\0';
+	reply->data[1] = 255;
 }
 
 static void reply_ok(module_data_t *reply) {
-	reply->length = 4;
+	reply->length = 2;
 	reply->data[0] = UNWDS_SHT21_MODULE_ID;
-	reply->data[1] = 'o';
-	reply->data[2] = 'k';
-	reply->data[3] = '\0';
+	reply->data[1] = 0;
 }
 
 bool umdk_sht21_cmd(module_data_t *cmd, module_data_t *reply) {

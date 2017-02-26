@@ -64,13 +64,12 @@ bool umdk_lm75_cmd(module_data_t *data, module_data_t *reply)
 	{
 		int16_t temp = lm75a_get_ambient_temperature(&lm75a);
 		/* LM75A scale: signed, 0 = 0°C, 1 bit = 0.125 °C */
-		/* our scale: unsigned, 0 = -100°C, 1 bit = 0.0625 °C */
-		temp += 400;
-		temp <<= 1;
+		/* our scale: signed, 1 bit = 0.1 °C */
+		temp = (temp * 10) / 8;
 		
-		reply->length = 1 + 2;
+		reply->length = 1 + sizeof(temp);
 		reply->data[0] = UNWDS_LM75_MODULE_ID;
-		memcpy(reply->data + 1, &temp, 2);
+		memcpy(reply->data + 1, &temp, sizeof(temp));
 		break;
 	}
 	default:

@@ -68,13 +68,13 @@ static void prepare_result(module_data_t *buf) {
     uint32_t pressure = bme280_read_pressure(&dev); /* Pa */
     uint16_t humidity = bme280_read_humidity(&dev); /* percents * 100 */
 
-    uint16_t temp = ((int32_t)temperature * 4 / 25) + 1600; /* 0.0625 °C */
-    uint8_t hum = (50 + humidity)/100; /* percents */
+    int16_t temp = (5 + temperature)/10; /* 0.1 °C */
+    int16_t hum = (5 + humidity)/10; /* 0.1 % */
     uint16_t press = (pressure/100); /* mbar */
     
-	printf("[bme280] Temperature %d C, humidity: %d%%, pressure: %d mbar\n", (temp >> 4)-100, hum, press);
+	printf("[bme280] Temperature %d.%d C, humidity: %d.%d%%, pressure: %d mbar\n", temp/10, abs(temp%10), hum/10, hum%10, press);
 
-    /* One byte for module ID, two bytes for temperature, one byte for humidity */
+    /* One byte for module ID, two bytes for temperature, two bytes for humidity, two bytes for pressure */
 	buf->length = 1 + sizeof(temp) + sizeof(hum) + sizeof(press);
 
 	buf->data[0] = UNWDS_BME280_MODULE_ID;
@@ -161,21 +161,15 @@ void umdk_bme280_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 }
 
 static void reply_fail(module_data_t *reply) {
-	reply->length = 6;
+	reply->length = 2;
 	reply->data[0] = UNWDS_BME280_MODULE_ID;
-	reply->data[1] = 'f';
-	reply->data[2] = 'a';
-	reply->data[3] = 'i';
-	reply->data[4] = 'l';
-	reply->data[5] = '\0';
+	reply->data[1] = 255;
 }
 
 static void reply_ok(module_data_t *reply) {
-	reply->length = 4;
+	reply->length = 2;
 	reply->data[0] = UNWDS_BME280_MODULE_ID;
-	reply->data[1] = 'o';
-	reply->data[2] = 'k';
-	reply->data[3] = '\0';
+	reply->data[1] = 0;
 }
 
 bool umdk_bme280_cmd(module_data_t *cmd, module_data_t *reply) {

@@ -283,6 +283,7 @@ void unwds_add_shell_command(shell_command_t command) {
             shell_commands[i].name = command.name;
             shell_commands[i].desc = command.desc;
             shell_commands[i].handler = command.handler;
+            printf("%s shell command added\n", command.name);
             break;
         }
     }

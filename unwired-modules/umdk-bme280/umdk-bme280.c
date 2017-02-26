@@ -95,19 +95,19 @@ static void *timer_thread(void *arg) {
     while (1) {
         msg_receive(&msg);
 
-        rtctimers_remove(&timer);
-
         module_data_t data = {};
         data.as_ack = is_polled;
         is_polled = false;
 
         prepare_result(&data);
 
-        /* Notify the application */
-        callback(&data);
-
-        /* Restart after delay */
-        rtctimers_set_msg(&timer, 60 * bme280_config.publish_period_min, &timer_msg, timer_pid);
+        if (!msg.content.value) {
+            rtctimers_remove(&timer);
+            /* Notify the application */
+            callback(&data);
+            /* Restart after delay */
+            rtctimers_set_msg(&timer, 60 * bme280_config.publish_period_min, &timer_msg, timer_pid);
+        }
     }
 
     return NULL;
@@ -135,14 +135,56 @@ static inline void save_config(void) {
 	unwds_write_nvram_config(UNWDS_BME280_MODULE_ID, (uint8_t *) &bme280_config, sizeof(bme280_config));
 }
 
+static void set_period (int period) {
+    rtctimers_remove(&timer);
+    bme280_config.publish_period_min = period;
+	save_config();
+
+	/* Don't restart timer if new period is zero */
+	if (bme280_config.publish_period_min) {
+		rtctimers_set_msg(&timer, 60 * bme280_config.publish_period_min, &timer_msg, timer_pid);
+		printf("[bme280] Period set to %d minute (s)\n", bme280_config.publish_period_min);
+	} else {
+		puts("[bme280] Timer stopped");
+	}
+}
+
 int umdk_bme280_shell_cmd(int argc, char **argv) {
     if (argc == 1) {
         puts ("bme280 get - get results now");
         puts ("bme280 send - get and send results now");
         puts ("bme280 period <N> - set period to N minutes");
         puts ("bme280 reset - reset settings to default");
+        return 0;
     }
-    return 0;
+    
+    char *cmd = argv[1];
+	
+    if (strcmp(cmd, "get") == 0) {
+        is_polled = true;
+		/* Send signal to publisher thread */
+        timer_msg.content.value = 1;
+		msg_send(&timer_msg, timer_pid);
+        timer_msg.content.value = 0;
+    }
+    
+    if (strcmp(cmd, "send") == 0) {
+        is_polled = true;
+		/* Send signal to publisher thread */
+		msg_send(&timer_msg, timer_pid);
+    }
+    
+    if (strcmp(cmd, "period") == 0) {
+        char *val = argv[2];
+        set_period(atoi(val));
+    }
+    
+    if (strcmp(cmd, "reset") == 0) {
+        reset_config();
+        save_config();
+    }
+    
+    return 1;
 }
 
 void umdk_bme280_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
@@ -164,16 +206,9 @@ void umdk_bme280_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 		return;
 	}
     
-    int i = 0;
-    for (i = 0; i < UNWDS_SHELL_COMMANDS_MAX; i++) {
-        if (shell_commands[i].name == NULL) {
-            shell_commands[i].name = "bme280";
-            shell_commands[i].desc = "type 'bme280' for commands list";
-            shell_commands[i].handler = umdk_bme280_shell_cmd;
-            puts("[umdk-bme280]: module-specific shell commands added");
-            break;
-        }
-    }
+    shell_command_t command = {"bme280", "type 'bme280' for commands list", umdk_bme280_shell_cmd};
+    unwds_add_shell_command(command);
+    puts("[umdk-bme280]: module-specific shell commands added");
 
 	timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "bme280 thread");
 
@@ -208,18 +243,7 @@ bool umdk_bme280_cmd(module_data_t *cmd, module_data_t *reply) {
 		}
 
 		uint8_t period = cmd->data[1];
-		rtctimers_remove(&timer);
-
-		bme280_config.publish_period_min = period;
-		save_config();
-
-		/* Don't restart timer if new period is zero */
-		if (bme280_config.publish_period_min) {
-			rtctimers_set_msg(&timer, 60 * bme280_config.publish_period_min, &timer_msg, timer_pid);
-			printf("[bme280] Period set to %d minute (s)\n", bme280_config.publish_period_min);
-		} else {
-			puts("[bme280] Timer stopped");
-		}
+		set_period(period);
 
 		reply_ok(reply);
 		break;

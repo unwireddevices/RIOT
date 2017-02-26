@@ -91,6 +91,6 @@ bool lmt01_detect(lmt01_t *lmt01, uint32_t timeout_ms);
  * @return >0 if success (pulses count)
  * @return 0 on failure
  */
-int lmt01_get_temp(lmt01_t *lmt01, float *temp);
+int lmt01_get_temp(lmt01_t *lmt01, int *temp);
 
 #endif /* LMT01_H_ */

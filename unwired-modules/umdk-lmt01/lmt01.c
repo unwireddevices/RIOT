@@ -52,8 +52,9 @@ static inline void lmt01_on(lmt01_t *lmt01) {
 	lmt01->_internal.do_count = true;
 }
 
-static inline float pulses_to_temp(uint16_t pc) {
-	return (pc / 4096.0 * 256) - 50;	/* Datasheet 7.3.2, equation 1 */
+static inline int pulses_to_temp(uint32_t pc) {
+    /* Datasheet 7.3.2, equation 1, 0.1 deg C accuracy is enough*/
+    return ((2560 * pc) / 4096) - 500;
 }
 
 int lmt01_init(lmt01_t *lmt01, gpio_t en_pin, gpio_t sens_pin) {
@@ -82,7 +83,7 @@ static int count_pulses(lmt01_t *lmt01) {
 	start_counter_timer(lmt01);
 
 	uint16_t timeout_us = 0;
-	uint16_t pulse_count = 0;
+	int pulse_count = 0;
 	uint8_t gpio_prev_value = 0;
 	uint8_t gpio_curr_value = 0;
 
@@ -117,7 +118,7 @@ static int count_pulses(lmt01_t *lmt01) {
 	return pulse_count;
 }
 
-int lmt01_get_temp(lmt01_t *lmt01, float *temp) {
+int lmt01_get_temp(lmt01_t *lmt01, int *temp) {
 	assert(lmt01 != NULL);
 	assert(temp != NULL);
 

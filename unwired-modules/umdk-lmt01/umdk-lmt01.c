@@ -71,26 +71,22 @@ static void init_sensors(void) {
 	}
 }
 
-static uint16_t convert_temp(float temp) {
-	return (temp + 100) * 16;
-}
-
 static void prepare_result(module_data_t *buf) {
 	int results = 0;
 	int i;
 
-	uint16_t res[4] = { 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF };
+	int16_t res[4] = { 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF };
 
 	for (i = 0; i < UMDK_LMT01_MAX_SENSOR_COUNT; i++) {
 		if (!en_pins[i]) {
 			continue;
 		}
 
-		float temp;
+		int temp;
 		int pulses;
 		if ((pulses = lmt01_get_temp(&sensors[i], &temp)) > 0) {
-			printf("[umdk-lmt01] Measured %d pulses on #%d: %.02f\n", pulses, i, temp);
-			res[i] = convert_temp(temp);
+			printf("[umdk-lmt01] Measured %d pulses on #%d: %d.%d\n", pulses/10, pulses%10, i, temp);
+			res[i] = temp;
 			results++;
 		} else {
 			continue;
@@ -107,8 +103,6 @@ static void prepare_result(module_data_t *buf) {
 
 void *timer_thread(void *arg) {
     msg_t msg;
-    msg_t msg_queue[8];
-    msg_init_queue(msg_queue, 8);
 
     puts("[umdk-lmt01] Periodic publisher thread started");
 

@@ -101,21 +101,18 @@ static void *timer_thread(void *arg) {
     while (1) {
         msg_receive(&msg);
 
-        rtctimers_remove(&timer);
-
         module_data_t data = {};
         data.as_ack = is_polled;
         is_polled = false;
 
         prepare_result(&data);
 
+        rtctimers_remove(&timer);
         /* Notify the application */
-        callback(&data);
-
+        callback(&data);    
         /* Restart after delay */
         rtctimers_set_msg(&timer, 60 * sht21_config.publish_period_min, &timer_msg, timer_pid);
     }
-
     return NULL;
 }
 
@@ -147,6 +144,56 @@ static inline void save_config(void) {
 	unwds_write_nvram_config(UNWDS_SHT21_MODULE_ID, (uint8_t *) &sht21_config, sizeof(sht21_config));
 }
 
+static void set_period (int period) {
+    rtctimers_remove(&timer);
+
+	sht21_config.publish_period_min = period;
+	save_config();
+
+	/* Don't restart timer if new period is zero */
+	if (sht21_config.publish_period_min) {
+		rtctimers_set_msg(&timer, 60 * sht21_config.publish_period_min, &timer_msg, timer_pid);
+		printf("[sht21] Period set to %d minute (s)\n", sht21_config.publish_period_min);
+	} else {
+		puts("[sht21] Timer stopped");
+	}
+}
+
+int umdk_sht21_shell_cmd(int argc, char **argv) {
+    if (argc == 1) {
+        puts ("sht21 get - get results now");
+        puts ("sht21 send - get and send results now");
+        puts ("sht21 period <N> - set period to N minutes");
+        puts ("sht21 reset - reset settings to default");
+        return 0;
+    }
+    
+    char *cmd = argv[1];
+	
+    if (strcmp(cmd, "get") == 0) {
+        module_data_t data = {};
+        prepare_result(&data);
+    }
+    
+    if (strcmp(cmd, "send") == 0) {
+        is_polled = true;
+		/* Send signal to publisher thread */
+		msg_send(&timer_msg, timer_pid);
+    }
+    
+    if (strcmp(cmd, "period") == 0) {
+        char *val = argv[2];
+        set_period(atoi(val));
+    }
+    
+    if (strcmp(cmd, "reset") == 0) {
+        reset_config();
+        save_config();
+    }
+    
+    return 1;
+}
+
 void umdk_sht21_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	(void) non_gpio_pin_map;
 
@@ -165,6 +212,9 @@ void umdk_sht21_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 		puts("umdk-sht21: unable to allocate memory. Are too many modules enabled?");
 		return;
 	}
+    
+    shell_command_t command = {"sht21", "type 'sht21' for commands list", umdk_sht21_shell_cmd};
+    unwds_add_shell_command(command);
 
 	timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "sht21 thread");
 
@@ -199,18 +249,7 @@ bool umdk_sht21_cmd(module_data_t *cmd, module_data_t *reply) {
 		}
 
 		uint8_t period = cmd->data[1];
-		rtctimers_remove(&timer);
-
-		sht21_config.publish_period_min = period;
-		save_config();
-
-		/* Don't restart timer if new period is zero */
-		if (sht21_config.publish_period_min) {
-			rtctimers_set_msg(&timer, 60 * sht21_config.publish_period_min, &timer_msg, timer_pid);
-			printf("[sht21] Period set to %d minute (s)\n", sht21_config.publish_period_min);
-		} else {
-			puts("[sht21] Timer stopped");
-		}
+		set_period(period);
 
 		reply_ok(reply);
 		break;

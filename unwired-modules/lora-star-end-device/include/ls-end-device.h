@@ -67,7 +67,6 @@
 #define LS_ED_SLEEP_REQUEST_DELAY 1
 
 // TODO: optimize these values to reduce memory consumption
-#define LS_SX1276_LISTENER_STACKSIZE	(2 * THREAD_STACKSIZE_DEFAULT)
 #define LS_UQ_HANDLER_STACKSIZE			(2 * THREAD_STACKSIZE_DEFAULT)
 #define LS_TIM_HANDLER_STACKSIZE		(1 * THREAD_STACKSIZE_DEFAULT)
 
@@ -141,7 +140,6 @@ typedef struct {
 typedef struct {
 	sx1276_t *sx1276;		/**< Pointer to the radio PHY structure */
 
-    char sx1276_listener_thread_stack[LS_SX1276_LISTENER_STACKSIZE];	/**< SX1276 events listener thread stack */
     msg_t sx1276_event_queue[16];
 
     /* Timers for first and second RX windows */

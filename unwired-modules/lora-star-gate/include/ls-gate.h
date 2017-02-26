@@ -64,9 +64,6 @@
  */
 #define LS_CHANNEL_FREE_RSSI -100
 
-// TODO: optimize these values to reduce memory consumption
-#define LS_SX1276_LISTENER_STACKSIZE	(2 * THREAD_STACKSIZE_DEFAULT)
-
 /**
  * @brief LoRa-Star stack status.
  */

@@ -731,9 +731,6 @@ void init_node(shell_command_t **commands)
         else {
             unwds_init_modules(unwds_callback);
             
-            /* Set our commands for shell */
-            memcpy(commands, shell_commands, sizeof(shell_commands));
-            
             /* reset IWDG timer every 15 seconds */
             /* thread priority as the same as userspace unwired-modules threads */
             /* so if some unwired-module get stuck, IWDG will reboot the system */
@@ -747,6 +744,9 @@ void init_node(shell_command_t **commands)
             wdg_reload();
             wdg_enable();
         }
+        
+        /* Set our commands for shell */
+        memcpy(commands, shell_commands, sizeof(shell_commands));
 
         rtctimers_sleep(1);
         blink_led();

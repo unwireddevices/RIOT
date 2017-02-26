@@ -276,6 +276,18 @@ uint64_t unwds_get_enabled(void)
     return enabled_bitmap;
 }
 
+void unwds_add_shell_command(shell_command_t command) {
+    int i = 0;
+    for (i = 0; i < UNWDS_SHELL_COMMANDS_MAX; i++) {
+        if (shell_commands[i].name == NULL) {
+            shell_commands[i].name = command.name;
+            shell_commands[i].desc = command.desc;
+            shell_commands[i].handler = command.handler;
+            break;
+        }
+    }
+}
+
 #ifdef __cplusplus
 }
 #endif

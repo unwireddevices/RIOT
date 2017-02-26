@@ -216,9 +216,8 @@ void umdk_lps331_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     	puts("umdk-lps331: unable to allocate memory. Are too many modules enabled?");
     	return;
     }
-    
-    shell_command_t command = {"lps331", "type 'lps331' for commands list", umdk_lps331_shell_cmd};
-    unwds_add_shell_command(command);
+
+    unwds_add_shell_command("lps331", "type 'lps331' for commands list", umdk_lps331_shell_cmd);
 
     timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "lps331ap thread");
 

@@ -110,7 +110,7 @@ void unwds_init_modules(uwnds_cb_t *event_callback);
 bool unwds_send_to_module(unwds_module_id_t modid, module_data_t *data, module_data_t *reply);
 bool unwds_send_broadcast(unwds_module_id_t modid, module_data_t *data, module_data_t *reply);
 
-void unwds_add_shell_command(shell_command_t command);
+void unwds_add_shell_command(char *name, char *desc, void* handler);
 
 uint64_t unwds_get_enabled(void);
 void unwds_set_enabled(uint64_t ability);

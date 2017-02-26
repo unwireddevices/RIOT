@@ -202,8 +202,7 @@ void umdk_bme280_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 		return;
 	}
     
-    shell_command_t command = {"bme280", "type 'bme280' for commands list", umdk_bme280_shell_cmd};
-    unwds_add_shell_command(command);
+    unwds_add_shell_command("bme280", "type 'bme280' for commands list", umdk_bme280_shell_cmd);
     
 	timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "bme280 thread");
 

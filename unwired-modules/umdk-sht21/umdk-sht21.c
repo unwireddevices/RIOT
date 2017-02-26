@@ -212,9 +212,8 @@ void umdk_sht21_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 		puts("umdk-sht21: unable to allocate memory. Are too many modules enabled?");
 		return;
 	}
-    
-    shell_command_t command = {"sht21", "type 'sht21' for commands list", umdk_sht21_shell_cmd};
-    unwds_add_shell_command(command);
+
+    unwds_add_shell_command("sht21", "type 'sht21' for commands list", umdk_sht21_shell_cmd);
 
 	timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "sht21 thread");
 

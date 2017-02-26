@@ -272,9 +272,8 @@ void umdk_6adc_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     	puts("umdk-6adc: unable to allocate memory. Is too many modules enabled?");
     	return;
     }
-    
-    shell_command_t command = {"6adc", "type '6adc' for commands list", umdk_6adc_shell_cmd};
-    unwds_add_shell_command(command);
+
+    unwds_add_shell_command("6adc", "type '6adc' for commands list", umdk_6adc_shell_cmd);
 
     timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "6ADC thread");
 

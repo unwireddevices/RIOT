@@ -51,12 +51,11 @@ bool umdk_rssiecho_cmd(module_data_t *cmd, module_data_t *reply)
     umdk_rssiecho_cmd_t c = cmd->data[0];
     switch (c) {
         case UMDK_RSSIECHO_CMD_ECHO: {
-            reply->length = 3;
-            reply->data[0] = UNWDS_RSSIECHO_MODULE_ID;
-
             /* Copy RSSI value into reply */
             int16_t rssi = cmd->rssi;
-            memcpy(&reply->data[1], (uint8_t *) &rssi, 2);
+            reply->length = 1 + sizeof(rssi);
+            reply->data[0] = UNWDS_RSSIECHO_MODULE_ID;
+            memcpy(&reply->data[1], (uint8_t *) &rssi, sizeof(rssi));
 
             return true;
         }

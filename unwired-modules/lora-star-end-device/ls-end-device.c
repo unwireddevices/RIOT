@@ -116,6 +116,8 @@ static void enter_rx(ls_ed_t *ls)
 static inline void schedule_tx(ls_ed_t *ls)
 {
     msg_t msg;
+    msg_t msg_queue[4];
+    msg_init_queue(msg_queue, 4);
 
     /* Send message to the frame queue thread to initiate frame transmission */
     msg_try_send(&msg, ls->_internal.uq_thread_pid);

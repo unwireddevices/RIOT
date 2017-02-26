@@ -169,7 +169,6 @@ static void *handler(void *arg)
 {
     msg_t msg;
     msg_t msg_queue[16];
-
     msg_init_queue(msg_queue, 16);
 
     while (1) {

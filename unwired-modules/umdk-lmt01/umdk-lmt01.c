@@ -103,6 +103,8 @@ static void prepare_result(module_data_t *buf) {
 
 void *timer_thread(void *arg) {
     msg_t msg;
+    msg_t msg_queue[4];
+    msg_init_queue(msg_queue, 4);
 
     puts("[umdk-lmt01] Periodic publisher thread started");
 

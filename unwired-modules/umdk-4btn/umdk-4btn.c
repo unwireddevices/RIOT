@@ -44,8 +44,8 @@ static uwnds_cb_t *callback;
 
 static void *handler(void *arg) {
     msg_t msg;
-    msg_t msg_queue[2];
-    msg_init_queue(msg_queue, 2);
+    msg_t msg_queue[4];
+    msg_init_queue(msg_queue, 4);
 
     while (1) {
         msg_receive(&msg);

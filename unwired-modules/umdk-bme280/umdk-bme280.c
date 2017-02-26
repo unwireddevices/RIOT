@@ -87,8 +87,8 @@ static void prepare_result(module_data_t *buf) {
 
 static void *timer_thread(void *arg) {
     msg_t msg;
-    msg_t msg_queue[8];
-    msg_init_queue(msg_queue, 8);
+    msg_t msg_queue[4];
+    msg_init_queue(msg_queue, 4);
 
     puts("[umdk-bme280] Periodic publisher thread started");
 

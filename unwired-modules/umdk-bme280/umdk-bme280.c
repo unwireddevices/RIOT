@@ -192,6 +192,7 @@ void umdk_bme280_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 
 	if (!init_sensor()) {
 		puts("[umdk-bme280] Unable to init sensor!");
+        return;
 	}
 
 	/* Create handler thread */

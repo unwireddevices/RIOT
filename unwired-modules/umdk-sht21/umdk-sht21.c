@@ -64,30 +64,31 @@ static bool init_sensor(void) {
 	return sht21_init(&dev) == 0;
 }
 
-static uint16_t convert_temp(int temp) {
-	return (temp / 1000.0f + 100) * 16;
+static int16_t convert_temp(int temp) {
+	return ((temp + 50) / 100);
 }
 
-static uint8_t convert_humid(int humid) {
-	return round(humid / 1000.0f);
+static int16_t convert_humid(int humid) {
+	return ((humid + 50) / 100);
 }
 
 static void prepare_result(module_data_t *buf) {
 	sht21_measure_t measure = {};
 	sht21_measure(&dev, &measure);
 
-	uint16_t temp = convert_temp(measure.temperature);
-	uint8_t hum = convert_humid(measure.humidity);
+	int16_t temp = convert_temp(measure.temperature);
+	int16_t hum = convert_humid(measure.humidity);
 
 	printf("[sht21] Temperature %d C, humidity: %d%%\n", (temp >> 4)-100, hum);
 
-	buf->length = 1 + 2 + 1; /* One byte for module ID, two bytes for temperature, one byte for humidity */
+    /* One byte for module ID, two bytes for temperature, two bytes for humidity */
+	buf->length = 1 + sizeof(temp) + sizeof(hum);
 
 	buf->data[0] = UNWDS_SHT21_MODULE_ID;
 
 	/* Copy measurements into response */
-	memcpy(buf->data + 1, (uint8_t *) &temp, 2);
-	memcpy(buf->data + 1 + 2, (uint8_t *) &hum, 1);
+	memcpy(buf->data + 1, (uint8_t *) &temp, sizeof(temp));
+	memcpy(buf->data + 1 + sizeof(temp), (uint8_t *) &hum, sizeof(hum));
 }
 
 static void *timer_thread(void *arg) {

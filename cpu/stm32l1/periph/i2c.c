@@ -27,6 +27,7 @@
 
 #include "cpu.h"
 #include "mutex.h"
+#include "xtimer.h"
 #include "periph/i2c.h"
 #include "periph/gpio.h"
 #include "periph_conf.h"
@@ -115,6 +116,14 @@ int i2c_init_master(i2c_t dev, i2c_speed_t speed)
     return 0;
 }
 
+/* 1 s default timeout */
+static int _i2c_timeout(uint32_t time) {
+    if ((xtimer_now_usec() - time) > 1000000U) {
+        return 1;
+    }
+    return 0;
+}
+
 static void _i2c_init(I2C_TypeDef *i2c, int ccr)
 {
     /* disable device and set ACK bit */
@@ -182,13 +191,23 @@ int i2c_read_bytes(i2c_t dev, uint8_t address, void *data, int length)
 
             DEBUG("Wait for RXNE == 1\n");
 
-            while (!(i2c->SR1 & I2C_SR1_RXNE)) {}
+            uint32_t time_now = xtimer_now_usec();
+            while (!(i2c->SR1 & I2C_SR1_RXNE)) {
+                if (_i2c_timeout(time_now)) {
+                    return -255;
+                }
+            }
 
             DEBUG("Read received data\n");
             *my_data = i2c->DR;
 
             /* wait until STOP is cleared by hardware */
-            while (i2c->CR1 & I2C_CR1_STOP) {}
+            time_now = xtimer_now_usec();
+            while (i2c->CR1 & I2C_CR1_STOP) {
+                if (_i2c_timeout(time_now)) {
+                    return -255;
+                }
+            }
 
             /* reset ACK to be able to receive new data */
             i2c->CR1 |= (I2C_CR1_ACK);
@@ -209,8 +228,13 @@ int i2c_read_bytes(i2c_t dev, uint8_t address, void *data, int length)
             irq_restore(state);
 
             DEBUG("Wait for transfer to be completed\n");
-
-            while (!(i2c->SR1 & I2C_SR1_BTF)) {}
+            
+            time_now = xtimer_now_usec();
+            while (!(i2c->SR1 & I2C_SR1_BTF)) {
+                if (_i2c_timeout(time_now)) {
+                    return -255;
+                }
+            }
 
             DEBUG("Crit block: set STOP and read first byte\n");
             state = irq_disable();
@@ -223,7 +247,12 @@ int i2c_read_bytes(i2c_t dev, uint8_t address, void *data, int length)
 
             DEBUG("wait for STOP bit to be cleared again\n");
 
-            while (i2c->CR1 & I2C_CR1_STOP) {}
+            time_now = xtimer_now_usec();
+            while (i2c->CR1 & I2C_CR1_STOP) {
+                if (_i2c_timeout(time_now)) {
+                    return -255;
+                }
+            }
 
             DEBUG("reset POS = 0 and ACK = 1\n");
             i2c->CR1 &= ~(I2C_CR1_POS);
@@ -241,7 +270,12 @@ int i2c_read_bytes(i2c_t dev, uint8_t address, void *data, int length)
             while (i < (length - 3)) {
                 DEBUG("Wait until byte was received\n");
 
-                while (!(i2c->SR1 & I2C_SR1_RXNE)) {}
+                time_now = xtimer_now_usec();
+                while (i2c->CR1 & I2C_SR1_RXNE) {
+                    if (_i2c_timeout(time_now)) {
+                        return -255;
+                    }
+                }
 
                 DEBUG("Copy byte from DR\n");
                 my_data[i++] = i2c->DR;
@@ -249,7 +283,12 @@ int i2c_read_bytes(i2c_t dev, uint8_t address, void *data, int length)
 
             DEBUG("Reading the last 3 bytes, waiting for BTF flag\n");
 
-            while (!(i2c->SR1 & I2C_SR1_BTF)) {}
+            time_now = xtimer_now_usec();
+            while (i2c->CR1 & I2C_SR1_BTF) {
+                if (_i2c_timeout(time_now)) {
+                    return -255;
+                }
+            }
 
             DEBUG("Disable ACK\n");
             i2c->CR1 &= ~(I2C_CR1_ACK);
@@ -263,7 +302,12 @@ int i2c_read_bytes(i2c_t dev, uint8_t address, void *data, int length)
             DEBUG("Read N-1 byte\n");
             my_data[i++] = i2c->DR;
 
-            while (!(i2c->SR1 & I2C_SR1_RXNE)) {}
+            time_now = xtimer_now_usec();
+            while (i2c->CR1 & I2C_SR1_RXNE) {
+                if (_i2c_timeout(time_now)) {
+                    return -255;
+                }
+            }
 
             DEBUG("Read last byte\n");
 
@@ -271,7 +315,12 @@ int i2c_read_bytes(i2c_t dev, uint8_t address, void *data, int length)
 
             DEBUG("wait for STOP bit to be cleared again\n");
 
-            while (i2c->CR1 & I2C_CR1_STOP) {}
+            time_now = xtimer_now_usec();
+            while (i2c->CR1 & I2C_CR1_STOP) {
+                if (_i2c_timeout(time_now)) {
+                    return -255;
+                }
+            }
 
             DEBUG("reset POS = 0 and ACK = 1\n");
             i2c->CR1 &= ~(I2C_CR1_POS);
@@ -385,15 +434,25 @@ static int _start(I2C_TypeDef *i2c, uint8_t address, uint8_t rw_flag)
 {
     /* wait for device to be ready */
     DEBUG("Wait for device to be ready\n");
-
-    while (i2c->SR2 & I2C_SR2_BUSY) {}
+    
+    uint32_t time_now = xtimer_now_usec();
+    while (i2c->SR2 & I2C_SR2_BUSY) {
+        if (_i2c_timeout(time_now)) {
+            return -255;
+        }
+    }
 
     /* generate start condition */
     DEBUG("Generate start condition\n");
     i2c->CR1 |= I2C_CR1_START;
     DEBUG("Wait for SB flag to be set\n");
 
-    while (!(i2c->SR1 & I2C_SR1_SB)) {}
+    time_now = xtimer_now_usec();
+    while (!(i2c->SR1 & I2C_SR1_SB)) {
+        if (_i2c_timeout(time_now)) {
+            return -255;
+        }
+    }
 
     /* send address and read/write flag */
     DEBUG("Send address\n");
@@ -401,7 +460,8 @@ static int _start(I2C_TypeDef *i2c, uint8_t address, uint8_t rw_flag)
     i2c->DR = (address << 1) | rw_flag;
     /* clear ADDR flag by reading first SR1 and then SR2 */
     DEBUG("Wait for ADDR flag to be set\n");
-
+    
+    time_now = xtimer_now_usec();
     while (!(i2c->SR1 & I2C_SR1_ADDR)) {
 		/* I2C bus failure */
 		if (i2c_bus_error) {
@@ -410,6 +470,9 @@ static int _start(I2C_TypeDef *i2c, uint8_t address, uint8_t rw_flag)
             i2c->CR1 &= ~I2C_CR1_SWRST;
 			return i2c_bus_error;
 		}
+        if (_i2c_timeout(time_now)) {
+            return -255;
+        }
 	}
 	return 0;
 }
@@ -431,7 +494,12 @@ static inline void _write(I2C_TypeDef *i2c, const uint8_t *data, int length)
         DEBUG("Written %i byte to data reg, now waiting for DR to be empty again\n", i);
 
         /* wait for transfer to finish */
-        while (!(i2c->SR1 & I2C_SR1_TXE)) {}
+        uint32_t time_now = xtimer_now_usec();
+        while (!(i2c->SR1 & I2C_SR1_TXE)) {
+            if (_i2c_timeout(time_now)) {
+                return;
+            }
+        }
 
         DEBUG("DR is now empty again\n");
     }
@@ -442,7 +510,12 @@ static inline void _stop(I2C_TypeDef *i2c)
     /* make sure last byte was send */
     DEBUG("Wait if last byte hasn't been sent\n");
 
-    while (!(i2c->SR1 & I2C_SR1_BTF)) {}
+    uint32_t time_now = xtimer_now_usec();
+    while (!(i2c->SR1 & I2C_SR1_BTF)) {
+        if (_i2c_timeout(time_now)) {
+            return;
+        }
+    }
 
     /* send STOP condition */
     i2c->CR1 |= I2C_CR1_STOP;

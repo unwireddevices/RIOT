@@ -33,7 +33,7 @@
 #include "periph_conf.h"
 
 
-#define ENABLE_DEBUG    (0)
+#define ENABLE_DEBUG    (1)
 #include "debug.h"
 
 /* guard file in case no I2C device is defined */
@@ -466,8 +466,14 @@ static int _start(I2C_TypeDef *i2c, uint8_t address, uint8_t rw_flag)
 		/* I2C bus failure */
 		if (i2c_bus_error) {
             /* reset I2C bus */
+            DEBUG("Resetting the bus\n");           
+            uint16_t ccr = i2c->CCR;
+            
             i2c->CR1 |= I2C_CR1_SWRST;
-            i2c->CR1 &= ~I2C_CR1_SWRST;
+            i2c->CR1 &= ~I2C_CR1_SWRST;           
+            
+            _i2c_init(i2c, ccr);
+            
 			return i2c_bus_error;
 		}
         if (_i2c_timeout(time_now)) {
@@ -497,6 +503,7 @@ static inline void _write(I2C_TypeDef *i2c, const uint8_t *data, int length)
         uint32_t time_now = xtimer_now_usec();
         while (!(i2c->SR1 & I2C_SR1_TXE)) {
             if (_i2c_timeout(time_now)) {
+                puts("TXE timeout");
                 return;
             }
         }
@@ -532,7 +539,7 @@ static inline void _i2c_irq(I2C_TypeDef *i2c) {
     if (state & I2C_SR1_AF) {
 		i2c_bus_error = -2;
     	i2c->SR1 &= ~I2C_SR1_AF;
-    	DEBUG("NACK");
+    	DEBUG("NACK\n");
     }
     if (state & I2C_SR1_ARLO) {
 		i2c_bus_error = -3;

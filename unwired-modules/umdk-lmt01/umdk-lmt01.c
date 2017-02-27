@@ -85,7 +85,7 @@ static void prepare_result(module_data_t *buf) {
 		int temp;
 		int pulses;
 		if ((pulses = lmt01_get_temp(&sensors[i], &temp)) > 0) {
-			printf("[umdk-lmt01] Measured %d pulses on #%d: %d.%d\n", pulses/10, pulses%10, i, temp);
+			printf("[umdk-lmt01] Measured %d pulses on #%d: %d.%d\n", pulses, i, temp/10, temp%10);
 			res[i] = temp;
 			results++;
 		} else {

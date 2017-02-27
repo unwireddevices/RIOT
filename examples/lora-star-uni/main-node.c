@@ -742,7 +742,7 @@ void init_node(shell_command_t **commands)
             wdg_set_prescaler(6);
             wdg_set_reload((uint16_t) 0x0FFF);
             wdg_reload();
-            wdg_enable();
+//            wdg_enable();
         }
         
         /* Set our commands for shell */

@@ -70,10 +70,13 @@ int bme280_init(bme280_t* dev, const bme280_params_t* params)
     uint8_t chip_id;
 
     dev->params = *params;
+    
+    i2c_acquire(dev->params.i2c_dev);
 
     /* Initialize I2C interface */
     if (i2c_init_master(dev->params.i2c_dev, I2C_SPEED_NORMAL)) {
         DEBUG("[Error] I2C device not enabled\n");
+        i2c_release(dev->params.i2c_dev);
         return BME280_ERR_I2C;
     }
 
@@ -82,15 +85,19 @@ int bme280_init(bme280_t* dev, const bme280_params_t* params)
     if (chip_id != BME280_CHIP_ID) {
         DEBUG("[Error] Did not detect a BME280 at address %02x (%02X != %02X)\n",
               dev->params.i2c_addr, chip_id, BME280_CHIP_ID);
+        i2c_release(dev->params.i2c_dev);
         return BME280_ERR_NODEV;
     }
 
     /* Read compensation data, 0x88..0x9F, 0xA1, 0xE1..0xE7 */
     if (read_calibration_data(dev)) {
         DEBUG("[Error] Could not read calibration data\n");
+        i2c_release(dev->params.i2c_dev);
         return BME280_ERR_NOCAL;
     }
-
+    
+    i2c_release(dev->params.i2c_dev);
+    
     return BME280_OK;
 }
 
@@ -290,6 +297,9 @@ static int do_measurement(bme280_t* dev)
      * it finished the measurement. To read again we have to set the
      * run_mode back to FORCED.
      */
+     
+    i2c_acquire(dev->params.i2c_dev);
+     
     uint8_t ctrl_meas = get_ctrl_meas(dev);
     uint8_t run_mode = ctrl_meas & 3;
     if (run_mode != dev->params.run_mode) {
@@ -313,9 +323,12 @@ static int do_measurement(bme280_t* dev)
                              offset, measurement_regs, nr_bytes_to_read);
     if (nr_bytes != nr_bytes_to_read) {
         LOG_ERROR("Unable to read temperature data\n");
+        i2c_release(dev->params.i2c_dev);
         return -1;
     }
     DUMP_BUFFER("Raw Sensor Data", measurement_regs, nr_bytes);
+    
+    i2c_release(dev->params.i2c_dev);
 
     return 0;
 }

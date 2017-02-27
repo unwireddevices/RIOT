@@ -52,7 +52,7 @@ static inline void lmt01_on(lmt01_t *lmt01) {
 	lmt01->_internal.do_count = true;
 }
 
-static inline int pulses_to_temp(uint32_t pc) {
+static inline int pulses_to_temp(uint32_t pc) {   
     /* Datasheet 7.3.2, equation 1, 0.1 deg C accuracy is enough*/
     return ((2560 * pc) / 4096) - 500;
 }

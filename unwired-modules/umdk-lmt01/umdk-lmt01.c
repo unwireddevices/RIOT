@@ -75,7 +75,7 @@ static void prepare_result(module_data_t *buf) {
 	int results = 0;
 	int i;
 
-	int16_t res[4] = { 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF };
+	int16_t res[4] = { 0x7FFF, 0x7FFF, 0x7FFF, 0x7FFF };
 
 	for (i = 0; i < UMDK_LMT01_MAX_SENSOR_COUNT; i++) {
 		if (!en_pins[i]) {

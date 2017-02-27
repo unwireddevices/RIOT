@@ -24,7 +24,6 @@
 
 #include <stdint.h>
 
-
 #include "cpu.h"
 #include "mutex.h"
 #include "xtimer.h"
@@ -32,6 +31,10 @@
 #include "periph/gpio.h"
 #include "periph_conf.h"
 
+/* I2C timeouts in milliseconds */
+/* 0 means disable timeouts */
+/* recommended non-zero value is 250 ms or higher */
+#define I2C_ENABLE_TIMEOUT (0U)
 
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
@@ -118,9 +121,11 @@ int i2c_init_master(i2c_t dev, i2c_speed_t speed)
 
 /* 1 s default timeout */
 static int _i2c_timeout(uint32_t time) {
-    if ((xtimer_now_usec() - time) > 1000000U) {
+#if I2C_ENABLE_TIMEOUT > 0
+    if ((xtimer_now_usec() - time) > (1000*I2C_ENABLE_TIMEOUT)) {
         return 1;
     }
+#endif
     return 0;
 }
 

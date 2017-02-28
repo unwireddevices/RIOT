@@ -72,9 +72,12 @@ static int16_t convert_humid(int humid) {
 	return ((humid + 50) / 100);
 }
 
-static void prepare_result(module_data_t *buf) {
+static int prepare_result(module_data_t *buf) {
 	sht21_measure_t measure = {};
-	sht21_measure(&dev, &measure);
+	if (sht21_measure(&dev, &measure)) {
+        puts("[sht21] CRC error");
+        return -1;
+    }
 
 	int16_t temp = convert_temp(measure.temperature);
 	int16_t hum = convert_humid(measure.humidity);
@@ -89,6 +92,8 @@ static void prepare_result(module_data_t *buf) {
 	/* Copy measurements into response */
 	memcpy(buf->data + 1, (uint8_t *) &temp, sizeof(temp));
 	memcpy(buf->data + 1 + sizeof(temp), (uint8_t *) &hum, sizeof(hum));
+    
+    return 0;
 }
 
 static void *timer_thread(void *arg) {
@@ -105,13 +110,13 @@ static void *timer_thread(void *arg) {
         data.as_ack = is_polled;
         is_polled = false;
 
-        prepare_result(&data);
-
         rtctimers_remove(&timer);
-        /* Notify the application */
-        callback(&data);    
-        /* Restart after delay */
         rtctimers_set_msg(&timer, 60 * sht21_config.publish_period_min, &timer_msg, timer_pid);
+
+        /* Notify the application */
+        if (!prepare_result(&data)) {
+            callback(&data);
+        }        
     }
     return NULL;
 }

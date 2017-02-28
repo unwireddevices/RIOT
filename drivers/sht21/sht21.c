@@ -71,6 +71,29 @@ int sht21_init(sht21_t *dev)
     return 0;
 }
 
+static int sht21_check_crc(uint8_t data[], uint8_t nbrOfBytes, uint8_t checksum)
+{
+    uint8_t crc = 0;
+    uint8_t byteCtr;
+    //calculates 8-Bit checksum with given polynomial
+    for (byteCtr = 0; byteCtr < nbrOfBytes; ++byteCtr) {
+        crc ^= (data[byteCtr]);
+        for (uint8_t bit = 8; bit > 0; --bit) {
+            if (crc & 0x80) {
+                crc = (crc << 1) ^ 0x131;
+            } else {
+                crc = (crc << 1);
+            }
+        }
+    }
+    
+    if (crc != checksum) {
+        return -1;
+    }
+    
+    return 0;
+}
+
 static inline int ticks_to_millicelsius(int ticks)
 {
     ticks &= ~0x0003; /* clear status bits */
@@ -91,28 +114,26 @@ static inline int ticks_to_per_cent_mille(int ticks)
     return ((15625 * ticks) >> 13) - 6000;
 }
 
-static uint16_t read_sensor_no_hold(sht21_t *dev, bool need_rh) {
+static int read_sensor_hold(sht21_t *dev, bool need_rh, int *result) {
     /* Choose measurement command: humidity or temperature */
     uint8_t cmd = (need_rh) ? SHT21_REG_RH_HOLD : SHT21_REG_T_HOLD;
 
     i2c_write_byte(dev->i2c, SHT21_ADDRESS, cmd);
 
-    /* At least STM32 works well with slave holding SCL line */
-    /* So no need to sleep */
-    
-    /* Sleep long enough (250 ms) */
-    /* 
-    volatile long i;
-    for(i = 0; i < 100000; i++);
-    */
-
     /* Read back measurements: MSB, LSB and checksum byte */
     
     uint8_t bytes[3];
     i2c_read_bytes(dev->i2c, SHT21_ADDRESS, (char *) bytes, 3);
-
+    
+    if (sht21_check_crc(bytes, 2, bytes[2])) {
+        return -1;
+    }
+    
     /* Compose 16 bit integer */
-    return bytes[0] << 8 | bytes[1];
+    int data = bytes[0] << 8 | bytes[1];
+    *result = (need_rh) ? ticks_to_per_cent_mille(data) : ticks_to_millicelsius(data);
+    
+    return 0;
 }
 
 /**
@@ -136,14 +157,22 @@ uint32_t sht21_measure(sht21_t *dev, sht21_measure_t *measure)
     assert(dev != NULL);
 
     //soft_reset(dev);
+    
+    int temperature = 0;
+    int humidity =  0;
+    int result = 0;
 
     i2c_acquire(dev->i2c);
 
-    int temperature = ticks_to_millicelsius(read_sensor_no_hold(dev, false));
-    int humidity = ticks_to_per_cent_mille(read_sensor_no_hold(dev, true));
+    result = read_sensor_hold(dev, false, &temperature);
+    result += read_sensor_hold(dev, true, &humidity);
 
     i2c_release(dev->i2c);
 
+    if (result) {
+        return -1;
+    }
+    
     measure->temperature = temperature;
     measure->humidity = humidity;
 

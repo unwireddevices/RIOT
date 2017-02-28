@@ -110,23 +110,35 @@ void joined_timeout_cb(void)
 	if (node_settings.no_join)
 		return;
 
-    puts("ls: join request timed out, resending");
-
-	/* Pseudorandom delay for collision avoidance */
-	unsigned int delay = random_uint32_range(5 + current_join_retries*30, 30 + current_join_retries*30);
-
-	printf("ls-ed: random delay %d s\n", (unsigned int) (delay));
-	rtctimers_sleep(delay);
-
-    /* class A node: go to sleep */
-    /* class B and C nodes: keep trying */   
-	if ((current_join_retries++ >= node_settings.max_retr) && (node_settings.class == LS_ED_CLASS_A)) {
+    if ((current_join_retries >= node_settings.max_retr) && (node_settings.class == LS_ED_CLASS_A)) {
+        /* class A node: go to sleep */
         puts("ls-ed: maximum join retries exceeded, stopping");
         lpm_prevent_sleep = 0;
     } else {
-        printf("ls-ed: rejoining, attempt %d / %d\n", current_join_retries, node_settings.max_retr);
-		ls_ed_join(&ls);
-	}
+        puts("ls: join request timed out, resending");
+        
+        /* Pseudorandom delay for collision avoidance */
+        unsigned int delay = random_uint32_range(5 + current_join_retries*30, 30 + current_join_retries*30);
+        printf("ls-ed: random delay %d s\n", (unsigned int) (delay));
+        
+        if (node_settings.class == LS_ED_CLASS_A) {
+            lpm_prevent_sleep = 0;
+        }
+        rtctimers_sleep(delay);
+        
+        /* limit max delay between attempts to 1 hour */
+        if (current_join_retries < 120) {
+            current_join_retries++;
+        }
+        
+        if (node_settings.class == LS_ED_CLASS_A) {
+            printf("ls-ed: rejoining, attempt %d / %d\n", current_join_retries, node_settings.max_retr);
+        } else {
+            puts("ls-ed: rejoining");
+        }
+        
+        ls_ed_join(&ls);
+    }
 }
 
 void joined_cb(void)

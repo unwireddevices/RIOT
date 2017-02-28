@@ -115,6 +115,11 @@ static inline int ticks_to_per_cent_mille(int ticks)
 }
 
 static int read_sensor_hold(sht21_t *dev, bool need_rh, int *result) {
+    uint8_t config;
+    /* Write command somehow hangs I2C if there was NACK before */
+    /* So lets do read first */
+    i2c_read_reg(dev->i2c, SHT21_ADDRESS, SHT21_USER_REG_READ, (char *)&config);
+    
     /* Choose measurement command: humidity or temperature */
     uint8_t cmd = (need_rh) ? SHT21_REG_RH_HOLD : SHT21_REG_T_HOLD;
 

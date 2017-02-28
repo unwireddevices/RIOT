@@ -413,6 +413,8 @@ static int _start(I2C_TypeDef *i2c, uint8_t address, uint8_t rw_flag)
             i2c->CR1 &= ~I2C_CR1_SWRST;           
             
             _i2c_init(i2c, ccr);
+            
+            return -1;
 		}
 	}
 	return 0;

@@ -118,7 +118,7 @@ static void clk_store_clocks(void) {
     }
 }
 
-static void __attribute__((optimize("O3"))) clk_restore_clocks(void) {
+static void clk_restore_clocks(void) {
 	/* restore timers frequencies */
     /*
 	for (tmpreg = 0; tmpreg < TIMER_NUMOF; tmpreg++) {

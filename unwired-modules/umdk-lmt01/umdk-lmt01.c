@@ -65,7 +65,16 @@ static void init_sensors(void) {
 			continue;
 
 		/* Initialize */
-		if (lmt01_init(dev, en_pins[i], UMDK_LMT01_INT_PIN) < 0) {
+        gpio_t pin_common = 0;
+        gpio_init(UMDK_LMT01_INT_PIN, GPIO_IN_PU);
+        if (gpio_read(UMDK_LMT01_INT_PIN) == 0) {
+            pin_common = UMDK_LMT01_INT_PIN;
+        } else {
+            pin_common = UMDK_LMT01_INT_PIN2;
+        }
+        gpio_init(UMDK_LMT01_INT_PIN, GPIO_IN);
+        
+		if (lmt01_init(dev, en_pins[i], pin_common) < 0) {
 			printf("[umdk-lmt01] Failed to initialize sensor #%d\n", i);
 		}
 	}

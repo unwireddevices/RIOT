@@ -107,7 +107,7 @@ extern "C" {
 
 /** @} */
 
-#define UART_STDIO_NUM              (1)
+#define UART_STDIO_DEV              UART_DEV(1)
 #define UART_STDIO_BAUDRATE         (115200U)
 #define UART_STDIO_RX_BUFSIZE       (64U)
 

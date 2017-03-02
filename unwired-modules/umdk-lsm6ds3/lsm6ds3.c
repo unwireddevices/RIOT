@@ -11,21 +11,20 @@
  * @ingroup
  * @brief
  * @{
- * @file		lsm6ds3.h
+ * @file        lsm6ds3.h
  * @brief       ST's LSM6DS3 6-axis motion sensor driver implementation
  * @author      EP <ep@unwds.com>
  */
 
-#include "../umdk-lsm6ds3/include/lsm6ds3.h"
+#include "include/lsm6ds3.h"
+#include "include/lsm6ds3_regs.h"
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
+#include <string.h>
 
-#include "../umdk-lsm6ds3/include/lsm6ds3_regs.h"
 #include "assert.h"
 #include "periph/i2c.h"
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -90,110 +89,18 @@ bool switch_to_base_page(lsm6ds3_t *dev)
     return write_register(dev, LSM6DS3_ACC_GYRO_RAM_ACCESS, 0x00);
 }
 
-int lsm6ds3_init(lsm6ds3_t *dev, lsm6ds3_param_t *param)
+static bool lsm6ds3_configure(lsm6ds3_t *dev)
 {
     assert(dev != NULL);
-    assert(param != NULL);
-
-    /* Copy settings */
-    dev->params = *param;
-	
-	/* Initialize I2C bus */
-	if (i2c_init_master(dev->params.i2c, I2C_SPEED_NORMAL) < 0) {
-		i2c_release(dev->params.i2c);
-		
-		return -1;
-	}
-
-    /* Check device ID */
-    uint8_t id;
-    read_register(dev, &id, LSM6DS3_ACC_GYRO_WHO_AM_I_REG);
-
-    if (id != LSM6DS3_DEFAULT_ID) {
-        return -3;
-    }
-
-    return 0;
-}
-
-bool lsm6ds3_configure(lsm6ds3_t *dev, lsm6ds3_param_t *settings)
-{
-    assert(dev != NULL);
-    assert(settings != NULL);
 
     uint8_t data = 0;
 
     /* Setup the accelerometer */
     data = 0;
-    if (settings->accel_enabled) {
-        switch (settings->accel_bandwidth) {
-            case 50:
-                data |= LSM6DS3_ACC_GYRO_BW_XL_50Hz;
-                break;
-            case 100:
-                data |= LSM6DS3_ACC_GYRO_BW_XL_100Hz;
-                break;
-            case 200:
-                data |= LSM6DS3_ACC_GYRO_BW_XL_200Hz;
-                break;
-            default:
-            case 400:
-                data |= LSM6DS3_ACC_GYRO_BW_XL_400Hz;
-                break;
-        }
-
-        switch (settings->accel_range) {
-            case 2:
-                data |= LSM6DS3_ACC_GYRO_FS_XL_2g;
-                break;
-            case 4:
-                data |= LSM6DS3_ACC_GYRO_FS_XL_4g;
-                break;
-            case 8:
-                data |= LSM6DS3_ACC_GYRO_FS_XL_8g;
-                break;
-            default:
-            case 16:
-                data |= LSM6DS3_ACC_GYRO_FS_XL_16g;
-                break;
-        }
-
-        switch (settings->accel_sample_rate) {
-            case 13:
-                data |= LSM6DS3_ACC_GYRO_ODR_XL_13Hz;
-                break;
-            case 26:
-                data |= LSM6DS3_ACC_GYRO_ODR_XL_26Hz;
-                break;
-            case 52:
-                data |= LSM6DS3_ACC_GYRO_ODR_XL_52Hz;
-                break;
-            default:
-            case 104:
-                data |= LSM6DS3_ACC_GYRO_ODR_XL_104Hz;
-                break;
-            case 208:
-                data |= LSM6DS3_ACC_GYRO_ODR_XL_208Hz;
-                break;
-            case 416:
-                data |= LSM6DS3_ACC_GYRO_ODR_XL_416Hz;
-                break;
-            case 833:
-                data |= LSM6DS3_ACC_GYRO_ODR_XL_833Hz;
-                break;
-            case 1660:
-                data |= LSM6DS3_ACC_GYRO_ODR_XL_1660Hz;
-                break;
-            case 3330:
-                data |= LSM6DS3_ACC_GYRO_ODR_XL_3330Hz;
-                break;
-            case 6660:
-                data |= LSM6DS3_ACC_GYRO_ODR_XL_6660Hz;
-                break;
-            case 13330:
-                data |= LSM6DS3_ACC_GYRO_ODR_XL_13330Hz;
-                break;
-        }
+    if (dev->params.accel_enabled) {
+        data |= dev->params.accel_bandwidth;
+        data |= dev->params.accel_range;
+        data |= dev->params.accel_sample_rate;
     }
 
     /* Write composed register value */
@@ -207,7 +114,7 @@ bool lsm6ds3_configure(lsm6ds3_t *dev, lsm6ds3_param_t *settings)
     }
 
     data &= ~((uint8_t)LSM6DS3_ACC_GYRO_BW_SCAL_ODR_ENABLED);
-    if (settings->accel_odr_off == 1) {
+    if (dev->params.accel_odr_off == 1) {
         data |= LSM6DS3_ACC_GYRO_BW_SCAL_ODR_ENABLED;
     }
 
@@ -217,53 +124,9 @@ bool lsm6ds3_configure(lsm6ds3_t *dev, lsm6ds3_param_t *settings)
 
     /* Setup the gyro */
     data = 0;
-    if (settings->gyro_enabled) {
-        switch (settings->gyro_range) {
-            case 125:
-                data |= LSM6DS3_ACC_GYRO_FS_125_ENABLED;
-                break;
-            case 245:
-                data |= LSM6DS3_ACC_GYRO_FS_G_245dps;
-                break;
-            case 500:
-                data |= LSM6DS3_ACC_GYRO_FS_G_500dps;
-                break;
-            case 1000:
-                data |= LSM6DS3_ACC_GYRO_FS_G_1000dps;
-                break;
-            default:
-            case 2000:
-                data |= LSM6DS3_ACC_GYRO_FS_G_2000dps;
-                break;
-        }
-
-        switch (settings->gyro_sample_rate) {
-            case 13:
-                data |= LSM6DS3_ACC_GYRO_ODR_G_13Hz;
-                break;
-            case 26:
-                data |= LSM6DS3_ACC_GYRO_ODR_G_26Hz;
-                break;
-            case 52:
-                data |= LSM6DS3_ACC_GYRO_ODR_G_52Hz;
-                break;
-            default:
-            case 104:
-                data |= LSM6DS3_ACC_GYRO_ODR_G_104Hz;
-                break;
-            case 208:
-                data |= LSM6DS3_ACC_GYRO_ODR_G_208Hz;
-                break;
-            case 416:
-                data |= LSM6DS3_ACC_GYRO_ODR_G_416Hz;
-                break;
-            case 833:
-                data |= LSM6DS3_ACC_GYRO_ODR_G_833Hz;
-                break;
-            case 1660:
-                data |= LSM6DS3_ACC_GYRO_ODR_G_1660Hz;
-                break;
-        }
+    if (dev->params.gyro_enabled) {
+        data |= dev->params.gyro_range;
+        data |= dev->params.gyro_sample_rate;
     }
 
     /* Write down the settings */
@@ -274,65 +137,104 @@ bool lsm6ds3_configure(lsm6ds3_t *dev, lsm6ds3_param_t *settings)
     return true;
 }
 
-static inline float_t convert_acc(lsm6ds3_t *dev, int16_t data)
+int lsm6ds3_init(lsm6ds3_t *dev)
 {
-    float_t output = (float_t) data * 0.061 * (dev->params.accel_range >> 1) / 1000;
+    assert(dev != NULL);
+    
+    /* Initialize I2C bus */
+    i2c_acquire(dev->params.i2c);
+    if (i2c_init_master(dev->params.i2c, I2C_SPEED_NORMAL) < 0) {
+        i2c_release(dev->params.i2c);
+        return -1;
+    }
+    i2c_release(dev->params.i2c);
+    
+    /* Check device ID */
+    uint8_t id;
+    read_register(dev, &id, LSM6DS3_ACC_GYRO_WHO_AM_I_REG);
 
-    return output;
+    if (id != LSM6DS3_DEFAULT_ID) {
+        return -3;
+    }
+    
+    if (!lsm6ds3_configure(dev)) {
+        return -4;
+    }
+
+    return 0;
 }
 
 static bool read_raw_accel_x(lsm6ds3_t *dev, int16_t *data)
 {
-    bool res = read_register_int16(dev, data, LSM6DS3_ACC_GYRO_OUTX_L_XL);
-
-    return res;
+    return read_register_int16(dev, data, LSM6DS3_ACC_GYRO_OUTX_L_XL);
 }
 
 static bool read_raw_accel_y(lsm6ds3_t *dev, int16_t *data)
 {
-    bool res = read_register_int16(dev, data, LSM6DS3_ACC_GYRO_OUTY_L_XL);
-
-    return res;
+    return read_register_int16(dev, data, LSM6DS3_ACC_GYRO_OUTY_L_XL);
 }
 
 static bool read_raw_accel_z(lsm6ds3_t *dev, int16_t *data)
 {
-    bool res = read_register_int16(dev, data, LSM6DS3_ACC_GYRO_OUTZ_L_XL);
-
-    return res;
-}
-
-static inline float_t convert_gyr(lsm6ds3_t *dev, int16_t data)
-{
-    uint8_t gyro_range_factor = dev->params.gyro_range / 125;
-
-    if (dev->params.gyro_range == 245) {
-        gyro_range_factor = 2;
-    }
-
-    float_t output = (float_t) data * 4.375 * (gyro_range_factor) / 1000;
-    return output;
+    return read_register_int16(dev, data, LSM6DS3_ACC_GYRO_OUTZ_L_XL);
 }
 
 static bool read_raw_gyro_x(lsm6ds3_t *dev, int16_t *data)
 {
-    bool res = read_register_int16(dev, data, LSM6DS3_ACC_GYRO_OUTX_L_G);
-
-    return res;
+    return read_register_int16(dev, data, LSM6DS3_ACC_GYRO_OUTX_L_G);
 }
 
 static bool read_raw_gyro_y(lsm6ds3_t *dev, int16_t *data)
 {
-    bool res = read_register_int16(dev, data, LSM6DS3_ACC_GYRO_OUTY_L_G);
-
-    return res;
+    return read_register_int16(dev, data, LSM6DS3_ACC_GYRO_OUTY_L_G);
 }
 
 static bool read_raw_gyro_z(lsm6ds3_t *dev, int16_t *data)
 {
-    bool res = read_register_int16(dev, data, LSM6DS3_ACC_GYRO_OUTZ_L_G);
+    return read_register_int16(dev, data, LSM6DS3_ACC_GYRO_OUTZ_L_G);
+}
 
-    return res;
+static inline int32_t convert_acc(lsm6ds3_t *dev, int16_t data)
+{
+    int32_t range = 0;
+    switch(dev->params.accel_range) {
+        case (LSM6DS3_ACC_GYRO_FS_XL_2g):
+            range = 61;
+            break;
+        case (LSM6DS3_ACC_GYRO_FS_XL_4g):
+            range = 122;
+            break;
+        case (LSM6DS3_ACC_GYRO_FS_XL_8g):
+            range = 244;
+            break;
+        case (LSM6DS3_ACC_GYRO_FS_XL_16g):
+            range = 488;
+            break;
+    }
+    
+    /* result in mg */
+    return (((int32_t)data * range) / 100);
+}
+
+static inline int32_t convert_gyr(lsm6ds3_t *dev, int16_t data) {
+    int32_t range = 0;
+    switch(dev->params.gyro_range) {
+        case (LSM6DS3_ACC_GYRO_FS_G_245dps):
+            range = 875;
+            break;
+        case (LSM6DS3_ACC_GYRO_FS_G_500dps):
+            range = 1750;
+            break;
+        case (LSM6DS3_ACC_GYRO_FS_G_1000dps):
+            range = 3500;
+            break;
+        case (LSM6DS3_ACC_GYRO_FS_G_2000dps):
+            range = 7000;
+            break;
+    }
+
+    /* result in mdps */
+    return (((int32_t)data * range) / 1000);
 }
 
 bool lsm6ds3_get_raw(lsm6ds3_t *dev, lsm6ds3_data_t *data)
@@ -350,7 +252,6 @@ bool lsm6ds3_get_raw(lsm6ds3_t *dev, lsm6ds3_data_t *data)
     if (!read_raw_accel_z(dev, &acc_z)) {
         return false;
     }
-
 
     data->acc_x = convert_acc(dev, acc_x);
     data->acc_y = convert_acc(dev, acc_y);
@@ -370,7 +271,6 @@ bool lsm6ds3_get_raw(lsm6ds3_t *dev, lsm6ds3_data_t *data)
         return false;
     }
 
-
     data->gyr_x = convert_gyr(dev, gyr_x);
     data->gyr_y = convert_gyr(dev, gyr_y);
     data->gyr_z = convert_gyr(dev, gyr_z);
@@ -380,10 +280,10 @@ bool lsm6ds3_get_raw(lsm6ds3_t *dev, lsm6ds3_data_t *data)
 
 uint16_t lsm6ds3_read_temp_c(lsm6ds3_t *dev)
 {
-	int16_t out = 0;
-	read_register_int16(dev, &out, LSM6DS3_ACC_GYRO_OUT_TEMP_L);
-	out += (125*16);
-	return (uint16_t)(out & 0x7FFF);
+    int16_t out = 0;
+    read_register_int16(dev, &out, LSM6DS3_ACC_GYRO_OUT_TEMP_L);
+    out += (125*16);
+    return (uint16_t)(out & 0x7FFF);
 }
 
 #ifdef __cplusplus

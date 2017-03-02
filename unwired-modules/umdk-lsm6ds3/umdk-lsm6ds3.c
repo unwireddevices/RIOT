@@ -11,8 +11,8 @@
  * @ingroup
  * @brief
  * @{
- * @file		umdk-acc.c
- * @brief       umdk-acc module implementation
+ * @file		umdk-lsm6ds3.c
+ * @brief       umdk-lsm6ds3 module implementation
  * @author      Eugene Ponomarev
  */
 
@@ -49,23 +49,19 @@ void umdk_lsm6ds3_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     lsm_params.i2c_addr = 0x6A;
     lsm_params.i2c = UMDK_LSM6DS3_I2C;
 
-    if (lsm6ds3_init(&lsm6ds3, &lsm_params) < 0) {
-        puts("[umdk-acc] Initialization of LSM6DS3 failed");
-    }
-
     /* Configure the default settings */
     lsm_params.gyro_enabled = true;
-    lsm_params.gyro_range = 2000;
-    lsm_params.gyro_sample_rate = 416;
-    lsm_params.gyro_bandwidth = 400;
+    lsm_params.gyro_range = LSM6DS3_ACC_GYRO_FS_G_500dps;
+    lsm_params.gyro_sample_rate = LSM6DS3_ACC_GYRO_ODR_XL_1660Hz;
+    lsm_params.gyro_bandwidth = LSM6DS3_ACC_GYRO_BW_XL_400Hz;
     lsm_params.gyro_fifo_enabled = true;
     lsm_params.gyro_fifo_decimation = true;
 
     lsm_params.accel_enabled = true;
     lsm_params.accel_odr_off = true;
-    lsm_params.accel_range = 8;
-    lsm_params.accel_sample_rate = 416;
-    lsm_params.accel_bandwidth = 400;
+    lsm_params.accel_range = LSM6DS3_ACC_GYRO_FS_XL_16g;
+    lsm_params.accel_sample_rate = LSM6DS3_ACC_GYRO_ODR_XL_1660Hz;
+    lsm_params.accel_bandwidth = LSM6DS3_ACC_GYRO_BW_XL_400Hz;
     lsm_params.accel_fifo_enabled = true;
     lsm_params.accel_fifo_decimation = true;
 
@@ -74,11 +70,13 @@ void umdk_lsm6ds3_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     lsm_params.comm_mode = 1;
 
     lsm_params.fifo_threshold = 3000;
-    lsm_params.fifo_sample_rate = 10;
+    lsm_params.fifo_sample_rate = LSM6DS3_ACC_GYRO_ODR_FIFO_1600Hz;
     lsm_params.fifo_mode_word = 0;
 
-    if (!lsm6ds3_configure(&lsm6ds3, &lsm_params)) {
-        puts("[umdk-acc] Configuration of LSM6DS3 failed");
+    lsm6ds3.params = lsm_params;
+    
+    if (lsm6ds3_init(&lsm6ds3) < 0) {
+        puts("[umdk-lsm6ds3] LSM6DS3 initialization failed");
     }
 }
 

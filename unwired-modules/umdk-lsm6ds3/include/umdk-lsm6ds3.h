@@ -11,8 +11,8 @@
  * @ingroup     
  * @brief       
  * @{
- * @file		umdk-temp.h
- * @brief       umdk-temp temperature sensor module
+ * @file		umdk-lsm6ds3.h
+ * @brief       umdk-lsm6ds3 temperature sensor module
  * @author      Eugene Ponomarev
  */
 #ifndef UMDK_LSM6DS3_H

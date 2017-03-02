@@ -22,7 +22,7 @@
 #include <stdint.h>
 #include <math.h>
 
-#include "../../umdk-lsm6ds3/include/lsm6ds3_regs.h"
+#include "lsm6ds3_regs.h"
 #include "periph/i2c.h"
 
 /**
@@ -70,13 +70,13 @@ typedef struct {
  * @brief Structure holds raw LSM6DS3 acceleration and gyro data
  */
 typedef struct {
-    float acc_x;
-    float acc_y;
-    float acc_z;
+    int acc_x;
+    int acc_y;
+    int acc_z;
 
-    float gyr_x;
-    float gyr_y;
-    float gyr_z;
+    int gyr_x;
+    int gyr_y;
+    int gyr_z;
 } lsm6ds3_data_t;
 
 /**
@@ -85,14 +85,11 @@ typedef struct {
  * @note The parameters passed will be copied into device descriptor
  *
  * @param[out] *dev    device descriptor pointer
- * @param[in]  *param  device parameters structure
  *
  * @return 0  on success
  * @return <0 on error
  */
-int lsm6ds3_init(lsm6ds3_t *dev, lsm6ds3_param_t *param);
-
-bool lsm6ds3_configure(lsm6ds3_t *dev, lsm6ds3_param_t *param);
+int lsm6ds3_init(lsm6ds3_t *dev);
 
 /**
  * @brief Gets raw measurement of current acceleration and gyro

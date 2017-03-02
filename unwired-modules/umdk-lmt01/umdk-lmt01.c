@@ -169,6 +169,7 @@ static void set_period (int period) {
 	} else {
 		puts("[lmt01] Timer stopped");
     }
+    save_config();
 }
 
 int umdk_lmt01_shell_cmd(int argc, char **argv) {

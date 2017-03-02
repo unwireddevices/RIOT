@@ -11,8 +11,8 @@
  * @ingroup
  * @brief
  * @{
- * @file		umdk-4btn.c
- * @brief       umdk-4btn module implementation
+ * @file		umdk-gps.c
+ * @brief       umdk-gps module implementation
  * @author      Eugene Ponomarev
  */
 
@@ -48,17 +48,24 @@ static void make_reply(module_data_t *reply) {
             last_data.date,
             last_data.time);
 
-    float float_lat, float_lon;
-    float_lat = atof(last_data.lat);
-    float_lon = atof(last_data.lon);
+    char *num;
+    num = strtok(last_data.lat, ".");
+    int32_t lat = atoi(num);
+    lat = lat << 8;
+    num = strtok(NULL, "");
+    lat |= atoi(num);
+    
+    num = strtok(last_data.lon, ".");
+    int32_t lon = atoi(num);
+    lon = lon << 8;
+    num = strtok(NULL, "");
+    lon |= atoi(num);
 
     /* Negative latitude and longitude */
     uint8_t lat_neg = (last_data.n) ? 0 : 1;
     uint8_t lon_neg = (last_data.e) ? 0 : 1;
 
     uint8_t coords[6] = {}; /* 6*8 bits = 48 */
-    int32_t lat = float_lat * 1000;
-    int32_t lon = float_lon * 1000;
 
     /* Pad 2 int32_t to 6 8uint_t, skipping the last byte (x >> 24) */
     coords[0] = lat;

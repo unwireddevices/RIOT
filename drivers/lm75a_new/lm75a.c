@@ -28,72 +28,57 @@
 extern "C" {
 #endif
 
-int lm75a_init(lm75a_t *dev, lm75a_param_t *param)
+int lm75a_init(lm75a_t *dev)
 {
     assert(dev != NULL);
-    assert(param != NULL);
-	
-    /* Copy parameters */
-    dev->params = *param;
 	
 	/* initialize underlying I2C bus */
     if (i2c_init_master(dev->params.i2c, I2C_SPEED_NORMAL) < 0) {
         /* Release the bus for other threads. */
+        puts("[lm75] Error initializing I2C bus");
         i2c_release(dev->params.i2c);
         return -1;
     }
 
     /* Modify the actual I2C address with respect to A1-A3 pins state */
     dev->address = LM75A_ADDRESS;
-    if (param->a1) {
+    if (dev->params.a1) {
         dev->address += 1;
     }
 
-    if (param->a2) {
+    if (dev->params.a2) {
         dev->address += 2;
     }
 
-    if (param->a3) {
+    if (dev->params.a3) {
         dev->address += 4;
     }
 
     return 0;
 }
 
-int16_t lm75a_get_ambient_temperature(lm75a_t *dev)
+int lm75a_get_ambient_temperature(lm75a_t *dev)
 {
     assert(dev != NULL);
 
     /* Acquire the I2C bus */
     i2c_acquire(dev->params.i2c);
-
+    
     /* Read two bytes from the sensor: MSB & LSB of temperature value */
-    char temp[2] = {};
-    i2c_read_regs(dev->params.i2c, LM75A_ADDRESS, LM75A_REG_ADDR_TEMP, temp, 2);
-
-    uint16_t value = 0;
-    uint8_t *ptr = (uint8_t *) &value;
-
-    /* Swap bytes */
-    *ptr = temp[1];
-    *(ptr + 1) = temp[0];
-
-    /* Shift bits (left-aligned) */
-    value >>= 5;
-
-    /* Relocate negative bit (11th bit to 16th bit) */
-    if (value & 0x0400) {
-        value &= 0x03FF;
-        value |= 0x8000;
-    }
-
-    /* Scale value to the sensor resolution */
-    /* float_t result = (float)value * LM75A_DEGREES_RESOLUTION; */
+    int16_t temp = 0;
+    i2c_read_regs(dev->params.i2c, LM75A_ADDRESS, LM75A_REG_ADDR_TEMP, (uint8_t *)&temp, 2);
 
     /* Release the I2C bus */
     i2c_release(dev->params.i2c);
 
-    return (int16_t)value;
+    /* Swap bytes */
+    temp = ((temp >> 8) & 0xff) | ((temp & 0xff) << 8);
+
+    /* Shift bits while preserving the sign */
+    temp = (temp & 0x8000) | ((temp >> 5) & 0x3ff);
+
+    /* return value in millicelsius */
+    return (int)temp * 125;
 }
 
 #ifdef __cplusplus

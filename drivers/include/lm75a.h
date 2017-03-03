@@ -18,22 +18,14 @@
 #ifndef LM75A_H_
 #define LM75A_H_
 
-#include "thread.h"
-#include "ringbuffer.h"
 #include "periph/i2c.h"
 
 #include <stdlib.h>
-#include <math.h>
 
 /**
  * @brief Initial LM72A address on I2C bus
  */
 #define LM75A_ADDRESS 0x48
-
-/**
- * @brief Resolution of the sensor (or value in degrees per LSB)
- */
-#define LM75A_DEGREES_RESOLUTION (0.125f)
 
 /**
  * @brief Address of the temperature value register
@@ -66,13 +58,13 @@ typedef struct {
  * @return 0 if initialization succeeded
  * @return <0 in case of error
  */
-int lm75a_init(lm75a_t *dev, lm75a_param_t *param);
+int lm75a_init(lm75a_t *dev);
 
 /**
  * @brief Gets an ambient temperature in Celsius degrees
  *
  * @param[in] dev pointer to the initialized LM75A device
  */
-float_t lm75a_get_ambient_temperature(lm75a_t *dev);
+int lm75a_get_ambient_temperature(lm75a_t *dev);
 
 #endif /* LM75A_H_ */

@@ -757,9 +757,6 @@ void init_node(shell_command_t **commands)
             wdg_enable();
         }
         
-        /* Set our commands for shell */
-        memcpy(commands, shell_commands, sizeof(shell_commands));
-
         rtctimers_sleep(1);
         blink_led();
 
@@ -769,6 +766,9 @@ void init_node(shell_command_t **commands)
         	ls.standby_mode_cb();
         }
     }
+    /* Set our commands for shell */
+    memcpy(commands, shell_commands, sizeof(shell_commands));
+    
     lpm_prevent_switch = 0;
 }
 

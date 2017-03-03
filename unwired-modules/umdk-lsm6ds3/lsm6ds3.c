@@ -213,7 +213,7 @@ static inline int32_t convert_acc(lsm6ds3_t *dev, int16_t data)
     }
     
     /* result in mg */
-    return (((int32_t)data * range) / 100);
+    return (((int32_t)data * range) / 1000);
 }
 
 static inline int32_t convert_gyr(lsm6ds3_t *dev, int16_t data) {

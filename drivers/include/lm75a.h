@@ -30,7 +30,22 @@
 /**
  * @brief Address of the temperature value register
  */
-#define LM75A_REG_ADDR_TEMP 0
+#define LM75A_REG_ADDR_TEMP 0x0
+
+/**
+ * @brief Address of the configuration register
+ */
+#define LM75A_REG_ADDR_CONF 0x1
+
+/**
+ * @brief Address of the hysteresis register
+ */
+#define LM75A_REG_ADDR_THYST 0x2
+
+/**
+ * @brief Address of the overtemperature shutdown register
+ */
+#define LM75A_REG_ADDR_TOS 0x3
 
 /**
  * @brief Structure that holds the LM75A driver parameters
@@ -66,5 +81,10 @@ int lm75a_init(lm75a_t *dev);
  * @param[in] dev pointer to the initialized LM75A device
  */
 int lm75a_get_ambient_temperature(lm75a_t *dev);
+
+int lm75a_get_shutdown_temp(lm75a_t *dev);
+void lm75a_set_shutdown_temp(lm75a_t *dev, int8_t temp);
+int lm75a_get_hysteresis_temp(lm75a_t *dev);
+void lm75a_set_hysteresis_temp(lm75a_t *dev, int8_t temp);
 
 #endif /* LM75A_H_ */

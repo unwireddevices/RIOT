@@ -48,17 +48,18 @@ bool read_register_int16(lsm6ds3_t *dev, int16_t *result, uint8_t reg)
 {
     i2c_acquire(dev->params.i2c);
 
-    uint8_t buf[2];
-    if (i2c_read_regs(dev->params.i2c, dev->params.i2c_addr, reg, (char *) buf, 2) < 0) {
+    // int16_t buf;
+    if (i2c_read_regs(dev->params.i2c, dev->params.i2c_addr, reg, (void *) result, 2) < 0) {
         i2c_release(dev->params.i2c);
         return false;
     }
 
     /* Swap bytes */
-    int16_t out = (int16_t) buf[0] | ((int16_t) buf[1] << 8);
+    /* no longer needed, bytes swapped by LSM6DS3 itself */
+    /* int16_t out = (int16_t) buf[0] | ((int16_t) buf[1] << 8); */
 
     /* Return output */
-    *result = out;
+    //*result = out;
 
     i2c_release(dev->params.i2c);
 
@@ -119,6 +120,12 @@ static bool lsm6ds3_configure(lsm6ds3_t *dev)
     }
 
     if (!write_register(dev, LSM6DS3_ACC_GYRO_CTRL4_C, data)) {
+        return false;
+    }
+    
+    /* change byte order */
+    data &= LSM6DS3_ACC_GYRO_BLE_MSB;
+    if (!write_register(dev, LSM6DS3_ACC_GYRO_CTRL3_C, data)) {
         return false;
     }
 
@@ -245,7 +252,7 @@ bool lsm6ds3_read_acc(lsm6ds3_t *dev, lsm6ds3_data_t *data)
     uint8_t status = 0;
     do {
         read_register(dev, &status, LSM6DS3_ACC_GYRO_STATUS_REG);
-    } while (!(status & LSM6DS3_ACC_GYRO_STATUS_XLDA));
+    } while (!(status & LSM6DS3_ACC_GYRO_XLDA_DATA_AVAIL));
 
     if (!read_raw_accel_x(dev, &acc_x)) {
         return false;
@@ -274,7 +281,7 @@ bool lsm6ds3_read_gyro(lsm6ds3_t *dev, lsm6ds3_data_t *data)
     uint8_t status = 0;
     do {
         read_register(dev, &status, LSM6DS3_ACC_GYRO_STATUS_REG);
-    } while (!(status & LSM6DS3_ACC_GYRO_STATUS_GDA));
+    } while (!(status & LSM6DS3_ACC_GYRO_GDA_DATA_AVAIL));
 
     if (!read_raw_gyro_x(dev, &gyr_x)) {
         return false;
@@ -301,7 +308,7 @@ int lsm6ds3_read_temp(lsm6ds3_t *dev)
     uint8_t status = 0;
     do {
         read_register(dev, &status, LSM6DS3_ACC_GYRO_STATUS_REG);
-    } while (!(status & LSM6DS3_ACC_GYRO_STATUS_GDA));
+    } while (!(status & LSM6DS3_ACC_GYRO_TDA_DATA_AVAIL));
     
     int16_t out = 0;
     read_register_int16(dev, &out, LSM6DS3_ACC_GYRO_OUT_TEMP_L);

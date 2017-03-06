@@ -97,11 +97,6 @@
 #define LSM6DS3_ACC_GYRO_MD1_CFG  			0X5E
 #define LSM6DS3_ACC_GYRO_MD2_CFG  			0X5F
 
-/************** Status bits  *******************/
-#define LSM6DS3_ACC_GYRO_STATUS_XLDA        (0x01)
-#define LSM6DS3_ACC_GYRO_STATUS_GDA         (0x02)
-#define LSM6DS3_ACC_GYRO_STATUS_TDA         (0x04)
-
 /************** Access Device RAM  *******************/
 #define LSM6DS3_ACC_GYRO_ADDR0_TO_RW_RAM         0x62
 #define LSM6DS3_ACC_GYRO_ADDR1_TO_RW_RAM         0x63
@@ -1395,6 +1390,17 @@ typedef enum {
 	LSM6DS3_ACC_GYRO_GDA_NO_DATA_AVAIL 		 = 0x00,
 	LSM6DS3_ACC_GYRO_GDA_DATA_AVAIL 		 = 0x02,
 } LSM6DS3_ACC_GYRO_GDA_t;
+
+/*******************************************************************************
+* Register      : STATUS_REG
+* Address       : 0X1E
+* Bit Group Name: TDA
+* Permission    : RO
+*******************************************************************************/
+typedef enum {
+	LSM6DS3_ACC_GYRO_TDA_NO_DATA_AVAIL 		 = 0x00,
+	LSM6DS3_ACC_GYRO_TDA_DATA_AVAIL 		 = 0x04,
+} LSM6DS3_ACC_GYRO_TDA_t;
 
 /*******************************************************************************
 * Register      : STATUS_REG

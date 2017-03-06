@@ -87,7 +87,7 @@ INCLUDES += -I../../unwired-modules/umdk-lm75/include/
 
 ifeq ($(UNWD_LSM6DS3),1)
 USEMODULE += umdk-lsm6ds3
-USEMODULE += printf_float
+USEMODULE += lsm6ds3
 CFLAGS += -Dumdk_lsm6ds3
 endif
 INCLUDES += -I../../unwired-modules/umdk-lsm6ds3/include/

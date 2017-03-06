@@ -31,7 +31,8 @@ extern "C" {
 
 #include "unwds-common.h"
 #include "include/umdk-lsm6ds3.h"
-#include "include/lsm6ds3.h"
+#include "lsm6ds3.h"
+#include "lsm6ds3_regs.h"
 
 #include "thread.h"
 #include "xtimer.h"

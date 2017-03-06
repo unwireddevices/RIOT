@@ -237,7 +237,7 @@ static inline int32_t convert_gyr(lsm6ds3_t *dev, int16_t data) {
     return (((int32_t)data * range) / 1000);
 }
 
-bool lsm6ds3_get_raw(lsm6ds3_t *dev, lsm6ds3_data_t *data)
+bool lsm6ds3_read_acc(lsm6ds3_t *dev, lsm6ds3_data_t *data)
 {
     int16_t acc_x, acc_y, acc_z;
     
@@ -262,11 +262,16 @@ bool lsm6ds3_get_raw(lsm6ds3_t *dev, lsm6ds3_data_t *data)
     data->acc_x = convert_acc(dev, acc_x);
     data->acc_y = convert_acc(dev, acc_y);
     data->acc_z = convert_acc(dev, acc_z);
-
+    
+    return true;
+}
+    
+bool lsm6ds3_read_gyro(lsm6ds3_t *dev, lsm6ds3_data_t *data)
+{
     int16_t gyr_x, gyr_y, gyr_z;
     
     /* wait for data to be ready */
-    status = 0;
+    uint8_t status = 0;
     do {
         read_register(dev, &status, LSM6DS3_ACC_GYRO_STATUS_REG);
     } while (!(status & LSM6DS3_ACC_GYRO_STATUS_GDA));
@@ -290,7 +295,7 @@ bool lsm6ds3_get_raw(lsm6ds3_t *dev, lsm6ds3_data_t *data)
     return true;
 }
 
-int lsm6ds3_read_temp_c(lsm6ds3_t *dev)
+int lsm6ds3_read_temp(lsm6ds3_t *dev)
 {
     /* wait for data to be ready */
     uint8_t status = 0;

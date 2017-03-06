@@ -90,15 +90,26 @@ typedef struct {
 int lsm6ds3_init(lsm6ds3_t *dev);
 
 /**
- * @brief Gets raw measurement of current acceleration and gyro
+ * @brief Gets measurement of current acceleration
  *
  * @param[in]  *dev  LSM6DS3 device pointer
- * @param[out] *data raw measurement data
+ * @param[out] *data measurement data
  *
  * @return true  on success
  * @return false on error
  */
-bool lsm6ds3_get_raw(lsm6ds3_t *dev, lsm6ds3_data_t *data);
+bool lsm6ds3_read_acc(lsm6ds3_t *dev, lsm6ds3_data_t *data);
+
+/**
+ * @brief Gets measurement of current gyro
+ *
+ * @param[in]  *dev  LSM6DS3 device pointer
+ * @param[out] *data measurement data
+ *
+ * @return true  on success
+ * @return false on error
+ */
+bool lsm6ds3_read_gyro(lsm6ds3_t *dev, lsm6ds3_data_t *data);
 
 /**
  * @brief Gets data from temperature sensor in Celsius degrees
@@ -107,6 +118,6 @@ bool lsm6ds3_get_raw(lsm6ds3_t *dev, lsm6ds3_data_t *data);
  *
  * @return Temperature in Celsius degrees
  */
-int lsm6ds3_read_temp_c(lsm6ds3_t *dev);
+int lsm6ds3_read_temp(lsm6ds3_t *dev);
 
 #endif /* LSM6DS3_H_ */

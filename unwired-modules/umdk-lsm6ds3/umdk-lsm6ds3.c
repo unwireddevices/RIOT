@@ -62,7 +62,7 @@ static void *acq_thread(void *arg) {
         xtimer_remove(&acq_timer);
 
         lsm6ds3_data_t acc_data = {};
-        lsm6ds3_get_raw(&lsm6ds3, &acc_data);
+        lsm6ds3_read_acc(&lsm6ds3, &acc_data);
         
         if (acc_data.acc_x > 0) {
             if (acc_data.acc_x > acc_max_value.acc_x) {
@@ -123,8 +123,11 @@ int umdk_lsm6ds3_shell_cmd(int argc, char **argv) {
 	
     if (strcmp(cmd, "get") == 0) {
         lsm6ds3_data_t acc_data = {};
-        lsm6ds3_get_raw(&lsm6ds3, &acc_data);
-		uint16_t temp = lsm6ds3_read_temp_c(&lsm6ds3);
+        
+        lsm6ds3_read_acc(&lsm6ds3, &acc_data);
+        lsm6ds3_read_gyro(&lsm6ds3, &acc_data);
+        
+		uint16_t temp = lsm6ds3_read_temp(&lsm6ds3);
         printf("Accelerometer: X %d.%d g, Y %d.%d g, Z %d.%d g\n",
                 acc_data.acc_x/1000, abs(acc_data.acc_x%1000),
                 acc_data.acc_y/1000, abs(acc_data.acc_y%1000),
@@ -302,8 +305,9 @@ bool umdk_lsm6ds3_cmd(module_data_t *cmd, module_data_t *reply)
 	case UMDK_LSM6DS3_CMD_POLL:
 	{
 		lsm6ds3_data_t acc_data = {};
-        lsm6ds3_get_raw(&lsm6ds3, &acc_data);
-		uint16_t temp = lsm6ds3_read_temp_c(&lsm6ds3);
+        lsm6ds3_read_acc(&lsm6ds3, &acc_data);
+        lsm6ds3_read_gyro(&lsm6ds3, &acc_data);
+		uint16_t temp = lsm6ds3_read_temp(&lsm6ds3);
 		
 		reply->length = 1 + sizeof(lsm6ds3_data_t) + 2;
 		reply->data[0] = UNWDS_LSM6DS3_MODULE_ID;

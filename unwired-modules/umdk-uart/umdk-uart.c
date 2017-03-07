@@ -86,6 +86,16 @@ void *writer(void *arg) {
 
       num_bytes_received = 0;
     }
+    
+    char buf[200];
+    char *pos = buf;
+    int k = 0;
+    for (k = 2; k < data.length; k++) {
+        snprintf(pos, 3, "%02x", data.data[k]);
+        pos += 2;
+    }
+    
+    printf("[umdk-uart] received 0x%s\n", buf);
 
     callback(&data);
   }
@@ -145,6 +155,61 @@ static void init_config(void) {
 static inline void save_config(void) {
 	umdk_uart_config.is_valid = 1;
 	unwds_write_nvram_config(UNWDS_UART_MODULE_ID, (uint8_t *) &umdk_uart_config, sizeof(umdk_uart_config));
+}
+
+int umdk_uart_shell_cmd(int argc, char **argv) {
+    if (argc == 1) {
+        puts ("uart send <hex> - send data to UART port");
+        puts ("uart baud <baud> - set baudrate");
+        puts ("uart reset - reset settings to default");
+        return 0;
+    }
+    
+    char *cmd = argv[1];
+    
+    if (strcmp(cmd, "send") == 0) {
+        char *pos = argv[2];
+        
+        uint8_t data[200];
+        int count = 0;
+
+        for(count = 0; count < strlen(argv[2])/2; count++) {
+            char buf[3] = { pos[0], pos[1], 0 };
+            data[count] = strtol(buf, NULL, 16);
+            pos += 2;
+        }
+        
+        /* Send data */
+        gpio_set(RE_PIN);
+        gpio_set(DE_PIN);
+
+        uart_write(UART_DEV(umdk_uart_config.uart_dev), (uint8_t *) data, count);
+        
+        gpio_clear(RE_PIN);
+        gpio_clear(DE_PIN);
+    }
+    
+    if (strcmp(cmd, "baud") == 0) {
+        char *val = argv[2];
+        
+        uart_params_t uart_params;
+        uart_params.baudrate = atoi(val);
+        uart_params.parity = umdk_uart_config.parity;
+        uart_params.stopbits = umdk_uart_config.stopbits;
+        uart_params.databits = umdk_uart_config.databits;
+        
+        if (!uart_init_ext(UART_DEV(umdk_uart_config.uart_dev), &uart_params, rx_cb, NULL)){
+            umdk_uart_config.baudrate = uart_params.baudrate;
+            save_config();
+        }
+    }
+    
+    if (strcmp(cmd, "reset") == 0) {
+        reset_config();
+        save_config();
+    }
+    
+    return 1;
 }
 
 void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
@@ -234,6 +299,8 @@ void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     	return;
     }
 
+    unwds_add_shell_command("uart", "type 'uart' for commands list", umdk_uart_shell_cmd);
+    
 	/* Create handler thread */
 	writer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, writer, NULL, "umdk-uart thread");
 }
@@ -265,7 +332,7 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             gpio_set(RE_PIN);
             gpio_set(DE_PIN);
 
-            uart_write(UMDK_UART_DEV, (uint8_t *) data->data + 1, data->length - 1);
+            uart_write(UART_DEV(umdk_uart_config.uart_dev), (uint8_t *) data->data + 1, data->length - 1);
 
             gpio_clear(RE_PIN);
             gpio_clear(DE_PIN);

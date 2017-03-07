@@ -54,7 +54,7 @@ static void *acq_thread(void *arg) {
     msg_t msg_queue[4];
     msg_init_queue(msg_queue, 4);
 
-    puts("[umdk-sht21] Continuous acquisition thread started");
+    puts("[umdk-lsm6ds3] Continuous acquisition thread started");
 
     while (1) {
         msg_receive(&msg);

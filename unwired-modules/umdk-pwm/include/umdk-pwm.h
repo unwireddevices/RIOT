@@ -20,9 +20,8 @@
 #define UMDK_PWM_H
 
 #include "unwds-common.h"
-#include "periph/pwm.h"
 
-#define UNWDS_PWM_MODULE_ID 14
+#include "periph/pwm.h"
 
 #define UMDK_PWM_0 0
 #define UMDK_PWM_1 1

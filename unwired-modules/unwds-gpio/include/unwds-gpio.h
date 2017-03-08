@@ -21,7 +21,6 @@
 #include "periph/gpio.h"
 #include "unwds-common.h"
 
-#define UNWDS_GPIO_MODULE_ID 1
 #define UWNDS_GPIO_DATA_LEN 1
 
 typedef enum {

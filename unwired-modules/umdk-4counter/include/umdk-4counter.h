@@ -20,8 +20,6 @@
 
 #include "unwds-common.h"
 
-#define UNWDS_4COUNTER_MODULE_ID 12
-
 #define MESSAGE_TYPE_COUNTER 0
 #define MESSAGE_TYPE_PUBLISHER 1
 

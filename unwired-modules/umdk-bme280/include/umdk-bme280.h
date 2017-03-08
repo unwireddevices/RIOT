@@ -22,8 +22,6 @@
 
 #define UMDK_BME280_PUBLISH_PERIOD_MIN 1
 
-#define UNWDS_BME280_MODULE_ID 17
-
 #define UMDK_BME280_I2C 1
 #define UMDK_BME280_I2C_ADDR        (0x76)
 #define BME280_PARAMS_BOARD               \

@@ -20,8 +20,6 @@
 
 #include "unwds-common.h"
 
-#define UNWDS_RSSIECHO_MODULE_ID 13
-
 typedef enum {
 	UMDK_RSSIECHO_CMD_ECHO = 0,
 } umdk_rssiecho_cmd_t;

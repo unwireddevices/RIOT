@@ -20,9 +20,8 @@
 #define UMDK_DALI_H
 
 #include "unwds-common.h"
-#include "periph/pwm.h"
 
-#define UNWDS_DALI_MODULE_ID 16
+#include "periph/pwm.h"
 
 #define UMDK_DALI_NUM_CHANNELS 4
 

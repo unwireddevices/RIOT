@@ -25,6 +25,8 @@
 
 #include "nvram.h"
 
+#include "unwds-ids.h"
+
 typedef uint8_t unwds_module_id_t;
 
 /**

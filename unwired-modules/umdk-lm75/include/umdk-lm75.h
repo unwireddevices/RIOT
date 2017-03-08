@@ -19,9 +19,8 @@
 #define UMDK_LM75_H
 
 #include "unwds-common.h"
-#include "lm75a.h"
 
-#define UNWDS_LM75_MODULE_ID 5
+#include "lm75a.h"
 
 #define UMDK_LM75_I2C 1
 

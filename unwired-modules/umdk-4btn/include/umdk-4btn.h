@@ -20,8 +20,6 @@
 
 #include "unwds-common.h"
 
-#define UNWDS_4BTN_MODULE_ID 2
-
 #define UMDK_4BTN_1 UNWD_GPIO_4
 #define UMDK_4BTN_2 UNWD_GPIO_5
 #define UMDK_4BTN_3 UNWD_GPIO_6

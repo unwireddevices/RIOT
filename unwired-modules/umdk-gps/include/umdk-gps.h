@@ -22,9 +22,6 @@
 
 #include "sl3333.h"
 
-
-#define UNWDS_GPS_MODULE_ID 3
-
 #ifndef UMDK_GPS_UART
 #define UMDK_GPS_UART UMDK_UART_DEV
 #endif

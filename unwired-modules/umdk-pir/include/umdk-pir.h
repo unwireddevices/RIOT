@@ -20,8 +20,6 @@
 
 #include "unwds-common.h"
 
-#define UNWDS_PIR_MODULE_ID 9
-
 #define UMDK_PIR UNWD_GPIO_24
 
 #define UMDK_PIR_DEBOUNCE_TIME_MS 150

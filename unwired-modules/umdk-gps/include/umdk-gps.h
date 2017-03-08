@@ -20,8 +20,6 @@
 
 #include "unwds-common.h"
 
-#include "sl3333.h"
-
 #ifndef UMDK_GPS_UART
 #define UMDK_GPS_UART UMDK_UART_DEV
 #endif

@@ -74,6 +74,7 @@ INCLUDES += -I../../unwired-modules/umdk-4btn/include/
 
 ifeq ($(UNWD_GPS),1)
 USEMODULE += umdk-gps
+USEMODULE += mt3333
 CFLAGS += -Dumdk_gps
 endif
 INCLUDES += -I../../unwired-modules/umdk-gps/include/

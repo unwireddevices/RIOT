@@ -73,6 +73,9 @@ endif
 ifneq (,$(filter lsm6ds3,$(USEMODULE)))
     USEMODULE_INCLUDES += $(RIOTBASE)/drivers/lsm6ds3/include
 endif
+ifneq (,$(filter mt3333,$(USEMODULE)))
+    USEMODULE_INCLUDES += $(RIOTBASE)/drivers/mt3333/include
+endif
 ifneq (,$(filter cc2420,$(USEMODULE)))
     USEMODULE_INCLUDES += $(RIOTBASE)/drivers/cc2420/include
 endif

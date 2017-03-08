@@ -25,7 +25,7 @@ extern "C" {
 #include <string.h>
 
 #include "periph/gpio.h"
-
+#include "mt3333.h"
 #include "board.h"
 
 #include "unwds-common.h"
@@ -36,9 +36,9 @@ extern "C" {
 static uwnds_cb_t *callback;
 
 static bool has_data;
-static sl3333_gps_data_t last_data;
+static mt3333_gps_data_t last_data;
 
-static sl3333_t gps;
+static mt3333_t gps;
 
 static void make_reply(module_data_t *reply) {
     printf("[gps] {\"has_data\":true,\"lat\":\"%s\",\"lon\":\"%s\",\"n\":%s,\"e\":%s,\"date\":\"%s\",\"time\":\"%s\"}\n",
@@ -83,7 +83,7 @@ static void make_reply(module_data_t *reply) {
     reply->length = 1 + 1 + sizeof(coords); /* [module ID] + [reply byte] + [48 bit GPS data] */
 }
 
-void gps_cb(sl3333_gps_data_t data)
+void gps_cb(mt3333_gps_data_t data)
 {
     has_data = true;
     last_data = data;
@@ -95,11 +95,11 @@ void umdk_gps_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 
     callback = event_callback;
 
-    sl3333_param_t gps_params;
+    mt3333_param_t gps_params;
     gps_params.gps_cb = gps_cb;
     gps_params.uart = UMDK_GPS_UART;
 
-    sl3333_init(&gps, &gps_params);
+    mt3333_init(&gps, &gps_params);
 }
 
 bool umdk_gps_cmd(module_data_t *data, module_data_t *reply)

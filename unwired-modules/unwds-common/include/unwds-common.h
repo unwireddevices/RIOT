@@ -94,7 +94,7 @@ typedef struct {
 
 	int16_t rssi;
 
-	bool as_ack;	/**< This data could be sended as ACK for downlink command */
+	bool as_ack;	/**< This data could be sent as ACK for downlink command */
 } module_data_t;
 
 typedef void (uwnds_cb_t)(module_data_t *msg);

@@ -95,6 +95,7 @@ INCLUDES += -I../../unwired-modules/umdk-lsm6ds3/include/
 
 ifeq ($(UNWD_LMT01),1)
 USEMODULE += umdk-lmt01
+USEMODULE += lmt01
 CFLAGS += -Dumdk_lmt01
 endif
 INCLUDES += -I../../unwired-modules/umdk-lmt01/include/

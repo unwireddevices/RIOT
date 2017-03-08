@@ -170,13 +170,29 @@ int umdk_uart_shell_cmd(int argc, char **argv) {
     if (strcmp(cmd, "send") == 0) {
         char *pos = argv[2];
         
-        uint8_t data[200];
-        int count = 0;
+        if ((strlen(pos) % 2) != 0 ) {
+            puts("[umdk-uart] Error: hex number length must be even");
+            return 0;
+        }
+        
+        if ((strlen(pos)) > 400 ) {
+            puts("[umdk-uart] Error: over 200 bytes of data");
+            return 0;
+        }
 
-        for(count = 0; count < strlen(argv[2])/2; count++) {
-            char buf[3] = { pos[0], pos[1], 0 };
-            data[count] = strtol(buf, NULL, 16);
+        uint8_t data[200];
+        uint8_t count = 0;
+        uint8_t i = 0;
+        char buf[3] = { 0 };
+        for(i = 0; i < strlen(argv[2])/2; i++) {
+            /* copy 2 hex symbols to a new array */
+            memcpy(buf, pos, 2);
             pos += 2;
+
+            if (strcmp(buf, "0x") && strcmp(buf, "0X")) {
+                data[count] = strtol(buf, NULL, 16);
+                count++;
+            }
         }
         
         /* Send data */

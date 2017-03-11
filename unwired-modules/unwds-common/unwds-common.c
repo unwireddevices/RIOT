@@ -48,6 +48,8 @@ extern "C" {
 #include "umdk-dali.h"
 #include "umdk-bme280.h"
 
+#include "umdk-mhz19.h"
+
 /**
  * @brief Bitmap of occupied pins that cannot be used as gpio in-out
  */
@@ -111,6 +113,11 @@ static const unwd_module_t modules[] = {
 #ifdef umdk_bme280
 	{ UNWDS_BME280_MODULE_ID, "bme280", umdk_bme280_init, umdk_bme280_cmd, NULL },
 #endif
+
+#ifdef umdk_mhz19
+	{ UNWDS_MHZ19_MODULE_ID, "mhz19", umdk_mhz19_init, umdk_mhz19_cmd, NULL },
+#endif
+
     { 0, "", NULL, NULL },
 };
 

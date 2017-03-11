@@ -15,13 +15,13 @@
  * @brief       umdk-uart module definitions
  * @author      EP
  */
-#ifndef UMDK_UART_H
-#define UMDK_UART_H
+#ifndef UMDK_MHZ19_H
+#define UMDK_MHZ19_H
 
 #include "unwds-common.h"
 
-#define UMDK_UART_RXBUF_SIZE (UNWDS_MAX_DATA_LEN - 1)
-#define UMDK_UART_SYMBOL_TIMEOUT_MS 500
+#define UMDK_MHZ19_RXBUF_SIZE (UNWDS_MAX_DATA_LEN - 1)
+#define UMDK_MHZ19_SYMBOL_TIMEOUT_MS 500
 
 /**
  * @brief   DE/RE pins definitions and handlers
@@ -34,22 +34,22 @@
 /** @} */
 
 typedef enum {
-	UMDK_UART_SEND_ALL = 0,
-	UMDK_UART_SET_BAUDRATE = 1,
-    UMDK_UART_SET_PARAMETERS = 2,
-} umdk_uart_prefix_t;
+	UMDK_MHZ19_SEND_ALL = 0,
+	UMDK_MHZ19_SET_BAUDRATE = 1,
+    UMDK_MHZ19_SET_PARAMETERS = 2,
+} umdk_mhz19_prefix_t;
 
 typedef enum {
-	UMDK_UART_REPLY_SENT = 0,
-	UMDK_UART_REPLY_RECEIVED = 1,
-	UMDK_UART_REPLY_BAUDRATE_SET = 2,
+	UMDK_MHZ19_REPLY_SENT = 0,
+	UMDK_MHZ19_REPLY_RECEIVED = 1,
+	UMDK_MHZ19_REPLY_BAUDRATE_SET = 2,
 	/* ... */
-	UMDK_UART_REPLY_ERR_OVF = 253,	/* RX buffer overflowed */
-	UMDK_UART_REPLY_ERR_FMT = 254,
-	UMDK_UART_ERR = 255,
-} umdk_uart_reply_t;
+	UMDK_MHZ19_REPLY_ERR_OVF = 253,	/* RX buffer overflowed */
+	UMDK_MHZ19_REPLY_ERR_FMT = 254,
+	UMDK_MHZ19_ERR = 255,
+} umdk_mhz19_reply_t;
 
-void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
-bool umdk_uart_cmd(module_data_t *data, module_data_t *reply);
+void umdk_mhz19_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
+bool umdk_mhz19_cmd(module_data_t *data, module_data_t *reply);
 
-#endif /* UMDK_UART_H */
+#endif /* UMDK_MHZ19_H */

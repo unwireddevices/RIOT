@@ -11,8 +11,8 @@
  * @ingroup
  * @brief
  * @{
- * @file		umdk-uart.c
- * @brief       umdk-uart module implementation
+ * @file		umdk-mhz19.c
+ * @brief       umdk-mhz19 module implementation
  * @author      EP
  */
 
@@ -30,13 +30,13 @@ extern "C" {
 #include "board.h"
 
 #include "unwds-common.h"
-#include "include/umdk-uart.h"
+#include "include/umdk-mhz19.h"
 
 #include "thread.h"
 #include "xtimer.h"
 
 static uwnds_cb_t *callback;
-static uint8_t rxbuf[UMDK_UART_RXBUF_SIZE] = {};
+static uint8_t rxbuf[UMDK_MHZ19_RXBUF_SIZE] = {};
 
 static volatile uint8_t num_bytes_received;
 
@@ -54,9 +54,9 @@ typedef struct {
     uint8_t databits;
     uint8_t parity;
     uint8_t stopbits;
-} umdk_uart_config_t;
+} umdk_mhz19_config_t;
 
-static umdk_uart_config_t umdk_uart_config = { 0, UMDK_UART_DEV, 115200U, \
+static umdk_mhz19_config_t umdk_mhz19_config = { 0, UMDK_UART_DEV, 9600U, \
                                                UART_DATABITS_8, UART_PARITY_NOPARITY, \
                                                UART_STOPBITS_10 };
 
@@ -69,20 +69,20 @@ void *writer(void *arg) {
     msg_receive(&msg);
 
     module_data_t data;
-    data.data[0] = UNWDS_UART_MODULE_ID;
+    data.data[0] = UNWDS_MHZ19_MODULE_ID;
     data.length = 2;
 
     /* Received payload, send it */
     if (msg.content.value == send_msg.content.value) {
       data.length += num_bytes_received;
-      data.data[1] = UMDK_UART_REPLY_RECEIVED;
+      data.data[1] = UMDK_MHZ19_REPLY_RECEIVED;
 
       memcpy(data.data + 2, rxbuf, num_bytes_received);
 
       num_bytes_received = 0;
     } else if (msg.content.value == send_msg_ovf.content.value) { /* RX buffer overflowed, send error message */
       data.length = 2;
-      data.data[1] = UMDK_UART_REPLY_ERR_OVF;
+      data.data[1] = UMDK_MHZ19_REPLY_ERR_OVF;
 
       num_bytes_received = 0;
     }
@@ -95,7 +95,13 @@ void *writer(void *arg) {
         pos += 2;
     }
     
-    printf("[umdk-uart] received 0x%s\n", buf);
+    printf("[umdk-mhz19] received 0x%s\n", buf);
+
+
+    int co2 = data.data[2+3] * 256 + data.data[2+4];
+    int raw = data.data[2+9] * 256 + data.data[2+10];
+
+    printf("[umdk-mhz19] CO2: %d, %d\n", co2, raw);
 
     callback(&data);
   }
@@ -106,7 +112,7 @@ void *writer(void *arg) {
 void rx_cb(void *arg, uint8_t data)
 {
 	/* Buffer overflow */
-	if (num_bytes_received == UMDK_UART_RXBUF_SIZE) {
+	if (num_bytes_received == UMDK_MHZ19_RXBUF_SIZE) {
 		num_bytes_received = 0;
 
 		msg_send(&send_msg_ovf, writer_pid);
@@ -117,66 +123,82 @@ void rx_cb(void *arg, uint8_t data)
 	rxbuf[num_bytes_received++] = data;
 
 	/* Schedule sending after timeout */
-	xtimer_set_msg(&send_timer, 1e3 * UMDK_UART_SYMBOL_TIMEOUT_MS, &send_msg, writer_pid);
+	xtimer_set_msg(&send_timer, 1e3 * UMDK_MHZ19_SYMBOL_TIMEOUT_MS, &send_msg, writer_pid);
 }
 
 static void reset_config(void) {
-	umdk_uart_config.is_valid = 0;
-	umdk_uart_config.baudrate = 115200U;
-    umdk_uart_config.databits = UART_DATABITS_8;
-    umdk_uart_config.parity = UART_PARITY_NOPARITY;
-    umdk_uart_config.stopbits = UART_STOPBITS_10;
-	umdk_uart_config.uart_dev = UMDK_UART_DEV;
+	umdk_mhz19_config.is_valid = 0;
+	umdk_mhz19_config.baudrate = 9600U;
+    umdk_mhz19_config.databits = UART_DATABITS_8;
+    umdk_mhz19_config.parity = UART_PARITY_NOPARITY;
+    umdk_mhz19_config.stopbits = UART_STOPBITS_10;
+	umdk_mhz19_config.uart_dev = UMDK_UART_DEV;
 }
 
 static void init_config(void) {
 	reset_config();
 
-	if (!unwds_read_nvram_config(UNWDS_UART_MODULE_ID, (uint8_t *) &umdk_uart_config, sizeof(umdk_uart_config)))
+	if (!unwds_read_nvram_config(UNWDS_MHZ19_MODULE_ID, (uint8_t *) &umdk_mhz19_config, sizeof(umdk_mhz19_config)))
 		return;
 
-	if ((umdk_uart_config.is_valid == 0xFF) || (umdk_uart_config.is_valid == 0))  {
+	if ((umdk_mhz19_config.is_valid == 0xFF) || (umdk_mhz19_config.is_valid == 0))  {
 		reset_config();
 		return;
 	}
     
     /* simple check if we're upgrading from previous version */
-    if (umdk_uart_config.stopbits > UART_STOPBITS_20) {
+    if (umdk_mhz19_config.stopbits > UART_STOPBITS_20) {
 		reset_config();
 		return;
     }
 
-	if (umdk_uart_config.uart_dev >= UART_NUMOF) {
+	if (umdk_mhz19_config.uart_dev >= UART_NUMOF) {
 		reset_config();
 		return;
 	}
 }
 
 static inline void save_config(void) {
-	umdk_uart_config.is_valid = 1;
-	unwds_write_nvram_config(UNWDS_UART_MODULE_ID, (uint8_t *) &umdk_uart_config, sizeof(umdk_uart_config));
+	umdk_mhz19_config.is_valid = 1;
+	unwds_write_nvram_config(UNWDS_MHZ19_MODULE_ID, (uint8_t *) &umdk_mhz19_config, sizeof(umdk_mhz19_config));
 }
 
-int umdk_uart_shell_cmd(int argc, char **argv) {
+int umdk_mhz19_shell_cmd(int argc, char **argv) {
     if (argc == 1) {
-        puts ("uart send <hex> - send data to UART port");
-        puts ("uart baud <baud> - set baudrate");
-        puts ("uart reset - reset settings to default");
+        puts ("mhz19 ask - ask MH-Z19 for CO2 concentration (equivalent to mhz19 send 01030105000455f4 )");
+        puts ("mhz19 send <hex> - send data to MH-Z19");
+        puts ("mhz19 baud <baud> - set baudrate");
+        puts ("mhz19 reset - reset settings to default");
         return 0;
     }
     
     char *cmd = argv[1];
     
+    if (strcmp(cmd, "ask") == 0) {
+
+        uint8_t data[8] = {0x01, 0x03, 0x01, 0x05, 0x00, 0x04, 0x55, 0xf4};
+        uint8_t count = 8;
+
+        /* Send data */
+        gpio_set(RE_PIN);
+        gpio_set(DE_PIN);
+
+        uart_write(UART_DEV(umdk_mhz19_config.uart_dev), (uint8_t *) data, count);
+        
+        gpio_clear(RE_PIN);
+        gpio_clear(DE_PIN);
+    }
+    
     if (strcmp(cmd, "send") == 0) {
         char *pos = argv[2];
         
         if ((strlen(pos) % 2) != 0 ) {
-            puts("[umdk-uart] Error: hex number length must be even");
+            puts("[umdk-mhz19] Error: hex number length must be even");
             return 0;
         }
         
         if ((strlen(pos)) > 400 ) {
-            puts("[umdk-uart] Error: over 200 bytes of data");
+            puts("[umdk-mhz19] Error: over 200 bytes of data");
             return 0;
         }
 
@@ -199,7 +221,7 @@ int umdk_uart_shell_cmd(int argc, char **argv) {
         gpio_set(RE_PIN);
         gpio_set(DE_PIN);
 
-        uart_write(UART_DEV(umdk_uart_config.uart_dev), (uint8_t *) data, count);
+        uart_write(UART_DEV(umdk_mhz19_config.uart_dev), (uint8_t *) data, count);
         
         gpio_clear(RE_PIN);
         gpio_clear(DE_PIN);
@@ -210,12 +232,12 @@ int umdk_uart_shell_cmd(int argc, char **argv) {
         
         uart_params_t uart_params;
         uart_params.baudrate = atoi(val);
-        uart_params.parity = umdk_uart_config.parity;
-        uart_params.stopbits = umdk_uart_config.stopbits;
-        uart_params.databits = umdk_uart_config.databits;
+        uart_params.parity = umdk_mhz19_config.parity;
+        uart_params.stopbits = umdk_mhz19_config.stopbits;
+        uart_params.databits = umdk_mhz19_config.databits;
         
-        if (!uart_init_ext(UART_DEV(umdk_uart_config.uart_dev), &uart_params, rx_cb, NULL)){
-            umdk_uart_config.baudrate = uart_params.baudrate;
+        if (!uart_init_ext(UART_DEV(umdk_mhz19_config.uart_dev), &uart_params, rx_cb, NULL)){
+            umdk_mhz19_config.baudrate = uart_params.baudrate;
             save_config();
         }
     }
@@ -228,7 +250,7 @@ int umdk_uart_shell_cmd(int argc, char **argv) {
     return 1;
 }
 
-void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
+void umdk_mhz19_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 {
     (void) non_gpio_pin_map;
     callback = event_callback;
@@ -238,7 +260,7 @@ void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     uint8_t databits;
     char parity;
     uint8_t stopbits;
-    switch (umdk_uart_config.parity) {
+    switch (umdk_mhz19_config.parity) {
         case UART_PARITY_NOPARITY:
             parity = 'N';
             break;
@@ -250,11 +272,11 @@ void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
             break;
         default:
             parity = 'N';
-            umdk_uart_config.parity = UART_PARITY_NOPARITY;
+            umdk_mhz19_config.parity = UART_PARITY_NOPARITY;
             break;
     }
     
-    switch (umdk_uart_config.stopbits) {
+    switch (umdk_mhz19_config.stopbits) {
         case UART_STOPBITS_10:
             stopbits = 1;
             break;
@@ -262,12 +284,12 @@ void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
             stopbits = 2;
             break;
         default:
-            umdk_uart_config.stopbits = UART_STOPBITS_10;
+            umdk_mhz19_config.stopbits = UART_STOPBITS_10;
             stopbits = 1;
             break;
     }
     
-    switch (umdk_uart_config.databits) {
+    switch (umdk_mhz19_config.databits) {
         case UART_DATABITS_8:
             databits = 8;
             break;
@@ -278,24 +300,24 @@ void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
             break;
         default:
             databits = 8;
-            if (umdk_uart_config.parity == UART_PARITY_NOPARITY) {
-                umdk_uart_config.databits = UART_DATABITS_8;
+            if (umdk_mhz19_config.parity == UART_PARITY_NOPARITY) {
+                umdk_mhz19_config.databits = UART_DATABITS_8;
             } else {
-                umdk_uart_config.databits = UART_DATABITS_9;                
+                umdk_mhz19_config.databits = UART_DATABITS_9;                
             }
             break;
     }
     
-    printf("[umdk-uart] Mode: %lu-%u%c%u\n", umdk_uart_config.baudrate, databits, parity, stopbits);
+    printf("[umdk-mhz19] Mode: %lu-%u%c%u\n", umdk_mhz19_config.baudrate, databits, parity, stopbits);
 
     uart_params_t uart_params;
-    uart_params.baudrate = umdk_uart_config.baudrate;
-    uart_params.parity = umdk_uart_config.parity;
-    uart_params.stopbits = umdk_uart_config.stopbits;
-    uart_params.databits = umdk_uart_config.databits;
+    uart_params.baudrate = umdk_mhz19_config.baudrate;
+    uart_params.parity = umdk_mhz19_config.parity;
+    uart_params.stopbits = umdk_mhz19_config.stopbits;
+    uart_params.databits = umdk_mhz19_config.databits;
     
     /* Initialize UART */
-    if (uart_init_ext(UART_DEV(umdk_uart_config.uart_dev), &uart_params, rx_cb, NULL)) {
+    if (uart_init_ext(UART_DEV(umdk_mhz19_config.uart_dev), &uart_params, rx_cb, NULL)) {
         return;
     }
 
@@ -311,36 +333,36 @@ void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 
     char *stack = (char *) allocate_stack();
     if (!stack) {
-    	puts("umdk-uart: unable to allocate memory. Is too many modules enabled?");
+    	puts("umdk-mhz19: unable to allocate memory. Is too many modules enabled?");
     	return;
     }
 
-    unwds_add_shell_command("uart", "type 'uart' for commands list", umdk_uart_shell_cmd);
+    unwds_add_shell_command("mhz19", "type 'mhz19' for commands list", umdk_mhz19_shell_cmd);
     
 	/* Create handler thread */
-	writer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, writer, NULL, "umdk-uart thread");
+	writer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, writer, NULL, "umdk-mhz19 thread");
 }
 
-static void do_reply(module_data_t *reply, umdk_uart_reply_t r)
+static void do_reply(module_data_t *reply, umdk_mhz19_reply_t r)
 {
     reply->length = 2;
-    reply->data[0] = UNWDS_UART_MODULE_ID;
+    reply->data[0] = UNWDS_MHZ19_MODULE_ID;
     reply->data[1] = r;
 }
 
-bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
+bool umdk_mhz19_cmd(module_data_t *data, module_data_t *reply)
 {
     if (data->length < 1) {
-        do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
+        do_reply(reply, UMDK_MHZ19_REPLY_ERR_FMT);
         return true;
     }
 
-    umdk_uart_prefix_t prefix = data->data[0];
+    umdk_mhz19_prefix_t prefix = data->data[0];
     switch (prefix) {
-        case UMDK_UART_SEND_ALL:
+        case UMDK_MHZ19_SEND_ALL:
             /* Cannot send nothing */
             if (data->length == 1) {
-                do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
+                do_reply(reply, UMDK_MHZ19_REPLY_ERR_FMT);
                 break;
             }
 
@@ -348,20 +370,20 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             gpio_set(RE_PIN);
             gpio_set(DE_PIN);
 
-            uart_write(UART_DEV(umdk_uart_config.uart_dev), (uint8_t *) data->data + 1, data->length - 1);
+            uart_write(UART_DEV(umdk_mhz19_config.uart_dev), (uint8_t *) data->data + 1, data->length - 1);
 
             gpio_clear(RE_PIN);
             gpio_clear(DE_PIN);
 
-            do_reply(reply, UMDK_UART_REPLY_SENT);
+            do_reply(reply, UMDK_MHZ19_REPLY_SENT);
             break;
 
         /* set UART parameters */
-        case UMDK_UART_SET_PARAMETERS:
+        case UMDK_MHZ19_SET_PARAMETERS:
             /* 1 byte prefix and a string like 115200-8N1 */
             
             if (data->length < 8) { /* Must be one byte of prefix and one byte of BR index */
-                do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
+                do_reply(reply, UMDK_MHZ19_REPLY_ERR_FMT);
                 break;
             }
 
@@ -373,7 +395,7 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             uart_params_t uart_params;
             
             if (sscanf((char *)&data->data[1], "%lu-%d%c%d", &baud, &databits, &parity, &stopbits) != 4) {
-                do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
+                do_reply(reply, UMDK_MHZ19_REPLY_ERR_FMT);
                 return true;
             }
             
@@ -384,8 +406,8 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
                     uart_params.databits = UART_DATABITS_8;
                     break;
                 default:
-                    puts("umdk-uart: invalid number of data bits, must be 8");
-                    do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
+                    puts("umdk-mhz19: invalid number of data bits, must be 8");
+                    do_reply(reply, UMDK_MHZ19_REPLY_ERR_FMT);
                     return true;
             }
             
@@ -402,8 +424,8 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
                     uart_params.databits = UART_DATABITS_9;
                     break;
                 default:
-                    puts("umdk-uart: invalid parity value, must be N, O or E");
-                    do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
+                    puts("umdk-mhz19: invalid parity value, must be N, O or E");
+                    do_reply(reply, UMDK_MHZ19_REPLY_ERR_FMT);
                     return true;
             }
             
@@ -415,16 +437,16 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
                     uart_params.parity = UART_STOPBITS_20;
                     break;
                 default:
-                    puts("umdk-uart: invalid number of stop bits, must be 1 or 2");
-                    do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
+                    puts("umdk-mhz19: invalid number of stop bits, must be 1 or 2");
+                    do_reply(reply, UMDK_MHZ19_REPLY_ERR_FMT);
                     return true;
             }
 
             /* Set baudrate and reinitialize UART */
             gpio_clear(RE_PIN);
 
-            if (uart_init_ext(umdk_uart_config.uart_dev, &uart_params, rx_cb, NULL)) {
-                do_reply(reply, UMDK_UART_ERR); /* UART error, baud rate not supported? */
+            if (uart_init_ext(umdk_mhz19_config.uart_dev, &uart_params, rx_cb, NULL)) {
+                do_reply(reply, UMDK_MHZ19_ERR); /* UART error, baud rate not supported? */
                 break;
             }
 
@@ -432,11 +454,11 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
 
             gpio_set(RE_PIN);
 
-            do_reply(reply, UMDK_UART_REPLY_BAUDRATE_SET);
+            do_reply(reply, UMDK_MHZ19_REPLY_BAUDRATE_SET);
         	break;
 
         default:
-        	do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
+        	do_reply(reply, UMDK_MHZ19_REPLY_ERR_FMT);
         	break;
     }
 

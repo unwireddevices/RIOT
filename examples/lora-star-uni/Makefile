@@ -2,7 +2,7 @@
 APPLICATION = lora-star-uni
 
 # If no BOARD is found in the environment, use this default:
-BOARD ?= unwd-range-l1-r2
+BOARD ?= unwd-range-l1-r3
 
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../..
@@ -55,7 +55,7 @@ UNWD_LPS331   = 0
 UNWD_4COUNTER = 0
 UNWD_RSSIECHO = 0
 UNWD_PWM      = 0
-UNWD_OPT3001  = 0
+UNWD_OPT3001  = 1
 UNWD_DALI     = 0
 UNWD_BME280   = 0
 

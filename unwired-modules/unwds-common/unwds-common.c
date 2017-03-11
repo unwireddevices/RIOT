@@ -289,6 +289,27 @@ void unwds_add_shell_command(char *name, char *desc, void* handler) {
     }
 }
 
+void int_to_float_str(char *buf, int decimal, uint8_t precision) {  
+    int i = 0;
+    int divider = 1;
+    char format[10] = { };
+    char digits[3];
+    
+    if (decimal < 0) {
+        strcat(format, "-");
+    }
+    strcat(format, "%d.%0");
+    
+    for (i = 0; i<precision; i++) {
+        divider *= 10;
+    }
+
+    snprintf(digits, 3, "%dd", i);
+    strcat(format, digits);
+    
+    snprintf(buf, 50, format, abs(decimal/divider), abs(decimal%divider));
+}
+
 #ifdef __cplusplus
 }
 #endif

@@ -126,4 +126,6 @@ bool unwds_is_module_exists(unwds_module_id_t modid);
 
 uint64_t unwds_get_ability_mask(unwds_module_id_t modid);
 
+void int_to_float_str(char *buf, int decimal, uint8_t precision);
+
 #endif /* UNWDS_COMMON_H_ */

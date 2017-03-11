@@ -171,12 +171,12 @@ static uint8_t get_node_status(void)
     vdd /= 50; /* 50 mV per bit resolution */
     
     if (adc_init(ADC_LINE(ADC_TEMPERATURE_INDEX)) < 0) {
-        return 0;
+        return ((uint8_t)vdd & 0x1F);
     }
     int16_t temp;
-    temp = adc_sample(ADC_LINE(ADC_TEMPERATURE_INDEX), ADC_RES_12BIT);
+    temp = (adc_sample(ADC_LINE(ADC_TEMPERATURE_INDEX), ADC_RES_12BIT) + 5) / 10;
     temp += 40; /* -40 is the minimim */
-    temp /= 20; /* 20 deg C per bit */  
+    temp = (temp + 10) / 20; /* 20 deg C per bit */  
     
     return (uint8_t)((vdd & 0x1F) | ((temp & 0x7) << 5));
 }

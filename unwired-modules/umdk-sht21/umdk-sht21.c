@@ -72,7 +72,7 @@ static int16_t convert_humid(int humid) {
 	return ((humid + 50) / 100);
 }
 
-static int prepare_result(module_data_t *buf) {
+static int prepare_result(module_data_t *data) {
 	sht21_measure_t measure = {};
 	if (sht21_measure(&dev, &measure)) {
         puts("[sht21] CRC error");
@@ -82,16 +82,19 @@ static int prepare_result(module_data_t *buf) {
 	int16_t temp = convert_temp(measure.temperature);
 	int16_t hum = convert_humid(measure.humidity);
 
-	printf("[sht21] Temperature %d.%d C, humidity: %d.%d%%\n", temp/10, abs(temp%10), hum/10, hum%10);
+    char buf[2][10];
+    int_to_float_str(buf[0], temp, 1);
+    int_to_float_str(buf[1], hum, 1);
+	printf("[sht21] Temperature %s C, humidity: %s%%\n", buf[0], buf[1]);
 
     /* One byte for module ID, two bytes for temperature, two bytes for humidity */
-	buf->length = 1 + sizeof(temp) + sizeof(hum);
+	data->length = 1 + sizeof(temp) + sizeof(hum);
 
-	buf->data[0] = UNWDS_SHT21_MODULE_ID;
+	data->data[0] = UNWDS_SHT21_MODULE_ID;
 
 	/* Copy measurements into response */
-	memcpy(buf->data + 1, (uint8_t *) &temp, sizeof(temp));
-	memcpy(buf->data + 1 + sizeof(temp), (uint8_t *) &hum, sizeof(hum));
+	memcpy(data->data + 1, (uint8_t *) &temp, sizeof(temp));
+	memcpy(data->data + 1 + sizeof(temp), (uint8_t *) &hum, sizeof(hum));
     
     return 0;
 }

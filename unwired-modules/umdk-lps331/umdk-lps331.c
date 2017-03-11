@@ -65,7 +65,7 @@ static bool init_sensor(void)
     return lps331ap_init(&dev, dev.i2c, 0x5D, LPS331AP_RATE_1HZ);
 }
 
-static void prepare_result(module_data_t *buf)
+static void prepare_result(module_data_t *data)
 {
     int temperature_mc, pressure_mbar;
 	int16_t temperature_unwds;
@@ -74,16 +74,19 @@ static void prepare_result(module_data_t *buf)
 	temperature_unwds = (temperature_mc + 50)/100;
 	
     pressure_mbar = lps331ap_read_pres(&dev);
-	printf("[lps331] T: %d.%d C, P: %d mbar\n", temperature_unwds/10, abs(temperature_unwds%10), pressure_mbar);
+    
+    char buf[10];
+    int_to_float_str(buf, temperature_unwds, 1);
+	printf("[lps331] T: %s C, P: %d mbar\n", buf, pressure_mbar);
 
      /* One byte for module ID, two bytes for temperature, two bytes for pressure*/
-    buf->length = 1 + sizeof(temperature_unwds) + sizeof(pressure_mbar);
+    data->length = 1 + sizeof(temperature_unwds) + sizeof(pressure_mbar);
 
-    buf->data[0] = UNWDS_LPS331_MODULE_ID;
+    data->data[0] = UNWDS_LPS331_MODULE_ID;
 
     /* Copy measurements into response */
-    memcpy(buf->data + 1, &temperature_unwds, sizeof(temperature_unwds));
-    memcpy(buf->data + 1 + sizeof(temperature_unwds), &pressure_mbar, sizeof(pressure_mbar));
+    memcpy(data->data + 1, &temperature_unwds, sizeof(temperature_unwds));
+    memcpy(data->data + 1 + sizeof(temperature_unwds), &pressure_mbar, sizeof(pressure_mbar));
 }
 
 static void *timer_thread(void *arg)

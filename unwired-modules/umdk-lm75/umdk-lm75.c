@@ -51,7 +51,9 @@ int umdk_lm75_shell_cmd(int argc, char **argv) {
     if (strcmp(cmd, "get") == 0) {
         int temp = lm75a_get_ambient_temperature(&lm75a);
         
-        printf("[umdk-lm75] Temperature: %d.%d C\n", temp/1000, abs(temp%1000));
+        char buf[10];
+        int_to_float_str(buf, temp, 3);
+        printf("[umdk-lm75] Temperature: %s C\n", buf);
     }
     
     return 1;

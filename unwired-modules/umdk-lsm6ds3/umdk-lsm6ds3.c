@@ -64,13 +64,15 @@ static void *acq_thread(void *arg) {
         lsm6ds3_data_t acc_data = {};
         lsm6ds3_read_acc(&lsm6ds3, &acc_data);
         
+        char buf[10];
+        
         if (acc_data.acc_x > 0) {
             if (acc_data.acc_x > acc_max_value.acc_x) {
                 acc_max_value.acc_x = acc_data.acc_x;
             } else {
                 if ((acc_data.acc_x + acq_ths) < acc_max_value.acc_x) {
-                    printf("Acceleration peak: X %d.%d g\n",
-                            acc_max_value.acc_x/1000, abs(acc_max_value.acc_x%1000));
+                    int_to_float_str(buf, acc_max_value.acc_x, 3);
+                    printf("Acceleration peak: X %s g\n", buf);
                     acc_max_value.acc_x = INT_MIN;
                 }
             }
@@ -81,8 +83,8 @@ static void *acq_thread(void *arg) {
                 acc_max_value.acc_y = acc_data.acc_y;
             } else {
                 if ((acc_data.acc_y + acq_ths) < acc_max_value.acc_y) {
-                    printf("Acceleration peak: Y %d.%d g\n",
-                            acc_max_value.acc_y/1000, abs(acc_max_value.acc_y%1000));
+                    int_to_float_str(buf, acc_max_value.acc_y, 3);
+                    printf("Acceleration peak: Y %s g\n", buf);
                     acc_max_value.acc_y = INT_MIN;
                 }
             }
@@ -94,8 +96,8 @@ static void *acq_thread(void *arg) {
             }
              else {
                 if ((acc_data.acc_z + acq_ths) < acc_max_value.acc_z) {
-                    printf("Acceleration peak: Z %d.%d g\n",
-                            acc_max_value.acc_z/1000, abs(acc_max_value.acc_z%1000));
+                    int_to_float_str(buf, acc_max_value.acc_z, 3);
+                    printf("Acceleration peak: Z %s g\n", buf);
                     acc_max_value.acc_z = INT_MIN;
                 }
             }
@@ -128,15 +130,21 @@ int umdk_lsm6ds3_shell_cmd(int argc, char **argv) {
         lsm6ds3_read_gyro(&lsm6ds3, &acc_data);
         
 		uint16_t temp = lsm6ds3_read_temp(&lsm6ds3);
-        printf("Accelerometer: X %d.%d g, Y %d.%d g, Z %d.%d g\n",
-                acc_data.acc_x/1000, abs(acc_data.acc_x%1000),
-                acc_data.acc_y/1000, abs(acc_data.acc_y%1000),
-                acc_data.acc_z/1000, abs(acc_data.acc_z%1000));
-        printf("Gyroscope: X %d.%d dps, Y %d.%d dps, Z %d.%d dps\n",
-                acc_data.gyr_x/1000, abs(acc_data.gyr_x%1000),
-                acc_data.gyr_y/1000, abs(acc_data.gyr_y%1000),
-                acc_data.acc_z/1000, abs(acc_data.gyr_z%1000));
-        printf("Temperature: %d.%d C\n", temp/1000, abs(temp%1000));
+
+        char buf[3][10] = { };
+        
+        int_to_float_str(buf[0], acc_data.acc_x, 3);
+        int_to_float_str(buf[1], acc_data.acc_y, 3);
+        int_to_float_str(buf[2], acc_data.acc_z, 3);
+        printf("Accelerometer: X %s g, Y %s g, Z %s g\n", buf[0], buf[1], buf[2]);
+        
+        int_to_float_str(buf[0], acc_data.gyr_x, 3);
+        int_to_float_str(buf[1], acc_data.gyr_x, 3);
+        int_to_float_str(buf[2], acc_data.gyr_x, 3);
+        printf("Gyroscope: X %s dps, Y %s dps, Z %s dps\n", buf[0], buf[1], buf[2]);
+        
+        int_to_float_str(buf[0], temp, 3);
+        printf("Temperature: %s C\n", buf[0]);
     }
     
     if (strcmp(cmd, "send") == 0) {

@@ -63,7 +63,7 @@ static bool init_sensor(void) {
 	return bme280_init(&dev, &bme280_params[0]) == BME280_OK;
 }
 
-static void prepare_result(module_data_t *buf) {
+static void prepare_result(module_data_t *data) {
 	int16_t temperature = bme280_read_temperature(&dev); /* degrees C * 100 */
     uint32_t pressure = bme280_read_pressure(&dev); /* Pa */
     uint16_t humidity = bme280_read_humidity(&dev); /* percents * 100 */
@@ -72,17 +72,21 @@ static void prepare_result(module_data_t *buf) {
     int16_t hum = (5 + humidity)/10; /* 0.1 % */
     uint16_t press = (pressure/100); /* mbar */
     
-	printf("[bme280] Temperature %d.%d C, humidity: %d.%d%%, pressure: %d mbar\n", temp/10, abs(temp%10), hum/10, hum%10, press);
+    char buf[2][10];
+    int_to_float_str(buf[0], temp, 1);
+    int_to_float_str(buf[1], hum, 1);
+    
+	printf("[bme280] Temperature %s C, humidity: %s%%, pressure: %d mbar\n", buf[0], buf[1], press);
 
     /* One byte for module ID, two bytes for temperature, two bytes for humidity, two bytes for pressure */
-	buf->length = 1 + sizeof(temp) + sizeof(hum) + sizeof(press);
+	data->length = 1 + sizeof(temp) + sizeof(hum) + sizeof(press);
 
-	buf->data[0] = UNWDS_BME280_MODULE_ID;
+	data->data[0] = UNWDS_BME280_MODULE_ID;
 
 	/* Copy measurements into response */
-	memcpy(buf->data + 1, (uint8_t *) &temp, sizeof(temp));
-	memcpy(buf->data + 1 + sizeof(temp), (uint8_t *) &hum, sizeof(hum));
-    memcpy(buf->data + 1 + sizeof(temp) + sizeof(hum), (uint8_t *) &press, sizeof(press));
+	memcpy(data->data + 1, (uint8_t *) &temp, sizeof(temp));
+	memcpy(data->data + 1 + sizeof(temp), (uint8_t *) &hum, sizeof(hum));
+    memcpy(data->data + 1 + sizeof(temp) + sizeof(hum), (uint8_t *) &press, sizeof(press));
 }
 
 static void *timer_thread(void *arg) {

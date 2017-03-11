@@ -116,7 +116,9 @@ static bool lsm6ds3_configure(lsm6ds3_t *dev)
     }
     
     /* change byte order */
-    data |= LSM6DS3_ACC_GYRO_BLE_MSB;
+    data = 0;
+    // data |= LSM6DS3_ACC_GYRO_BLE_MSB;
+    data |= LSM6DS3_ACC_GYRO_IF_INC_ENABLED;
     if (!write_register(dev, LSM6DS3_ACC_GYRO_CTRL3_C, data)) {
         return false;
     }
@@ -193,9 +195,9 @@ static bool read_raw_gyro_z(lsm6ds3_t *dev, int16_t *data)
     return read_register_int16(dev, data, LSM6DS3_ACC_GYRO_OUTZ_L_G);
 }
 
-static inline int32_t convert_acc(lsm6ds3_t *dev, int16_t data)
+static inline int convert_acc(lsm6ds3_t *dev, int16_t data)
 {
-    int32_t range = 0;
+    int range = 0;
     switch(dev->params.accel_range) {
         case (LSM6DS3_ACC_GYRO_FS_XL_2g):
             range = 61;
@@ -212,7 +214,8 @@ static inline int32_t convert_acc(lsm6ds3_t *dev, int16_t data)
     }
     
     /* result in mg */
-    return (((int32_t)data * range) / 1000);
+    int result = ((int)data * range) / 1000;
+    return result;
 }
 
 static inline int32_t convert_gyr(lsm6ds3_t *dev, int16_t data) {

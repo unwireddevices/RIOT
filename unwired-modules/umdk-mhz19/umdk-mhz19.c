@@ -34,6 +34,7 @@ extern "C" {
 
 #include "thread.h"
 #include "xtimer.h"
+#include "rtctimers.h"
 
 static uwnds_cb_t *callback;
 static uint8_t rxbuf[UMDK_MHZ19_RXBUF_SIZE] = {};
@@ -54,11 +55,70 @@ typedef struct {
     uint8_t databits;
     uint8_t parity;
     uint8_t stopbits;
+    uint8_t publish_period_sec;
 } umdk_mhz19_config_t;
 
 static umdk_mhz19_config_t umdk_mhz19_config = { 0, UMDK_UART_DEV, 9600U, \
                                                UART_DATABITS_8, UART_PARITY_NOPARITY, \
-                                               UART_STOPBITS_10 };
+                                               UART_STOPBITS_10, 
+                                               5};
+
+static bool is_polled = false;
+static rtctimer_t timer;
+static msg_t timer_msg = {};
+static kernel_pid_t timer_pid;
+
+
+void umdk_mhz19_ask(void){
+        
+        uint8_t data[8] = {0x01, 0x03, 0x01, 0x05, 0x00, 0x04, 0x55, 0xf4};
+        uint8_t count = 8;
+
+        /* Send data */
+        gpio_set(RE_PIN);
+        gpio_set(DE_PIN);
+
+        uart_write(UART_DEV(umdk_mhz19_config.uart_dev), (uint8_t *) data, count);
+        
+        gpio_clear(RE_PIN);
+        gpio_clear(DE_PIN);    
+}
+
+static void *timer_thread(void *arg) {
+    msg_t msg;
+    msg_t msg_queue[4];
+    msg_init_queue(msg_queue, 4);
+    
+    puts("[umdk-mhz19] Periodic publisher thread started");
+
+    while (1) {
+        msg_receive(&msg);
+
+        rtctimers_remove(&timer);
+
+        // module_data_t data = {};
+        // data.as_ack = is_polled;
+        // is_polled = false;
+
+        // prepare_result(&data);
+
+        puts ("[umdk-mhz19] Periodic publisher thread received a message!");
+
+        umdk_mhz19_ask();
+
+        /* Notify the application */
+        // callback(&data);
+
+        /* Restart after delay */
+        rtctimers_set_msg(&timer, umdk_mhz19_config.publish_period_sec, &timer_msg, timer_pid);
+    }
+    puts ("[umdk-mhz19] Periodic publisher thread ended!");
+
+    return NULL;
+}
+
+
+
 
 void *writer(void *arg) {
   msg_t msg;
@@ -102,6 +162,9 @@ void *writer(void *arg) {
     int raw = data.data[2+9] * 256 + data.data[2+10];
 
     printf("[umdk-mhz19] CO2: %d, %d\n", co2, raw);
+
+    data.as_ack = is_polled;
+    is_polled = false;
 
     callback(&data);
   }
@@ -175,21 +238,13 @@ int umdk_mhz19_shell_cmd(int argc, char **argv) {
     char *cmd = argv[1];
     
     if (strcmp(cmd, "ask") == 0) {
-
-        uint8_t data[8] = {0x01, 0x03, 0x01, 0x05, 0x00, 0x04, 0x55, 0xf4};
-        uint8_t count = 8;
-
-        /* Send data */
-        gpio_set(RE_PIN);
-        gpio_set(DE_PIN);
-
-        uart_write(UART_DEV(umdk_mhz19_config.uart_dev), (uint8_t *) data, count);
-        
-        gpio_clear(RE_PIN);
-        gpio_clear(DE_PIN);
+        is_polled = true;
+        // umdk_mhz19_ask();
+        msg_send(&timer_msg, timer_pid);
     }
     
     if (strcmp(cmd, "send") == 0) {
+        is_polled = true;
         char *pos = argv[2];
         
         if ((strlen(pos) % 2) != 0 ) {
@@ -336,11 +391,21 @@ void umdk_mhz19_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     	puts("umdk-mhz19: unable to allocate memory. Is too many modules enabled?");
     	return;
     }
+    /* Create handler thread */
+    writer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, writer, NULL, "umdk-mhz19 listening thread");
+
+    char *timer_stack = (char *) allocate_stack();
+    if (!timer_stack) {
+        puts("umdk-mhz19: unable to allocate memory. Is too many modules enabled?");
+        return;
+    }
+    timer_pid = thread_create(timer_stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "umdk-mhz19 timer thread");
+    /* Start publishing timer */
+    // rtctimers_set_msg(&timer, umdk_mhz19_config.publish_period_sec, &timer_msg, timer_pid);
+    msg_send(&timer_msg, timer_pid);
 
     unwds_add_shell_command("mhz19", "type 'mhz19' for commands list", umdk_mhz19_shell_cmd);
-    
-	/* Create handler thread */
-	writer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, writer, NULL, "umdk-mhz19 thread");
+
 }
 
 static void do_reply(module_data_t *reply, umdk_mhz19_reply_t r)
@@ -359,12 +424,18 @@ bool umdk_mhz19_cmd(module_data_t *data, module_data_t *reply)
 
     umdk_mhz19_prefix_t prefix = data->data[0];
     switch (prefix) {
+        case UMDK_MHZ19_ASK:
+            is_polled = true;
+            // umdk_mhz19_ask();
+            msg_send(&timer_msg, timer_pid);
         case UMDK_MHZ19_SEND_ALL:
             /* Cannot send nothing */
             if (data->length == 1) {
                 do_reply(reply, UMDK_MHZ19_REPLY_ERR_FMT);
                 break;
             }
+
+            is_polled = true;
 
             /* Send data */
             gpio_set(RE_PIN);

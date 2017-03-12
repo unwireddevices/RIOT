@@ -34,9 +34,10 @@
 /** @} */
 
 typedef enum {
-	UMDK_MHZ19_SEND_ALL = 0,
-	UMDK_MHZ19_SET_BAUDRATE = 1,
+    UMDK_MHZ19_SEND_ALL = 0,
+    UMDK_MHZ19_SET_BAUDRATE = 1,
     UMDK_MHZ19_SET_PARAMETERS = 2,
+    UMDK_MHZ19_ASK = 3,
 } umdk_mhz19_prefix_t;
 
 typedef enum {

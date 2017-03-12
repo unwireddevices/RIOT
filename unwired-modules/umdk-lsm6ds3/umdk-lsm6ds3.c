@@ -59,8 +59,6 @@ static void *acq_thread(void *arg) {
     while (1) {
         msg_receive(&msg);
 
-        xtimer_remove(&acq_timer);
-
         lsm6ds3_data_t acc_data = {};
         lsm6ds3_read_acc(&lsm6ds3, &acc_data);
         

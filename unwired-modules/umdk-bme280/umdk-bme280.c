@@ -105,7 +105,6 @@ static void *timer_thread(void *arg) {
 
         prepare_result(&data);
 
-        rtctimers_remove(&timer);
         /* Notify the application */
         callback(&data);
         /* Restart after delay */

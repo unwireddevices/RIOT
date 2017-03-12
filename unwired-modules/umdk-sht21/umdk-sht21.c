@@ -113,7 +113,6 @@ static void *timer_thread(void *arg) {
         data.as_ack = is_polled;
         is_polled = false;
 
-        rtctimers_remove(&timer);
         rtctimers_set_msg(&timer, 60 * sht21_config.publish_period_min, &timer_msg, timer_pid);
 
         /* Notify the application */

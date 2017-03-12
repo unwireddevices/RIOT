@@ -303,13 +303,11 @@ bool umdk_4counter_cmd(module_data_t *cmd, module_data_t *reply)
                 return true;
             }
             
-            rtctimers_remove(&publishing_timer);
-
             conf_counter.publish_period = period;
             save_config();
 
-            rtctimers_set_msg(&publishing_timer, \
-                              UMDK_4COUNT_VALUE_PERIOD_PER_SEC * conf_counter.publish_period, \
+            rtctimers_set_msg(&publishing_timer,
+                              UMDK_4COUNT_VALUE_PERIOD_PER_SEC * conf_counter.publish_period,
                               &publishing_msg, handler_pid);
             printf("[umdk-4counter] Period set to %d hour (s)\n", conf_counter.publish_period);
 

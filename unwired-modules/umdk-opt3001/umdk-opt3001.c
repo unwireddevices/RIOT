@@ -98,8 +98,6 @@ static void *timer_thread(void *arg) {
     while (1) {
         msg_receive(&msg);
 
-        rtctimers_remove(&timer);
-
         module_data_t data = {};
         data.as_ack = is_polled;
         is_polled = false;

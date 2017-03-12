@@ -184,8 +184,6 @@ static void *timer_thread(void *arg)
     while (1) {
         msg_receive(&msg);
 
-        rtctimers_remove(&timer);
-
         gpio_set(adc_config.out_pin);
 
         module_data_t data = {};
@@ -207,8 +205,6 @@ static void *timer_thread(void *arg)
 }
 
 static void set_period (int period) {
-    rtctimers_remove(&timer);
-
     adc_config.publish_period_min = period;
     save_config();
 

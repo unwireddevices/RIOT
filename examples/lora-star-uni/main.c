@@ -104,7 +104,9 @@ int main(void)
 {
 	lpm_arch_init();
 	
+    /* disable sleep and frequency switching for now */
 	lpm_prevent_sleep = 1;
+    lpm_prevent_switch = 1;
 
     print_logo();
     xtimer_init();

@@ -692,8 +692,6 @@ void init_node(shell_command_t **commands)
     }
 
     rtctimers_init();
-    lpm_prevent_sleep = 1;
-    lpm_prevent_switch = 1;
 
     if (!load_config()) {
         puts("[!] Device is not configured yet. Type \"help\" to see list of possible configuration commands.");
@@ -738,6 +736,7 @@ void init_node(shell_command_t **commands)
             wdg_enable();
         }
         
+        /* enable sleep for Class A devices only */        
         if (node_settings.class == LS_ED_CLASS_A) {
         	lpm_prevent_sleep = 0;
         }
@@ -752,6 +751,7 @@ void init_node(shell_command_t **commands)
     /* Set our commands for shell */
     memcpy(commands, shell_commands, sizeof(shell_commands));
     
+    /* allow CPU frequency switching */
     lpm_prevent_switch = 0;
 }
 

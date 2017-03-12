@@ -601,10 +601,6 @@ static void *uq_handler(void *arg)
             rtctimers_set_msg(&ls->_internal.conf_ack_expired, LS_ACK_TIMEOUT, &msg_ack_timeout, ls->_internal.tim_thread_pid);
         }
 
-        /* Wakeup peripherals */
-        if (ls->wakeup_cb)
-        	ls->wakeup_cb();
-
         ls->state = LS_ED_TRANSMITTING;
 
         /* Configure to sleep */
@@ -675,9 +671,6 @@ static void *tim_handler(void *arg)
 
     while (1) {
         msg_receive(&msg);
-
-        if (ls->wakeup_cb != NULL)
-        	ls->wakeup_cb();
 
         ls_ed_tim_cmd_t cmd = (ls_ed_tim_cmd_t) msg.content.value;
 
@@ -867,14 +860,8 @@ int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed
     assert(ls != NULL);
     assert(buf != NULL);
 
-    if (ls->wakeup_cb != NULL)
-    	ls->wakeup_cb();
-
     /* Not joined to the network, delay appdata frame until device is joined */
     if (!ls->settings.no_join && !ls->_internal.is_joined) {
-    	if (ls->standby_mode_cb && ls->settings.class == LS_ED_CLASS_A)
-    		ls->standby_mode_cb();
-
     	appdata_fifo_t *fifo = &ls->_internal.appdata_fifo;
 
     	/* Last data has priority, so we can pop oldest item from the queue if it's full */
@@ -931,9 +918,6 @@ int ls_ed_join(ls_ed_t *ls)
 {
     assert(ls != NULL);
 
-    if (ls->wakeup_cb != NULL)
-    	ls->wakeup_cb();
-
     /* Enter IDLE state */
     ls->state = LS_ED_IDLE;
 
@@ -968,9 +952,6 @@ void ls_ed_sleep(ls_ed_t *ls)
 
     ls->state = LS_ED_SLEEP;
     sx1276_set_sleep(ls->_internal.sx1276);
-
-    if (ls->standby_mode_cb != NULL && ls->settings.class == LS_ED_CLASS_A)
-    	ls->standby_mode_cb();
 }
 
 #ifdef __cplusplus

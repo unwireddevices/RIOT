@@ -113,7 +113,6 @@ void joined_timeout_cb(void)
     if ((current_join_retries >= node_settings.max_retr) && (node_settings.class == LS_ED_CLASS_A)) {
         /* class A node: go to sleep */
         puts("ls-ed: maximum join retries exceeded, stopping");
-        lpm_prevent_sleep = 0;
     } else {
         puts("ls: join request timed out, resending");
         
@@ -121,9 +120,6 @@ void joined_timeout_cb(void)
         unsigned int delay = random_uint32_range(5 + current_join_retries*30, 30 + current_join_retries*30);
         printf("ls-ed: random delay %d s\n", (unsigned int) (delay));
         
-        if (node_settings.class == LS_ED_CLASS_A) {
-            lpm_prevent_sleep = 0;
-        }
         rtctimers_sleep(delay);
         
         /* limit max delay between attempts to 1 hour */
@@ -227,17 +223,6 @@ static bool broadcast_appdata_received_cb(uint8_t *buf, size_t buflen) {
     return false;
 }
 
-static void standby_mode_cb(void)
-{
-	//puts("Entering LPM");
-    lpm_prevent_sleep = 0;
-}
-
-static void wakeup_cb(void)
-{
-    lpm_prevent_sleep = 1;
-}
-
 static void ls_setup(ls_ed_t *ls)
 {
     ls->settings.class = node_settings.class;
@@ -268,9 +253,6 @@ static void ls_setup(ls_ed_t *ls)
 
     ls->appdata_received_cb = appdata_received_cb;
     ls->broadcast_appdata_received_cb = broadcast_appdata_received_cb;
-
-    ls->standby_mode_cb = standby_mode_cb;
-    ls->wakeup_cb = wakeup_cb;
 
     ls->_internal.sx1276 = &sx1276;
 }
@@ -686,7 +668,6 @@ static void *iwdg_thread (void *arg) {
     while (1) {
         msg_receive(&msg);
         wdg_reload();
-        rtctimers_remove(&iwdg_timer);
         rtctimers_set_msg(&iwdg_timer, 15, &iwdg_msg, iwdg_pid);
     }
     return NULL;
@@ -757,13 +738,15 @@ void init_node(shell_command_t **commands)
             wdg_enable();
         }
         
+        if (node_settings.class == LS_ED_CLASS_A) {
+        	lpm_prevent_sleep = 0;
+        }
+        
         rtctimers_sleep(1);
         blink_led();
 
-        if (!node_settings.no_join)
+        if (!node_settings.no_join) {
         	ls_ed_join(&ls);
-        else if (node_settings.class == LS_ED_CLASS_A) {
-        	ls.standby_mode_cb();
         }
     }
     /* Set our commands for shell */

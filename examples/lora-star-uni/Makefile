@@ -1,20 +1,50 @@
-# name of your application
-APPLICATION = lora-star-uni
-
 # If no BOARD is found in the environment, use this default:
 BOARD ?= unwd-range-l1-r2
 
-# This has to be the absolute path to the RIOT base directory:
-RIOTBASE ?= $(CURDIR)/../..
+############ UMDK MODULES USED #####################
+# variable in the list below must match modules'
+# subdirectory name in ../../unwired-modules/
+# and no other variable should have umdk-% name
 
-CFLAGS += -DDEVELHELP
+umdk-gpio	  =	1
+umdk-4btn	  =	1
+umdk-gps	  =	1
+umdk-lm75	  =	1
+umdk-lsm6ds3  =	1
+umdk-lmt01	  =	1
+umdk-uart	  =	1
+umdk-sht21	  =	1
+umdk-pir	  =	1
+umdk-6adc	  =	1
+umdk-lps331   =	1
+umdk-4counter =	1
+umdk-rssiecho =	1
+umdk-pwm	  =	1
+umdk-opt3001  =	1
+umdk-dali	  =	1
+umdk-bme280   = 1
 
-FEATURES_REQUIRED = periph_spi periph_gpio
+####### UMDK MODULES defines and Makefile.include inclusion ############
 
-DRIVER ?= sx1276
-QUIET ?= 1
+define umdk_add_module
+ifeq ($($(UMDK_MODULE_NAME)),1)
+    USEMODULE += $(UMDK_MODULE_NAME)
+endif
+endef
 
-# Modules to include:
+$(foreach UMDK_MODULE_NAME, $(filter umdk-%, ${.VARIABLES}), $(eval $(call umdk_add_module, $UMDK_MODULE_NAME)))
+
+UMDK_MODULES_MAKEFILES = $(addsuffix /Makefile.include, $(addprefix ../../unwired-modules/, $(filter umdk-%, ${USEMODULE})))
+
+define umdk_include_makefile
+ifneq ("$(wildcard $(FILE))","")
+	include $(FILE)
+endif
+endef
+
+$(foreach FILE, $(UMDK_MODULES_MAKEFILES), $(eval $(call umdk_include_makefile, $FILE)))
+
+################ Other modules to include ################
 USEMODULE += shell
 USEMODULE += shell_commands
 USEMODULE += ps
@@ -39,107 +69,22 @@ INCLUDES += -I../../unwired-modules/lora-star-end-device/include/
 INCLUDES += -I../../unwired-modules/lora-star-gate/include/
 INCLUDES += -I../../unwired-modules/unwds-common/include/
 
-############ UNWD MODULES USED #####################
-
-UNWD_GPIO	  =	1
-UNWD_4BTN	  =	1
-UNWD_GPS	  =	1
-UNWD_LM75	  =	1
-UNWD_LSM6DS3  =	1
-UNWD_LMT01	  =	1
-UNWD_UART	  =	1
-UNWD_SHT21	  =	1
-UNWD_PIR	  =	1
-UNWD_6ADC	  =	1
-UNWD_LPS331   =	1
-UNWD_4COUNTER =	1
-UNWD_RSSIECHO =	1
-UNWD_PWM	  =	1
-UNWD_OPT3001  =	1
-UNWD_DALI	  =	1
-UNWD_BME280   = 1
-
-####### UNWD MMODULES' includes & flags ############
-ifeq ($(UNWD_GPIO),1)
-USEMODULE += umdk-gpio
-endif
-
-ifeq ($(UNWD_4BTN),1)
-USEMODULE += umdk-4btn
-endif
-
-ifeq ($(UNWD_GPS),1)
-USEMODULE += umdk-gps
-endif
-
-ifeq ($(UNWD_LM75),1)
-USEMODULE += umdk-lm75
-endif
-
-ifeq ($(UNWD_LSM6DS3),1)
-USEMODULE += umdk-lsm6ds3
-endif
-
-ifeq ($(UNWD_LMT01),1)
-USEMODULE += umdk-lmt01
-endif
-
-ifeq ($(UNWD_UART),1)
-USEMODULE += umdk-uart
-endif
-
-ifeq ($(UNWD_SHT21),1)
-USEMODULE += umdk-sht21
-endif
-
-ifeq ($(UNWD_PIR),1)
-USEMODULE += umdk-pir
-endif
-
-ifeq ($(UNWD_6ADC),1)
-USEMODULE += umdk-6adc
-endif
-
-ifeq ($(UNWD_LPS331),1)
-USEMODULE += umdk-lps331
-endif
-
-ifeq ($(UNWD_4COUNTER),1)
-USEMODULE += umdk-4counter
-endif
-
-ifeq ($(UNWD_RSSIECHO),1)
-USEMODULE += umdk-rssiecho
-endif
-
-ifeq ($(UNWD_PWM),1)
-USEMODULE += umdk-pwm
-endif
-
-ifeq ($(UNWD_OPT3001),1)
-USEMODULE += umdk-opt3001
-endif
-
-ifeq ($(UNWD_DALI),1)
-USEMODULE += umdk-dali
-endif
-
-ifeq ($(UNWD_BME280),1)
-USEMODULE += umdk-bme280
-endif
-
-UMDK-MODULES-ENABLED = $(addsuffix /Makefile.include, $(addprefix ../../unwired-modules/, $(filter umdk-%, ${USEMODULE})))
-
-define umdk_include_makefile
-ifneq ("$(wildcard $(FILE))","")
-	include $(FILE)
-endif
-endef
-
-$(foreach FILE, $(UMDK-MODULES-ENABLED), $(eval $(call umdk_include_makefile, $FILE)))
-
 ####################################################
 
+# name of your application
+APPLICATION = lora-star-uni
+
+# This has to be the absolute path to the RIOT base directory:
+RIOTBASE ?= $(CURDIR)/../..
+
+FEATURES_REQUIRED = periph_spi periph_gpio
+
+DRIVER ?= sx1276
+QUIET ?= 1
+
+CFLAGS += -DDEVELHELP
+
+####################################################
 
 CFLAGS += -DCRYPTO_AES
 

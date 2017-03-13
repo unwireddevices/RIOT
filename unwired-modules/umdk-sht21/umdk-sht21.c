@@ -34,7 +34,6 @@ extern "C" {
 
 #include "unwds-common.h"
 #include "umdk-sht21.h"
-#include "unwds-gpio.h"
 
 #include "thread.h"
 #include "rtctimers.h"

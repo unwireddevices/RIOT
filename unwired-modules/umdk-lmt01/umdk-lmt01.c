@@ -31,7 +31,6 @@ extern "C" {
 
 #include "unwds-common.h"
 #include "umdk-lmt01.h"
-#include "unwds-gpio.h"
 
 #include "thread.h"
 #include "xtimer.h"

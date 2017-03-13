@@ -33,7 +33,6 @@ extern "C" {
 
 #include "unwds-common.h"
 #include "umdk-opt3001.h"
-#include "unwds-gpio.h"
 
 #include "thread.h"
 #include "rtctimers.h"

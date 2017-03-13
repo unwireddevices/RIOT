@@ -34,7 +34,6 @@ extern "C" {
 
 #include "unwds-common.h"
 #include "umdk-lps331.h"
-#include "unwds-gpio.h"
 
 #include "thread.h"
 #include "xtimer.h"

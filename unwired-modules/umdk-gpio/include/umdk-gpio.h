@@ -11,17 +11,17 @@
  * @ingroup     
  * @brief       
  * @{
- * @file		unwds-common.h
+ * @file		umdk-gpio.h
  * @brief       common declarations for the unwired modules
  * @author      Eugene Ponomarev
  */
-#ifndef UNWDS_GPIO_H
-#define UNWDS_GPIO_H
+#ifndef UMDK_GPIO_H
+#define UMDK_GPIO_H
 
 #include "periph/gpio.h"
 #include "unwds-common.h"
 
-#define UWNDS_GPIO_DATA_LEN 1
+#define UNWDS_GPIO_DATA_LEN 1
 
 typedef enum {
 	UNWD_GPIO_REPLY_OK_0 = 0,
@@ -45,7 +45,5 @@ typedef enum {
 void unwds_gpio_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
 bool unwds_gpio_broadcast(module_data_t *cmd, module_data_t *reply);
 bool unwds_gpio_cmd(module_data_t *cmd, module_data_t *reply);
-
-gpio_t unwds_gpio_pin(int pin);
 
 #endif /* UNWDS_GPIO_H */

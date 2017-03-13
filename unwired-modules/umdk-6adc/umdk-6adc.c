@@ -29,7 +29,6 @@ extern "C" {
 #include "board.h"
 
 #include "unwds-common.h"
-#include "unwds-gpio.h"
 
 #include "umdk-6adc.h"
 

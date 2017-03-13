@@ -22,7 +22,7 @@
 
 #include "shell.h"
 #include "shell_commands.h"
-
+#include "periph/gpio.h"
 #include "nvram.h"
 
 #include "unwds-ids.h"
@@ -125,6 +125,8 @@ bool unwds_is_pin_occupied(uint32_t pin);
 bool unwds_is_module_exists(unwds_module_id_t modid);
 
 uint64_t unwds_get_ability_mask(unwds_module_id_t modid);
+
+gpio_t unwds_gpio_pin(int pin);
 
 void int_to_float_str(char *buf, int decimal, uint8_t precision);
 

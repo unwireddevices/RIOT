@@ -61,7 +61,7 @@ typedef struct {
 static umdk_mhz19_config_t umdk_mhz19_config = { .is_valid = 0, .uart_dev = UMDK_UART_DEV, .baudrate = 9600U, \
                                                .databits = UART_DATABITS_8, .parity = UART_PARITY_NOPARITY, \
                                                .stopbits = UART_STOPBITS_10, 
-                                               . publish_period_sec = 5};
+                                               .publish_period_sec = 5};
 
 static bool is_polled = false;
 static rtctimer_t timer;
@@ -196,6 +196,7 @@ static void reset_config(void) {
     umdk_mhz19_config.parity = UART_PARITY_NOPARITY;
     umdk_mhz19_config.stopbits = UART_STOPBITS_10;
 	umdk_mhz19_config.uart_dev = UMDK_UART_DEV;
+    umdk_mhz19_config.publish_period_sec = 5;
 }
 
 static void init_config(void) {
@@ -230,6 +231,7 @@ int umdk_mhz19_shell_cmd(int argc, char **argv) {
     if (argc == 1) {
         puts ("mhz19 ask - ask MH-Z19 for CO2 concentration (equivalent to mhz19 send 01030105000455f4 )");
         puts ("mhz19 send <hex> - send data to MH-Z19");
+        puts ("mhz19 baud <period> - set publishing period");
         puts ("mhz19 baud <baud> - set baudrate");
         puts ("mhz19 reset - reset settings to default");
         return 0;
@@ -295,6 +297,12 @@ int umdk_mhz19_shell_cmd(int argc, char **argv) {
             umdk_mhz19_config.baudrate = uart_params.baudrate;
             save_config();
         }
+    }
+    
+    if (strcmp(cmd, "period") == 0) {
+        char *val = argv[2];
+        umdk_mhz19_config.publish_period_sec = atoi(val);
+        save_config();
     }
     
     if (strcmp(cmd, "reset") == 0) {
@@ -401,8 +409,8 @@ void umdk_mhz19_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     }
     timer_pid = thread_create(timer_stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "umdk-mhz19 timer thread");
     /* Start publishing timer */
-    // rtctimers_set_msg(&timer, umdk_mhz19_config.publish_period_sec, &timer_msg, timer_pid);
-    msg_send(&timer_msg, timer_pid);
+    rtctimers_set_msg(&timer, umdk_mhz19_config.publish_period_sec, &timer_msg, timer_pid);
+    // msg_send(&timer_msg, timer_pid);
 
     unwds_add_shell_command("mhz19", "type 'mhz19' for commands list", umdk_mhz19_shell_cmd);
 

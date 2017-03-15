@@ -61,12 +61,12 @@ static inline void prep(void)
         while (!(RCC->CR & RCC_CR_HSION)) {}
     }
     
-    RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;
+    periph_clk_en(APB2, RCC_APB2ENR_ADC1EN);
 }
 
 static inline void done(void)
 {
-    RCC->APB2ENR &= ~(RCC_APB2ENR_ADC1EN);
+    periph_clk_dis(APB2, RCC_APB2ENR_ADC1EN);
 
     mutex_unlock(&lock);
 }
@@ -102,6 +102,7 @@ int adc_init(adc_t line)
 	}
     
     /* set ADC clock */
+
     ADC->CCR &= ~ADC_CCR_ADCPRE;
     ADC->CCR |= ADC_CLOCK_MEDIUM;
 
@@ -120,7 +121,7 @@ int adc_init(adc_t line)
             /* 16 MHz ADC clock -> 92 cycles */
             adc_set_sample_time_on_all_channels(0b101);
     }
-
+    
     /* power off and release device for now */
     done();
 

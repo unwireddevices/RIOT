@@ -714,7 +714,7 @@ void init_node(shell_command_t **commands)
 
         if (is_connect_button_pressed()) {
             puts("[!] Entering Safe Mode, all modules disabled, class C.");
-			ls.settings.class = LS_ED_CLASS_C;
+			node_settings.class = LS_ED_CLASS_C;
             blink_led();
             blink_led();
             blink_led();

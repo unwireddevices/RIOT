@@ -146,6 +146,16 @@ bool clear_nvram(void)
     return nv->clear(nv) > 0;
 }
 
+bool clear_nvram_modules(int modid)
+{
+    if (modid == 0) {
+        /* to fix later: clear till last module or end of EEPROM */
+        return nv->clearpart(nv, UNWDS_CONFIG_BASE_ADDR, 50*UNWDS_CONFIG_BLOCK_SIZE_BYTES) > 0;
+    }
+    
+    return true;
+}
+
 config_role_t config_get_role(void)
 {
 	if (!eui64_valid) {

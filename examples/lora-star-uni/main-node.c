@@ -550,7 +550,7 @@ static int ls_module_cmd(int argc, char **argv)
 static int ls_clear_nvram(int argc, char **argv)
 {
     if (argc < 2) {
-        puts("Usage: clear <all|keys> -- clear all NVRAM contents or just the security key.");
+        puts("Usage: clear <all|key|modules> -- clear all NVRAM contents or just the security key.");
         return 1;
     }
 
@@ -559,7 +559,7 @@ static int ls_clear_nvram(int argc, char **argv)
     if (strcmp(key, "all") == 0) {
         puts("Please wait a minute while I'm cleaning up here...");
         if (clear_nvram()) {
-            puts("[ok] Settings cleared, let me reboot this device now");
+            puts("[ok] System settings cleared, let me reboot this device now");
             NVIC_SystemReset();
         }
         else {
@@ -575,6 +575,16 @@ static int ls_clear_nvram(int argc, char **argv)
         }
         else {
             puts("[error] An error occurred trying to save the key");
+        }
+    }
+    else if (strcmp(key, "modules") == 0) {
+        puts("Please wait a minute while I'm cleaning up here...");
+        if (clear_nvram_modules(0)) {
+            puts("[ok] Module settings cleared, let me reboot this device now");
+            NVIC_SystemReset();
+        }
+        else {
+            puts("[error] Unable to clear NVRAM");
         }
     }
 
@@ -604,7 +614,7 @@ shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX] = {
 
     { "save", "-- saves current configuration", ls_save_cmd },
 
-    { "clear", "<all|keys> -- settings stored in NVRAM", ls_clear_nvram },
+    { "clear", "<all|key|modules> -- clear settings stored in NVRAM", ls_clear_nvram },
 
     { "cmd", "<modid> <cmdhex> -- send command to another UNWDS devices", ls_cmd_cmd },
 

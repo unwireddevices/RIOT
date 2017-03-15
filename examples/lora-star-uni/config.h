@@ -73,6 +73,7 @@ bool write_eui64_nvram(uint64_t eui);
 bool save_config_nvram(nvram_t *nvram);
 bool load_config_nvram(nvram_t *nvram);
 bool clear_nvram(void);
+bool clear_nvram_modules(int modid);
 void config_reset_nvram(nvram_t *nvram);
 config_role_t config_get_role(void);
 

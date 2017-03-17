@@ -26,7 +26,7 @@
 /**
  * @brief The biggest possible queue size.
  */
-#define LS_MAX_FRAME_FIFO_SIZE 4
+#define LS_MAX_FRAME_FIFO_SIZE 8
 
 /**
  * @brief describes the frame queue.

@@ -73,8 +73,8 @@ static const unwd_module_t modules[] = {
 #ifdef umdk_pir
 	{ UNWDS_PIR_MODULE_ID, "pir", umdk_pir_init, umdk_pir_cmd, NULL },
 #endif
-#ifdef umdk_6adc
-	{ UNWDS_6ADC_MODULE_ID, "6adc", umdk_6adc_init, umdk_6adc_cmd, NULL },
+#ifdef umdk_adc
+	{ UNWDS_ADC_MODULE_ID, "adc", umdk_adc_init, umdk_adc_cmd, NULL },
 #endif
 #ifdef umdk_lps331
 	{ UNWDS_LPS331_MODULE_ID, "lps331", umdk_lps331_init, umdk_lps331_cmd, NULL },

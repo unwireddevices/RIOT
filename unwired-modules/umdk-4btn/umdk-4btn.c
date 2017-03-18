@@ -51,8 +51,6 @@ static void *handler(void *arg) {
         msg_receive(&msg);
         int btn = msg.type;
 
-        //printf("[4btn] Pressed: %d\n", btn);
-
         module_data_t data;
         data.length = 3;
         data.data[0] = UNWDS_4BTN_MODULE_ID;
@@ -75,10 +73,9 @@ static void btn_pressed_int(void *arg) {
 
     uint8_t value_counter = 0;
     uint8_t error_counter = 0;
-    volatile int delay = 0;
     
     do {
-        for (delay = 0; delay < 10000; delay ++) {}       
+        xtimer_spin(xtimer_ticks_from_usec(10*1e3));
         now_value = gpio_read(buttons[btn_num]);
         
         if (now_value == last_value) {

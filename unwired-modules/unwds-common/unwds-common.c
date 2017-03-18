@@ -290,8 +290,9 @@ void int_to_float_str(char *buf, int decimal, uint8_t precision) {
     char format[10] = { };
     char digits[3];
     
+    buf[0] = 0;
     if (decimal < 0) {
-        snprintf(format, "-");
+        strcat(format, "-");
     }
     strcat(format, "%d.%0");
     

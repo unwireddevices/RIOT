@@ -296,27 +296,6 @@ void lpm_arch_init(void)
     RCC->AHBLPENR &= ~(RCC_AHBLPENR_DMA2LPEN);
     RCC->AHBLPENR &= ~(RCC_AHBLPENR_AESLPEN);
     RCC->AHBLPENR &= ~(RCC_AHBLPENR_FSMCLPEN);
-    
-    /* disable only GPIO ports which do not have IRQs associated */
-    /* SEEMS WE DO NOT NEED CLOCK RUNNING FOR EXT IRQ IN SLEEP MODE */
-    /*
-    uint8_t port;
-    uint8_t pin;
-    uint8_t is_irq_enabled;
-    for (port = 0; port < 8; port++) {
-        is_irq_enabled = 0;
-        for (pin = 0; pin < 16; pin ++) {
-            if (EXTI->IMR & (1 << pin)) {
-                if (((SYSCFG->EXTICR[pin >> 2]) >> ((pin & 0x03) * 4)) == port) {
-                    is_irq_enabled = 1;
-                }
-            }
-        }
-        if (is_irq_enabled) {
-            RCC->AHBLPENR &= ~(1 << port);
-        }
-    }
-    */
 }
 
 enum lpm_mode lpm_arch_set(enum lpm_mode target)

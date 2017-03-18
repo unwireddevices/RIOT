@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2014 FU Berlin
+ * Copyright (C) 2017 Unwired Devices LLC <info@unwds.com>
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -18,6 +19,7 @@
  * @author      Peter Kietzmann <peter.kietzmann@haw-hamburg.de>
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  * @author      Thomas Eichinger <thomas.eichinger@fu-berlin.de>
+ * @author      Oleg Artamonov <oleg@unwds.com>
  *
  * @}
  */
@@ -30,7 +32,6 @@
 #include "periph/i2c.h"
 #include "periph/gpio.h"
 #include "periph_conf.h"
-
 
 #define ENABLE_DEBUG    (0)
 #include "debug.h"

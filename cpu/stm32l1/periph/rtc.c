@@ -237,10 +237,7 @@ int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg)
     while ((RTC->ISR & RTC_ISR_WUTWF) == 0) ;
     
     /* Set wakeup timer value */
-    period_us = ((period_us * 100)/48828) - 1;
-    
-    printf("WUTR: %d\n", (int)period_us);
-    
+    period_us = ((period_us * 100)/48828) - 1;   
     RTC->WUTR = (period_us & 0xFFFF);
     
     /* Set wakeup timer clock source to RTCCLK/16 */

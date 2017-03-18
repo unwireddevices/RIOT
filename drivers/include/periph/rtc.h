@@ -119,6 +119,11 @@ int rtc_get_alarm(struct tm *time);
 void rtc_clear_alarm(void);
 
 /**
+ * @brief Disable periodic wakeup
+ */
+void rtc_clear_wakeup(void);
+
+/**
  * @brief Turns the RTC hardware module on
  */
 void rtc_poweron(void);

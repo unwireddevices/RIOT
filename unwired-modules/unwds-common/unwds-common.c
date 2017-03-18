@@ -291,7 +291,7 @@ void int_to_float_str(char *buf, int decimal, uint8_t precision) {
     char digits[3];
     
     if (decimal < 0) {
-        strcat(format, "-");
+        snprintf(format, "-");
     }
     strcat(format, "%d.%0");
     

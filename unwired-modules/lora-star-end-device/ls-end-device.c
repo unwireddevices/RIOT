@@ -35,6 +35,8 @@ extern "C" {
 
 #include "rtctimers.h"
 
+#define ENABLE_DEBUG    (0)
+
 static msg_t msg_rx1;
 static msg_t msg_rx2;
 
@@ -624,12 +626,13 @@ static void *uq_handler(void *arg)
         char type_str[10] = {};
         get_type_str(f->header.type, type_str);
 
+#if ENABLE_DEBUG
         printf(">mhdr=0x%02X, mic=0x%04X, addr=0x%02X, <%s> fid=0x%02X (%d bytes) [%d left]\n", (unsigned int) f->header.mhdr,
                (unsigned int) f->header.mic, (unsigned int) f->header.dev_addr,
                type_str,
                (unsigned int) f->header.fid, header_size + payload_size,
 			   ls_frame_fifo_size(&ls->_internal.uplink_queue));
-
+#endif
         /* Configure for TX */
         configure_sx1276(ls, true);
 

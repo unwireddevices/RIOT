@@ -28,6 +28,7 @@ extern "C" {
 #include "periph/rtc.h"
 
 #include "debug.h"
+#define ENABLE_DEBUG    (0)
 
 static rtctimer_t *timer_list_head = NULL;
 
@@ -69,7 +70,7 @@ static void _lltimer_set(uint32_t sec) {
 	rtc_clear_alarm();
 	rtc_set_alarm(&time, _rtc_callback, NULL);
 
-#ifdef DEBUG_ENABLED
+#ifdef ENABLE_DEBUG
 	rtc_get_alarm(&time);
 #endif
 	DEBUG("%d %d:%d:%d\n", time.tm_wday, time.tm_hour, time.tm_min, time.tm_sec);

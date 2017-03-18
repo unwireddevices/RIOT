@@ -40,6 +40,7 @@ typedef struct {
     rtc_wkup_cb_t wkup_cb;      /**< Wake up timer callback */
 
     void *arg;                  /**< argument passed to the callback */
+    void *wkup_arg;             /**< argument passed to wakeup callback */
 } rtc_state_t;
 
 static rtc_state_t rtc_callback;
@@ -217,9 +218,10 @@ void rtc_clear_alarm(void)
     /* Disable Alarm A */
     RTC->CR &= ~RTC_CR_ALRAE;
     RTC->CR &= ~RTC_CR_ALRAIE;
-
+/*
     rtc_callback.cb = NULL;
     rtc_callback.arg = NULL;
+*/
 }
 
 int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg)
@@ -258,18 +260,20 @@ int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg)
     NVIC_EnableIRQ(RTC_WKUP_IRQn);
 
     rtc_callback.wkup_cb = cb;
-    rtc_callback.arg = arg;
+    rtc_callback.wkup_arg = arg;
 
     return 0;
 }
 
 void rtc_clear_wakeup(void)
 {
-    /* Disable Alarm A */
-    RTC->CR &= ~RTC_CR_WUTE;
-    RTC->CR &= ~RTC_CR_WUTIE;
-
+    /* Disable wakeup alarm */
+    RTC->CR &= ~(RTC_CR_WUTE);
+    RTC->CR &= ~(RTC_CR_WUTIE);
+/*
     rtc_callback.wkup_cb = NULL;
+    rtc_callback.wkup_arg = NULL;
+*/
 }
 
 void rtc_set_wakeup_counter(uint16_t value) {
@@ -341,11 +345,11 @@ void isr_rtc_alarm(void)
 
 void isr_rtc_wkup(void)
 {
-    if ((RTC->ISR & RTC_ISR_WUTF) && (rtc_callback.cb != NULL)) {
+    if ((RTC->ISR & RTC_ISR_WUTF) && (rtc_callback.wkup_cb != NULL)) {
         RTC->ISR &= ~RTC_ISR_WUTF;
         EXTI->PR = EXTI_PR_PR20;
 
-        rtc_callback.wkup_cb(rtc_callback.arg);
+        rtc_callback.wkup_cb(rtc_callback.wkup_arg);
     }
     cortexm_isr_end();
 }

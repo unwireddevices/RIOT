@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2015 Lari Lehtomäki
  * Copyright (C) 2016 Laksh Bhatia
+ * Copyright (C) 2017 Unwired Devices LLC [info@unwds.com]
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -14,6 +15,7 @@
  * @brief       Low-level RTC driver implementation
  * @author      Lari Lehtomäki <lari@lehtomaki.fi>
  * @author      Laksh Bhatia <bhatialaksh3@gmail.com>
+ * @author      Oleg Artamonov <oleg@unwds.com>
  * @}
  */
 

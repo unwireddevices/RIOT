@@ -44,7 +44,7 @@ bool devnonce_set = false;
 static void print_appid64(void)
 {
     if (appid) {
-        printf("APPID64 = 0x%08x%08x\n", (unsigned int) (appid >> 32), (unsigned int) (appid & 0xFFFFFFFF));
+        printf("APPID64 = 0x%" PRIx64 "\n", appid);
     }
     else {
         puts("APPID64 = <not set>");
@@ -112,7 +112,7 @@ static int unk_set_cmd(int argc, char **argv)
             return 1;
         }
 
-        printf("[ok] APPID64 = 0x%08x%08x\n", (unsigned int) (id >> 32), (unsigned int) (id & 0xFFFFFFFF));
+        printf("[ok] APPID64 = 0x%" PRIx64 "\n", id);
         appid = id;
     }
     else if (strcmp(type, "joinkey") == 0) {

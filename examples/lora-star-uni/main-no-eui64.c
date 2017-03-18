@@ -36,7 +36,7 @@ static uint64_t eui64 = 0;
 static void print_eui64(void)
 {
     if (eui64) {
-        printf("EUI64 = 0x%08x%08x\n", (unsigned int) (eui64 >> 32), (unsigned int) (eui64 & 0xFFFFFFFF));
+        printf("EUI64 = 0x%" PRIx64 "\n", eui64);
     }
     else {
         puts("EUI64 = <not set>");
@@ -75,7 +75,7 @@ static int set_cmd(int argc, char **argv)
             return 1;
         }
 
-        printf("[ok] EUI64 = 0x%08x%08x\n", (unsigned int) (id >> 32), (unsigned int) (id & 0xFFFFFFFF));
+        printf("[ok] EUI64 = 0x%" PRIx64 "\n", id);
         eui64 = id;
     }
 

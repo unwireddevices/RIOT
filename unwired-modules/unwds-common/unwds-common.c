@@ -79,8 +79,8 @@ static const unwd_module_t modules[] = {
 #ifdef umdk_lps331
 	{ UNWDS_LPS331_MODULE_ID, "lps331", umdk_lps331_init, umdk_lps331_cmd, NULL },
 #endif
-#ifdef umdk_4counter
-	{ UNWDS_4COUNTER_MODULE_ID, "4counter", umdk_4counter_init, umdk_4counter_cmd, NULL },
+#ifdef umdk_counter
+	{ UNWDS_COUNTER_MODULE_ID, "counter", umdk_counter_init, umdk_counter_cmd, NULL },
 #endif
 #ifdef umdk_rssiecho
 	{ UNWDS_RSSIECHO_MODULE_ID, "echo", umdk_rssiecho_init, umdk_rssiecho_cmd, NULL },

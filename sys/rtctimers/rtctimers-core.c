@@ -28,8 +28,6 @@ extern "C" {
 #include "periph/rtc.h"
 
 #include "debug.h"
-//#define DEBUG printf
-
 
 static rtctimer_t *timer_list_head = NULL;
 
@@ -48,9 +46,13 @@ static void _lltimer_set(uint32_t sec) {
 
 	rtc_get_time(&time);
 
-	DEBUG("[rtctimers] %d %d:%d:%d -> ", time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
+	DEBUG("[rtctimers] %d %d:%d:%d -> ", time.tm_wday, time.tm_hour, time.tm_min, time.tm_sec);
 
 	int days = sec / (3600 * 24);
+    
+    /* events scheduled for the next week */
+    days = days - 7*(days/7);
+    
 	sec -= days * (3600 * 24);
 
 	int hours = sec / 3600;
@@ -67,8 +69,10 @@ static void _lltimer_set(uint32_t sec) {
 	rtc_clear_alarm();
 	rtc_set_alarm(&time, _rtc_callback, NULL);
 
+#ifdef DEBUG_ENABLED
 	rtc_get_alarm(&time);
-	DEBUG("%d %d:%d:%d\n", time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
+#endif
+	DEBUG("%d %d:%d:%d\n", time.tm_wday, time.tm_hour, time.tm_min, time.tm_sec);
 }
 
 static void _rtc_callback(void *arg) {
@@ -83,7 +87,8 @@ uint32_t rtctimers_now(void) {
 	struct tm time;
 	rtc_get_time(&time);
 
-	return (time.tm_mday * 3600 * 24)
+    /* returns seconds passed since 00:00:00 Sunday */
+	return (time.tm_wday * 3600 * 24)
 			+ (time.tm_hour * 60 * 60)
 			+ (time.tm_min * 60) + time.tm_sec;
 }

@@ -44,62 +44,6 @@ static uint32_t non_gpio_pin_map;
  */
 static uint64_t enabled_bitmap;
 
-static const unwd_module_t modules[] = {
-
-#ifdef umdk_gpio
-    { UNWDS_GPIO_MODULE_ID, "gpio", umdk_gpio_init, umdk_gpio_cmd, umdk_gpio_broadcast },
-#endif
-#ifdef umdk_4btn
-    { UNWDS_4BTN_MODULE_ID, "4btn", umdk_4btn_init, umdk_4btn_cmd, NULL },
-#endif
-#ifdef umdk_gps
-    { UNWDS_GPS_MODULE_ID, "gps", umdk_gps_init, umdk_gps_cmd, NULL },
-#endif
-#ifdef umdk_lsm6ds3
-	{ UNWDS_LSM6DS3_MODULE_ID, "lsm6ds3", umdk_lsm6ds3_init, umdk_lsm6ds3_cmd, NULL },
-#endif
-#ifdef umdk_lm75
-    { UNWDS_LM75_MODULE_ID, "lm75", umdk_lm75_init, umdk_lm75_cmd, NULL },
-#endif
-#ifdef umdk_lmt01
-	{ UNWDS_LMT01_MODULE_ID, "lmt01", umdk_lmt01_init, umdk_lmt01_cmd, NULL},
-#endif
-#ifdef umdk_uart
-	{ UNWDS_UART_MODULE_ID, "uart", umdk_uart_init, umdk_uart_cmd, NULL },
-#endif
-#ifdef umdk_sht21
-	{ UNWDS_SHT21_MODULE_ID, "sht21", umdk_sht21_init, umdk_sht21_cmd, NULL },
-#endif
-#ifdef umdk_pir
-	{ UNWDS_PIR_MODULE_ID, "pir", umdk_pir_init, umdk_pir_cmd, NULL },
-#endif
-#ifdef umdk_adc
-	{ UNWDS_ADC_MODULE_ID, "adc", umdk_adc_init, umdk_adc_cmd, NULL },
-#endif
-#ifdef umdk_lps331
-	{ UNWDS_LPS331_MODULE_ID, "lps331", umdk_lps331_init, umdk_lps331_cmd, NULL },
-#endif
-#ifdef umdk_counter
-	{ UNWDS_COUNTER_MODULE_ID, "counter", umdk_counter_init, umdk_counter_cmd, NULL },
-#endif
-#ifdef umdk_rssiecho
-	{ UNWDS_RSSIECHO_MODULE_ID, "echo", umdk_rssiecho_init, umdk_rssiecho_cmd, NULL },
-#endif
-#ifdef umdk_pwm
-	{ UNWDS_PWM_MODULE_ID, "pwm", umdk_pwm_init, umdk_pwm_cmd, NULL },
-#endif
-#ifdef umdk_opt3001
-	{ UNWDS_OPT3001_MODULE_ID, "opt3001", umdk_opt3001_init, umdk_opt3001_cmd, NULL },
-#endif
-#ifdef umdk_dali
-	{ UNWDS_DALI_MODULE_ID, "dali", umdk_dali_init, umdk_dali_cmd, NULL },
-#endif
-#ifdef umdk_bme280
-	{ UNWDS_BME280_MODULE_ID, "bme280", umdk_bme280_init, umdk_bme280_cmd, NULL },
-#endif
-    { 0, "", NULL, NULL },
-};
-
 /**
  * NVRAM config.
  */

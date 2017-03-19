@@ -47,7 +47,7 @@ static uint64_t enabled_bitmap;
 static const unwd_module_t modules[] = {
 
 #ifdef umdk_gpio
-    { UNWDS_GPIO_MODULE_ID, "gpio", unwds_gpio_init, unwds_gpio_cmd, unwds_gpio_broadcast },
+    { UNWDS_GPIO_MODULE_ID, "gpio", umdk_gpio_init, umdk_gpio_cmd, umdk_gpio_broadcast },
 #endif
 #ifdef umdk_4btn
     { UNWDS_4BTN_MODULE_ID, "4btn", umdk_4btn_init, umdk_4btn_cmd, NULL },

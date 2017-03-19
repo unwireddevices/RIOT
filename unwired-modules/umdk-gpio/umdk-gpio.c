@@ -74,15 +74,15 @@ static bool toggle(int num)
 }
 
 
-void unwds_gpio_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
+void umdk_gpio_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 {
     (void) non_gpio_pin_map;
     (void) event_callback;
 }
 
-static inline void do_reply(module_data_t *reply, unwds_gpio_reply_t reply_code)
+static inline void do_reply(module_data_t *reply, umdk_gpio_reply_t reply_code)
 {
-    reply->length = UNWDS_GPIO_DATA_LEN + 1;
+    reply->length = UMDK_GPIO_DATA_LEN + 1;
     reply->data[0] = UNWDS_GPIO_MODULE_ID;
     reply->data[1] = reply_code;
 }
@@ -91,13 +91,13 @@ static bool check_pin(module_data_t *reply, int pin)
 {
     /* Is pin is occupied by other module */
     if (unwds_is_pin_occupied(pin)) {
-        do_reply(reply, UNWD_GPIO_REPLY_ERR_PIN);
+        do_reply(reply, UMDK_GPIO_REPLY_ERR_PIN);
         return false;
     }
 
     /* Gpio pin not in range */
     if (pin < 0 || unwds_gpio_pin(pin) == 0) {
-        do_reply(reply, UNWD_GPIO_REPLY_ERR_PIN);
+        do_reply(reply, UMDK_GPIO_REPLY_ERR_PIN);
         return false;
     }
 
@@ -106,54 +106,54 @@ static bool check_pin(module_data_t *reply, int pin)
 
 static bool gpio_cmd(module_data_t *cmd, module_data_t *reply, bool with_reply)
 {
-    if (cmd->length != UNWDS_GPIO_DATA_LEN) {
+    if (cmd->length != UMDK_GPIO_DATA_LEN) {
         if (with_reply) {
-            do_reply(reply, UNWD_GPIO_REPLY_ERR_FORMAT);
+            do_reply(reply, UMDK_GPIO_REPLY_ERR_FORMAT);
         }
         return false;
     }
 
     uint8_t value = cmd->data[0];
-    uint8_t pin = value & UNWDS_GPIO_PIN_MASK;
-    unwds_gpio_action_t act = (value & UNWDS_GPIO_ACT_MASK) >> UNWDS_GPIO_ACT_SHIFT;
+    uint8_t pin = value & UMDK_GPIO_PIN_MASK;
+    umdk_gpio_action_t act = (value & UMDK_GPIO_ACT_MASK) >> UMDK_GPIO_ACT_SHIFT;
 
     if (!check_pin(reply, pin)) {
         return false;
     }
 
     switch (act) {
-        case UNWDS_GPIO_GET:
+        case UMDK_GPIO_GET:
             if (with_reply) {
                 if (get(pin)) {
-                    do_reply(reply, UNWD_GPIO_REPLY_OK_1);
+                    do_reply(reply, UMDK_GPIO_REPLY_OK_1);
                 } else {
-                    do_reply(reply, UNWD_GPIO_REPLY_OK_0);
+                    do_reply(reply, UMDK_GPIO_REPLY_OK_0);
                 }
             }
 
             break;
 
-        case UNWDS_GPIO_SET_0:
-        case UNWDS_GPIO_SET_1:
-            if (set(pin, act == UNWDS_GPIO_SET_1)) {
+        case UMDK_GPIO_SET_0:
+        case UMDK_GPIO_SET_1:
+            if (set(pin, act == UMDK_GPIO_SET_1)) {
                 if (with_reply) {
-                    do_reply(reply, UNWD_GPIO_REPLY_OK);
+                    do_reply(reply, UMDK_GPIO_REPLY_OK);
                 }
                 else
                 if (with_reply) {
-                    do_reply(reply, UNWD_GPIO_REPLY_ERR_PIN);
+                    do_reply(reply, UMDK_GPIO_REPLY_ERR_PIN);
                 }
             }
             break;
 
-        case UNWDS_GPIO_TOGGLE:
+        case UMDK_GPIO_TOGGLE:
             if (toggle(pin)) {
                 if (with_reply) {
-                    do_reply(reply, UNWD_GPIO_REPLY_OK);
+                    do_reply(reply, UMDK_GPIO_REPLY_OK);
                 }
                 else
                 if (with_reply) {
-                    do_reply(reply, UNWD_GPIO_REPLY_ERR_PIN);
+                    do_reply(reply, UMDK_GPIO_REPLY_ERR_PIN);
                 }
             }
 
@@ -163,11 +163,11 @@ static bool gpio_cmd(module_data_t *cmd, module_data_t *reply, bool with_reply)
     return true;
 }
 
-bool unwds_gpio_broadcast(module_data_t *cmd, module_data_t *reply) {
+bool umdk_gpio_broadcast(module_data_t *cmd, module_data_t *reply) {
 	return gpio_cmd(cmd, reply, false); /* Don't reply on broadcasts */
 }
 
-bool unwds_gpio_cmd(module_data_t *cmd, module_data_t *reply)
+bool umdk_gpio_cmd(module_data_t *cmd, module_data_t *reply)
 {
     return gpio_cmd(cmd, reply, true);
 }

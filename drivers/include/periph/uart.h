@@ -171,12 +171,17 @@ typedef struct {
  */
 int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg);
 
-
 /**
  * @brief   Initialize a given UART device with extended parameters
  *
  */
 int uart_init_ext(uart_t uart, uart_params_t *params, uart_rx_cb_t rx_cb, void *arg);
+
+/**
+ * @brief   Set USART_BRR register for given baudrate
+ *
+ */
+int uart_set_baudrate(uart_t uart, uint32_t baudrate);
 
 /**
  * @brief   Write data from the given buffer to the specified UART device

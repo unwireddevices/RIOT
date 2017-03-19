@@ -67,62 +67,6 @@ static void pin_set(GPIO_TypeDef* port, uint8_t pin, uint8_t value) {
     lpm_portmask_system[((uint32_t)port >> 10) & 0x0f] |= 1 << pin;
 }
 
-static inline USART_TypeDef *dev(uart_t uart)
-{
-    return uart_config[uart].dev;
-}
-
-static inline uint32_t mask(uart_t uart)
-{
-    return uart_config[uart].rcc_mask;
-}
-
-static inline uint32_t bus(uart_t uart)
-{
-    return uart_config[uart].bus;
-}
-
-static void clk_stdio_uart(void) {	
-	/* set default UART baudrate for stdio */
-    uint16_t mantissa;
-    uint8_t fraction;
-    uint32_t clk;
-    
-    clk = periph_apb_clk(bus(UART_STDIO_DEV));
-
-    if (clk < (8 * UART_STDIO_BAUDRATE)) {
-        /* clock is too slow for using UART with specified baudrate */
-        periph_clk_dis(bus(UART_STDIO_DEV), mask(UART_STDIO_DEV));
-    } else {
-        periph_clk_en(bus(UART_STDIO_DEV), mask(UART_STDIO_DEV));
-        
-        /* Disable UART. Setting BRR on enabled USART1 somehow results in Hard Fault */
-        dev(UART_STDIO_DEV)->CR1 &= ~USART_CR1_UE;
-        
-        /* choose between 8x and 16x oversampling */
-        /* 16x is preferred, but is not possible on low clock frequency */
-        if (clk < (16 * UART_STDIO_BAUDRATE)) {
-            dev(UART_STDIO_DEV)->CR1 |= USART_CR1_OVER8;
-        } else {
-            dev(UART_STDIO_DEV)->CR1 &= ~USART_CR1_OVER8;
-        }
-        
-        clk /= UART_STDIO_BAUDRATE;
-       
-        if (dev(UART_STDIO_DEV)->CR1 & USART_CR1_OVER8) {
-            mantissa = (uint16_t)(clk / 8);
-            fraction = (uint8_t)(clk - (mantissa * 8));
-            dev(UART_STDIO_DEV)->BRR = ((mantissa & 0x0fff) << 4) | (fraction & 0x07);
-        } else {
-            mantissa = (uint16_t)(clk / 16);
-            fraction = (uint8_t)(clk - (mantissa * 16));
-            dev(UART_STDIO_DEV)->BRR = ((mantissa & 0x0fff) << 4) | (fraction & 0x0f);
-        }
-        /* Enable UART */
-        dev(UART_STDIO_DEV)->CR1 |= USART_CR1_UE;
-    }
-}
-
 /* put GPIOs in low-power state */
 static void lpm_before_i_go_to_sleep (void) {
 	uint8_t i;
@@ -310,7 +254,7 @@ static void lpm_select_run_mode(uint8_t lpm_mode) {
     xtimer_init();
     
     /* Recalculate stdio UART baudrate */
-    clk_stdio_uart();
+    uart_set_baudrate(UART_STDIO_DEV, UART_STDIO_BAUDRATE);
 }
 
 void lpm_arch_init(void)

@@ -56,7 +56,9 @@ static void *main_trampoline(void *arg)
     stat->laststart = 0;
 #endif
 
+#ifndef NO_RIOT_BANNER
     LOG_INFO("main(): This is RIOT! (Version: " RIOT_VERSION ")\n");
+#endif
 
     main();
     return NULL;

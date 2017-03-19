@@ -47,6 +47,9 @@ void print_logo(void)
     puts("*****************************************");
     puts("Unwired Range firmware by Unwired Devices");
     puts("www.unwds.com - info@unwds.com");
+#ifdef NO_RIOT_BANNER
+    puts("powered by RIOT - www.riot-os.org");
+#endif
     puts("*****************************************");
     printf("Version: %s (%s %s)\n", FIRMWARE_VERSION, __DATE__, __TIME__);
     puts("");

@@ -42,4 +42,6 @@ CFLAGS += -DCRYPTO_AES
 FEATURES_OPTIONAL += config
 FEATURES_OPTIONAL += periph_rtc
 
+CFLAGS += -DNO_RIOT_BANNER
+
 include $(RIOTBASE)/Makefile.include

@@ -83,6 +83,7 @@ DRIVER ?= sx1276
 QUIET ?= 1
 
 CFLAGS += -DDEVELHELP
+CFLAGS += -DNO_RIOT_BANNER
 
 ####################################################
 

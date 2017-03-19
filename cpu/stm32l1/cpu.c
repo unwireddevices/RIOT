@@ -23,8 +23,6 @@
 
 #include "cpu.h"
 #include "board.h"
-/* #include "board_common.h"*/
-#include "periph/uart.h"
 #include "periph_conf.h"
 #include "periph/timer.h"
 
@@ -93,7 +91,6 @@
 #endif
 
 static uint32_t tmpreg;
-static unsigned long timer_freq[TIMER_NUMOF];
 volatile uint32_t cpu_clock_global;
 
 void cpu_init(void)
@@ -111,85 +108,11 @@ void cpu_init(void)
     }
 }
 
-static void clk_store_clocks(void) {
-	/* store timers frequencies */
-	for (tmpreg = 0; tmpreg < TIMER_NUMOF; tmpreg++) {
-        timer_freq[tmpreg] = timer_get_freq((tim_t)tmpreg);
-    }
-}
-
-static inline USART_TypeDef *dev(uart_t uart)
-{
-    return uart_config[uart].dev;
-}
-
-static inline uint32_t mask(uart_t uart)
-{
-    return uart_config[uart].rcc_mask;
-}
-
-static inline uint32_t bus(uart_t uart)
-{
-    return uart_config[uart].bus;
-}
-
-static void clk_restore_clocks(void) {
-	/* restore timers frequencies */
-    /*
-	for (tmpreg = 0; tmpreg < TIMER_NUMOF; tmpreg++) {
-        if (timer_freq[tmpreg]) {
-            timer_set_freq((tim_t)tmpreg, timer_freq[tmpreg]);
-        }
-    }
-    */
-	
-	/* set default UART baudrate for stdio */
-    uint16_t mantissa;
-    uint8_t fraction;
-    uint32_t clk;
-    
-    clk = periph_apb_clk(bus(UART_STDIO_DEV));
-
-    if (clk < (8 * UART_STDIO_BAUDRATE)) {
-        /* clock is too slow for using UART with specified baudrate */
-        periph_clk_dis(bus(UART_STDIO_DEV), mask(UART_STDIO_DEV));
-    } else {
-        periph_clk_en(bus(UART_STDIO_DEV), mask(UART_STDIO_DEV));
-        
-        /* Disable UART. Setting BRR on enabled USART1 somehow results in Hard Fault */
-        dev(UART_STDIO_DEV)->CR1 &= ~USART_CR1_UE;
-        
-        /* choose between 8x and 16x oversampling */
-        /* 16x is preferred, but is not possible on low clock frequency */
-        if (clk < (16 * UART_STDIO_BAUDRATE)) {
-            dev(UART_STDIO_DEV)->CR1 |= USART_CR1_OVER8;
-        } else {
-            dev(UART_STDIO_DEV)->CR1 &= ~USART_CR1_OVER8;
-        }
-        
-        clk /= UART_STDIO_BAUDRATE;
-       
-        if (dev(UART_STDIO_DEV)->CR1 & USART_CR1_OVER8) {
-            mantissa = (uint16_t)(clk / 8);
-            fraction = (uint8_t)(clk - (mantissa * 8));
-            dev(UART_STDIO_DEV)->BRR = ((mantissa & 0x0fff) << 4) | (fraction & 0x07);
-        } else {
-            mantissa = (uint16_t)(clk / 16);
-            fraction = (uint8_t)(clk - (mantissa * 16));
-            dev(UART_STDIO_DEV)->BRR = ((mantissa & 0x0fff) << 4) | (fraction & 0x0f);
-        }
-        /* Enable UART */
-        dev(UART_STDIO_DEV)->CR1 |= USART_CR1_UE;
-    }
-}
-
 /**
  * @brief Configure the clock system of the stm32f1
  */
 void clk_init(void)
 {
-    clk_store_clocks();
-    
     /* Reset the RCC clock configuration to the default reset state(for debug purpose) */
     /* Set MSION bit */
     RCC->CR |= RCC_CR_MSION;
@@ -284,14 +207,10 @@ void clk_init(void)
     RCC->CR &= ~(CLOCK_DISABLE_OTHERS);
     
     cpu_clock_global = CLOCK_CORECLOCK;
-    /* reclock timers */
-    clk_restore_clocks();
 }
 
 void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider)
 {
-    clk_store_clocks();
-    
     RCC->CR |= RCC_CR_MSION;
     while (!(RCC->CR & RCC_CR_MSIRDY)) {}
     
@@ -331,7 +250,4 @@ void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider)
     RCC->CR = tmpreg;
     
     cpu_clock_global = 65536 * (1 << (msi_range >> 13));
-    
-    /* reclock timers */
-    clk_restore_clocks();
 }

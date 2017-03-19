@@ -724,7 +724,7 @@ void init_node(shell_command_t **commands)
 
         if (is_connect_button_pressed()) {
             puts("[!] Entering Safe Mode, all modules disabled, class C.");
-			node_settings.class = LS_ED_CLASS_C;
+			ls.settings.class = LS_ED_CLASS_C;
             blink_led();
             blink_led();
             blink_led();
@@ -747,7 +747,7 @@ void init_node(shell_command_t **commands)
         }
         
         /* enable sleep for Class A devices only */        
-        if (node_settings.class == LS_ED_CLASS_A) {
+        if (ls.settings.class == LS_ED_CLASS_A) {
         	lpm_prevent_sleep = 0;
         }
         

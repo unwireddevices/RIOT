@@ -36,6 +36,7 @@ extern "C" {
 #include "umdk-counter.h"
 
 #include "thread.h"
+#include "xtimer.h"
 #include "rtctimers.h"
 
 static kernel_pid_t handler_pid;
@@ -65,6 +66,12 @@ static void counter_poll(void *arg)
     for (i = 0; i < UMDK_COUNTER_NUM_SENS; i++) {
         if (ignore_irq[i]) {
             gpio_init(pins_sens[i], GPIO_IN_PU);
+            
+            /* wire stray capacitance for regular water meter can be as high as 150 pF */
+            /* pull-up resistor is around 50 kOhm, t=RC=7.5 us for the signal to reach 63.5 % Vdd */
+            /* min acceptable GPIO "1" level is 60 % Vdd, so 20 us delay provides safe margin */
+            xtimer_spin(xtimer_ticks_from_usec(20));
+
             uint32_t value = gpio_read(pins_sens[i]);
             gpio_init(pins_sens[i], GPIO_AIN);
             

@@ -72,7 +72,7 @@ bool unwds_erase_nvram_config(unwds_module_id_t module_id);
  * Stacks pool definitions.
  */
 #define UNWDS_STACK_POOL_SIZE 5U
-#define UNWDS_STACK_SIZE_BYTES (2048U + 512U)
+#define UNWDS_STACK_SIZE_BYTES (2048U)
 
 uint8_t *allocate_stack(void);
 

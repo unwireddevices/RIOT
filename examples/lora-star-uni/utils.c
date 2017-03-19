@@ -69,6 +69,17 @@ void bytes_to_hex(uint8_t *bytes, size_t num_bytes, char *str, bool reverse_orde
 	}
 }
 
+bool is_number(char* str) {
+    char *endptr = NULL;
+    strtol(str, &endptr, 0);
+    
+    if ( &str[strlen(str)] == endptr  ) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 #ifdef __cplusplus
 }
 #endif

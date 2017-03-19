@@ -275,6 +275,17 @@ void unwds_add_shell_command(char *name, char *desc, void* handler) {
     }
 }
 
+int unwds_modid_by_name(char *name) {
+    int i = 0;
+    for (i = 0; i < sizeof(modules)/sizeof(unwd_module_t); i++) {
+        if (strcmp(name, modules[i].name) == 0) {
+            return modules[i].module_id;
+        }
+    }
+    
+    return -1;
+}
+
 gpio_t unwds_gpio_pin(int pin)
 {
     if (pin < 0 || pin >= (sizeof(unwds_gpio_map) / sizeof(gpio_t))) {

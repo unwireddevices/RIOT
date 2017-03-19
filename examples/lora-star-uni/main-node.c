@@ -522,18 +522,45 @@ static int ls_listmodules_cmd(int argc, char **argv)
 static int ls_module_cmd(int argc, char **argv)
 {
     if (argc < 3) {
-        puts("Usage: mod <modid> <0|1>. Example: mod 7 1");
+        puts("Usage: mod <name> <enable|disable>. Example: mod adc enable");
         return 1;
     }
 
-    uint8_t modid = atoi(argv[1]);
+    uint8_t modid = 0;
+    
+    if (is_number(argv[1])) {
+        modid = atoi(argv[1]);
+    } else {
+        modid = unwds_modid_by_name(argv[1]);
+    }
+    
+    if (modid < 0) {
+        puts("mod: module with specified name doesn't exist");
+        return 1;
+    }
+    
     uint64_t mask = (uint64_t) (1 << modid);
+    
     if (!unwds_is_module_exists(modid)) {
         puts("mod: module with specified id doesn't exist");
         return 1;
     }
 
-    if (atoi(argv[2])) {
+    bool modenable = false;
+    if (is_number(argv[2])) {
+        modenable = atoi(argv[2]);
+    } else {
+        if (strcmp(argv[2], "enable") == 0) {
+            modenable = true;
+        } else {
+            if (strcmp(argv[2], "disable") != 0) {
+                printf("mod: unknown command: %s\n", argv[2]);
+                return 1;
+            }
+        }
+    }
+        
+    if (modenable) {
         /* Enable module */
         node_settings.enabled_mods |= mask;
         printf("mod: %s [%d] enabled. Save and reboot to apply changes\n", unwds_get_module_name(modid), modid);

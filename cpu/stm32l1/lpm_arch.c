@@ -306,6 +306,7 @@ static void lpm_select_run_mode(uint8_t lpm_mode) {
 	}
     
     /* Recalculate xtimer frequency */
+    /* NB: default XTIMER_HZ clock is 1 MHz, so CPU clock must be at least 1 MHz for xtimer to work properly */
     xtimer_init();
     
     /* Recalculate stdio UART baudrate */

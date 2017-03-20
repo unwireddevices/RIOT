@@ -107,7 +107,6 @@ static void counter_irq(void* arg)
     /* Start periodic check every 100 ms */
     last_value[num] = 0;
     rtc_enable_wakeup();
-    puts("+1");
 }
 
 static inline void save_config(void)

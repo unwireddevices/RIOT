@@ -45,7 +45,7 @@ static uwnds_cb_t *callback;
 static rtctimer_t publishing_timer;
 
 static uint8_t ignore_irq[UMDK_COUNTER_NUM_SENS] = { };
-static uint8_t last_value[UMDK_COUNTER_NUM_SENS] = { };
+static uint32_t last_value[UMDK_COUNTER_NUM_SENS] = { };
 
 static msg_t publishing_msg = { };
 
@@ -73,17 +73,13 @@ static void counter_poll(void *arg)
             xtimer_spin(xtimer_ticks_from_usec(20));
 
             uint32_t value = gpio_read(pins_sens[i]);
-            gpio_init(pins_sens[i], GPIO_AIN);
             
-            if (value == last_value[i]) {
-                if (value) {
-                    ignore_irq[i] = 0;
-                    gpio_init(pins_sens[i], GPIO_IN_PU);
-                    gpio_irq_enable(pins_sens[i]);
-                } else {
-                    wakeup = true;
-                }
+            /* two values > 0 in a row */
+            if (value & last_value[i]) {
+                ignore_irq[i] = 0;
+                gpio_irq_enable(pins_sens[i]);
             } else {
+                gpio_init(pins_sens[i], GPIO_AIN);
                 last_value[i] = value;
                 wakeup = true;
             }
@@ -111,6 +107,7 @@ static void counter_irq(void* arg)
     /* Start periodic check every 100 ms */
     last_value[num] = 0;
     rtc_enable_wakeup();
+    puts("+1");
 }
 
 static inline void save_config(void)

@@ -218,12 +218,17 @@ int rtc_get_alarm(struct tm *time)
 void rtc_clear_alarm(void)
 {
     /* Disable Alarm A */
+    
+    RTC->WPR = RTC_WRITE_PROTECTION_KEY1;
+    RTC->WPR = RTC_WRITE_PROTECTION_KEY2;
+    
     RTC->CR &= ~RTC_CR_ALRAE;
     RTC->CR &= ~RTC_CR_ALRAIE;
-/*
+    
+    RTC->WPR = 0xFF;
+
     rtc_callback.cb = NULL;
     rtc_callback.arg = NULL;
-*/
 }
 
 int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg)
@@ -270,12 +275,17 @@ int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg)
 void rtc_clear_wakeup(void)
 {
     /* Disable wakeup alarm */
+
+    RTC->WPR = RTC_WRITE_PROTECTION_KEY1;
+    RTC->WPR = RTC_WRITE_PROTECTION_KEY2;
+    
     RTC->CR &= ~(RTC_CR_WUTE);
     RTC->CR &= ~(RTC_CR_WUTIE);
-/*
+    
+    RTC->WPR = 0xFF;
+
     rtc_callback.wkup_cb = NULL;
     rtc_callback.wkup_arg = NULL;
-*/
 }
 
 void rtc_set_wakeup_counter(uint16_t value) {

@@ -121,7 +121,12 @@ void rtc_clear_alarm(void);
 /**
  * @brief Disable periodic wakeup
  */
-void rtc_clear_wakeup(void);
+void rtc_disable_wakeup(void);
+
+/**
+ * @brief Re-enable previously configured periodic wakeup
+ */
+void rtc_enable_wakeup(void);
 
 /**
  * @brief Turns the RTC hardware module on

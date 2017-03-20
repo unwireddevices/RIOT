@@ -272,36 +272,21 @@ int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg)
     return 0;
 }
 
-void rtc_clear_wakeup(void)
-{
-    /* Disable wakeup alarm */
-
+void rtc_enable_wakeup(void) {
     RTC->WPR = RTC_WRITE_PROTECTION_KEY1;
     RTC->WPR = RTC_WRITE_PROTECTION_KEY2;
-    
-    RTC->CR &= ~(RTC_CR_WUTE);
-    RTC->CR &= ~(RTC_CR_WUTIE);
-    
+    /* Enable wakeup */
+    RTC->CR |= RTC_CR_WUTE;
     RTC->WPR = 0xFF;
-
-    rtc_callback.wkup_cb = NULL;
-    rtc_callback.wkup_arg = NULL;
 }
 
-void rtc_set_wakeup_counter(uint16_t value) {
-	/* Disable write protection for RTC registers */
-	RTC->WPR = 0xCA;
-	RTC->WPR = 0x53;
-
-	/* Configure the Wakeup Timer counter */
-	RTC->WUTR = (uint32_t)value;
-
-	/* Enable the write protection for RTC registers */
-	RTC->WPR = 0xFF;
-}
-
-uint32_t rtc_get_wakeup_counter(void) {
-	return ((uint32_t)(RTC->WUTR & RTC_WUTR_WUT));
+void rtc_disable_wakeup(void)
+{
+    RTC->WPR = RTC_WRITE_PROTECTION_KEY1;
+    RTC->WPR = RTC_WRITE_PROTECTION_KEY2;   
+    /* Disable wakeup */
+    RTC->CR &= ~(RTC_CR_WUTE);
+    RTC->WPR = 0xFF;
 }
 
 void rtc_poweron(void)

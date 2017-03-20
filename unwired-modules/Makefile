@@ -25,8 +25,10 @@ create_headers:
 	if grep -q "umdk_$${name}_broadcast" $$k/*; then printf "umdk_$${name}_broadcast"  >> unwds-common/include/umdk-modules.h; \
 	else printf "NULL"  >> unwds-common/include/umdk-modules.h; fi; \
 	printf "},\n"  >> unwds-common/include/umdk-modules.h; \
-	done;
-	@printf "{ 0, \"\", NULL, NULL } };\n" >> unwds-common/include/umdk-modules.h; \
+	sed -i "s/#define _UMDK_MID_.*/#define _UMDK_MID_ UNWDS_$${name_up}_MODULE_ID/" umdk-$${name}/*.c; \
+    sed -i "s/#define _UMDK_NAME_.*/#define _UMDK_NAME_ \"$${name}\"/" umdk-$${name}/*.c; \
+	done; \
+	printf "{ 0, \"\", NULL, NULL } };\n" >> unwds-common/include/umdk-modules.h; \
 	echo -e "\n#endif" >> unwds-common/include/umdk-modules.h;
 
 include $(RIOTBASE)/Makefile.base

@@ -490,7 +490,7 @@ static void *radio_send(void *arg)
 }
 
 
-void rx_cb(void *arg, uint8_t data)
+void rx_handler(void *arg, uint8_t data)
 {
   (void) arg;
 
@@ -564,7 +564,7 @@ void umdk_electro_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     printf("[umdk-electro]: Address(hex) ->  %lX   Address(dec) ->  %ld \n", addr_cfg,  addr_cfg);
 
     /* Initialize the UART */
-    uart_init(UART_DEV(umdk_electro_config.uart_dev), baudrates[umdk_electro_config.current_baudrate_idx], rx_cb, NULL);
+    uart_init(UART_DEV(umdk_electro_config.uart_dev), baudrates[umdk_electro_config.current_baudrate_idx], rx_handler, NULL);
 
     /* Initialize DE/RE pins */
     gpio_init(RS_485_DE_PIN, GPIO_OUT);

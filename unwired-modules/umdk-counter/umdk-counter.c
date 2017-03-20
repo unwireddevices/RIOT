@@ -85,13 +85,14 @@ static void counter_poll(void *arg)
                 }
             } else {
                 last_value[i] = value;
+                wakeup = true;
             }
         }
     }
     
     /* All counters in IRQ mode */
     if (!wakeup) {
-        rtc_clear_wakeup();
+        rtc_disable_wakeup();
     }
 }
 
@@ -109,7 +110,7 @@ static void counter_irq(void* arg)
     conf_counter.count_value[num]++;
     /* Start periodic check every 100 ms */
     last_value[num] = 0;
-    rtc_set_wakeup(UMDK_COUNTER_SLEEP_TIME_MS*1e3, &counter_poll, NULL);
+    rtc_enable_wakeup();
 }
 
 static inline void save_config(void)
@@ -266,6 +267,11 @@ void umdk_counter_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     rtctimers_set_msg(&publishing_timer, \
                       UMDK_COUNTER_VALUE_PERIOD_PER_SEC * conf_counter.publish_period, \
                       &publishing_msg, handler_pid);
+                      
+    /* Configure periodic wakeup */
+    rtc_set_wakeup(UMDK_COUNTER_SLEEP_TIME_MS*1e3, &counter_poll, NULL);
+    /* But disable it for now */
+    rtc_disable_wakeup();
 }
 
 

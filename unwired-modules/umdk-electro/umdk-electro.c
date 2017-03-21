@@ -80,6 +80,8 @@ static msg_t radio_msg;
 
 static umdk_electro_pack_t umdk_electro_pack;
 
+static module_data_t  current_cmd;
+
 static volatile uint8_t num_bytes_rx = 0;
 static volatile uint8_t length_rx;
 static volatile uint8_t length_rx_data;
@@ -549,42 +551,6 @@ static inline void save_config(void) {
       unwds_write_nvram_config(UNWDS_ELECTRO_MODULE_ID, (uint8_t *) &umdk_electro_config, sizeof(umdk_electro_config));
 }
 
-void umdk_electro_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
-{
-    (void) non_gpio_pin_map;
-
-    callback = event_callback;
-
-    init_config();
-
-    uint8_t* ptr_addr_cfg = (uint8_t *)(&umdk_electro_config.addr);
-    uint32_t addr_cfg = ( ((*(ptr_addr_cfg + 0) << 24) ) + ((*(ptr_addr_cfg + 1) << 16)) + ((*(ptr_addr_cfg + 2) << 8)) + ((*(ptr_addr_cfg + 3) << 0)) );
-
-    printf("[umdk-electro]: Baudrate: %d\n", baudrates[umdk_electro_config.current_baudrate_idx]);
-    printf("[umdk-electro]: Address(hex) ->  %lX   Address(dec) ->  %ld \n", addr_cfg,  addr_cfg);
-
-    /* Initialize the UART */
-    uart_init(UART_DEV(umdk_electro_config.uart_dev), baudrates[umdk_electro_config.current_baudrate_idx], rx_handler, NULL);
-
-    /* Initialize DE/RE pins */
-    gpio_init(RS_485_DE_PIN, GPIO_OUT);
-    gpio_init(RS_485_RE_PIN, GPIO_OUT);
-
-    gpio_clear(RS_485_DE_PIN);
-    gpio_clear(RS_485_RE_PIN);
-
-    /* Create handler thread */
-    char *stack = (char *) allocate_stack();
-    if (!stack) {
-	puts("umdk-electro: unable to allocate memory. Is too many modules enabled?");
-	return;
-    }
-
-    radio_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, radio_send, NULL, "electro thread");
-
-}
-
-
 static void transmit_packet(mercury_cmd_t c, module_data_t *cmd)
 {
   len_tx = cmd_mercury[c].length_tx_data;
@@ -637,6 +603,79 @@ static void transmit_packet(mercury_cmd_t c, module_data_t *cmd)
   return;
 }
 
+int umdk_electro_shell_cmd(int argc, char **argv) {
+    if (argc == 1) {
+        puts ("electro serial - Read the serial number");
+        puts ("electro newaddr <0x0..0xFFFFFFFF> - Set new address");
+        puts ("electro timedate  - Read the internal time and date");
+        puts ("electro total - Read the total values of power after reset");
+        puts ("electro schedule <M><Dw> - Read the schedule of tariffs of <Dw> day of week of <M> month");
+        puts ("electro value <M> - Read the <M> month's value");
+        puts ("electro worktime - Read the total working time of battery and device");
+        return 0;
+    }
+
+    char *cmd = argv[1];
+
+    if (strcmp(cmd, "serial") == 0) {
+	transmit_packet(MERCURY_CMD_GET_SERIAL, &current_cmd);
+
+    }
+
+//    if (strcmp(cmd, "send") == 0) {
+//    }
+//
+//    if (strcmp(cmd, "period") == 0) {
+//        char *val = argv[2];
+//        return set_period(atoi(val));
+//    }
+//
+//    if (strcmp(cmd, "reset") == 0) {
+//        reset_config();
+//        save_config();
+//    }
+
+    return 1;
+}
+
+
+void umdk_electro_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
+{
+    (void) non_gpio_pin_map;
+
+    callback = event_callback;
+
+    init_config();
+
+    uint8_t* ptr_addr_cfg = (uint8_t *)(&umdk_electro_config.addr);
+    uint32_t addr_cfg = ( ((*(ptr_addr_cfg + 0) << 24) ) + ((*(ptr_addr_cfg + 1) << 16)) + ((*(ptr_addr_cfg + 2) << 8)) + ((*(ptr_addr_cfg + 3) << 0)) );
+
+    printf("[umdk-electro]: Baudrate: %d\n", baudrates[umdk_electro_config.current_baudrate_idx]);
+    printf("[umdk-electro]: Address(hex) ->  %lX   Address(dec) ->  %ld \n", addr_cfg,  addr_cfg);
+
+    /* Initialize the UART */
+    uart_init(UART_DEV(umdk_electro_config.uart_dev), baudrates[umdk_electro_config.current_baudrate_idx], rx_handler, NULL);
+
+    /* Initialize DE/RE pins */
+    gpio_init(RS_485_DE_PIN, GPIO_OUT);
+    gpio_init(RS_485_RE_PIN, GPIO_OUT);
+
+    gpio_clear(RS_485_DE_PIN);
+    gpio_clear(RS_485_RE_PIN);
+
+    /* Create handler thread */
+    char *stack = (char *) allocate_stack();
+    if (!stack) {
+	puts("umdk-electro: unable to allocate memory. Is too many modules enabled?");
+	return;
+    }
+
+    unwds_add_shell_command("electro", "type 'electro' for commands list", umdk_electro_shell_cmd);
+
+    radio_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, radio_send, NULL, "electro thread");
+
+}
+
 static void reply_ok(module_data_t *reply)
 {
   reply->length = 4;
@@ -653,6 +692,11 @@ bool umdk_electro_cmd(module_data_t *cmd, module_data_t *reply)
     }
 
     mercury_cmd_t c = cmd->data[0];
+
+    current_cmd = *cmd;
+
+    printf("Len_curr  %d\n", cmd->length);
+    printf("Len_my  %d\n", current_cmd->length);
 
     switch (c) {
       case MERCURY_CMD_INIT_ADDR: {

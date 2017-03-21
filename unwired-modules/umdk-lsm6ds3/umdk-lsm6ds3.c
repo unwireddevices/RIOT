@@ -62,7 +62,7 @@ static void *acq_thread(void *arg) {
     msg_t msg_queue[4];
     msg_init_queue(msg_queue, 4);
 
-    puts("[umdk-lsm6ds3] Continuous acquisition thread started");
+    puts("[umdk-" _UMDK_NAME_ "] Continuous acquisition thread started");
 
     while (1) {
         msg_receive(&msg);
@@ -78,7 +78,7 @@ static void *acq_thread(void *arg) {
             } else {
                 if ((acc_data.acc_x + acq_ths) < acc_max_value.acc_x) {
                     int_to_float_str(buf, acc_max_value.acc_x, 3);
-                    printf("Acceleration peak: X %s g\n", buf);
+                    printf("[umdk-" _UMDK_NAME_ "] Acceleration peak: X %s g\n", buf);
                     acc_max_value.acc_x = INT_MIN;
                 }
             }
@@ -90,7 +90,7 @@ static void *acq_thread(void *arg) {
             } else {
                 if ((acc_data.acc_y + acq_ths) < acc_max_value.acc_y) {
                     int_to_float_str(buf, acc_max_value.acc_y, 3);
-                    printf("Acceleration peak: Y %s g\n", buf);
+                    printf("[umdk-" _UMDK_NAME_ "] Acceleration peak: Y %s g\n", buf);
                     acc_max_value.acc_y = INT_MIN;
                 }
             }
@@ -103,7 +103,7 @@ static void *acq_thread(void *arg) {
              else {
                 if ((acc_data.acc_z + acq_ths) < acc_max_value.acc_z) {
                     int_to_float_str(buf, acc_max_value.acc_z, 3);
-                    printf("Acceleration peak: Z %s g\n", buf);
+                    printf("[umdk-" _UMDK_NAME_ "] Acceleration peak: Z %s g\n", buf);
                     acc_max_value.acc_z = INT_MIN;
                 }
             }
@@ -117,13 +117,13 @@ static void *acq_thread(void *arg) {
 
 int umdk_lsm6ds3_shell_cmd(int argc, char **argv) {
     if (argc == 1) {
-        puts ("lsm6ds3 get - get results now");
-        puts ("lsm6ds3 send - get and send results now");
-        puts ("lsm6ds3 start - continuous acquisition with peak detection");
-        puts ("lsm6ds3 stop - stop continuous acquisition");
-        puts ("lsm6ds3 rate <13|26|52|104|208|416|833|1660> - set sensor data rate");
-        puts ("lsm6ds3 ths <value> - accelerometer threshold for peak detection, mg");
-        puts ("lsm6ds3 filter <50|100|200|400> - anti-aliasing filter, Hz");
+        puts (_UMDK_NAME_ " get - get results now");
+        puts (_UMDK_NAME_ " send - get and send results now");
+        puts (_UMDK_NAME_ " start - continuous acquisition with peak detection");
+        puts (_UMDK_NAME_ " stop - stop continuous acquisition");
+        puts (_UMDK_NAME_ " rate <13|26|52|104|208|416|833|1660> - set sensor data rate");
+        puts (_UMDK_NAME_ " ths <value> - accelerometer threshold for peak detection, mg");
+        puts (_UMDK_NAME_ " filter <50|100|200|400> - anti-aliasing filter, Hz");
         return 0;
     }
     
@@ -142,19 +142,19 @@ int umdk_lsm6ds3_shell_cmd(int argc, char **argv) {
         int_to_float_str(buf[0], acc_data.acc_x, 3);
         int_to_float_str(buf[1], acc_data.acc_y, 3);
         int_to_float_str(buf[2], acc_data.acc_z, 3);
-        printf("Accelerometer: X %s g, Y %s g, Z %s g\n", buf[0], buf[1], buf[2]);
+        printf("[umdk-" _UMDK_NAME_ "] Accelerometer: X %s g, Y %s g, Z %s g\n", buf[0], buf[1], buf[2]);
         
         int_to_float_str(buf[0], acc_data.gyr_x, 3);
         int_to_float_str(buf[1], acc_data.gyr_x, 3);
         int_to_float_str(buf[2], acc_data.gyr_x, 3);
-        printf("Gyroscope: X %s dps, Y %s dps, Z %s dps\n", buf[0], buf[1], buf[2]);
+        printf("[umdk-" _UMDK_NAME_ "] Gyroscope: X %s dps, Y %s dps, Z %s dps\n", buf[0], buf[1], buf[2]);
         
         int_to_float_str(buf[0], temp, 3);
-        printf("Temperature: %s C\n", buf[0]);
+        printf("[umdk-" _UMDK_NAME_ "] Temperature: %s C\n", buf[0]);
     }
     
     if (strcmp(cmd, "send") == 0) {
-        puts("Not implemented yet");
+        puts("[umdk-" _UMDK_NAME_ "] Not implemented yet");
     }
     
     if (strcmp(cmd, "start") == 0) {
@@ -175,7 +175,7 @@ int umdk_lsm6ds3_shell_cmd(int argc, char **argv) {
     
     if (strcmp(cmd, "ths") == 0) {
         acq_ths = atoi(argv[2]);
-        printf("[umdk-lsm6ds3] Threshold set: %d mg\n", acq_ths);
+        printf("[umdk-" _UMDK_NAME_ "] Threshold set: %d mg\n", acq_ths);
     }
     
     if (strcmp(cmd, "filter") == 0) {
@@ -195,13 +195,13 @@ int umdk_lsm6ds3_shell_cmd(int argc, char **argv) {
                 lsm6ds3.params.accel_bandwidth = LSM6DS3_ACC_GYRO_BW_XL_400Hz;
                 break;
             default:
-                puts("[umdk-lsm6ds3] Invalid filter value");
+                puts("[umdk-" _UMDK_NAME_ "] Invalid filter value");
         }
         if (lsm6ds3_init(&lsm6ds3) < 0) {
-            puts("[umdk-lsm6ds3] LSM6DS3 initialization failed");
+            puts("[umdk-" _UMDK_NAME_ "] LSM6DS3 initialization failed");
             return -1;
         } else {
-            printf("[umdk-lsm6ds3] Filter value set: %d Hz\n", filter);
+            printf("[umdk-" _UMDK_NAME_ "] Filter value set: %d Hz\n", filter);
         }
     }
    
@@ -242,13 +242,13 @@ int umdk_lsm6ds3_shell_cmd(int argc, char **argv) {
                 lsm6ds3.params.accel_sample_rate = LSM6DS3_ACC_GYRO_ODR_XL_1660Hz;
                 break;
             default:
-                puts("[umdk-lsm6ds3] Invalid sample rate value");
+                puts("[umdk-" _UMDK_NAME_ "] Invalid sample rate value");
         }
         if (lsm6ds3_init(&lsm6ds3) < 0) {
-            puts("[umdk-lsm6ds3] LSM6DS3 initialization failed");
+            puts("[umdk-" _UMDK_NAME_ "] LSM6DS3 initialization failed");
             return -1;
         } else {
-            printf("[umdk-lsm6ds3] Sample rate set: %d Hz\n", rate);
+            printf("[umdk-" _UMDK_NAME_ "] Sample rate set: %d Hz\n", rate);
         }
     }
     
@@ -292,19 +292,19 @@ void umdk_lsm6ds3_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     lsm6ds3.params = lsm_params;
     
     if (lsm6ds3_init(&lsm6ds3) < 0) {
-        puts("[umdk-lsm6ds3] LSM6DS3 initialization failed");
+        puts("[umdk-" _UMDK_NAME_ "] LSM6DS3 initialization failed");
         return;
     }
     
     char *stack = (char *) allocate_stack();
 	if (!stack) {
-		puts("umdk-sht21: unable to allocate memory. Are too many modules enabled?");
+		puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Are too many modules enabled?");
 		return;
 	}
     acq_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,
                             acq_thread, NULL, "LSM6DS3 acquisition");
     
-    unwds_add_shell_command("lsm6ds3", "type 'lsm6ds3' for commands list", umdk_lsm6ds3_shell_cmd);
+    unwds_add_shell_command(_UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_lsm6ds3_shell_cmd);
 }
 
 bool umdk_lsm6ds3_cmd(module_data_t *cmd, module_data_t *reply)

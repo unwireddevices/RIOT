@@ -65,7 +65,7 @@ static struct {
 } bme280_config;
 
 static bool init_sensor(void) {
-	printf("[bme280] Initializing BME280 on I2C #%d\n", bme280_params[0].i2c_dev);
+	printf("[umdk-" _UMDK_NAME_ "] Initializing BME280 on I2C #%d\n", bme280_params[0].i2c_dev);
     
 	return bme280_init(&dev, &bme280_params[0]) == BME280_OK;
 }
@@ -83,7 +83,7 @@ static void prepare_result(module_data_t *data) {
     int_to_float_str(buf[0], temp, 1);
     int_to_float_str(buf[1], hum, 1);
     
-	printf("[bme280] Temperature %s C, humidity: %s%%, pressure: %d mbar\n", buf[0], buf[1], press);
+	printf("[umdk-" _UMDK_NAME_ "] Temperature %s C, humidity: %s%%, pressure: %d mbar\n", buf[0], buf[1], press);
 
     /* One byte for module ID, two bytes for temperature, two bytes for humidity, two bytes for pressure */
 	data->length = 1 + sizeof(temp) + sizeof(hum) + sizeof(press);
@@ -101,7 +101,7 @@ static void *timer_thread(void *arg) {
     msg_t msg_queue[4];
     msg_init_queue(msg_queue, 4);
 
-    puts("[umdk-bme280] Periodic publisher thread started");
+    puts("[umdk-" _UMDK_NAME_ "] Periodic publisher thread started");
 
     while (1) {
         msg_receive(&msg);
@@ -151,18 +151,18 @@ static void set_period (int period) {
 	/* Don't restart timer if new period is zero */
 	if (bme280_config.publish_period_min) {
 		rtctimers_set_msg(&timer, 60 * bme280_config.publish_period_min, &timer_msg, timer_pid);
-		printf("[bme280] Period set to %d minute (s)\n", bme280_config.publish_period_min);
+		printf("[umdk-" _UMDK_NAME_ "] Period set to %d minute (s)\n", bme280_config.publish_period_min);
 	} else {
-		puts("[bme280] Timer stopped");
+		puts("[umdk-" _UMDK_NAME_ "] Timer stopped");
 	}
 }
 
 int umdk_bme280_shell_cmd(int argc, char **argv) {
     if (argc == 1) {
-        puts ("bme280 get - get results now");
-        puts ("bme280 send - get and send results now");
-        puts ("bme280 period <N> - set period to N minutes");
-        puts ("bme280 reset - reset settings to default");
+        puts (_UMDK_NAME_ " get - get results now");
+        puts (_UMDK_NAME_ " send - get and send results now");
+        puts (_UMDK_NAME_ " period <N> - set period to N minutes");
+        puts (_UMDK_NAME_ " - reset settings to default");
         return 0;
     }
     
@@ -198,21 +198,21 @@ void umdk_bme280_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	callback = event_callback;
 
 	init_config();
-	printf("[bme280] Publish period: %d min\n", bme280_config.publish_period_min);
+	printf("[umdk-" _UMDK_NAME_ "] Publish period: %d min\n", bme280_config.publish_period_min);
 
 	if (!init_sensor()) {
-		puts("[umdk-bme280] Unable to init sensor!");
+		puts("[umdk-" _UMDK_NAME_ "] Unable to init sensor!");
         return;
 	}
 
 	/* Create handler thread */
 	char *stack = (char *) allocate_stack();
 	if (!stack) {
-		puts("[umdk-bme280]: unable to allocate memory. Are too many modules enabled?");
+		puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Are too many modules enabled?");
 		return;
 	}
     
-    unwds_add_shell_command("bme280", "type 'bme280' for commands list", umdk_bme280_shell_cmd);
+    unwds_add_shell_command(_UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_bme280_shell_cmd);
     
 	timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "bme280 thread");
 

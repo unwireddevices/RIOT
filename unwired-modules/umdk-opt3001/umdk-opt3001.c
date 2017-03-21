@@ -65,7 +65,7 @@ static struct {
 static bool init_sensor(void) {
 	dev.i2c = UMDK_OPT3001_I2C;
 
-	printf("[" _UMDK_NAME_ "] Initializing opt3001 on I2C #%d\n", dev.i2c);
+	printf("[umdk-" _UMDK_NAME_ "] Initializing opt3001 on I2C #%d\n", dev.i2c);
 
 	return opt3001_init(&dev) == 0;
 }
@@ -85,7 +85,7 @@ static void prepare_result(module_data_t *buf) {
        luminocity = measure.luminocity;
     }
 
-	printf("[" _UMDK_NAME_ "] Luminocity %u lux\n", luminocity);
+	printf("[umdk-" _UMDK_NAME_ "] Luminocity %u lux\n", luminocity);
 
 	buf->length = 1 + sizeof(luminocity); /* Additional byte for module ID */
 
@@ -158,9 +158,9 @@ static void set_period (int period) {
 	/* Don't restart timer if new period is zero */
 	if (opt3001_config.publish_period_min) {
         rtctimers_set_msg(&timer, 60 * opt3001_config.publish_period_min, &timer_msg, timer_pid);
-		printf("[" _UMDK_NAME_ "] Period set to %d minute (s)\n", opt3001_config.publish_period_min);
+		printf("[umdk-" _UMDK_NAME_ "] Period set to %d minute (s)\n", opt3001_config.publish_period_min);
     } else {
-        puts("[" _UMDK_NAME_ "] Timer stopped");
+        puts("[umdk-" _UMDK_NAME_ "] Timer stopped");
     }
 }
 
@@ -205,7 +205,7 @@ void umdk_opt3001_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	callback = event_callback;
 
 	init_config();
-	printf("[" _UMDK_NAME_ "] Publish period: %d min\n", opt3001_config.publish_period_min);
+	printf("[umdk-" _UMDK_NAME_ "] Publish period: %d min\n", opt3001_config.publish_period_min);
 
 	if (!init_sensor()) {
 		puts("[umdk-" _UMDK_NAME_ "] Unable to init sensor!");
@@ -215,7 +215,7 @@ void umdk_opt3001_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	/* Create handler thread */
 	char *stack = (char *) allocate_stack();
 	if (!stack) {
-		puts("umdk-" _UMDK_NAME_ ": unable to allocate memory. Are too many modules enabled?");
+		puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Are too many modules enabled?");
 		return;
 	}
     

@@ -96,12 +96,12 @@ static void btn_pressed_int(void *arg) {
     } while ((value_counter < 5) && (error_counter < 100));
     
     if (error_counter == 100) {
-        puts("[" _UMDK_NAME_ "] Press rejected");
+        puts("[umdk-" _UMDK_NAME_ "] Press rejected");
         gpio_irq_enable(buttons[btn_num]);
         return;
     }
     
-    printf("[" _UMDK_NAME_ "] Pressed: %d\n", btn_num + 1);
+    printf("[umdk-" _UMDK_NAME_ "] Pressed: %d\n", btn_num + 1);
 
     msg_t msg;
     msg.type = btn_num;
@@ -129,7 +129,7 @@ void umdk_4btn_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	/* Create handler thread */
 	char *stack = (char *) allocate_stack();
 	if (!stack) {
-		puts("umdk-" _UMDK_NAME_ ": unable to allocate memory. Is too many modules enabled?");
+		puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Is too many modules enabled?");
 		return;
 	}
 

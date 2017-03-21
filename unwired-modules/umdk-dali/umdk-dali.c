@@ -88,7 +88,7 @@ bool umdk_dali_cmd(module_data_t *cmd, module_data_t *reply)
 {
     /* Check minimum command length */
     if (cmd->length < 2) {
-	printf("[umdk-dali] Invalid command - wrong length of command\n");
+	printf("[umdk-" _UMDK_NAME_ "] Invalid command - wrong length of command\n");
         return false;
     }
 
@@ -98,10 +98,10 @@ bool umdk_dali_cmd(module_data_t *cmd, module_data_t *reply)
 	if(( (cmd->data[0] >> 5) & 0x03) != 0) {
 	    /* if it isn't broadcast  */
 	    if((cmd->data[0] >> 1) != 0x7F) {
-		printf("[umdk-dali] Invalid broadcast command\n");
+		printf("[umdk-" _UMDK_NAME_ "] Invalid broadcast command\n");
 		return false;
 	    }
-	    printf("[umdk-dali] Invalid type of address\n");
+	    printf("[umdk-" _UMDK_NAME_ "] Invalid type of address\n");
 	    return false;
 	}
     }
@@ -112,11 +112,9 @@ bool umdk_dali_cmd(module_data_t *cmd, module_data_t *reply)
     /* TODO: Now only for one channel */
     umdk_dali_transmit(pack_dali, dali_chs[0]);
 
-    reply->length = 4;
+    reply->length = 2;
     reply->data[0] = _UMDK_MID_;
-    reply->data[1] = 'o';
-    reply->data[2] = 'k';
-    reply->data[3] = '\0';
+    reply->data[1] = 0;
 
     return true; /* Allow reply */
 

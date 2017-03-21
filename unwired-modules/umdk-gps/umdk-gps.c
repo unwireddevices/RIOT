@@ -49,10 +49,10 @@ static mt3333_gps_data_t last_data;
 static mt3333_t gps;
 
 static void make_reply(module_data_t *reply) {
-    printf("[gps] {\"has_data\":true,\"lat\":\"%s\",\"lon\":\"%s\",\"n\":%s,\"e\":%s,\"date\":\"%s\",\"time\":\"%s\"}\n",
+    printf("[umdk-" _UMDK_NAME_ "]  {\"has_data\":true,\"lat\":\"%s\",\"lon\":\"%s\",\"n\":%s,\"e\":%s,\"date\":\"%s\",\"time\":\"%s\"}\n",
             last_data.lat, last_data.lon,
-            (last_data.n) ? "true" : "false",
-            (last_data.e) ? "true" : "false",
+            (last_data.n) ? "true": "false",
+            (last_data.e) ? "true": "false",
             last_data.date,
             last_data.time);
 

@@ -82,7 +82,7 @@ static void init_sensors(void) {
         gpio_init(UMDK_LMT01_INT_PIN, GPIO_IN);
         
 		if (lmt01_init(dev, en_pins[i], pin_common) < 0) {
-			printf("[umdk-lmt01] Failed to initialize sensor #%d\n", i);
+			printf("[umdk-" _UMDK_NAME_ "] Failed to initialize sensor #%d\n", i);
 		}
 	}
 }
@@ -101,7 +101,7 @@ static void prepare_result(module_data_t *buf) {
 		int temp;
 		int pulses;
 		if ((pulses = lmt01_get_temp(&sensors[i], &temp)) > 0) {
-			printf("[umdk-lmt01] Measured %d pulses on #%d: %d.%d\n", pulses, i, temp/10, temp%10);
+			printf("[umdk-" _UMDK_NAME_ "] Measured %d pulses on #%d: %d.%d\n", pulses, i, temp/10, temp%10);
 			res[i] = temp;
 			results++;
 		} else {
@@ -122,7 +122,7 @@ void *timer_thread(void *arg) {
     msg_t msg_queue[4];
     msg_init_queue(msg_queue, 4);
 
-    puts("[umdk-lmt01] Periodic publisher thread started");
+    puts("[umdk-" _UMDK_NAME_ "] Periodic publisher thread started");
 
     while (1) {
         msg_receive(&msg);
@@ -170,19 +170,19 @@ static void set_period (int period) {
 	/* Don't restart timer if new period is zero */
 	if (lmt01_config.publish_period_min) {
 		rtctimers_set_msg(&timer, 60 * lmt01_config.publish_period_min, &timer_msg, timer_pid);
-		printf("[lmt01] Period set to %d minutes\n", lmt01_config.publish_period_min);
+		printf("[umdk-" _UMDK_NAME_ "] Period set to %d minutes\n", lmt01_config.publish_period_min);
 	} else {
-		puts("[lmt01] Timer stopped");
+		puts("[umdk-" _UMDK_NAME_ "] Timer stopped");
     }
     save_config();
 }
 
 int umdk_lmt01_shell_cmd(int argc, char **argv) {
     if (argc == 1) {
-        puts ("lmt01 get - get results now");
-        puts ("lmt01 send - get and send results now");
-        puts ("lmt01 period <N> - set period to N minutes");
-        puts ("lmt01 reset - reset settings to default");
+        puts (_UMDK_NAME_ " get - get results now");
+        puts (_UMDK_NAME_ " send - get and send results now");
+        puts (_UMDK_NAME_ " period <N> - set period to N minutes");
+        puts (_UMDK_NAME_ " reset - reset settings to default");
         return 0;
     }
     
@@ -217,18 +217,18 @@ void umdk_lmt01_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 
 	callback = event_callback;
 	init_config();
-    printf("[lmt01] Publish period: %d min\n", lmt01_config.publish_period_min);
+    printf("[umdk-" _UMDK_NAME_ "] Publish period: %d min\n", lmt01_config.publish_period_min);
 
 	init_sensors();
 
 	/* Create handler thread */
 	char *stack = (char *) allocate_stack();
 	if (!stack) {
-		puts("umdk-lmt01: unable to allocate memory. Is too many modules enabled?");
+		puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Is too many modules enabled?");
 		return;
 	}
 
-    unwds_add_shell_command("lmt01", "type 'lmt01' for commands list", umdk_lmt01_shell_cmd);
+    unwds_add_shell_command(_UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_lmt01_shell_cmd);
 
 	timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "lmt01 thread");
 

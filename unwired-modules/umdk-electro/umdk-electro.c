@@ -207,7 +207,7 @@ static void send_pack(uint8_t length)
    gpio_set(RS_485_RE_PIN);
    gpio_set(RS_485_DE_PIN);
 
-   printf("Sending pack...  ");
+   printf("[umdk-" _UMDK_NAME_ "] Sending pack...  ");
 
    uart_write(UMDK_ELECTRO_DEV, txbuf, length);
 
@@ -224,7 +224,7 @@ static void send_pack(uint8_t length)
    gpio_clear(RS_485_RE_PIN);
    gpio_clear(RS_485_DE_PIN);
 
-   printf("End of sending\n");
+   printf("[umdk-" _UMDK_NAME_ "] End of transmission\n");
 }
 
 static bool check_pack(void)
@@ -233,7 +233,7 @@ static bool check_pack(void)
 
   uint8_t cmd  = rxbuf[4];
 
-  printf("RXbuf before checking:\n");
+  printf("[umdk-" _UMDK_NAME_ "] RXbuf before checking:\n");
   for(int i = 0; i < length_rx; i++) {
       printf(" %X ", rxbuf[i]);
   }
@@ -242,13 +242,13 @@ printf("\n");
 
   if(need_check_addr) {
     if(rx_addr != umdk_electro_pack.addr) {
-	printf("[umdk-electro]: Error -> Wrong received current address  %lX\n", rx_addr);
+	printf("[umdk-" _UMDK_NAME_ "] Error -> Wrong received current address  %lX\n", rx_addr);
 	return false;
     }
   }
 
   if(cmd != umdk_electro_pack.cmd) {
-      printf("[umdk-electro]: Error -> Wrong received current command   %X\n", cmd);
+      printf("[umdk-" _UMDK_NAME_ "] Error -> Wrong received current command   %X\n", cmd);
       return false;
   }
 
@@ -256,7 +256,7 @@ printf("\n");
   uint16_t crc_rx = crc16(rxbuf, length_rx - 2, Crc16Table_mercury, MERCURY_CRC16_INIT);
 
   if(crc != crc_rx) {
-      printf("[umdk-electro]: Error -> Wrong received CRC\n");
+      printf("[umdk-" _UMDK_NAME_ "] Error -> Wrong received CRC\n");
       return false;
   }
 
@@ -316,7 +316,7 @@ static uint8_t umdk_mercury_decoding(uint8_t * buf_ptr, flag_decode_t flag)
 
 	uint8_t timedate[7] = {0};
 
-	printf("Time date:  ");
+	printf("[umdk-" _UMDK_NAME_ "] Time date:  ");
 	for(int i = 0; i < length_rx_data; i++) {
 	  timedate[i] = ((*(buf_ptr + i)) >> 4) * 10;
 	  timedate[i] += ((*(buf_ptr + i)) & 0x0F) * 1;
@@ -337,7 +337,7 @@ static uint8_t umdk_mercury_decoding(uint8_t * buf_ptr, flag_decode_t flag)
 	    if(*(buf_ptr + 2*i) != 0xFF ) {
 		num_bytes += 3;
 	      schedule[3*i] = (*(buf_ptr + 2*i) >> 6);
-	      printf("Tariff: %d  ", schedule[3*i]);
+	      printf("[umdk-" _UMDK_NAME_ "] Tariff: %d  ", schedule[3*i]);
 	      schedule[3*i + 1] = ((*((buf_ptr + 2*i)) >> 4) & 0x3) * 10;
 	      schedule[3*i + 1] += ((*(buf_ptr + 2*i)) & 0x0F) * 1;
 	      printf("Time: %d: ", schedule[3*i + 1]);
@@ -390,9 +390,9 @@ static uint8_t umdk_mercury_decoding(uint8_t * buf_ptr, flag_decode_t flag)
 	  memcpy(data_in_radio, uip,  sizeof(uip));
 	  num_bytes = sizeof(uip);
 
-	printf("Voltage ->  %d,%d V\n",voltage/10, voltage%10 );
-	printf("Current ->  %d,%d A\n",current/10, current%10 );
-	printf("Power ->  %ld,%ld W\n",power/10, power%10 );
+	printf("[umdk-" _UMDK_NAME_ "] Voltage ->  %d,%d V\n",voltage/10, voltage%10 );
+	printf("[umdk-" _UMDK_NAME_ "] Current ->  %d,%d A\n",current/10, current%10 );
+	printf("[umdk-" _UMDK_NAME_ "] Power ->  %ld,%ld W\n",power/10, power%10 );
 
 	break;
       }
@@ -475,7 +475,7 @@ static void *radio_send(void *arg)
 		 printf("\n");
 	    }
 	    else {
-	      printf("[umdk-electro]: Ok\n");
+	      printf("[umdk-" _UMDK_NAME_ "] Ok\n");
 
 	      data.length = 4;
 		data.data[0] = _UMDK_MID_;
@@ -487,7 +487,7 @@ static void *radio_send(void *arg)
 	    callback(&data);
 	}
 	else {
-	    printf("[umdk-electro]: Error -> Wrong received packet\n");
+	    printf("[umdk-" _UMDK_NAME_ "] Error -> Wrong received packet\n");
 	   if(flag_reply == FLAG_ALLOW_REPLY) {
 	       send_pack(len_tx);
 	       flag_reply = FLAG_NOT_ALLOW_REPLY;
@@ -568,8 +568,8 @@ void umdk_electro_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     uint8_t* ptr_addr_cfg = (uint8_t *)(&umdk_electro_config.addr);
     uint32_t addr_cfg = ( ((*(ptr_addr_cfg + 0) << 24) ) + ((*(ptr_addr_cfg + 1) << 16)) + ((*(ptr_addr_cfg + 2) << 8)) + ((*(ptr_addr_cfg + 3) << 0)) );
 
-    printf("[umdk-electro]: Baudrate: %d\n", baudrates[umdk_electro_config.current_baudrate_idx]);
-    printf("[umdk-electro]: Address(hex) ->  %lX   Address(dec) ->  %ld \n", addr_cfg,  addr_cfg);
+    printf("[umdk-" _UMDK_NAME_ "] Baudrate: %d\n", baudrates[umdk_electro_config.current_baudrate_idx]);
+    printf("[umdk-" _UMDK_NAME_ "] Address(hex) ->  %lX   Address(dec) ->  %ld \n", addr_cfg,  addr_cfg);
 
     /* Initialize the UART */
     uart_init(UART_DEV(umdk_electro_config.uart_dev), baudrates[umdk_electro_config.current_baudrate_idx], rx_handler, NULL);
@@ -584,7 +584,7 @@ void umdk_electro_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     /* Create handler thread */
     char *stack = (char *) allocate_stack();
     if (!stack) {
-	puts("umdk-electro: unable to allocate memory. Is too many modules enabled?");
+	puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Is too many modules enabled?");
 	return;
     }
 
@@ -598,7 +598,7 @@ static void transmit_packet(mercury_cmd_t c, module_data_t *cmd)
   len_tx = cmd_mercury[c].length_tx_data;
 
   if(cmd->length != (len_tx + 1)) {
-      printf("[umdk-electro]: Invalid request -> Wrong length of command\n");
+      printf("[umdk-" _UMDK_NAME_ "] Invalid request -> Wrong length of command\n");
       return;
   }
 

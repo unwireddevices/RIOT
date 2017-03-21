@@ -50,7 +50,7 @@ static lm75a_t lm75a;
 
 int umdk_lm75_shell_cmd(int argc, char **argv) {
     if (argc == 1) {
-        puts (_UMDK_NAME_ " get - get results now");
+        puts ("[umdk-" _UMDK_NAME_ "] get - get results now");
         return 0;
     }
     

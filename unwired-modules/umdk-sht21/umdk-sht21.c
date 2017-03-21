@@ -66,7 +66,7 @@ static struct {
 static bool init_sensor(void) {
 	dev.i2c = UMDK_SHT21_I2C;
 
-	printf("[sht21] Initializing sht21 on I2C #%d\n", dev.i2c);
+	printf("[umdk-" _UMDK_NAME_ "] Initializing sht21 on I2C #%d\n", dev.i2c);
 
 	return sht21_init(&dev) == 0;
 }
@@ -82,7 +82,7 @@ static int16_t convert_humid(int humid) {
 static int prepare_result(module_data_t *data) {
 	sht21_measure_t measure = {};
 	if (sht21_measure(&dev, &measure)) {
-        puts("[sht21] CRC error");
+        puts("[umdk-" _UMDK_NAME_ "] CRC error");
         return -1;
     }
 
@@ -92,7 +92,7 @@ static int prepare_result(module_data_t *data) {
     char buf[2][10];
     int_to_float_str(buf[0], temp, 1);
     int_to_float_str(buf[1], hum, 1);
-	printf("[sht21] Temperature %s C, humidity: %s%%\n", buf[0], buf[1]);
+	printf("[umdk-" _UMDK_NAME_ "] Temperature %s C, humidity: %s%%\n", buf[0], buf[1]);
 
     /* One byte for module ID, two bytes for temperature, two bytes for humidity */
 	data->length = 1 + sizeof(temp) + sizeof(hum);
@@ -111,7 +111,7 @@ static void *timer_thread(void *arg) {
     msg_t msg_queue[4];
     msg_init_queue(msg_queue, 4);
 
-    puts("[umdk-sht21] Periodic publisher thread started");
+    puts("[umdk-" _UMDK_NAME_ "] Periodic publisher thread started");
 
     while (1) {
         msg_receive(&msg);
@@ -167,18 +167,18 @@ static void set_period (int period) {
 	/* Don't restart timer if new period is zero */
 	if (sht21_config.publish_period_min) {
 		rtctimers_set_msg(&timer, 60 * sht21_config.publish_period_min, &timer_msg, timer_pid);
-		printf("[sht21] Period set to %d minute (s)\n", sht21_config.publish_period_min);
+		printf("[umdk-" _UMDK_NAME_ "] Period set to %d minute (s)\n", sht21_config.publish_period_min);
 	} else {
-		puts("[sht21] Timer stopped");
+		puts("[umdk-" _UMDK_NAME_ "] Timer stopped");
 	}
 }
 
 int umdk_sht21_shell_cmd(int argc, char **argv) {
     if (argc == 1) {
-        puts ("sht21 get - get results now");
-        puts ("sht21 send - get and send results now");
-        puts ("sht21 period <N> - set period to N minutes");
-        puts ("sht21 reset - reset settings to default");
+        puts (_UMDK_NAME_ " get - get results now");
+        puts (_UMDK_NAME_ " send - get and send results now");
+        puts (_UMDK_NAME_ " period <N> - set period to N minutes");
+        puts (_UMDK_NAME_ " reset - reset settings to default");
         return 0;
     }
     
@@ -214,20 +214,20 @@ void umdk_sht21_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	callback = event_callback;
 
 	init_config();
-	printf("[sht21] Publish period: %d min\n", sht21_config.publish_period_min);
+	printf("[umdk-" _UMDK_NAME_ "] Publish period: %d min\n", sht21_config.publish_period_min);
 
 	if (!init_sensor()) {
-		puts("[umdk-sht21] Unable to init sensor!");
+		puts("[umdk-" _UMDK_NAME_ "] Unable to init sensor!");
 	}
 
 	/* Create handler thread */
 	char *stack = (char *) allocate_stack();
 	if (!stack) {
-		puts("umdk-sht21: unable to allocate memory. Are too many modules enabled?");
+		puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Are too many modules enabled?");
 		return;
 	}
 
-    unwds_add_shell_command("sht21", "type 'sht21' for commands list", umdk_sht21_shell_cmd);
+    unwds_add_shell_command(_UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_sht21_shell_cmd);
 
 	timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "sht21 thread");
 

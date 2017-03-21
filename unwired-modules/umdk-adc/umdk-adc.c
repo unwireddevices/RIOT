@@ -80,7 +80,7 @@ static void init_config(void) {
 		return;
 	}
 
-	printf("[adc] Publish period: %d min\n", adc_config.publish_period_min);
+	printf("[umdk-" _UMDK_NAME_ "] Publish period: %d min\n", adc_config.publish_period_min);
 }
 
 static inline void save_config(void) {
@@ -95,7 +95,7 @@ static void init_adc(void)
     for (i = 0; i < ADC_NUMOF; i++) {
         if (adc_config.adc_lines_enabled & (1 << i)) {        
             if (adc_init(ADC_LINE(i)) < 0) {
-                printf("[umdk-adc] Failed to initialize adc line #%d\n", i + 1);
+                printf("[umdk-" _UMDK_NAME_ "] Failed to initialize adc line #%d\n", i + 1);
                 continue;
             }
         }
@@ -139,7 +139,7 @@ static void prepare_result(module_data_t *buf)
 				full_scale = 63;
 				break;
 			default:
-				puts("[umdk-adc] Unsupported ADC resolution, aborting.");
+				puts("[umdk-" _UMDK_NAME_ "] Unsupported ADC resolution, aborting.");
 				return;
 				break; 
 		}
@@ -153,7 +153,7 @@ static void prepare_result(module_data_t *buf)
 	
 	for (i = 0; i < ADC_NUMOF; i++) {
         if (samples[i] != 0xFFFF) {
-            printf("[umdk-adc] Reading line #%d: %d", i + 1, samples[i]);
+            printf("[umdk-" _UMDK_NAME_ "] Reading line #%d: %d", i + 1, samples[i]);
             if (UMDK_ADC_CONVERT_TO_MILLIVOLTS) {
                 if (i == ADC_TEMPERATURE_INDEX) {
                     puts(" C");
@@ -179,7 +179,7 @@ static void *timer_thread(void *arg)
     msg_t msg_queue[4];
     msg_init_queue(msg_queue, 4);
 
-    puts("[umdk-adc] Periodic publisher thread started");
+    puts("[umdk-" _UMDK_NAME_ "] Periodic publisher thread started");
 
     while (1) {
         msg_receive(&msg);
@@ -207,20 +207,20 @@ static void set_period (int period) {
     /* Don't restart timer if new period is zero */
     if (adc_config.publish_period_min) {
         rtctimers_set_msg(&timer, 60 * adc_config.publish_period_min, &timer_msg, timer_pid);
-        printf("[umdk-adc] Period set to %d minutes\n", adc_config.publish_period_min);
+        printf("[umdk-" _UMDK_NAME_ "] Period set to %d minutes\n", adc_config.publish_period_min);
     } else {
-        puts("[umdk-adc] Timer stopped");
+        puts("[umdk-" _UMDK_NAME_ "] Timer stopped");
     }
 }
 
 int umdk_adc_shell_cmd(int argc, char **argv) {
     if (argc == 1) {
-        puts ("adc get - get results now");
-        puts ("adc send - get and send results now");
-        puts ("adc period <N> - set period to N minutes");
-        puts ("adc lines <A B C D> - enable specific ADC lines");
-        puts ("adc cfg - view current ADC configuration");
-        puts ("adc reset - reset settings to default");
+        puts (_UMDK_NAME_ " get - get results now");
+        puts (_UMDK_NAME_ " send - get and send results now");
+        puts (_UMDK_NAME_ " period <N> - set period to N minutes");
+        puts (_UMDK_NAME_ " lines <A B C D> - enable specific ADC lines");
+        puts (_UMDK_NAME_ " cfg - view current ADC configuration");
+        puts (_UMDK_NAME_ " reset - reset settings to default");
         return 0;
     }
     
@@ -249,10 +249,10 @@ int umdk_adc_shell_cmd(int argc, char **argv) {
     
     if (strcmp(cmd, "cfg") == 0) {
         int i = 0;
-        printf("[umdk_adc] Period: %d min\n", adc_config.publish_period_min);
+        printf("[umdk-" _UMDK_NAME_ "] Period: %d min\n", adc_config.publish_period_min);
         for (i = 0; i < 32; i++) {
             if (adc_config.adc_lines_enabled & (1 << i)) {
-                printf("[umdk-adc] Line #%d enabled\n", i+1);
+                printf("[umdk-" _UMDK_NAME_ "] Line #%d enabled\n", i+1);
             }
         }
     }
@@ -265,7 +265,7 @@ int umdk_adc_shell_cmd(int argc, char **argv) {
             line = strtol(argv[i], NULL, 10);
             if ((line != 0) & (line <= ADC_NUMOF)) {
                 adc_config.adc_lines_enabled |= 1 << (line - 1);
-                printf("[umdk-adc] Line #%d enabled\n", line);
+                printf("[umdk-" _UMDK_NAME_ "] Line #%d enabled\n", line);
             }
         }
         save_config();
@@ -286,11 +286,11 @@ void umdk_adc_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     /* Create handler thread */
     char *stack = (char *) allocate_stack();
     if (!stack) {
-    	puts("umdk-adc: unable to allocate memory. Is too many modules enabled?");
+    	puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Is too many modules enabled?");
     	return;
     }
 
-    unwds_add_shell_command("adc", "type 'adc' for commands list", umdk_adc_shell_cmd);
+    unwds_add_shell_command( _UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_adc_shell_cmd);
 
     timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "ADC thread");
 
@@ -350,7 +350,7 @@ bool umdk_adc_cmd(module_data_t *cmd, module_data_t *reply)
             int i = 0;
             for (i = 0; i < ADC_NUMOF; i++) {
                 if (adc_config.adc_lines_enabled & (1 << i))
-                	printf("[umdk-adc] Line #%d enabled\n", i+1);
+                	printf("[umdk-" _UMDK_NAME_ "] Line #%d enabled\n", i+1);
             }
             
             save_config();

@@ -208,7 +208,7 @@ int umdk_counter_shell_cmd(int argc, char **argv) {
     if (strcmp(cmd, "get") == 0) {
         int i = 0;
         for (i = 0; i < UMDK_COUNTER_NUM_SENS; i++) {
-            printf("Counter %d: %" PRIu32 "\n", i, conf_counter.count_value[i]);
+            printf("[umdk-" _UMDK_NAME_ "] Counter %d: %" PRIu32 "\n", i, conf_counter.count_value[i]);
         }
     }
     
@@ -247,7 +247,7 @@ void umdk_counter_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     /* Create handler thread */
     char *stack = (char *) allocate_stack();
     if (!stack) {
-        puts("umdk-" _UMDK_NAME_ ": unable to allocate memory. Is too many modules enabled?");
+        puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Is too many modules enabled?");
         return;
     }
 

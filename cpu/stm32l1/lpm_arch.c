@@ -34,10 +34,12 @@
 #include "periph/uart.h"
 #include "xtimer.h"
 
+#define ENABLE_DEBUG (0)
+#include "debug.h"
+
 static uint32_t lpm_gpio_moder[CPU_NUMBER_OF_PORTS];
 static uint32_t lpm_gpio_pupdr[CPU_NUMBER_OF_PORTS];
 static uint16_t lpm_gpio_otyper[CPU_NUMBER_OF_PORTS];
-static uint32_t lpm_gpio_ospeedr[CPU_NUMBER_OF_PORTS];
 static uint16_t lpm_gpio_odr[CPU_NUMBER_OF_PORTS];
 static uint8_t  lpm_usart[UART_NUMOF];
 static uint32_t ahb_gpio_clocks;
@@ -81,18 +83,19 @@ static void lpm_before_i_go_to_sleep (void) {
         lpm_gpio_moder[i] = port->MODER;
         lpm_gpio_pupdr[i] = port->PUPDR;
         lpm_gpio_otyper[i] = (uint16_t)(port->OTYPER & 0xFFFF);
-        lpm_gpio_ospeedr[i] = port->OSPEEDR;
         lpm_gpio_odr[i] = (uint16_t)(port->ODR & 0xFFFF);
 	}
 	
     /* Disable all USART interfaces in use */
     /* without it, RX will receive some garbage when MODER is changed */
-    memset(lpm_usart, 0, sizeof(lpm_usart));
+
     for (i = 0; i < UART_NUMOF; i++) {
-        if (is_periph_clk(uart_config[i].bus, uart_config[i].rcc_mask) == 1) {
-            periph_clk_dis(uart_config[i].bus, uart_config[i].rcc_mask);
+        if (uart_config[i].dev->CR1 & USART_CR1_UE) {
+            uart_config[i].dev->CR1 &= ~USART_CR1_UE;
             pin_set((GPIO_TypeDef *)(uart_config[i].tx_pin & ~(0x0f)), uart_config[i].tx_pin & 0x0f, 1);
             lpm_usart[i] = 1;
+        } else {
+            lpm_usart[i] = 0;
         }
     }
 
@@ -106,9 +109,9 @@ static void lpm_before_i_go_to_sleep (void) {
         pin_set(SPI_0_PORT, SPI_0_PIN_MOSI, 0);
     } else {
 		p = ((uint32_t)SPI_0_PORT >> 10) & 0x0f;
-		lpm_portmask_system[p] &= ~(uint16_t)(1 << SPI_0_PIN_NSS);
-		lpm_portmask_system[p] &= ~(uint16_t)(1 << SPI_0_PIN_SCK);
-		lpm_portmask_system[p] &= ~(uint16_t)(1 << SPI_0_PIN_MOSI);
+		lpm_portmask_system[p] &= ~(1 << SPI_0_PIN_NSS);
+		lpm_portmask_system[p] &= ~(1 << SPI_0_PIN_SCK);
+		lpm_portmask_system[p] &= ~(1 << SPI_0_PIN_MOSI);
 	}
 #endif
 #if SPI_1_EN
@@ -118,9 +121,9 @@ static void lpm_before_i_go_to_sleep (void) {
         pin_set(SPI_1_PORT, SPI_1_PIN_MOSI, 0);
     } else {
 		p = ((uint32_t)SPI_1_PORT >> 10) & 0x0f;
-		lpm_portmask_system[p] &= ~(uint16_t)(1 << SPI_1_PIN_NSS);
-		lpm_portmask_system[p] &= ~(uint16_t)(1 << SPI_1_PIN_SCK);
-		lpm_portmask_system[p] &= ~(uint16_t)(1 << SPI_1_PIN_MOSI);
+		lpm_portmask_system[p] &= ~(1 << SPI_1_PIN_NSS);
+		lpm_portmask_system[p] &= ~(1 << SPI_1_PIN_SCK);
+		lpm_portmask_system[p] &= ~(1 << SPI_1_PIN_MOSI);
 	}
 #endif
 #if SPI_2_EN
@@ -130,9 +133,9 @@ static void lpm_before_i_go_to_sleep (void) {
         pin_set(SPI_2_PORT, SPI_2_PIN_MOSI, 0);
     } else {
 		p = ((uint32_t)SPI_2_PORT >> 10) & 0x0f;
-		lpm_portmask_system[p] &= ~(uint16_t)(1 << SPI_2_PIN_NSS);
-		lpm_portmask_system[p] &= ~(uint16_t)(1 << SPI_2_PIN_SCK);
-		lpm_portmask_system[p] &= ~(uint16_t)(1 << SPI_2_PIN_MOSI);
+		lpm_portmask_system[p] &= ~(1 << SPI_2_PIN_NSS);
+		lpm_portmask_system[p] &= ~(1 << SPI_2_PIN_SCK);
+		lpm_portmask_system[p] &= ~(1 << SPI_2_PIN_MOSI);
 	}
 #endif
 
@@ -144,35 +147,28 @@ static void lpm_before_i_go_to_sleep (void) {
     for (i = 0; i < CPU_NUMBER_OF_PORTS; i++) {
         port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
         mask = 0xFFFFFFFF;
-        
-        for (p = 0; p < 16; p ++) {
-            /* exclude GPIOs registered for external interrupts */
-            /* they may be used as wakeup sources */
-            if (EXTI->IMR & (1 << p)) {
-                if ((((SYSCFG->EXTICR[p >> 2]) >> ((p & 0x03) * 4)) & 0xF) == i) {
-                    mask &= ~((uint32_t)0x03 << (p*2));
+        if (EXTI->IMR) {
+            for (p = 0; p < 16; p ++) {
+                /* exclude GPIOs we previously set with pin_set */
+                if ((lpm_portmask_system[i] | lpm_portmask_user[i]) & (1 << p)) {
+                    mask &= ~(0x03 << (p*2));
+                } else {
+                    if ((EXTI->IMR & (1 << p)) && ((((SYSCFG->EXTICR[p >> 2]) >> ((p & 0x03) * 4)) & 0xF) == i)) {
+                        mask &= ~(0x03 << (p*2));
+                    }
                 }
-            }
-            
-            /* exclude GPIOs we previously set with pin_set */
-            if ((lpm_portmask_system[i] | lpm_portmask_user[i]) & (1 << p)) {
-                mask &= ~((uint32_t)0x03 << (p*2));
             }
         }
 
         /* disable pull-ups on GPIOs */
         tmpreg = port->PUPDR;
         tmpreg &= ~mask;
-        
         port->PUPDR = tmpreg;
         
         /* set GPIOs to AIN mode */
         tmpreg = port->MODER;
         tmpreg |= mask;
         port->MODER = tmpreg;
-        
-        /* set lowest speed */
-        port->OSPEEDR = 0;
     }
 
     /* restore GPIO clocks */
@@ -197,7 +193,6 @@ static void lpm_when_i_wake_up (void) {
         
         port->PUPDR = lpm_gpio_pupdr[i];
         port->OTYPER = lpm_gpio_otyper[i];
-        port->OSPEEDR = lpm_gpio_ospeedr[i];
         port->ODR = lpm_gpio_odr[i];
         port->MODER = lpm_gpio_moder[i];
     }
@@ -211,7 +206,7 @@ static void lpm_when_i_wake_up (void) {
     /* restore USART clocks */
     for (i = 0; i < UART_NUMOF; i++) {
         if (lpm_usart[i]) {
-            periph_clk_en(uart_config[i].bus, uart_config[i].rcc_mask);
+            uart_config[i].dev->CR1 |= USART_CR1_UE;
         }
     }
 }
@@ -233,18 +228,21 @@ void lpm_arch_del_gpio_exclusion(gpio_t gpio) {
 }
 
 /* Select CPU clocking between default (LPM_ON) and medium-speed (LPM_IDLE) */
-static void lpm_select_run_mode(uint8_t lpm_mode) {
+void lpm_select_run_mode(uint8_t lpm_mode) {
 	switch(lpm_run_mode) {
 		case LPM_ON:
+            DEBUG("Switching to LPM_ON");
 			clk_init();
 			break;
 		case LPM_IDLE:
+            DEBUG("Switching to LPM_IDLE");
             /* 115200 bps stdio UART with default 16x oversamplig needs 2 MHz or 4 MHz MSI clock */
             /* at 1 MHz, it will be switched to 8x oversampling with 3.55 % baudrate error */
             /* if you need stdio UART at lower frequencies, change its settings to lower baudrate */
-			switch_to_msi(RCC_ICSCR_MSIRANGE_6, RCC_CFGR_HPRE_DIV1);
+			switch_to_msi(RCC_ICSCR_MSIRANGE_5, RCC_CFGR_HPRE_DIV1);
 			break;
 		default:
+            DEBUG("Switching to LPM_IDLE");
 			clk_init();
 		break;
 	}
@@ -311,6 +309,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 {
     switch (target) {
         case LPM_SLEEP:               /* Low-power sleep mode */
+            DEBUG("Switching to LPM_SLEEP");
             /* Clear Wakeup flag */    
             PWR->CR |= PWR_CR_CWUF;
             /* Enable low-power mode of the voltage regulator */
@@ -338,6 +337,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             break;
 
         case LPM_POWERDOWN:         /* STOP mode */
+            DEBUG("Switching to LPM_POWERDOWN");
             /* Clear Wakeup flag */    
             PWR->CR |= PWR_CR_CWUF;
             /* Regulator in LP mode */
@@ -372,6 +372,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
             break;
 
         case LPM_OFF:               /* Standby mode */
+            DEBUG("Switching to LPM_OFF");
             /* Clear Wakeup flag */    
             PWR->CR |= PWR_CR_CWUF;
         
@@ -399,7 +400,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
         case LPM_UNKNOWN:
 			break;
         case LPM_ON:
-            puts("Switching to LPM_ON");
+            DEBUG("Switching to LPM_ON");
 			irq_disable();
 			lpm_run_mode = LPM_ON;
 			lpm_select_run_mode(lpm_run_mode);
@@ -407,7 +408,7 @@ enum lpm_mode lpm_arch_set(enum lpm_mode target)
 			break;
         case LPM_IDLE:
             if (!lpm_prevent_switch) {
-                puts("Switching to LPM_IDLE");
+                DEBUG("Switching to LPM_IDLE");
                 irq_disable();
                 lpm_run_mode = LPM_IDLE;
                 lpm_select_run_mode(lpm_run_mode);

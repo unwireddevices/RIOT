@@ -89,11 +89,11 @@ int rtc_get_time(struct tm *time);
 int rtc_set_alarm(struct tm *time, rtc_alarm_cb_t cb, void *arg);
 
 /**
- * @brief Set an RTC wakup timer
+ * @brief Set an RTC wakeup timer
  *
  * @note Any already set alarm will be overwritten.
  *
- * @param[in] time          The value to trigger an alarm when hit.
+ * @param[in] period_us     Wakeup period in microseconds
  * @param[in] cb            Callback executed when alarm is hit.
  * @param[in] arg           Argument passed to callback when alarm is hit.
  *
@@ -101,7 +101,7 @@ int rtc_set_alarm(struct tm *time, rtc_alarm_cb_t cb, void *arg);
  * @return -2 invalid `time` parameter
  * @return -1 other errors
  */
-int rtc_set_wakeup(struct tm *time, rtc_wkup_cb_t cb, void *arg);
+int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg);
 
 /**
  * @brief Gets the current alarm setting
@@ -117,6 +117,16 @@ int rtc_get_alarm(struct tm *time);
  * @brief Clear any set alarm, do nothing if nothing set
  */
 void rtc_clear_alarm(void);
+
+/**
+ * @brief Disable periodic wakeup
+ */
+void rtc_disable_wakeup(void);
+
+/**
+ * @brief Re-enable previously configured periodic wakeup
+ */
+void rtc_enable_wakeup(void);
 
 /**
  * @brief Turns the RTC hardware module on

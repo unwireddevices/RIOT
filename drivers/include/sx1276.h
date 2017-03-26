@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Cr0s
+ * Copyright (C) 2016 Unwired Devices
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -8,11 +8,12 @@
 
 /**
  * @defgroup    drivers_sx1276 SX1276
+ * @ingroup     drivers_netdev
  * @brief       Semtech SX1276
  * @{
  * @file
- * @brief       Public interface for SX1276 driver
- * @author      Cr0s
+ * @brief       Semtech SX1276 SPI LoRa transciever driver
+ * @author      Eugeny Ponomarev <ep@unwds.com>
  */
 
 #include "periph/gpio.h"

@@ -1,17 +1,22 @@
 /*
- / _____)             _              | |
-( (____  _____ ____ _| |_ _____  ____| |__
- \____ \| ___ |    (_   _) ___ |/ ___)  _ \
- _____) ) ____| | | || |_| ____( (___| | | |
-(______/|_____)_|_|_| \__)_____)\____)_| |_|
-    (C)2013 Semtech
+ * Copyright (C) 2013 Semtech
+ * Copyright (C) 2016 Unwired Devices
+ *
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
+ */
 
-Description: Generic radio driver definition
+/**
+ * @defgroup    drivers_sx1276 SX1276
+ * @ingroup     drivers_netdev
+ * @brief       Semtech SX1276
+ * @{
+ * @file
+ * @brief       Semtech SX1276 driver definitions
+ * @author      Eugeny Ponomarev <ep@unwds.com>
+ */
 
-License: Revised BSD License, see LICENSE.TXT file include in the project
-
-Maintainer: Miguel Luis and Gregory Cristian
-*/
 #ifndef __RADIO_H__
 #define __RADIO_H__
 

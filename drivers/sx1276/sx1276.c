@@ -10,9 +10,9 @@
  * @ingroup     drivers_sx1276
  * @{
  * @file
- * @brief       Basic functionality of sx1276 driver
+ * @brief       Semtech SX1276 driver
  *
- * @author      Cr0s
+ * @author      Eugeny Ponomarev <ep@unwds.com>
  * @}
  */
 #include <stdbool.h>

@@ -1,6 +1,9 @@
 ifneq (,$(filter sx1276,$(USEMODULE)))
     USEMODULE_INCLUDES += $(RIOTBASE)/drivers/sx1276/include
 endif
+ifneq (,$(filter sx1272,$(USEMODULE)))
+    USEMODULE_INCLUDES += $(RIOTBASE)/drivers/sx1272/include
+endif
 ifneq (,$(filter dht,$(USEMODULE)))
     USEMODULE_INCLUDES += $(RIOTBASE)/drivers/dht/include
 endif

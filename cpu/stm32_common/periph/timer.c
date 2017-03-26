@@ -73,6 +73,36 @@ int timer_init(tim_t tim, unsigned long freq, timer_cb_t cb, void *arg)
     return 0;
 }
 
+int timer_set_freq(tim_t tim, unsigned long freq)
+{
+    /* check if given timer exists */
+    if (tim >= TIMER_NUMOF) {
+        return -1;
+    }
+
+    /* enable peripheral clock */
+	periph_clk_en(timer_config[tim].bus, timer_config[tim].rcc_mask);
+	/* change prescaler */
+    dev(tim)->PSC = (cpu_clock_global / freq) - 1;
+    /* trigger update event to make pre-scaler value effective */
+    dev(tim)->EGR = TIM_EGR_UG;
+    return 0;
+}
+
+unsigned long timer_get_freq(tim_t tim)
+{
+    /* check if given timer exists */
+    if (tim >= TIMER_NUMOF) {
+        return 0;
+    }
+
+    /* enable peripheral clock */
+	periph_clk_en(timer_config[tim].bus, timer_config[tim].rcc_mask);
+	/* change prescaler */
+	
+	return cpu_clock_global/((dev(tim)->PSC) + 1);
+}
+
 int timer_set(tim_t tim, int channel, unsigned int timeout)
 {
     int now = timer_read(tim);

@@ -1,5 +1,5 @@
 # If no BOARD is found in the environment, use this default:
-BOARD ?= unwd-range-l1-r2
+BOARD ?= unwd-range-l1-r3
 
 ############ UMDK MODULES USED #####################
 # variable in the list below must match modules'

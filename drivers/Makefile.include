@@ -1,3 +1,9 @@
+ifneq (,$(filter sx1276,$(USEMODULE)))
+    USEMODULE_INCLUDES += $(RIOTBASE)/drivers/sx1276/include
+endif
+ifneq (,$(filter sx1272,$(USEMODULE)))
+    USEMODULE_INCLUDES += $(RIOTBASE)/drivers/sx1272/include
+endif
 ifneq (,$(filter dht,$(USEMODULE)))
     USEMODULE_INCLUDES += $(RIOTBASE)/drivers/dht/include
 endif
@@ -63,6 +69,18 @@ ifneq (,$(filter bh1750fvi,$(USEMODULE)))
 endif
 ifneq (,$(filter bmp180,$(USEMODULE)))
     USEMODULE_INCLUDES += $(RIOTBASE)/drivers/bmp180/include
+endif
+ifneq (,$(filter bme280,$(USEMODULE)))
+    USEMODULE_INCLUDES += $(RIOTBASE)/drivers/bme280/include
+endif
+ifneq (,$(filter lsm6ds3,$(USEMODULE)))
+    USEMODULE_INCLUDES += $(RIOTBASE)/drivers/lsm6ds3/include
+endif
+ifneq (,$(filter mt3333,$(USEMODULE)))
+    USEMODULE_INCLUDES += $(RIOTBASE)/drivers/mt3333/include
+endif
+ifneq (,$(filter lmt01,$(USEMODULE)))
+    USEMODULE_INCLUDES += $(RIOTBASE)/drivers/lmt01/include
 endif
 ifneq (,$(filter cc2420,$(USEMODULE)))
     USEMODULE_INCLUDES += $(RIOTBASE)/drivers/cc2420/include

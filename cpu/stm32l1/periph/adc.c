@@ -23,9 +23,15 @@
 #include "periph/adc.h"
 
 /**
- * @brief   Maximum allowed ADC clock speed
+ * @brief   ADC clock settings
+ *
+ * NB: with ADC_CLOCK_HIGH, Vdda should be 2.4V min
+ *
+ * @{
  */
-#define MAX_ADC_SPEED           (12000000U)
+#define ADC_CLOCK_HIGH      0x0
+#define ADC_CLOCK_MEDIUM    ADC_CCR_ADCPRE_0
+#define ADC_CLOCK_LOW       ADC_CCR_ADCPRE_1
 
 /**
  * @brief   Load the ADC configuration
@@ -47,14 +53,20 @@ static mutex_t lock = MUTEX_INIT;
 static inline void prep(void)
 {
     mutex_lock(&lock);
-    RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;
-    // ADC1->CR2 |= ADC_CR2_ADON;
+    
+    /* "The ADC clock which is always the HSI clock" */
+    if (!(RCC->CR & RCC_CR_HSION)) {
+        RCC->CR |= RCC_CR_HSION;
+        /* Wait for HSI to become ready */
+        while (!(RCC->CR & RCC_CR_HSION)) {}
+    }
+    
+    periph_clk_en(APB2, RCC_APB2ENR_ADC1EN);
 }
 
 static inline void done(void)
 {
-    RCC->APB2ENR &= ~(RCC_APB2ENR_ADC1EN);
-    //ADC1->CR2 &= ~(ADC_CR2_ADON);
+    periph_clk_dis(APB2, RCC_APB2ENR_ADC1EN);
 
     mutex_unlock(&lock);
 }
@@ -88,11 +100,29 @@ int adc_init(adc_t line)
 	if ((adc_config[line].pin != GPIO_UNDEF)) {
 		gpio_init_analog(adc_config[line].pin);
 	}
+    
+    /* set ADC clock */
+
+    ADC->CCR &= ~ADC_CCR_ADCPRE;
+    ADC->CCR |= ADC_CLOCK_MEDIUM;
 
     /* Set sample time */
-    adc_set_sample_time_on_all_channels(0x03 /* 25 cycles */);
-
-    /* power off an release device for now */
+    /* Min 4us needed for temperature sensor measurements */
+    switch (ADC->CCR & ADC_CCR_ADCPRE) {
+        case ADC_CLOCK_LOW:
+            /* 4 MHz ADC clock -> 16 cycles */
+            adc_set_sample_time_on_all_channels(0b010);
+            break;
+        case ADC_CLOCK_MEDIUM:
+            /* 8 MHz ADC clock -> 48 cycles */
+            adc_set_sample_time_on_all_channels(0b100);
+            break;
+        default:
+            /* 16 MHz ADC clock -> 92 cycles */
+            adc_set_sample_time_on_all_channels(0b101);
+    }
+    
+    /* power off and release device for now */
     done();
 
     return 0;
@@ -165,16 +195,25 @@ int adc_sample(adc_t line,  adc_res_t res)
     tmpreg1 |= (uint32_t)(align | edge | etrig | ((uint32_t)continuous_conv_mode << 1));
     ADC1->CR2 = tmpreg1;
 
-    uint8_t channels[1] = { (uint8_t) adc_config[line].chan };
-    adc_set_regular_sequence(1, channels);
+    if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL) {
+        uint8_t channels[2] = { ADC_TEMPERATURE_CHANNEL, ADC_VREF_CHANNEL };
+        adc_set_regular_sequence(2, channels);
+        ADC1->CR1 |= ADC_CR1_SCAN;
+        ADC1->CR2 &= ~ADC_CR2_DELS;
+        ADC1->CR2 |= ADC_CR2_DELS_0;
+    } else {
+        uint8_t channels[1] = { (uint8_t) adc_config[line].chan };
+        adc_set_regular_sequence(1, channels);
+    }
 
-	/* Enable temperature and Vref conversion */
-	if ((adc_config[line].pin == GPIO_UNDEF)) {
-		ADC->CCR = ADC_CCR_TSVREFE;
-	}
-	
-	/* Enable ADC */
+    /* Enable ADC */
     ADC1->CR2 |= (uint32_t)ADC_CR2_ADON;
+    
+	/* Enable temperature and Vref conversion */
+	if (adc_config[line].pin == GPIO_UNDEF) {
+		ADC->CCR |= ADC_CCR_TSVREFE;
+        while ((PWR->CSR & PWR_CSR_VREFINTRDYF) == 0);
+	}
 	
 	/* Wait for ADC to become ready */
 	while ((ADC1->SR & ADC_SR_ADONS) == 0);
@@ -189,18 +228,36 @@ int adc_sample(adc_t line,  adc_res_t res)
 
     /* read result */
     sample = (int)ADC1->DR;
-	
+    
+    int sample_ts = 0;
+    if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL) {
+        sample_ts = sample;
+        while ((ADC1->SR & ADC_SR_EOC) == 0);
+        sample = (int)ADC1->DR;
+    }
+    
 	/* VDD calculation based on VREFINT */
-	if (adc_config[line].chan == 17) { /* VREFINT is ADC channel 17 */
+	if ((adc_config[line].chan == ADC_VREF_CHANNEL) || (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL)) {
 		uint16_t *cal = ADC_VREFINT_CAL;
 		sample = 3000 * (*cal) / sample;
 	}
-	
+
 	/* Chip temperature calculation */
-	if (adc_config[line].chan == 16) { /* Temperature Sensor is ADC channel 16 */
-		uint16_t *cal1 = ADC_TS_CAL1;
+	if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL) {
+        
+        uint16_t *cal1 = ADC_TS_CAL1;
 		uint16_t *cal2 = ADC_TS_CAL2;
-		sample = 80 / (*cal2 - *cal1) * (sample - *cal1) + 30;
+        
+        /* Correct temperature sensor data for actual Vdd */
+        sample_ts = (sample_ts * sample)/3000;
+        
+        /* Calculate chip temperature */
+        /* sample = Vdd, sample_ts = temperature sensor data */
+        /* 0.1 C resolution */
+        sample_ts = 300 - (((int)*cal1 - sample_ts)*80) / (int)(*cal2 - *cal1);
+        
+        ADC1->CR1 &= ~ADC_CR1_SCAN;
+        ADC1->CR2 &= ~ADC_CR2_DELS;
 	}
 
 	/* Disable temperature and Vref conversion */

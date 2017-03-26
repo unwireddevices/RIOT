@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2015 Lari Lehtomäki
  * Copyright (C) 2016 Laksh Bhatia
+ * Copyright (C) 2017 Unwired Devices LLC [info@unwds.com]
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -14,6 +15,7 @@
  * @brief       Low-level RTC driver implementation
  * @author      Lari Lehtomäki <lari@lehtomaki.fi>
  * @author      Laksh Bhatia <bhatialaksh3@gmail.com>
+ * @author      Oleg Artamonov <oleg@unwds.com>
  * @}
  */
 
@@ -40,6 +42,7 @@ typedef struct {
     rtc_wkup_cb_t wkup_cb;      /**< Wake up timer callback */
 
     void *arg;                  /**< argument passed to the callback */
+    void *wkup_arg;             /**< argument passed to wakeup callback */
 } rtc_state_t;
 
 static rtc_state_t rtc_callback;
@@ -113,21 +116,34 @@ int rtc_set_time(struct tm *time)
 int rtc_get_time(struct tm *time)
 {
     time->tm_year = MCU_YEAR_OFFSET;
+    
+    /* clear RSF bit */
+    RTC->ISR &= ~RTC_ISR_RSF;
+    
+    /* wait for RSF to be set by hardware */
+    while (!(RTC->ISR & RTC_ISR_RSF)) {}
+    
     /* RTC registers need to be read at least twice when running at f < 32768*7 = 229376 Hz APB1 clock */
-    /* first read */
+    /* reading TR locks registers so it must be read first, DR must be read last */
     uint32_t rtc_time_reg = RTC->TR;
-    uint32_t rtc_date_reg = RTC->DR;
 
     /* second read */
     if (RTC->TR != rtc_time_reg) {
         /* 3rd read if 1st and 2nd don't match */
         rtc_time_reg = RTC->TR;
-        rtc_date_reg = RTC->DR;
     }
+    
+    uint32_t rtc_date_reg = RTC->DR;
     
     time->tm_year += (((rtc_date_reg & RTC_DR_YT)  >> 20) * 10) + ((rtc_date_reg & RTC_DR_YU)  >> 16);
     time->tm_mon  = (((rtc_date_reg & RTC_DR_MT)  >> 12) * 10) + ((rtc_date_reg & RTC_DR_MU)  >>  8) - 1;
     time->tm_mday = (((rtc_date_reg & RTC_DR_DT)  >>  4) * 10) + ((rtc_date_reg & RTC_DR_DU)  >>  0);
+    time->tm_wday = ((rtc_date_reg & RTC_DR_WDU)  >>  13);
+    /* tm_wday should be days since Sunday, so it's 0 if today is Sunday */
+    /* STM32 returns day of week instead, so Monday is 1 and Sunday is 7 */
+    if (time->tm_wday == 7) {
+        time->tm_wday = 0;
+    }
     time->tm_hour = (((rtc_time_reg & RTC_TR_HT)  >> 20) * 10) + ((rtc_time_reg & RTC_TR_HU)  >> 16);
     if ((rtc_time_reg & RTC_TR_PM) && (RTC->CR & RTC_CR_FMT)) {
         time->tm_hour += 12;
@@ -153,8 +169,13 @@ int rtc_set_alarm(struct tm *time, rtc_alarm_cb_t cb, void *arg)
 
     RTC->CR &= ~(RTC_CR_ALRAE);
     while ((RTC->ISR & RTC_ISR_ALRAWF) == 0) ;
+    
+    /* seconds, minutes, hours and day must match */
     RTC->ALRMAR &= ~(RTC_ALRMAR_MSK1 | RTC_ALRMAR_MSK2 | RTC_ALRMAR_MSK3 | RTC_ALRMAR_MSK4);
-    RTC->ALRMAR = ((((uint32_t)byte2bcd(time->tm_mday) << 24) & (RTC_ALRMAR_DT | RTC_ALRMAR_DU)) |
+    /* 24 hrs format and week day instead of day number */
+    RTC->ALRMAR |= RTC_ALRMAR_PM | RTC_ALRMAR_WDSEL;
+    
+    RTC->ALRMAR = ((((uint32_t)byte2bcd(time->tm_wday) << 24) & (RTC_ALRMAR_DT | RTC_ALRMAR_DU)) |
                    (((uint32_t)byte2bcd(time->tm_hour) << 16) & (RTC_ALRMAR_HT | RTC_ALRMAR_HU)) |
                    (((uint32_t)byte2bcd(time->tm_min) <<  8) & (RTC_ALRMAR_MNT | RTC_ALRMAR_MNU)) |
                    (((uint32_t)byte2bcd(time->tm_sec) <<  0) & (RTC_ALRMAR_ST | RTC_ALRMAR_SU)));
@@ -184,7 +205,7 @@ int rtc_get_alarm(struct tm *time)
     time->tm_year = MCU_YEAR_OFFSET;
     time->tm_year += (((RTC->DR     & RTC_DR_YT)      >> 20) * 10) + ((RTC->DR & RTC_DR_YU)          >> 16);
     time->tm_mon  = (((RTC->DR     & RTC_DR_MT)      >> 12) * 10) + ((RTC->DR & RTC_DR_MU)          >>  8) - 1;
-    time->tm_mday = (((RTC->ALRMAR & RTC_ALRMAR_DT)  >> 28) * 10) + ((RTC->ALRMAR & RTC_ALRMAR_DU)  >> 24);
+    time->tm_wday = (((RTC->ALRMAR & RTC_ALRMAR_DT)  >> 28) * 10) + ((RTC->ALRMAR & RTC_ALRMAR_DU)  >> 24);
     time->tm_hour = (((RTC->ALRMAR & RTC_ALRMAR_HT)  >> 20) * 10) + ((RTC->ALRMAR & RTC_ALRMAR_HU)  >> 16);
     if ((RTC->ALRMAR & RTC_ALRMAR_PM) && (RTC->CR & RTC_CR_FMT)) {
         time->tm_hour += 12;
@@ -197,29 +218,75 @@ int rtc_get_alarm(struct tm *time)
 void rtc_clear_alarm(void)
 {
     /* Disable Alarm A */
-    RTC->CR &= RTC_CR_ALRAE;
-    RTC->CR &= RTC_CR_ALRAIE;
+    
+    RTC->WPR = RTC_WRITE_PROTECTION_KEY1;
+    RTC->WPR = RTC_WRITE_PROTECTION_KEY2;
+    
+    RTC->CR &= ~RTC_CR_ALRAE;
+    RTC->CR &= ~RTC_CR_ALRAIE;
+    
+    RTC->WPR = 0xFF;
 
     rtc_callback.cb = NULL;
     rtc_callback.arg = NULL;
 }
 
-void rtc_set_wakeup_counter(uint16_t value) {
-	assert(value <= 0xFFFF);
+int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg)
+{
+    /* Enable write access to RTC registers */
+    periph_clk_en(APB1, RCC_APB1ENR_PWREN);
+    PWR->CR |= PWR_CR_DBP;
 
-	/* Disable the write protection for RTC registers */
-	RTC->WPR = 0xCA;
-	RTC->WPR = 0x53;
+    /* Unlock RTC write protection */
+    RTC->WPR = RTC_WRITE_PROTECTION_KEY1;
+    RTC->WPR = RTC_WRITE_PROTECTION_KEY2;
+    
+    /* Disable periodic wakeup */
+    RTC->CR &= ~(RTC_CR_WUTE);
+    while ((RTC->ISR & RTC_ISR_WUTWF) == 0) ;
+    
+    /* Set wakeup timer value */
+    period_us = ((period_us * 100)/48828) - 1;   
+    RTC->WUTR = (period_us & 0xFFFF);
+    
+    /* Set wakeup timer clock source to RTCCLK/16 */
+    /* Min period 488.28 us, maximum 32 s */
+    RTC->CR &= ~(RTC_CR_WUCKSEL);
+    
+    /* Enable periodic wakeup */
+    RTC->CR |= RTC_CR_WUTE;
+    RTC->CR |= RTC_CR_WUTIE;
+    RTC->ISR &= ~(RTC_ISR_WUTF);
 
-	/* Configure the Wakeup Timer counter */
-	RTC->WUTR = (uint32_t)value;
+    /* Enable RTC write protection */
+    RTC->WPR = 0xFF;
 
-	/* Enable the write protection for RTC registers */
-	RTC->WPR = 0xFF;
+    EXTI->IMR  |= EXTI_IMR_MR20;
+    EXTI->RTSR |= EXTI_RTSR_TR20;
+    NVIC_SetPriority(RTC_WKUP_IRQn, 5);
+    NVIC_EnableIRQ(RTC_WKUP_IRQn);
+
+    rtc_callback.wkup_cb = cb;
+    rtc_callback.wkup_arg = arg;
+
+    return 0;
 }
 
-uint32_t rtc_get_wakeup_counter(void) {
-	return ((uint32_t)(RTC->WUTR & RTC_WUTR_WUT));
+void rtc_enable_wakeup(void) {
+    RTC->WPR = RTC_WRITE_PROTECTION_KEY1;
+    RTC->WPR = RTC_WRITE_PROTECTION_KEY2;
+    /* Enable wakeup */
+    RTC->CR |= RTC_CR_WUTE;
+    RTC->WPR = 0xFF;
+}
+
+void rtc_disable_wakeup(void)
+{
+    RTC->WPR = RTC_WRITE_PROTECTION_KEY1;
+    RTC->WPR = RTC_WRITE_PROTECTION_KEY2;   
+    /* Disable wakeup */
+    RTC->CR &= ~(RTC_CR_WUTE);
+    RTC->WPR = 0xFF;
 }
 
 void rtc_poweron(void)
@@ -275,11 +342,11 @@ void isr_rtc_alarm(void)
 
 void isr_rtc_wkup(void)
 {
-    if ((RTC->ISR & RTC_ISR_WUTF) && (rtc_callback.cb != NULL)) {
+    if ((RTC->ISR & RTC_ISR_WUTF) && (rtc_callback.wkup_cb != NULL)) {
         RTC->ISR &= ~RTC_ISR_WUTF;
         EXTI->PR = EXTI_PR_PR20;
 
-        rtc_callback.wkup_cb(rtc_callback.arg);
+        rtc_callback.wkup_cb(rtc_callback.wkup_arg);
     }
     cortexm_isr_end();
 }

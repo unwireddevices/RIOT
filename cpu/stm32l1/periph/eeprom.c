@@ -12,7 +12,6 @@
 #include "stm32l1xx.h"
 
 #include "nvram.h"
-#include "xtimer.h"
 #include "assert.h"
 
 #include "eeprom.h"
@@ -178,7 +177,7 @@ static l1_flash_status_t program_byte(uint32_t address, uint8_t data)
  * @return           Number of bytes written on success
  * @return           <0 on errors
  */
-static int nvram_write(nvram_t *dev, uint8_t *src, uint32_t dst, size_t len);
+static int nvram_write(nvram_t *dev, const uint8_t *src, uint32_t dst, size_t len);
 
 /**
  * @brief Copy data from NVRAM to system memory.
@@ -238,7 +237,7 @@ static int nvram_read(nvram_t *dev, uint8_t *dst, uint32_t src, size_t len)
     return i;
 }
 
-static int nvram_write(nvram_t *dev, uint8_t *src, uint32_t dst, size_t len)
+static int nvram_write(nvram_t *dev, const uint8_t *src, uint32_t dst, size_t len)
 {
     eeprom_unlock();
 

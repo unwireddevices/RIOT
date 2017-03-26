@@ -42,6 +42,7 @@ extern "C" {
  */
 #define GPIO_MODE(io, pr, ot)   ((io << 0) | (pr << 2) | (ot << 4))
 
+#ifndef DOXYGEN
 /**
  * @brief   Override GPIO mode options
  * @{
@@ -53,9 +54,11 @@ typedef enum {
     GPIO_IN_PU = GPIO_MODE(0, 1, 0),    /**< input with pull-up */
     GPIO_OUT   = GPIO_MODE(1, 0, 0),    /**< push-pull output */
     GPIO_OD    = GPIO_MODE(1, 0, 1),    /**< open-drain w/o pull R */
-    GPIO_OD_PU = GPIO_MODE(1, 1, 1)     /**< open-drain with pull-up */
+    GPIO_OD_PU = GPIO_MODE(1, 1, 1),    /**< open-drain with pull-up */
+    GPIO_AIN   = GPIO_MODE(3, 0, 0)     /**< analog input mode */
 } gpio_mode_t;
 /** @} */
+#endif /* ndef DOXYGEN */
 
 /**
  * @brief   Available ports on the STM32L1 family
@@ -79,8 +82,6 @@ enum {
  /* ADC channels 16 and 17 are not connected to any GPIO */
 #define ADC_VREF_CHANNEL 17
 #define ADC_TEMPERATURE_CHANNEL 16
-#define ADC_VREF_CHANNEL_PIN (GPIO_UNDEF - 1)
-#define ADC_TEMPERATURE_CHANNEL_PIN (GPIO_UNDEF - 2)
  
 #define HAVE_ADC_RES_T
 #ifdef HAVE_ADC_RES_T

@@ -58,6 +58,11 @@ typedef struct {
     uint8_t publish_period_sec;
 } umdk_mhz19_config_t;
 
+/* static umdk_mhz19_config_t umdk_mhz19_config = { .is_valid = 0, .uart_dev = UMDK_UART_DEV, .baudrate = 9600U, \
+                                               .databits = UART_DATABITS_8, .parity = UART_PARITY_NOPARITY, \
+                                               .stopbits = UART_STOPBITS_10, 
+                                               .publish_period_sec = 5}; */
+
 static umdk_mhz19_config_t umdk_mhz19_config = { .is_valid = 0, .uart_dev = UMDK_UART_DEV, .baudrate = 9600U, \
                                                .databits = UART_DATABITS_8, .parity = UART_PARITY_NOPARITY, \
                                                .stopbits = UART_STOPBITS_10, 

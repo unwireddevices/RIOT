@@ -56,9 +56,9 @@ static struct {
 } opt3001_config;
 
 static bool init_sensor(void) {
-	dev.i2c = UMDK_OPT3001_I2C;
+	// dev.i2c = UMDK_OPT3001_I2C;
 
-	printf("[opt3001] Initializing opt3001 on I2C #%d\n", dev.i2c);
+	printf("[opt3001] Initializing ultrasound distance meter as opt3001\n");
 
 	return opt3001_init(&dev) == 0;
 }
@@ -110,7 +110,7 @@ static void *timer_thread(void *arg) {
         callback(&data);
 
         /* Restart after delay */
-        rtctimers_set_msg(&timer, 60 * opt3001_config.publish_period_min, &timer_msg, timer_pid);
+        rtctimers_set_msg(&timer, /* 60 * */ opt3001_config.publish_period_min, &timer_msg, timer_pid);
     }
 
     return NULL;
@@ -264,10 +264,10 @@ bool umdk_opt3001_cmd(module_data_t *cmd, module_data_t *reply) {
 		return false; /* Don't reply */
 
 	case UMDK_OPT3001_CMD_SET_I2C: {
-		i2c_t i2c = (i2c_t) cmd->data[1];
-		dev.i2c = i2c;
+		// i2c_t i2c = (i2c_t) cmd->data[1];
+		// dev.i2c = i2c;
 
-		opt3001_config.i2c_dev = i2c;
+		// opt3001_config.i2c_dev = i2c;
 
 		init_sensor();
 

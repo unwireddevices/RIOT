@@ -1,6 +1,6 @@
 заливать прошивку:
 
-arm-none-eabi-gdb -x gdbinit.txt bin/unwd- range-l1-r3/lora-star-uni.hex
+arm-none-eabi-gdb -x gdbinit.txt bin/unwd-range-l1-r3/lora-star-uni.hex
 
 и затем жать reset на umdk-rf!
 

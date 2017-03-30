@@ -152,7 +152,7 @@ static void set_period (int period) {
 
 	/* Don't restart timer if new period is zero */
 	if (opt3001_config.publish_period_min) {
-        rtctimers_set_msg(&timer, 60 * opt3001_config.publish_period_min, &timer_msg, timer_pid);
+        rtctimers_set_msg(&timer, /* 60 * */ opt3001_config.publish_period_min, &timer_msg, timer_pid);
 		printf("[opt3001] Period set to %d minute (s)\n", opt3001_config.publish_period_min);
     } else {
         puts("[opt3001] Timer stopped");
@@ -161,9 +161,13 @@ static void set_period (int period) {
 
 int umdk_opt3001_shell_cmd(int argc, char **argv) {
     if (argc == 1) {
+        puts ("opt3001 - actually ultrasound rangefinder");
         puts ("opt3001 get - get results now");
         puts ("opt3001 send - get and send results now");
         puts ("opt3001 period <N> - set period to N minutes");
+        puts ("opt3001 time <N> - set ultrasound period to N microseconds");
+        puts ("opt3001 number <N> - set number of US generation periods");
+        puts ("opt3001 idle <N> - set ultrasound idle time to N microseconds");
         puts ("opt3001 reset - reset settings to default");
         return 0;
     }
@@ -184,6 +188,21 @@ int umdk_opt3001_shell_cmd(int argc, char **argv) {
     if (strcmp(cmd, "period") == 0) {
         char *val = argv[2];
         set_period(atoi(val));
+    }
+    
+    if (strcmp(cmd, "time") == 0) {
+        char *val = argv[2];
+        dev . period_us = atoi(val) / 2;
+    }
+    
+    if (strcmp(cmd, "number") == 0) {
+        char *val = argv[2];
+        dev . transmit_pulses = atoi(val) / 2;
+    }
+    
+    if (strcmp(cmd, "idle") == 0) {
+        char *val = argv[2];
+        dev . idle_period_us = atoi(val) / 2;
     }
     
     if (strcmp(cmd, "reset") == 0) {
@@ -219,7 +238,7 @@ void umdk_opt3001_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "opt3001 thread");
 
     /* Start publishing timer */
-	rtctimers_set_msg(&timer, 60 * opt3001_config.publish_period_min, &timer_msg, timer_pid);
+	rtctimers_set_msg(&timer, /* 60 * */ opt3001_config.publish_period_min, &timer_msg, timer_pid);
 }
 
 static void reply_fail(module_data_t *reply) {

@@ -76,6 +76,7 @@ typedef struct {
 	gpio_t t2_pin;				/**< GPIO pin on which sensor is attached */
     int transmit_pulses;
     int period_us;
+    int idle_period_us;
 } opt3001_t;
 
 

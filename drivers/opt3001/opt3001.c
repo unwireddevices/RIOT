@@ -31,14 +31,15 @@ extern "C" {
 
 // TODO: move definitions somewhere else
 
+// 1000000/40000 is 25
 #define UZ_PERIOD_US (1000000/40000)
+#define UZ_IDLE_PERIOD_US 1000
 
 // maximum time for waiting for echo - 30 ms is about 10 m
 #define UZ_MAX_TIMEOUT_MS 30
 
 #define UZ_TRANSMIT_PULSES 8
 #define UZ_MAX_PULSES 32
-
 
 /**
  * @brief OPT3001 driver initialization routine
@@ -55,10 +56,17 @@ int opt3001_init(opt3001_t *dev)
     
     dev-> threshold_pin = UNWD_GPIO_30;                   /**< Sensor "enable" pin */
     dev-> sens_pin = UNWD_GPIO_29;                /**< GPIO pin on which sensor is attached */
-    dev-> t1_pin = UNWD_GPIO_28;              /**< GPIO pin on which sensor is attached */
-    dev-> t2_pin = UNWD_GPIO_27;              /**< GPIO pin on which sensor is attached */
+    dev-> t1_pin = UNWD_GPIO_28;              /**< GPIO pin on which sensor is attached  - hi-z (GPIO_AIN) while measuring! */
+    dev-> t2_pin = UNWD_GPIO_27;              /**< GPIO pin on which sensor is attached  -  ground while measuring! */
     dev-> transmit_pulses = UZ_TRANSMIT_PULSES;
-    dev-> period_us = UZ_PERIOD_US;
+    dev-> period_us = UZ_PERIOD_US / 2;
+    dev-> idle_period_us = UZ_IDLE_PERIOD_US;
+
+    gpio_init(dev->sens_pin, GPIO_IN);
+    gpio_init(dev->threshold_pin, GPIO_OUT);
+    gpio_init(dev->t1_pin, GPIO_OUT);
+    gpio_init(dev->t2_pin, GPIO_OUT);
+
     return 0;
 }
 
@@ -113,7 +121,7 @@ static uint32_t count_pulses(opt3001_t *dev) {
     int curr_time = 0;
     uint16_t timeout_us = 0;
 
-    gpio_set(dev->threshold_pin); // ?
+    // gpio_set(dev->threshold_pin); // ?
 
     // gpio_prev_value = gpio_read(dev->sens_pin);
 
@@ -154,15 +162,23 @@ static uint32_t count_pulses(opt3001_t *dev) {
 }
 
 static void transmit(opt3001_t *dev) {
+    gpio_init(dev->t1_pin, GPIO_OUT);
+    gpio_init(dev->t2_pin, GPIO_OUT);
     for (int i = 0; i < dev->transmit_pulses; i++){
-        xtimer_spin(xtimer_ticks_from_usec(dev->period_us * 0.5));
         gpio_clear(dev->t1_pin);
         gpio_set(dev->t2_pin);
-        xtimer_spin(xtimer_ticks_from_usec(dev->period_us - (dev->period_us * 0.5)));
+        // xtimer_spin(xtimer_ticks_from_usec(dev->period_us * 0.5));
+        xtimer_spin(xtimer_ticks_from_usec(dev->period_us));
         gpio_clear(dev->t2_pin);
         gpio_set(dev->t1_pin);
+        // xtimer_spin(xtimer_ticks_from_usec(dev->period_us - (dev->period_us * 0.5)));
+        xtimer_spin(xtimer_ticks_from_usec(dev->period_us));
     }
     gpio_clear(dev->t1_pin);
+    xtimer_spin(xtimer_ticks_from_usec(dev->idle_period_us));
+    gpio_init(dev->t1_pin, GPIO_AIN);
+    gpio_init(dev->t2_pin, GPIO_OUT);
+    
 }
 
 

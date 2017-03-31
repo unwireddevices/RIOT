@@ -54,7 +54,8 @@ extern "C" {
 int opt3001_init(opt3001_t *dev)
 {
     
-    dev-> threshold_pin = UNWD_GPIO_30;                   /**< Sensor "enable" pin */
+    // dev-> threshold_pin = UNWD_GPIO_30;                   /**< Sensor "enable" pin */
+    dev-> silencing_pin = UNWD_GPIO_30;                   /**< Silencing pin when used with 1 transceiver */
     dev-> sens_pin = UNWD_GPIO_29;                /**< GPIO pin on which sensor is attached */
     dev-> t1_pin = UNWD_GPIO_28;              /**< GPIO pin on which sensor is attached  - hi-z (GPIO_AIN) while measuring! */
     dev-> t2_pin = UNWD_GPIO_27;              /**< GPIO pin on which sensor is attached  -  ground while measuring! */
@@ -63,8 +64,9 @@ int opt3001_init(opt3001_t *dev)
     dev-> idle_period_us = UZ_IDLE_PERIOD_US;
 
     gpio_init(dev->sens_pin, GPIO_IN);
-    gpio_init(dev->threshold_pin, GPIO_OUT);
-    gpio_init(dev->t1_pin, GPIO_OUT);
+    // gpio_init(dev->threshold_pin, GPIO_IN);
+    gpio_init(dev->silencing_pin, GPIO_AIN);
+    gpio_init(dev->t1_pin, GPIO_AIN);
     gpio_init(dev->t2_pin, GPIO_OUT);
 
     return 0;
@@ -151,7 +153,7 @@ static uint32_t count_pulses(opt3001_t *dev) {
         }
     }
 
-    gpio_clear(dev->threshold_pin); // ?
+    // gpio_clear(dev->threshold_pin); // ?
 
     printf("[umdk-opt3001-uz] Pulse number : %d\n[umdk-opt3001-uz] Pulse times:", pulse_count);
     for (int i = 0; i < pulse_count; i++){
@@ -162,6 +164,7 @@ static uint32_t count_pulses(opt3001_t *dev) {
 }
 
 static void transmit(opt3001_t *dev) {
+    // transmission!
     gpio_init(dev->t1_pin, GPIO_OUT);
     gpio_init(dev->t2_pin, GPIO_OUT);
     for (int i = 0; i < dev->transmit_pulses; i++){
@@ -174,11 +177,17 @@ static void transmit(opt3001_t *dev) {
         // xtimer_spin(xtimer_ticks_from_usec(dev->period_us - (dev->period_us * 0.5)));
         xtimer_spin(xtimer_ticks_from_usec(dev->period_us));
     }
-    gpio_clear(dev->t1_pin);
-    xtimer_spin(xtimer_ticks_from_usec(dev->idle_period_us));
     gpio_init(dev->t1_pin, GPIO_AIN);
-    gpio_init(dev->t2_pin, GPIO_OUT);
-    
+    // gpio_clear(dev->t1_pin);
+    // gpio_init(dev->t2_pin, GPIO_OUT);
+    gpio_clear(dev->t2_pin);
+
+    // silencing!
+    gpio_init(dev->silencing_pin, GPIO_OUT);
+    gpio_clear(dev->silencing_pin);
+    xtimer_spin(xtimer_ticks_from_usec(dev->idle_period_us));
+    gpio_init(dev->silencing_pin, GPIO_AIN);
+    // ready to measure?
 }
 
 

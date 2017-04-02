@@ -192,17 +192,17 @@ int umdk_opt3001_shell_cmd(int argc, char **argv) {
     
     if (strcmp(cmd, "time") == 0) {
         char *val = argv[2];
-        dev . period_us = atoi(val) / 2;
+        dev . period_us = atoi(val);
     }
     
     if (strcmp(cmd, "number") == 0) {
         char *val = argv[2];
-        dev . transmit_pulses = atoi(val) / 2;
+        dev . transmit_pulses = atoi(val);
     }
     
     if (strcmp(cmd, "idle") == 0) {
         char *val = argv[2];
-        dev . idle_period_us = atoi(val) / 2;
+        dev . idle_period_us = atoi(val);
     }
     
     if (strcmp(cmd, "reset") == 0) {

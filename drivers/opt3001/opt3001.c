@@ -32,7 +32,10 @@ extern "C" {
 // TODO: move definitions somewhere else
 
 // 1000000/40000 is 25
-#define UZ_PERIOD_US (1000000/40000)
+// #define UZ_PERIOD_US (1000000/40000)
+// 22 is actually about 25.9 us
+#define UZ_PERIOD_US 22
+
 #define UZ_IDLE_PERIOD_US 1000
 
 // maximum time for waiting for echo - 30 ms is about 10 m
@@ -60,7 +63,7 @@ int opt3001_init(opt3001_t *dev)
     dev-> t1_pin = UNWD_GPIO_28;              /**< GPIO pin on which sensor is attached  - hi-z (GPIO_AIN) while measuring! */
     dev-> t2_pin = UNWD_GPIO_27;              /**< GPIO pin on which sensor is attached  -  ground while measuring! */
     dev-> transmit_pulses = UZ_TRANSMIT_PULSES;
-    dev-> period_us = UZ_PERIOD_US / 2;
+    dev-> period_us = UZ_PERIOD_US;
     dev-> idle_period_us = UZ_IDLE_PERIOD_US;
 
     gpio_init(dev->sens_pin, GPIO_IN);
@@ -164,6 +167,31 @@ static uint32_t count_pulses(opt3001_t *dev) {
 }
 
 static void transmit(opt3001_t *dev) {
+
+    if (dev->period_us < 0) { // like pierce generator
+        int prev_time = xtimer_now_usec();
+        gpio_init(dev->t1_pin, GPIO_IN);
+        gpio_init(dev->t2_pin, GPIO_OUT);
+        int i = 0;
+        int prev_t1 = gpio_read(dev->t1_pin);
+        while (i < 2 * dev->transmit_pulses){
+            int curr_t1 = gpio_read(dev->t1_pin);
+            curr_t1 ? gpio_clear(dev->t2_pin) : gpio_set(dev->t2_pin);
+            if (curr_t1 != prev_t1) i++;
+        }
+        gpio_init(dev->t1_pin, GPIO_AIN);
+        gpio_clear(dev->t2_pin);
+        printf("[umdk-opt3001-uz transmission] pierce oscillator completed %d periods in %d microseconds\n", dev->transmit_pulses, (int)(xtimer_now_usec() - prev_time));
+        return;
+    }
+
+    // simple time counting otherwise
+    int T1 = dev->period_us * 0.5;
+    int T2 = dev->period_us - T1;
+    xtimer_ticks32_t t1 = xtimer_ticks_from_usec(T1);
+    xtimer_ticks32_t t2 = xtimer_ticks_from_usec(T2);
+    printf("[umdk-opt3001-uz transmission] t1: %d,  t2: %d\n", T1, T2);
+
     // transmission!
     gpio_init(dev->t1_pin, GPIO_OUT);
     gpio_init(dev->t2_pin, GPIO_OUT);
@@ -171,11 +199,11 @@ static void transmit(opt3001_t *dev) {
         gpio_clear(dev->t1_pin);
         gpio_set(dev->t2_pin);
         // xtimer_spin(xtimer_ticks_from_usec(dev->period_us * 0.5));
-        xtimer_spin(xtimer_ticks_from_usec(dev->period_us));
+        xtimer_spin(t1);
         gpio_clear(dev->t2_pin);
         gpio_set(dev->t1_pin);
         // xtimer_spin(xtimer_ticks_from_usec(dev->period_us - (dev->period_us * 0.5)));
-        xtimer_spin(xtimer_ticks_from_usec(dev->period_us));
+        xtimer_spin(t2);
     }
     gpio_init(dev->t1_pin, GPIO_AIN);
     // gpio_clear(dev->t1_pin);

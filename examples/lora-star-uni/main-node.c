@@ -414,8 +414,8 @@ static void print_config(void)
     if (node_settings.no_join)
     	printf("ADDR = 0x%08X\n", (unsigned int) node_settings.dev_addr);
 
-    printf("EUI64 = 0x%" PRIx64 "\n", eui64);
-    printf("APPID64 = 0x%" PRIx64 "\n", appid);
+    printf("EUI64 = 0x%08x%08x\n", (unsigned int) (eui64 >> 32), (unsigned int) (eui64 & 0xFFFFFFFF));
+    printf("APPID64 = 0x%08x%08x\n", (unsigned int) (appid >> 32), (unsigned int) (appid & 0xFFFFFFFF));
 
     if (!node_settings.region_not_set) {
         printf("REGION = %s\n", regions[node_settings.region_index].region);

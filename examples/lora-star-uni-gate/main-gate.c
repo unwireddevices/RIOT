@@ -194,23 +194,24 @@ static int ls_list_cmd(int argc, char **argv);
 
 static void node_kicked_cb(ls_gate_node_t *node)
 {
-    printf("ls-gate: node 0x%" PRIx64 " kicked for long silence\n", node->node_id);
+    printf("ls-gate: node 0x%08X%08X kicked for long silence\n", (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF));
 
     char str[18] = {};
 
-    sprintf(str, "%c%" PRIx64 "\n", REPLY_KICK, node->node_id);
+    sprintf(str, "%c%08X%08X\n", REPLY_KICK, (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF));
 
     gc_pending_fifo_push(&fifo, str);
 }
 
 static uint32_t node_joined_cb(ls_gate_node_t *node)
 {
-    printf("gate: node with ID 0x%" PRIx64 " joined to the network with address 0x%08X\n",
-           node->node_id, (unsigned int) node->addr);
+    printf("gate: node with ID 0x%08X%08X joined to the network with address 0x%08X\n",
+           (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF),
+           (unsigned int) node->addr);
 
     /* Notify the gate */
     char str[128] = { '\0' };
-    sprintf(str, "%c%" PRIx64 "%u\n", REPLY_JOIN, node->node_id, (unsigned int) node->node_class);
+    sprintf(str, "%c%08X%08X%u\n", REPLY_JOIN, (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF), (unsigned int) node->node_class);
 
     gc_pending_fifo_push(&fifo, str);
 
@@ -241,8 +242,8 @@ void app_data_received_cb(ls_gate_node_t *node, ls_gate_channel_t *ch, uint8_t *
     printf("[recv] %d bytes: %s | rssi: %d\n", bufsize, hex, rssi);
 
     char str[GC_MAX_REPLY_LEN] = { };
-    sprintf(str, "%c%" PRIx64 "%s%s%s\n", REPLY_IND,
-    		node->node_id,
+    sprintf(str, "%c%08X%08X%s%s%s\n", REPLY_IND,
+    		(unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF),
 			buf_rssi,
             buf_status,
 			hex);
@@ -252,11 +253,11 @@ void app_data_received_cb(ls_gate_node_t *node, ls_gate_channel_t *ch, uint8_t *
 
 void app_data_ack_cb(ls_gate_node_t *node, ls_gate_channel_t *ch)
 {
-    printf("ls-gate: data acknowledged from 0x%" PRIx64 "\n", node->node_id);
+    printf("ls-gate: data acknowledged from 0x%08X%08X\n", (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF));
 
     char str[18] = {};
 
-    sprintf(str, "%c%" PRIx64 "\n", REPLY_ACK, node->node_id);
+    sprintf(str, "%c%08X%08X\n", REPLY_ACK, (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF));
 
     gc_pending_fifo_push(&fifo, str);
 }
@@ -269,10 +270,11 @@ static void keepalive_cb(void) {
 #endif
 
 static void pending_frames_req_cb(ls_gate_node_t *node) {
-	printf("ls-gate: requesting next pending frame for 0x%" PRIx64 "\n", node->node_id);
+	printf("ls-gate: requesting next pending frame for 0x%08X%08X\n", (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF));
 
     char str[18] = {};
-    sprintf(str, "%c%" PRIx64 "\n", REPLY_PENDING_REQ, node->node_id);
+    sprintf(str, "%c%08X%08X\n", REPLY_PENDING_REQ,
+    		(unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF));
     gc_pending_fifo_push(&fifo, str);
 }
 
@@ -389,10 +391,10 @@ static int ls_list_cmd(int argc, char **argv)
 
     for (int i = 0; i < LS_GATE_MAX_NODES; i++) {
         if (!devs->nodes_free_list[i]) {
-            printf("%02d.\t|\t0x%08X\t|\t0x%" PRIx64 "\t|\t0x%" PRIx64 "\t|\t%d sec. ago\n", (unsigned int) (i + 1),
+            printf("%02d.\t|\t0x%08X\t|\t0x%08X%08X\t|\t0x%08X%08X\t|\t%d sec. ago\n", (unsigned int) (i + 1),
                    (unsigned int) devs->nodes[i].addr,
-                   devs->nodes[i].node_id,
-                   devs->nodes[i].app_id,
+                   (unsigned int) (devs->nodes[i].node_id >> 32), (unsigned int) (devs->nodes[i].node_id & 0xFFFFFFFF),
+                   (unsigned int) (devs->nodes[i].app_id >> 32), (unsigned int) (devs->nodes[i].app_id & 0xFFFFFFFF),
                    (unsigned int) ((ls._internal.ping_count - devs->nodes[i].last_seen) * LS_PING_TIMEOUT_S));
         }
     }
@@ -430,8 +432,8 @@ static void print_config(void)
     uint64_t eui64 = config_get_nodeid();
     uint64_t appid = config_get_appid();
 
-    printf("EUI64 = 0x%" PRIx64 "\n", eui64);
-    printf("APPID64 = 0x%" PRIx64 "\n", appid);
+    printf("EUI64 = 0x%08x%08x\n", (unsigned int) (eui64 >> 32), (unsigned int) (eui64 & 0xFFFFFFFF));
+    printf("APPID64 = 0x%08x%08x\n", (unsigned int) (appid >> 32), (unsigned int) (appid & 0xFFFFFFFF));
 
     if (!node_settings.region_not_set) {
     	printf("REGION = %s\n", regions[node_settings.region_index].region);
@@ -546,8 +548,12 @@ static int add_cmd(int argc, char **argv) {
 	uint8_t channel = atoi(argv[5]);
 
 	puts("Adding device:");
-	printf("nodeid = 0x%" PRIx64 "\n", nodeid);
-	printf("appid = 0x%" PRIx64 "\n", appid);
+	printf("nodeid = 0x%08X%08X\n",
+					(unsigned int) (nodeid >> 32),
+					(unsigned int) (nodeid & 0xFFFFFFFF));
+	printf("appid = 0x%08X%08X\n",
+					(unsigned int) (appid >> 32),
+					(unsigned int) (appid & 0xFFFFFFFF));
 
 	printf("address = 0x%08X\n", (unsigned int) addr);
 	printf("nonce = 0x%08X\n", (unsigned int) dev_nonce);

@@ -54,9 +54,9 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 				char buf[128];
 
 				/* L */
-				sprintf(buf, "%c%" PRIx64 "%" PRIx64 "%04X%04X\n", REPLY_LIST,
-						devs->nodes[i].node_id,
-						devs->nodes[i].app_id,
+				sprintf(buf, "%c%08X%08X%08X%08X%04X%04X\n", REPLY_LIST,
+						(unsigned int) (devs->nodes[i].node_id >> 32), (unsigned int) (devs->nodes[i].node_id & 0xFFFFFFFF),
+						(unsigned int) (devs->nodes[i].app_id >> 32), (unsigned int) (devs->nodes[i].app_id & 0xFFFFFFFF),
 						(unsigned int) ((ls->_internal.ping_count - devs->nodes[i].last_seen) * LS_PING_TIMEOUT_S),
 						(unsigned int) devs->nodes[i].node_class);
 
@@ -130,7 +130,7 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 
 		ls_gate_node_t *node = ls_devlist_get_by_nodeid(devs, nodeid);
 		if (node == NULL) {
-			puts("[error] Node with specified node ID was not found.\n");
+			puts("[error] Node with specified node ID is not found.\n");
 			return;
 		}
 
@@ -140,7 +140,9 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 		uint8_t num_pending = strtol(payload, NULL, 16);
 		node->num_pending = num_pending;
 
-		printf("[pending] setting node 0x%" PRIx64 " has %u frames pending\n", node->node_id, node->num_pending);
+		printf("[pending] setting node 0x%08X%08X has %u frames pending\n",
+				(unsigned int) (node->node_id >> 32),
+				(unsigned int) (node->node_id & 0xFFFFFFFF), num_pending);
 
 		break;
 	}
@@ -158,7 +160,9 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 			return;
 		}
 
-		printf("[invite] Sending invite to node with ID 0x%" PRIx64 "\n", nodeid);
+		printf("[invite] Sending invite to node with ID 0x%08X%08X\n",
+				(unsigned int) (nodeid >> 32),
+				(unsigned int) (nodeid & 0xFFFFFFFF));
 
 		ls_gate_invite(ls, nodeid);
 		break;
@@ -238,8 +242,12 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 		}
 
 		printf("[gate-commands] Added device: ");
-		printf("eui: 0x%" PRIx64 " ", nodeid);
-		printf("appid: 0x%" PRIx64 " ", appid);
+		printf("eui: 0x%08X%08X ",
+						(unsigned int) (nodeid >> 32),
+						(unsigned int) (nodeid & 0xFFFFFFFF));
+		printf("appid: 0x%08X%08X ",
+						(unsigned int) (appid >> 32),
+						(unsigned int) (appid & 0xFFFFFFFF));
 
 		printf("addr: 0x%08X ", (unsigned int) addr);
 		printf("nonce: 0x%08X ", (unsigned int) dev_nonce);

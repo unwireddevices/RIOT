@@ -112,6 +112,7 @@ static void prepare_result(module_data_t *buf)
         if (!(adc_config.adc_lines_enabled & (1 << i))) {
             samples[i] = 0xFFFF;
         } else {
+            adc_init(ADC_LINE(i));
             samples[i] = adc_sample(ADC_LINE(i), UMDK_ADC_ADC_RESOLUTION);
         }
     }

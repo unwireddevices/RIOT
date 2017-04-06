@@ -63,7 +63,7 @@ static void *handler(void *arg) {
         data.length = 3;
         data.data[0] = _UMDK_MID_;
         data.data[1] = (btn & 0xFF) + 1;
-        data.data[2] = (btn >> 16);
+        data.data[2] = (btn >> 15);
 
         callback(&data);
     }
@@ -101,13 +101,14 @@ static void btn_pressed_int(void *arg) {
         return;
     }
     
-    printf("[umdk-" _UMDK_NAME_ "] Pressed: %d\n", btn_num + 1);
-
     msg_t msg;
     msg.type = btn_num;
     if (last_value) {
         /* button released */
-        msg.type |= 1 << 16;
+        msg.type |= 1 << 15;
+        printf("[umdk-" _UMDK_NAME_ "] Released: %d\n", btn_num + 1);
+    } else {
+        printf("[umdk-" _UMDK_NAME_ "] Pressed: %d\n", btn_num + 1);
     }
 
 	msg_send_int(&msg, handler_pid);

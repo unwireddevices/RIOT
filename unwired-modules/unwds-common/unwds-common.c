@@ -28,6 +28,8 @@ extern "C" {
 
 #include "nvram.h"
 
+#include "board.h"
+
 #include "unwds-common.h"
 #include "unwds-gpio.h"
 

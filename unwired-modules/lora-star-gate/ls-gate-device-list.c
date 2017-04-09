@@ -29,6 +29,9 @@ extern "C" {
 #include "ls-mac-types.h"
 #include "ls-gate-device-list.h"
 
+#define ENABLE_DEBUG (0)
+#include "debug.h"
+
 void ls_devlist_init(ls_gate_devices_t *devlist) {
 	memset(devlist, 0, sizeof(ls_gate_devices_t));
 
@@ -36,14 +39,19 @@ void ls_devlist_init(ls_gate_devices_t *devlist) {
 		devlist->nodes_free_list[i] = true;
 
 	mutex_init(&devlist->mutex);
+    
+    DEBUG("ls-gate-device-list: device list initialized\n");
 }
 
 /**
  * @brief Clears tracked nonces list
  */
 static void clear_nonce_list(ls_gate_devices_t *devlist, ls_addr_t addr) {
-	if (addr >= LS_GATE_MAX_NODES)
+    DEBUG("ls-gate-device-list: clearing nonce list\n");
+	if (addr >= LS_GATE_MAX_NODES) {
+        DEBUG("ls-gate-device-list: addr >= maximum number of nodes\n");
 		return;
+    }
 
 	ls_gate_node_t *node = &devlist->nodes[addr];
 	ls_gate_node_nl_entry_t* curr = node->nonce_list;
@@ -58,9 +66,12 @@ static void clear_nonce_list(ls_gate_devices_t *devlist, ls_addr_t addr) {
 
 	node->num_nonces = 0;
 	node->nonce_list = NULL;
+    
+    DEBUG("ls-gate-device-list: nonce list cleared\n");
 }
 
 ls_gate_node_t *add_nonce(ls_gate_devices_t *devlist, uint64_t node_id, uint32_t nonce) {
+    DEBUG("ls-gate-device-list: adding nonce\n");
 	/* Look for a free cell (and address) to insert */
 	for (int i = 0; i < LS_GATE_MAX_NODES; i++) {
 		if (!devlist->nodes_free_list[i]) {
@@ -80,16 +91,18 @@ ls_gate_node_t *add_nonce(ls_gate_devices_t *devlist, uint64_t node_id, uint32_t
 				e->next = node->nonce_list;
 				node->nonce_list = e;
 				node->num_nonces++;
-
+                
+                DEBUG("ls-gate-device-list: nonce successfully added\n");
 				return node;
 			}
 		}
 	}
-
+    DEBUG("ls-gate-device-list: error adding nonce\n");
 	return NULL;
 }
 
 static void init_node(ls_gate_devices_t *devlist, ls_gate_node_t *node, ls_addr_t addr, uint64_t node_id, uint64_t app_id, uint32_t nonce, void *ch) {
+    DEBUG("ls-gate-device-list: initialize node\n");
 	node->node_ch = ch;
 
 	node->node_id = node_id;
@@ -113,23 +126,33 @@ static void init_node(ls_gate_devices_t *devlist, ls_gate_node_t *node, ls_addr_
 
 	node->last_fid = 0;
 	node->num_pending = 0;
+    DEBUG("ls-gate-device-list: node initialized\n");
 }
 
 ls_gate_node_t *ls_devlist_add_by_addr(ls_gate_devices_t *devlist, ls_addr_t addr, uint64_t node_id, uint64_t app_id, uint32_t nonce, void *ch) {
+    DEBUG("ls-gate-device-list: adding device to the list by address\n");
 	/* List is full? */
-	if(ls_devlist_is_full(devlist))
+	if(ls_devlist_is_full(devlist)) {
+        DEBUG("ls-gate-device-list: device list is full\n");
 		return NULL;
+    }
 
 	/* Device is already added? */
-	if (ls_devlist_is_added(devlist, node_id))
+	if (ls_devlist_is_added(devlist, node_id)) {
+        DEBUG("ls-gate-device-list: device already added to the list\n");
 		return NULL;
+    }
 
-	if (addr >= LS_GATE_MAX_NODES)
+	if (addr >= LS_GATE_MAX_NODES) {
+        DEBUG("ls-gate-device-list: maximum node count has been reached\n");
 		return NULL;
+    }
 
 	/* This network address is occupied */
-	if (!devlist->nodes_free_list[addr])
+	if (!devlist->nodes_free_list[addr]) {
+        DEBUG("ls-gate-device-list: network address already occupied\n");
 		return NULL;
+    }
 
 	mutex_lock(&devlist->mutex);
 
@@ -148,18 +171,23 @@ ls_gate_node_t *ls_devlist_add_by_addr(ls_gate_devices_t *devlist, ls_addr_t add
 	devlist->num_nodes++;
 
 	mutex_unlock(&devlist->mutex);
-
+    DEBUG("ls-gate-device-list: device successfully added\n");
 	return node;
 }
 
 ls_gate_node_t *ls_devlist_add(ls_gate_devices_t *devlist, uint64_t node_id, uint64_t app_id, uint32_t nonce, void *ch) {
+    DEBUG("ls-gate-device-list: adding device to the list\n");
 	/* List is full? */
-	if(ls_devlist_is_full(devlist))
+	if(ls_devlist_is_full(devlist)) {
+        DEBUG("ls-gate-device-list: device list is full\n");
 		return NULL;
+    }
 
 	/* Device is already added? */
-	if (ls_devlist_is_added(devlist, node_id))
+	if (ls_devlist_is_added(devlist, node_id)) {
+        DEBUG("ls-gate-device-list: device already added to the list\n");
 		return NULL;
+    }
 
 	mutex_lock(&devlist->mutex);
 
@@ -180,16 +208,18 @@ ls_gate_node_t *ls_devlist_add(ls_gate_devices_t *devlist, uint64_t node_id, uin
 			mutex_unlock(&devlist->mutex);
 
 			/* Return pointer to the node in the list */
+            DEBUG("ls-gate-device-list: device successfully added\n");
 			return node;
 		}
 	}
 
 	mutex_unlock(&devlist->mutex);
-
+    DEBUG("ls-gate-device-list: error adding device\n");
 	return NULL;
 }
 
 bool ls_devlist_check_nonce(ls_gate_devices_t *devlist, uint64_t node_id, uint32_t nonce) {
+    DEBUG("ls-gate-device-list: checking nonce for the device\n");
 	for (int i = 0; i < LS_GATE_MAX_NODES; i++) {
 		if (devlist->nodes_free_list[i])
 			continue;
@@ -198,28 +228,35 @@ bool ls_devlist_check_nonce(ls_gate_devices_t *devlist, uint64_t node_id, uint32
 
 		if (node->node_id == node_id) {
 			/* Nonce repeated, reject */
-			if(node->last_nonce == nonce)
+			if(node->last_nonce == nonce) {
+                DEBUG("ls-gate-device-list: nonce repeated\n");
 				return false;
+            }
 
 			/* No nonce remembered, reject */
-			if (node->nonce_list == NULL)
+			if (node->nonce_list == NULL) {
+                DEBUG("ls-gate-device-list: no nonce remembered for the device\n");
 				return false;
+            }
 
 			/* Iterate through remembered nonce list */
 			ls_gate_node_nl_entry_t* curr = node->nonce_list;
 			while (curr != NULL) {
-				if (curr->nonce == nonce)
+				if (curr->nonce == nonce) {
+                    DEBUG("ls-gate-device-list: new nonce is the same as current nonce\n");
 					return false;
+                }
 
 				curr = curr->next;
 			}
 		}
 	}
-
+    DEBUG("ls-gate-device-list: nonce checked, is ok\n");
 	return true;
 }
 
 bool ls_devlist_is_added(ls_gate_devices_t *devlist, uint64_t node_id) {
+    DEBUG("ls-gate-device-list: check if device is in the list\n");
 	for (int i = 0; i < LS_GATE_MAX_NODES; i++) {
 		/* Skip free cells */
 		if (devlist->nodes_free_list[i])
@@ -227,26 +264,44 @@ bool ls_devlist_is_added(ls_gate_devices_t *devlist, uint64_t node_id) {
 
 		ls_gate_node_t *node = &devlist->nodes[i];
 
-		if (node->node_id == node_id)
+		if (node->node_id == node_id) {
+            DEBUG("ls-gate-device-list: device found\n");
 			return true;
+        }
 	}
-
+    DEBUG("ls-gate-device-list: device not found\n");
 	return false;
 }
 
 bool ls_devlist_is_in_network(ls_gate_devices_t *devlist, ls_addr_t addr) {
-	if (addr >= LS_GATE_MAX_NODES)
+    DEBUG("ls-gate-device-list: checking if device is in the list\n");
+	if (addr >= LS_GATE_MAX_NODES) {
+        DEBUG("ls-gate-device-list: invalid address\n");
 		return false;
+    }
+    
+#if ENABLE_DEBUG
+    if (!devlist->nodes_free_list[addr]) {
+        DEBUG("ls-gate-device-list: device is in the list\n");
+    } else {
+        DEBUG("ls-gate-device-list: device is not in the list\n");
+    }
+#endif
 
 	return !devlist->nodes_free_list[addr];
 }
 
 bool ls_devlist_remove_device(ls_gate_devices_t *devlist, ls_addr_t addr) {
-	if (addr >= LS_GATE_MAX_NODES)
+    DEBUG("ls-gate-device-list: removing device from the list\n");
+	if (addr >= LS_GATE_MAX_NODES) {
+        DEBUG("ls-gate-device-list: invalid address\n");
 		return false;
+    }
 
-	if (devlist->nodes_free_list[addr])
+	if (devlist->nodes_free_list[addr]) {
+        DEBUG("ls-gate-device-list: device already removed\n");
 		return false;
+    }
 
 	mutex_lock(&devlist->mutex);
 
@@ -260,6 +315,8 @@ bool ls_devlist_remove_device(ls_gate_devices_t *devlist, ls_addr_t addr) {
 	devlist->num_nodes--;
 
 	mutex_unlock(&devlist->mutex);
+    
+    DEBUG("ls-gate-device-list: device removed\n");
 
 	return true;
 }

@@ -2,7 +2,7 @@
 APPLICATION = lora-ptp
 
 # If no BOARD is found in the environment, use this default:
-BOARD ?= unwd-range-l1
+BOARD ?= unwd-range-l1-r3
 
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../..
@@ -26,15 +26,12 @@ USEMODULE += random
 USEMODULE += hashes
 USEMODULE += checksum
 
-USEMODULE += l1-nvram-eeprom
 USEMODULE += sx1276
 
 EXTERNAL_MODULE_DIRS += ../../unwired-modules/
 USEMODULE += lora-star-mac
-USEMODULE += lora-ptp
 
 INCLUDES += -I../../unwired-modules/lora-star-mac/include/
-INCLUDES += -I../../unwired-modules/lora-ptp/include/
 INCLUDES += -I../../unwired-modules/unwds-common/include/
 
 CFLAGS += -DCRYPTO_AES

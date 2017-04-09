@@ -78,8 +78,6 @@ static uint8_t datarate_table[7][3] = {
 
 #define UART_BUFSIZE 220
 #define UART UART_DEV(1)
-#define UART_BAUDRATE 115200
-#define UART_SYMBOL_TIMEOUT_MS 500
 
 typedef struct {
     bool is_valid;
@@ -178,8 +176,8 @@ static void radio_init(void)
     sx1276.dio2_pin = SX1276_DIO2;
     sx1276.dio3_pin = SX1276_DIO3;
 
-    sx1276.dio4_pin = (gpio_t) NULL;
-    sx1276.dio5_pin = (gpio_t) NULL;
+    sx1276.dio4_pin = GPIO_UNDEF;
+    sx1276.dio5_pin = GPIO_UNDEF;
     sx1276.reset_pin = (gpio_t) SX1276_RESET;
 
     sx1276_settings_t settings;

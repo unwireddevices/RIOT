@@ -32,7 +32,7 @@
 #include "periph/rtc.h"
 #include "random.h"
 
-#include "l1-nvram-eeprom.h"
+#include "eeprom.h"
 
 #include "board.h"
 
@@ -46,34 +46,10 @@ static nvram_t nvram;
 
 void print_logo(void)
 {
-#ifdef SHORT_LOGO
-	puts("*****************************************");
-	puts("Unwired Range firmware by Unwired Devices");
-	puts("www.unwds.com - info@unwds.com");
-	puts("*****************************************");
-#else
-    puts("                                                .@                           @  ");
-    puts("                                                                             @  ");
-    puts("  @@@           %@@,     &@**%@. .#    ./   .#  .@   #@*.   *@@@@@,    @#%.%%@  ");
-    puts("  @@@           %@@,    @#    .&  .# ..@.  .#*  .@  /#    .@.    ,%   @.    .@  ");
-    puts("  @@@           %@@,    @*    .@  .&,,&  @.#%   .@  %*    .@&&&&&&&*  @      @  ");
-    puts("  @@@           %@@,    @*    .@   .@@   .@%    .@  %*    ,@          *@,   ,@, ");
-    puts("  @@@           %@@,    *.     *                .#  ,.      %@&&@#     **,*.@   ");
-    puts("  @@@           %@@,															  ");
-    puts("  @@@   .,,,,,,,...            %@@@%   %     .# *%   .#@@@@,    *@@@@,    @@@*  ");
-    puts("  @@@   @@@@@@@@@@@@@@&.     %&     &%  @    @  .@  &*        .@.    ,@  @      ");
-    puts("  @@@   @@@     /.. *@@@@.   @&&&&&&&&  ,&  @.  .@  @         %@&&&&&&&*  #@(   ");
-    puts("  &@@*  @@@     @@@   (@@@   @#          (@@/   .@  @.        ,@             @  ");
-    puts("   @@@. @@@    @@@#    #@@%   .@@&@@.     /*    .@   /@@&@@(    %@&&@#   &@&@*  ");
-    puts("    @@% @@@ @@@@@.     .@@@                                                     ");
-    puts("        @@@ ####/#####/ @@@ ##################################################  ");
-    puts("        @@@            *@@&                                                     ");
-    puts("        @@@            @@@,                                                     ");
-    puts("        @@@          *@@@#                                                      ");
-    puts("        @@@,...,,#&@@@@@                                                        ");
-    puts("        @@@@@@@@@@@%,                                                           ");
-    puts("                                                                                ");
-#endif
+	puts("*********************************************");
+	puts("Unwired Range PTP firmware by Unwired Devices");
+	puts("      www.unwds.com - info@unwds.com");
+	puts("*********************************************");
 
     printf("Version: %s (%s %s)\n", FIRMWARE_VERSION, __DATE__, __TIME__);
     puts("");
@@ -115,11 +91,14 @@ static void init_role(config_role_t role) {
 int main(void)
 {
 	lpm_prevent_sleep = 1;
+    lpm_prevent_switch = 1;
+    
+    blink_led();
 
     print_logo();
     xtimer_init();
 
-    nvram_l1_eeprom_init(&nvram);
+    nvram_eeprom_init(&nvram);
 
     /*if (check_button()) {
     	puts("[!] Button press detected, resetting config...");

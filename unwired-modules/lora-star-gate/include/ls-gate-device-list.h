@@ -31,28 +31,22 @@
 /**
  * Max devices number that gate can hold
  */
-#define LS_GATE_MAX_NODES 100
+#define LS_GATE_MAX_NODES 128
 
 /**
  * Max nonce count to remember in order to prevent nonce reuse
  */
-#define LS_GATE_MAX_NONCES 128
-
-typedef struct {
-	int32_t nonce;
-	void* next;
-} ls_gate_node_nl_entry_t;
+#define LS_GATE_NONCES_PER_DEVICE 8
 
 typedef struct __attribute__((__packed__)){
     uint64_t node_id;			/**< Node unique ID */
 	uint64_t app_id;			/**< Application unique ID */    
 	uint32_t last_seen;			/**< Time of the last node's activity in network */
-    uint32_t last_nonce;		/**< Last actual device nonce*/
 	uint32_t app_nonce;			/**< Application nonce */
     ls_addr_t addr;				/**< Node unique address in network */
 	void *node_ch;				/**< Node's channel */
-    ls_gate_node_nl_entry_t *nonce_list; /**< List of accepted device nonces */
-	ls_node_class_t node_class;	/**< Node's class */ /* UINT8 */
+    ls_nonce_t nonce[LS_GATE_NONCES_PER_DEVICE]; /**< List of accepted device nonces */
+	ls_node_class_t node_class;	/**< Node's class */
     ls_device_status_t status;	/**< Last received device status */
 	ls_frame_id_t last_fid;		/**< Last received frame ID */
 	uint8_t num_nonces;			/**< Number of remembered nonces  */

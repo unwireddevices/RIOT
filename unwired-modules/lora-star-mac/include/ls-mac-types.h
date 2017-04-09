@@ -34,6 +34,7 @@ typedef uint8_t ls_frame_id_t;		/**< 1 byte frame ID */
 typedef uint16_t ls_bc_frame_id_t;	/**< 2 byte broadcast frame ID */
 typedef uint32_t ls_mic_t;     		/**< 4 byte message integrity check value */
 typedef uint8_t ls_channel_t;		/**< 1 byte channel number */
+typedef uint32_t ls_nonce_t;        /**< 4 byte nounce value */
 
 /**
  * End device class

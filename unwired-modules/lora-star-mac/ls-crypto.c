@@ -205,7 +205,7 @@ void ls_encrypt_frame(uint8_t *key_mic, uint8_t *key_aes, ls_frame_t *frame, siz
 	frame->header.mic = ls_calculate_mic(key_mic, frame, *newsize);
 }
 
-void ls_derive_keys(uint32_t dev_nonce, uint32_t app_nonce, ls_addr_t addr, uint8_t *key_mic, uint8_t *key_aes) {
+void ls_derive_keys(ls_nonce_t dev_nonce, uint32_t app_nonce, ls_addr_t addr, uint8_t *key_mic, uint8_t *key_aes) {
 	assert(key_mic != NULL);
 
 	/* Collect data into single buffer */

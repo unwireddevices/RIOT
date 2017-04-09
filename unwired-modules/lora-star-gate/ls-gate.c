@@ -30,6 +30,9 @@ extern "C" {
 
 #include <stdint.h>
 
+#define ENABLE_DEBUG (0)
+#include "debug.h"
+
 /**
  * Data rates table.
  */
@@ -89,7 +92,10 @@ static void prepare_sx1276(ls_gate_channel_t *ch)
 
     /* Setup channel */
     sx1276_set_channel(ch->_internal.sx1276, ch->frequency);
+    
+    DEBUG("ls-gate: SX1276 configured\n");
 }
+
 static int send_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame)
 {
     assert(ch != NULL);
@@ -116,14 +122,14 @@ static int send_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame)
         case LS_DL_ACK:
             node = ls_devlist_get(&ls->devices, frame->header.dev_addr);
 
-            ls_derive_keys(node->last_nonce, node->app_nonce, node->addr, mic_key, NULL);
+            ls_derive_keys(node->nonce[node->num_nonces - 1], node->app_nonce, node->addr, mic_key, NULL);
             ls_encrypt_frame(mic_key, mic_key, frame, &payload_size);
             break;
 
         default:
             node = ls_devlist_get(&ls->devices, frame->header.dev_addr);
 
-            ls_derive_keys(node->last_nonce, node->app_nonce, node->addr, mic_key, aes_key);
+            ls_derive_keys(node->nonce[node->num_nonces - 1], node->app_nonce, node->addr, mic_key, aes_key);
             ls_encrypt_frame(mic_key, aes_key, frame, &payload_size);
     }
 
@@ -137,6 +143,8 @@ static int send_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame)
 
     /* Send frame into LoRa PHY */
     sx1276_send(ch->_internal.sx1276, (uint8_t *) frame, header_size + payload_size);
+    
+    DEBUG("ls-gate: frame sent\n");
 
     mutex_unlock(&ch->_internal.channel_mutex);
 
@@ -147,6 +155,8 @@ static bool enqueue_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame) {
 	bool res = !ls_frame_fifo_push(&ch->_internal.ul_fifo, frame);
 
 	schedule_tx(ch);
+    
+    DEBUG("ls-gate: frame scheduled\n");
 
 	return res;
 }
@@ -161,6 +171,8 @@ static bool enqueue_frame(ls_gate_channel_t *ch, ls_addr_t to, ls_type_t type, u
 static inline void close_rx_windows(ls_gate_channel_t *ch) {
 	xtimer_remove(&ch->_internal.rx_window1);
 	ch->state = LS_GATE_CHANNEL_STATE_IDLE;
+    
+    DEBUG("ls-gate: RX window closed\n");
 
 	/* Free channel for TX */
 	//mutex_unlock(&ch->_internal.channel_mutex);
@@ -179,7 +191,7 @@ static inline void open_rx_windows(ls_gate_channel_t *ch) {
     //mutex_lock(&ch->_internal.channel_mutex);
     ch->state = LS_GATE_CHANNEL_STATE_RX;
 
-	puts("ls-gate: rx1 window opened");
+	DEBUG("ls-gate: rx1 window opened\n");
 }
 
 static inline void send_join_ack(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t dev_id, ls_addr_t addr, uint32_t app_nonce)
@@ -196,9 +208,12 @@ static inline void send_ack(ls_gate_t *ls, ls_gate_channel_t *ch, ls_addr_t addr
 
 static void device_join_req(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t dev_id, uint64_t app_id, uint32_t dev_nonce, ls_node_class_t node_class)
 {
+    DEBUG("ls-gate: join request from %08x%08x\n", (unsigned int) (dev_id >> 32), (unsigned int) (dev_id & 0xFFFFFFFF));
+    
     /* Check node acceptance */
     if (ls->accept_node_join_cb != NULL) {
         if (!ls->accept_node_join_cb(dev_id, app_id)) {
+            DEBUG("ls-gate: join request rejected\n");
             return;
         }
     }
@@ -207,6 +222,7 @@ static void device_join_req(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t dev_i
     ls_gate_devices_t *devlist = &ls->devices;
 
     if (!ls_devlist_check_nonce(devlist, dev_id, dev_nonce)) {
+        DEBUG("ls-gate: nonce rejected\n");
         return;
     }
 
@@ -214,9 +230,16 @@ static void device_join_req(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t dev_i
     if (!ls_devlist_is_added(devlist, dev_id)) {
         /* Add node to the devices list */
         node = ls_devlist_add(devlist, dev_id, app_id, dev_nonce, ch);
+        DEBUG("ls-gate: node added to devlist\n");
     }
     else {
         node = add_nonce(devlist, dev_id, dev_nonce);
+        DEBUG("ls-gate: nonce added\n");
+    }
+    
+    if (!node) {
+        DEBUG("ls-gate: error adding node\n");
+        return;
     }
 
     /* Set node's class */
@@ -235,28 +258,35 @@ static void device_join_req(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t dev_i
     node->last_fid = 0;
 
     /* Send join ACK */
+    DEBUG("ls-gate: send join ack\n");
     send_join_ack(ls, ch, dev_id, node->addr, node->app_nonce);
 }
 
 static bool app_data_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
 {
+    DEBUG("ls-gate: app data frame received\n");
+    
     /* Address must be defined */
     if (frame->header.dev_addr == LS_ADDR_UNDEFINED) {
+        DEBUG("ls-gate: undefined address\n");
         return false;
     }
 
     ls_gate_node_t *node = ls_devlist_get(&ls->devices, frame->header.dev_addr);
     if (node == NULL) { /* The node must be joined to the network */
+        DEBUG("ls-gate: node not joined\n");
         return false;
     }
 
     /* Derive encryption keys */
     uint8_t mic_key[AES_BLOCK_SIZE];
     uint8_t aes_key[AES_BLOCK_SIZE];
-    ls_derive_keys(node->last_nonce, node->app_nonce, node->addr, mic_key, aes_key);
+    
+    ls_derive_keys(node->nonce[node->num_nonces - 1], node->app_nonce, node->addr, mic_key, aes_key);
 
     /* Validate MIC */
     if (!ls_validate_frame_mic(mic_key, frame)) {
+        DEBUG("ls-gate: MIC validation failed\n");
         return false;
     }
 
@@ -264,9 +294,11 @@ static bool app_data_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *fram
     node->last_seen = ls->_internal.ping_count;
 
     /* Decrypt frame payload */
+    DEBUG("ls-gate: decrypt frame payload\n");
     ls_decrypt_frame_payload(aes_key, &frame->payload);
 
     /* Call handler callback */
+    DEBUG("ls-gate: call handler callback\n");
     ls->app_data_received_cb(node, ch, frame->payload.data, frame->payload.len, frame->header.status);
 
     return true;
@@ -274,25 +306,31 @@ static bool app_data_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *fram
 
 static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
 {
+    DEBUG("ls-gate: frame received\n");
+    
     switch (frame->header.type) {
     	case LS_UL_UNC_ACK: { /* Unconfirmed data with ack for previous data */
+            DEBUG("ls-gate: unconfirmed data with ack for previous data\n");
             /* Address must be defined */
             if (frame->header.dev_addr == LS_ADDR_UNDEFINED) {
+                DEBUG("ls-gate: undefined address\n");
                 return false;
             }
 
             ls_gate_node_t *node = ls_devlist_get(&ls->devices, frame->header.dev_addr);
             if (node == NULL) { /* The node must be joined to the network */
+                DEBUG("ls-gate: node not joined\n");
                 return false;
             }
 
             /* Derive encryption keys */
             uint8_t mic_key[AES_BLOCK_SIZE];
             uint8_t aes_key[AES_BLOCK_SIZE];
-            ls_derive_keys(node->last_nonce, node->app_nonce, node->addr, mic_key, aes_key);
+            ls_derive_keys(node->nonce[node->num_nonces - 1], node->app_nonce, node->addr, mic_key, aes_key);
 
             /* Validate MIC */
             if (!ls_validate_frame_mic(mic_key, frame)) {
+                DEBUG("ls-gate: MIC validation failed\n");
                 return false;
             }
 
@@ -301,6 +339,7 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
              */
             if (frame->header.fid >= (uint8_t) (node->last_fid + 1)) {
             	/* Update frame ID */
+                DEBUG("ls-gate: update frame ID\n");
             	node->last_fid = frame->header.fid;
 
                 if (ls->app_data_ack_cb != NULL) {
@@ -308,43 +347,50 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
                 }
 
                 /* Decrease pending frames counter */
+                DEBUG("ls-gate: decrease pending frames counter\n");
                 if (node->node_class == LS_ED_CLASS_A) {
     				if (node->num_pending) {
     					node->num_pending--;
     				}
                 }
             } else {
-            	printf("[!] Frame dropped: %d != %d\n", frame->header.fid, (uint8_t) (node->last_fid + 1)); // XXX: debug
+            	DEBUG("ls-gate: frame dropped: %d != %d\n", frame->header.fid, (uint8_t) (node->last_fid + 1));
             }
 
             /*
              * Process as app. data frame too
              */
 			if (!app_data_recv(ls, ch, frame)) {
+                DEBUG("ls-gate: app data processing error\n");
 				return false;
 			}
+            DEBUG("ls-gate: data processed\n");
 
 			return true;
     	}
 
         case LS_UL_ACK: {
+            DEBUG("ls-gate: ack received\n");
             /* Address must be defined */
             if (frame->header.dev_addr == LS_ADDR_UNDEFINED) {
+                DEBUG("ls-gate: undefined address\n");
                 return false;
             }
 
             ls_gate_node_t *node = ls_devlist_get(&ls->devices, frame->header.dev_addr);
             if (node == NULL) { /* The node must be joined to the network */
+                DEBUG("ls-gate: node not joined\n");
                 return false;
             }
 
             /* Derive encryption keys */
             uint8_t mic_key[AES_BLOCK_SIZE];
             uint8_t aes_key[AES_BLOCK_SIZE];
-            ls_derive_keys(node->last_nonce, node->app_nonce, node->addr, mic_key, aes_key);
+            ls_derive_keys(node->nonce[node->num_nonces - 1], node->app_nonce, node->addr, mic_key, aes_key);
 
             /* Validate MIC */
             if (!ls_validate_frame_mic(mic_key, frame)) {
+                DEBUG("ls-gate: MIC validation failed\n");
                 return false;
             }
 
@@ -353,6 +399,7 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
              */
             if (frame->header.fid >= (uint8_t) (node->last_fid + 1)) {
             	/* Update frame ID */
+                DEBUG("ls-gate: update frame ID\n");
             	node->last_fid = frame->header.fid;
 
                 if (ls->app_data_ack_cb != NULL) {
@@ -360,26 +407,30 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
                 }
 
                 /* Decrease pending frames counter */
+                DEBUG("ls-gate: decrease pending frames counter\n");
                 if (node->node_class == LS_ED_CLASS_A) {
     				if (node->num_pending) {
     					node->num_pending--;
     				}
                 }
             } else {
-            	printf("[!] Frame dropped: %d != %d\n", frame->header.fid, (uint8_t) (node->last_fid + 1)); // XXX: debug
+            	DEBUG("ls-gate: frame dropped: %d != %d\n", frame->header.fid, (uint8_t) (node->last_fid + 1));
             }
 
             return true;
         }
 
         case LS_UL_CONF: { /* Uplink data confirmed */
+            DEBUG("ls-gate: uplink data confirmed\n");
             /* Address must be defined */
             if (frame->header.dev_addr == LS_ADDR_UNDEFINED) {
+                DEBUG("ls-gate: undefined address\n");
                 return false;
             }
 
             ls_gate_node_t *node = ls_devlist_get(&ls->devices, frame->header.dev_addr);
             if (node == NULL) { /* The node must be joined to the network */
+                DEBUG("ls-gate: node not joined\n");
                 return false;
             }
 
@@ -395,7 +446,7 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
 					return false;
 				}
             } else {
-            	printf("[!] Frame dropped: %d != %d\n", frame->header.fid, (uint8_t) (node->last_fid + 1)); // XXX: debug
+            	DEBUG("ls-gate: frame dropped: %d != %d\n", frame->header.fid, (uint8_t) (node->last_fid + 1));
             }
 
             /*
@@ -403,8 +454,10 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
              * Otherwise, ask upper level to give us a frame to send as acknowledge to the node
              */
             if (node->num_pending == 0) {
+                DEBUG("ls-gate: ack sent to node\n");
             	send_ack(ls, ch, frame->header.dev_addr);
             } else {
+                DEBUG("ls-gate: pending data requested\n");
             	if (ls->pending_frames_req)
             		ls->pending_frames_req(node);
             }
@@ -413,28 +466,36 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
         }
 
         case LS_UL_UNC: /* Uplink data unconfirmed */
+            DEBUG("ls-gate: uplink data unconfirmed\n");
             if (!app_data_recv(ls, ch, frame)) {
+                DEBUG("ls-gate: app data receive error\n");
                 return false;
             }
 
             return true;
 
         case LS_UL_JOIN_REQ: /* Join request */
+            DEBUG("ls-gate: join request received\n");
             /* Address must be undefined */
             if (frame->header.dev_addr != LS_ADDR_UNDEFINED) {
+                DEBUG("ls-gate: undefined address\n");
                 return false;
             }
 
             /* Check packet size */
             if (frame->payload.len != sizeof(ls_join_req_t)) {
+                DEBUG("ls-gate: wrong payload length\n");
                 return false;
             }
 
             if (!ls_validate_frame_mic(ls->settings.join_key, frame)) {
+                DEBUG("ls-gate: MIC validation failed\n");
                 return false;
             }
 
             ls_decrypt_frame_payload(ls->settings.join_key, &frame->payload);
+            
+            DEBUG("ls-gate: frame payload decrypted\n");
 
             ls_join_req_t req;
             memcpy(&req, &frame->payload.data, sizeof(ls_join_req_t));
@@ -445,11 +506,14 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
             ls_node_class_t node_class = req.node_class;
 
             device_join_req(ls, ch, dev_id, app_id, dev_nonce, node_class);
+            
+            DEBUG("ls-gate: join request processed\n");
 
             return true;
 
         default:
             /* Not interested in somehow received downlink frames */
+            DEBUG("ls-gate: skip downlink frame\n");
             return false;
     }
 }
@@ -466,6 +530,7 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
 
     switch (event_type) {
         case SX1276_RX_DONE: {
+            DEBUG("ls-gate: RX done\n");
             ch->last_rssi = packet->rssi_value;
 
             /* Copy packet's data as a frame to our stack */
@@ -474,34 +539,37 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
             /* Check frame format */
             if (ls_validate_frame(packet->content, packet->size)) {
                 if (!frame_recv(ls, ch, frame)) {
-                    //puts("ls-gate: well-formed frame discarded");
+                    DEBUG("ls-gate: ls-gate: well-formed frame discarded\n");
                 }
             }
             else {
-                //puts("ls-gate: malformed data discarded");
+                DEBUG("ls-gate: ls-gate: malformed data discarded\n");
             }
         }
         break;
 
         case SX1276_RX_ERROR_CRC:
+            DEBUG("ls-gate: CRC error\n");
             break;
 
         case SX1276_TX_DONE:
+            DEBUG("ls-gate: TX done\n");
             open_rx_windows(ch);
 
             break;
 
         case SX1276_RX_TIMEOUT:
+            DEBUG("ls-gate: RX timeout\n");
             break;
 
         case SX1276_TX_TIMEOUT:
-        	puts("ls-gate: TX timeout");
+        	DEBUG("ls-gate: TX timeout");
             prepare_sx1276(ch);
             sx1276_set_rx(ch->_internal.sx1276, ch->_internal.sx1276->settings.lora.rx_timeout);
             break;
 
         default:
-            printf("sx1276: received event #%d\n", (int) event_type);
+            DEBUG("ls-gate: received event #%d\n", (int) event_type);
             break;
     }
 }
@@ -544,13 +612,12 @@ static void *uq_handler(void *arg)
 		/* Update frame's FID to the last one and advance it */
 		f->header.fid = 0;
 
-        // XXX: debug
-        printf(">mhdr=0x%02X, mic=0x%04X, addr=0x%02X, type=0x%02X, fid=0x%02X [%d left]\n",
-        		(unsigned int) f->header.mhdr,
-               (unsigned int) f->header.mic, (unsigned int) f->header.dev_addr,
-               (unsigned int) f->header.type,
-               (unsigned int) f->header.fid,
-			   ls_frame_fifo_size(fifo));
+        DEBUG("ls-gate: >mhdr=0x%02X, mic=0x%04X, addr=0x%02X, type=0x%02X, fid=0x%02X [%d left]\n",
+                (unsigned int) f->header.mhdr,
+                (unsigned int) f->header.mic, (unsigned int) f->header.dev_addr,
+                (unsigned int) f->header.type,
+                (unsigned int) f->header.fid,
+                ls_frame_fifo_size(fifo));
 
         /* Send frame into LoRa PHY */
         send_frame_f(ch, f);
@@ -594,6 +661,7 @@ static void *tim_handler(void *arg)
 
 						if (diff >= LS_MAX_PING_DIFFERENCE) {
 							/* Kick node */
+                            DEBUG("ls-gate: remove node from devlist");
 							ls_devlist_remove_device(&ls->devices, i);
 
 							/* Notify application code about kicked node */
@@ -764,26 +832,35 @@ int ls_gate_init(ls_gate_t *ls)
  */
 int ls_gate_send_to(ls_gate_t *ls, ls_addr_t addr, uint8_t *buf, size_t bufsize)
 {
-    if (!ls_devlist_is_in_network(&ls->devices, addr)) {
-        return -LS_GATE_E_NODEV;
-    }
+    DEBUG("ls-gate: sending %u bytes to 0x%08X\n", (unsigned) bufsize, (unsigned) addr);
 
     ls_gate_node_t *node = ls_devlist_get(&ls->devices, addr);
     if (node == NULL) {
+        DEBUG("ls-gate: device is not in the list, aborting\n");
         return -LS_GATE_E_NODEV;
-    }
-
-    printf("Sending %u bytes to 0x%08X\n", (unsigned) bufsize, (unsigned) addr);
+    }  
 
     /* Send next data frame as ack to the previous if number of pending frames is > 0 (class A) */
     bool send_ack_with_data = node->num_pending > 0;
     enqueue_frame((ls_gate_channel_t *) node->node_ch, addr, (send_ack_with_data) ? LS_DL_ACK_W_DATA : LS_DL, buf, bufsize);
+    
+    DEBUG("ls-gate: data enqueued\n");
 
     return LS_GATE_OK;
 }
 
 int ls_gate_invite(ls_gate_t *ls, uint64_t nodeid) {
+    DEBUG("ls-gate: inviting node 0x%08x%08x\n", (unsigned int) (nodeid >> 32), (unsigned int) (nodeid & 0xFFFFFFFF));
+    
+    ls_gate_devices_t *devs = &ls->devices;
+    ls_gate_node_t *node = ls_devlist_get_by_nodeid(devs, nodeid);
+    if (node != NULL) {
+        DEBUG("ls-gate: remove node from the list\n");
+        ls_devlist_remove_device(devs, node->addr);
+	}
+
 	/* Iterate through all channels and send invitation */
+    DEBUG("ls-gate: iterate through all channels and send invitation\n");
     for (int i = 0; i < ls->num_channels; i++) {
         ls_gate_channel_t *ch = &ls->channels[i];
         assert(ch->_internal.sx1276 != NULL);
@@ -791,7 +868,7 @@ int ls_gate_invite(ls_gate_t *ls, uint64_t nodeid) {
         ls_invite_t invite = { .dev_id = nodeid };
         enqueue_frame(ch, LS_ADDR_UNDEFINED, LS_DL_INVITE, (uint8_t *) &invite, sizeof(ls_invite_t));
     }
-
+    DEBUG("ls-gate: node invited\n");
     return LS_GATE_OK;
 }
 
@@ -801,6 +878,7 @@ int ls_gate_invite(ls_gate_t *ls, uint64_t nodeid) {
 int ls_gate_broadcast(ls_gate_t *ls, uint8_t *buf, size_t bufsize)
 {
 	/* Iterate through all channels and send broadcast message */
+    DEBUG("ls-gate: Iterate through all channels and send broadcast message\n");
     for (int i = 0; i < ls->num_channels; i++) {
         ls_gate_channel_t *ch = &ls->channels[i];
         assert(ch->_internal.sx1276 != NULL);
@@ -817,9 +895,9 @@ int ls_gate_broadcast(ls_gate_t *ls, uint8_t *buf, size_t bufsize)
 void ls_gate_sleep(ls_gate_t *ls)
 {
     /* Set all channel transceivers into sleep mode */
+    DEBUG("ls-gate: put transceivers into sleep mode");
     for (int i = 0; i < ls->num_channels; i++) {
         sx1276_t *sx1276 = ls->channels[i]._internal.sx1276;
-
         sx1276_set_sleep(sx1276);
     }
 }

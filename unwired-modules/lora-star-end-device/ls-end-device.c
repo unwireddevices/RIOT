@@ -933,7 +933,11 @@ int ls_ed_join(ls_ed_t *ls)
     req.dev_id = ls->settings.node_id;
 
     req.node_class = ls->settings.class;
-    req.dev_nonce = sx1276_random(ls->_internal.sx1276);
+    
+    /* nonce must not be 0 */
+    do {
+        req.dev_nonce = sx1276_random(ls->_internal.sx1276);
+    } while (req.dev_nonce != 0);
 
     ls->_internal.last_nonce = req.dev_nonce;
 

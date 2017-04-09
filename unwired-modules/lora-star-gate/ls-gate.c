@@ -122,14 +122,14 @@ static int send_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame)
         case LS_DL_ACK:
             node = ls_devlist_get(&ls->devices, frame->header.dev_addr);
 
-            ls_derive_keys(node->last_nonce, node->app_nonce, node->addr, mic_key, NULL);
+            ls_derive_keys(node->nonce[node->num_nonces - 1], node->app_nonce, node->addr, mic_key, NULL);
             ls_encrypt_frame(mic_key, mic_key, frame, &payload_size);
             break;
 
         default:
             node = ls_devlist_get(&ls->devices, frame->header.dev_addr);
 
-            ls_derive_keys(node->last_nonce, node->app_nonce, node->addr, mic_key, aes_key);
+            ls_derive_keys(node->nonce[node->num_nonces - 1], node->app_nonce, node->addr, mic_key, aes_key);
             ls_encrypt_frame(mic_key, aes_key, frame, &payload_size);
     }
 
@@ -281,7 +281,8 @@ static bool app_data_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *fram
     /* Derive encryption keys */
     uint8_t mic_key[AES_BLOCK_SIZE];
     uint8_t aes_key[AES_BLOCK_SIZE];
-    ls_derive_keys(node->last_nonce, node->app_nonce, node->addr, mic_key, aes_key);
+    
+    ls_derive_keys(node->nonce[node->num_nonces - 1], node->app_nonce, node->addr, mic_key, aes_key);
 
     /* Validate MIC */
     if (!ls_validate_frame_mic(mic_key, frame)) {
@@ -309,7 +310,7 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
     
     switch (frame->header.type) {
     	case LS_UL_UNC_ACK: { /* Unconfirmed data with ack for previous data */
-            DEBUG("ls-gate: unconfirmed data ack received\n");
+            DEBUG("ls-gate: unconfirmed data with ack for previous data\n");
             /* Address must be defined */
             if (frame->header.dev_addr == LS_ADDR_UNDEFINED) {
                 DEBUG("ls-gate: undefined address\n");
@@ -325,7 +326,7 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
             /* Derive encryption keys */
             uint8_t mic_key[AES_BLOCK_SIZE];
             uint8_t aes_key[AES_BLOCK_SIZE];
-            ls_derive_keys(node->last_nonce, node->app_nonce, node->addr, mic_key, aes_key);
+            ls_derive_keys(node->nonce[node->num_nonces - 1], node->app_nonce, node->addr, mic_key, aes_key);
 
             /* Validate MIC */
             if (!ls_validate_frame_mic(mic_key, frame)) {
@@ -385,7 +386,7 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
             /* Derive encryption keys */
             uint8_t mic_key[AES_BLOCK_SIZE];
             uint8_t aes_key[AES_BLOCK_SIZE];
-            ls_derive_keys(node->last_nonce, node->app_nonce, node->addr, mic_key, aes_key);
+            ls_derive_keys(node->nonce[node->num_nonces - 1], node->app_nonce, node->addr, mic_key, aes_key);
 
             /* Validate MIC */
             if (!ls_validate_frame_mic(mic_key, frame)) {

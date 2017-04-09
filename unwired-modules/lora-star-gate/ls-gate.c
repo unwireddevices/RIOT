@@ -208,6 +208,8 @@ static inline void send_ack(ls_gate_t *ls, ls_gate_channel_t *ch, ls_addr_t addr
 
 static void device_join_req(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t dev_id, uint64_t app_id, uint32_t dev_nonce, ls_node_class_t node_class)
 {
+    DEBUG("ls-gate: join request from %08x%08x\n", (unsigned int) (dev_id >> 32), (unsigned int) (dev_id & 0xFFFFFFFF));
+    
     /* Check node acceptance */
     if (ls->accept_node_join_cb != NULL) {
         if (!ls->accept_node_join_cb(dev_id, app_id)) {
@@ -842,8 +844,17 @@ int ls_gate_send_to(ls_gate_t *ls, ls_addr_t addr, uint8_t *buf, size_t bufsize)
 }
 
 int ls_gate_invite(ls_gate_t *ls, uint64_t nodeid) {
+    DEBUG("ls-gate: inviting node 0x%08x%08x\n", (unsigned int) (nodeid >> 32), (unsigned int) (nodeid & 0xFFFFFFFF));
+    
+    ls_gate_devices_t *devs = &ls->devices;
+    ls_gate_node_t *node = ls_devlist_get_by_nodeid(devs, nodeid);
+    if (node != NULL) {
+        DEBUG("ls-gate: remove node from the list\n");
+        ls_devlist_remove_device(devs, node->addr);
+	}
+
 	/* Iterate through all channels and send invitation */
-    DEBUG("ls-gate: Iterate through all channels and send invitation\n");
+    DEBUG("ls-gate: iterate through all channels and send invitation\n");
     for (int i = 0; i < ls->num_channels; i++) {
         ls_gate_channel_t *ch = &ls->channels[i];
         assert(ch->_internal.sx1276 != NULL);
@@ -851,7 +862,7 @@ int ls_gate_invite(ls_gate_t *ls, uint64_t nodeid) {
         ls_invite_t invite = { .dev_id = nodeid };
         enqueue_frame(ch, LS_ADDR_UNDEFINED, LS_DL_INVITE, (uint8_t *) &invite, sizeof(ls_invite_t));
     }
-
+    DEBUG("ls-gate: node invited\n");
     return LS_GATE_OK;
 }
 

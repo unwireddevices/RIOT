@@ -87,13 +87,18 @@ ls_gate_node_t *add_nonce(ls_gate_devices_t *devlist, uint64_t node_id, uint32_t
 
 				/* Add current nonce to nonce list */
 				ls_gate_node_nl_entry_t *e = malloc(sizeof(ls_gate_node_nl_entry_t));
-				e->nonce = nonce;
-				e->next = node->nonce_list;
-				node->nonce_list = e;
-				node->num_nonces++;
-                
-                DEBUG("ls-gate-device-list: nonce successfully added\n");
-				return node;
+                if (e) {
+                    e->nonce = nonce;
+                    e->next = node->nonce_list;
+                    node->nonce_list = e;
+                    node->num_nonces++;
+                    
+                    DEBUG("ls-gate-device-list: nonce successfully added\n");
+                    return node;
+                } else {
+                    DEBUG("ls-gate-device-list: error allocating memory\n");
+                    return NULL;
+                }
 			}
 		}
 	}
@@ -120,13 +125,17 @@ static void init_node(ls_gate_devices_t *devlist, ls_gate_node_t *node, ls_addr_
 
 	/* Append nonce to the nonce list */
 	ls_gate_node_nl_entry_t *e = malloc(sizeof(ls_gate_node_nl_entry_t));
-	e->nonce = nonce;
-	e->next = node->nonce_list;
-	node->nonce_list = e;
+    if (e) {
+        e->nonce = nonce;
+        e->next = node->nonce_list;
+        node->nonce_list = e;
 
-	node->last_fid = 0;
-	node->num_pending = 0;
-    DEBUG("ls-gate-device-list: node initialized\n");
+        node->last_fid = 0;
+        node->num_pending = 0;
+        DEBUG("ls-gate-device-list: node initialized\n");
+    } else {
+        DEBUG("ls-gate-device-list: error allocating memory\n");
+    }
 }
 
 ls_gate_node_t *ls_devlist_add_by_addr(ls_gate_devices_t *devlist, ls_addr_t addr, uint64_t node_id, uint64_t app_id, uint32_t nonce, void *ch) {

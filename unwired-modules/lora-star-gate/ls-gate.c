@@ -236,6 +236,11 @@ static void device_join_req(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t dev_i
         node = add_nonce(devlist, dev_id, dev_nonce);
         DEBUG("ls-gate: nonce added\n");
     }
+    
+    if (!node) {
+        DEBUG("ls-gate: error adding node\n");
+        return;
+    }
 
     /* Set node's class */
     node->node_class = node_class;
@@ -469,7 +474,7 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
             return true;
 
         case LS_UL_JOIN_REQ: /* Join request */
-            DEBUG("ls-gate: join request\n");
+            DEBUG("ls-gate: join request received\n");
             /* Address must be undefined */
             if (frame->header.dev_addr != LS_ADDR_UNDEFINED) {
                 DEBUG("ls-gate: undefined address\n");

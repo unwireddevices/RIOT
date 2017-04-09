@@ -29,7 +29,7 @@ extern "C" {
 #include "ls-mac-types.h"
 #include "ls-gate-device-list.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 /**

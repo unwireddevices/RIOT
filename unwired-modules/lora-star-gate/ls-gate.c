@@ -30,7 +30,7 @@ extern "C" {
 
 #include <stdint.h>
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 /**
@@ -220,7 +220,7 @@ static void device_join_req(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t dev_i
     ls_gate_devices_t *devlist = &ls->devices;
 
     if (!ls_devlist_check_nonce(devlist, dev_id, dev_nonce)) {
-        DEBUG("ls-gate: nonce repeated\n");
+        DEBUG("ls-gate: nonce rejected\n");
         return;
     }
 

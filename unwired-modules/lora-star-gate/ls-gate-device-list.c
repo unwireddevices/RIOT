@@ -29,7 +29,7 @@ extern "C" {
 #include "ls-mac-types.h"
 #include "ls-gate-device-list.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 void ls_devlist_init(ls_gate_devices_t *devlist) {

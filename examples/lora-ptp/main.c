@@ -90,6 +90,9 @@ static void init_role(config_role_t role) {
 }
 int main(void)
 {
+	lpm_arch_init();
+	
+    /* disable sleep and frequency switching for now */
 	lpm_prevent_sleep = 1;
     lpm_prevent_switch = 1;
     
@@ -99,16 +102,6 @@ int main(void)
     xtimer_init();
 
     nvram_eeprom_init(&nvram);
-
-    /*if (check_button()) {
-    	puts("[!] Button press detected, resetting config...");
-
-    	blink_led();
-    	blink_led();
-    	blink_led();
-
-    	config_reset_nvram(&nvram);
-    }*/
 
     /* Check EUI64 */
     if (!load_eui64_nvram(&nvram)) {

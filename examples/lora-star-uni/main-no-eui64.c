@@ -29,7 +29,7 @@ extern "C" {
 
 #include "main.h"
 #include "utils.h"
-#include "config.h"
+#include "ls-config.h"
 
 static uint64_t eui64 = 0;
 

@@ -28,7 +28,7 @@ extern "C" {
 #include "nvram.h"
 #include "checksum/crc16_ccitt.h"
 
-#include "config.h"
+#include "ls-config.h"
 
 static nvram_config_t config;
 static bool config_valid = false;

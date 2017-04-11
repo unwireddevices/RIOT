@@ -29,7 +29,7 @@ extern "C" {
 
 #include "main.h"
 #include "utils.h"
-#include "config.h"
+#include "ls-config.h"
 
 static uint8_t joinkey[16];
 static bool joinkey_set = false;

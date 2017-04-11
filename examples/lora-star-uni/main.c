@@ -35,10 +35,10 @@
 #include "board.h"
 
 #include "ls-mac-types.h"
+#include "ls-config.h"
 #include "sx1276.h"
 
 #include "main.h"
-#include "config.h"
 
 static nvram_t nvram;
 

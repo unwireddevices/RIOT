@@ -44,7 +44,7 @@ static uint32_t non_gpio_pin_map;
 /**
  * @brief Bitmap of enabled modules
  */
-static uint64_t enabled_bitmap;
+static uint32_t enabled_bitmap[4];
 
 /**
  * NVRAM config.
@@ -118,7 +118,7 @@ void unwds_init_modules(uwnds_cb_t *event_callback)
 
 	/* Initialize modules */
     while (modules[i].init_cb != NULL && modules[i].cmd_cb != NULL) {
-    	if (enabled_bitmap & (1 << modules[i].module_id)) {	/* Module enabled */
+    	if (enabled_bitmap[modules[i].module_id / 32] & (1 << (modules[i].module_id % 32))) {	/* Module enabled */
     		printf("[unwds] initializing \"%s\" module...\n", modules[i].name);
         	modules[i].init_cb(&non_gpio_pin_map, event_callback);
     	}
@@ -139,11 +139,11 @@ static unwd_module_t *find_module(unwds_module_id_t modid) {
     return NULL;
 }
 
-void unwds_list_modules(uint64_t enabled_mods, bool enabled_only) {
+void unwds_list_modules(uint32_t *enabled_mods, bool enabled_only) {
 	int i = 0;
 	int modcount = 0;
     while (modules[i].init_cb != NULL && modules[i].cmd_cb != NULL) {
-    	bool enabled = (enabled_mods & (1 << modules[i].module_id));
+    	bool enabled = (enabled_mods[modules[i].module_id / 32] & (1 << (modules[i].module_id % 32)));
     	unwds_module_id_t modid = modules[i].module_id;
 
     	if (enabled_only && !enabled) {
@@ -161,8 +161,8 @@ void unwds_list_modules(uint64_t enabled_mods, bool enabled_only) {
     	puts("<no modules enabled>");
 }
 
-void unwds_set_enabled(uint64_t enabled_mods) {
-	enabled_bitmap = enabled_mods;
+void unwds_set_enabled(uint32_t *enabled_mods) {
+    memcpy(enabled_bitmap, enabled_mods, sizeof(enabled_mods));
 }
 
 char *unwds_get_module_name(unwds_module_id_t modid) {
@@ -203,7 +203,7 @@ bool unwds_is_pin_occupied(uint32_t pin)
     return ((non_gpio_pin_map >> pin) & 0x1);
 }
 
-uint64_t unwds_get_enabled(void)
+uint32_t * unwds_get_enabled(void)
 {
     return enabled_bitmap;
 }

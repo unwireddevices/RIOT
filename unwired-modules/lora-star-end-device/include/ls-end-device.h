@@ -126,7 +126,7 @@ typedef enum {
 typedef struct {
 	uint64_t node_id;							/**< Unique node ID */
 	uint64_t app_id;							/**< Unique application ID */
-    uint64_t ability;							/**< Device abilities set up by the used modules */
+    uint32_t ability[8];						/**< Device abilities set up by the used modules */
 	const uint32_t *channels_table;				/**< Table of frequencies [Hz] of possible channels */
 	size_t channels_table_size;					/**< Size of the channels table */
     ls_crypto_t crypto;							/**< Cryptography settings */

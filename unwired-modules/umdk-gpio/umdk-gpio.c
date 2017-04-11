@@ -39,16 +39,21 @@ extern "C" {
 
 #include "umdk-gpio.h"
 
+#define ENABLE_DEBUG (0)
+#include "debug.h"
+
 static bool set(int num, bool one)
 {
     gpio_t gpio = unwds_gpio_pin(num);
+    
+    DEBUG("umdk-gpio: decoded pin number: %d\n", (int)gpio);
 
     if (gpio == 0) {
         return false;
     }
 
     gpio_init(gpio, GPIO_OUT);
-
+    
     if (one) {
         gpio_set(gpio);
     }
@@ -62,6 +67,8 @@ static bool set(int num, bool one)
 static bool get(int num)
 {
     gpio_t gpio = unwds_gpio_pin(num);
+    
+    DEBUG("umdk-gpio: decoded pin number: %d\n", (int)gpio);
 
     gpio_init(gpio, GPIO_IN);
 
@@ -71,6 +78,8 @@ static bool get(int num)
 static bool toggle(int num)
 {
     gpio_t gpio = unwds_gpio_pin(num);
+    
+    DEBUG("umdk-gpio: decoded pin number: %d\n", (int)gpio);
 
     if (gpio == 0) {
         return false;
@@ -81,11 +90,36 @@ static bool toggle(int num)
     return true;
 }
 
+int umdk_gpio_shell_cmd(int argc, char **argv) {
+    if (argc == 1) {
+        puts (_UMDK_NAME_ " get <N> - get GPIO value");
+        puts (_UMDK_NAME_ " set <N> <0|1> - set GPIO value");
+        return 0;
+    }
+    
+    char *cmd = argv[1];
+    
+    if (strcmp(cmd, "get") == 0) {
+        char *pin = argv[2];
+        printf("[umdk-" _UMDK_NAME_ "], pin %d is %d\n", atoi(pin), get(atoi(pin)));
+    }
+    
+    if (strcmp(cmd, "set") == 0) {
+        char *pin = argv[2];
+        char *val = argv[3];
+        set(atoi(pin), atoi(val));
+        printf("[umdk-" _UMDK_NAME_ "], pin %d set to %d\n", atoi(pin), atoi(val));
+    }
+    
+    return 1;
+}
 
 void umdk_gpio_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 {
     (void) non_gpio_pin_map;
     (void) event_callback;
+    
+    unwds_add_shell_command(_UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_gpio_shell_cmd);
 }
 
 static inline void do_reply(module_data_t *reply, umdk_gpio_reply_t reply_code)
@@ -126,11 +160,15 @@ static bool gpio_cmd(module_data_t *cmd, module_data_t *reply, bool with_reply)
     umdk_gpio_action_t act = (value & UMDK_GPIO_ACT_MASK) >> UMDK_GPIO_ACT_SHIFT;
 
     if (!check_pin(reply, pin)) {
+        DEBUG("umdk-gpio: pin check failed, pin %d\n", (int)pin);
         return false;
     }
+    
+    DEBUG("umdk-gpio: pin %d, act %d\n", (int)pin, (int)act);
 
     switch (act) {
         case UMDK_GPIO_GET:
+            DEBUG("umdk-gpio: GPIO GET command\n");
             if (with_reply) {
                 if (get(pin)) {
                     do_reply(reply, UMDK_GPIO_REPLY_OK_1);
@@ -143,6 +181,7 @@ static bool gpio_cmd(module_data_t *cmd, module_data_t *reply, bool with_reply)
 
         case UMDK_GPIO_SET_0:
         case UMDK_GPIO_SET_1:
+            DEBUG("umdk-gpio: GPIO SET command\n");
             if (set(pin, act == UMDK_GPIO_SET_1)) {
                 if (with_reply) {
                     do_reply(reply, UMDK_GPIO_REPLY_OK);
@@ -155,6 +194,7 @@ static bool gpio_cmd(module_data_t *cmd, module_data_t *reply, bool with_reply)
             break;
 
         case UMDK_GPIO_TOGGLE:
+            DEBUG("umdk-gpio: GPIO TOGGLE command\n");
             if (toggle(pin)) {
                 if (with_reply) {
                     do_reply(reply, UMDK_GPIO_REPLY_OK);

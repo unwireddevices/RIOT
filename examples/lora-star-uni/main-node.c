@@ -36,10 +36,11 @@ extern "C" {
 
 #include "ls-end-device.h"
 #include "unwds-common.h"
+#include "ls-settings.h"
 #include "unwds-gpio.h"
+#include "ls-config.h"
 
 #include "main.h"
-#include "config.h"
 #include "utils.h"
 
 #include "ls-regions.h"
@@ -53,28 +54,6 @@ static kernel_pid_t iwdg_pid;
 static msg_t iwdg_msg = {};
 static rtctimer_t iwdg_timer;
 static char iwdg_stack[256];
-
-typedef struct {
-    bool is_valid;
-
-    ls_channel_t channel;
-    ls_datarate_t dr;
-
-    uint8_t lnkchk_period;
-    uint8_t max_retr;
-
-    ls_node_class_t class;
-
-    uint64_t enabled_mods;       /**< Defines ability mask - list of enabled UNWDS modules */
-
-    bool region_not_set;
-    uint8_t region_index;   /**< Selected channels region index */
-
-    bool no_join;			/**< Statically personalized device, no join required to send data */
-    ls_addr_t dev_addr;		/**< Predefined device's network address */
-} node_role_settings_t;
-
-static node_role_settings_t node_settings;
 
 static sx1276_t sx1276;
 static ls_ed_t ls;
@@ -107,10 +86,10 @@ void radio_init(void)
 
 void joined_timeout_cb(void)
 {
-	if (node_settings.no_join)
+	if (unwds_get_node_settings().no_join)
 		return;
 
-    if ((current_join_retries >= node_settings.max_retr) && (node_settings.class == LS_ED_CLASS_A)) {
+    if ((current_join_retries >= unwds_get_node_settings().max_retr) && (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A)) {
         /* class A node: go to sleep */
         puts("ls-ed: maximum join retries exceeded, stopping");
     } else {
@@ -127,8 +106,8 @@ void joined_timeout_cb(void)
             current_join_retries++;
         }
         
-        if (node_settings.class == LS_ED_CLASS_A) {
-            printf("ls-ed: rejoining, attempt %d / %d\n", current_join_retries, node_settings.max_retr);
+        if (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A) {
+            printf("ls-ed: rejoining, attempt %d / %d\n", current_join_retries, unwds_get_node_settings().max_retr);
         } else {
             puts("ls-ed: rejoining");
         }
@@ -147,7 +126,7 @@ void joined_cb(void)
 
 void appdata_send_failed_cb(void)
 {
-	if (!node_settings.no_join) {
+	if (!unwds_get_node_settings().no_join) {
 		puts("ls-ed: application data confirmation timeout. Rejoining...");
 //		joined_timeout_cb();
         ls_ed_join(&ls);
@@ -225,23 +204,21 @@ static bool broadcast_appdata_received_cb(uint8_t *buf, size_t buflen) {
 
 static void ls_setup(ls_ed_t *ls)
 {
-    ls->settings.class = node_settings.class;
+    ls->settings.class = unwds_get_node_settings().nodeclass;
 
-    ls->settings.dr = node_settings.dr;
-    ls->settings.channel = node_settings.channel;
+    ls->settings.dr = unwds_get_node_settings().dr;
+    ls->settings.channel = unwds_get_node_settings().channel;
 
-    if (!node_settings.region_not_set) {
-        ls->settings.channels_table = regions[node_settings.region_index].channels;
-        ls->settings.channels_table_size = regions[node_settings.region_index].num_channels;
-    }
+    ls->settings.channels_table = regions[unwds_get_node_settings().region_index].channels;
+    ls->settings.channels_table_size = regions[unwds_get_node_settings().region_index].num_channels;
 
     ls->settings.app_id = config_get_appid();
     ls->settings.node_id = config_get_nodeid();
 
-    ls->settings.no_join = node_settings.no_join;
-    if (node_settings.no_join) {
-    	ls_derive_keys(config_get_devnonce(), 0, node_settings.dev_addr, ls->settings.crypto.mic_key, ls->settings.crypto.aes_key);
-    	ls->_internal.dev_addr = node_settings.dev_addr;
+    ls->settings.no_join = unwds_get_node_settings().no_join;
+    if (unwds_get_node_settings().no_join) {
+    	ls_derive_keys(config_get_devnonce(), 0, unwds_get_node_settings().dev_addr, ls->settings.crypto.mic_key, ls->settings.crypto.aes_key);
+    	ls->_internal.dev_addr = unwds_get_node_settings().dev_addr;
     } else {
     	memcpy(ls->settings.crypto.join_key, config_get_joinkey(), LS_MIC_KEY_LEN);
     }
@@ -249,7 +226,7 @@ static void ls_setup(ls_ed_t *ls)
     ls->joined_cb = joined_cb;
 
     ls->appdata_send_failed_cb = appdata_send_failed_cb;
-    ls->settings.max_retr = node_settings.max_retr;     /* Maximum number of confirmed data retransmissions */
+    ls->settings.max_retr = unwds_get_node_settings().max_retr;     /* Maximum number of confirmed data retransmissions */
 
     ls->appdata_received_cb = appdata_received_cb;
     ls->broadcast_appdata_received_cb = broadcast_appdata_received_cb;
@@ -262,7 +239,7 @@ int ls_set_cmd(int argc, char **argv)
     if (argc != 3) {
         puts("usage: get <key> <value>");
         puts("keys:");
-        if (node_settings.no_join)
+        if (unwds_get_node_settings().no_join)
         	puts("\taddr <address> -- sets predefined device address for statically personalized devices");
 
         puts("\tnojoin <0/1> -- selecting wether device is statically personalized or not");
@@ -289,13 +266,8 @@ int ls_set_cmd(int argc, char **argv)
     else if (strcmp(key, "ch") == 0) {
         uint8_t v = strtol(value, NULL, 10);
 
-        if (node_settings.region_not_set) {
-            puts("set ch: set region first via \"set region\" command");
-            return 1;
-        }
-
-        if (v > regions[node_settings.region_index].num_channels - 1) {
-            printf("set ch: channel value must be from 0 to %d\n", regions[node_settings.region_index].num_channels - 1);
+        if (v > regions[unwds_get_node_settings().region_index].num_channels - 1) {
+            printf("set ch: channel value must be from 0 to %d\n", regions[unwds_get_node_settings().region_index].num_channels - 1);
             return 1;
         }
 
@@ -308,9 +280,7 @@ int ls_set_cmd(int argc, char **argv)
             printf("set region: region value must be from 0 to %d\n", LS_UNI_NUM_REGIONS - 1);
             return 1;
         }
-
-        node_settings.region_index = v;
-        node_settings.region_not_set = false;
+        unwds_set_region(v, false);
     }
     else if (strcmp(key, "maxretr") == 0) {
         uint8_t v = strtol(value, NULL, 10);
@@ -355,14 +325,14 @@ int ls_set_cmd(int argc, char **argv)
         ls._internal.dev_addr = addr;
     }
 
-    node_settings.no_join = ls.settings.no_join;
-    if (node_settings.no_join)
-    	node_settings.dev_addr = ls._internal.dev_addr;
+    unwds_set_nojoin(ls.settings.no_join);
+    if (unwds_get_node_settings().no_join)
+    	unwds_set_addr(ls._internal.dev_addr);
 
-    node_settings.channel = ls.settings.channel;
-    node_settings.dr = ls.settings.dr;
-    node_settings.max_retr = ls.settings.max_retr;
-    node_settings.class = ls.settings.class;
+    unwds_set_channel(ls.settings.channel);
+    unwds_set_dr(ls.settings.dr);
+    unwds_set_max_retr(ls.settings.max_retr);
+    unwds_set_class(ls.settings.class);
 
     return 0;
 }
@@ -389,77 +359,52 @@ static void print_regions(void)
 
 static void print_config(void)
 {
-    if (node_settings.region_not_set) {
-        puts("[!] Region is not set yet");
-        print_regions();
-    }
-
     puts("[ node configuration ]");
 
     uint64_t eui64 = config_get_nodeid();
     uint64_t appid = config_get_appid();
 
-    printf("NOJOIN = %s\n", (node_settings.no_join) ? "yes" : "no");
+    printf("NOJOIN = %s\n", (unwds_get_node_settings().no_join) ? "yes" : "no");
 
-    if (!node_settings.no_join && DISPLAY_JOINKEY_2BYTES) {
+    if (!unwds_get_node_settings().no_join && DISPLAY_JOINKEY_2BYTES) {
         uint8_t *key = config_get_joinkey();
         printf("JOINKEY = 0x....%01X%01X\n", key[14], key[15]);
     }
 
-    if (node_settings.no_join && DISPLAY_DEVNONCE_BYTE) {
+    if (unwds_get_node_settings().no_join && DISPLAY_DEVNONCE_BYTE) {
     	uint8_t devnonce = config_get_devnonce();
     	printf("DEVNONCE = 0x...%01X\n", devnonce & 0x0F);
     }
 
-    if (node_settings.no_join)
-    	printf("ADDR = 0x%08X\n", (unsigned int) node_settings.dev_addr);
+    if (unwds_get_node_settings().no_join)
+    	printf("ADDR = 0x%08X\n", (unsigned int) unwds_get_node_settings().dev_addr);
 
     printf("EUI64 = 0x%08x%08x\n", (unsigned int) (eui64 >> 32), (unsigned int) (eui64 & 0xFFFFFFFF));
     printf("APPID64 = 0x%08x%08x\n", (unsigned int) (appid >> 32), (unsigned int) (appid & 0xFFFFFFFF));
 
-    if (!node_settings.region_not_set) {
-        printf("REGION = %s\n", regions[node_settings.region_index].region);
-        printf("CHANNEL = %d [%d]\n", node_settings.channel, (unsigned) regions[node_settings.region_index].channels[node_settings.channel]);
-    }
-    else {
-        puts("REGION = <not set>");
-        puts("CHANNEL = <set region first>");
-    }
+    printf("REGION = %s\n", regions[unwds_get_node_settings().region_index].region);
+    printf("CHANNEL = %d [%d]\n", unwds_get_node_settings().channel, (unsigned) regions[unwds_get_node_settings().region_index].channels[unwds_get_node_settings().channel]);
 
-    printf("DATARATE = %d\n", node_settings.dr);
+    printf("DATARATE = %d\n", unwds_get_node_settings().dr);
 
-    char class = 'A'; // node_settings.class == LS_ED_CLASS_A
-    if (node_settings.class == LS_ED_CLASS_B) {
-        class = 'B';
+    char nodeclass = 'A'; // unwds_get_node_settings().nodeclass == LS_ED_CLASS_A
+    if (unwds_get_node_settings().nodeclass == LS_ED_CLASS_B) {
+        nodeclass = 'B';
     }
-    else if (node_settings.class == LS_ED_CLASS_C) {
-        class = 'C';
+    else if (unwds_get_node_settings().nodeclass == LS_ED_CLASS_C) {
+        nodeclass = 'C';
     }
-    printf("CLASS = %c\n", class);
+    printf("CLASS = %c\n", nodeclass);
 
-    printf("MAXRETR = %d\n", node_settings.max_retr);
+    printf("MAXRETR = %d\n", unwds_get_node_settings().max_retr);
 
     puts("[ enabled modules ]");
-    unwds_list_modules(node_settings.enabled_mods, true);
+    unwds_list_modules(unwds_get_node_settings().enabled_mods, true);
 }
 
 static int ls_printc_cmd(int argc, char **argv)
 {
     print_config();
-
-    return 0;
-}
-
-static int ls_save_cmd(int argc, char **argv)
-{
-
-    puts("[*] Saving configuration...");
-    node_settings.is_valid = true;
-    if (!config_write_role_block((uint8_t *) &node_settings, sizeof(node_role_settings_t))) {
-        puts("[error] Unable to save configuration");
-    }
-
-    puts("[done] Configuration saved. Type \"reboot\" to apply changes.");
 
     return 0;
 }
@@ -514,7 +459,7 @@ int ls_cmd_cmd(int argc, char **argv)
 static int ls_listmodules_cmd(int argc, char **argv)
 {
     puts("[ available modules ]");
-    unwds_list_modules(node_settings.enabled_mods, false);
+    unwds_list_modules(unwds_get_node_settings().enabled_mods, false);
 
     return 0;
 }
@@ -539,8 +484,6 @@ static int ls_module_cmd(int argc, char **argv)
         return 1;
     }
     
-    uint64_t mask = (uint64_t) (1 << modid);
-    
     if (!unwds_is_module_exists(modid)) {
         puts("mod: module with specified id doesn't exist");
         return 1;
@@ -559,18 +502,9 @@ static int ls_module_cmd(int argc, char **argv)
             }
         }
     }
+    
+    unwds_set_module(modid, modenable);
         
-    if (modenable) {
-        /* Enable module */
-        node_settings.enabled_mods |= mask;
-        printf("mod: %s [%d] enabled. Save and reboot to apply changes\n", unwds_get_module_name(modid), modid);
-    }
-    else {
-        /* Disable module */
-        node_settings.enabled_mods &= ~(mask);
-        printf("mod: %s [%d] disabled. Save and reboot to apply changes\n", unwds_get_module_name(modid), modid);
-    }
-
     return 0;
 }
 
@@ -628,6 +562,21 @@ static int print_regions_cmd(int argc, char **argv)
     return 0;
 }
 
+static int ls_save_cmd(int argc, char **argv) {
+    (void) argc;
+    (void) argv;
+    
+    puts("[*] Saving configuration...");
+    
+    if (!unwds_config_save()) {
+        puts("[error] Unable to save configuration");
+    }
+
+    puts("[done] Configuration saved. Type \"reboot\" to apply changes.");
+    
+    return 0;
+}
+
 shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX] = {
     { "set", "<config> <value> -- set value for the configuration entry", ls_set_cmd },
 
@@ -637,7 +586,7 @@ shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX] = {
 
     { "lsmod", "-- list available modules", ls_listmodules_cmd },
 
-    { "mod", "<modid> <0|1>	-- disable or enable selected module", ls_module_cmd },
+    { "mod", "<name> <enable|disable>	-- disable or enable selected module", ls_module_cmd },
 
     { "save", "-- saves current configuration", ls_save_cmd },
 
@@ -669,17 +618,6 @@ static void unwds_callback(module_data_t *buf)
     }
 
     blink_led();
-}
-
-static bool load_config(void)
-{
-    if (!config_read_role_block((uint8_t *) &node_settings, sizeof(node_role_settings_t))) {
-        puts("[node] Unable to load role specific configuration");
-
-        return false;
-    }
-
-    return node_settings.is_valid;
 }
 
 static bool is_connect_button_pressed(void)
@@ -730,7 +668,7 @@ void init_node(shell_command_t **commands)
 
     rtctimers_init();
 
-    if (!load_config()) {
+    if (!unwds_config_load()) {
         puts("[!] Device is not configured yet. Type \"help\" to see list of possible configuration commands.");
         puts("[!] Configure the node and type \"reboot\" to reboot and apply settings.");
 
@@ -743,9 +681,9 @@ void init_node(shell_command_t **commands)
         ls_setup(&ls);
         ls_ed_init(&ls);
 
-        unwds_set_enabled(node_settings.enabled_mods);
-        ls.settings.ability = node_settings.enabled_mods;
-        ls.settings.class = node_settings.class;
+        unwds_set_enabled(unwds_get_node_settings().enabled_mods);
+        memcpy(ls.settings.ability, unwds_get_node_settings().enabled_mods, sizeof(ls.settings.ability));
+        ls.settings.class = unwds_get_node_settings().nodeclass;
 
         unwds_setup_nvram_config(config_get_nvram(), UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
 
@@ -781,7 +719,7 @@ void init_node(shell_command_t **commands)
         rtctimers_sleep(1);
         blink_led();
 
-        if (!node_settings.no_join) {
+        if (!unwds_get_node_settings().no_join) {
         	ls_ed_join(&ls);
         }
     }

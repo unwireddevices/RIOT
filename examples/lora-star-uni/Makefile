@@ -59,7 +59,7 @@ UNWD_OPT3001  = 1
 UNWD_DALI     = 0
 UNWD_BME280   = 0
 
-UNWD_MHZ19    = 0
+UNWD_MHZ19    = 1
 
 ####### UNWD MMODULES' includes & flags ############
 ifeq ($(UNWD_GPIO),1)

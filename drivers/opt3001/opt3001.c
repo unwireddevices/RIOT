@@ -64,6 +64,7 @@ int opt3001_init(opt3001_t *dev)
     dev-> t2_pin = UNWD_GPIO_27;              /**< GPIO pin on which sensor is attached  -  ground while measuring! */
     dev-> transmit_pulses = UZ_TRANSMIT_PULSES;
     dev-> period_us = UZ_PERIOD_US;
+    dev-> period_subus = 0;
     dev-> idle_period_us = UZ_IDLE_PERIOD_US;
 
     gpio_init(dev->sens_pin, GPIO_IN);
@@ -200,6 +201,7 @@ static void transmit(opt3001_t *dev) {
         gpio_set(dev->t2_pin);
         // xtimer_spin(xtimer_ticks_from_usec(dev->period_us * 0.5));
         xtimer_spin(t1);
+        for (int s = 0; s < dev->period_subus; s++) __asm("nop;");
         gpio_clear(dev->t2_pin);
         gpio_set(dev->t1_pin);
         // xtimer_spin(xtimer_ticks_from_usec(dev->period_us - (dev->period_us * 0.5)));

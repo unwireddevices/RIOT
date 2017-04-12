@@ -166,6 +166,7 @@ int umdk_opt3001_shell_cmd(int argc, char **argv) {
         puts ("opt3001 send - get and send results now");
         puts ("opt3001 period <N> - set period to N minutes");
         puts ("opt3001 time <N> - set ultrasound period to N microseconds");
+        puts ("opt3001 sub <N> - set sub-microsecond addendum to period");
         puts ("opt3001 number <N> - set number of US generation periods");
         puts ("opt3001 idle <N> - set ultrasound idle time to N microseconds");
         puts ("opt3001 reset - reset settings to default");
@@ -193,6 +194,11 @@ int umdk_opt3001_shell_cmd(int argc, char **argv) {
     if (strcmp(cmd, "time") == 0) {
         char *val = argv[2];
         dev . period_us = atoi(val);
+    }
+    
+    if (strcmp(cmd, "sub") == 0) {
+        char *val = argv[2];
+        dev . period_subus = atoi(val);
     }
     
     if (strcmp(cmd, "number") == 0) {

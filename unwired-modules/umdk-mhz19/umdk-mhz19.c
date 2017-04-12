@@ -75,11 +75,15 @@ static kernel_pid_t timer_pid;
 
 
 void umdk_mhz19_ask(void){
-        
-        uint8_t data[8] = {0x01, 0x03, 0x01, 0x05, 0x00, 0x04, 0x55, 0xf4};
-        uint8_t count = 8;
+        /*
+        uint8_t data[8] = {0x01, 0x03, 0x01, 0x05, 0x00, 0x04, 0x55, 0xf4}; // for modbus
+        uint8_t count = 8; // for modbus
+        */
 
-        /* Send data */
+        uint8_t data[9] = {0xFF,0x01,0x86,0x00,0x00,0x00,0x00,0x00,0x79}; // for original mh-z19 protocol
+        uint8_t count = 9; // for original mh-z19 protocol
+
+        // Send data 
         gpio_set(RE_PIN);
         gpio_set(DE_PIN);
 
@@ -156,17 +160,28 @@ void *writer(void *arg) {
     char *pos = buf;
     int k = 0;
     for (k = 2; k < data.length; k++) {
-        snprintf(pos, 3, "%02x", data.data[k]);
-        pos += 2;
+        snprintf(pos, 3, " %02x", data.data[k]);
+        pos += 3;
     }
     
     printf("[umdk-mhz19] received 0x%s\n", buf);
 
-
+    /*
+    // for modbus
     int co2 = data.data[2+3] * 256 + data.data[2+4];
     int raw = data.data[2+9] * 256 + data.data[2+10];
 
     printf("[umdk-mhz19] CO2: %d, %d\n", co2, raw);
+    // for modbus
+    */
+
+    // for original mh-z19 protocol
+    int co2 = data.data[4] * 256 + data.data[5];
+    int temperature = data.data[6] - 40;
+    int confidence = data.data[7];
+
+    printf("[umdk-mhz19] CO2: %d, temperature: %d, confidence: %d \n", co2, temperature, confidence);
+    // for original mh-z19 protocol
 
     data.as_ack = is_polled;
     is_polled = false;
@@ -236,7 +251,7 @@ int umdk_mhz19_shell_cmd(int argc, char **argv) {
     if (argc == 1) {
         puts ("mhz19 ask - ask MH-Z19 for CO2 concentration (equivalent to mhz19 send 01030105000455f4 )");
         puts ("mhz19 send <hex> - send data to MH-Z19");
-        puts ("mhz19 baud <period> - set publishing period");
+        puts ("mhz19 period <period> - set publishing period");
         puts ("mhz19 baud <baud> - set baudrate");
         puts ("mhz19 reset - reset settings to default");
         return 0;

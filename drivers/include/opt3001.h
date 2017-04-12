@@ -69,16 +69,8 @@
  * @brief Structure that holds the OPT3001 driver internal state and parameters
  */
 typedef struct {
-    // i2c_t i2c;    /**< Holds driver parameters */
-	// gpio_t threshold_pin;					/**< Sensor "enable" pin */
-	gpio_t silencing_pin;					/**< Silencing pin when used with 1 transceiver */
-	gpio_t sens_pin;				/**< GPIO pin on which sensor is attached */
-	gpio_t t1_pin;				/**< GPIO pin on which sensor is attached */
-	gpio_t t2_pin;				/**< GPIO pin on which sensor is attached */
-    int transmit_pulses;
-    int period_us;
-    int period_subus;
-    int idle_period_us;
+    i2c_t i2c;    /**< Holds driver parameters */
+
 } opt3001_t;
 
 

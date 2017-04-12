@@ -115,7 +115,7 @@ static void *timer_thread(void *arg) {
         callback(&data);
 
         /* Restart after delay */
-        rtctimers_set_msg(&timer, /* 60 * */ opt3001_config.publish_period_min, &timer_msg, timer_pid);
+        rtctimers_set_msg(&timer, 60 * opt3001_config.publish_period_min, &timer_msg, timer_pid);
     }
 
     return NULL;
@@ -191,26 +191,6 @@ int umdk_opt3001_shell_cmd(int argc, char **argv) {
         set_period(atoi(val));
     }
     
-    if (strcmp(cmd, "time") == 0) {
-        char *val = argv[2];
-        dev . period_us = atoi(val);
-    }
-    
-    if (strcmp(cmd, "sub") == 0) {
-        char *val = argv[2];
-        dev . period_subus = atoi(val);
-    }
-    
-    if (strcmp(cmd, "number") == 0) {
-        char *val = argv[2];
-        dev . transmit_pulses = atoi(val);
-    }
-    
-    if (strcmp(cmd, "idle") == 0) {
-        char *val = argv[2];
-        dev . idle_period_us = atoi(val);
-    }
-    
     if (strcmp(cmd, "reset") == 0) {
         reset_config();
         save_config();
@@ -244,7 +224,7 @@ void umdk_opt3001_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "opt3001 thread");
 
     /* Start publishing timer */
-	rtctimers_set_msg(&timer, /* 60 * */ opt3001_config.publish_period_min, &timer_msg, timer_pid);
+	rtctimers_set_msg(&timer, 60 * opt3001_config.publish_period_min, &timer_msg, timer_pid);
 }
 
 static void reply_fail(module_data_t *reply) {
@@ -289,10 +269,10 @@ bool umdk_opt3001_cmd(module_data_t *cmd, module_data_t *reply) {
 		return false; /* Don't reply */
 
 	case UMDK_OPT3001_CMD_SET_I2C: {
-		// i2c_t i2c = (i2c_t) cmd->data[1];
-		// dev.i2c = i2c;
+		i2c_t i2c = (i2c_t) cmd->data[1];
+		dev.i2c = i2c;
 
-		// opt3001_config.i2c_dev = i2c;
+		opt3001_config.i2c_dev = i2c;
 
 		init_sensor();
 

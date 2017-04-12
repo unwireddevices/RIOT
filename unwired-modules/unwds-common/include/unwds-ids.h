@@ -36,6 +36,7 @@ typedef enum {
     UNWDS_OPT3001_MODULE_ID,
     UNWDS_DALI_MODULE_ID,
     UNWDS_BME280_MODULE_ID,
+    UNWDS_MHZ19_MODULE_ID,
     /* Proprietary 100 to 199 */
     UNWDS_MERCURY_MODULE_ID = 100,
     /* Customer 200 to 250*/

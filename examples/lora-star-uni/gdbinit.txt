@@ -1,0 +1,6 @@
+target extended-remote \\.\COM10
+mon conn enable
+mon swdp_scan
+attach 1
+load
+quit

@@ -63,7 +63,7 @@ static struct {
 } opt3001_config;
 
 static bool init_sensor(void) {
-	// dev.i2c = UMDK_OPT3001_I2C;
+	dev.i2c = UMDK_OPT3001_I2C;
 
 	printf("[umdk-" _UMDK_NAME_ "] Initializing opt3001 on I2C #%d\n", dev.i2c);
 

@@ -23,28 +23,17 @@
 #define UMDK_MHZ19_RXBUF_SIZE (UNWDS_MAX_DATA_LEN - 1)
 #define UMDK_MHZ19_SYMBOL_TIMEOUT_MS 500
 
-/**
- * @brief   DE/RE pins definitions and handlers
- * @{
- */
-
-#define DE_PIN            UNWD_GPIO_4
-#define RE_PIN            UNWD_GPIO_5 
-
 /** @} */
 
 typedef enum {
-    UMDK_MHZ19_SEND_ALL = 0,
-    UMDK_MHZ19_SET_BAUDRATE = 1,
-    UMDK_MHZ19_SET_PARAMETERS = 2,
-    UMDK_MHZ19_ASK = 3,
+    UMDK_MHZ19_ASK = 0,
+    UMDK_MHZ19_SET_PERIOD = 1,
 } umdk_mhz19_prefix_t;
 
 typedef enum {
-	UMDK_MHZ19_REPLY_SENT = 0,
+	UMDK_MHZ19_REPLY_OK = 0,
 	UMDK_MHZ19_REPLY_RECEIVED = 1,
-	UMDK_MHZ19_REPLY_BAUDRATE_SET = 2,
-	/* ... */
+
 	UMDK_MHZ19_REPLY_ERR_OVF = 253,	/* RX buffer overflowed */
 	UMDK_MHZ19_REPLY_ERR_FMT = 254,
 	UMDK_MHZ19_ERR = 255,

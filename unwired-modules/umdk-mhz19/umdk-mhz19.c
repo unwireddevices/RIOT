@@ -105,7 +105,7 @@ static void *timer_thread(void *arg) {
     return NULL;
 }
 
-void *writer(void *arg) {
+void *umdk_mhz19_writer(void *arg) {
     msg_t msg;
     msg_t msg_queue[128];
     msg_init_queue(msg_queue, 128);
@@ -165,7 +165,7 @@ void *writer(void *arg) {
     return NULL;
 }
 
-void rx_cb(void *arg, uint8_t data)
+void umdk_mhz19_rx_cb(void *arg, uint8_t data)
 {
 	/* Buffer overflow */
 	if (num_bytes_received == UMDK_MHZ19_RXBUF_SIZE) {
@@ -279,7 +279,7 @@ void umdk_mhz19_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     uart_params.databits = UART_DATABITS_8;
 
     /* Initialize UART */
-    if (uart_init_ext(UART_DEV(UMDK_UART_DEV), &uart_params, rx_cb, NULL)) {
+    if (uart_init_ext(UART_DEV(UMDK_UART_DEV), &uart_params, umdk_mhz19_rx_cb, NULL)) {
         return;
     }
 
@@ -292,7 +292,7 @@ void umdk_mhz19_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     	return;
     }
     /* Create handler thread */
-    writer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, writer, NULL, "umdk-mhz19 listening thread");
+    writer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, umdk_mhz19_writer, NULL, "umdk-mhz19 listening thread");
 
     char *timer_stack = (char *) allocate_stack();
     if (!timer_stack) {

@@ -32,13 +32,12 @@ extern "C" {
 #include <stdbool.h>
 #include <string.h>
 
-#include "periph/gpio.h"
-#include "periph/uart.h"
-
 #include "board.h"
 
 #include "unwds-common.h"
 #include "include/umdk-mhz19.h"
+
+#include "mhz19.h"
 
 #include "thread.h"
 #include "xtimer.h"
@@ -47,17 +46,9 @@ extern "C" {
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
+static mhz19_t mhz19;
+
 static uwnds_cb_t *callback;
-static uint8_t rxbuf[UMDK_MHZ19_RXBUF_SIZE] = {};
-
-static volatile uint8_t num_bytes_received;
-
-static kernel_pid_t writer_pid;
-
-static msg_t send_msg;
-static msg_t send_msg_ovf;
-// static msg_t timer_msg1;
-static xtimer_t send_timer;
 
 typedef struct {
 	uint8_t is_valid;
@@ -71,112 +62,53 @@ static rtctimer_t timer;
 static msg_t timer_msg = {};
 static kernel_pid_t timer_pid;
 
-
-void umdk_mhz19_ask(void){
-        /*
-        uint8_t data[8] = {0x01, 0x03, 0x01, 0x05, 0x00, 0x04, 0x55, 0xf4}; // for modbus
-        uint8_t count = 8; // for modbus
-        */
-
-        uint8_t data[9] = {0xFF,0x01,0x86,0x00,0x00,0x00,0x00,0x00,0x79}; // for original mh-z19 protocol
-        
-        uart_write(UART_DEV(UMDK_UART_DEV), (uint8_t *)data, sizeof(data));
-}
-
 static void *timer_thread(void *arg) {
     msg_t msg;
     msg_t msg_queue[4];
     msg_init_queue(msg_queue, 4);
     
-    puts("[umdk-" _UMDK_NAME_ "] Periodic publisher thread started");
+    printf("[umdk-" _UMDK_NAME_ "] Periodic publisher thread started, period is %d min\n", umdk_mhz19_config.publish_period_sec/60);
 
     while (1) {
         msg_receive(&msg);
 
-        puts("[umdk-" _UMDK_NAME_ "] Periodic publisher thread received a message!");
-
-        umdk_mhz19_ask();
+        mhz19_get(&mhz19);
 
         /* Restart after delay */
         rtctimers_set_msg(&timer, umdk_mhz19_config.publish_period_sec, &timer_msg, timer_pid);
     }
-    puts("[umdk-" _UMDK_NAME_ "] Periodic publisher thread ended!");
-
     return NULL;
 }
 
-void *umdk_mhz19_writer(void *arg) {
-    msg_t msg;
-    msg_t msg_queue[128];
-    msg_init_queue(msg_queue, 128);
-
-    while (1) {
-        msg_receive(&msg);
-
-        module_data_t data;
-        data.data[0] = UNWDS_MHZ19_MODULE_ID;
-        data.length = 1;
-
-        char buf[200];
-        char *pos = buf;
-        int k = 0;
-        for (k = 0; k < num_bytes_received; k++) {
-            snprintf(pos, 3, " %02x", rxbuf[k]);
-            pos += 3;
-        }
-
-        DEBUG("[umdk-" _UMDK_NAME_ "]  received 0x%s\n", buf);
-
-        /*
-        // for modbus
-        int co2 = data.data[2+3] * 256 + data.data[2+4];
-        int raw = data.data[2+9] * 256 + data.data[2+10];
-
-        printf("[umdk-" _UMDK_NAME_ "] CO2: %d, %d\n", co2, raw);
-        // for modbus
-        */
-
-        // for original mh-z19 protocol
-        int16_t co2 = rxbuf[2] * 256 + rxbuf[3];
-        int16_t temperature = rxbuf[4] - 40;
-        uint8_t confidence = rxbuf[5];
-
-        num_bytes_received = 0;
-
-        printf("[umdk-" _UMDK_NAME_ "] CO2: %d, temperature: %d, confidence: %d\n", (int)co2, (int)temperature, (int)confidence);
-        // for original mh-z19 protocol
-
-        memcpy((void *)&data.data[data.length], &co2, sizeof(co2));
-        data.length += sizeof(co2);
-
-        temperature *= 10;
-        memcpy((void *)&data.data[data.length], &temperature, sizeof(temperature));
-        data.length += sizeof(temperature);
-
-        data.data[data.length] = confidence;
-        data.length++;
-
-        data.as_ack = is_polled;
-        is_polled = false;
-
-        callback(&data);
-    }
-
-    return NULL;
-}
-
-void umdk_mhz19_rx_cb(void *arg, uint8_t data)
+void mhz19_cb(mhz19_data_t mhz19_data)
 {
-	/* Buffer overflow */
-	if (num_bytes_received == UMDK_MHZ19_RXBUF_SIZE) {
-		num_bytes_received = 0;
-		return;
-	}
+    module_data_t data;
+    data.data[0] = _UMDK_MID_;
+    data.length = 1;
+    
+    int16_t co2 = mhz19_data.co2;
+    int16_t temperature = mhz19_data.temperature;
+    uint8_t validity = mhz19_data.validity;
+    
+    printf("[umdk-" _UMDK_NAME_ "] CO2: %d, temperature: %d, validity: %d\n",
+            (int)co2, (int)temperature, (int)validity);
+    
+    memcpy((void *)&data.data[data.length], &co2, sizeof(co2));
+    data.length += sizeof(co2);
 
-	rxbuf[num_bytes_received++] = data;
+    temperature *= 10;
+    memcpy((void *)&data.data[data.length], &temperature, sizeof(temperature));
+    data.length += sizeof(temperature);
 
-	/* Schedule sending after timeout */
-	xtimer_set_msg(&send_timer, 1e3 * UMDK_MHZ19_SYMBOL_TIMEOUT_MS, &send_msg, writer_pid);
+    data.data[data.length] = validity;
+    data.length++;
+
+    data.as_ack = is_polled;
+    is_polled = false;
+
+    callback(&data);
+    
+    return;
 }
 
 static void reset_config(void) {
@@ -187,7 +119,7 @@ static void reset_config(void) {
 static void init_config(void) {
 	reset_config();
 
-	if (!unwds_read_nvram_config(UNWDS_MHZ19_MODULE_ID, (uint8_t *) &umdk_mhz19_config, sizeof(umdk_mhz19_config)))
+	if (!unwds_read_nvram_config(_UMDK_MID_, (uint8_t *) &umdk_mhz19_config, sizeof(umdk_mhz19_config)))
 		return;
 
 	if ((umdk_mhz19_config.is_valid == 0xFF) || (umdk_mhz19_config.is_valid == 0))  {
@@ -198,13 +130,12 @@ static void init_config(void) {
 
 static inline void save_config(void) {
 	umdk_mhz19_config.is_valid = 1;
-	unwds_write_nvram_config(UNWDS_MHZ19_MODULE_ID, (uint8_t *) &umdk_mhz19_config, sizeof(umdk_mhz19_config));
+	unwds_write_nvram_config(_UMDK_MID_, (uint8_t *) &umdk_mhz19_config, sizeof(umdk_mhz19_config));
 }
 
 int umdk_mhz19_shell_cmd(int argc, char **argv) {
     if (argc == 1) {
         puts ("mhz19 send - ask MH-Z19 for CO2 concentration (equivalent to mhz19 send 01030105000455f4 )");
-        puts ("mhz19 raw <hex> - send raw data to MH-Z19, without leading 0x");
         puts ("mhz19 period <period> - set publishing period");
         puts ("mhz19 reset - reset settings to default");
         return 0;
@@ -214,41 +145,7 @@ int umdk_mhz19_shell_cmd(int argc, char **argv) {
     
     if (strcmp(cmd, "send") == 0) {
         is_polled = true;
-        // umdk_mhz19_ask();
-        msg_send(&timer_msg, timer_pid);
-    }
-    
-    if (strcmp(cmd, "raw") == 0) {
-        is_polled = true;
-        char *pos = argv[2];
-        
-        if ((strlen(pos) % 2) != 0 ) {
-            puts("[umdk-" _UMDK_NAME_ "] Error: hex number length must be even");
-            return 0;
-        }
-        
-        if ((strlen(pos)) > 400 ) {
-            puts("[umdk-" _UMDK_NAME_ "] Error: over 200 bytes of data");
-            return 0;
-        }
-
-        uint8_t data[200];
-        uint8_t count = 0;
-        uint8_t i = 0;
-        char buf[3] = { 0 };
-        for(i = 0; i < strlen(argv[2])/2; i++) {
-            /* copy 2 hex symbols to a new array */
-            memcpy(buf, pos, 2);
-            pos += 2;
-
-            if (strcmp(buf, "0x") && strcmp(buf, "0X")) {
-                data[count] = strtol(buf, NULL, 16);
-                count++;
-            }
-        }
-        
-        /* Send data */
-        uart_write(UART_DEV(UMDK_UART_DEV), (uint8_t *) data, count);
+        mhz19_get(&mhz19);
     }
     
     if (strcmp(cmd, "period") == 0) {
@@ -271,28 +168,15 @@ void umdk_mhz19_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     callback = event_callback;
 
     init_config();
+    
+    mhz19_param_t mhz19_params;
+    mhz19_params.mhz19_cb = mhz19_cb;
+    mhz19_params.uart = UMDK_MHZ19_UART;
 
-    uart_params_t uart_params;
-    uart_params.baudrate = 9600;
-    uart_params.parity = UART_PARITY_NOPARITY;
-    uart_params.stopbits = UART_STOPBITS_10;
-    uart_params.databits = UART_DATABITS_8;
-
-    /* Initialize UART */
-    if (uart_init_ext(UART_DEV(UMDK_UART_DEV), &uart_params, umdk_mhz19_rx_cb, NULL)) {
+    if (!mhz19_init(&mhz19, &mhz19_params)) {
+        puts("[umdk-" _UMDK_NAME_ "] Error initializing driver");
         return;
     }
-
-    send_msg.content.value = 0;
-    send_msg_ovf.content.value = 1;
-
-    char *stack = (char *) allocate_stack();
-    if (!stack) {
-    	puts("[umdk-" _UMDK_NAME_ "] Unable to allocate memory. Is too many modules enabled?");
-    	return;
-    }
-    /* Create handler thread */
-    writer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, umdk_mhz19_writer, NULL, "umdk-mhz19 listening thread");
 
     char *timer_stack = (char *) allocate_stack();
     if (!timer_stack) {
@@ -302,7 +186,6 @@ void umdk_mhz19_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     timer_pid = thread_create(timer_stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "umdk-mhz19 timer thread");
     /* Start publishing timer */
     rtctimers_set_msg(&timer, umdk_mhz19_config.publish_period_sec, &timer_msg, timer_pid);
-    // msg_send(&timer_msg, timer_pid);
 
     unwds_add_shell_command("mhz19", "type 'mhz19' for commands list", umdk_mhz19_shell_cmd);
 
@@ -311,7 +194,7 @@ void umdk_mhz19_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 static void do_reply(module_data_t *reply, umdk_mhz19_reply_t r)
 {
     reply->length = 2;
-    reply->data[0] = UNWDS_MHZ19_MODULE_ID;
+    reply->data[0] = _UMDK_MID_;
     reply->data[1] = r;
 }
 

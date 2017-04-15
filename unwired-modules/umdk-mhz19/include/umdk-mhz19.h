@@ -20,8 +20,9 @@
 
 #include "unwds-common.h"
 
-#define UMDK_MHZ19_RXBUF_SIZE (UNWDS_MAX_DATA_LEN - 1)
-#define UMDK_MHZ19_SYMBOL_TIMEOUT_MS 500
+#ifndef UMDK_MHZ19_UART
+#define UMDK_MHZ19_UART UMDK_UART_DEV
+#endif
 
 /** @} */
 

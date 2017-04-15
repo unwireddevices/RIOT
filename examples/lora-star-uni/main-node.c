@@ -689,7 +689,6 @@ void init_node(shell_command_t **commands)
 
         if (is_connect_button_pressed()) {
             puts("[!] Entering Safe Mode, all modules disabled, class C.");
-			ls.settings.class = LS_ED_CLASS_C;
             blink_led();
             blink_led();
             blink_led();
@@ -709,15 +708,18 @@ void init_node(shell_command_t **commands)
             wdg_set_reload((uint16_t) 0x0FFF);
             wdg_reload();
             wdg_enable();
+            
+            /* allow CPU frequency switching */
+            lpm_prevent_switch = 0;
+            
+            /* enable sleep for Class A devices only */        
+            if (ls.settings.class == LS_ED_CLASS_A) {
+                lpm_prevent_sleep = 0;
+            }
+            
+            rtctimers_sleep(1);
+            blink_led();
         }
-        
-        /* enable sleep for Class A devices only */        
-        if (ls.settings.class == LS_ED_CLASS_A) {
-        	lpm_prevent_sleep = 0;
-        }
-        
-        rtctimers_sleep(1);
-        blink_led();
 
         if (!unwds_get_node_settings().no_join) {
         	ls_ed_join(&ls);
@@ -725,9 +727,6 @@ void init_node(shell_command_t **commands)
     }
     /* Set our commands for shell */
     memcpy(commands, shell_commands, sizeof(shell_commands));
-    
-    /* allow CPU frequency switching */
-    lpm_prevent_switch = 0;
 }
 
 #ifdef __cplusplus

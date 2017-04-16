@@ -32,6 +32,7 @@
 #include "periph/i2c.h"
 #include "periph/gpio.h"
 #include "periph_conf.h"
+#include "xtimer.h"
 
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
@@ -382,12 +383,30 @@ void i2c_poweroff(i2c_t dev)
     }
 }
 
+static void _i2c_reset(I2C_TypeDef *i2c) {
+    DEBUG("I2C: Resetting the bus\n");           
+    
+    uint16_t ccr = i2c->CCR;
+
+    i2c->CR1 |= I2C_CR1_SWRST;
+    i2c->CR1 &= ~I2C_CR1_SWRST;           
+    
+    _i2c_init(i2c, ccr);
+}
+
 static int _start(I2C_TypeDef *i2c, uint8_t address, uint8_t rw_flag)
 {
     /* wait for device to be ready */
     DEBUG("Wait for device to be ready\n");
 
-    while (i2c->SR2 & I2C_SR2_BUSY) {}
+    uint32_t time_now = xtimer_now_usec();
+    while (i2c->SR2 & I2C_SR2_BUSY) {
+        /* 100 ms timeout */
+        if (xtimer_now_usec() - time_now > 100000) {
+            DEBUG("Timeout waiting for device, resetting the bus\n");
+            _i2c_reset(i2c);
+        }
+    }
 
     /* generate start condition */
     DEBUG("Generate start condition\n");
@@ -407,13 +426,7 @@ static int _start(I2C_TypeDef *i2c, uint8_t address, uint8_t rw_flag)
 		/* I2C bus failure */
 		if (i2c_bus_error) {
             /* reset I2C bus */
-            DEBUG("I2C: Resetting the bus\n");           
-            uint16_t ccr = i2c->CCR;
-            
-            i2c->CR1 |= I2C_CR1_SWRST;
-            i2c->CR1 &= ~I2C_CR1_SWRST;           
-            
-            _i2c_init(i2c, ccr);
+            _i2c_reset(i2c);
             
             return -1;
 		}

@@ -299,9 +299,9 @@ bool umdk_counter_cmd(module_data_t *cmd, module_data_t *reply)
             reply->data[0] = _UMDK_MID_;
             
             if (!set_period(period)) {           
-                reply->data[1] = 253;
+                reply->data[1] = UMDK_COUNTER_REPLY_INV_PARAMETER;
             } else {
-                reply->data[1] = 0;
+                reply->data[1] = UMDK_COUNTER_REPLY_OK;
             }
 
             return true; /* Allow reply */
@@ -318,11 +318,14 @@ bool umdk_counter_cmd(module_data_t *cmd, module_data_t *reply)
             
             reply->length = 2;
             reply->data[0] = _UMDK_MID_;
-            reply->data[1] = 0;
+            reply->data[1] = UMDK_COUNTER_REPLY_OK;
 
             return true;
         }
         default:
+            reply->length = 2;
+            reply->data[0] = _UMDK_MID_;
+            reply->data[1] = UMDK_COUNTER_REPLY_UNKNOWN_COMMAND;
             break;
     }
 

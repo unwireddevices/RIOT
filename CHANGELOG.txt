@@ -1,3 +1,7 @@
+17.04.2017
+
+* module initialization fixed for modules with ID > 31
+
 16.04.2017
 
 * MH-Z19 driver added

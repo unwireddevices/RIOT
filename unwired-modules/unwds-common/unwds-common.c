@@ -44,7 +44,7 @@ static uint32_t non_gpio_pin_map;
 /**
  * @brief Bitmap of enabled modules
  */
-static uint32_t enabled_bitmap[4];
+static uint32_t enabled_bitmap[8];
 
 /**
  * NVRAM config.
@@ -162,7 +162,7 @@ void unwds_list_modules(uint32_t *enabled_mods, bool enabled_only) {
 }
 
 void unwds_set_enabled(uint32_t *enabled_mods) {
-    memcpy(enabled_bitmap, enabled_mods, sizeof(enabled_mods));
+    memcpy(enabled_bitmap, enabled_mods, sizeof(enabled_bitmap));
 }
 
 char *unwds_get_module_name(unwds_module_id_t modid) {

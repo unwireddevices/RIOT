@@ -143,7 +143,7 @@ int mhz19_init(mhz19_t *dev, mhz19_param_t *param) {
 		return -2;
 	}
 
-	return 0;
+	return 1;
 }
 
 #ifdef __cplusplus

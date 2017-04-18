@@ -201,6 +201,13 @@ void gpio_init_af(gpio_t pin, gpio_af_t af);
  */
 void gpio_init_analog(gpio_t pin);
 
+/**
+ * @brief   Get status of the pin
+ *
+ * @param[in] pin       pin
+ */
+int gpio_get_status(gpio_t pin);
+
 #ifdef __cplusplus
 }
 #endif

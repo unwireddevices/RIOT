@@ -29,6 +29,8 @@ typedef enum {
 	UMDK_GPIO_REPLY_OK = 2,
 	UMDK_GPIO_REPLY_ERR_PIN = 3,
 	UMDK_GPIO_REPLY_ERR_FORMAT = 4,
+    UMDK_GPIO_REPLY_OK_AINAF = 5,
+    UMDK_GPIO_REPLY_OK_ALL = 6
 } umdk_gpio_reply_t;
 
 typedef enum {
@@ -36,11 +38,12 @@ typedef enum {
 	UMDK_GPIO_SET_0 = 1,
 	UMDK_GPIO_SET_1 = 2,
 	UMDK_GPIO_TOGGLE = 3,
+    UMDK_GPIO_GET_ALL = 4,
 } umdk_gpio_action_t;
 
-#define UMDK_GPIO_PIN_MASK 0x3F
-#define UMDK_GPIO_ACT_MASK 0xC0
-#define UMDK_GPIO_ACT_SHIFT 6
+#define UMDK_GPIO_PIN_MASK 0x1F
+#define UMDK_GPIO_ACT_MASK ~UMDK_GPIO_PIN_MASK
+#define UMDK_GPIO_ACT_SHIFT 5
 
 void umdk_gpio_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
 bool umdk_gpio_broadcast(module_data_t *cmd, module_data_t *reply);

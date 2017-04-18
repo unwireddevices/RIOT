@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 cr0s
+ * Copyright (C) 2016 Unwired Devices LLC [info@unwds.com]
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -13,7 +13,7 @@
  * @{
  * @file
  * @brief
- * @author      cr0s
+ * @author      Evgeny Ponomarev
  */
 
 #ifdef __cplusplus
@@ -64,15 +64,18 @@ static bool set(int num, bool one)
     return true;
 }
 
-static bool get(int num)
+static int get(int num)
 {
     gpio_t gpio = unwds_gpio_pin(num);
-    
     DEBUG("umdk-gpio: decoded pin number: %d\n", (int)gpio);
-
-    gpio_init(gpio, GPIO_IN);
-
     return gpio_read(gpio);
+}
+
+static int get_status(int num)
+{
+    gpio_t gpio = unwds_gpio_pin(num);    
+    DEBUG("umdk-gpio: decoded pin status: %d\n", (int)gpio);
+    return gpio_get_status(gpio);
 }
 
 static bool toggle(int num)
@@ -159,7 +162,7 @@ static bool gpio_cmd(module_data_t *cmd, module_data_t *reply, bool with_reply)
     uint8_t pin = value & UMDK_GPIO_PIN_MASK;
     umdk_gpio_action_t act = (value & UMDK_GPIO_ACT_MASK) >> UMDK_GPIO_ACT_SHIFT;
 
-    if (!check_pin(reply, pin)) {
+    if ((pin != 0) && (!check_pin(reply, pin))) {
         DEBUG("umdk-gpio: pin check failed, pin %d\n", (int)pin);
         return false;
     }
@@ -167,18 +170,53 @@ static bool gpio_cmd(module_data_t *cmd, module_data_t *reply, bool with_reply)
     DEBUG("umdk-gpio: pin %d, act %d\n", (int)pin, (int)act);
 
     switch (act) {
+        case UMDK_GPIO_GET_ALL:
+            DEBUG("umdk-gpio: GPIO GET ALL command\n");
+            reply->length = 2;
+            reply->data[0] = _UMDK_MID_;
+            reply->data[1] = UMDK_GPIO_REPLY_OK_ALL;
+
+            int i = 0;
+            for (i = 0; i < unwds_gpio_pins_total(); i++) {
+                pin = unwds_gpio_pin(i);
+                uint8_t combined = 0;
+                
+                /* bit 0: pin value, bit 1: 0 for IN, 1 for OUT, bit 3: AF/AIN, bit 4: reserved */
+                /* 0b111 means pin not used, 0b110 — AIN, 0b100 — AF */
+                
+                if (pin == 0) {
+                    combined = 0b111;
+                } else {
+                    int status = get_status(pin);
+                    if (status > 0x01) {
+                        pin = 0;
+                    } else {
+                        pin = get(pin) & 0x1;
+                    }
+                    combined = (status << 1) | pin;
+                }
+                DEBUG("Pin: %d, status: %d, value: %d\n", i, combined >> 1, combined & 0x1);
+                reply->data[2 + i/2] |= combined << (4 * (i%2));
+            }
+            reply->length += (i+1)/2;
+            break;
         case UMDK_GPIO_GET:
             DEBUG("umdk-gpio: GPIO GET command\n");
             if (with_reply) {
-                if (get(pin)) {
-                    do_reply(reply, UMDK_GPIO_REPLY_OK_1);
-                } else {
-                    do_reply(reply, UMDK_GPIO_REPLY_OK_0);
+                switch (get(pin)) {
+                    case 1:
+                        do_reply(reply, UMDK_GPIO_REPLY_OK_1);
+                        break;
+                    case 0:
+                        do_reply(reply, UMDK_GPIO_REPLY_OK_0);
+                        break;
+                    case -1:
+                        do_reply(reply, UMDK_GPIO_REPLY_OK_AINAF);
+                        break;
                 }
             }
-
             break;
-
+            
         case UMDK_GPIO_SET_0:
         case UMDK_GPIO_SET_1:
             DEBUG("umdk-gpio: GPIO SET command\n");

@@ -241,6 +241,11 @@ gpio_t unwds_gpio_pin(int pin)
     return unwds_gpio_map[pin];
 }
 
+int unwds_gpio_pins_total(void)
+{
+    return (sizeof(unwds_gpio_map) / sizeof(gpio_t));
+}
+
 void int_to_float_str(char *buf, int decimal, uint8_t precision) {  
     int i = 0;
     int divider = 1;

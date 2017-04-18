@@ -129,6 +129,7 @@ uint64_t unwds_get_ability_mask(unwds_module_id_t modid);
 int unwds_modid_by_name(char *name);
 
 gpio_t unwds_gpio_pin(int pin);
+int unwds_gpio_pins_total(void);
 
 void int_to_float_str(char *buf, int decimal, uint8_t precision);
 

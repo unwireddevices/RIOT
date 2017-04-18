@@ -20,7 +20,11 @@
 #define UNWDS_GPIO_H_
 
 static const gpio_t unwds_gpio_map[] = {
+#ifdef UNWD_GPIO_0
+    UNWD_GPIO_0,
+#else
     0,
+#endif
 #ifdef UNWD_GPIO_1
     UNWD_GPIO_1,
 #else
@@ -168,6 +172,11 @@ static const gpio_t unwds_gpio_map[] = {
 #endif
 #ifdef UNWD_GPIO_30
     UNWD_GPIO_30,
+#else
+    0,
+#endif
+#ifdef UNWD_GPIO_31
+    UNWD_GPIO_31,
 #else
     0,
 #endif

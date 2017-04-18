@@ -238,6 +238,17 @@ int gpio_read(gpio_t pin)
 	return -1;
 }
 
+int gpio_get_status(gpio_t pin) {
+    if (pin == GPIO_UNDEF) {
+        return -2;
+    }
+    
+    GPIO_TypeDef *port = _port(pin);
+    uint32_t pin_num = _pin_num(pin);
+    
+    return (port->MODER & (3 << (pin_num * 2))) >> (pin_num * 2);
+}
+
 void gpio_set(gpio_t pin)
 {
     if (pin == GPIO_UNDEF) {

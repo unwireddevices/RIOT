@@ -1,3 +1,5 @@
+SHELL := /bin/bash # Use bash syntax
+
 DIRS += $(dir $(wildcard $(addsuffix /Makefile, ${USEMODULE})))
 INCLUDES += $(addprefix -I../../unwired-modules/, $(wildcard $(addsuffix /include, $(filter umdk-%, ${USEMODULE}))))
 CFLAGS += $(addprefix -D, $(subst umdk-, umdk_, $(filter umdk-%, ${USEMODULE})))
@@ -6,6 +8,7 @@ UMDK-INCLUDES = $(wildcard $(addsuffix /include, $(filter umdk-%, ${USEMODULE}))
 multiple_targets: create_headers all
 
 create_headers:
+	echo $(SHELL)
 	@modlist=(`echo $(UMDK-INCLUDES)`); \
 	echo "/* DO NOT EDIT! FILE IS AUTO GENERATED */" > unwds-common/include/umdk-modules.h; \
 	echo "#ifndef UMDK_MODULES_H_" >> unwds-common/include/umdk-modules.h; \

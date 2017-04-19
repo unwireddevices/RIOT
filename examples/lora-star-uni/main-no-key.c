@@ -57,15 +57,13 @@ static int set_cmd(int argc, char **argv)
             return 1;
         }
 
-        char s[32] = {};
-
         if (!hex_to_bytes(arg, joinkey, false)) {
             puts("[error] Pardon me, but that's not a hex number!");
             return 1;
         }
 		
 		bool all_zero = true;
-		for (int i=0; i<16; i++) {
+		for (int i = 0; i < 16; i++) {
 			if (joinkey[i] != 0) {
 				all_zero = false;
 			}
@@ -76,12 +74,11 @@ static int set_cmd(int argc, char **argv)
 			return -1;
 		}
 
-        bytes_to_hex(joinkey, 16, s, false);
         joinkey_set = true;
 
         printf("[ok] That's a nice key, thank you!\n \
 Don't forget to save it and write it down for future use, as there's no way to get it back from the programmed LoRa modem.\n \
-JOINKEY = %s\n", s);
+JOINKEY = %s\n", arg);
     } else if (strcmp(type, "devnonce") == 0) {
         if (strlen(arg) != 8) {
             puts("[error] There must be 8 hexadecimal digits in lower case");
@@ -95,7 +92,7 @@ JOINKEY = %s\n", s);
             return 1;
         }
 
-        printf("[ok] That's a nice nonce, thank you!\n \
+        printf("[ok] That's a nice value, thank you!\n \
 Don't forget to save it and write it down for future use, as there's no way to get it back from the programmed LoRa modem.\n \
 DEVNONCE = %s\n", arg);
 
@@ -108,8 +105,8 @@ DEVNONCE = %s\n", arg);
 
 static int save_cmd(int argc, char **argv)
 {
-	if (!joinkey_set || !devnonce) {
-		puts("[error] I'm deeply sorry, but you have provided no key or device nonce");
+	if (!joinkey_set || !devnonce_set) {
+		puts("[error] You have to provide both device key and nonce to proceed");
 		return -1;
 	}
 	
@@ -144,7 +141,10 @@ void init_no_key(shell_command_t **commands)
 
     blink_led();
 
-    puts("[unk] I'm afraid, there's no security key. Could you please set a new one with 'set joinkey NNNNNNNNNNNNNNNN' command?");
+    puts("[nokey] Please provide security keys with following commands:\n"
+    		"set joinkey XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX (32 hex digits)\n"
+    		"set devnonce XXXXXXXX (8 hex digits)\n"
+    		"And type \"save\"");
 }
 
 #ifdef __cplusplus

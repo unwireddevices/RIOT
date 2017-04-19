@@ -438,15 +438,16 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
              * Process received application data frame only if it wasn't sent twice (frame ID duplicated).
              * Confirmation of data reception will be sent in any case
              */
-            if (frame->header.fid >= (uint8_t) (node->last_fid + 1)) {
-            	/* Update frame ID */
-            	node->last_fid = frame->header.fid;
-
+            if ((uint8_t) frame->header.fid >= (uint8_t) (node->last_fid + 1)) {
 				if (!app_data_recv(ls, ch, frame)) {
 					return false;
 				}
+
+            	/* Update frame ID */
+            	node->last_fid = frame->header.fid;
             } else {
-            	DEBUG("ls-gate: frame dropped: %d != %d\n", frame->header.fid, (uint8_t) (node->last_fid + 1));
+            	DEBUG("ls-gate: frame dropped: %d != %d\n", (uint8_t) frame->header.fid, (uint8_t) (node->last_fid + 1));
+            	return false;
             }
 
             /*

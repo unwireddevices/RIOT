@@ -527,7 +527,7 @@ static int ls_clear_nvram(int argc, char **argv)
             puts("[error] Unable to clear NVRAM");
         }
     }
-    else if (strcmp(key, "keys") == 0) {
+    else if (strcmp(key, "key") == 0) {
         uint8_t joinkey_zero[16];
         memset(joinkey_zero, 0, 16);
         if (config_write_main_block(config_get_appid(), joinkey_zero, 0)) {

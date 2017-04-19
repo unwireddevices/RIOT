@@ -159,6 +159,9 @@ ls_gate_node_t *ls_devlist_add_by_addr(ls_gate_devices_t *devlist, ls_addr_t add
 	node->app_nonce = 0;
 	node->is_static = true;
 
+	node->num_nonces = 1;
+	node->nonce[0] = nonce;
+
 	/* Increase number of connected devices */
 	devlist->num_nodes++;
 

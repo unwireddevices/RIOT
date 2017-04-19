@@ -87,7 +87,7 @@ JOINKEY = %s\n", arg);
 
         uint32_t d = 0;
 
-        if (!hex_to_bytesn(arg, 4, (uint8_t *) &d, true)) {
+        if (!hex_to_bytesn(arg, 8, (uint8_t *) &d, true)) {
             puts("[error] Pardon me, but that's not a hex number!");
             return 1;
         }

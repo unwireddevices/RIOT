@@ -66,7 +66,7 @@ static void print_joinkey(void)
 static void print_devnonce(void)
 {
     if (devnonce_set) {
-        printf("DEVNONCE = 0x%04X\n", (unsigned int) devnonce);
+        printf("DEVNONCE = 0x%08X\n", (unsigned int) devnonce);
     }
     else {
         puts("DEVNONCE = <not set>");
@@ -121,17 +121,14 @@ static int unk_set_cmd(int argc, char **argv)
             return 1;
         }
 
-        char s[32] = {};
-
         if (!hex_to_bytes(arg, joinkey, false)) {
             puts("[error] Invalid format specified");
             return 1;
         }
 
-        bytes_to_hex(joinkey, 16, s, false);
         joinkey_set = true;
 
-        printf("[ok] JOINKEY = %s\n", s);
+        printf("[ok] JOINKEY = %s\n", arg);
     } if (strcmp(type, "devnonce") == 0) {
         if (strlen(arg) != 8) {
             puts("[error] There must be 8 hexadecimal digits in lower case");
@@ -140,12 +137,12 @@ static int unk_set_cmd(int argc, char **argv)
 
         uint32_t d = 0;
 
-        if (!hex_to_bytes(arg, (uint8_t *) &d, true)) {
+        if (!hex_to_bytesn(arg, 8, (uint8_t *) &d, true)) {
             puts("[error] Pardon me, but that's not a hex number!");
             return 1;
         }
 
-        printf("[ok] That's a nice nonce, thank you!\n \
+        printf("[ok] That's a nice value, thank you!\n \
 Don't forget to save it and write it down for future use, as there's no way to get it back from the programmed LoRa modem.\n \
 DEVNONCE = %s\n", arg);
 

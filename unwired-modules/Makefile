@@ -8,7 +8,6 @@ UMDK-INCLUDES = $(wildcard $(addsuffix /include, $(filter umdk-%, ${USEMODULE}))
 multiple_targets: create_headers all
 
 create_headers:
-	echo $(SHELL)
 	@modlist=(`echo $(UMDK-INCLUDES)`); \
 	echo "/* DO NOT EDIT! FILE IS AUTO GENERATED */" > unwds-common/include/umdk-modules.h; \
 	echo "#ifndef UMDK_MODULES_H_" >> unwds-common/include/umdk-modules.h; \

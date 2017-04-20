@@ -66,7 +66,7 @@ typedef struct {
 /**
  * Data rates table.
  */
-static uint8_t datarate_table[7][3] = {
+static uint8_t datarate_table[9][3] = {
     { SX1276_SF12, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR0 */
     { SX1276_SF11, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR1 */
     { SX1276_SF10, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR2 */
@@ -74,6 +74,8 @@ static uint8_t datarate_table[7][3] = {
     { SX1276_SF8, SX1276_BW_125_KHZ, SX1276_CR_4_5 },        /* DR4 */
     { SX1276_SF7, SX1276_BW_125_KHZ, SX1276_CR_4_5 },        /* DR5 */
     { SX1276_SF7, SX1276_BW_250_KHZ, SX1276_CR_4_5 },        /* DR6 */
+	{ SX1276_SF7, SX1276_BW_500_KHZ, SX1276_CR_4_5 },        /* DR7 */
+	{ SX1276_SF6, SX1276_BW_500_KHZ, SX1276_CR_4_5 },        /* DR8 */
 };
 
 #define UART_BUFSIZE 220
@@ -307,7 +309,7 @@ static int cmd_set(int argc, char **argv)
     if (argc != 3) {
         puts("usage: get <key> <value>");
         puts("keys:");
-        puts("\tdr <0-6> -- sets device data rate [0 - slowest, 3 - average, 6 - fastest]");
+        puts("\tdr <0-8> -- sets device data rate [0 - slowest, 3 - average, 8 - fastest]");
         puts("\tfreq <frequency> -- sets LoRa frequency [Hz]");
         puts("\tport <0-255> -- sets port to transmit and receive data");
 
@@ -324,8 +326,8 @@ static int cmd_set(int argc, char **argv)
     if (strcmp(key, "dr") == 0) {
         uint8_t v = strtol(value, NULL, 10);
 
-        if (v > 6) {
-            puts("set dr: datarate value must be from 0 to 6");
+        if (v > 8) {
+            puts("set dr: datarate value must be from 0 to 8");
             return 1;
         }
 

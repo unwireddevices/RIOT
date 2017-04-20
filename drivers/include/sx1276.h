@@ -54,7 +54,8 @@ typedef enum {
  * LoRa modulation spreading factor.
  */
 typedef enum {
-    SX1276_SF7 = 7,
+	SX1276_SF6 = 6,
+    SX1276_SF7,
     SX1276_SF8,
     SX1276_SF9,
     SX1276_SF10,

@@ -334,15 +334,15 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
                 return false;
             }
 
-            /*
-             * Process as acknowledge frame
-             */
             if (frame->header.fid >= (uint8_t) (node->last_fid + 1)) {
             	/* Update frame ID */
                 DEBUG("ls-gate: update frame ID\n");
             	node->last_fid = frame->header.fid;
 
-                if (ls->app_data_ack_cb != NULL) {
+                /*
+                 * Process as acknowledge frame
+                 */
+            	if (ls->app_data_ack_cb != NULL) {
                     ls->app_data_ack_cb(node, ch);
                 }
 
@@ -353,18 +353,19 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
     					node->num_pending--;
     				}
                 }
+
+                /*
+                 * Process as app. data frame
+                 */
+    			if (!app_data_recv(ls, ch, frame)) {
+                    DEBUG("ls-gate: app data processing error\n");
+    				return false;
+    			}
+                DEBUG("ls-gate: data processed\n");
             } else {
             	DEBUG("ls-gate: frame dropped: %d != %d\n", frame->header.fid, (uint8_t) (node->last_fid + 1));
+            	return false;
             }
-
-            /*
-             * Process as app. data frame too
-             */
-			if (!app_data_recv(ls, ch, frame)) {
-                DEBUG("ls-gate: app data processing error\n");
-				return false;
-			}
-            DEBUG("ls-gate: data processed\n");
 
 			return true;
     	}
@@ -395,7 +396,7 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
             }
 
             /*
-             * Process acknowledge frame only if it wasn't sent twice (frame ID duplicated).
+             * Process acknowledge frame only if it havent't sent twice (frame ID duplicated).
              */
             if (frame->header.fid >= (uint8_t) (node->last_fid + 1)) {
             	/* Update frame ID */
@@ -447,7 +448,8 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
             	node->last_fid = frame->header.fid;
             } else {
             	DEBUG("ls-gate: frame dropped: %d != %d\n", (uint8_t) frame->header.fid, (uint8_t) (node->last_fid + 1));
-            	return false;
+            	/* As intended, send confirmation of reception even if frame is dropped */
+            	/*return false;*/
             }
 
             /*

@@ -262,7 +262,7 @@ static void device_join_req(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t dev_i
     send_join_ack(ls, ch, dev_id, node->addr, node->app_nonce);
 }
 
-static bool app_data_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_gate_node_t *node, ls_frame_t *frame, uint8_t *aes_key)
+static void app_data_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_gate_node_t *node, ls_frame_t *frame, uint8_t *aes_key)
 {
     DEBUG("ls-gate: app data frame received\n");
 
@@ -273,39 +273,49 @@ static bool app_data_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_gate_node_t *
     /* Call handler callback */
     DEBUG("ls-gate: call handler callback\n");
     ls->app_data_received_cb(node, ch, frame->payload.data, frame->payload.len, frame->header.status);
-
-    return true;
 }
 
 static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
 {
     DEBUG("ls-gate: frame received\n");
     
+    /* Validate node address and get corresponding node record */
+    ls_gate_node_t *node = NULL;
+    if (frame->header.dev_addr != LS_ADDR_UNDEFINED) {
+    	node = ls_devlist_get(&ls->devices, frame->header.dev_addr);
+
+    	if (node == NULL) {
+    		DEBUG("ls-gate: node must be joined\n");
+    		return false;
+    	}
+    }
+
+    /* Update node's last seen time */
+    node->last_seen = ls->_internal.ping_count;
+
+    /* Derive cryptographic keys */
+    uint8_t mic_key[AES_BLOCK_SIZE];
+    uint8_t aes_key[AES_BLOCK_SIZE];
+
+    if (node) {
+        ls_derive_keys(node->nonce[node->num_nonces - 1], node->app_nonce, node->addr, mic_key, aes_key);
+
+        /* Validate frame MIC */
+        if (!ls_validate_frame_mic(mic_key, frame)) {
+            DEBUG("ls-gate: MIC validation failed\n");
+            return false;
+        }
+    }
+
     switch (frame->header.type) {
     	case LS_UL_UNC_ACK: { /* Unconfirmed data with ack for previous data */
+            /* Node must be defined */
+            if (!node) {
+            	DEBUG("ls-gate: node undefined\n");
+            	return false;
+            }
+
             DEBUG("ls-gate: unconfirmed data with ack for previous data\n");
-            /* Address must be defined */
-            if (frame->header.dev_addr == LS_ADDR_UNDEFINED) {
-                DEBUG("ls-gate: undefined address\n");
-                return false;
-            }
-
-            ls_gate_node_t *node = ls_devlist_get(&ls->devices, frame->header.dev_addr);
-            if (node == NULL) { /* The node must be joined to the network */
-                DEBUG("ls-gate: node not joined\n");
-                return false;
-            }
-
-            /* Derive encryption keys */
-            uint8_t mic_key[AES_BLOCK_SIZE];
-            uint8_t aes_key[AES_BLOCK_SIZE];
-            ls_derive_keys(node->nonce[node->num_nonces - 1], node->app_nonce, node->addr, mic_key, aes_key);
-
-            /* Validate MIC */
-            if (!ls_validate_frame_mic(mic_key, frame)) {
-                DEBUG("ls-gate: MIC validation failed\n");
-                return false;
-            }
 
             if (frame->header.fid >= (uint8_t) (node->last_fid + 1)) {
             	/* Update frame ID */
@@ -330,10 +340,7 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
                 /*
                  * Process as app. data frame
                  */
-    			if (!app_data_recv(ls, ch, node, frame, aes_key)) {
-                    DEBUG("ls-gate: app data processing error\n");
-    				return false;
-    			}
+    			app_data_recv(ls, ch, node, frame, aes_key);
                 DEBUG("ls-gate: data processed\n");
             } else {
             	DEBUG("ls-gate: frame dropped: %d != %d\n", frame->header.fid, (uint8_t) (node->last_fid + 1));
@@ -344,32 +351,16 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
     	}
 
         case LS_UL_ACK: {
+            /* Node must be defined */
+            if (!node) {
+            	DEBUG("ls-gate: node undefined\n");
+            	return false;
+            }
+
             DEBUG("ls-gate: ack received\n");
-            /* Address must be defined */
-            if (frame->header.dev_addr == LS_ADDR_UNDEFINED) {
-                DEBUG("ls-gate: undefined address\n");
-                return false;
-            }
-
-            ls_gate_node_t *node = ls_devlist_get(&ls->devices, frame->header.dev_addr);
-            if (node == NULL) { /* The node must be joined to the network */
-                DEBUG("ls-gate: node not joined\n");
-                return false;
-            }
-
-            /* Derive encryption keys */
-            uint8_t mic_key[AES_BLOCK_SIZE];
-            uint8_t aes_key[AES_BLOCK_SIZE];
-            ls_derive_keys(node->nonce[node->num_nonces - 1], node->app_nonce, node->addr, mic_key, aes_key);
-
-            /* Validate MIC */
-            if (!ls_validate_frame_mic(mic_key, frame)) {
-                DEBUG("ls-gate: MIC validation failed\n");
-                return false;
-            }
 
             /*
-             * Process acknowledge frame only if it havent't sent twice (frame ID duplicated).
+             * Process acknowledge frame only if it haven't sent twice (frame ID duplicated).
              */
             if (frame->header.fid >= (uint8_t) (node->last_fid + 1)) {
             	/* Update frame ID */
@@ -389,44 +380,27 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
                 }
             } else {
             	DEBUG("ls-gate: frame dropped: %d != %d\n", frame->header.fid, (uint8_t) (node->last_fid + 1));
+            	return false;
             }
 
             return true;
         }
 
         case LS_UL_CONF: { /* Uplink data confirmed */
+            /* Node must be defined */
+            if (!node) {
+            	DEBUG("ls-gate: node undefined\n");
+            	return false;
+            }
+
             DEBUG("ls-gate: uplink data confirmed\n");
-            /* Address must be defined */
-            if (frame->header.dev_addr == LS_ADDR_UNDEFINED) {
-                DEBUG("ls-gate: undefined address\n");
-                return false;
-            }
-
-            ls_gate_node_t *node = ls_devlist_get(&ls->devices, frame->header.dev_addr);
-            if (node == NULL) { /* The node must be joined to the network */
-                DEBUG("ls-gate: node not joined\n");
-                return false;
-            }
-
-            /* Derive encryption keys */
-            uint8_t mic_key[AES_BLOCK_SIZE];
-            uint8_t aes_key[AES_BLOCK_SIZE];
-            ls_derive_keys(node->nonce[node->num_nonces - 1], node->app_nonce, node->addr, mic_key, aes_key);
-
-            /* Validate MIC */
-            if (!ls_validate_frame_mic(mic_key, frame)) {
-                DEBUG("ls-gate: MIC validation failed\n");
-                return false;
-            }
 
             /*
              * Process received application data frame only if it wasn't sent twice (frame ID duplicated).
              * Confirmation of data reception will be sent in any case
              */
             if ((uint8_t) frame->header.fid >= (uint8_t) (node->last_fid + 1)) {
-            	if (!app_data_recv(ls, ch, node, frame, aes_key)) {
-					return false;
-				}
+            	app_data_recv(ls, ch, node, frame, aes_key);
 
             	/* Update frame ID */
             	node->last_fid = frame->header.fid;
@@ -453,34 +427,13 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
         }
 
         case LS_UL_UNC: /* Uplink data unconfirmed */
-            /* Address must be defined */
-            if (frame->header.dev_addr == LS_ADDR_UNDEFINED) {
-                DEBUG("ls-gate: undefined address\n");
-                return false;
-            }
-
-            ls_gate_node_t *node = ls_devlist_get(&ls->devices, frame->header.dev_addr);
-            if (node == NULL) { /* The node must be joined to the network */
-                DEBUG("ls-gate: node not joined\n");
-                return false;
-            }
-
-            /* Derive encryption keys */
-            uint8_t mic_key[AES_BLOCK_SIZE];
-            uint8_t aes_key[AES_BLOCK_SIZE];
-            ls_derive_keys(node->nonce[node->num_nonces - 1], node->app_nonce, node->addr, mic_key, aes_key);
-
-            /* Validate MIC */
-            if (!ls_validate_frame_mic(mic_key, frame)) {
-                DEBUG("ls-gate: MIC validation failed\n");
-                return false;
-            }
+            /* Node must be defined */
+            if (!node)
+            	return false;
 
             DEBUG("ls-gate: uplink data unconfirmed\n");
-            if (!app_data_recv(ls, ch, node, frame, aes_key)) {
-                DEBUG("ls-gate: app data receive error\n");
-                return false;
-            }
+
+            app_data_recv(ls, ch, node, frame, aes_key);
 
             return true;
 

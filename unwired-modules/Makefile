@@ -1,3 +1,4 @@
+SHELL := /bin/bash
 DIRS += $(dir $(wildcard $(addsuffix /Makefile, ${USEMODULE})))
 INCLUDES += $(addprefix -I../../unwired-modules/, $(wildcard $(addsuffix /include, $(filter umdk-%, ${USEMODULE}))))
 CFLAGS += $(addprefix -D, $(subst umdk-, umdk_, $(filter umdk-%, ${USEMODULE})))

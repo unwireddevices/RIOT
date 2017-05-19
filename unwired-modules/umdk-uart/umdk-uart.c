@@ -340,6 +340,7 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
 {
     if (data->length < 1) {
         do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
+        printf("umdk-" _UMDK_NAME_ ": no command received\n");
         return true;
     }
 
@@ -349,6 +350,7 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             /* Cannot send nothing */
             if (data->length == 1) {
                 do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
+                printf("umdk-" _UMDK_NAME_ ": incorrect data length: %d\n", data->length);
                 break;
             }
 
@@ -370,6 +372,7 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             
             if (data->length < 8) { /* Must be one byte of prefix and one byte of BR index */
                 do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
+                printf("umdk-" _UMDK_NAME_ ": incorrect data length: %d, should be >= 8\n", data->length);
                 break;
             }
 
@@ -382,6 +385,7 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             
             if (sscanf((char *)&data->data[1], "%lu-%d%c%d", &baud, &databits, &parity, &stopbits) != 4) {
                 do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
+                printf("umdk-" _UMDK_NAME_ ": error parsing parameters string: %s\n", (char *)&data->data[1]);
                 return true;
             }
             
@@ -433,9 +437,16 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
 
             if (uart_init_ext(umdk_uart_config.uart_dev, &uart_params, rx_cb, NULL)) {
                 do_reply(reply, UMDK_UART_ERR); /* UART error, baud rate not supported? */
+                puts("umdk-" _UMDK_NAME_ ": baud rate not supported");
                 break;
             }
-
+            
+            umdk_uart_config.baudrate = baud;
+            umdk_uart_config.databits = databits;
+            umdk_uart_config.parity = parity;
+            umdk_uart_config.stopbits = stopbits;
+            
+            printf("[umdk-" _UMDK_NAME_ "] Mode: %lu-%u%c%u\n", baud, databits, parity, stopbits);
             save_config();
 
             gpio_set(RE_PIN);

@@ -6,4 +6,4 @@
 *.md conflict-marker-size=100
 *.txt conflict-marker-size=100
 
-*.* text eol=lf
+* text=auto eol=lf

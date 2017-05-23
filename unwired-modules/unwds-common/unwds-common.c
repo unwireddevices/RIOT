@@ -70,7 +70,7 @@ void unwds_setup_nvram_config(nvram_t *nvram_ptr, int base_addr, int block_size)
 bool unwds_read_nvram_config(unwds_module_id_t module_id, uint8_t *data_out, uint8_t max_size) {
     DEBUG("Reading module config\n");
 	/* All configuration blocks has the same size, plus 2 bytes of CRC16 */
-	int addr = nvram_config_base_addr + module_id * (nvram_config_block_size + 2);
+	int addr = nvram_config_base_addr + (module_id - 1) * (nvram_config_block_size + 2);
 
 	/* Either max_size bytes or full block */
 	int size = (max_size < nvram_config_block_size) ? max_size : nvram_config_block_size;
@@ -101,7 +101,7 @@ bool unwds_write_nvram_config(unwds_module_id_t module_id, uint8_t *data, size_t
 		return false;
 
 	/* All configuration blocks has the same size, plus 2 bytes of CRC16 */
-	int addr = nvram_config_base_addr + module_id * (nvram_config_block_size + 2);
+	int addr = nvram_config_base_addr + (module_id - 1) * (nvram_config_block_size + 2);
 
     uint16_t crc16 = fletcher16(data, data_size);
     
@@ -160,6 +160,8 @@ static bool unwds_storage_cleanup(void) {
             
             if (clean_blocks >= UNWDS_MIN_CLEAN_BLOCKS) {
                 DEBUG("Cleanup done\n");
+                DEBUG("Writing new storage config\n");
+                unwds_write_nvram_config(UNWDS_CONFIG_MODULE_ID, storage_blocks, sizeof(storage_blocks));
                 return true;
             }
         }
@@ -168,6 +170,8 @@ static bool unwds_storage_cleanup(void) {
     }
     
     DEBUG("Done, but only %d clean blocks\n", clean_blocks);
+    DEBUG("Writing new storage config\n");
+    unwds_write_nvram_config(UNWDS_CONFIG_MODULE_ID, storage_blocks, sizeof(storage_blocks));
     
     return false;
 }

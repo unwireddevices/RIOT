@@ -1,3 +1,6 @@
+23.05.2017
+* ability to change device class and reboot node with umdk-config commands
+
 18.04.2017
 
 * umdk-gpio now has a special command to report status of all gpios

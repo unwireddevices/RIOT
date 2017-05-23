@@ -27,6 +27,8 @@ typedef enum {
 
 typedef enum {
 	UMDK_CONFIG_MODULES = 0,
+    UMDK_REBOOT_DEVICE = 1,
+    UMDK_SET_CLASS = 2,
 } umdk_config_action_t;
 
 void umdk_config_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);

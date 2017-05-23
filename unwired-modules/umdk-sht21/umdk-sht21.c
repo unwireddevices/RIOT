@@ -58,7 +58,6 @@ static rtctimer_t timer;
 static bool is_polled = false;
 
 static struct {
-	uint8_t is_valid;
 	uint8_t publish_period_min;
 	uint8_t i2c_dev;
 } sht21_config;
@@ -131,7 +130,6 @@ static void *timer_thread(void *arg) {
 }
 
 static void reset_config(void) {
-	sht21_config.is_valid = 0;
 	sht21_config.publish_period_min = UMDK_SHT21_PUBLISH_PERIOD_MIN;
 	sht21_config.i2c_dev = UMDK_SHT21_I2C;
 }
@@ -140,21 +138,14 @@ static void init_config(void) {
 	reset_config();
 
 	if (!unwds_read_nvram_config(_UMDK_MID_, (uint8_t *) &sht21_config, sizeof(sht21_config)))
-		return;
-
-	if ((sht21_config.is_valid == 0xFF) || (sht21_config.is_valid == 0)) {
 		reset_config();
-		return;
-	}
 
 	if (sht21_config.i2c_dev >= I2C_NUMOF) {
 		reset_config();
-		return;
 	}
 }
 
 static inline void save_config(void) {
-	sht21_config.is_valid = 1;
 	unwds_write_nvram_config(_UMDK_MID_, (uint8_t *) &sht21_config, sizeof(sht21_config));
 }
 

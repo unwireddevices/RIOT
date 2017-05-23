@@ -79,6 +79,18 @@ uint8_t *allocate_stack(void);
 #define UNWDS_MAX_MODULE_NAME 10
 #define UNWDS_MAX_DATA_LEN 126
 
+#define UNWDS_CONFIG_STORAGE_SIZE 128
+
+#if (CPU_MODEL == stm32l151cb)
+#define UNWDS_STORAGE_BLOCKS_MAX 4
+#define UNWDS_EEPROM_SIZE 4096
+#else
+#define UNWDS_STORAGE_BLOCKS_MAX 8
+#define UNWDS_EEPROM_SIZE 8192
+#endif
+
+#define UNWDS_CONFIG_STORAGE_ADDR (UNWDS_EEPROM_SIZE - UNWDS_STORAGE_BLOCKS_MAX*UNWDS_CONFIG_STORAGE_SIZE)
+
 /**
  * Shell commands
  */
@@ -132,6 +144,11 @@ gpio_t unwds_gpio_pin(int pin);
 int unwds_gpio_pins_total(void);
 
 void int_to_float_str(char *buf, int decimal, uint8_t precision);
+
+bool unwds_reserve_storage_blocks(unwds_module_id_t module_id);
+bool unwds_distribute_storage_blocks(void);
+bool unwds_read_nvram_storage(unwds_module_id_t module_id, uint8_t *data_out, uint8_t size);
+bool unwds_write_nvram_storage(unwds_module_id_t module_id, uint8_t *data, size_t data_size);
 
 void ungets(char *str);
 

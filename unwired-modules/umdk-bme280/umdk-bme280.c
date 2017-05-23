@@ -60,7 +60,6 @@ static bool is_polled = false;
 static const bme280_params_t bme280_params[] = { BME280_PARAMS_BOARD };
 
 static struct {
-	uint8_t is_valid;
 	uint8_t publish_period_min;
 } bme280_config;
 
@@ -122,24 +121,19 @@ static void *timer_thread(void *arg) {
 }
 
 static void reset_config(void) {
-	bme280_config.is_valid = 0;
 	bme280_config.publish_period_min = UMDK_BME280_PUBLISH_PERIOD_MIN;
 }
 
 static void init_config(void) {
 	reset_config();
 
-	if (!unwds_read_nvram_config(_UMDK_MID_, (uint8_t *) &bme280_config, sizeof(bme280_config)))
-		return;
+	if (!unwds_read_nvram_config(_UMDK_MID_, (uint8_t *) &bme280_config, sizeof(bme280_config))) {
+        reset_config();
+    }
 
-	if ((bme280_config.is_valid == 0xFF) || (bme280_config.is_valid == 0)) {
-		reset_config();
-		return;
-	}
 }
 
 static inline void save_config(void) {
-	bme280_config.is_valid = 1;
 	unwds_write_nvram_config(_UMDK_MID_, (uint8_t *) &bme280_config, sizeof(bme280_config));
 }
 

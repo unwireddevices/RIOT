@@ -64,8 +64,10 @@ typedef struct {
 
 #define CONFIG_SIZE (sizeof(nvram_config_t))
 
-#define UNWDS_CONFIG_BASE_ADDR (CONFIG_ADDR + CONFIG_SIZE + 4)
-#define UNWDS_CONFIG_BLOCK_SIZE_BYTES 64
+/* CONFIG_ADDR + CONFIG_SIZE + 4 must be < 256 */
+
+#define UNWDS_CONFIG_BASE_ADDR (256)
+#define UNWDS_CONFIG_BLOCK_SIZE_BYTES (24)
 
 bool load_eui64_nvram(nvram_t *nvram);
 bool write_eui64_nvram(uint64_t eui);

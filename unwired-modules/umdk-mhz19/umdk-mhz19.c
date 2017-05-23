@@ -51,11 +51,10 @@ static mhz19_t mhz19;
 static uwnds_cb_t *callback;
 
 typedef struct {
-	uint8_t is_valid;
     uint8_t publish_period_sec;
 } umdk_mhz19_config_t;
 
-static umdk_mhz19_config_t umdk_mhz19_config = { .is_valid = 0, .publish_period_sec = 5};
+static umdk_mhz19_config_t umdk_mhz19_config = { .publish_period_sec = 5};
 
 static bool is_polled = false;
 static rtctimer_t timer;
@@ -112,7 +111,6 @@ void mhz19_cb(mhz19_data_t mhz19_data)
 }
 
 static void reset_config(void) {
-	umdk_mhz19_config.is_valid = 0;
     umdk_mhz19_config.publish_period_sec = 60;
 }
 
@@ -120,16 +118,10 @@ static void init_config(void) {
 	reset_config();
 
 	if (!unwds_read_nvram_config(_UMDK_MID_, (uint8_t *) &umdk_mhz19_config, sizeof(umdk_mhz19_config)))
-		return;
-
-	if ((umdk_mhz19_config.is_valid == 0xFF) || (umdk_mhz19_config.is_valid == 0))  {
 		reset_config();
-		return;
-	}
 }
 
 static inline void save_config(void) {
-	umdk_mhz19_config.is_valid = 1;
 	unwds_write_nvram_config(_UMDK_MID_, (uint8_t *) &umdk_mhz19_config, sizeof(umdk_mhz19_config));
 }
 

@@ -56,7 +56,6 @@ static msg_t send_msg_ovf;
 static xtimer_t send_timer;
 
 typedef struct {
-	uint8_t is_valid;
 	uint8_t uart_dev;
 	uint32_t baudrate;
     uint8_t databits;
@@ -64,7 +63,7 @@ typedef struct {
     uint8_t stopbits;
 } umdk_uart_config_t;
 
-static umdk_uart_config_t umdk_uart_config = { 0, UMDK_UART_DEV, 115200U, \
+static umdk_uart_config_t umdk_uart_config = { UMDK_UART_DEV, 115200U, \
                                                UART_DATABITS_8, UART_PARITY_NOPARITY, \
                                                UART_STOPBITS_10 };
 
@@ -129,7 +128,6 @@ void rx_cb(void *arg, uint8_t data)
 }
 
 static void reset_config(void) {
-	umdk_uart_config.is_valid = 0;
 	umdk_uart_config.baudrate = 115200U;
     umdk_uart_config.databits = UART_DATABITS_8;
     umdk_uart_config.parity = UART_PARITY_NOPARITY;
@@ -140,14 +138,11 @@ static void reset_config(void) {
 static void init_config(void) {
 	reset_config();
 
-	if (!unwds_read_nvram_config(_UMDK_MID_, (uint8_t *) &umdk_uart_config, sizeof(umdk_uart_config)))
-		return;
-
-	if ((umdk_uart_config.is_valid == 0xFF) || (umdk_uart_config.is_valid == 0))  {
+	if (!unwds_read_nvram_config(_UMDK_MID_, (uint8_t *) &umdk_uart_config, sizeof(umdk_uart_config))) {
 		reset_config();
-		return;
-	}
-    
+        return;
+    }
+
     /* simple check if we're upgrading from previous version */
     if (umdk_uart_config.stopbits > UART_STOPBITS_20) {
 		reset_config();
@@ -161,7 +156,6 @@ static void init_config(void) {
 }
 
 static inline void save_config(void) {
-	umdk_uart_config.is_valid = 1;
 	unwds_write_nvram_config(_UMDK_MID_, (uint8_t *) &umdk_uart_config, sizeof(umdk_uart_config));
 }
 

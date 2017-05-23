@@ -54,14 +54,11 @@ static rtctimer_t timer;
 static bool is_polled = false;
 
 static struct {
-	uint8_t is_valid;
 	uint8_t publish_period_min;
 	uint32_t adc_lines_enabled;
 } adc_config;
 
 static void reset_config(void) {
-	adc_config.is_valid = 0;
-
 	adc_config.publish_period_min = UMDK_ADC_PUBLISH_PERIOD_MIN;
 
 	for (int i = 0; i < ADC_NUMOF; i++) {
@@ -72,19 +69,14 @@ static void reset_config(void) {
 static void init_config(void) {
 	reset_config();
 
-	if (!unwds_read_nvram_config(_UMDK_MID_, (uint8_t *) &adc_config, sizeof(adc_config)))
-		return;
-
-	if ((adc_config.is_valid == 0xFF) || (adc_config.is_valid == 0)) {
-		reset_config();
-		return;
-	}
-
+	if (!unwds_read_nvram_config(_UMDK_MID_, (uint8_t *) &adc_config, sizeof(adc_config))) {
+        reset_config();
+    }
+        
 	printf("[umdk-" _UMDK_NAME_ "] Publish period: %d min\n", adc_config.publish_period_min);
 }
 
 static inline void save_config(void) {
-	adc_config.is_valid = 1;
 	unwds_write_nvram_config(_UMDK_MID_, (uint8_t *) &adc_config, sizeof(adc_config));
 }
 

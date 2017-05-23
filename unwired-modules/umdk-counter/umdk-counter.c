@@ -59,7 +59,6 @@ static msg_t publishing_msg = { };
 
 
 static struct  {
-    uint8_t is_valid;
     uint32_t count_value[UMDK_COUNTER_NUM_SENS];
     uint8_t publish_period;
 } conf_counter;
@@ -119,8 +118,7 @@ static void counter_irq(void* arg)
 
 static inline void save_config(void)
 {
-    conf_counter.is_valid = 1;
-    unwds_write_nvram_config(_UMDK_MID_, (uint8_t *) &conf_counter, sizeof(conf_counter));
+   unwds_write_nvram_config(_UMDK_MID_, (uint8_t *) &conf_counter, sizeof(conf_counter));
 }
 
 static void *handler(void *arg)
@@ -173,7 +171,6 @@ static void btn_connect(void* arg) {
 }
 
 static void reset_config(void) {
-	conf_counter.is_valid = 0;
 	memset(&conf_counter.count_value[0], 0, sizeof(conf_counter.count_value));
 	conf_counter.publish_period = UMDK_COUNTER_PUBLISH_PERIOD_MIN;
 }
@@ -253,12 +250,8 @@ void umdk_counter_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 
     /* Load config from NVRAM */
     if (!unwds_read_nvram_config(_UMDK_MID_, (uint8_t *) &conf_counter, sizeof(conf_counter))) {
-        return;
+        reset_config();
     }
-    
-    if ((conf_counter.is_valid == 0xFF) || (conf_counter.is_valid == 0))  {
-		reset_config();
-	}
 
     printf("[umdk-" _UMDK_NAME_ "] Current publish period: %d hour(s)\n", conf_counter.publish_period);
     

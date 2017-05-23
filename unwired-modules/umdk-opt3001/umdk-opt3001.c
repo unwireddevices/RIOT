@@ -57,7 +57,6 @@ static rtctimer_t timer;
 static bool is_polled = false;
 
 static struct {
-	uint8_t is_valid;
 	uint8_t publish_period_min;
 	uint8_t i2c_dev;
 } opt3001_config;
@@ -122,7 +121,6 @@ static void *timer_thread(void *arg) {
 }
 
 static void reset_config(void) {
-	opt3001_config.is_valid = 0;
 	opt3001_config.publish_period_min = UMDK_OPT3001_PUBLISH_PERIOD_MIN;
 	opt3001_config.i2c_dev = UMDK_OPT3001_I2C;
 }
@@ -131,12 +129,7 @@ static void init_config(void) {
 	reset_config();
 
 	if (!unwds_read_nvram_config(_UMDK_MID_, (uint8_t *) &opt3001_config, sizeof(opt3001_config)))
-		return;
-
-	if ((opt3001_config.is_valid == 0xFF) || (opt3001_config.is_valid == 0)) {
 		reset_config();
-		return;
-	}
 
 	if (opt3001_config.i2c_dev >= I2C_NUMOF) {
 		reset_config();
@@ -145,7 +138,6 @@ static void init_config(void) {
 }
 
 static inline void save_config(void) {
-	opt3001_config.is_valid = 1;
 	unwds_write_nvram_config(_UMDK_MID_, (uint8_t *) &opt3001_config, sizeof(opt3001_config));
 }
 

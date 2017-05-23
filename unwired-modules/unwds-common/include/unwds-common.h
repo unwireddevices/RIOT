@@ -133,4 +133,6 @@ int unwds_gpio_pins_total(void);
 
 void int_to_float_str(char *buf, int decimal, uint8_t precision);
 
+void ungets(char *str);
+
 #endif /* UNWDS_COMMON_H_ */

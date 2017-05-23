@@ -27,7 +27,7 @@ extern "C" {
 #include <string.h>
 
 #include "nvram.h"
-
+#include "xtimer.h"
 #include "board.h"
 
 #include "unwds-common.h"
@@ -266,6 +266,16 @@ void int_to_float_str(char *buf, int decimal, uint8_t precision) {
     strcat(format, digits);
     
     snprintf(buf, 50, format, abs(decimal/divider), abs(decimal%divider));
+}
+
+void ungets(char *str)
+{
+    int i;
+    i = strlen(str);
+
+    while(i > 0) {
+        ungetc(str[--i], stdin);
+    }
 }
 
 #ifdef __cplusplus

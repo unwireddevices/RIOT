@@ -14,6 +14,7 @@
  * @file		unwds-common.c
  * @brief       Common routines for all UMDK modules
  * @author      Eugene Ponomarev
+ * @author      Oleg Artamonov
  */
 
 #ifdef __cplusplus
@@ -29,7 +30,7 @@ extern "C" {
 #include "nvram.h"
 #include "xtimer.h"
 #include "board.h"
-#include "checksum/crc16_ccitt.h"
+#include "checksum/fletcher16.h"
 
 #include "unwds-common.h"
 #include "unwds-gpio.h"
@@ -86,7 +87,7 @@ bool unwds_read_nvram_config(unwds_module_id_t module_id, uint8_t *data_out, uin
 		return false;
     }
     
-    if (crc16_ccitt_calc(data_out, size) != crc16) {
+    if (fletcher16(data_out, size) != crc16) {
         DEBUG("CRC does not match\n");
         return false;
     }
@@ -102,7 +103,7 @@ bool unwds_write_nvram_config(unwds_module_id_t module_id, uint8_t *data, size_t
 	/* All configuration blocks has the same size, plus 2 bytes of CRC16 */
 	int addr = nvram_config_base_addr + module_id * (nvram_config_block_size + 2);
 
-    uint16_t crc16 = crc16_ccitt_calc(data, data_size);
+    uint16_t crc16 = fletcher16(data, data_size);
     
 	/* Write NVRAM block */
 	if (nvram->write(nvram, data, addr, data_size) < 0) {
@@ -226,7 +227,7 @@ bool unwds_read_nvram_storage(unwds_module_id_t module_id, uint8_t *data_out, ui
 		return false;
     
     uint16_t *crc16 = (uint16_t *)(data_out + size);
-    if (crc16_ccitt_calc(data_out, size) != *crc16) {
+    if (fletcher16(data_out, size) != *crc16) {
         return false;
     }
     
@@ -252,7 +253,7 @@ bool unwds_write_nvram_storage(unwds_module_id_t module_id, uint8_t *data, size_
         return false;
     }
     
-    uint16_t crc16 = crc16_ccitt_calc(data, data_size);
+    uint16_t crc16 = fletcher16(data, data_size);
     
     /* Write NVRAM block */
 	if (nvram->write(nvram, data, addr, data_size) < 0) {

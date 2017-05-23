@@ -57,7 +57,7 @@ static nvram_t *nvram = NULL;
 static int nvram_config_block_size = 0;
 static int nvram_config_base_addr = 0;
 
-static uint8_t reserved_storage[UNWDS_STORAGE_BLOCKS_MAX] = { };
+static uint8_t storage_used[UNWDS_STORAGE_BLOCKS_MAX] = { 0 };
 static uint8_t storage_blocks[UNWDS_STORAGE_BLOCKS_MAX];
 
 void unwds_setup_nvram_config(nvram_t *nvram_ptr, int base_addr, int block_size) {
@@ -116,104 +116,81 @@ bool unwds_write_nvram_config(unwds_module_id_t module_id, uint8_t *data, size_t
 	return true;
 }
 
-bool unwds_reserve_storage_blocks(unwds_module_id_t module_id) {
-    int i = 0;
-    do {
-        i++;
-        if (i == UNWDS_STORAGE_BLOCKS_MAX) {
-            return false;
-        }
-    } while (reserved_storage[i] != 0);
-    
-    reserved_storage[i] = module_id;
-    
-    return true;
-}
-
-bool unwds_distribute_storage_blocks(void) {
-    int i = 0;
-    int k = 0;
-    
-    bool config_has_changed = false;
-    
+static bool unwds_storage_init(void) {
     bool config_valid = unwds_read_nvram_config(UNWDS_CONFIG_MODULE_ID, storage_blocks, sizeof(storage_blocks));
     
     if (!config_valid) {
         DEBUG("Storage block config invalid\n");
         memset((void*)&storage_blocks, 0, sizeof(storage_blocks));
-        for (i = 0; i < UNWDS_STORAGE_BLOCKS_MAX; i++) {
-            if (reserved_storage[i] != 0) {
-                storage_blocks[i] = reserved_storage[i];
-                config_has_changed = true;
-            }
-        }
-    } else {
-        DEBUG("Storage block config valid");
-        
-        for (i = 0; i < UNWDS_STORAGE_BLOCKS_MAX; i++) {
-            bool storage_in_use = false;
-            
-            for (k = 0; k < UNWDS_STORAGE_BLOCKS_MAX; k++) {
-                if (reserved_storage[k] == 0) {
-                    DEBUG("(1) Zero reserved blocks value at %d\n", k);
-                    break;
-                }
-                
-                if (storage_blocks[i] == reserved_storage[k]) {
-                    DEBUG("Storage block has been found\n");
-                    storage_in_use = true;
-                }
-            }
-            
-            if (!storage_in_use) {
-                DEBUG("Storage is not in use anymore\n");
-                storage_blocks[i] = 0;
-                config_has_changed = true;
-            }
-        }
-        
-        for (i = 0; i < UNWDS_STORAGE_BLOCKS_MAX; i++) {
-            if (reserved_storage[i] == 0) {
-                DEBUG("(2) Zero reserved blocks value at %d\n", k);
-                break;
-            }
-            
-            bool storage_exists = false;
-            
-            for (k = 0; k < UNWDS_STORAGE_BLOCKS_MAX; k++) {
-                if (storage_blocks[k] == reserved_storage[i]) {
-                    DEBUG("Storage already exists\n");
-                    storage_exists = true;
-                    break;
-                }
-            }
-            
-            if (!storage_exists) {
-                for (k = 0; k < UNWDS_STORAGE_BLOCKS_MAX; k++) {
-                    if (storage_blocks[k] == 0) {
-                        DEBUG("New storage registered\n");
-                        storage_blocks[k] = reserved_storage[i];
-                        
-                        DEBUG("Erasing EERPOM");
-                        int addr = UNWDS_CONFIG_STORAGE_ADDR + UNWDS_CONFIG_STORAGE_SIZE*k;
-                        nvram->clearpart(nvram, addr, UNWDS_CONFIG_STORAGE_SIZE);
-                        
-                        config_has_changed = true;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-    
-    if (config_has_changed) {
-        DEBUG("Writing new storage config\n");
-        unwds_write_nvram_config(UNWDS_CONFIG_MODULE_ID, storage_blocks, sizeof(storage_blocks));
-    } else {
-        DEBUG("Storage config was not changed\n");
+        return false;
     }
     
     return true;
+}
+
+static bool unwds_storage_cleanup(void) {
+    int clean_blocks = 0;
+    int i = 0;
+    int k = 0;
+    
+    for (i = 0; i < UNWDS_STORAGE_BLOCKS_MAX; i++) {
+        if (storage_blocks[i] == 0) {
+            clean_blocks++;
+        }
+    }
+    
+    if (clean_blocks < UNWDS_MIN_CLEAN_BLOCKS) {
+        for (i = 0; i < UNWDS_STORAGE_BLOCKS_MAX; i++) {
+            bool block_in_use = false;
+            
+            for (k = 0; k < UNWDS_STORAGE_BLOCKS_MAX; k++) {
+                if (storage_blocks[i] == storage_used[k]) {
+                    block_in_use = true;
+                    DEBUG("Block %d is in use by module %d\n", i, storage_used[k]);
+                    break;
+                }
+            }
+            
+            if (!block_in_use) {
+                DEBUG("Unused block found, was used by module %d\n", storage_blocks[i]);
+                storage_blocks[i] = 0;
+                clean_blocks++;
+            }
+            
+            if (clean_blocks >= UNWDS_MIN_CLEAN_BLOCKS) {
+                DEBUG("Cleanup done\n");
+                return true;
+            }
+        }
+    } else {
+        return true;
+    }
+    
+    DEBUG("Done, but only %d clean blocks\n", clean_blocks);
+    
+    return false;
+}
+
+static bool unwds_create_storage_block(unwds_module_id_t module_id) {
+    int i = 0;
+    for (i = 0; i < UNWDS_STORAGE_BLOCKS_MAX; i++) {
+        if (storage_blocks[i] == 0) {
+            DEBUG("Found empty storage block\n");
+            storage_blocks[i] = module_id;
+            
+            DEBUG("Erasing EEPROM\n");
+            /* storage size plus 2 bytes CRC16 */
+            int addr = UNWDS_CONFIG_STORAGE_ADDR + (UNWDS_CONFIG_STORAGE_SIZE + 2)*i;
+            nvram->clearpart(nvram, addr, UNWDS_CONFIG_STORAGE_SIZE + 2);
+            
+            DEBUG("Writing new storage config\n");
+            unwds_write_nvram_config(UNWDS_CONFIG_MODULE_ID, storage_blocks, sizeof(storage_blocks));
+            return true;
+        }
+    }
+    
+    printf("[unwds-common] Error: no storage block available for module %d\n", module_id);
+    return false;
 }
 
 bool unwds_read_nvram_storage(unwds_module_id_t module_id, uint8_t *data_out, uint8_t size) {
@@ -221,14 +198,26 @@ bool unwds_read_nvram_storage(unwds_module_id_t module_id, uint8_t *data_out, ui
     int addr = 0;
     int i = 0;
     
+    /* add the module to the list of modules currently using EEPROM storage */
     for (i = 0; i < UNWDS_STORAGE_BLOCKS_MAX; i++) {
-        if (storage_blocks[i] == module_id) {
-            addr = UNWDS_CONFIG_STORAGE_ADDR + UNWDS_CONFIG_STORAGE_SIZE*i;
+        if (storage_used[i] == 0) {
+            storage_used[i] = module_id;
             break;
         }
     }
     
+    /* find if this module already has dedicated storage space */
+    for (i = 0; i < UNWDS_STORAGE_BLOCKS_MAX; i++) {
+        if (storage_blocks[i] == module_id) {
+            /* storage size plus 2 bytes CRC16 */
+            addr = UNWDS_CONFIG_STORAGE_ADDR + (UNWDS_CONFIG_STORAGE_SIZE + 2)*i;
+            break;
+        }
+    }
+    
+    /* No such space exists, initialize it */
     if (addr == 0) {
+        unwds_create_storage_block(module_id);
         return false;
     }
 
@@ -253,7 +242,8 @@ bool unwds_write_nvram_storage(unwds_module_id_t module_id, uint8_t *data, size_
     
     for (i = 0; i < UNWDS_STORAGE_BLOCKS_MAX; i++) {
         if (storage_blocks[i] == module_id) {
-            addr = UNWDS_CONFIG_STORAGE_ADDR + UNWDS_CONFIG_STORAGE_SIZE*i;
+            /* storage size plus 2 bytes CRC16 */
+            addr = UNWDS_CONFIG_STORAGE_ADDR + (UNWDS_CONFIG_STORAGE_SIZE + 2)*i;
             break;
         }
     }
@@ -305,6 +295,8 @@ void unwds_init_modules(uwnds_cb_t *event_callback)
 {
     int i = 0;
 
+    unwds_storage_init();
+    
 	/* Initialize modules */
     while (modules[i].init_cb != NULL && modules[i].cmd_cb != NULL) {
     	if (enabled_bitmap[modules[i].module_id / 32] & (1 << (modules[i].module_id % 32))) {	/* Module enabled */
@@ -315,7 +307,7 @@ void unwds_init_modules(uwnds_cb_t *event_callback)
         i++;
     }
     
-    unwds_distribute_storage_blocks();
+    unwds_storage_cleanup();
 }
 
 static unwd_module_t *find_module(unwds_module_id_t modid) {

@@ -161,8 +161,8 @@ static void set_pwm_value(umdk_pwm_dev_t *dev, umdk_pwm_ch_t *ch, uint8_t value)
 
 static inline void umdk_pwm_turn_off_pin(gpio_t pin)
 {
-	GPIO_TypeDef *port = (GPIO_TypeDef *)( pin & ~(0x0f));
-	int pin_num =  ( pin & 0x0f);
+	GPIO_TypeDef *port = (GPIO_TypeDef *)( pin & ~(0x0F));
+	int pin_num =  ( pin & 0x0F );
 
 	/* disable pull-up on GPIO */
 	port->PUPDR &= ~(0x3 << (2 * pin_num));
@@ -173,6 +173,7 @@ static inline void umdk_pwm_turn_off_pin(gpio_t pin)
 
 static inline void reply_error(module_data_t *reply) 
 {
+	reply->as_ack = true;
 	reply->length = 2;
 	reply->data[0] = _UMDK_MID_;
 	reply->data[1] = 1;
@@ -180,6 +181,7 @@ static inline void reply_error(module_data_t *reply)
 
 static inline void reply_ok(module_data_t *reply)
 {
+	reply->as_ack = true;	
 	reply->length = 2;
 	reply->data[0] = _UMDK_MID_;
 	reply->data[1] = 0;

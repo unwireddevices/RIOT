@@ -150,6 +150,4 @@ void int_to_float_str(char *buf, int decimal, uint8_t precision);
 bool unwds_read_nvram_storage(unwds_module_id_t module_id, uint8_t *data_out, uint8_t size);
 bool unwds_write_nvram_storage(unwds_module_id_t module_id, uint8_t *data, size_t data_size);
 
-void ungets(char *str);
-
 #endif /* UNWDS_COMMON_H_ */

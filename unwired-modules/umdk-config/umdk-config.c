@@ -54,7 +54,7 @@ static void *timer_thread(void *arg) {
 
     while (1) {
         msg_receive(&msg);
-        ungets("reboot\n");
+        NVIC_SystemReset();
     }
     
     return NULL;
@@ -118,13 +118,15 @@ static bool config_cmd(module_data_t *cmd, module_data_t *reply, bool with_reply
             char class = cmd->data[1];
             switch (class) {
                 case 'a':
-                    ungets("set class A\n");
+                    puts("[umdk-" _UMDK_NAME_ "] set node class A");
+                    unwds_set_class(LS_ED_CLASS_A);
                     unwds_config_save();
                     do_reply(reply, UMDK_CONFIG_REPLY_OK);
                     break;
                 case 'b':
                 case 'c':
-                    ungets("set class C\n");
+                    puts("[umdk-" _UMDK_NAME_ "] set node class C");
+                    unwds_set_class(LS_ED_CLASS_C);
                     unwds_config_save();
                     do_reply(reply, UMDK_CONFIG_REPLY_OK);
                     break;

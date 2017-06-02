@@ -46,8 +46,6 @@ static bool set(int num, bool one)
 {
     gpio_t gpio = unwds_gpio_pin(num);
     
-    DEBUG("umdk-gpio: decoded pin number: %d\n", (int)gpio);
-
     if (gpio == 0) {
         return false;
     }
@@ -67,22 +65,18 @@ static bool set(int num, bool one)
 static int get(int num)
 {
     gpio_t gpio = unwds_gpio_pin(num);
-    DEBUG("umdk-gpio: decoded pin number: %d\n", (int)gpio);
     return gpio_read(gpio);
 }
 
 static int get_status(int num)
 {
     gpio_t gpio = unwds_gpio_pin(num);    
-    DEBUG("umdk-gpio: decoded pin status: %d\n", (int)gpio);
     return gpio_get_status(gpio);
 }
 
 static bool toggle(int num)
 {
     gpio_t gpio = unwds_gpio_pin(num);
-    
-    DEBUG("umdk-gpio: decoded pin number: %d\n", (int)gpio);
 
     if (gpio == 0) {
         return false;
@@ -187,11 +181,11 @@ static bool gpio_cmd(module_data_t *cmd, module_data_t *reply, bool with_reply)
                 if (pin == 0) {
                     combined = 0b111;
                 } else {
-                    int status = get_status(pin);
+                    int status = get_status(i);
                     if (status > 0x01) {
                         pin = 0;
                     } else {
-                        pin = get(pin) & 0x1;
+                        pin = get(i) & 0x1;
                     }
                     combined = (status << 1) | pin;
                 }

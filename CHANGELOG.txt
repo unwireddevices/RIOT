@@ -1,3 +1,8 @@
+02.06.2017
+* CRC for all data stored in EEPROM
+* new EEPROM memory layout
+* fix GPIO "get all" command
+
 23.05.2017
 * ability to change device class and reboot node with umdk-config commands
 

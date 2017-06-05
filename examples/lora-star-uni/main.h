@@ -20,7 +20,7 @@
 
 #include "unwds-common.h"
 
-#define FIRMWARE_VERSION "1.50"
+#define FIRMWARE_VERSION "1.51"
 
 typedef int (*cmd_fun_t)(int, char **);
 

@@ -1,3 +1,6 @@
+05.06.2017
+* new "switch" module in commercial firmware
+
 02.06.2017
 * CRC for all data stored in EEPROM
 * new EEPROM memory layout
@@ -12,7 +15,7 @@
 * umdk-gpio now has a special command to report status of all gpios
 
 17.04.2017
-
+* commercial low-power version of umdk-counter move to umdk-pulse
 * module initialization fixed for modules with ID > 31
 
 16.04.2017

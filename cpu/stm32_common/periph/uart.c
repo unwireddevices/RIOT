@@ -90,7 +90,7 @@ int uart_init_ext(uart_t uart, uart_params_t *params, uart_rx_cb_t rx_cb, void *
 
     /* configure RX and TX pin */
     gpio_init(uart_config[uart].rx_pin, GPIO_IN);
-    gpio_init(uart_config[uart].tx_pin, GPIO_OUT);
+    gpio_init(uart_config[uart].tx_pin, uart_config[uart].tx_mode);
     /* set TX pin high to avoid garbage during further initialization */
     gpio_set(uart_config[uart].tx_pin);
 #ifdef CPU_FAM_STM32F1

@@ -98,11 +98,10 @@ typedef struct {
  * LoRa received packet.
  */
 typedef struct {
-    uint8_t snr_value;      /**< Packet's signal-to-noise rate (SNR) */
-    int16_t rssi_value;     /**< Packet's RSSI */
-    uint8_t size;           /**< Packet's actual size in bytes */
-
     uint8_t content[256];   /**< Packet's content */
+    int16_t rssi_value;     /**< Packet's RSSI */
+    uint8_t snr_value;      /**< Packet's signal-to-noise rate (SNR) */
+    uint8_t size;           /**< Packet's actual size in bytes */
 } sx1276_rx_packet_t;
 
 /**
@@ -116,11 +115,10 @@ typedef enum {
  * Radio settings.
  */
 typedef struct {
-    sx1276_radio_state_t state;
     uint32_t channel;
     sx1276_lora_settings_t lora;
     sx1276_radio_modems_t modem;
-
+    sx1276_radio_state_t state;
 } sx1276_settings_t;
 
 typedef enum {

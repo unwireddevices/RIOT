@@ -31,14 +31,10 @@ extern "C" {
 
 #include "lmt01.h"
 
-static void start_counter_timer(lmt01_t *lmt01) {
-	/* Enable timer GPIO */
-	gpio_init(lmt01->sens_pin, GPIO_IN_PU);
-}
-
 static inline void lmt01_off(lmt01_t *lmt01) {
-	gpio_clear(lmt01->en_pin);
-	gpio_init(lmt01->sens_pin, GPIO_IN); /* disable pull-up */
+    /* disable GPIOs */
+    gpio_init(lmt01->en_pin, GPIO_AIN);
+	gpio_init(lmt01->sens_pin, GPIO_AIN);
 
 	lmt01->_internal.do_count = false;
 	lmt01->_internal.pulse_count = 0;
@@ -46,6 +42,8 @@ static inline void lmt01_off(lmt01_t *lmt01) {
 
 static inline void lmt01_on(lmt01_t *lmt01) {
 	/* Enable sensor */
+    gpio_init(lmt01->sens_pin, GPIO_IN_PU);
+    gpio_init(lmt01->en_pin, GPIO_OUT);
 	gpio_set(lmt01->en_pin);
 
 	/* Start to count pulses */
@@ -66,21 +64,21 @@ int lmt01_init(lmt01_t *lmt01, gpio_t en_pin, gpio_t sens_pin) {
 	lmt01->_internal.pulse_count = 0;
 	lmt01->_internal.state = LMT01_UNKNOWN;
 
+    /*
 	int res = gpio_init(en_pin, GPIO_OUT);
 	if (res < 0)
 		return res;
+    */
 
 	return 0;
 }
 
 static int count_pulses(lmt01_t *lmt01) {
+    /* enable LMT01 power */
 	lmt01_on(lmt01);
 
 	/* Wait minimum time for sensor wake up and all transitions to be done */
     xtimer_spin(xtimer_ticks_from_usec(1e3 * LMT01_MIN_TIMEOUT_MS));
-	
-	/* Init timer in counter mode */
-	start_counter_timer(lmt01);
 
 	uint16_t timeout_us = 0;
 	int pulse_count = 0;
@@ -97,16 +95,16 @@ static int count_pulses(lmt01_t *lmt01) {
 			gpio_prev_value = gpio_curr_value;
 			timeout_us = 0;
 		} else {
-			__asm("nop; nop; nop; nop; nop; nop; nop; nop; nop; nop;");
+			__asm("nop; nop;");
 			timeout_us++;
 		}
 
 		if (pulse_count) { /* sensor is alive, at least one pulse was detected */
-			if (timeout_us > 1000) {
+			if (timeout_us > 10000) {
 				break;
 			}
 		} else {
-			if (timeout_us > 1000*LMT01_MAX_IDLE_TIME_MS) { /* no sensor detected */
+			if (timeout_us > 10000*LMT01_MAX_IDLE_TIME_MS) { /* no sensor detected */
 				break;
 			}	
 		}

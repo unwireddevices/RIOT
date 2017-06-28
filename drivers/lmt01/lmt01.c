@@ -80,10 +80,11 @@ static int count_pulses(lmt01_t *lmt01) {
 	/* Wait minimum time for sensor wake up and all transitions to be done */
     xtimer_spin(xtimer_ticks_from_usec(1e3 * LMT01_MIN_TIMEOUT_MS));
 
-	uint16_t timeout_us = 0;
 	int pulse_count = 0;
 	uint8_t gpio_prev_value = 0;
 	uint8_t gpio_curr_value = 0;
+    
+    uint32_t timestamp = xtimer_now_usec();
 
 	while (1) {
 		gpio_curr_value = gpio_read(lmt01->sens_pin);
@@ -93,18 +94,17 @@ static int count_pulses(lmt01_t *lmt01) {
 				pulse_count++;
 			}
 			gpio_prev_value = gpio_curr_value;
-			timeout_us = 0;
+			timestamp = xtimer_now_usec();
 		} else {
 			__asm("nop; nop;");
-			timeout_us++;
 		}
 
 		if (pulse_count) { /* sensor is alive, at least one pulse was detected */
-			if (timeout_us > 10000) {
-				break;
-			}
+            if ((xtimer_now_usec() - timestamp) > 1000) {
+                break;
+            }
 		} else {
-			if (timeout_us > 10000*LMT01_MAX_IDLE_TIME_MS) { /* no sensor detected */
+			if ((xtimer_now_usec() - timestamp) > 1000*LMT01_MAX_IDLE_TIME_MS) { /* no sensor detected */
 				break;
 			}	
 		}

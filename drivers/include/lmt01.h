@@ -28,7 +28,7 @@
 /**
  * @brief Minimum timeout of sensor response in milliseconds
  */
-#define LMT01_MIN_TIMEOUT_MS 28
+#define LMT01_MIN_TIMEOUT_MS 40
 
 /*
  * @brief Maximum duration of pulses train in milliseconds

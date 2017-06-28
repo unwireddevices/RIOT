@@ -42,8 +42,6 @@
 
 static nvram_t nvram;
 
-char stdinbuf[50];
-
 void print_logo(void)
 {
 	puts("*****************************************");
@@ -113,9 +111,6 @@ int main(void)
 	lpm_prevent_sleep = 1;
     lpm_prevent_switch = 1;
     
-    /* increase STDIN buffer to accomodate commands to be passed to the shell*/
-    setvbuf(stdin, stdinbuf, _IOLBF, sizeof(stdinbuf));
-
     print_logo();
     xtimer_init();
 

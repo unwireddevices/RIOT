@@ -117,6 +117,7 @@ static l1_flash_status_t flash_wait_for_last_operation(uint32_t timeout)
     return status;
 }
 
+#if !defined (STM32L1XX_HD) && !defined (STM32L1XX_MDP) && !defined (STM32L1XX_XL)
 /**
   * @brief  Erase a word in data memory.
   * @param  Address: specifies the address to be erased.
@@ -187,6 +188,7 @@ static l1_flash_status_t flash_data_eeprom_fastprogramword(uint32_t address, uin
   /* Return the Write Status */
   return status;
 }
+#endif
 
 /**
  * @brief  Write a Byte at a specified address in data EEPROM.

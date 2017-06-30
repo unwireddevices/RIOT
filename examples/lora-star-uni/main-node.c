@@ -50,10 +50,10 @@ extern "C" {
 #define DISPLAY_JOINKEY_2BYTES 1
 #define DISPLAY_DEVNONCE_BYTE 1
 
-static kernel_pid_t iwdg_pid;
-static msg_t iwdg_msg = {};
+#define ENABLE_DEBUG (0)
+#include "debug.h"
+
 static rtctimer_t iwdg_timer;
-static char iwdg_stack[256];
 
 static sx1276_t sx1276;
 static ls_ed_t ls;
@@ -638,14 +638,11 @@ static bool is_connect_button_pressed(void)
     return false;
 }
 
-static void *iwdg_thread (void *arg) {
-    msg_t msg;
-    while (1) {
-        msg_receive(&msg);
-        wdg_reload();
-        rtctimers_set_msg(&iwdg_timer, 15, &iwdg_msg, iwdg_pid);
-    }
-    return NULL;
+static void iwdg_reset (void *arg) {
+    wdg_reload();
+    rtctimers_set(&iwdg_timer, 15);
+    DEBUG("Watchdog reset\n");
+    return;
 }
 
 void init_node(shell_command_t **commands)
@@ -697,11 +694,10 @@ void init_node(shell_command_t **commands)
             unwds_init_modules(unwds_callback);
             
             /* reset IWDG timer every 15 seconds */
-            /* thread priority as the same as userspace unwired-modules threads */
-            /* so if some unwired-module get stuck, IWDG will reboot the system */
             /* NB: unwired-module MUST NOT need more than 3 seconds to finish its job */
-            iwdg_pid = thread_create(iwdg_stack, sizeof(iwdg_stack), THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, iwdg_thread, NULL, "IWDG thread");
-            rtctimers_set_msg(&iwdg_timer, 15, &iwdg_msg, iwdg_pid);
+            
+            iwdg_timer.callback = iwdg_reset;
+            rtctimers_set(&iwdg_timer, 15);
             
             /* IWDG period is 18 seconds minimum, 28 seconds typical */
             wdg_set_prescaler(6);

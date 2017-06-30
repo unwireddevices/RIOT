@@ -118,6 +118,77 @@ static l1_flash_status_t flash_wait_for_last_operation(uint32_t timeout)
 }
 
 /**
+  * @brief  Erase a word in data memory.
+  * @param  Address: specifies the address to be erased.
+  * @note   For STM32L1XX_MD, A data memory word is erased in the data memory only 
+  *         if the address to load is the start address of a word (multiple of a word).
+  * @note   To correctly run this function, the DATA_EEPROM_Unlock() function
+  *         must be called before.
+  *         Call the DATA_EEPROM_Lock() to disable the data EEPROM access
+  *         and Flash program erase control register access(recommended to protect 
+  *         the DATA_EEPROM against possible unwanted operation).
+  * @retval FLASH Status: The returned value can be: 
+  *   FLASH_ERROR_PROGRAM, FLASH_ERROR_WRP, FLASH_COMPLETE or FLASH_TIMEOUT.
+  */
+static l1_flash_status_t flash_data_eeprom_eraseword(uint32_t address)
+{
+  l1_flash_status_t status = FLASH_COMPLETE;
+  
+  /* Check the parameters */
+  assert(IS_FLASH_DATA_ADDRESS(address));
+  
+  /* Wait for last operation to be completed */
+  status = flash_wait_for_last_operation(FLASH_ER_PRG_TIMEOUT);
+  
+  if(status == FLASH_COMPLETE)
+  {
+    /* Write "00000000h" to valid address in the data memory" */
+    *(__IO uint32_t *) address = 0x00000000;
+  }
+   
+  /* Return the erase status */
+  return status;
+}
+
+/**
+  * @brief  Programs a word at a specified address in data memory.
+  * @note   To correctly run this function, the DATA_EEPROM_Unlock() function
+  *         must be called before.
+  *         Call the DATA_EEPROM_Lock() to disable the data EEPROM access
+  *         and Flash program erase control register access(recommended to protect 
+  *         the DATA_EEPROM against possible unwanted operation).
+  * @param  Address: specifies the address to be written.
+  * @param  Data: specifies the data to be written.
+  * @note   This function assumes that the is data word is already erased.
+  * @retval FLASH Status: The returned value can be: 
+  *         FLASH_ERROR_PROGRAM, FLASH_ERROR_WRP, FLASH_COMPLETE or FLASH_TIMEOUT. 
+  */
+static l1_flash_status_t flash_data_eeprom_fastprogramword(uint32_t address, uint32_t data)
+{
+  l1_flash_status_t status = FLASH_COMPLETE;
+ 
+  /* Check the parameters */
+  assert(IS_FLASH_DATA_ADDRESS(address));
+  
+  /* Wait for last operation to be completed */
+  status = flash_wait_for_last_operation(FLASH_ER_PRG_TIMEOUT);
+  
+  if(status == FLASH_COMPLETE)
+  {
+    /* Clear the FTDW bit */
+    FLASH->PECR &= (uint32_t)(~((uint32_t)FLASH_PECR_FTDW));
+  
+    /* If the previous operation is completed, proceed to program the new data */    
+    *(__IO uint32_t *)address = data;
+    
+    /* Wait for last operation to be completed */
+    status = flash_wait_for_last_operation(FLASH_ER_PRG_TIMEOUT);       
+  }
+  /* Return the Write Status */
+  return status;
+}
+
+/**
  * @brief  Write a Byte at a specified address in data EEPROM.
  * @param  address: specifies the address to be written.
  * @param  data: specifies the data to be written.
@@ -149,10 +220,11 @@ static l1_flash_status_t program_byte(uint32_t address, uint8_t data)
         else {
             tmpaddr = address & 0xFFFFFFFC;
             tmp = *(__IO uint32_t *) tmpaddr;
-            tmpaddr = 0xFF << ((uint32_t) (0x8 * (Address & 0x3)));
+            tmpaddr = 0xFF << ((uint32_t) (0x8 * (address & 0x3)));
             tmp &= ~tmpaddr;
-            status = DATA_EEPROM_EraseWord(address & 0xFFFFFFFC);
-            status = DATA_EEPROM_FastProgramWord((address & 0xFFFFFFFC), tmp);
+            
+            status = flash_data_eeprom_eraseword(address & 0xFFFFFFFC);
+            status = flash_data_eeprom_fastprogramword((address & 0xFFFFFFFC), tmp);
         }
 #elif defined (STM32L1XX_HD) || defined (STM32L1XX_MDP) || defined (STM32L1XX_XL)
         *(__IO uint8_t *)address = data;

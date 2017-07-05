@@ -237,7 +237,7 @@ static void ls_setup(ls_ed_t *ls)
 int ls_set_cmd(int argc, char **argv)
 {
     if (argc != 3) {
-        puts("usage: get <key> <value>");
+        puts("usage: set <key> <value>");
         puts("keys:");
         if (unwds_get_node_settings().no_join)
         	puts("\taddr <address> -- sets predefined device address for statically personalized devices");

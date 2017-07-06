@@ -28,7 +28,7 @@ static void flash_unlock(void) {
     FLASH->KEYR = FLASH_KEY2;
 }
 
-static void flash_lock() {
+static void flash_lock(void) {
     FLASH->CR |= FLASH_CR_LOCK;
 }
 
@@ -45,10 +45,14 @@ static void flash_erase_page(uint32_t address) {
 }
 
 void flashpage_write(int page, void *data) {
+    flash_unlock();
+    
     FLASH->CR |= FLASH_CR_PG;
     while(!flash_ready()) {}
     
     uint32_t address = (uint32_t)flashpage_addr(page);
+    
+    flash_erase_page(address);
     
     uint16_t *p_data = (uint16_t *)data;
     
@@ -61,12 +65,14 @@ void flashpage_write(int page, void *data) {
     }
     
     FLASH->CR &= ~(FLASH_CR_PG);
+    
+    flash_lock();
 }
 
 void flashpage_read(int page, void *data) {
     uint32_t address = (uint32_t)flashpage_addr(page);
 
-    uint16_t *p_data = (uint32_t *)data;
+    uint32_t *p_data = (uint32_t *)data;
     
     int i = 0;
     for (i = 0; i < FLASHPAGE_SIZE/4; i++) {
@@ -75,7 +81,7 @@ void flashpage_read(int page, void *data) {
 }
 
 int flashpage_verify(int page, void *data) {
-    
+    return 0;
 }
 
 int flashpage_write_and_verify(int page, void *data) {

@@ -61,6 +61,7 @@ int uart_set_baudrate(uart_t uart, uint32_t baudrate) {
         
         /* choose between 8x and 16x oversampling */
         /* 16x is preferred, but is not possible on low clock frequency */
+#ifdef USART_CR1_OVER8
         if (uart_clk < 16) {
             dev(uart)->CR1 |= USART_CR1_OVER8;
             mantissa = (uint16_t)(uart_clk / 8);
@@ -72,6 +73,11 @@ int uart_set_baudrate(uart_t uart, uint32_t baudrate) {
             fraction = (uint8_t)(uart_clk - (mantissa * 16));
             dev(uart)->BRR = ((mantissa & 0x0fff) << 4) | (fraction & 0x0f);
         }
+#else
+        mantissa = (uint16_t)(uart_clk / 16);
+        fraction = (uint8_t)(uart_clk - (mantissa * 16));
+        dev(uart)->BRR = ((mantissa & 0x0fff) << 4) | (fraction & 0x0f);
+#endif
 
         /* Enable UART */
         dev(uart)->CR1 |= USART_CR1_UE;

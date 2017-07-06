@@ -86,6 +86,8 @@
 #endif
 #endif
 
+volatile uint32_t cpu_clock_global;
+
 static void clk_init(void);
 
 void cpu_init(void)
@@ -152,4 +154,6 @@ static void clk_init(void)
     RCC->CR &= ~(RCC_CR_HSION);
     while ((RCC->CR & RCC_CR_HSIRDY) != 0) {}
 #endif
+
+    cpu_clock_global = CLOCK_CORECLOCK;
 }

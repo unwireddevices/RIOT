@@ -30,10 +30,10 @@ extern "C" {
  * @{
  */
 #define CLOCK_HSI           (8000000U)              /* external oscillator */
-#define CLOCK_CORECLOCK     (72000000U)             /* desired core clock frequency */
+#define CLOCK_CORECLOCK     (64000000U)             /* desired core clock frequency */
 /* the actual PLL values are automatically generated */
-#define CLOCK_PLL_DIV       (1)
-#define CLOCK_PLL_MUL       (9)
+#define CLOCK_PLL_DIV       (2)
+#define CLOCK_PLL_MUL       (16)
 /* AHB, APB1, APB2 dividers */
 #define CLOCK_AHB_DIV       RCC_CFGR_HPRE_DIV1
 #define CLOCK_APB2_DIV      RCC_CFGR_PPRE2_DIV1

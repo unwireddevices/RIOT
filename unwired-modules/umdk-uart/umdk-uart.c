@@ -415,10 +415,10 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             
             switch (stopbits) {
                 case 1:
-                    uart_params.parity = UART_STOPBITS_10;
+                    uart_params.stopbits = UART_STOPBITS_10;
                     break;
                 case 2:
-                    uart_params.parity = UART_STOPBITS_20;
+                    uart_params.stopbits = UART_STOPBITS_20;
                     break;
                 default:
                     puts("umdk-" _UMDK_NAME_ ": invalid number of stop bits, must be 1 or 2");

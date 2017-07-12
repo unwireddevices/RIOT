@@ -28,6 +28,7 @@ extern "C" {
 #include "periph/gpio.h"
 #include "assert.h"
 #include "xtimer.h"
+#include "lpm.h"
 
 #include "lmt01.h"
 
@@ -79,6 +80,11 @@ static int count_pulses(lmt01_t *lmt01) {
 
 	/* Wait minimum time for sensor wake up and all transitions to be done */
     xtimer_spin(xtimer_ticks_from_usec(1e3 * LMT01_MIN_TIMEOUT_MS));
+    
+    uint8_t powermode = lpm_get();
+    if (powermode != LPM_ON) {
+        lpm_set(LPM_ON);
+    }
 
 	int pulse_count = 0;
 	uint8_t gpio_prev_value = 0;
@@ -109,6 +115,10 @@ static int count_pulses(lmt01_t *lmt01) {
 			}	
 		}
 	}
+    
+    if (powermode != LPM_ON) {
+        lpm_set(powermode);
+    }
 	
 	/* Disable sensor */
 	lmt01_off(lmt01);

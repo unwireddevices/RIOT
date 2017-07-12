@@ -1,3 +1,10 @@
+12.07.2017
+* USART-based 1-Wire driver added
+* USART settings fix in umdk-uart
+* new "ibutton" module in commercial firmware
+* Mercury M200 and M230 modules in commercial firmware
+* LMT01 driver fix for low-power modes
+
 05.06.2017
 * new "switch" module in commercial firmware
 

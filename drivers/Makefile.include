@@ -91,3 +91,6 @@ endif
 ifneq (,$(filter w5100,$(USEMODULE)))
     USEMODULE_INCLUDES += $(RIOTBASE)/drivers/w5100/include
 endif
+ifneq (,$(filter onewire,$(USEMODULE)))
+    USEMODULE_INCLUDES += $(RIOTBASE)/drivers/onewire/include
+endif

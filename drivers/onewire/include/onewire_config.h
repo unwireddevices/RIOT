@@ -24,7 +24,7 @@
 #define OW_DELAY 25
 
 /**
- * @brief Operations with bits
+ * @brief Bit operations
  */
 #define _BITTING(n) (1<<n)
 #define _CHKBIT(reg, n) (reg & _BITTING(n))
@@ -32,13 +32,13 @@
 
 
 /**
- * @brief Baudrates of using UART
+ * @brief UART baudrate
  */
 #define ONEWIRE_BAUD_9600 9600 // 9600
 #define ONEWIRE_BAUD_115200 115200 // 115200
 
 /**
- * @brief Values bytes to UART for work with 1-Wire bus
+ * @brief UART byte values to imitate 1-Wire bits and commands
  */
 #define OW_RESET 0xF0
 #define OW_WRITE_1 0xFF

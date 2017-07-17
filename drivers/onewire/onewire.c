@@ -73,7 +73,7 @@ int ow_init(onewire_t device)
       /* Initialize the UART */
     uart_init(ow_device, ONEWIRE_BAUD_9600, ow_rx_handler, NULL);
     /* Set pin of TX like as open-drain */
-    gpio_init(uart_config[ow_device].tx_pin, GPIO_OD);
+    gpio_init(uart_config[ow_device].tx_pin, GPIO_OD_PU);
     gpio_init_af(uart_config[ow_device].tx_pin, uart_config[ow_device].tx_af);
 
   return OW_OK;

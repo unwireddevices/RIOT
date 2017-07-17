@@ -207,6 +207,11 @@ int umdk_lmt01_shell_cmd(int argc, char **argv) {
     return 1;
 }
 
+static void btn_connect(void* arg) {
+    is_polled = false;
+    msg_send(&timer_msg, timer_pid);
+}
+
 void umdk_lmt01_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	(void) non_gpio_pin_map;
 
@@ -225,6 +230,8 @@ void umdk_lmt01_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 
     unwds_add_shell_command(_UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_lmt01_shell_cmd);
 
+    gpio_init_int(UNWD_GPIO_1, GPIO_IN_PU, GPIO_FALLING, btn_connect, NULL);
+    
 	timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "lmt01 thread");
 
     /* Start publishing timer */

@@ -255,30 +255,30 @@ static inline TIM_TypeDef *tim_dev(pwm_t pwm)
 int ultrasoundrange_init(ultrasoundrange_t *dev)
 {
 /*    
-    // dev-> threshold_pin = UNWD_GPIO_30;                   //< Sensor "enable" pin 
-    dev-> silencing_pin = UNWD_GPIO_30;                   //< Silencing pin when used with 1 transceiver 
-    dev-> sens_pin = UNWD_GPIO_29;                //< GPIO pin on which sensor is attached 
-    dev-> t1_pin = UNWD_GPIO_28;              //< GPIO pin on which sensor is attached  - hi-z (GPIO_AIN) while measuring! 
-    dev-> t2_pin = UNWD_GPIO_27;              //< GPIO pin on which sensor is attached  -  ground while measuring! 
+    // dev->threshold_pin = UNWD_GPIO_30;                   //< Sensor "enable" pin 
+    dev->silencing_pin = UNWD_GPIO_30;                   //< Silencing pin when used with 1 transceiver 
+    dev->sens_pin = UNWD_GPIO_29;                //< GPIO pin on which sensor is attached 
+    dev->t1_pin = UNWD_GPIO_28;              //< GPIO pin on which sensor is attached  - hi-z (GPIO_AIN) while measuring! 
+    dev->t2_pin = UNWD_GPIO_27;              //< GPIO pin on which sensor is attached  -  ground while measuring! 
 */
     
-    // dev-> silencing_pin = UNWD_GPIO_29;                   // Silencing pin - after R10
-    dev-> silencing_pin = UNWD_GPIO_29;                   // disrupting pin!
-    dev-> t1_pin = UNWD_GPIO_24;              // not needed in current design!
-    dev-> t2_pin = UNWD_GPIO_30;              // ultrasound transmission via transistor - ground while measuring!
-    // dev-> sens_pin = UNWD_GPIO_26;                // GPIO pin on which sensor is attached
-    dev-> sens_pin = UNWD_GPIO_24;                // TIM2 2nd pin
+    // dev->silencing_pin = UNWD_GPIO_29;                   // Silencing pin - after R10
+    dev->silencing_pin = UNWD_GPIO_29;                   // disrupting pin!
+    dev->t1_pin = UNWD_GPIO_24;              // not needed in current design!
+    dev->t2_pin = UNWD_GPIO_30;              // ultrasound transmission via transistor - ground while measuring!
+    // dev->sens_pin = UNWD_GPIO_26;                // GPIO pin on which sensor is attached
+    dev->sens_pin = UNWD_GPIO_24;                // TIM2 2nd pin
 
 
-    dev-> transmit_pulses = UZ_TRANSMIT_PULSES;
-    dev-> silencing_pulses = UZ_SILENCING_PULSES;
-    dev-> period_us = UZ_PERIOD_US;
-    // dev-> period_subus = UZ_PERIOD_SUBUS;
-    dev-> chirp = 0;
-    dev-> idle_period_us = UZ_IDLE_PERIOD_US;
-    dev-> duty = UZ_DUTY;
-    dev-> duty2 = UZ_DUTY2;
-    dev-> verbose = false;
+    dev->transmit_pulses = UZ_TRANSMIT_PULSES;
+    dev->silencing_pulses = UZ_SILENCING_PULSES;
+    dev->period_us = UZ_PERIOD_US;
+    // dev->period_subus = UZ_PERIOD_SUBUS;
+    dev->chirp = 0;
+    dev->idle_period_us = UZ_IDLE_PERIOD_US;
+    dev->duty = UZ_DUTY;
+    dev->duty2 = UZ_DUTY2;
+    dev->verbose = false;
 
     // gpio_init(dev->sens_pin, GPIO_IN);
     gpio_init(dev->sens_pin, GPIO_IN_PU); // LMV331 has open collector output!
@@ -364,7 +364,7 @@ static int ultrasoundrange_transmit(ultrasoundrange_t *dev) {
     int T = dev->period_us; // period in sub-microseconds
     int F = 1000000 / T; // frequency in hz
     uint16_t period_ticks = dev->period_us; // ARR
-    // uint16_t period_ticks = bus_clk * (dev->period_us * UZ_SUBUS_DIVISOR + dev-> period_subus) / (1000000 * UZ_SUBUS_DIVISOR ); // overflow
+    // uint16_t period_ticks = bus_clk * (dev->period_us * UZ_SUBUS_DIVISOR + dev->period_subus) / (1000000 * UZ_SUBUS_DIVISOR ); // overflow
     // uint16_t high_ticks = dev->duty; // CCR at ringing - left
     uint16_t high_ticks = period_ticks - dev->duty; // CCR at ringing - right
     // uint16_t high2_ticks = dev->duty2; // CCR at silencing - left

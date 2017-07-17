@@ -20,11 +20,11 @@
 #include "periph/gpio.h"
 
 #include "xtimer.h"
-
-
 #include "periph/timer.h"
-
 #include "periph/pwm.h"
+
+#define ENABLE_DEBUG (1)
+#include "debug.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -372,7 +372,7 @@ static int ultrasoundrange_transmit(ultrasoundrange_t *dev) {
     uint16_t idle_ticks = dev->idle_period_us;
     uint16_t chirp = dev->chirp;
     if (dev->verbose)
-        printf("[umdk-opt3001-uz] Period : %d, frequency: %d, ticks: %d, high: %d, idle: %d, number2: %d\n", T, F, period_ticks, high_ticks, idle_ticks, dev->silencing_pulses);
+        DEBUG("[ultrasoundrange] Period : %d, frequency: %d, ticks: %d, high: %d, idle: %d, number2: %d\n", T, F, period_ticks, high_ticks, idle_ticks, dev->silencing_pulses);
 
     gpio_init(dev->silencing_pin, GPIO_OUT);
     gpio_clear(dev->silencing_pin); // disrupting current to op amp
@@ -592,16 +592,18 @@ static uint32_t ultrasoundrange_count_pulses(ultrasoundrange_t *dev, int begin_t
 
     // if (dev->verbose && (pulse_count > UZ_MAX_PULSES)) { // never executed
     if (dev->verbose) {
-        /*printf("[umdk-opt3001-uz] Pulse number : %d\n[umdk-opt3001-uz] Pulse times:", pulse_count);
+        /*
+        printf("[umdk-opt3001-uz] Pulse number : %d\n[umdk-opt3001-uz] Pulse times:", pulse_count);
         for (int i = 0; i < pulse_count; i++){
             if (times[i] != -1) printf(" %d", times[i]);
         }
-        printf("\n");*/
-        printf("[umdk-opt3001-uz] Pulse number : %d\n[umdk-opt3001-uz] Pulse times:", pulse_count);
-        for (int i = 0; i < pulse_count; i++){
-            printf(" %d", times[i]);
-        }
         printf("\n");
+        */
+        DEBUG("[ultrasoundrange] Pulse number : %d\n[umdk-opt3001-uz] Pulse times:", pulse_count);
+        for (int i = 0; i < pulse_count; i++){
+            DEBUG(" %d", times[i]);
+        }
+        DEBUG("\n");
     }
     // printf("clock: %d\n", (int)periph_apb_clk(pwm_config[UMDK_PWM_0].bus)); // 32000000
     return pulse_count;

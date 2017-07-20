@@ -140,7 +140,8 @@ typedef struct {
     uint32_t rcc_mask;      /**< bit in clock enable register */
     gpio_t rx_pin;          /**< RX pin */
     gpio_t tx_pin;          /**< TX pin */
-    gpio_t tx_mode;         /**< TX pin mode: GPIO_OUT or GPIO_OD_PU; GPIO_AF_OUT_PP or GPIO_AF_OUT_OD for STM32F1*/
+    uint8_t rx_mode;         /**< RX pin mode: GPIO_IN or GPIO_IN_PU */
+    uint8_t tx_mode;         /**< TX pin mode: GPIO_OUT or GPIO_OD_PU; GPIO_AF_OUT_PP or GPIO_AF_OUT_OD for STM32F1*/
 #ifndef CPU_FAM_STM32F1
     gpio_af_t rx_af;        /**< alternate function for RX pin */
     gpio_af_t tx_af;        /**< alternate function for TX pin */

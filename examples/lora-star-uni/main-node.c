@@ -54,6 +54,7 @@ extern "C" {
 #include "debug.h"
 
 static rtctimer_t iwdg_timer;
+static rtctimer_t lpm_enable_timer;
 
 static sx1276_t sx1276;
 static ls_ed_t ls;
@@ -655,6 +656,12 @@ static void iwdg_reset (void *arg) {
     return;
 }
 
+static void ls_enable_sleep (void *arg) {
+    lpm_prevent_sleep = 0;
+    puts("Low-power sleep mode active");
+    return;
+}
+
 void init_node(shell_command_t **commands)
 {
     puts("[node] Initializing...");
@@ -731,10 +738,11 @@ void init_node(shell_command_t **commands)
             
             /* enable sleep for Class A devices only */        
             if (ls.settings.class == LS_ED_CLASS_A) {
-                lpm_prevent_sleep = 0;
+                lpm_enable_timer.callback = ls_enable_sleep;
+                rtctimers_set(&lpm_enable_timer, 15);
             }
             
-            rtctimers_sleep(1);
+//            rtctimers_sleep(1);
             blink_led();
         }
 

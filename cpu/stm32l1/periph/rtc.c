@@ -21,6 +21,7 @@
 
 
 #include <time.h>
+#include <string.h>
 #include "cpu.h"
 #include "periph/rtc.h"
 #include "periph_conf.h"
@@ -287,6 +288,28 @@ void rtc_disable_wakeup(void)
     /* Disable wakeup */
     RTC->CR &= ~(RTC_CR_WUTE);
     RTC->WPR = 0xFF;
+}
+
+int rtc_save_backup(uint32_t data, uint8_t reg_num) {    
+    __IO uint32_t tmp = 0;
+    
+    tmp = RTC_BASE + 0x50;
+    tmp += (reg_num * 4);
+
+    /* Write the specified register */
+    *(__IO uint32_t *)tmp = (uint32_t)data;
+    
+    return 0;
+}
+
+uint32_t rtc_restore_backup(uint8_t reg_num) {
+    __IO uint32_t tmp = 0;
+    
+    tmp = RTC_BASE + 0x50;
+    tmp += (reg_num * 4);
+
+    /* Read the specified register */
+    return (*(__IO uint32_t *)tmp);
 }
 
 void rtc_poweron(void)

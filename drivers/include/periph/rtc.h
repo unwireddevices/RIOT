@@ -134,6 +134,16 @@ void rtc_enable_wakeup(void);
 void rtc_poweron(void);
 
 /**
+ * @brief Saves data to RTC backup registers
+ */
+int rtc_save_backup(uint32_t data, uint8_t reg_num);
+
+/**
+ * @brief Restores data from RTC backup registers
+ */
+uint32_t rtc_restore_backup(uint8_t reg_num);
+
+/**
  * @brief Turns the RTC hardware module off
  */
 void rtc_poweroff(void);

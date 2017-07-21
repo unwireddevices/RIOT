@@ -577,6 +577,14 @@ static int ls_save_cmd(int argc, char **argv) {
     return 0;
 }
 
+static int ls_safe_cmd(int argc, char **argv) {
+    uint32_t bootmode = UNWDS_BOOT_SAFE_MODE;
+    rtc_save_backup(bootmode, 0);
+    puts("Rebooting in safe mode");
+    NVIC_SystemReset();
+    return 0;
+}
+
 shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX] = {
     { "set", "<config> <value> -- set value for the configuration entry", ls_set_cmd },
 
@@ -593,6 +601,8 @@ shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX] = {
     { "clear", "<all|key|modules> -- clear settings stored in NVRAM", ls_clear_nvram },
 
     { "cmd", "<modid> <cmdhex> -- send command to another UNWDS devices", ls_cmd_cmd },
+    
+    { "safe", " -- reboot in safe mode", ls_safe_cmd },
 
     { NULL, NULL, NULL }
 };
@@ -648,6 +658,8 @@ static void iwdg_reset (void *arg) {
 void init_node(shell_command_t **commands)
 {
     puts("[node] Initializing...");
+    
+    uint32_t bootmode = rtc_restore_backup(0);
 
     /* fill the rest of shell_commands array with NULLs */
     int i = 0;
@@ -664,6 +676,9 @@ void init_node(shell_command_t **commands)
     }
 
     rtctimers_init();
+    
+    /* Set our commands for shell */
+    memcpy(commands, shell_commands, sizeof(shell_commands));
 
     if (!unwds_config_load()) {
         puts("[!] Device is not configured yet. Type \"help\" to see list of possible configuration commands.");
@@ -673,6 +688,9 @@ void init_node(shell_command_t **commands)
     }
     else {
         print_config();
+
+        puts("Type 'safe' to reboot in Safe Mode");
+        xtimer_sleep(2);
 
         radio_init();
         ls_setup(&ls);
@@ -684,7 +702,10 @@ void init_node(shell_command_t **commands)
 
         unwds_setup_nvram_config(config_get_nvram(), UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
 
-        if (is_connect_button_pressed()) {
+        if (is_connect_button_pressed() || (bootmode == UNWDS_BOOT_SAFE_MODE)) {
+            uint32_t bootmode = UNWDS_BOOT_NORMAL_MODE;
+            rtc_save_backup(bootmode, 0);
+            
             puts("[!] Entering Safe Mode, all modules disabled, class C.");
             blink_led();
             blink_led();
@@ -721,8 +742,6 @@ void init_node(shell_command_t **commands)
         	ls_ed_join(&ls);
         }
     }
-    /* Set our commands for shell */
-    memcpy(commands, shell_commands, sizeof(shell_commands));
 }
 
 #ifdef __cplusplus

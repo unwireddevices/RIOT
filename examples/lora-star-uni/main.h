@@ -22,6 +22,12 @@
 
 #define FIRMWARE_VERSION "1.52"
 
+typedef enum {
+    UNWDS_BOOT_NORMAL_MODE = 0,
+    UNWDS_BOOT_SAFE_MODE = 1,
+    UNWDS_BOOT_MODULES_FAILED = 2,
+} boot_modes_t;
+
 typedef int (*cmd_fun_t)(int, char **);
 
 extern void init_node(shell_command_t **commands);

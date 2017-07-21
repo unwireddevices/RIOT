@@ -1,3 +1,7 @@
+21.07.2017
+* 'safe' command to reboot in safe mode
+* 15-seconds grace period before switching on LPM on Class A devices
+
 12.07.2017
 * USART-based 1-Wire driver added
 * USART settings fix in umdk-uart

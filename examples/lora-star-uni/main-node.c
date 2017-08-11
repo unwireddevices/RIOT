@@ -683,9 +683,6 @@ void init_node(shell_command_t **commands)
     }
 
     rtctimers_init();
-    
-    /* Set our commands for shell */
-    memcpy(commands, shell_commands, sizeof(shell_commands));
 
     if (!unwds_config_load()) {
         puts("[!] Device is not configured yet. Type \"help\" to see list of possible configuration commands.");
@@ -695,9 +692,6 @@ void init_node(shell_command_t **commands)
     }
     else {
         print_config();
-
-        puts("Type 'safe' to reboot in Safe Mode");
-        xtimer_sleep(2);
 
         radio_init();
         ls_setup(&ls);
@@ -742,7 +736,6 @@ void init_node(shell_command_t **commands)
                 rtctimers_set(&lpm_enable_timer, 15);
             }
             
-//            rtctimers_sleep(1);
             blink_led();
         }
 
@@ -750,6 +743,8 @@ void init_node(shell_command_t **commands)
         	ls_ed_join(&ls);
         }
     }
+    /* Set our commands for shell */
+    memcpy(commands, shell_commands, sizeof(shell_commands));
 }
 
 #ifdef __cplusplus

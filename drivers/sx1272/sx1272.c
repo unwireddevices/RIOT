@@ -427,9 +427,9 @@ void sx1272_configure_lora(sx1272_t *dev, sx1272_lora_settings_t *settings)
                       RFLR_MODEMCONFIG1_RXPAYLOADCRC_MASK & 
                       RFLR_MODEMCONFIG1_LOWDATARATEOPTIMIZE_MASK) |
                       (dev->settings.lora.bandwidth << 6) |
-                      (dev->settings.lora.coderate << 1) |
-                      (dev->settings.lora.crc_on << 2) |
-                      (dev->settings.lora.implicit_header) |
+                      (dev->settings.lora.coderate << 3) |
+                      (dev->settings.lora.implicit_header << 2 ) |
+                      (dev->settings.lora.crc_on << 1) |
                       (dev->settings.lora.low_datarate_optimize));
                      
     sx1272_reg_write(dev, REG_LR_MODEMCONFIG2,

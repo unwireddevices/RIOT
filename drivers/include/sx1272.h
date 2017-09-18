@@ -45,7 +45,7 @@ typedef enum {
  * LoRa modulation bandwidth.
  */
 typedef enum {
-    SX1272_BW_125_KHZ = 7,
+    SX1272_BW_125_KHZ = 0,
     SX1272_BW_250_KHZ,
     SX1272_BW_500_KHZ
 } sx1272_lora_bandwidth_t;

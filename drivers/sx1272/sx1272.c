@@ -426,7 +426,7 @@ void sx1272_configure_lora(sx1272_t *dev, sx1272_lora_settings_t *settings)
                       RFLR_MODEMCONFIG1_IMPLICITHEADER_MASK &
                       RFLR_MODEMCONFIG1_RXPAYLOADCRC_MASK & 
                       RFLR_MODEMCONFIG1_LOWDATARATEOPTIMIZE_MASK) |
-                      (dev->settings.lora.bandwidth << 4) |
+                      (dev->settings.lora.bandwidth << 6) |
                       (dev->settings.lora.coderate << 1) |
                       (dev->settings.lora.crc_on << 2) |
                       (dev->settings.lora.implicit_header) |
@@ -507,13 +507,13 @@ uint32_t sx1272_get_time_on_air(sx1272_t *dev, sx1272_radio_modems_t modem,
 
             /* Note: SX1272 only supports bandwidths 125, 250 and 500 kHz */
             switch (dev->settings.lora.bandwidth) {
-                case 7: /* 125 kHz */
+                case 0: /* 125 kHz */
                     bw = 125e3;
                     break;
-                case 8: /* 250 kHz */
+                case 1: /* 250 kHz */
                     bw = 250e3;
                     break;
-                case 9: /* 500 kHz */
+                case 2: /* 500 kHz */
                     bw = 500e3;
                     break;
             }

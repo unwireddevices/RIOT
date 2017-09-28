@@ -28,7 +28,16 @@ extern "C" {
 #include "utils.h"
 
 bool hex_to_bytes(char *hexstr, uint8_t *bytes, bool reverse_order) {
-	return hex_to_bytesn(hexstr, strlen(hexstr), bytes, reverse_order);
+    uint32_t len = strlen(hexstr);
+    while(true) {
+        if (hexstr[len-1] == '\r' || hexstr[len-1] == '\n') {
+            len--;
+        } else {
+            break;
+        }
+    }
+    
+	return hex_to_bytesn(hexstr, len, bytes, reverse_order);
 }
 
 bool hex_to_bytesn(char *hexstr, int len, uint8_t *bytes, bool reverse_order) {

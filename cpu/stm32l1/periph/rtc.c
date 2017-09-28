@@ -318,9 +318,11 @@ void rtc_poweron(void)
     periph_clk_en(APB1, RCC_APB1ENR_PWREN);
     PWR->CR |= PWR_CR_DBP;
 
-    /* Reset RTC domain */
+    /* Reset RTC domain - disabled as it clears backup registers */
+    /*
     RCC->CSR |= RCC_CSR_RTCRST;
     RCC->CSR &= ~(RCC_CSR_RTCRST);
+    */
 
     /* Enable the LSE clock (external 32.768 kHz oscillator) */
     RCC->CSR &= ~(RCC_CSR_LSEON);

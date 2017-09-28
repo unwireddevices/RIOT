@@ -1,3 +1,8 @@
+28.09.2017
+* unwd-base branch with UART settings for use with UNWD-BASE2
+* commands to alter gate settings through MQTT
+* software reboot to bootlader for the gate firmware
+
 21.07.2017
 * 'safe' command to reboot in safe mode
 * 15-seconds grace period before switching on LPM on Class A devices

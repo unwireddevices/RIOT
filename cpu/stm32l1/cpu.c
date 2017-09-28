@@ -25,6 +25,7 @@
 #include "board.h"
 #include "periph_conf.h"
 #include "periph/timer.h"
+#include "periph/rtc.h"
 
 /* See if we want to use the PLL */
 #if defined(CLOCK_PLL_DIV) || defined(CLOCK_PLL_MUL)
@@ -93,6 +94,8 @@
 static uint32_t tmpreg;
 volatile uint32_t cpu_clock_global;
 
+void (*SysMemBootJump)(void);
+
 void cpu_init(void)
 {
     /* initialize the Cortex-M core */
@@ -113,6 +116,23 @@ void cpu_init(void)
  */
 void clk_init(void)
 {
+    /* Switching to bootloader if there's a magic number in RTC registers */
+    /* Should be done before initializing anything but RTC */
+    rtc_poweron();
+    if (rtc_restore_backup(0) == 0xB00710AD) {
+        /* clear RTC register */
+        rtc_save_backup(0, 0);
+        rtc_poweroff();
+        
+        /* System Memory on STM32L1 is at 0x1FF0 0000*/
+        /* point the PC to the System Memory reset vector (+4) */
+        SysMemBootJump = (void (*)(void)) (*((uint32_t *) 0x1ff00004));
+        SysMemBootJump();
+    } else {
+        /* if we need RTC we reenable it later, if we don't - we don't */
+        rtc_poweroff();
+    }
+    
     /* Reset the RCC clock configuration to the default reset state(for debug purpose) */
     /* Set MSION bit */
     RCC->CR |= RCC_CR_MSION;

@@ -52,16 +52,6 @@ extern "C" {
 
 #include "ls-regions.h"
 
-typedef struct {
-    bool is_valid;
-
-    ls_channel_t channel;
-    ls_datarate_t dr;
-
-    bool region_not_set;
-    uint8_t region_index;
-} node_role_settings_t;
-
 static node_role_settings_t node_settings;
 static bool dr_set = false, channel_set = false;
 
@@ -519,6 +509,13 @@ static int ls_clear_nvram(int argc, char **argv)
     return 0;
 }
 
+static int ls_goto_bootloader(int argc, char **argv)
+{
+    rtc_save_backup(0xB00710AD, 0);
+    NVIC_SystemReset();
+    return 0;
+}
+
 static int add_cmd(int argc, char **argv) {
 	if (argc != 6) {
 		puts("usage: add <nodeid> <appid> <addr> <devnonce> <channel>");
@@ -582,6 +579,7 @@ static const shell_command_t shell_commands[] = {
     { "save", "-- saves current settings in NVRAM", ls_save_cmd },
 
 	{ "clear", "<all | joinkey> clears settings in NVRAM", ls_clear_nvram },
+    { "update", "-- jumps to UART bootloader", ls_goto_bootloader},
 
     { "list", "-- prints list of connected devices", ls_list_cmd },
 	{ "add", "<nodeid> <appid> <addr> <devnonce> <channel> -- adds node to the list", add_cmd },

@@ -28,6 +28,7 @@ USEMODULE += hashes
 USEMODULE += checksum
 
 USEMODULE += sx1276
+USEMODULE += rtctimers
 
 EXTERNAL_MODULE_DIRS += ../../unwired-modules/
 USEMODULE += lora-star-mac

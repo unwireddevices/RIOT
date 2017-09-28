@@ -122,6 +122,11 @@ void config_clear_joinkey(void) {
 	nv->write(nv, (uint8_t *) &config, CONFIG_ADDR, sizeof(nvram_config_t));
 }
 
+void config_set_joinkey(uint8_t *joinkey) {
+    memcpy(config.nwk_key, joinkey, 16);
+    nv->write(nv, (uint8_t *) &config, CONFIG_ADDR, sizeof(nvram_config_t));
+}
+
 bool config_write_main_block(uint64_t appid64, uint8_t joinkey[16]) {
 	config.appid64 = appid64;
 	memcpy(config.nwk_key, joinkey, 16);

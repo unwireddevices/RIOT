@@ -33,6 +33,13 @@ typedef enum {
 	CMD_KICK_ALL_STATIC = 'K',	/* Kicks device by specified network address via removing it from devices list */
 
 	CMD_FLUSH = 'F',			/* Command to get all pending info */
+    
+    CMD_SET_REGION = 'G',
+    CMD_SET_CHANNEL = 'C',
+    CMD_SET_DATARATE = 'D',
+    CMD_SET_JOINKEY = 'J',
+    CMD_REBOOT = 'R',
+    CMD_FW_UPDATE = 'U',
 } gate_cmd_type_t;
 
 typedef enum {

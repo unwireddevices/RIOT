@@ -22,6 +22,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "ls-gate.h"
+
 #define CONFIG_EUI64_ADDR 0x00
 #define CONFIG_EUI64_SIZE sizeof(uint64_t)
 
@@ -41,6 +43,14 @@ typedef struct {
 	uint64_t eui64;
 	uint32_t crc;
 } config_eui64_t;
+
+typedef struct {
+    bool is_valid;
+    ls_channel_t channel;
+    ls_datarate_t dr;
+    bool region_not_set;
+    uint8_t region_index;
+} node_role_settings_t;
 
 typedef struct {
 	uint32_t magic;							/**< Structure magic */
@@ -71,6 +81,8 @@ bool config_write_main_block(uint64_t appid64, uint8_t joinkey[16]);
 uint64_t config_get_nodeid(void);
 uint64_t config_get_appid(void);
 uint8_t *config_get_joinkey(void);
+
+void config_set_joinkey(uint8_t *joinkey);
 
 /* Role specific settings */
 bool config_write_role_block(uint8_t *buf, size_t size);

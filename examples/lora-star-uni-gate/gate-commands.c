@@ -29,6 +29,8 @@ extern "C" {
 #include "gate-commands.h"
 #include "ls-gate.h"
 #include "unwds-common.h"
+#include "config.h"
+#include "periph/rtc.h"
 
 static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *fifo, char *data) {
 	ls_gate_devices_t *devs = &ls->devices;
@@ -282,6 +284,94 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 
 		break;
 	}
+    
+    case CMD_SET_REGION: {
+        if (strlen(payload) != 3) {
+			printf("[error] Invalid command received: %s\n", payload);
+			return;
+		}
+        
+        uint8_t region = atoi(payload);
+        node_role_settings_t node_settings;
+        config_read_role_block((uint8_t *) &node_settings, sizeof(node_role_settings_t));
+        node_settings.region_index = region;
+        if (config_write_role_block((uint8_t *) &node_settings, sizeof(node_role_settings_t))) {
+            printf("[ok] Region set to %d\n", region);
+        } else {
+            printf("[error] Error saving config\n");
+        }
+        
+        break;
+    }
+    case CMD_SET_DATARATE: {
+        if (strlen(payload) != 3) {
+			printf("[error] Invalid command received: %s\n", payload);
+			return;
+		}
+        
+        uint8_t dr = atoi(payload);
+        node_role_settings_t node_settings;
+        config_read_role_block((uint8_t *) &node_settings, sizeof(node_role_settings_t));
+        node_settings.dr = dr;
+        if (config_write_role_block((uint8_t *) &node_settings, sizeof(node_role_settings_t))) {
+            printf("[ok] Datarate set to %d\n", dr);
+        } else {
+            printf("[error] Error saving config\n");
+        }
+        break;
+    }
+    
+    case CMD_SET_CHANNEL: {
+        if (strlen(payload) != 3) {
+			printf("[error] Invalid command received: %s\n", payload);
+			return;
+		}
+        
+        uint8_t ch = atoi(payload);
+        node_role_settings_t node_settings;
+        config_read_role_block((uint8_t *) &node_settings, sizeof(node_role_settings_t));
+        node_settings.channel = ch;
+        if (config_write_role_block((uint8_t *) &node_settings, sizeof(node_role_settings_t))) {
+            printf("[ok] Channel set to %d\n", ch);
+        } else {
+            printf("[error] Error saving config\n");
+        }
+        
+        break;
+    }
+    case CMD_SET_JOINKEY: {
+        if (strlen(payload) != 33) {
+			printf("[error] Invalid key length: %s\n", payload);
+			return;
+		}
+        
+        uint8_t joinkey[16] = {};
+        uint64_t appid64 = config_get_appid();
+
+        if (!hex_to_bytes(payload, joinkey, false)) {
+        	printf("[error] Invalid hex data received: %s\n", payload);
+			return;
+		}
+             
+        if (config_write_main_block(appid64, joinkey)) {
+            char s[32] = {};
+            bytes_to_hex(joinkey, 16, s, false);
+            printf("[ok] JOINKEY = %s\n", s);
+        } else {
+            printf("[error] Error saving config\n");
+        }
+        
+        break;
+    }
+    case CMD_REBOOT: {
+        NVIC_SystemReset();
+        break;
+    }
+    case CMD_FW_UPDATE: {
+        rtc_save_backup(0xB00710AD, 0);
+        NVIC_SystemReset();
+        break;
+    }
 
 	default:
 		printf("[gate-commands] Unsupported: %s\n", data);

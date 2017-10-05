@@ -100,22 +100,7 @@ void cpu_init(void)
 {
     /* initialize the Cortex-M core */
     cortexm_init();
-    /* initialize system clocks */
-    clk_init();
-    /* switch all GPIOs to AIN mode to minimize power consumption */
-    uint8_t i;
-    GPIO_TypeDef *port;
-    for (i = 0; i < CPU_NUMBER_OF_PORTS; i++) {
-        port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
-        port->MODER = 0xffffffff;
-    }
-}
-
-/**
- * @brief Configure the clock system of the stm32f1
- */
-void clk_init(void)
-{
+    
     /* Switching to bootloader if there's a magic number in RTC registers */
     /* Should be done before initializing anything but RTC */
     rtc_poweron();
@@ -133,6 +118,22 @@ void clk_init(void)
         rtc_poweroff();
     }
     
+    /* initialize system clocks */
+    clk_init();
+    /* switch all GPIOs to AIN mode to minimize power consumption */
+    uint8_t i;
+    GPIO_TypeDef *port;
+    for (i = 0; i < CPU_NUMBER_OF_PORTS; i++) {
+        port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
+        port->MODER = 0xffffffff;
+    }
+}
+
+/**
+ * @brief Configure the clock system of the stm32f1
+ */
+void clk_init(void)
+{
     /* Reset the RCC clock configuration to the default reset state(for debug purpose) */
     /* Set MSION bit */
     RCC->CR |= RCC_CR_MSION;

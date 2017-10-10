@@ -27,6 +27,17 @@
 #define  FLASH_PDKEY1                        ((uint32_t)0x04152637)       /*!< FLASH_PEC and data matrix Key 1 */
 #define  FLASH_PDKEY2                        ((uint32_t)0xFAFBFCFD)       /*!< FLASH_PEC and data matrix Key 2 */
 
+#define STM32L1_DEV_ID_CAT1                 0x416
+#define STM32L1_DEV_ID_CAT2                 0x429
+#define STM32L1_DEV_ID_CAT3                 0x427
+#define STM32L1_DEV_ID_CAT4                 0x436
+#define STM32L1_DEV_ID_CAT56                0x437
+
+#define STM32L1_CPUID_ADDR_CAT12            (0x1ff80050)
+#define STM32L1_CPUID_ADDR_CAT3456          (0x1ff800d0)
+
+#define ST_DEV_ID                           ((DBGMCU->IDCODE) & DBGMCU_IDCODE_DEV_ID)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -49,6 +60,11 @@ void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider);
  * @brief   Initizliaze clocks (switch to default clock)
  */
 void clk_init(void);
+
+int get_cpu_ram_size(void);
+int get_cpu_flash_size(void);
+int get_cpu_eeprom_size(void);
+int get_cpu_category(void);
 
 #ifdef __cplusplus
 }

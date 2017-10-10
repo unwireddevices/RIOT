@@ -13,6 +13,7 @@
 
 #include "nvram.h"
 #include "assert.h"
+#include "cpu.h"
 
 #include "eeprom.h"
 
@@ -117,7 +118,6 @@ static l1_flash_status_t flash_wait_for_last_operation(uint32_t timeout)
     return status;
 }
 
-#if !defined (STM32L1XX_HD) && !defined (STM32L1XX_MDP) && !defined (STM32L1XX_XL)
 /**
   * @brief  Erase a word in data memory.
   * @param  Address: specifies the address to be erased.
@@ -188,7 +188,6 @@ static l1_flash_status_t flash_data_eeprom_fastprogramword(uint32_t address, uin
   /* Return the Write Status */
   return status;
 }
-#endif
 
 /**
  * @brief  Write a Byte at a specified address in data EEPROM.
@@ -201,9 +200,7 @@ static l1_flash_status_t program_byte(uint32_t address, uint8_t data)
 {
     l1_flash_status_t status = FLASH_COMPLETE;
 
-#if !defined (STM32L1XX_HD) && !defined (STM32L1XX_MDP) && !defined (STM32L1XX_XL)
     uint32_t tmp = 0, tmpaddr = 0;
-#endif
 
     /* Check the parameters */
     assert(IS_FLASH_DATA_ADDRESS(address));
@@ -212,14 +209,7 @@ static l1_flash_status_t program_byte(uint32_t address, uint8_t data)
     status = flash_wait_for_last_operation(FLASH_ER_PRG_TIMEOUT);
 
     if (status == FLASH_COMPLETE) {
-#if !defined (STM32L1XX_HD) && !defined (STM32L1XX_MDP) && !defined (STM32L1XX_XL)
-        if (data != (uint8_t) 0x00) {
-            *(__IO uint8_t *)address = data;
-
-            /* Wait for last operation to be completed */
-            status = flash_wait_for_last_operation(FLASH_ER_PRG_TIMEOUT);
-        }
-        else {
+        if ((get_cpu_category() < 3) && (data == (uint8_t) 0x00)) {
             tmpaddr = address & 0xFFFFFFFC;
             tmp = *(__IO uint32_t *) tmpaddr;
             tmpaddr = 0xFF << ((uint32_t) (0x8 * (address & 0x3)));
@@ -227,13 +217,12 @@ static l1_flash_status_t program_byte(uint32_t address, uint8_t data)
             
             status = flash_data_eeprom_eraseword(address & 0xFFFFFFFC);
             status = flash_data_eeprom_fastprogramword((address & 0xFFFFFFFC), tmp);
-        }
-#elif defined (STM32L1XX_HD) || defined (STM32L1XX_MDP) || defined (STM32L1XX_XL)
-        *(__IO uint8_t *)address = data;
+        } else {
+            *(__IO uint8_t *)address = data;
 
-        /* Wait for last operation to be completed */
-        status = flash_wait_for_last_operation(FLASH_ER_PRG_TIMEOUT);
-#endif
+            /* Wait for last operation to be completed */
+            status = flash_wait_for_last_operation(FLASH_ER_PRG_TIMEOUT);
+        }
     }
 
     /* Return the Write Status */

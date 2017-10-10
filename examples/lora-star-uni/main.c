@@ -29,6 +29,7 @@
 #include "lpm.h"
 #include "periph/rtc.h"
 #include "random.h"
+#include "cpu.h"
 
 #include "eeprom.h"
 
@@ -52,6 +53,11 @@ void print_logo(void)
 #endif
 	puts("*****************************************");
     printf("Version: %s (%s %s)\n", FIRMWARE_VERSION, __DATE__, __TIME__);
+    if (get_cpu_category() == 3) {
+        puts("Running on STM32L151CC (256 KB flash / 8 KB EEPROM)");
+    } else {
+        puts("Running on STM32L151CB (128 KB flash / 4 KB EEPROM)");
+    }
     puts("");
 }
 

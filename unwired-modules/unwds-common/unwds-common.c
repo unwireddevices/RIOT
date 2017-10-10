@@ -42,6 +42,17 @@ extern "C" {
 #include "debug.h"
 
 /**
+ * EEPROM settings to adjust atomatically to MCUs with different EEPROM size
+ */
+struct {
+    uint32_t eeprom_size;
+    uint32_t config_storage_size;
+    uint32_t storage_blocks;
+    uint32_t min_clean_blocks;
+    uint32_t config_storage_addr;
+} unwds_eeprom_layout;
+
+/**
  * @brief Bitmap of occupied pins that cannot be used as gpio in-out
  */
 static uint32_t non_gpio_pin_map;
@@ -134,17 +145,17 @@ static bool unwds_storage_cleanup(void) {
     int i = 0;
     int k = 0;
     
-    for (i = 0; i < UNWDS_STORAGE_BLOCKS_MAX; i++) {
+    for (i = 0; i < unwds_eeprom_layout.storage_blocks; i++) {
         if (storage_blocks[i] == 0) {
             clean_blocks++;
         }
     }
     
-    if (clean_blocks < UNWDS_MIN_CLEAN_BLOCKS) {
-        for (i = 0; i < UNWDS_STORAGE_BLOCKS_MAX; i++) {
+    if (clean_blocks < unwds_eeprom_layout.min_clean_blocks) {
+        for (i = 0; i < unwds_eeprom_layout.storage_blocks; i++) {
             bool block_in_use = false;
             
-            for (k = 0; k < UNWDS_STORAGE_BLOCKS_MAX; k++) {
+            for (k = 0; k < unwds_eeprom_layout.storage_blocks; k++) {
                 if (storage_blocks[i] == storage_used[k]) {
                     block_in_use = true;
                     DEBUG("Block %d is in use by module %d\n", i, storage_used[k]);
@@ -158,7 +169,7 @@ static bool unwds_storage_cleanup(void) {
                 clean_blocks++;
             }
             
-            if (clean_blocks >= UNWDS_MIN_CLEAN_BLOCKS) {
+            if (clean_blocks >= unwds_eeprom_layout.min_clean_blocks) {
                 DEBUG("Cleanup done\n");
                 DEBUG("Writing new storage config\n");
                 unwds_write_nvram_config(UNWDS_CONFIG_MODULE_ID, storage_blocks, sizeof(storage_blocks));
@@ -178,15 +189,15 @@ static bool unwds_storage_cleanup(void) {
 
 static bool unwds_create_storage_block(unwds_module_id_t module_id) {
     int i = 0;
-    for (i = 0; i < UNWDS_STORAGE_BLOCKS_MAX; i++) {
+    for (i = 0; i < unwds_eeprom_layout.storage_blocks; i++) {
         if (storage_blocks[i] == 0) {
             DEBUG("Found empty storage block\n");
             storage_blocks[i] = module_id;
             
             DEBUG("Erasing EEPROM\n");
             /* storage size plus 2 bytes CRC16 */
-            int addr = UNWDS_CONFIG_STORAGE_ADDR + (UNWDS_CONFIG_STORAGE_SIZE + 2)*i;
-            nvram->clearpart(nvram, addr, UNWDS_CONFIG_STORAGE_SIZE + 2);
+            int addr = unwds_eeprom_layout.config_storage_addr + (unwds_eeprom_layout.config_storage_size + 2)*i;
+            nvram->clearpart(nvram, addr, unwds_eeprom_layout.config_storage_size + 2);
             
             DEBUG("Writing new storage config\n");
             unwds_write_nvram_config(UNWDS_CONFIG_MODULE_ID, storage_blocks, sizeof(storage_blocks));
@@ -204,7 +215,7 @@ bool unwds_read_nvram_storage(unwds_module_id_t module_id, uint8_t *data_out, ui
     int i = 0;
     
     /* add the module to the list of modules currently using EEPROM storage */
-    for (i = 0; i < UNWDS_STORAGE_BLOCKS_MAX; i++) {
+    for (i = 0; i < unwds_eeprom_layout.storage_blocks; i++) {
         if (storage_used[i] == 0) {
             storage_used[i] = module_id;
             break;
@@ -212,10 +223,10 @@ bool unwds_read_nvram_storage(unwds_module_id_t module_id, uint8_t *data_out, ui
     }
     
     /* find if this module already has dedicated storage space */
-    for (i = 0; i < UNWDS_STORAGE_BLOCKS_MAX; i++) {
+    for (i = 0; i < unwds_eeprom_layout.storage_blocks; i++) {
         if (storage_blocks[i] == module_id) {
             /* storage size plus 2 bytes CRC16 */
-            addr = UNWDS_CONFIG_STORAGE_ADDR + (UNWDS_CONFIG_STORAGE_SIZE + 2)*i;
+            addr = unwds_eeprom_layout.config_storage_addr + (unwds_eeprom_layout.config_storage_size + 2)*i;
             break;
         }
     }
@@ -245,10 +256,10 @@ bool unwds_write_nvram_storage(unwds_module_id_t module_id, uint8_t *data, size_
     int addr = 0;
     int i = 0;
     
-    for (i = 0; i < UNWDS_STORAGE_BLOCKS_MAX; i++) {
+    for (i = 0; i < unwds_eeprom_layout.storage_blocks; i++) {
         if (storage_blocks[i] == module_id) {
             /* storage size plus 2 bytes CRC16 */
-            addr = UNWDS_CONFIG_STORAGE_ADDR + (UNWDS_CONFIG_STORAGE_SIZE + 2)*i;
+            addr = unwds_eeprom_layout.config_storage_addr + (unwds_eeprom_layout.config_storage_size + 2)*i;
             break;
         }
     }
@@ -454,6 +465,24 @@ void int_to_float_str(char *buf, int decimal, uint8_t precision) {
     strcat(format, digits);
     
     snprintf(buf, 50, format, abs(decimal/divider), abs(decimal%divider));
+}
+
+/* determine EEPROM size to work seamlessly with CC and CB-A MCUs */
+void unwds_init(void) {
+    unwds_eeprom_layout.eeprom_size = get_cpu_eeprom_size();
+    
+    if (unwds_eeprom_layout.eeprom_size == 8192) {
+        unwds_eeprom_layout.config_storage_size = 256;
+        unwds_eeprom_layout.storage_blocks = 16;
+        unwds_eeprom_layout.min_clean_blocks = 4;    
+    } else {
+        unwds_eeprom_layout.config_storage_size = 128;
+        unwds_eeprom_layout.storage_blocks = 4;
+        unwds_eeprom_layout.min_clean_blocks = 1;  
+    }
+    
+    unwds_eeprom_layout.config_storage_addr = unwds_eeprom_layout.eeprom_size -
+                                              (unwds_eeprom_layout.storage_blocks*unwds_eeprom_layout.config_storage_size);
 }
 
 #ifdef __cplusplus

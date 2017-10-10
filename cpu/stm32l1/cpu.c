@@ -272,3 +272,54 @@ void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider)
     
     cpu_clock_global = 65536 * (1 << (msi_range >> 13));
 }
+
+int get_cpu_category(void) {
+    switch (ST_DEV_ID) {
+        case STM32L1_DEV_ID_CAT1:
+            return 1;
+            break;
+        case STM32L1_DEV_ID_CAT2:
+            return 2;
+            break;
+        case STM32L1_DEV_ID_CAT3:
+            return 3;
+            break;
+        case STM32L1_DEV_ID_CAT4:
+            return 4;
+            break;
+        case STM32L1_DEV_ID_CAT56:
+            return 5;
+            break;
+    }
+    return 0;
+}
+
+int get_cpu_ram_size(void) {
+    return 0;
+}
+
+int get_cpu_flash_size(void) {
+    return 0;
+}
+
+/* doesn't work with STM32L100 */
+int get_cpu_eeprom_size(void) {
+    switch (ST_DEV_ID) {
+        case STM32L1_DEV_ID_CAT1:
+            return 4096;
+            break;
+        case STM32L1_DEV_ID_CAT2:
+            return 4096;
+            break;
+        case STM32L1_DEV_ID_CAT3:
+            return 8192;
+            break;
+        case STM32L1_DEV_ID_CAT4:
+            return 12288;
+            break;
+        case STM32L1_DEV_ID_CAT56:
+            return 16384;
+            break;
+    }
+    return 0;
+}

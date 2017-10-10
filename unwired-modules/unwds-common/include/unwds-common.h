@@ -79,12 +79,15 @@ uint8_t *allocate_stack(void);
 #define UNWDS_MAX_MODULE_NAME 10
 #define UNWDS_MAX_DATA_LEN 126
 
-#define UNWDS_EEPROM_SIZE 8192
-#define UNWDS_CONFIG_STORAGE_SIZE 256
 #define UNWDS_STORAGE_BLOCKS_MAX 16
-#define UNWDS_MIN_CLEAN_BLOCKS 4
 
-#define UNWDS_CONFIG_STORAGE_ADDR (UNWDS_EEPROM_SIZE - UNWDS_STORAGE_BLOCKS_MAX*UNWDS_CONFIG_STORAGE_SIZE)
+#if defined(UNWDS_BUILD_MINIMAL)
+    #define UNWDS_STACK_SIZE_BYTES (1024U)
+    #define UNWDS_STACK_POOL_SIZE 2U
+#else
+    #define UNWDS_STACK_SIZE_BYTES (2048U)
+    #define UNWDS_STACK_POOL_SIZE 5U
+#endif
 
 /**
  * Shell commands
@@ -134,6 +137,8 @@ bool unwds_is_module_exists(unwds_module_id_t modid);
 uint64_t unwds_get_ability_mask(unwds_module_id_t modid);
 
 int unwds_modid_by_name(char *name);
+
+void unwds_init(void);
 
 gpio_t unwds_gpio_pin(int pin);
 int unwds_gpio_pins_total(void);

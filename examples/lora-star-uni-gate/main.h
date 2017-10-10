@@ -20,7 +20,7 @@
 
 #include "shell.h"
 
-#define FIRMWARE_VERSION "1.25"
+#define FIRMWARE_VERSION "1.26"
 
 typedef int (*cmd_fun_t)(int, char **);
 

@@ -1,6 +1,0 @@
-# define the cpu used by the unwired-range-f401 board
-export CPU = stm32f4
-export CPU_MODEL = stm32f401re
-
-# load the common Makefile.include for Unwired Range boards
-include $(RIOTBOARD)/unwd-range-common/Makefile.include

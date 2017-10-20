@@ -75,7 +75,7 @@ INCLUDES += -I../../unwired-modules/unwds-common/include/
 ####################################################
 
 # name of your application
-APPLICATION = lora-star-uni
+APPLICATION = loralan-public
 
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../..

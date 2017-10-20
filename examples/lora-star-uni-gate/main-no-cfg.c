@@ -155,13 +155,10 @@ int unk_save_cmd(int argc, char **argv)
 
 		puts("");
 
-//		agreekey = xtimer_now() & 0xFF;
-
 		puts("[!] Saving current configuration...");
 
 		if (config_write_main_block(appid, joinkey)) {
 			puts("[ok] Configuration was written. Rebooting.");
-//			xtimer_sleep(5);
 
 			/* Reboot */
 			NVIC_SystemReset();

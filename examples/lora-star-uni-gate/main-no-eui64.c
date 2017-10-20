@@ -109,28 +109,21 @@ static int save_cmd(int argc, char **argv)
 		print_config();
 
 		puts("");
-
-		agreekey = xtimer_now().ticks32 & 0xFF;
-
-		puts("[warning] Saving current configuration is permanent!");
-		printf("Verify your setup and type:\n\n\tsave %d\n\nto permanently save current configuration and reboot.\n", agreekey);
-	} else {
-		int key = atoi(argv[1]);
-
-		if (key == agreekey) {
+        
+        puts("[!] Saving current configuration...");
+        
+        if (key == agreekey) {
 			puts("[!] Saving current configuration...");
 
 			if (write_eui64_nvram(eui64)) {
-				puts("[ok] Configuration is written. Reboot in 5 seconds...");
-				xtimer_sleep(5);
-
-				/* Reboot */
+				puts("[ok] Configuration was written. Rebooting.");
 				NVIC_SystemReset();
 			} else {
 				puts("[error] An error occurred when saving the configuration");
 			}
 		}
-	}
+    }
+
     return 0;
 }
 
@@ -138,7 +131,7 @@ static const shell_command_t shell_commands[] = {
     { "set", "<config> <value> -- sets up value for the config entry", set_cmd },
     { "get", "<config> -- gets value for the config entry", get_cmd },
 
-    { "save", "Saves the configuration in nvram", save_cmd },
+    { "save", "Saves configuration in nvram", save_cmd },
 
     { NULL, NULL, NULL }
 };

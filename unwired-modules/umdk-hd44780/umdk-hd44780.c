@@ -32,10 +32,8 @@ extern "C" {
 #include <stdbool.h>
 #include <string.h>
 
-#include "periph/gpio.h"
-#include "periph/i2c.h"
 #include "board.h"
-#include "hd44780.h"
+
 #include "umdk-hd44780.h"
 
 #include "unwds-common.h"
@@ -44,8 +42,6 @@ extern "C" {
 #include "rtctimers.h"
 
 static hd44780_t dev;
-static hd44780_params_t params;
-
 static uwnds_cb_t *callback;
 
 int umdk_hd44780_shell_cmd(int argc, char **argv) {
@@ -71,32 +67,15 @@ int umdk_hd44780_shell_cmd(int argc, char **argv) {
 void umdk_hd44780_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	(void) non_gpio_pin_map;
 	callback = event_callback;
-    
-    /* works with PCF8574 I2C GPIO expander */
-    /* so GPIO numbers are not actual MCU GPIOs but expander I/O */
-    params.i2c_dev = UMDK_HD44780_I2C;
-    /* address pins grounded or left floated */
-    params.i2c_address = 0x20;
-    params.cols = 16;
-    params.rows = 2;
-    params.rs = 4;
-    params.rw = 5;
-    params.enable = 6;
-    params.backlight = 7;
-    params.data[0] = 0;
-    params.data[1] = 1;
-    params.data[2] = 2;
-    params.data[3] = 3;
-    params.data[4] = HD44780_RW_OFF;
 
     unwds_add_shell_command(_UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_hd44780_shell_cmd);
     
-    hd44780_init(&dev, &params);
+    hd44780_init(&dev, &umdk_hd44780_params[0]);
     hd44780_clear(&dev);
     hd44780_set_cursor(&dev, 0, 0);
     hd44780_print(&dev, _UMDK_NAME_);
     hd44780_set_cursor(&dev, 0, 1);
-    hd44780_print(&dev, "Ready");
+    hd44780_print(&dev, "www.unwds.com");
 }
 
 static void reply_fail(module_data_t *reply) {
@@ -111,16 +90,36 @@ static void reply_ok(module_data_t *reply) {
 	reply->data[1] = 0;
 }
 
-bool umdk_hd44780_cmd(module_data_t *cmd, module_data_t *reply) {
-	if (cmd->length < 1) {
+bool umdk_hd44780_cmd(module_data_t *data, module_data_t *reply) {
+	if (data->length < 1) {
 		reply_fail(reply);
 		return true;
 	}
 
-	umdk_hd44780_cmd_t c = cmd->data[0];
+	umdk_hd44780_cmd_t c = data->data[0];
 	switch (c) {
 	case UMDK_HD44780_CMD_PRINT: {
-		reply_ok(reply);
+        if (data->length < 3) {
+            reply_fail(reply);
+        } else {
+            if (data->data[1] & 0x80) {
+                hd44780_clear(&dev);
+            }
+            
+            uint8_t row = (data->data[1] & 0x40) >> 6;         
+            uint8_t col = (data->data[1] & 0x3F);
+            
+            hd44780_set_cursor(&dev, row, col);
+            char line[UMDK_HD44780_COLS + 1] = { 0 };
+            
+            if (data->length - 2 > UMDK_HD44780_COLS) {
+                memcpy(line, &data->data[2], UMDK_HD44780_COLS);
+            } else {
+                memcpy(line, &data->data[2], data->length - 2);
+            }
+            
+            reply_ok(reply);
+        }
 		break;
 	}
 	default:

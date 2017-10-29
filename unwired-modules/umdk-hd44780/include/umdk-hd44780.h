@@ -19,8 +19,32 @@
 #define UMDK_HD44780_H
 
 #include "unwds-common.h"
+#include "periph/gpio.h"
+#include "periph/i2c.h"
+#include "hd44780.h"
 
-#define UMDK_HD44780_I2C 1
+/* umdk-16x2 board uses PCF8574 I2C GPIO expander */ 
+/* so below are not MCU GPIOs but PCF8574 GPIO numbers */
+#define UMDK_HD44780_PARAMS {    \
+    .cols   = 16,       \
+    .rows   = 2,        \
+    .rs     = 4,        \
+    .rw     = 5,        \
+    .enable = 6,        \
+    .data   = {0, 1, 2, 3,     \
+               HD44780_RW_OFF, HD44780_RW_OFF, HD44780_RW_OFF, HD44780_RW_OFF}, \
+    .backlight = 7,     \
+    .i2c_dev = 1,       \
+    .i2c_address = 0x20 \
+}
+
+static const hd44780_params_t umdk_hd44780_params[] =
+{
+    UMDK_HD44780_PARAMS,
+};
+
+#define UMDK_HD44780_ROWS 2
+#define UMDK_HD44780_COLS 16
 
 typedef enum {
 	UMDK_HD44780_CMD_PRINT = 0,

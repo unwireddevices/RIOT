@@ -22,59 +22,42 @@
 
 #include <stdlib.h>
 
-/**
- * @brief Commands 1-Wire bus
-*/
-
-
 
 /**
- * @brief Status of the return of functions
+ * @brief 1-Wire return codes
 */
 #define OW_OK			1
 #define OW_ERROR		0
 #define OW_NO_DEVICE	0
 
 /*
- * @brief Type of 1-Wire bus device
+ * @brief 1-Wire bus device
  */
-typedef uart_t onewire_t;
+#ifdef ONEWIRE_BITBANG_MODE
+    typedef gpio_t onewire_t;
+#else
+    typedef uart_t onewire_t;
+#endif
 
 /**
  * @brief 1-Wire bus driver initialization routine
  *
- * @param[in] Number of the UART, which will using like as 1-Wire
+ * @param[in] Device (UART or GPIO) to be used for 1-Wire communication
  *
  * @return 1 if initialization succeeded
  * @return <0 in case of an error
  */
-int ow_init(onewire_t device);
+int onewire_init(onewire_t device);
 
 /**
- * @brief 1-Wire command of reset and presence device on a bus
+ * @brief 1-Wire bus reset / device detection
  *
  * @param[in] None
  *
  * @return 1 if device detected
  * @return 0 if device not detected
  */
-uint8_t ow_PRESENCE(void);
-
-/**
- * @brief 1-Wire command of read bit from a bus
- *
- * @param[out] Bit from 1-Wire bus
- *
- */
-uint8_t ow_ReadBit(void);
-
-/**
- * @brief 1-Wire command of send bit to a bus
- *
- * @param[in] Bit to 1-Wire bus
- *
- */
-void ow_SendBit(uint8_t bit);
+uint8_t onewire_detect(void);
 
 /**
  * @brief 1-Wire command of read byte from a bus
@@ -82,7 +65,7 @@ void ow_SendBit(uint8_t bit);
  * @param[out] Byte from 1-Wire bus
  *
  */
-uint8_t ow_ReadByte(void);
+uint8_t onewire_readbyte(void);
 
 /**
  * @brief 1-Wire command of send byte to a bus
@@ -91,6 +74,6 @@ uint8_t ow_ReadByte(void);
  * @param[out] Byte sent to 1-Wire bus
  *
  */
-uint8_t ow_SendByte(uint8_t byte);
+uint8_t onewire_sendbyte(uint8_t byte);
 
 #endif /* ONEWIRE_H_ */

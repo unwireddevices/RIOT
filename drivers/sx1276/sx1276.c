@@ -108,10 +108,21 @@ static void sx1276_on_dio4_isr(void *arg);
 
 static void _init_isrs(sx1276_t *dev)
 {
-    gpio_init_int(dev->dio0_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio0_isr, dev);
-    gpio_init_int(dev->dio1_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio1_isr, dev);
-    gpio_init_int(dev->dio2_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio2_isr, dev);
-    gpio_init_int(dev->dio3_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio3_isr, dev);
+    if (dev->dio0_pin != GPIO_UNDEF ) {
+        gpio_init_int(dev->dio0_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio0_isr, dev);
+    }
+    
+    if (dev->dio1_pin != GPIO_UNDEF ) {
+        gpio_init_int(dev->dio1_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio1_isr, dev);
+    }
+    
+    if (dev->dio2_pin != GPIO_UNDEF ) {
+        gpio_init_int(dev->dio2_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio2_isr, dev);
+    }
+    
+    if (dev->dio3_pin != GPIO_UNDEF ) {
+        gpio_init_int(dev->dio3_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio3_isr, dev);
+    }
 }
 
 static inline void send_event(sx1276_t *dev, sx1276_event_type_t event_type)
@@ -174,10 +185,14 @@ static int _init_peripherals(sx1276_t *dev)
         return 0;
     }
     
-    #ifdef SX1276_RFSWITCH
-        gpio_init(SX1276_RFSWITCH, GPIO_OUT);
-        gpio_set(SX1276_RFSWITCH);
-    #endif
+    if (dev->rfswitch_pin != GPIO_UNDEF) {
+        gpio_init(dev->rfswitch_pin, GPIO_OUT);
+        if (dev->rfswitch_mode == SX1276_RFSWITCH_ACTIVE_LOW) {
+            gpio_clear(dev->rfswitch_pin);
+        } else {
+            gpio_set(dev->rfswitch_pin);
+        }
+    }
 
     gpio_set(dev->nss_pin);
 
@@ -421,7 +436,13 @@ static void setup_power_amplifier(sx1276_t *dev, sx1276_lora_settings_t *setting
     pa_dac = sx1276_reg_read(dev, REG_PADAC);
 
     pa_config = (pa_config & RF_PACONFIG_PASELECT_MASK) | sx1276_get_pa_select(dev->settings.channel);
-    pa_config = (pa_config & RF_PACONFIG_MAX_POWER_MASK) | (0x05 << 4); // max power is 14dBm
+    
+    if (dev->settings.lora.power > 14) {
+        pa_config = (pa_config & RF_PACONFIG_MAX_POWER_MASK) | (0x0b << 4); // max power is 17dBm
+        pa_config |= RF_PACONFIG_PASELECT_PABOOST;
+    } else {
+        pa_config = (pa_config & RF_PACONFIG_MAX_POWER_MASK) | (0x05 << 4); // max power is 14dBm
+    }
 
     sx1276_reg_write(dev, REG_PARAMP, RF_PARAMP_0050_US);
 
@@ -923,23 +944,25 @@ void sx1276_reset(sx1276_t *dev)
      * 3. Wait at least 5 milliseconds
      */
 
-    gpio_init(dev->reset_pin, GPIO_OUT);
+    if (dev->reset_pin != GPIO_UNDEF) {
+        gpio_init(dev->reset_pin, GPIO_OUT);
 
-    /* Set reset pin to 0 */
-    gpio_clear(dev->reset_pin);
+        /* Set reset pin to 0 */
+        gpio_clear(dev->reset_pin);
 
-    /* Wait 1 ms */
-    //xtimer_usleep(1000);
-    xtimer_spin(xtimer_ticks_from_usec(1000));
+        /* Wait 1 ms */
+        //xtimer_usleep(1000);
+        xtimer_spin(xtimer_ticks_from_usec(1000));
 
-    /* Put reset pin in High-Z */
-    gpio_init(dev->reset_pin, GPIO_OD);
+        /* Put reset pin in High-Z */
+        gpio_init(dev->reset_pin, GPIO_OD);
 
-    gpio_set(dev->reset_pin);
+        gpio_set(dev->reset_pin);
 
-    /* Wait 10 ms */
-    //xtimer_usleep(1000 * 10);
-    xtimer_spin(xtimer_ticks_from_usec(1000*10));
+        /* Wait 10 ms */
+        //xtimer_usleep(1000 * 10);
+        xtimer_spin(xtimer_ticks_from_usec(1000*10));
+    }
 }
 
 void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode)
@@ -954,24 +977,48 @@ void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode)
     }
 	
 	if (op_mode == RF_OPMODE_SLEEP) {
-		gpio_irq_disable(dev->dio0_pin);
-		gpio_irq_disable(dev->dio1_pin);
-		gpio_irq_disable(dev->dio2_pin);
-		gpio_irq_disable(dev->dio3_pin);
+        if (dev->dio0_pin != GPIO_UNDEF ) {
+            gpio_irq_disable(dev->dio0_pin);
+        }
+        if (dev->dio1_pin != GPIO_UNDEF ) {
+            gpio_irq_disable(dev->dio1_pin);
+        }
+        if (dev->dio2_pin != GPIO_UNDEF ) {
+            gpio_irq_disable(dev->dio2_pin);
+        }
+        if (dev->dio3_pin != GPIO_UNDEF ) {
+            gpio_irq_disable(dev->dio3_pin);
+        }
         
-        #ifdef SX1276_RFSWITCH
-            /* disable RF switch power */
-            gpio_set(SX1276_RFSWITCH);
-        #endif
+        /* disable RF switch power */
+        if (dev->rfswitch_pin != GPIO_UNDEF) {
+            if (dev->rfswitch_mode == SX1276_RFSWITCH_ACTIVE_LOW) {
+                gpio_set(dev->rfswitch_pin);
+            } else {
+                gpio_clear(dev->rfswitch_pin);
+            }
+        }
 	} else {
-		gpio_irq_enable(dev->dio0_pin);
-		gpio_irq_enable(dev->dio1_pin);
-		gpio_irq_enable(dev->dio2_pin);
-		gpio_irq_enable(dev->dio3_pin);
-        #ifdef SX1276_RFSWITCH
-            /* enable RF switch power */
-            gpio_clear(SX1276_RFSWITCH);
-        #endif
+        if (dev->dio0_pin != GPIO_UNDEF ) {
+            gpio_irq_enable(dev->dio0_pin);
+        }
+        if (dev->dio1_pin != GPIO_UNDEF ) {
+            gpio_irq_enable(dev->dio1_pin);
+        }
+        if (dev->dio2_pin != GPIO_UNDEF ) {
+            gpio_irq_enable(dev->dio2_pin);
+        }
+        if (dev->dio3_pin != GPIO_UNDEF ) {
+            gpio_irq_enable(dev->dio3_pin);
+        }
+        /* enable RF switch power */
+        if (dev->rfswitch_pin != GPIO_UNDEF) {
+            if (dev->rfswitch_mode == SX1276_RFSWITCH_ACTIVE_LOW) {
+                gpio_clear(dev->rfswitch_pin);
+            } else {
+                gpio_set(dev->rfswitch_pin);
+            }
+        }
 	}
 }
 

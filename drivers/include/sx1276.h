@@ -154,6 +154,9 @@ typedef struct {
     xtimer_t rx_timeout_timer;              /**< RX operation timeout timer */
 } sx1276_internal_t;
 
+#define SX1276_RFSWITCH_ACTIVE_LOW     0
+#define SX1276_RFSWITCH_ACTIVE_HIGH    1
+
 /**
  * SX1276 hardware and global parameters.
  */
@@ -168,6 +171,9 @@ typedef struct sx1276_s {
     gpio_t dio3_pin;                                                    /**< Interrupt line DIO3 */
     gpio_t dio4_pin;                                                    /**< Interrupt line DIO4 (not used) */
     gpio_t dio5_pin;                                                    /**< Interrupt line DIO5 (not used) */
+    
+    gpio_t rfswitch_pin;
+    gpio_t rfswitch_mode;
 
     sx1276_settings_t settings;                                         /**< Transceiver settings */
 

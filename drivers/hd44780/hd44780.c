@@ -173,6 +173,17 @@ static void _send(const hd44780_t *dev, uint8_t value, hd44780_state_t state)
 static void _write_bits(const hd44780_t *dev, uint8_t bits, uint8_t value)
 {
     DEBUG("[hd44780] write %d-bits 0x%x\n", bits, value);
+#ifdef HD44780_PCF8574
+    for (unsigned i = 0; i < bits; ++i) {
+        if ((value >> i) & 0x01) {
+            pcf8574_bitmask |= (1 << dev->p.data[i]);
+        }
+        else {
+            pcf8574_bitmask &= ~(1 << dev->p.data[i]);
+        }
+    }
+    _i2c_write(dev, pcf8574_bitmask);
+#else
     for (unsigned i = 0; i < bits; ++i) {
         if ((value >> i) & 0x01) {
             _gpio_set(dev, dev->p.data[i]);
@@ -181,6 +192,7 @@ static void _write_bits(const hd44780_t *dev, uint8_t bits, uint8_t value)
             _gpio_clear(dev, dev->p.data[i]);
         }
     }
+#endif
     _pulse(dev);
 }
 

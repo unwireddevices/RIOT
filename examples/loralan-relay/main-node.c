@@ -30,6 +30,7 @@ extern "C" {
 #include "periph/rtc.h"
 #include "periph/gpio.h"
 #include "random.h"
+#include "periph/adc.h"
 
 #include "sx1276.h"
 #include "board.h"
@@ -55,6 +56,7 @@ extern "C" {
 
 static rtctimer_t iwdg_timer;
 static rtctimer_t lpm_enable_timer;
+static rtctimer_t display_stats_timer;
 
 static sx1276_t sx1276;
 static ls_ed_t ls;
@@ -656,6 +658,27 @@ static void ls_enable_sleep (void *arg) {
     return;
 }
 
+static void display_stats (void *arg) {
+    hd44780_set_cursor(&hd44780_dev, 0, 1);  
+//                      1234567890ABCDEF
+    char line[17] = { 0 };
+    snprintf(line, 17, "LoRa %d дБм      ", ls._internal.last_rssi);
+    hd44780_print(&hd44780_dev, line);
+    
+    hd44780_set_cursor(&hd44780_dev, 8, 0);
+    adc_init(ADC_LINE(0));
+    uint16_t voltage = adc_sample(ADC_LINE(0), ADC_RES_12BIT);
+    uint16_t vref = adc_sample(ADC_LINE(ADC_VREF_INDEX), ADC_RES_12BIT);
+    voltage = (uint32_t)(voltage * vref) / 4095;
+    
+    snprintf(line, 17, "%d mV     ", (int)voltage);
+    hd44780_print(&hd44780_dev, line);
+    
+    rtctimers_set(&display_stats_timer, 10);
+    
+    return;
+}
+
 void init_node(shell_command_t **commands)
 {
     puts("[node] Initializing...");
@@ -674,6 +697,21 @@ void init_node(shell_command_t **commands)
             shell_commands[i].desc = NULL;
             shell_commands[i].handler = NULL;
         }
+    }
+    
+    gpio_init(VOUT_3V3_SLEEP_PIN, GPIO_OUT);
+    gpio_set(VOUT_3V3_SLEEP_PIN);
+    
+    gpio_init(RS485_POWER_PIN, GPIO_OUT);
+    gpio_clear(RS485_POWER_PIN);
+    
+    gpio_init(MODEM_POWER_PIN, GPIO_OUT);
+    gpio_clear(MODEM_POWER_PIN);
+    gpio_init(MODEM_POWER_SELECT, GPIO_OUT);
+    gpio_clear(MODEM_POWER_SELECT);
+    
+    for (i = 0; i < ADC_NUMOF; i++) {
+        adc_init(ADC_LINE(i));
     }
 
     rtctimers_init();
@@ -740,9 +778,13 @@ void init_node(shell_command_t **commands)
     
     hd44780_init(&hd44780_dev, &hd44780_params[0]);
     hd44780_clear(&hd44780_dev);
-    hd44780_print(&hd44780_dev, "FW. " FIRMWARE_VERSION);
+    hd44780_print(&hd44780_dev, "FW " FIRMWARE_VERSION);
     hd44780_set_cursor(&hd44780_dev, 0, 1);
     hd44780_print(&hd44780_dev, "LoRa подключение");
+    
+    
+    display_stats_timer.callback = display_stats;
+    rtctimers_set(&display_stats_timer, 10);
     
     /* Set our commands for shell */
     memcpy(commands, shell_commands, sizeof(shell_commands));

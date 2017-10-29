@@ -120,6 +120,19 @@ static const hd44780_params_t hd44780_params[] =
 #define UMDK_HD44780_ROWS 2
 #define UMDK_HD44780_COLS 16
 
+/* 1 to normal mode, 0 to low-power mode */
+#define VOUT_3V3_SLEEP_PIN  GPIO_PIN(PORT_A, 1)
+
+/* 1 to enable, 0 to disable */
+#define RS485_POWER_PIN  GPIO_PIN(PORT_C, 13)
+
+/* 1 to enable, 0 to disable */
+#define MODEM_POWER_PIN  GPIO_PIN(PORT_A, 13)
+
+/* 1 to 5 V, 0 to 3.8V */
+#define MODEM_POWER_SELECT  GPIO_PIN(PORT_A, 6)
+
+
 #ifdef __cplusplus
 }
 #endif

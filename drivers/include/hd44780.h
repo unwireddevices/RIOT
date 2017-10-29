@@ -27,6 +27,10 @@
 
 #include "periph/gpio.h"
 
+#ifdef HD44780_PCF8574
+    #include "periph/i2c.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -69,6 +73,11 @@ typedef struct {
     gpio_t rw;                      /**< rw gpio pin */
     gpio_t enable;                  /**< enable gpio pin */
     gpio_t data[8];                 /**< data gpio pins */
+    gpio_t backlight;               /**< pin to enable backlight */
+#ifdef HD44780_PCF8574
+    i2c_t i2c_dev;                  /**< I2C device (PCF8574) */
+    uint8_t i2c_address;            /**< I2C address (PCF8574) */
+#endif    
 } hd44780_params_t;
 
 /**
@@ -209,6 +218,14 @@ void hd44780_write(const hd44780_t *dev, uint8_t value);
  * @param[in]  data         the string to print
  */
 void hd44780_print(const hd44780_t *dev, const char *data);
+
+/**
+ * @brief Enable LCD backlight
+ *
+ * @param[in]  dev          LCD device descriptor
+ * @param[in]  enable       backlight state
+ */
+void hd44780_backlight(const hd44780_t *dev, const bool enable);
 
 #ifdef __cplusplus
 }

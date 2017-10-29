@@ -16,6 +16,7 @@
  * @note        The display is also known as LCM1602C from Arduino kits
  *
  * @author      Sebastian Meiling <s@mlng.net>
+ * @author      Oleg Artamonov <info@unwds.com>
  *
  * @}
  */
@@ -38,6 +39,58 @@ static void _pulse(const hd44780_t *dev);
 static void _send(const hd44780_t *dev, uint8_t value, uint8_t mode);
 static void _write_bits(const hd44780_t *dev, uint8_t bits, uint8_t value);
 
+#ifdef HD44780_PCF8574
+    static uint8_t pcf8574_bitmask = 0;   
+#endif
+
+#ifdef HD44780_PCF8574
+static void _i2c_init(const hd44780_t *dev) {
+    i2c_acquire(dev->p.i2c_dev);
+
+    /* Initialize I2C interface */
+    if (i2c_init_master(dev->p.i2c_dev, I2C_SPEED_NORMAL)) {
+        DEBUG("[Error] I2C device not enabled\n");
+        i2c_release(dev->p.i2c_dev);
+        return;
+    }
+    
+    i2c_release(dev->p.i2c_dev);
+}
+
+
+static inline void _i2c_write(const hd44780_t *dev, uint8_t data) {
+    i2c_acquire(dev->p.i2c_dev);
+    i2c_write_byte(dev->p.i2c_dev, dev->p.i2c_address, data);    
+    i2c_release(dev->p.i2c_dev);
+}
+#endif
+
+static inline void _gpio_clear(const hd44780_t *dev, gpio_t pin) {
+#ifdef HD44780_PCF8574
+    pcf8574_bitmask &= ~(1<<pin);
+    _i2c_write(dev, pcf8574_bitmask);
+#else
+    gpio_clear(pin);
+#endif
+}
+
+static inline void _gpio_set(const hd44780_t *dev, gpio_t pin) {
+#ifdef HD44780_PCF8574
+    pcf8574_bitmask |= (1<<pin);
+    _i2c_write(dev, pcf8574_bitmask);
+#else
+    gpio_set(pin);
+#endif
+}
+
+static inline void _gpio_init(const hd44780_t *dev, gpio_t pin, gpio_mode_t mode) {
+#ifdef HD44780_PCF8574
+    _gpio_clear(dev, pin);
+#else
+    gpio_init(pin, mode);
+#endif
+}
+
 /**
  * @brief   Send a command to the display
  *
@@ -56,12 +109,27 @@ static inline void _command(const hd44780_t *dev, uint8_t value)
  */
 static void _pulse(const hd44780_t *dev)
 {
-    gpio_clear(dev->p.enable);
+    _gpio_clear(dev, dev->p.enable);
     xtimer_usleep(HD44780_PULSE_WAIT_SHORT);
-    gpio_set(dev->p.enable);
+    _gpio_set(dev, dev->p.enable);
     xtimer_usleep(HD44780_PULSE_WAIT_SHORT);
-    gpio_clear(dev->p.enable);
+    _gpio_clear(dev, dev->p.enable);
     xtimer_usleep(HD44780_PULSE_WAIT_LONG);
+}
+
+/**
+ * @brief Enable LCD backlight
+ *
+ * @param[in]  dev          LCD device descriptor
+ * @param[in]  enable       backlight state
+ */
+void hd44780_backlight(const hd44780_t *dev, const bool enable) {
+    if (enable) {
+        _gpio_set(dev, dev->p.backlight);
+    } else {
+        _gpio_clear(dev, dev->p.backlight);
+    }
+    return;
 }
 
 /**
@@ -73,10 +141,10 @@ static void _pulse(const hd44780_t *dev)
  */
 static void _send(const hd44780_t *dev, uint8_t value, hd44780_state_t state)
 {
-    (state == HD44780_ON) ? gpio_set(dev->p.rs) : gpio_clear(dev->p.rs);
+    (state == HD44780_ON) ? _gpio_set(dev, dev->p.rs) : _gpio_clear(dev, dev->p.rs);
     /* if RW pin is available, set it to LOW */
     if (dev->p.rw != HD44780_RW_OFF) {
-        gpio_clear(dev->p.rw);
+        _gpio_clear(dev, dev->p.rw);
     }
     /* write data in 8Bit or 4Bit mode */
     if (dev->flag & HD44780_8BITMODE) {
@@ -93,19 +161,27 @@ static void _write_bits(const hd44780_t *dev, uint8_t bits, uint8_t value)
     DEBUG("[hd44780] write %d-bits 0x%x\n", bits, value);
     for (unsigned i = 0; i < bits; ++i) {
         if ((value >> i) & 0x01) {
-            gpio_set(dev->p.data[i]);
+            _gpio_set(dev, dev->p.data[i]);
         }
         else {
-            gpio_clear(dev->p.data[i]);
+            _gpio_clear(dev, dev->p.data[i]);
         }
     }
     _pulse(dev);
 }
 
 int hd44780_init(hd44780_t *dev, const hd44780_params_t *params)
-{
+{   
     /* write config params to device descriptor */
     memcpy(&dev->p, params, sizeof(hd44780_params_t));
+    
+#ifdef HD44780_PCF8574
+    DEBUG("HD44780: I2C mode\n");
+    _i2c_init(dev);
+#else
+    DEBUG("HD44780: GPIO mode\n");
+#endif
+    
     /* verify cols and rows */
     if ((dev->p.cols > HD44780_MAX_COLS) || (dev->p.rows > HD44780_MAX_ROWS)
                                          || (dev->p.rows * dev->p.cols > 80)) {
@@ -119,6 +195,7 @@ int hd44780_init(hd44780_t *dev, const hd44780_params_t *params)
             ++count_pins;
         }
     }
+      
     /* set mode depending on configured pins */
     if (count_pins < HD44780_MAX_PINS) {
         DEBUG("[hd44780]: 4-bit mode\n");
@@ -145,23 +222,40 @@ int hd44780_init(hd44780_t *dev, const hd44780_params_t *params)
     dev->roff[2] = 0x00 + dev->p.cols;
     dev->roff[3] = 0x40 + dev->p.cols;
 
-    gpio_init(dev->p.rs, GPIO_OUT);
+    _gpio_init(dev, dev->p.rs, GPIO_OUT);
+    DEBUG("RS GPIO initialized\n"); 
+    
     /* RW (read/write) of LCD not required, set it to HD44780_RW_OFF (255) */
     if (dev->p.rw != HD44780_RW_OFF) {
-        gpio_init(dev->p.rw, GPIO_OUT);
+        _gpio_init(dev, dev->p.rw, GPIO_OUT);
     }
-    gpio_init(dev->p.enable, GPIO_OUT);
+    DEBUG("RW GPIO initialized\n");
+    
+    _gpio_init(dev, dev->p.enable, GPIO_OUT);
+    DEBUG("Enable GPIO initialized\n");
+    
+    
+    if (dev->p.backlight != HD44780_RW_OFF) {
+        _gpio_init(dev, dev->p.backlight, GPIO_OUT);
+        _gpio_clear(dev, dev->p.backlight);
+    }
+    DEBUG("Backlight GPIO initialized\n");
+    
     /* configure all data pins as output */
     for (int i = 0; i < ((dev->flag & HD44780_8BITMODE) ? 8 : 4); ++i) {
-        gpio_init(dev->p.data[i], GPIO_OUT);
-    }
+        _gpio_init(dev, dev->p.data[i], GPIO_OUT);
+    }    
+    DEBUG("Data GPIOs initialized\n");
+    
     /* see hitachi HD44780 datasheet pages 45/46 for init specs */
     xtimer_usleep(HD44780_INIT_WAIT_XXL);
-    gpio_clear(dev->p.rs);
-    gpio_clear(dev->p.enable);
+    _gpio_clear(dev, dev->p.rs);
+    _gpio_clear(dev, dev->p.enable);
     if (dev->p.rw != HD44780_RW_OFF) {
-        gpio_clear(dev->p.rw);
+        _gpio_clear(dev, dev->p.rw);
     }
+    
+    DEBUG("Setting LCD bus width\n");
     /* put the LCD into 4 bit or 8 bit mode */
     if (!(dev->flag & HD44780_8BITMODE)) {
         /* see hitachi HD44780 datasheet figure 24, pg 46 */

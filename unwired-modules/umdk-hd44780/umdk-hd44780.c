@@ -54,11 +54,23 @@ int umdk_hd44780_shell_cmd(int argc, char **argv) {
     char *cmd = argv[1];
 	
     if (strcmp(cmd, "print") == 0) {
-
+        uint8_t col = atoi(argv[2]);
+        uint8_t row = atoi(argv[3]); 
+        
+        hd44780_set_cursor(&dev, col, row);
+        
+        char line[UMDK_HD44780_COLS + 1] = { 0 };
+        if (strlen(argv[4]) > UMDK_HD44780_COLS) {
+            memcpy(line, argv[4], UMDK_HD44780_COLS);
+        } else {
+            memcpy(line, argv[4], strlen(argv[4]));
+        }
+        
+        hd44780_print(&dev, line);
     }
     
     if (strcmp(cmd, "clear") == 0) {
-        
+        hd44780_clear(&dev);
     }
     
     return 1;
@@ -117,6 +129,9 @@ bool umdk_hd44780_cmd(module_data_t *data, module_data_t *reply) {
             } else {
                 memcpy(line, &data->data[2], data->length - 2);
             }
+            
+            hd44780_set_cursor(&dev, col, row);
+            hd44780_print(&dev, line);
             
             reply_ok(reply);
         }

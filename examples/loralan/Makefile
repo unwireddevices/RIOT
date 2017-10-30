@@ -27,6 +27,7 @@ umdk-config   = 1
 umdk-mhz19    = 1
 umdk-range    = 0
 umdk-hd44780  = 1
+umdk-ibutton  = 1
 
 ####### UMDK MODULES defines and Makefile.include inclusion ############
 

@@ -192,7 +192,7 @@ int onewire_init(onewire_t device)
  * @return 1 if device is present
  * @return 0 if device is not present
  */
-uint8_t onewire_PRESENCE(void)
+uint8_t onewire_detect(void)
 {    
 #ifdef ONEWIRE_BITBANG_MODE
     uint8_t result = OW_OK;

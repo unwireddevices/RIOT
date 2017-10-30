@@ -108,7 +108,7 @@ extern "C" {
     .data   = {0, 1, 2, 3,     \
                HD44780_RW_OFF, HD44780_RW_OFF, HD44780_RW_OFF, HD44780_RW_OFF}, \
     .backlight = 7,     \
-    .i2c_dev = 1,       \
+    .i2c_dev = 0,       \
     .i2c_address = 0x20 \
 }
 

@@ -39,10 +39,11 @@ typedef enum {
     UNWDS_MHZ19_MODULE_ID = 18,
     UNWDS_RANGE_MODULE_ID = 19,
     UNWDS_HD44780_MODULE_ID = 20,
+    UNWDS_IBUTTON_MODULE_ID = 21,
     /* Proprietary 50 to 99 */
     UNWDS_MERCURY_MODULE_ID = 50,
     UNWDS_PULSE_MODULE_ID = 51,
-    UNWDS_IBUTTON_MODULE_ID = 52,
+    UNWDS_PACS_MODULE_ID = 52,
     /* Customer 100 to 125*/
     UNWDS_CUSTOMER_MODULE_ID = 100,
     /* System module 126 */

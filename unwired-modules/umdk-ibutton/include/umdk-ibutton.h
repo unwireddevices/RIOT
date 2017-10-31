@@ -49,8 +49,8 @@
 #define ERROR 0
 
 typedef enum {
-	MSG_CMD = 0x00,
-	MSG_DETECT = 0x01,
+	UMDK_IBUTTON_MSG_CMD = 0x00,
+	UMDK_IBUTTON_MSG_DETECT = 0x01,
 } umdk_ibutton_msg_t;
 
 typedef enum {

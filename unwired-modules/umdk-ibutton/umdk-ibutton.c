@@ -71,7 +71,7 @@ static const uint8_t Crc8Table[256] =  {
 static uwnds_cb_t *callback;
 static kernel_pid_t ibutton_pid;
 
-static msg_t detect_msg = {.type = MSG_DETECT,     .content.value = 0, };
+static msg_t detect_msg = {.type = UMDK_IBUTTON_MSG_DETECT,     .content.value = 0, };
 
 
 static uint8_t id_detected[UMDK_IBUTTON_SIZE_ID] = { 0 };

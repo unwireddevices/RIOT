@@ -376,6 +376,14 @@ bool unwds_is_module_exists(unwds_module_id_t modid) {
 	return find_module(modid) != NULL;
 }
 
+bool unwds_is_module_enabled(unwds_module_id_t modid) {
+    if (!find_module(modid)) {
+        return false;
+    }
+    
+	return (enabled_bitmap[modid / 32] & (1 << (modid % 32)));
+}
+
 bool unwds_send_broadcast(unwds_module_id_t modid, module_data_t *data, module_data_t *reply)
 {
 	unwd_module_t *module = find_module(modid);
@@ -390,10 +398,11 @@ bool unwds_send_broadcast(unwds_module_id_t modid, module_data_t *data, module_d
 
 bool unwds_send_to_module(unwds_module_id_t modid, module_data_t *data, module_data_t *reply)
 {
+    if (!unwds_is_module_enabled(modid)) {
+        return false;
+    }
+    
 	unwd_module_t *module = find_module(modid);
-	if (!module)
-		return false;
-
 	return module->cmd_cb(data, reply);
 }
 

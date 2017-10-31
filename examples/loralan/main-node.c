@@ -160,14 +160,19 @@ static bool appdata_received_cb(uint8_t *buf, size_t buflen)
 
     /* Send command to the module */
     module_data_t reply = {};
-    bool has_app_data = unwds_send_to_module(modid, &cmd, &reply);
 
     /* Send app. data */
-    if (has_app_data) {
-		int res = ls_ed_send_app_data(&ls, reply.data, reply.length, true, true);
-		if (res < 0) {
-			printf("send: error #%d\n", res);
-		}
+    if (!unwds_send_to_module(modid, &cmd, &reply)) {
+        /* No module with specified ID present */
+        reply.as_ack = true;
+        reply.length = 2;
+        reply.data[0] = UNWDS_MODULE_NOT_FOUND;
+        reply.data[1] = modid;
+    }
+    
+    int res = ls_ed_send_app_data(&ls, reply.data, reply.length, true, true);
+    if (res < 0) {
+        printf("send: error #%d\n", res);
     }
 
     /* Don't allow to send app. data ACK by the network.

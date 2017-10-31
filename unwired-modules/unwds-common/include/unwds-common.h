@@ -27,6 +27,8 @@
 
 #include "unwds-ids.h"
 
+#define UNWDS_MODULE_NOT_FOUND 255
+
 typedef uint8_t unwds_module_id_t;
 
 /**
@@ -133,6 +135,7 @@ void unwds_list_modules(uint32_t *ability, bool enabled_only);
 
 bool unwds_is_pin_occupied(uint32_t pin);
 bool unwds_is_module_exists(unwds_module_id_t modid);
+bool unwds_is_module_enabled(unwds_module_id_t modid);
 
 uint64_t unwds_get_ability_mask(unwds_module_id_t modid);
 

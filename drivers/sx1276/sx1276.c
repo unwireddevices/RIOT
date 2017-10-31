@@ -104,6 +104,7 @@ static void sx1276_on_dio0_isr(void *arg);
 static void sx1276_on_dio1_isr(void *arg);
 static void sx1276_on_dio2_isr(void *arg);
 static void sx1276_on_dio3_isr(void *arg);
+static void sx1276_on_dio4_isr(void *arg);
 
 static void _init_isrs(sx1276_t *dev)
 {
@@ -865,13 +866,21 @@ void sx1276_start_cad(sx1276_t *dev)
                                                                 //RFLR_IRQFLAGS_CADDETECTED
                              );
 
-            // DIO3=CADDone
+            // DIO3 = CADDone
             sx1276_reg_write(dev,
                              REG_DIOMAPPING1,
                              (sx1276_reg_read(dev, REG_DIOMAPPING1)
-                              & RFLR_DIOMAPPING1_DIO0_MASK) | RFLR_DIOMAPPING1_DIO0_00);
+                              & RFLR_DIOMAPPING1_DIO3_MASK) | RFLR_DIOMAPPING1_DIO3_00);
+                              
+            // DIO4 = CADDetected
+            sx1276_reg_write(dev,
+                             REG_DIOMAPPING2,
+                             (sx1276_reg_read(dev, REG_DIOMAPPING2)
+                              & RFLR_DIOMAPPING2_DIO4_MASK) | RFLR_DIOMAPPING1_DIO4_00);
+                              
 
             sx1276_set_status(dev,  SX1276_RF_CAD);
+                              
             sx1276_set_op_mode(dev, RFLR_OPMODE_CAD);
         }
         break;
@@ -1282,12 +1291,29 @@ void sx1276_on_dio3(void *arg)
     }
 }
 
-/* Following interrupt lines are not used */
+/* DIO4 may be used for CadDetect events */
 void sx1276_on_dio4(void *arg)
 {
-    (void) arg;
+    /* Get interrupt context */
+    sx1276_t *dev = (sx1276_t *) arg;
+
+    switch (dev->settings.modem) {
+        case SX1276_MODEM_FSK:
+            break;
+        case SX1276_MODEM_LORA:
+            /* Clear IRQ */
+            sx1276_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_CADDETECTED | RFLR_IRQFLAGS_CADDONE);
+
+            /* Send event message */
+            dev->_internal.is_last_cad_success = (sx1276_reg_read(dev, REG_LR_IRQFLAGS) & RFLR_IRQFLAGS_CADDETECTED) == RFLR_IRQFLAGS_CADDETECTED;
+            send_event(dev, SX1276_CAD_DETECTED);
+            break;
+        default:
+            break;
+    }
 }
 
+/* Following interrupt lines are not used */
 void sx1276_on_dio5(void *arg)
 {
     (void) arg;

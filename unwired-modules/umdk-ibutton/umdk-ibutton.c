@@ -69,6 +69,10 @@ static const uint8_t Crc8Table[256] =  {
 
 
 static uwnds_cb_t *callback;
+static kernel_pid_t ibutton_pid;
+
+static msg_t detect_msg = {.type = MSG_DETECT,     .content.value = 0, };
+
 
 static uint8_t id_detected[UMDK_IBUTTON_SIZE_ID] = { 0 };
 
@@ -120,40 +124,50 @@ static int detect_device(void)
     return DEVICE_ERROR;
 }
 
-static void radio_send(void)
+static void *radio_send(void *arg)
 {
-    module_data_t data;
+    msg_t msg;
+    msg_t msg_queue[4];
+    msg_init_queue(msg_queue, 4);
 
-    data.data[0] = _UMDK_MID_;
-                              
-    memcpy(data.data + 1, id_detected,  UMDK_IBUTTON_SIZE_ID);
-    data.length = UMDK_IBUTTON_SIZE_ID + 1;
-    
-    gpio_set(UMDK_IBUTTON_LED_GPIO);
-    led_gpio_enabled = (1000*UMDK_IBUTTON_GRANTED_PERIOD_SEC)/UMDK_IBUTTON_POLLING_PERIOD_MS;
-    printf("[" _UMDK_NAME_ "] i-Button detected, ID ");
+    while (1) {
+        msg_receive(&msg);
+        module_data_t data;
 
-    for(int i = data.length-1; i > 1; i--) {
-        printf("%02X ", data.data[i]);
+        data.data[0] = _UMDK_MID_;
+        data.length = 1;
+                                  
+        memcpy(&data.data[1], id_detected,  UMDK_IBUTTON_SIZE_ID);
+        data.length += UMDK_IBUTTON_SIZE_ID;
+        
+        gpio_set(UMDK_IBUTTON_LED_GPIO);
+        led_gpio_enabled = (1000*UMDK_IBUTTON_GRANTED_PERIOD_SEC)/UMDK_IBUTTON_POLLING_PERIOD_MS;
+        
+        printf("[" _UMDK_NAME_ "] i-Button detected, ID ");
+        for(int i = data.length - 1; i > 0; i--) {
+            printf("%02X ", data.data[i]);
+        }
+        printf("\n");
+
+        data.as_ack = false;
+        callback(&data);
     }
-    printf("\n");
-
-    data.as_ack = false;
-    callback(&data);
+    
+    return NULL;
 } 
 
 static void detect_handler(void *arg) 
 {
     (void) arg;
-    
     if (led_gpio_enabled) {
         if (--led_gpio_enabled == 0) {
             gpio_clear(UMDK_IBUTTON_LED_GPIO);
         }
-    } else {
+    }
+    else {
         if (onewire_detect()) {
             if (detect_device() == DEVICE_OK) {
-                radio_send();
+                msg_try_send(&detect_msg, ibutton_pid);
             }
         }
     }
@@ -172,6 +186,15 @@ void umdk_ibutton_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     gpio_init(UMDK_IBUTTON_LED_GPIO, GPIO_OUT);
     gpio_clear(UMDK_IBUTTON_LED_GPIO);
     lpm_arch_add_gpio_exclusion(UMDK_IBUTTON_LED_GPIO);
+    
+    /* Create handler thread */
+    char *stack = (char *) allocate_stack();
+    if (!stack) {
+        puts("umdk-ibutton: unable to allocate memory. Is too many modules enabled?");
+        return;
+    }
+    ibutton_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,
+                                radio_send, NULL, "ibutton thread");
     
     /* Configure periodic wakeup */
     rtc_set_wakeup(UMDK_IBUTTON_POLLING_PERIOD_MS*1e3, &detect_handler, NULL);

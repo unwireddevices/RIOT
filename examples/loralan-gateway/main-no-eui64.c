@@ -34,8 +34,6 @@ extern "C" {
 
 static uint64_t eui64 = 0;
 
-static int agreekey;
-
 static void print_eui64(void)
 {
     if (eui64) {
@@ -112,16 +110,12 @@ static int save_cmd(int argc, char **argv)
         
         puts("[!] Saving current configuration...");
         
-        if (key == agreekey) {
-			puts("[!] Saving current configuration...");
-
-			if (write_eui64_nvram(eui64)) {
-				puts("[ok] Configuration was written. Rebooting.");
-				NVIC_SystemReset();
-			} else {
-				puts("[error] An error occurred when saving the configuration");
-			}
-		}
+        if (write_eui64_nvram(eui64)) {
+            puts("[ok] Configuration was written. Rebooting.");
+            NVIC_SystemReset();
+        } else {
+            puts("[error] An error occurred when saving the configuration");
+        }
     }
 
     return 0;

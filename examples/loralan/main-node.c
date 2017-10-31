@@ -70,10 +70,12 @@ void radio_init(void)
     sx1276.dio1_pin = SX1276_DIO1;
     sx1276.dio2_pin = SX1276_DIO2;
     sx1276.dio3_pin = SX1276_DIO3;
-
-    sx1276.dio4_pin = (gpio_t) NULL;
-    sx1276.dio5_pin = (gpio_t) NULL;
-    sx1276.reset_pin = (gpio_t) SX1276_RESET;
+    sx1276.dio4_pin = SX1276_DIO4;
+    sx1276.dio5_pin = SX1276_DIO5;
+    sx1276.reset_pin = SX1276_RESET;
+    
+    sx1276.rfswitch_pin = SX1276_RFSWITCH;
+    sx1276.rfswitch_mode = SX1276_RFSWITCH_ACTIVE_LOW;
 
     sx1276_settings_t settings;
     settings.channel = RF_FREQUENCY;

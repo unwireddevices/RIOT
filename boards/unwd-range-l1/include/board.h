@@ -54,11 +54,10 @@ extern "C" {
 #define SX1276_DIO1 GPIO_PIN(PORT_A, 9)
 #define SX1276_DIO2 GPIO_PIN(PORT_A, 10)
 #define SX1276_DIO3 GPIO_PIN(PORT_A, 11)
-
+#define SX1276_DIO4 GPIO_UNDEF
+#define SX1276_DIO5 GPIO_UNDEF
 #define SX1276_RESET GPIO_PIN(PORT_A, 0)
-
-/** Antenna mode (RX/TX) switching pin */
-#define SX1276_ANTSW GPIO_PIN(PORT_A, 12)
+#define SX1276_RFSWITCH GPIO_UNDEF
 
 /** SX1276 SPI */
 
@@ -77,10 +76,6 @@ extern "C" {
 #define SX1276_SPI_MODE SPI_CONF_FIRST_RISING
 #define SX1276_SPI_SPEED SPI_SPEED_1MHZ
 #endif
-
-/** Unused pins */
-#define SX1276_DIO4 NULL
-#define SX1276_DIO5 NULL
 
 /** "Connect" Button */
 #define UNWD_USE_CONNECT_BTN	1

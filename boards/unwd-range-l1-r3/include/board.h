@@ -53,13 +53,15 @@ extern "C" {
 #define SX1276_DIO0 GPIO_PIN(PORT_A, 12)
 #define SX1276_DIO1 GPIO_PIN(PORT_C, 13)
 #define SX1276_DIO2 GPIO_PIN(PORT_A, 0)
-#define SX1276_DIO3 GPIO_PIN(PORT_B, 6)
-#define SX1276_DIO4 GPIO_PIN(PORT_B, 7)
+#define SX1276_DIO3 GPIO_PIN(PORT_B, 6) /* CadDone */
+#define SX1276_DIO4 GPIO_PIN(PORT_B, 7) /* CadDetect */
+#define SX1276_DIO5 GPIO_UNDEF
 
 #define SX1276_RESET GPIO_PIN(PORT_A, 8)
 
 /** RF on/off switching pin */
 #define SX1276_RFSWITCH GPIO_PIN(PORT_A, 11)
+
 
 /** SX1276 SPI */
 
@@ -78,9 +80,6 @@ extern "C" {
 #define SX1276_SPI_MODE SPI_CONF_FIRST_RISING
 #define SX1276_SPI_SPEED SPI_SPEED_1MHZ
 #endif
-
-/** Unused pins */
-#define SX1276_DIO5 NULL
 
 /** "Connect" Button */
 #define UNWD_USE_CONNECT_BTN	1

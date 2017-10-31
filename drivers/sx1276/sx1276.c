@@ -321,7 +321,8 @@ void sx1276_set_modem(sx1276_t *dev, sx1276_radio_modems_t modem)
                              | RFLR_OPMODE_LONGRANGEMODE_ON);
 
             sx1276_reg_write(dev, REG_DIOMAPPING1, 0x00);
-            sx1276_reg_write(dev, REG_DIOMAPPING2, 0x10); /* DIO5=ClkOut */
+            /* sx1276_reg_write(dev, REG_DIOMAPPING2, 0x10); */ /* DIO5=ClkOut */
+            sx1276_reg_write(dev, REG_DIOMAPPING2, 0x00);
             break;
 
         case SX1276_MODEM_FSK:

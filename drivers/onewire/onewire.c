@@ -27,34 +27,40 @@ extern "C" {
 #endif
 
 #ifdef ONEWIRE_BITBANG_MODE
-static xtimer_ticks32_t onewire_delay_a;
-static xtimer_ticks32_t onewire_delay_b;
-static xtimer_ticks32_t onewire_delay_c;
-static xtimer_ticks32_t onewire_delay_d;
-static xtimer_ticks32_t onewire_delay_e;
-static xtimer_ticks32_t onewire_delay_f;
-static xtimer_ticks32_t onewire_delay_g;
-static xtimer_ticks32_t onewire_delay_h;
-static xtimer_ticks32_t onewire_delay_i;
-static xtimer_ticks32_t onewire_delay_j;
+    /**
+     * @brief   1-Wire timings, see Maxim AN126
+     */
+    static xtimer_ticks32_t onewire_delay_a;
+    static xtimer_ticks32_t onewire_delay_b;
+    static xtimer_ticks32_t onewire_delay_c;
+    static xtimer_ticks32_t onewire_delay_d;
+    static xtimer_ticks32_t onewire_delay_e;
+    static xtimer_ticks32_t onewire_delay_f;
+    static xtimer_ticks32_t onewire_delay_g;
+    static xtimer_ticks32_t onewire_delay_h;
+    static xtimer_ticks32_t onewire_delay_i;
+    static xtimer_ticks32_t onewire_delay_j;
 
-static gpio_t onewire_pin;
+    /**
+     * @brief   Bitbanging GPIO as 1-Wire bus device
+     */
+    static gpio_t onewire_pin;
+#else
+    /**
+     * @brief   Byte to be transmitted
+     */
+    static uint8_t tx_byte = 0;
+
+    /**
+     * @brief   Using UART as 1-Wire bus device
+     */
+    static onewire_t onewire_device;
 #endif
 
 /**
  * @brief   Byte received by 1-Wire
  */
 static volatile uint8_t rx_byte = 0 ;
-
-/**
- * @brief   Byte to be transmitted
- */
-static uint8_t tx_byte = 0;
-
-/**
- * @brief   Using UART as 1-Wire bus device
- */
-static onewire_t onewire_device;
 
 /**
  * @brief Delay before checking received byte
@@ -169,7 +175,7 @@ int onewire_init(onewire_t device)
     onewire_delay_i = xtimer_ticks_from_usec(70);
     onewire_delay_j = xtimer_ticks_from_usec(410);
     
-    onewire_pin = onewire_pin;
+    onewire_pin = device;
     gpio_init(onewire_pin, GPIO_OD);
 #else
     onewire_device = UART_DEV(device);

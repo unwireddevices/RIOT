@@ -906,7 +906,7 @@ void sx1276_start_cad(sx1276_t *dev)
             sx1276_reg_write(dev,
                              REG_DIOMAPPING2,
                              (sx1276_reg_read(dev, REG_DIOMAPPING2)
-                              & RFLR_DIOMAPPING2_DIO4_MASK) | RFLR_DIOMAPPING1_DIO4_00);
+                              & RFLR_DIOMAPPING2_DIO4_MASK) | RFLR_DIOMAPPING2_DIO4_00);
                               
 
             sx1276_set_status(dev,  SX1276_RF_CAD);

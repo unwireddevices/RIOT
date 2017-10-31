@@ -105,6 +105,7 @@ static void sx1276_on_dio1_isr(void *arg);
 static void sx1276_on_dio2_isr(void *arg);
 static void sx1276_on_dio3_isr(void *arg);
 static void sx1276_on_dio4_isr(void *arg);
+static void sx1276_on_dio5_isr(void *arg);
 
 static void _init_isrs(sx1276_t *dev)
 {
@@ -122,6 +123,14 @@ static void _init_isrs(sx1276_t *dev)
     
     if (dev->dio3_pin != GPIO_UNDEF ) {
         gpio_init_int(dev->dio3_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio3_isr, dev);
+    }
+    
+    if (dev->dio4_pin != GPIO_UNDEF ) {
+        gpio_init_int(dev->dio4_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio4_isr, dev);
+    }
+    
+    if (dev->dio5_pin != GPIO_UNDEF ) {
+        gpio_init_int(dev->dio5_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio5_isr, dev);
     }
 }
 

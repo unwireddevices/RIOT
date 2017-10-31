@@ -294,7 +294,6 @@ bool sx1276_is_channel_free(sx1276_t *dev, uint32_t freq, int16_t rssi_thresh)
     sx1276_set_channel(dev, freq);
     sx1276_set_op_mode(dev, RF_OPMODE_RECEIVER);
 
-    // xtimer_usleep(1000); /* wait 1 millisecond */
     xtimer_spin(xtimer_ticks_from_usec(1000));
 
     rssi = sx1276_read_rssi(dev);
@@ -369,7 +368,7 @@ uint32_t sx1276_random(sx1276_t *dev)
     sx1276_set_op_mode(dev, RF_OPMODE_RECEIVER);
 
     for (i = 0; i < 32; i++) {
-        //xtimer_usleep(1000); /* wait for the chaos */
+        /* wait for the chaos */
         xtimer_spin(xtimer_ticks_from_usec(1000));
 
         /* Non-filtered RSSI value reading. Only takes the LSB value */
@@ -710,7 +709,7 @@ void sx1276_send(sx1276_t *dev, uint8_t *buffer, uint8_t size)
             if ((sx1276_reg_read(dev, REG_OPMODE) & ~RF_OPMODE_MASK)
                 == RF_OPMODE_SLEEP) {
                 sx1276_set_standby(dev);
-                //xtimer_usleep(SX1276_RADIO_WAKEUP_TIME); /* wait for chip wake up */
+                /* wait for chip wake up */
                 xtimer_spin(xtimer_ticks_from_usec(SX1276_RADIO_WAKEUP_TIME));
             }
 
@@ -961,7 +960,6 @@ void sx1276_reset(sx1276_t *dev)
         gpio_clear(dev->reset_pin);
 
         /* Wait 1 ms */
-        //xtimer_usleep(1000);
         xtimer_spin(xtimer_ticks_from_usec(1000));
 
         /* Put reset pin in High-Z */
@@ -970,7 +968,6 @@ void sx1276_reset(sx1276_t *dev)
         gpio_set(dev->reset_pin);
 
         /* Wait 10 ms */
-        //xtimer_usleep(1000 * 10);
         xtimer_spin(xtimer_ticks_from_usec(1000*10));
     }
 }

@@ -876,7 +876,7 @@ void sx1276_set_rx(sx1276_t *dev, uint32_t timeout)
     }
 }
 
-void sx1276_start_cad(sx1276_t *dev)
+void sx1276_start_cad(sx1276_t *dev, uint8_t cadmode)
 {
     switch (dev->settings.modem) {
         case SX1276_MODEM_FSK:
@@ -886,27 +886,35 @@ void sx1276_start_cad(sx1276_t *dev)
         break;
         case SX1276_MODEM_LORA:
         {
-            sx1276_reg_write(dev, REG_LR_IRQFLAGSMASK, RFLR_IRQFLAGS_RXTIMEOUT |
-                             RFLR_IRQFLAGS_RXDONE |
-                             RFLR_IRQFLAGS_PAYLOADCRCERROR |
-                             RFLR_IRQFLAGS_VALIDHEADER |
-                             RFLR_IRQFLAGS_TXDONE |
-                                                                //RFLR_IRQFLAGS_CADDONE |
-                             RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL   // |
-                                                                //RFLR_IRQFLAGS_CADDETECTED
-                             );
+            uint32_t reg = RFLR_IRQFLAGS_RXTIMEOUT |
+                           RFLR_IRQFLAGS_RXDONE |
+                           RFLR_IRQFLAGS_PAYLOADCRCERROR |
+                           RFLR_IRQFLAGS_VALIDHEADER |
+                           RFLR_IRQFLAGS_TXDONE |
+                           RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL;
+                           
+            /* mask interrupt for CadDone or CadDetect */
+            if (cadmode == SX1276_MODE_CADDONE) {
+                reg |= RFLR_IRQFLAGS_CADDETECTED;
+            } else {
+                reg |= RFLR_IRQFLAGS_CADDONE;
+            }
+                             
+            sx1276_reg_write(dev, REG_LR_IRQFLAGSMASK, reg);
 
             // DIO3 = CADDone
-            sx1276_reg_write(dev,
-                             REG_DIOMAPPING1,
-                             (sx1276_reg_read(dev, REG_DIOMAPPING1)
-                              & RFLR_DIOMAPPING1_DIO3_MASK) | RFLR_DIOMAPPING1_DIO3_00);
-                              
             // DIO4 = CADDetected
-            sx1276_reg_write(dev,
-                             REG_DIOMAPPING2,
-                             (sx1276_reg_read(dev, REG_DIOMAPPING2)
-                              & RFLR_DIOMAPPING2_DIO4_MASK) | RFLR_DIOMAPPING2_DIO4_00);
+            if (cadmode == SX1276_MODE_CADDONE) {
+                sx1276_reg_write(dev,
+                                 REG_DIOMAPPING1,
+                                 (sx1276_reg_read(dev, REG_DIOMAPPING1)
+                                  & RFLR_DIOMAPPING1_DIO3_MASK) | RFLR_DIOMAPPING1_DIO3_00);
+            } else {
+                sx1276_reg_write(dev,
+                                 REG_DIOMAPPING2,
+                                 (sx1276_reg_read(dev, REG_DIOMAPPING2)
+                                  & RFLR_DIOMAPPING2_DIO4_MASK) | RFLR_DIOMAPPING2_DIO4_00);
+            }
                               
 
             sx1276_set_status(dev,  SX1276_RF_CAD);

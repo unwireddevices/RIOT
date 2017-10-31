@@ -193,6 +193,11 @@ typedef enum {
     SX1276_ERR_THREAD           /**< Unable to create DIO handling thread (check amount of free memory) */
 } sx1276_init_result_t;
 
+typedef enum {
+    SX1276_MODE_CADDONE = 0,
+    SX1276_MODE_CADDETECT,
+} sx1276_cadmode_t;
+
 /**
  * Hardware IO IRQ callback function definition.
  */
@@ -366,9 +371,10 @@ void sx1276_set_tx(sx1276_t *dev, uint32_t timeout);
  * @brief Start a channel activity detection.
  *
  * @param	[IN]	dev		The sx1276 device structure pointer
+ * @param	[IN]	cadmode SX1276_MODE_CADDONE or SX1276_MODE_CADDETECT
  */
 
-void sx1276_start_cad(sx1276_t *dev);
+void sx1276_start_cad(sx1276_t *dev, uint8_t cadmode);
 
 /**
  * @brief Reads the current RSSI value.

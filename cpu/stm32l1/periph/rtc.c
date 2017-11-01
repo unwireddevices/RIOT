@@ -41,9 +41,11 @@
 typedef struct {
     rtc_alarm_cb_t cb;          /**< callback called from RTC interrupt */
     rtc_wkup_cb_t wkup_cb;      /**< Wake up timer callback */
+    rtc_alarm_cb_t ss_cb;       /**< Subseconds alarm callback */
 
     void *arg;                  /**< argument passed to the callback */
     void *wkup_arg;             /**< argument passed to wakeup callback */
+    void *ss_arg;               /**< argument passed to subseconds alarm callback */
 } rtc_state_t;
 
 static rtc_state_t rtc_callback;
@@ -232,6 +234,82 @@ void rtc_clear_alarm(void)
     rtc_callback.arg = NULL;
 }
 
+int rtc_set_ss_alarm(int milliseconds, rtc_alarm_cb_t cb, void *arg)
+{
+    if (milliseconds > 1000) {
+        return -2;
+    }
+    
+    /* Enable write access to RTC registers */
+    periph_clk_en(APB1, RCC_APB1ENR_PWREN);
+    PWR->CR |= PWR_CR_DBP;
+
+    /* Unlock RTC write protection */
+    RTC->WPR = RTC_WRITE_PROTECTION_KEY1;
+    RTC->WPR = RTC_WRITE_PROTECTION_KEY2;
+
+    /* Enter RTC Init mode */
+    RTC->ISR |= RTC_ISR_INIT;
+    while ((RTC->ISR & RTC_ISR_INITF) == 0) ;
+
+    RTC->CR &= ~(RTC_CR_ALRBE);
+    while ((RTC->ISR & RTC_ISR_ALRBWF) == 0) ;
+    
+    /* do not care for specific date and time */
+    RTC->ALRMBR |= (RTC_ALRMBR_MSK1 | RTC_ALRMBR_MSK2 | RTC_ALRMBR_MSK3 | RTC_ALRMBR_MSK4);
+    
+    uint32_t ss_time_now = RTC->SSR;
+    
+    uint32_t alarm_ss_time = (ss_time_now | 0xFF) - (milliseconds/4);
+    if (alarm_ss_time > 255) {
+        alarm_ss_time -= 255;
+    }
+    
+    /* read RTC_DR to unlock RTC register locked after reading RTC_SSR */
+    ss_time_now = RTC->DR;
+    
+    /* set up subseconds alarm */
+    RTC->ALRMBSSR |= (0x8 << 24); // compare 8 bits only
+    RTC->ALRMBSSR &= ~(RTC_ALRMBSSR_SS);
+    RTC->ALRMBSSR |= (alarm_ss_time & 0xFF);
+    
+    /* Enable Alarm B */
+    RTC->CR |= RTC_CR_ALRBE;
+    RTC->CR |= RTC_CR_ALRBIE;
+    RTC->ISR &= ~(RTC_ISR_ALRBF);
+
+    /* Exit RTC init mode */
+    RTC->ISR &= (uint32_t) ~RTC_ISR_INIT;
+    /* Enable RTC write protection */
+    RTC->WPR = 0xFF;
+
+    EXTI->IMR  |= EXTI_IMR_MR17;
+    EXTI->RTSR |= EXTI_RTSR_TR17;
+    NVIC_SetPriority(RTC_Alarm_IRQn, 5);
+    NVIC_EnableIRQ(RTC_Alarm_IRQn);
+
+    rtc_callback.ss_cb = cb;
+    rtc_callback.ss_arg = arg;
+
+    return 0;
+}
+
+void rtc_clear_ss_alarm(void)
+{
+    /* Disable Alarm B */
+    
+    RTC->WPR = RTC_WRITE_PROTECTION_KEY1;
+    RTC->WPR = RTC_WRITE_PROTECTION_KEY2;
+    
+    RTC->CR &= ~RTC_CR_ALRBE;
+    RTC->CR &= ~RTC_CR_ALRBIE;
+    
+    RTC->WPR = 0xFF;
+
+    rtc_callback.ss_cb = NULL;
+    rtc_callback.ss_arg = NULL;
+}
+
 int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg)
 {
     /* Enable write access to RTC registers */
@@ -361,6 +439,14 @@ void isr_rtc_alarm(void)
 
         rtc_callback.cb(rtc_callback.arg);
     }
+    
+    if ((RTC->ISR & RTC_ISR_ALRBF) && (rtc_callback.ss_cb != NULL)) {
+        RTC->ISR &= ~RTC_ISR_ALRBF;
+        EXTI->PR = EXTI_PR_PR17;
+
+        rtc_callback.ss_cb(rtc_callback.ss_arg);
+    }
+    
     cortexm_isr_end();
 }
 

@@ -89,6 +89,21 @@ int rtc_get_time(struct tm *time);
 int rtc_set_alarm(struct tm *time, rtc_alarm_cb_t cb, void *arg);
 
 /**
+ * @brief Set RTC subseconds alarm
+ *
+ * @note Any already set alarm will be overwritten.
+ *
+ * @param[in] milliseconds  Millseconds from now to alarm (max 1000).
+ * @param[in] cb            Callback executed when alarm is hit.
+ * @param[in] arg           Argument passed to callback when alarm is hit.
+ *
+ * @return  0 for success
+ * @return -2 invalid `time` parameter
+ * @return -1 other errors
+ */
+int rtc_set_ss_alarm(int milliseconds, rtc_alarm_cb_t cb, void *arg);
+
+/**
  * @brief Set an RTC wakeup timer
  *
  * @note Any already set alarm will be overwritten.
@@ -117,6 +132,11 @@ int rtc_get_alarm(struct tm *time);
  * @brief Clear any set alarm, do nothing if nothing set
  */
 void rtc_clear_alarm(void);
+
+/**
+ * @brief Clear any set subsecond alarm, do nothing if nothing set
+ */
+void rtc_clear_ss_alarm(void);
 
 /**
  * @brief Disable periodic wakeup

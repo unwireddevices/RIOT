@@ -28,6 +28,8 @@ extern "C" {
 #include "ls-mac.h"
 #include "ls-gate.h"
 
+#include "rtctimers-millis.h"
+
 #include <stdint.h>
 
 #define ENABLE_DEBUG (0)
@@ -131,6 +133,18 @@ static int send_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame)
 
             ls_derive_keys(node->nonce[node->num_nonces - 1], node->app_nonce, node->addr, mic_key, aes_key);
             ls_encrypt_frame(mic_key, aes_key, frame, &payload_size);
+    }
+    
+    int delay_ms = 5 + ((100 + 10*ch->dr) >> ch->dr);
+    int total_time = 0;
+    while (sx1276_get_modem_status(ch->_internal.sx1276) != SX1276_MODEM_CLEAR) {
+        DEBUG("ls-gate: modem is in RX, postpone transmission\n");
+        rtctimers_millis_sleep(delay_ms);
+        total_time += delay_ms;
+        if (total_time > 1000) {
+            DEBUG("ls-gate: force switching from RX to TX\n");
+            break;
+        }
     }
 
     /* Capture channel */

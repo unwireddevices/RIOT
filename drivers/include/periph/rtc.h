@@ -101,7 +101,17 @@ int rtc_set_alarm(struct tm *time, rtc_alarm_cb_t cb, void *arg);
  * @return -2 invalid `time` parameter
  * @return -1 other errors
  */
-int rtc_set_ss_alarm(int milliseconds, rtc_alarm_cb_t cb, void *arg);
+int rtc_millis_set_alarm(int milliseconds, rtc_alarm_cb_t cb, void *arg);
+
+/**
+ * @brief Get current milliseconds
+ *
+ * @param[out] millis         Pointer to the variable to write the time to.
+ *
+ * @return  0 for success
+ * @return -1 an error occurred
+ */
+int rtc_millis_get_time(uint32_t *millis);
 
 /**
  * @brief Set an RTC wakeup timer
@@ -136,7 +146,7 @@ void rtc_clear_alarm(void);
 /**
  * @brief Clear any set subsecond alarm, do nothing if nothing set
  */
-void rtc_clear_ss_alarm(void);
+void rtc_millis_clear_alarm(void);
 
 /**
  * @brief Disable periodic wakeup

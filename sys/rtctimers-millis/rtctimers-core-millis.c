@@ -43,7 +43,6 @@ static inline int _is_set(rtctimers_millis_t *timer)
 }
 
 static void _lltimer_millis_set(uint32_t millis) {
-	rtc_millis_clear_alarm();
 	rtc_millis_set_alarm(millis, _rtc_callback, NULL);
 }
 
@@ -191,6 +190,9 @@ static void _timer_callback(void)
     uint32_t now = 0;
     rtc_millis_get_time(&now);
     
+    /* disable alarm or it will fire every second */
+    rtc_millis_clear_alarm();
+    
     /* check if next timers are close to expiring */
     while (timer_list_head
             && (timer_list_head->target >= now)
@@ -200,13 +202,7 @@ static void _timer_callback(void)
         
         /* move list head to the next timer */
         _remove_timer_millis_from_list(&timer_list_head, timer);
-
-        /* advance list */
-        /* timer_list_head = timer->next; */
-
-        /* make sure timer is recognized as being already fired */
-        /* timer->target = 0; */
-
+        
         /* fire timer */
         _shoot(timer);
     }

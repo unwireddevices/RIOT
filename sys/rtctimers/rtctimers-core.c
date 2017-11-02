@@ -20,7 +20,6 @@
 extern "C" {
 #endif
 
-#include <xtimer.h>
 #include <stdio.h>
 #include <stdlib.h>
 

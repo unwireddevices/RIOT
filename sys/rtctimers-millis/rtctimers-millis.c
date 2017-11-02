@@ -22,12 +22,9 @@ extern "C" {
 
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "xtimer.h"
 #include "mutex.h"
-#include "thread.h"
 #include "irq.h"
-#include "div.h"
+
 #include "rtctimers-millis.h"
 
 static void _callback_unlock_mutex(void* arg)

@@ -592,9 +592,11 @@ static void *uq_handler(void *arg)
         }
         
         int delay_ms = 5 + ((100 + 10*ls->settings.dr) >> ls->settings.dr);
+        /* REG_LR_MODEMSTAT doesn't seems to work properly
         int total_time = 0;
-        while (sx1276_get_modem_status(ls->_internal.sx1276) != SX1276_MODEM_CLEAR) {
-            DEBUG("ls: modem is in RX, postpone transmission\n");
+        sx1276_modem_status_t status;
+        while ((status = sx1276_get_modem_status(ls->_internal.sx1276)) != SX1276_MODEM_CLEAR) {
+            DEBUG("ls: modem status is %u, postpone transmission\n", (uint8_t) status);
             rtctimers_millis_sleep(delay_ms);
             total_time += delay_ms;
             if (total_time > 2000) {
@@ -602,15 +604,16 @@ static void *uq_handler(void *arg)
                 break;
             }
         }
+        */
         
         /* Listen Before Talk with LoRa CAD support */
-        DEBUG("ls: checking channel activity");
+        DEBUG("ls: checking channel activity\n");
         int cad_tries = 0;
         for (int k = 0; k < 10; k++) {
             sx1276_start_cad(ls->_internal.sx1276, SX1276_MODE_CADDONE);
             rtctimers_millis_sleep(delay_ms);
             if (ls->_internal.last_cad_success) {
-                DEBUG("ls: channel activity detected");
+                DEBUG("ls: channel activity detected\n");
                 
                 /* send anyway if we tried too many times */
                 cad_tries++;
@@ -623,7 +626,7 @@ static void *uq_handler(void *arg)
                 k = 0;
             }
         }
-        DEBUG("ls: sending frame");
+        DEBUG("ls: sending frame\n");
 
         /* Get frame from queue top */
         ls_frame_t *f;

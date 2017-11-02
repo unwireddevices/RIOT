@@ -43,6 +43,7 @@ extern "C" {
 #include "thread.h"
 #include "xtimer.h"
 #include "rtctimers.h"
+#include "rtctimers-millis.h"
 
 static gpio_t en_pins[UMDK_LMT01_MAX_SENSOR_COUNT] = UMDK_LMT01_SENSOR_EN_PINS;
 static lmt01_t sensors[UMDK_LMT01_MAX_SENSOR_COUNT];
@@ -110,7 +111,7 @@ static void prepare_result(module_data_t *buf) {
 		}
 
 		/* Delay between sensor switching */
-        xtimer_spin(xtimer_ticks_from_usec(1e3 * 100));
+        rtctimers_millis_sleep(UMDK_LMT01_SWITCHING_DELAY_MS);
 	}
 
 	buf->data[0] = _UMDK_MID_;

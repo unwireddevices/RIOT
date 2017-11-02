@@ -41,8 +41,7 @@ extern "C" {
 #include "umdk-4btn.h"
 
 #include "thread.h"
-//#include "xtimer.h"
-#include "rtctimer-millis.h"
+#include "rtctimers-millis.h"
 
 static kernel_pid_t handler_pid;
 
@@ -84,7 +83,6 @@ static void btn_pressed_int(void *arg) {
     uint8_t error_counter = 0;
     
     do {
-        //xtimer_spin(xtimer_ticks_from_usec(10*1e3));
         rtctimers_millis_sleep(10);
         now_value = gpio_read(buttons[btn_num]);
         

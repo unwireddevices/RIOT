@@ -591,15 +591,26 @@ static void *uq_handler(void *arg)
             continue;
         }
         
+        int delay_ms = 5 + ((100 + 10*ls->settings.dr) >> ls->settings.dr);
+        int total_time = 0;
+        while (sx1276_get_modem_status(ls->_internal.sx1276) != SX1276_MODEM_CLEAR) {
+            DEBUG("ls: modem is in RX, postpone transmission\n");
+            rtctimers_millis_sleep(delay_ms);
+            total_time += delay_ms;
+            if (total_time > 2000) {
+                DEBUG("ls: force switching from RX to TX\n");
+                break;
+            }
+        }
+        
         /* Listen Before Talk with LoRa CAD support */
-        puts("ls: checking channel activity");
+        DEBUG("ls: checking channel activity");
         int cad_tries = 0;
-        int delay_div = 5 + (100 + 10*ls->settings.dr) >> ls->settings.dr;
         for (int k = 0; k < 10; k++) {
             sx1276_start_cad(ls->_internal.sx1276, SX1276_MODE_CADDONE);
-            rtctimers_millis_sleep(delay_div);
+            rtctimers_millis_sleep(delay_ms);
             if (ls->_internal.last_cad_success) {
-                puts ("ls: channel activity detected");
+                DEBUG("ls: channel activity detected");
                 
                 /* send anyway if we tried too many times */
                 cad_tries++;
@@ -608,11 +619,11 @@ static void *uq_handler(void *arg)
                 }
                 
                 /* otherwise restart CAD after a pause */
-                rtctimers_millis_sleep(5*delay_div);
+                rtctimers_millis_sleep(5*delay_ms);
                 k = 0;
             }
         }
-        puts("ls: sending frame");
+        DEBUG("ls: sending frame");
 
         /* Get frame from queue top */
         ls_frame_t *f;

@@ -37,11 +37,6 @@ static void _remove(rtctimers_millis_t *timer);
 static void _rtc_callback(void *arg);
 static void _timer_callback(void);
 
-static inline int _is_set(rtctimers_millis_t *timer)
-{
-    return timer->target;
-}
-
 static void _lltimer_millis_set(uint32_t millis) {
 	rtc_millis_set_alarm(millis, _rtc_callback, NULL);
 }
@@ -60,9 +55,6 @@ int _rtctimers_millis_set_absolute(rtctimers_millis_t *timer, uint32_t target)
     timer->next = NULL;
 
     unsigned state = irq_disable();
-    if (_is_set(timer)) {
-        _remove(timer);
-    }
 
     timer->target = target;
     _add_timer_millis_to_list(&timer_list_head, timer);
@@ -155,12 +147,11 @@ static void _remove(rtctimers_millis_t *timer)
         if (timer_list_head) {
             /* schedule callback on next timer target time */
             next = timer_list_head->target - RTCTIMERS_MILLIS_OVERHEAD;
+            _lltimer_millis_set(next);
         }
         else {
-            next = 0xFFFFFFFF;
+            rtc_millis_clear_alarm();
         }
-
-        _lltimer_millis_set(next);
     }
     else {
         if (!_remove_timer_millis_from_list(&timer_list_head, timer)) {
@@ -172,10 +163,8 @@ static void _remove(rtctimers_millis_t *timer)
 void rtctimers_millis_remove(rtctimers_millis_t *timer) {
     int state = irq_disable();
 
-    if (_is_set(timer)) {
-        _remove(timer);
-    }
-
+    _remove(timer);
+    
     irq_restore(state);
 }
 

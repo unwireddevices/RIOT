@@ -63,6 +63,7 @@ USEMODULE += checksum
 
 USEMODULE += sx1276
 USEMODULE += rtctimers
+USEMODULE += rtctimers-millis
 
 EXTERNAL_MODULE_DIRS += ../../unwired-modules/
 USEMODULE += lora-star-mac

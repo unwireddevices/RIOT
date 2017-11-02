@@ -248,7 +248,7 @@ int rtc_millis_set_alarm(int milliseconds, rtc_alarm_cb_t cb, void *arg)
     /* do not care for specific date and time */
     RTC->ALRMBR |= (RTC_ALRMBR_MSK1 | RTC_ALRMBR_MSK2 | RTC_ALRMBR_MSK3 | RTC_ALRMBR_MSK4);
        
-    uint32_t alarm_millis_time = 255 - (milliseconds/4);
+    uint32_t alarm_millis_time = 255 - (milliseconds*1000)/3922;
     
     /* set up subseconds alarm */
     uint32_t regalarm = RTC->ALRMBSSR;
@@ -309,8 +309,8 @@ int rtc_millis_get_time(uint32_t *millis)
         rtc_ssr_counter = RTC->SSR;
     }
 
-    *millis = (255 - (rtc_ssr_counter & 0xFF))*4;
-    
+    *millis = ((255 - (rtc_ssr_counter & 0xFF))*3922)/1000;
+
     /* unlock RTC registers by reading DR */
     rtc_ssr_counter = RTC->DR;
     

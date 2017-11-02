@@ -31,6 +31,8 @@
 #include "random.h"
 #include "cpu.h"
 
+#include "rtctimers-millis.h"
+
 #include "eeprom.h"
 
 #include "board.h"
@@ -61,25 +63,15 @@ void print_logo(void)
     puts("");
 }
 
-static void __cycle_delay(void) {
-    volatile int t;
-    for (t = 0; t < 50000; t++) {
-        __asm("nop;");
-    }
-}
-
 void blink_led(void)
 {
     volatile int i;
 
     LED0_OFF;
 
-    for (i = 0; i < 2; i++) {
+    for (i = 0; i < 4; i++) {
         LED0_TOGGLE;
-        __cycle_delay();
-
-        LED0_TOGGLE;
-        __cycle_delay();
+        rtctimers_millis_sleep(50);        
     }
 
     LED0_OFF;

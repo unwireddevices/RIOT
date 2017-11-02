@@ -189,7 +189,9 @@ typedef struct {
 	mutex_t curr_frame_mutex; /**< Mutex on current frame */
 
 	int16_t last_rssi;		  /**< RSSI value of the last frame received */
-
+    
+    bool last_cad_success;     /**< last Channel Activity Detection result */
+    
 	uint8_t num_reopened;		/**< Number of RX window reopening */
 
 	/*

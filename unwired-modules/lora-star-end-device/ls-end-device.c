@@ -34,6 +34,7 @@ extern "C" {
 #include "ls-end-device.h"
 
 #include "rtctimers.h"
+#include "rtctimers-millis.h"
 
 #define ENABLE_DEBUG    (0)
 
@@ -120,7 +121,7 @@ static inline void schedule_tx(ls_ed_t *ls)
     msg_t msg;
     msg_t msg_queue[4];
     msg_init_queue(msg_queue, 4);
-
+    
     /* Send message to the frame queue thread to initiate frame transmission */
     msg_try_send(&msg, ls->_internal.uq_thread_pid);
 }
@@ -519,6 +520,18 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
 			ls_ed_sleep(ls);
 
 			break;
+            
+        case SX1276_CAD_DONE:
+            DEBUG("sx1276: CAD done\n");
+            ls->_internal.last_cad_success = dev->_internal.is_last_cad_success;
+            ls_ed_sleep(ls);
+            break;
+            
+        case SX1276_CAD_DETECTED:
+            DEBUG("sx1276: CAD detected\n");
+            ls->_internal.last_cad_success = dev->_internal.is_last_cad_success;
+            ls_ed_sleep(ls);
+            break;
 
 		default:
 			printf("sx1276: received event #%d\n", (int) event_type);
@@ -576,6 +589,29 @@ static void *uq_handler(void *arg)
             ls->state = LS_ED_IDLE;
             continue;
         }
+        
+        /* Listen Before Talk with LoRa CAD support */
+        puts("ls: checking channel activity");
+        int cad_tries = 0;
+        int delay_div = 100/(ls->settings.dr + 1);
+        for (int k = 0; k < 5; k++) {
+            sx1276_start_cad(ls->_internal.sx1276, SX1276_MODE_CADDONE);
+            rtctimers_millis_sleep(delay_div);
+            if (ls->_internal.last_cad_success) {
+                puts ("ls: channel activity detected");
+                
+                /* send anyway if we tried too many times */
+                cad_tries++;
+                if (cad_tries > 5) {
+                    break;
+                }
+                
+                /* otherwise restart CAD after a pause */
+                rtctimers_millis_sleep(5*delay_div);
+                k = 0;
+            }
+        }
+        puts("ls: sending frame");
 
         /* Get frame from queue top */
         ls_frame_t *f;

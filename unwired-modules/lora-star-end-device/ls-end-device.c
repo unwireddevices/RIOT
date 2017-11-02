@@ -12,7 +12,7 @@
  * @brief
  * @{
  * @file		ls_end_device.c
- * @brief       Implementation of LoRa-Star stack for end-device
+ * @brief       Implementation of LoRaLAN stack for end-device
  * @author      Eugene Ponomarev
  */
 
@@ -37,6 +37,7 @@ extern "C" {
 #include "rtctimers-millis.h"
 
 #define ENABLE_DEBUG    (0)
+#include "debug.h"
 
 static msg_t msg_rx1;
 static msg_t msg_rx2;
@@ -593,8 +594,8 @@ static void *uq_handler(void *arg)
         /* Listen Before Talk with LoRa CAD support */
         puts("ls: checking channel activity");
         int cad_tries = 0;
-        int delay_div = 100/(ls->settings.dr + 1);
-        for (int k = 0; k < 5; k++) {
+        int delay_div = (100 + 10*ls->settings.dr) >> ls->settings.dr;
+        for (int k = 0; k < 10; k++) {
             sx1276_start_cad(ls->_internal.sx1276, SX1276_MODE_CADDONE);
             rtctimers_millis_sleep(delay_div);
             if (ls->_internal.last_cad_success) {

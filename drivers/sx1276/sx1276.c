@@ -1113,6 +1113,27 @@ void sx1276_read_fifo(sx1276_t *dev, uint8_t *buffer, uint8_t size)
     sx1276_reg_read_burst(dev, 0, buffer, size);
 }
 
+sx1276_modem_status_t sx1276_get_modem_status(sx1276_t *dev) {
+    uint32_t status = sx1276_reg_read(dev, REG_LR_MODEMSTAT);
+    if (status & (1 << 4)) {
+        return SX1276_MODEM_CLEAR;
+    }
+    
+    if (status & (1 << 3)) {
+        return SX1276_HEADER_INFO_VALID;
+    }
+    
+    if (status & (1 << 1)) {
+        return SX1276_SIGNAL_SYNC;
+    }
+    
+    if (status & (1 << 0)) {
+        return SX1276_SIGNAL_DETECT;
+    }
+    
+    return SX1276_STATUS_OTHER;
+}
+
 /**
  * IRQ handlers
  */

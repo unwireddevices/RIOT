@@ -112,6 +112,19 @@ typedef enum {
 } sx1276_radio_state_t;
 
 /**
+ * LoRa modem live status
+ */
+typedef enum {
+    SX1276_MODEM_CLEAR = 0,
+    SX1276_HEADER_INFO_VALID,
+    SX1276_RX_ONGOING,
+    SX1276_SIGNAL_SYNC,
+    SX1276_SIGNAL_DETECT,
+    SX1276_STATUS_OTHER,
+} sx1276_modem_status_t;
+
+
+/**
  * Radio settings.
  */
 typedef struct {
@@ -445,6 +458,13 @@ void sx1276_reg_read_burst(sx1276_t *dev, uint8_t addr, uint8_t *buffer,
  * @param	[IN]	maxlen	Maximum payload length in bytes
  */
 void sx1276_set_max_payload_len(sx1276_t *dev, sx1276_radio_modems_t modem, uint8_t maxlen);
+
+/**
+ * @brief Gets modem live status.
+ *
+ * @param	[IN]	dev		The sx1276 device structure pointer
+ */
+sx1276_modem_status_t sx1276_get_modem_status(sx1276_t *dev);
 
 /**
  * @brief sx1276 state machine hanlder thread body.

@@ -40,6 +40,9 @@
 #include "main.h"
 #include "config.h"
 
+#include "rtctimers.h"
+#include "rtctimers-millis.h"
+
 static nvram_t nvram;
 
 void print_logo(void)
@@ -61,12 +64,9 @@ void blink_led(void)
 
     LED0_OFF;
 
-    for (i = 0; i < 5; i++) {
+    for (i = 0; i < 4; i++) {
         LED0_TOGGLE;
-        xtimer_usleep(50000);
-
-        LED0_TOGGLE;
-        xtimer_usleep(50000);
+        rtctimers_millis_sleep(50);        
     }
 
     LED0_OFF;
@@ -100,6 +100,7 @@ int main(void)
 
     print_logo();
     xtimer_init();
+    rtctimers_init();
 
     nvram_eeprom_init(&nvram);
 

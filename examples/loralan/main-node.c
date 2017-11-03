@@ -689,8 +689,6 @@ void init_node(shell_command_t **commands)
         }
     }
 
-    rtctimers_init();
-
     if (!unwds_config_load()) {
         puts("[!] Device is not configured yet. Type \"help\" to see list of possible configuration commands.");
         puts("[!] Configure the node and type \"reboot\" to reboot and apply settings.");

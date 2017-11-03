@@ -31,6 +31,7 @@
 #include "random.h"
 #include "cpu.h"
 
+#include "rtctimers.h"
 #include "rtctimers-millis.h"
 
 #include "eeprom.h"
@@ -111,6 +112,7 @@ int main(void)
     
     print_logo();
     xtimer_init();
+    rtctimers_init();
 
     nvram_eeprom_init(&nvram);
 

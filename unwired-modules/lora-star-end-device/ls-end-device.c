@@ -909,6 +909,10 @@ int ls_ed_init(ls_ed_t *ls)
     return LS_OK;
 }
 
+void ls_ed_poweroff(ls_ed_t *ls) {
+    sx1276_set_sleep(ls->_internal.sx1276);
+}
+
 int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed, bool with_ack)
 {
     assert(ls != NULL);

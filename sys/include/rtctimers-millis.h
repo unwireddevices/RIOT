@@ -35,7 +35,7 @@ typedef struct rtctimers_millis {
 
 #define RTCTIMERS_MILLIS_OVERHEAD 0
 #define RTCTIMERS_MILLIS_BACKOFF 0
-#define RTCTIMERS_MILLIS_ISR_BACKOFF 5
+#define RTCTIMERS_MILLIS_ISR_BACKOFF 1
 
 void rtctimers_millis_init(void);
 

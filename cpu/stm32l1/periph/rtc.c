@@ -228,12 +228,7 @@ void rtc_clear_alarm(void)
     rtc_callback.arg = NULL;
 }
 
-int rtc_millis_set_alarm(int milliseconds, rtc_alarm_cb_t cb, void *arg)
-{
-    if (milliseconds > 1000) {
-        return -2;
-    }
-    
+void rtc_millis_init(void) {
     /* Enable write access to RTC registers */
     periph_clk_en(APB1, RCC_APB1ENR_PWREN);
     PWR->CR |= PWR_CR_DBP;
@@ -241,79 +236,41 @@ int rtc_millis_set_alarm(int milliseconds, rtc_alarm_cb_t cb, void *arg)
     /* Unlock RTC write protection */
     RTC->WPR = RTC_WRITE_PROTECTION_KEY1;
     RTC->WPR = RTC_WRITE_PROTECTION_KEY2;
+    
+    /* Disable periodic wakeup */
+    RTC->CR &= ~(RTC_CR_WUTE);
+    while ((RTC->ISR & RTC_ISR_WUTWF) == 0) ;
+    
+    /* Set wakeup timer clock source to RTCCLK/4 */
+    /* Min period 244 us, maximum 8 s */
+    RTC->CR &= ~(RTC_CR_WUCKSEL);
+    RTC->CR |= (RTC_CR_WUCKSEL_1);
 
-    RTC->CR &= ~(RTC_CR_ALRBE);
-    while ((RTC->ISR & RTC_ISR_ALRBWF) == 0) ;
-    
-    /* do not care for specific date and time */
-    RTC->ALRMBR |= (RTC_ALRMBR_MSK1 | RTC_ALRMBR_MSK2 | RTC_ALRMBR_MSK3 | RTC_ALRMBR_MSK4);
-       
-    uint32_t alarm_millis_time = 255 - (milliseconds*1000)/3922;
-    
-    /* set up subseconds alarm */
-    uint32_t regalarm = RTC->ALRMBSSR;
-    regalarm |= (0x8 << 24); // compare 8 bits only
-    regalarm &= ~(RTC_ALRMBSSR_SS);
-    regalarm |= (alarm_millis_time & 0xFF);
-    RTC->ALRMBSSR = regalarm;
-    
-    /* Enable Alarm B */
-    RTC->CR |= RTC_CR_ALRBE;
-    RTC->CR |= RTC_CR_ALRBIE;
-    RTC->ISR &= ~(RTC_ISR_ALRBF);
-    
     /* Enable RTC write protection */
     RTC->WPR = 0xFF;
 
-    EXTI->IMR  |= EXTI_IMR_MR17;
-    EXTI->RTSR |= EXTI_RTSR_TR17;
-    NVIC_SetPriority(RTC_Alarm_IRQn, 5);
-    NVIC_EnableIRQ(RTC_Alarm_IRQn);
+    EXTI->IMR  |= EXTI_IMR_MR20;
+    EXTI->RTSR |= EXTI_RTSR_TR20;
+    NVIC_SetPriority(RTC_WKUP_IRQn, 5);
+    NVIC_EnableIRQ(RTC_WKUP_IRQn);
+}
 
-    rtc_callback.millis_cb = cb;
-    rtc_callback.millis_arg = arg;
-
-    return 0;
+int rtc_millis_set_alarm(int milliseconds, rtc_alarm_cb_t cb, void *arg)
+{   
+    return rtc_set_wakeup(1000*milliseconds, cb, arg);
 }
 
 void rtc_millis_clear_alarm(void)
 {
-    /* Disable Alarm B */
-    
-    RTC->WPR = RTC_WRITE_PROTECTION_KEY1;
-    RTC->WPR = RTC_WRITE_PROTECTION_KEY2;
-    
-    RTC->CR &= ~RTC_CR_ALRBE;
-    RTC->CR &= ~RTC_CR_ALRBIE;
-    
-    RTC->WPR = 0xFF;
+    rtc_disable_wakeup();
 
     rtc_callback.millis_cb = NULL;
     rtc_callback.millis_arg = NULL;
 }
 
-int rtc_millis_get_time(uint32_t *millis)
+int rtc_millis_get_time_till_next_alarm(uint32_t *millis)
 {
-    /* clear RSF bit */
-    RTC->ISR &= ~RTC_ISR_RSF;
-    
-    /* wait for RSF to be set by hardware */
-    while (!(RTC->ISR & RTC_ISR_RSF)) {}
-    
-    /* RTC registers need to be read at least twice when running at f < 32768*7 = 229376 Hz APB1 clock */
-    uint32_t rtc_ssr_counter = RTC->SSR;
-
-    /* second read */
-    if (RTC->SSR != rtc_ssr_counter) {
-        /* 3rd read if 1st and 2nd don't match */
-        rtc_ssr_counter = RTC->SSR;
-    }
-
-    *millis = ((255 - (rtc_ssr_counter & 0xFF))*3922)/1000;
-
-    /* unlock RTC registers by reading DR */
-    rtc_ssr_counter = RTC->DR;
-    
+    *millis = (((RTC->WUTR & 0xFFFF) + 1)*12207)/100000;
     return 0;
 }
 
@@ -335,11 +292,6 @@ int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg)
     period_us = ((period_us * 100)/12207) - 1;   
     RTC->WUTR = (period_us & 0xFFFF);
     
-    /* Set wakeup timer clock source to RTCCLK/4 */
-    /* Min period 244 us, maximum 8 s */
-    RTC->CR &= ~(RTC_CR_WUCKSEL);
-    RTC->CR |= (RTC_CR_WUCKSEL_1);
-    
     /* Enable periodic wakeup */
     RTC->CR |= RTC_CR_WUTE;
     RTC->CR |= RTC_CR_WUTIE;
@@ -347,11 +299,6 @@ int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg)
 
     /* Enable RTC write protection */
     RTC->WPR = 0xFF;
-
-    EXTI->IMR  |= EXTI_IMR_MR20;
-    EXTI->RTSR |= EXTI_RTSR_TR20;
-    NVIC_SetPriority(RTC_WKUP_IRQn, 5);
-    NVIC_EnableIRQ(RTC_WKUP_IRQn);
 
     rtc_callback.wkup_cb = cb;
     rtc_callback.wkup_arg = arg;

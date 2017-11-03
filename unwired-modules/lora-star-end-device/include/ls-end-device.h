@@ -67,10 +67,15 @@
 #define LS_ED_SLEEP_REQUEST_DELAY 1
 
 // TODO: optimize these values to reduce memory consumption
-#define LS_UQ_HANDLER_STACKSIZE			(2 * THREAD_STACKSIZE_DEFAULT)
-#define LS_TIM_HANDLER_STACKSIZE		(1 * THREAD_STACKSIZE_DEFAULT)
-
-#define LS_TIM_MSG_QUEUE_SIZE 8
+#if defined (UNWDS_BUILD_MINIMAL)
+    #define LS_UQ_HANDLER_STACKSIZE			(1536)
+    #define LS_TIM_HANDLER_STACKSIZE		(768)
+    #define LS_TIM_MSG_QUEUE_SIZE 4
+#else
+    #define LS_UQ_HANDLER_STACKSIZE			(2 * THREAD_STACKSIZE_DEFAULT)
+    #define LS_TIM_HANDLER_STACKSIZE		(1 * THREAD_STACKSIZE_DEFAULT)
+    #define LS_TIM_MSG_QUEUE_SIZE 8
+#endif
 
 typedef enum {
 	LS_ED_RX1_EXPIRED = 0,
@@ -222,6 +227,8 @@ typedef struct {
 } ls_ed_t;
 
 int ls_ed_init(ls_ed_t *ls);
+
+void ls_ed_poweroff(ls_ed_t *ls);
 
 int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed, bool with_ack);
 

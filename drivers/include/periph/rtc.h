@@ -54,6 +54,11 @@ typedef void(*rtc_wkup_cb_t)(void *arg);
 void rtc_init(void);
 
 /**
+ * @brief Initialize RTC milliseconds timer
+ */
+void rtc_millis_init(void);
+
+/**
  * @brief Set RTC to given time.
  *
  * @param[in] time          Pointer to the struct holding the time to set.
@@ -111,7 +116,7 @@ int rtc_millis_set_alarm(int milliseconds, rtc_alarm_cb_t cb, void *arg);
  * @return  0 for success
  * @return -1 an error occurred
  */
-int rtc_millis_get_time(uint32_t *millis);
+int rtc_millis_get_time_till_next_alarm(uint32_t *millis);
 
 /**
  * @brief Set an RTC wakeup timer

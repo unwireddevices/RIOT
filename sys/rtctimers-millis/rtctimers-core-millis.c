@@ -20,11 +20,15 @@
 extern "C" {
 #endif
 
+#define USE_WKUP_TIMER
+
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "rtctimers-millis.h"
 #include "periph/rtc.h"
+
+#include "periph/gpio.h"
 
 #include "debug.h"
 #define ENABLE_DEBUG    (1)
@@ -35,6 +39,7 @@ static void _add_timer_millis_to_list(rtctimers_millis_t **list_head, rtctimers_
 static void _remove(rtctimers_millis_t *timer);
 static void _rtc_callback(void *arg);
 static void _timer_callback(void);
+static void _timers_recalculate_relative(void);
 
 static void _lltimer_millis_set(uint32_t millis) {
 	rtc_millis_set_alarm(millis, _rtc_callback, NULL);
@@ -44,8 +49,21 @@ static void _rtc_callback(void *arg) {
 	_timer_callback();
 }
 
+static void _timers_recalculate_relative(void) {
+    uint32_t time_ms = 0;
+    rtc_millis_get_time_till_next_alarm(&time_ms);
+    rtctimers_millis_t *list_head = timer_list_head;
+    uint32_t time_passed = list_head->target - time_ms;
+    
+    /* all targets should be relative to current time, not absolute */
+    while(list_head) {
+        list_head->target -= time_passed;
+        list_head = list_head->next;
+    }
+}
+
 void rtctimers_millis_init(void) {
-	rtc_init();
+	rtc_millis_init();
 }
 
 int _rtctimers_millis_set_absolute(rtctimers_millis_t *timer, uint32_t target)
@@ -59,7 +77,7 @@ int _rtctimers_millis_set_absolute(rtctimers_millis_t *timer, uint32_t target)
     _add_timer_millis_to_list(&timer_list_head, timer);
 
     if (timer_list_head == timer) {
-        _lltimer_millis_set(target - RTCTIMERS_MILLIS_OVERHEAD);
+        _lltimer_millis_set(target);
 	}
 
     irq_restore(state);
@@ -74,22 +92,11 @@ void rtctimers_millis_set(rtctimers_millis_t *timer, uint32_t offset) {
     }
     rtctimers_millis_remove(timer);
 
-    uint32_t now = 0;
-    rtc_millis_get_time(&now);
-    
-    uint32_t target = now + offset;
-    if (target >= 1000) {
-        target -= 1000;
-    }
-
-	_rtctimers_millis_set_absolute(timer, target);
+	_rtctimers_millis_set_absolute(timer, offset);
 }
 
 static void _add_timer_millis_to_list(rtctimers_millis_t **list_head, rtctimers_millis_t *timer)
 {
-    uint32_t now = 0;
-    rtc_millis_get_time(&now);
-    
     /* there's no list yet */
     if (!*list_head) {
         timer->next = NULL;
@@ -97,31 +104,14 @@ static void _add_timer_millis_to_list(rtctimers_millis_t **list_head, rtctimers_
         return;
     }
     
-    if (timer->target >= now) {
-        /* timer to be fired this second */
-        if ((*list_head)->target >= now) {
-            while (*list_head && (*list_head)->target <= timer->target) {
-                list_head = &((*list_head)->next);
-            }
-        } else {
-            timer->next = *list_head;
-            *list_head = timer;
-        }
-    } else {
-        /* timer to be fired next second */
-        /* iterate through timers to be fired this second */
-        while (*list_head && (*list_head)->target >= timer->target) {
-            list_head = &((*list_head)->next);
-        }
-        
-        /* iterate through timers to be fired next second */
-        while (*list_head && (*list_head)->target <= timer->target) {
-            list_head = &((*list_head)->next);
-        }
-        
-        timer->next = *list_head;
-        *list_head = timer;
+    _timers_recalculate_relative();
+    
+    while(*list_head && (*list_head)->target <= timer->target) {
+        list_head = &((*list_head)->next);
     }
+
+    timer->next = *list_head;
+    *list_head = timer;
 }
 
 static int _remove_timer_millis_from_list(rtctimers_millis_t **list_head, rtctimers_millis_t *timer)
@@ -131,7 +121,6 @@ static int _remove_timer_millis_from_list(rtctimers_millis_t **list_head, rtctim
             *list_head = timer->next;
             return 1;
         }
-
         list_head = &((*list_head)->next);
     }
 
@@ -143,9 +132,13 @@ static void _remove(rtctimers_millis_t *timer)
     if (timer_list_head == timer) {
         uint32_t next;
         timer_list_head = timer->next;
+        
         if (timer_list_head) {
+            /* recalculate targets relative to current time */
+            _timers_recalculate_relative();
+
             /* schedule callback on next timer target time */
-            next = timer_list_head->target - RTCTIMERS_MILLIS_OVERHEAD;
+            next = timer_list_head->target;
             _lltimer_millis_set(next);
         }
         else {
@@ -175,22 +168,19 @@ static void _timer_callback(void)
 {
     uint32_t next_target = 0;
     
-    uint32_t now = 0;
-    rtc_millis_get_time(&now);
-    
-    /* disable alarm or it will fire every second */
+    uint32_t time_ms = 0;
+    rtc_millis_get_time_till_next_alarm(&time_ms);
+
+    /* disable alarm or it may continue to fire */
     rtc_millis_clear_alarm();
     
     /* check if next timers are close to expiring */
-    while (timer_list_head
-            && (timer_list_head->target >= now)
-            && (timer_list_head->target <= now + RTCTIMERS_MILLIS_ISR_BACKOFF)) {
+    while (timer_list_head && (timer_list_head->target <= time_ms + RTCTIMERS_MILLIS_ISR_BACKOFF)) {
         /* pick first timer in list */
-        rtctimers_millis_t *timer = timer_list_head;
         
+        rtctimers_millis_t *timer = timer_list_head;
         /* move list head to the next timer */
         _remove_timer_millis_from_list(&timer_list_head, timer);
-        
         /* fire timer */
         _shoot(timer);
     }

@@ -103,6 +103,16 @@ static inline void cortexm_isr_end(void)
 }
 
 /**
+ * @brief   Checks is memory address valid or not
+ *
+ * This function can be used to check for memory size,
+ * peripherals availability, etc.
+ * 
+ * @param[in]	address     Address to check
+ */
+bool cpu_check_address(volatile const char *address);
+
+/**
  * @brief   Holds current CPU clock frequency
  */
 extern volatile uint32_t cpu_clock_global;
@@ -111,6 +121,11 @@ extern volatile uint32_t cpu_clock_global;
  * @brief   Holds current CPU clock source name
  */
 extern char cpu_clock_source[10];
+
+/**
+ * @brief   Number of GPIO ports available
+ */
+extern volatile uint32_t cpu_ports_number;
 
 #ifdef __cplusplus
 }

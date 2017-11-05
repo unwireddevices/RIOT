@@ -61,3 +61,26 @@ void cortexm_init(void)
     SCB->CCR |= SCB_CCR_STKALIGN_Msk;
 #endif
 }
+
+bool cpu_check_address(volatile const char *address)
+{
+    bool is_valid = true;
+
+    /* Clear BFAR ADDRESS VALID flag */
+    SCB->CFSR |= SCB_CFSR_BFARVALID;
+
+    SCB->CCR |= SCB_CCR_BFHFNMIGN;
+    __asm volatile ("cpsid f;");
+    
+    *address;
+    if ((SCB->CFSR & SCB_CFSR_BFARVALID) != 0)
+    {
+        /* Bus Fault occured reading the address */
+        is_valid = false;
+    }
+    
+    __asm volatile ("cpsie f;");
+    SCB->CCR &= ~SCB_CCR_BFHFNMIGN;
+
+    return is_valid;
+}

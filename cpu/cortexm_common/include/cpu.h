@@ -107,6 +107,11 @@ static inline void cortexm_isr_end(void)
  */
 extern volatile uint32_t cpu_clock_global;
 
+/**
+ * @brief   Holds current CPU clock source name
+ */
+extern char cpu_clock_source[10];
+
 #ifdef __cplusplus
 }
 #endif

@@ -101,6 +101,7 @@ int main(void)
     print_logo();
     xtimer_init();
     rtctimers_init();
+    rtctimers_millis_init();
 
     nvram_eeprom_init(&nvram);
 

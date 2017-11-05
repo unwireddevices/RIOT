@@ -99,6 +99,7 @@
 
 static uint32_t tmpreg;
 volatile uint32_t cpu_clock_global;
+volatile uint32_t cpu_ports_number;
 char cpu_clock_source[10] = { 0 };
 
 void cpu_init(void)
@@ -124,10 +125,21 @@ void cpu_init(void)
     
     /* initialize system clocks */
     clk_init();
+    
+    /* determine available ports */
+    cpu_ports_number = 0;
+    for (uint32_t i = GPIOA_BASE; i<=GPIOG_BASE; i += (GPIOB_BASE - GPIOA_BASE)) {
+        if (cpu_check_address((char *)i)) {
+            cpu_ports_number++;
+        } else {
+            break;
+        }
+    }
+    
     /* switch all GPIOs to AIN mode to minimize power consumption */
     uint8_t i;
     GPIO_TypeDef *port;
-    for (i = 0; i < CPU_NUMBER_OF_PORTS; i++) {
+    for (i = 0; i < cpu_ports_number; i++) {
         port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
         port->MODER = 0xffffffff;
     }
@@ -362,35 +374,11 @@ void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider)
     cpu_clock_global = 65536 * (1 << (msi_range >> 13));
 }
 
-/* Probe memory address to check is it valid or not */
-static volatile bool cpu_poke_address(volatile const char *address)
-{
-    bool is_valid = true;
-
-    /* Clear BFAR ADDRESS VALID flag */
-    SCB->CFSR |= SCB_CFSR_BFARVALID;
-
-    SCB->CCR |= SCB_CCR_BFHFNMIGN;
-    __asm volatile ("cpsid f;");
-    
-    *address;
-    if ((SCB->CFSR & SCB_CFSR_BFARVALID) != 0)
-    {
-        /* Bus Fault occured reading the address */
-        is_valid = false;
-    }
-    
-    __asm volatile ("cpsie f;");
-    SCB->CCR &= ~SCB_CCR_BFHFNMIGN;
-
-    return is_valid;
-}
-
 static uint32_t cpu_find_memory_size(char *base, uint32_t block, uint32_t maxsize) {
     char *address = base;
     do {
         address += block;
-        if (!cpu_poke_address(address)) {
+        if (!cpu_check_address(address)) {
             break;
         }
     } while ((uint32_t)(address - base) < maxsize);

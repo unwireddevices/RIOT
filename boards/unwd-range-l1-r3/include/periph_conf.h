@@ -51,8 +51,6 @@ extern "C" {
 #define CLOCK_APB1_DIV      RCC_CFGR_PPRE1_DIV1     /* APB1 clock -> 32MHz */
 /* configuration of flash access cycles */
 #define CLOCK_FLASH_LATENCY FLASH_ACR_LATENCY
-/* only PA, PB and PC are in use */
-#define CPU_NUMBER_OF_PORTS 3
 /** @} */
 
 /* bus clocks for simplified peripheral initialization, UPDATE MANUALLY! */

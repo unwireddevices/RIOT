@@ -56,25 +56,34 @@ void print_logo(void)
 #endif
 	puts("*****************************************");
     printf("Version: %s (%s %s)\n", FIRMWARE_VERSION, __DATE__, __TIME__);
-    if (get_cpu_category() == 3) {
-        puts("Running on STM32L151CC (256 KB flash / 8 KB EEPROM)");
-    } else {
-        puts("Running on STM32L151CB (128 KB flash / 4 KB EEPROM)");
+    char cpu_model[20];
+    switch (get_cpu_category()) {
+        case 1:
+            snprintf(cpu_model, 20, "STM32L151CB");
+            break;
+        case 2:
+            snprintf(cpu_model, 20, "STM32L151CB-A");
+            break;
+        case 3:
+            snprintf(cpu_model, 20, "STM32L151CC");
+            break;
     }
-    puts("");
+    printf("%s %lu MHz (%s clock)\n", cpu_model,
+                                      cpu_clock_global/1000000,
+                                      cpu_clock_source);
+    printf("%lu KB RAM, %lu KB flash, %lu KB EEPROM\n\n", get_cpu_ram_size()/1024,
+                                                          get_cpu_flash_size()/1024,
+                                                          get_cpu_eeprom_size()/1024);
 }
 
 void blink_led(void)
 {
-    volatile int i;
-
+    int i;
     LED0_OFF;
-
     for (i = 0; i < 4; i++) {
         LED0_TOGGLE;
         rtctimers_millis_sleep(50);        
     }
-
     LED0_OFF;
 }
 

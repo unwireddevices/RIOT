@@ -70,12 +70,6 @@ bool unwds_write_nvram_config(unwds_module_id_t module_id, uint8_t *data, size_t
  */
 bool unwds_erase_nvram_config(unwds_module_id_t module_id);
 
-/**
- * Stacks pool definitions.
- */
-#define UNWDS_STACK_POOL_SIZE 5U
-#define UNWDS_STACK_SIZE_BYTES (2048U)
-
 uint8_t *allocate_stack(void);
 
 #define UNWDS_MAX_MODULE_NAME 10
@@ -83,6 +77,9 @@ uint8_t *allocate_stack(void);
 
 #define UNWDS_STORAGE_BLOCKS_MAX 16
 
+/**
+ * Stacks pool definitions.
+ */
 #if defined(UNWDS_BUILD_MINIMAL)
     #define UNWDS_STACK_SIZE_BYTES (1024U)
     #define UNWDS_STACK_POOL_SIZE 2U

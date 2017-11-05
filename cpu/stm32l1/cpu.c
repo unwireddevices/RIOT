@@ -26,6 +26,7 @@
 #include "periph_conf.h"
 #include "periph/timer.h"
 #include "periph/rtc.h"
+#include <string.h>
 
 /* See if we want to use the PLL */
 #if defined(CLOCK_PLL_DIV) || defined(CLOCK_PLL_MUL) || \
@@ -98,8 +99,7 @@
 
 static uint32_t tmpreg;
 volatile uint32_t cpu_clock_global;
-
-void (*SysMemBootJump)(void);
+char cpu_clock_source[10] = { 0 };
 
 void cpu_init(void)
 {
@@ -116,8 +116,10 @@ void cpu_init(void)
         
         /* System Memory on STM32L1 is at 0x1FF0 0000*/
         /* point the PC to the System Memory reset vector (+4) */
-        SysMemBootJump = (void (*)(void)) (*((uint32_t *) 0x1ff00004));
-        SysMemBootJump();
+        typedef void (*ptr_func)(void);
+        ptr_func jump_to_bootloader;
+        jump_to_bootloader = (ptr_func)(0x1ff00004);
+        jump_to_bootloader();
     }
     
     /* initialize system clocks */
@@ -132,7 +134,7 @@ void cpu_init(void)
 }
 
 /**
- * @brief Configure the clock system of the stm32f1
+ * @brief Configure the clock system of the stm32l1
  */
 void clk_init(void)
 {
@@ -288,6 +290,33 @@ void clk_init(void)
 #endif
     
     cpu_clock_global = CLOCK_CORECLOCK;
+    
+#if CLOCK_MSI
+    memcpy(cpu_clock_source, "MSI", 3);   
+#elif defined(CLOCK_HS_MULTI)
+    uint32_t n = 0;
+    if (CLOCK_USE_PLL) {
+        memcpy(cpu_clock_source, "PLL", 3);
+        n += 3;
+    }
+    if (clock_source_rdy == RCC_CR_HSERDY) {
+        memcpy(cpu_clock_source + n, "/HSE", 4);
+    } else {
+        memcpy(cpu_clock_source + n, "/HSI", 4);
+    }
+#elif defined(CLOCK_HSI)
+    #if CLOCK_USE_PLL
+        memcpy(cpu_clock_source, "PLL/HSI", 7);
+    #elif
+        memcpy(cpu_clock_source, "HSI", 3);
+    #endif
+#elif defined(CLOCK_HSE)
+    #if CLOCK_USE_PLL
+        memcpy(cpu_clock_source, "PLL/HSE", 7);
+    #elif
+        memcpy(cpu_clock_source, "HSE", 3);
+    #endif
+#endif
 }
 
 void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider)
@@ -333,7 +362,55 @@ void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider)
     cpu_clock_global = 65536 * (1 << (msi_range >> 13));
 }
 
-int get_cpu_category(void) {
+/* Probe memory address to check is it valid or not */
+static volatile bool cpu_poke_address(volatile const char *address)
+{
+    bool is_valid = true;
+
+    /* Clear BFAR ADDRESS VALID flag */
+    SCB->CFSR |= SCB_CFSR_BFARVALID;
+
+    SCB->CCR |= SCB_CCR_BFHFNMIGN;
+    __asm volatile ("cpsid f;");
+    
+    *address;
+    if ((SCB->CFSR & SCB_CFSR_BFARVALID) != 0)
+    {
+        /* Bus Fault occured reading the address */
+        is_valid = false;
+    }
+    
+    __asm volatile ("cpsie f;");
+    SCB->CCR &= ~SCB_CCR_BFHFNMIGN;
+
+    return is_valid;
+}
+
+static uint32_t cpu_find_memory_size(char *base, uint32_t block, uint32_t maxsize) {
+    char *address = base;
+    do {
+        address += block;
+        if (!cpu_poke_address(address)) {
+            break;
+        }
+    } while ((uint32_t)(address - base) < maxsize);
+
+    return (uint32_t)(address - base);
+}
+
+uint32_t get_cpu_ram_size(void) {
+    return cpu_find_memory_size((char *)SRAM_BASE, 4096, 81920);
+}
+
+uint32_t get_cpu_flash_size(void) {
+    return cpu_find_memory_size((char *)FLASH_BASE, 32768, 524288);
+}
+
+uint32_t get_cpu_eeprom_size(void) {
+    return cpu_find_memory_size((char *)EEPROM_BASE, 2048, 16384);
+}
+
+uint32_t get_cpu_category(void) {
     switch (ST_DEV_ID) {
         case STM32L1_DEV_ID_CAT1:
             return 1;
@@ -354,31 +431,22 @@ int get_cpu_category(void) {
     return 0;
 }
 
-int get_cpu_ram_size(void) {
-    return 0;
-}
-
-int get_cpu_flash_size(void) {
-    return 0;
-}
-
-/* doesn't work with STM32L100 */
-int get_cpu_eeprom_size(void) {
+uint32_t get_cpu_name(char *name) {
     switch (ST_DEV_ID) {
         case STM32L1_DEV_ID_CAT1:
-            return 4096;
+            sprintf(name, "STM32L1xxxB");
             break;
         case STM32L1_DEV_ID_CAT2:
-            return 4096;
+            sprintf(name, "STM32L1xxxB-A");
             break;
         case STM32L1_DEV_ID_CAT3:
-            return 8192;
+            sprintf(name, "STM32L1xxxC");
             break;
         case STM32L1_DEV_ID_CAT4:
-            return 12288;
+            sprintf(name, "STM32L1xxxD");
             break;
         case STM32L1_DEV_ID_CAT56:
-            return 16384;
+            sprintf(name, "STM32L1xxxE");
             break;
     }
     return 0;

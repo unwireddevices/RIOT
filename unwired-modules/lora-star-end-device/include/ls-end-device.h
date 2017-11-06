@@ -186,7 +186,8 @@ typedef struct {
 	/* Last frame ID */
 	ls_frame_id_t last_fid;
 
-	/* Last frame needs to be confirmed Blocking sending of other frames from queue until current frame is confirmed */
+	/* Last frame needs to be confirmed
+     * Blocking sending of other frames from queue until current frame is confirmed */
 	bool confirmation_required;
 
 	/* Current frame to send (to reduce stack consumption) */
@@ -230,7 +231,7 @@ int ls_ed_init(ls_ed_t *ls);
 
 void ls_ed_poweroff(ls_ed_t *ls);
 
-int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed, bool with_ack);
+int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed, bool with_ack, bool delayed);
 
 int ls_ed_join(ls_ed_t *ls);
 

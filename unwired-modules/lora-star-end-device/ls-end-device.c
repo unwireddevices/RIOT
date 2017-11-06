@@ -96,10 +96,10 @@ static void anticollision_delay(void) {
 	/* Pseudorandom delay up to 8 seconds for collision avoidance */
 	unsigned int delay = random_uint32_range(1, 8); // XXX: return to original
 
-	printf("ls-ed: random delay %d s\n", (unsigned int) (delay));
+	DEBUG("[LoRa] random delay %d s\n", (unsigned int) (delay));
 	rtctimers_sleep(delay);
 
-	puts("ls-ed: delay end");
+	DEBUG("[LoRa] delay end\n");
 }
 
 static void enter_rx(ls_ed_t *ls)
@@ -159,7 +159,7 @@ static void send_next(ls_ed_t *ls) {
         open_rx_windows(ls);
     }
     else if (ls->state == LS_ED_IDLE || ls->state == LS_ED_SLEEP) {
-    	puts("ls-ed: scheduling TX");
+    	puts("[LoRa] scheduling TX");
         schedule_tx(ls);
     }
 }
@@ -219,7 +219,7 @@ static void close_rx_windows(ls_ed_t *ls)
     /* Clear the default settings flag just in case the second rx window is not expired yet */
     ls->_internal.use_rx_window_2_settings = false;
 
-    puts("ls: both rx windows closed"); // XXX: debug
+    DEBUG("[LoRa] both rx windows closed");
 
     /* Remove windows */
     rtctimers_remove(&ls->_internal.rx_window1);
@@ -246,7 +246,7 @@ static bool ack_recv(ls_ed_t *ls, ls_frame_t  *frame) {
 	/* Reset number of retries */
 	ls->_internal.num_retr = 0;
 
-	puts("ls-ed: confirmation received");   // XXX: debug
+	puts("[LoRa] confirmation received");   // XXX: debug
 
 	ls->_internal.confirmation_required = false;
 
@@ -304,6 +304,12 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             if (!ls_validate_frame_mic(ls->settings.crypto.mic_key, frame)) {
                 return false;
             }
+            
+            /* Remove app data we've got ACK for from FIFO */
+            if (!appdata_fifo_empty(&ls->_internal.appdata_fifo)) {
+                DEBUG("[LoRa] remove FIFO entry");
+                appdata_fifo_pop(&ls->_internal.appdata_fifo, NULL);
+            }
 
             ls_decrypt_frame_payload(ls->settings.crypto.aes_key, &frame->payload);
 
@@ -321,6 +327,12 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
             if (!ls_validate_frame_mic(ls->settings.crypto.mic_key, frame)) {
                 return false;
+            }
+            
+            /* Remove app data we've got ACK for from FIFO */
+            if (!appdata_fifo_empty(&ls->_internal.appdata_fifo)) {
+                puts("[LoRa] remove FIFO entry");
+                appdata_fifo_pop(&ls->_internal.appdata_fifo, NULL);
             }
 
             return ack_recv(ls, frame);
@@ -386,6 +398,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
             /* Check for queued data to send after join */
             appdata_fifo_t *fifo = &ls->_internal.appdata_fifo;
+            DEBUG("[LoRa] checking FIFO");
 
     		while(!appdata_fifo_empty(fifo)) {
     			appdata_fifo_entry_t e;
@@ -394,9 +407,9 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
     				break;
     			}
 
-    			printf("ls-ed: sending delayed app. data [fid: %d, size: %d]\n", e.id, e.size);
+    			printf("[LoRa] sending delayed app. data [fid: %d, size: %d]\n", e.id, e.size);
 
-    			ls_ed_send_app_data(ls, e.data, e.size, e.is_confirmed, e.is_with_ack);
+    			ls_ed_send_app_data(ls, e.data, e.size, e.is_confirmed, e.is_with_ack, true);
     		}
 
             return true;
@@ -426,7 +439,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
                 return false;
             }
 
-            puts("ls-ed: invited to join, rejoining..."); // XXX: debug
+            puts("[LoRa] invited to join, rejoining..."); // XXX: debug
 
             /* Stop rejoin timeout */
             rtctimers_remove(&ls->_internal.join_req_expired);
@@ -472,7 +485,7 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
 					}
 				} else {
 					if (ls->_internal.num_reopened++ < LS_ED_RX_NUM_REOPEN) {
-						puts("ls-ed: first RX window reopened");
+						puts("[LoRa] first RX window reopened");
 
 						/* Reopen RX window */
 						rtctimers_remove(&ls->_internal.rx_window1);
@@ -480,7 +493,7 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
 
 						open_rx_windows(ls);
 					} else {
-						puts("ls-ed: forcing RX window expiring");
+						puts("[LoRa] forcing RX window expiring");
 
 						ls->_internal.num_reopened = 0;
 						rtctimers_remove(&ls->_internal.rx_window1);
@@ -492,7 +505,7 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
 				}
 			}
 			else {
-				puts("ls-ed: malformed data discarded"); // XXX: debug
+				puts("[LoRa] malformed data discarded"); // XXX: debug
 			}
 
 			break;
@@ -577,7 +590,7 @@ static void *uq_handler(void *arg)
 {
     assert(arg != NULL);
 
-    puts("ls: uplink frame queue handler thread started"); // XXX: debug
+    puts("[LoRa] uplink frame queue handler thread started"); // XXX: debug
 
     ls_ed_t *ls = (ls_ed_t *) arg;
     msg_init_queue(ls->_internal.uq_msg_queue, sizeof(ls->_internal.uq_msg_queue));
@@ -596,24 +609,24 @@ static void *uq_handler(void *arg)
         int total_time = 0;
         sx1276_modem_status_t status;
         while ((status = sx1276_get_modem_status(ls->_internal.sx1276)) != SX1276_MODEM_CLEAR) {
-            DEBUG("ls: modem status is %u, postpone transmission\n", (uint8_t) status);
+            DEBUG("[LoRa] modem status is %u, postpone transmission\n", (uint8_t) status);
             rtctimers_millis_sleep(delay_ms);
             total_time += delay_ms;
             if (total_time > 2000) {
-                DEBUG("ls: force switching from RX to TX\n");
+                DEBUG("[LoRa] force switching from RX to TX\n");
                 break;
             }
         }
         */
         
         /* Listen Before Talk with LoRa CAD support */
-        DEBUG("ls: checking channel activity\n");
+        DEBUG("[LoRa] checking channel activity\n");
         int cad_tries = 0;
         for (int k = 0; k < 10; k++) {
             sx1276_start_cad(ls->_internal.sx1276, SX1276_MODE_CADDONE);
             rtctimers_millis_sleep(delay_ms);
             if (ls->_internal.last_cad_success) {
-                DEBUG("ls: channel activity detected\n");
+                DEBUG("[LoRa] channel activity detected\n");
                 
                 /* send anyway if we tried too many times */
                 cad_tries++;
@@ -626,7 +639,7 @@ static void *uq_handler(void *arg)
                 k = 0;
             }
         }
-        DEBUG("ls: sending frame\n");
+        DEBUG("[LoRa] sending frame\n");
 
         /* Get frame from queue top */
         ls_frame_t *f;
@@ -730,7 +743,7 @@ static void *tim_handler(void *arg)
 
         switch (cmd) {
             case LS_ED_RX1_EXPIRED:
-                puts("ls: first RX window expired"); // XXX: debug
+                DEBUG("[LoRa] first RX window expired");
 
                 if (ls->settings.class == LS_ED_CLASS_A) {
                     /* Use default settings for the transceiver in second RX window */
@@ -743,11 +756,11 @@ static void *tim_handler(void *arg)
                 else if (ls->settings.class == LS_ED_CLASS_B) {
                     /* Transmit next frame from queue */
                     if (!ls_frame_fifo_empty(&ls->_internal.uplink_queue)) {
-                    	puts("ls: sending next frame");
+                    	puts("[LoRa] sending next frame");
                     	schedule_tx(ls);
                     }
                     else {
-                    	puts("ls: staying in RX mode");
+                    	puts("[LoRa] staying in RX mode");
                         enter_rx(ls);
                     }
 				}
@@ -761,11 +774,11 @@ static void *tim_handler(void *arg)
                     		schedule_tx(ls);
                     	else {
                     		enter_rx(ls);
-                    		puts("ls-ed: awaiting confirmation");
+                    		DEBUG("[LoRa] awaiting confirmation");
                     	}
                     }
                     else {
-                    	puts("ls: staying in RX mode");
+                    	puts("[LoRa] staying in RX mode");
                         enter_rx(ls);
                     }
                 }
@@ -773,7 +786,7 @@ static void *tim_handler(void *arg)
                 break;
 
             case LS_ED_RX2_EXPIRED:
-                puts("ls-ed: second RX window expired"); // XXX: debug
+                puts("[LoRa] second RX window expired"); // XXX: debug
 
                 /* Clear the default settings flag */
                 ls->_internal.use_rx_window_2_settings = false;
@@ -786,7 +799,7 @@ static void *tim_handler(void *arg)
                 	if (!ls->_internal.confirmation_required)
                 		schedule_tx(ls);
                 	else
-                		puts("ls-ed: awaiting confirmation");
+                		puts("[LoRa] awaiting confirmation");
                 } else {
 					/* Put transceiver into sleep with low power mode */
 					ls_ed_sleep(ls);
@@ -795,7 +808,7 @@ static void *tim_handler(void *arg)
                 break;
 
             case LS_ED_JOIN_REQ_EXPIRED:
-                puts("ls-ed: join request expired"); // XXX: debug
+                puts("[LoRa] join request expired"); // XXX: debug
 
                 /* Connection is lost, clear uplink queue */
 
@@ -808,7 +821,7 @@ static void *tim_handler(void *arg)
                 break;
 
             case LS_ED_APPDATA_ACK_EXPIRED:
-                puts("ls-ed: appdata confirmation timeout");
+                puts("[LoRa] appdata confirmation timeout");
 
                 /* Retransmit data */
                 if (ls->_internal.num_retr >= ls->settings.max_retr) {
@@ -913,25 +926,30 @@ void ls_ed_poweroff(ls_ed_t *ls) {
     sx1276_set_sleep(ls->_internal.sx1276);
 }
 
-int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed, bool with_ack)
+int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed, bool with_ack, bool delayed)
 {
     assert(ls != NULL);
     assert(buf != NULL);
 
-    /* Not joined to the network, delay appdata frame until device is joined */
-    if (!ls->settings.no_join && !ls->_internal.is_joined) {
-    	appdata_fifo_t *fifo = &ls->_internal.appdata_fifo;
+    
+    /* Store current app. data in FIFO buffer
+     * Data will be removed on receiving ACK from gate */
+    if (!delayed && ((confirmed) || (!ls->settings.no_join && !ls->_internal.is_joined))) {
+        DEBUG("[LoRa] pushing data to FIFO");
+        appdata_fifo_t *fifo = &ls->_internal.appdata_fifo;
 
-    	/* Last data has priority, so we can pop oldest item from the queue if it's full */
-		if (appdata_fifo_full(fifo)) {
-			appdata_fifo_pop(fifo, NULL);
-		}
+        /* Last data has priority, so we can pop oldest item from the queue if it's full */
+        if (appdata_fifo_full(fifo)) {
+            appdata_fifo_pop(fifo, NULL);
+        }
 
-		appdata_fifo_push(fifo, buf, buflen, ls->_internal.last_fid, confirmed, with_ack);
-
-		puts("ls-ed: app. data delayed until node is joined");
-
-    	return -LS_SEND_E_NOT_JOINED;
+        appdata_fifo_push(fifo, buf, buflen, ls->_internal.last_fid, confirmed, with_ack);
+        
+        /* Not joined to the network, delay appdata frame until device is joined */    
+        if (!confirmed) {
+            puts("[LoRa] data delayed until node is joined");
+            return -LS_SEND_E_NOT_JOINED;
+        }
     }
 
     ls->_internal.confirmation_required = false;
@@ -1012,8 +1030,10 @@ void ls_ed_sleep(ls_ed_t *ls)
 {
     assert(ls != NULL);
 
-    ls->state = LS_ED_SLEEP;
-    sx1276_set_sleep(ls->_internal.sx1276);
+    if (ls->settings.class == LS_ED_CLASS_A) {
+        ls->state = LS_ED_SLEEP;
+        sx1276_set_sleep(ls->_internal.sx1276);
+    }
 }
 
 #ifdef __cplusplus

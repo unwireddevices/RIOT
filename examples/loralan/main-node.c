@@ -94,13 +94,13 @@ void joined_timeout_cb(void)
 
     if ((current_join_retries >= unwds_get_node_settings().max_retr) && (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A)) {
         /* class A node: go to sleep */
-        puts("ls-ed: maximum join retries exceeded, stopping");
+        puts("[LoRa] maximum join retries exceeded, stopping");
     } else {
         puts("ls: join request timed out, resending");
         
         /* Pseudorandom delay for collision avoidance */
         unsigned int delay = random_uint32_range(5 + current_join_retries*30, 30 + current_join_retries*30);
-        printf("ls-ed: random delay %d s\n", (unsigned int) (delay));
+        printf("[LoRa] random delay %d s\n", (unsigned int) (delay));
         
         rtctimers_sleep(delay);
         
@@ -110,9 +110,9 @@ void joined_timeout_cb(void)
         }
         
         if (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A) {
-            printf("ls-ed: rejoining, attempt %d / %d\n", current_join_retries, unwds_get_node_settings().max_retr);
+            printf("[LoRa] rejoining, attempt %d / %d\n", current_join_retries, unwds_get_node_settings().max_retr);
         } else {
-            puts("ls-ed: rejoining");
+            puts("[LoRa] rejoining");
         }
         
         ls_ed_join(&ls);
@@ -123,18 +123,18 @@ void joined_cb(void)
 {
 	current_join_retries = 0;
 
-    puts("ls-ed: successfully joined to the network");
+    puts("[LoRa] successfully joined to the network");
     blink_led();
 }
 
 void appdata_send_failed_cb(void)
 {
 	if (!unwds_get_node_settings().no_join) {
-		puts("ls-ed: application data confirmation timeout. Rejoining...");
+		puts("[LoRa] rejoining");
 //		joined_timeout_cb();
         ls_ed_join(&ls);
 	} else
-		puts("ls-ed: failed to send confirmed application data");
+		puts("[LoRa] failed to send confirmed application data");
 }
 
 static bool appdata_received_cb(uint8_t *buf, size_t buflen)
@@ -143,7 +143,7 @@ static bool appdata_received_cb(uint8_t *buf, size_t buflen)
 
     bytes_to_hex(buf, buflen, hex, false);
 
-    printf("ls-ed: received data: \"%s\"\n", hex);
+    printf("[LoRa] received data: \"%s\"\n", hex);
     blink_led();
 
     if (buflen < 2) {
@@ -164,7 +164,9 @@ static bool appdata_received_cb(uint8_t *buf, size_t buflen)
     module_data_t reply = {};
 
     /* Send app. data */
-    if (!unwds_send_to_module(modid, &cmd, &reply)) {
+    int result = unwds_send_to_module(modid, &cmd, &reply);
+    
+    if (result == UNWDS_MODULE_NOT_FOUND) {
         /* No module with specified ID present */
         reply.as_ack = true;
         reply.length = 2;
@@ -172,9 +174,11 @@ static bool appdata_received_cb(uint8_t *buf, size_t buflen)
         reply.data[1] = modid;
     }
     
-    int res = ls_ed_send_app_data(&ls, reply.data, reply.length, true, true);
-    if (res < 0) {
-        printf("send: error #%d\n", res);
+    if (result != UNWDS_MODULE_NO_DATA) {
+        int res = ls_ed_send_app_data(&ls, reply.data, reply.length, true, true, false);
+        if (res < 0) {
+            printf("send: error #%d\n", res);
+        }
     }
 
     /* Don't allow to send app. data ACK by the network.
@@ -188,7 +192,7 @@ static bool broadcast_appdata_received_cb(uint8_t *buf, size_t buflen) {
 
     bytes_to_hex(buf, buflen, hex, false);
 
-    printf("ls-ed: received broadcast data: \"%s\"\n", hex);
+    printf("[LoRa] received broadcast data: \"%s\"\n", hex);
     blink_led();
 
     if (buflen < 2) {
@@ -617,7 +621,7 @@ shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX] = {
 
 static void unwds_callback(module_data_t *buf)
 {
-    int res = ls_ed_send_app_data(&ls, buf->data, buf->length, true, buf->as_ack);
+    int res = ls_ed_send_app_data(&ls, buf->data, buf->length, true, buf->as_ack, false);
 
     if (res < 0) {
         if (res == -LS_SEND_E_FQ_OVERFLOW) {

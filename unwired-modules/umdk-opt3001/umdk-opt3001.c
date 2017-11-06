@@ -173,7 +173,6 @@ int umdk_opt3001_shell_cmd(int argc, char **argv) {
     }
     
     if (strcmp(cmd, "send") == 0) {
-        is_polled = true;
 		/* Send signal to publisher thread */
 		msg_send(&timer_msg, timer_pid);
     }

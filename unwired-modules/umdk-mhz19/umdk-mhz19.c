@@ -136,7 +136,6 @@ int umdk_mhz19_shell_cmd(int argc, char **argv) {
     char *cmd = argv[1];
     
     if (strcmp(cmd, "send") == 0) {
-        is_polled = true;
         mhz19_get(&mhz19);
     }
     

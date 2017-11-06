@@ -396,10 +396,10 @@ bool unwds_send_broadcast(unwds_module_id_t modid, module_data_t *data, module_d
 	return false;
 }
 
-bool unwds_send_to_module(unwds_module_id_t modid, module_data_t *data, module_data_t *reply)
+int unwds_send_to_module(unwds_module_id_t modid, module_data_t *data, module_data_t *reply)
 {
     if (!unwds_is_module_enabled(modid)) {
-        return false;
+        return UNWDS_MODULE_NOT_FOUND;
     }
     
 	unwd_module_t *module = find_module(modid);

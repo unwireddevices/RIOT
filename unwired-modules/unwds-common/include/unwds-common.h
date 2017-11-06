@@ -27,8 +27,6 @@
 
 #include "unwds-ids.h"
 
-#define UNWDS_MODULE_NOT_FOUND 255
-
 typedef uint8_t unwds_module_id_t;
 
 /**
@@ -88,6 +86,10 @@ uint8_t *allocate_stack(void);
     #define UNWDS_STACK_POOL_SIZE 5U
 #endif
 
+#define UNWDS_MODULE_NO_DATA    0
+#define UNWDS_MODULE_HAS_DATA   1
+#define UNWDS_MODULE_NOT_FOUND  255
+
 /**
  * Shell commands
  */
@@ -118,7 +120,7 @@ typedef struct {
 } unwd_module_t;
 
 void unwds_init_modules(uwnds_cb_t *event_callback);
-bool unwds_send_to_module(unwds_module_id_t modid, module_data_t *data, module_data_t *reply);
+int unwds_send_to_module(unwds_module_id_t modid, module_data_t *data, module_data_t *reply);
 bool unwds_send_broadcast(unwds_module_id_t modid, module_data_t *data, module_data_t *reply);
 
 void unwds_add_shell_command(char *name, char *desc, void* handler);

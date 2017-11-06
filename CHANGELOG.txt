@@ -1,3 +1,11 @@
+06.11.2017
+* multiple fixes in loralan network stack
+* Listen-Before-Talk using LoRa Channel Activity Detection
+* determine MCU RAM/flash/EEPROM size in runtime
+* MCU HSE/HSI crystal selection in runtime on startup
+* subseconds RTC timers and better power efficiency
+* better SX1276 settings handling
+
 31.10.2017
 * HD44780 driver, both direct bitbang and PCF8574 I2C GPIO expander
 * umdk-ibutton module

@@ -135,8 +135,8 @@ static int send_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame)
             ls_encrypt_frame(mic_key, aes_key, frame, &payload_size);
     }
     
-    int delay_ms = 5 + ((100 + 10*ch->dr) >> ch->dr);
     /* REG_LR_MODEMSTAT doesn't seems to work properly
+    int delay_ms = 5 + ((100 + 10*ch->dr) >> ch->dr);
     int total_time = 0;
     while (sx1276_get_modem_status(ch->_internal.sx1276) != SX1276_MODEM_CLEAR) {
         DEBUG("ls-gate: modem is in RX, postpone transmission\n");

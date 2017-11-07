@@ -267,7 +267,7 @@ int adc_sample(adc_t line,  adc_res_t res)
         /* Calculate chip temperature */
         /* sample = Vdd, sample_ts = temperature sensor data */
         /* 0.1 C resolution */
-        sample_ts = 300 - (((int)*cal1 - sample_ts)*80) / (int)(*cal2 - *cal1);
+        sample_ts = 300 - (((int)cal1 - sample_ts)*80) / (int)(cal2 - cal1);
         
         ADC1->CR1 &= ~ADC_CR1_SCAN;
         ADC1->CR2 &= ~ADC_CR2_DELS;

@@ -18,12 +18,12 @@
 
 #include "periph/gpio.h"
 #include "periph/spi.h"
-#include "xtimer.h"
+#include "rtctimers-millis.h"
 
 #ifndef SX1276_H
 #define SX1276_H
 
-#define SX1276_RADIO_WAKEUP_TIME                           1000        /**< [us] */
+#define SX1276_RADIO_WAKEUP_TIME                           1        /**< [ms] */
 #define SX1276_RX_BUFFER_SIZE                              256
 #define SX1276_RF_MID_BAND_THRESH                          525000000
 #define SX1276_CHANNEL_HF                                  868000000
@@ -163,8 +163,8 @@ typedef struct {
     uint8_t dio_polling_thread_stack[SX1276_EVENT_HANDLER_STACK_SIZE];
 
     /* Timers */
-    xtimer_t tx_timeout_timer;              /**< TX operation timeout timer */
-    xtimer_t rx_timeout_timer;              /**< RX operation timeout timer */
+    rtctimers_millis_t tx_timeout_timer;              /**< TX operation timeout timer */
+    rtctimers_millis_t rx_timeout_timer;              /**< RX operation timeout timer */
 } sx1276_internal_t;
 
 #define SX1276_RFSWITCH_ACTIVE_LOW     0

@@ -32,7 +32,7 @@ extern "C" {
 #include "ls-mac-types.h"
 #include "ls-mac.h"
 #include "ls-end-device.h"
-
+#include "board.h"
 #include "rtctimers.h"
 #include "rtctimers-millis.h"
 

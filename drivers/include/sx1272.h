@@ -21,7 +21,7 @@
 
 #include "periph/gpio.h"
 #include "periph/spi.h"
-#include "xtimer.h"
+#include "rtctimers-millis.h"
 
 #define SX1272_RADIO_WAKEUP_TIME                           1000        /**< [us] */
 #define SX1272_RX_BUFFER_SIZE                              256
@@ -133,7 +133,7 @@ typedef enum {
 
     SX1272_FHSS_CHANGE_CHANNEL,
     SX1272_CAD_DONE,
-
+    SX1272_CAD_DETECTED,
 } sx1272_event_type_t;
 
 /***
@@ -151,8 +151,8 @@ typedef struct {
     uint8_t dio_polling_thread_stack[SX1272_EVENT_HANDLER_STACK_SIZE];
 
     /* Timers */
-    xtimer_t tx_timeout_timer;              /**< TX operation timeout timer */
-    xtimer_t rx_timeout_timer;              /**< RX operation timeout timer */
+    rtctimers_millis_t tx_timeout_timer;              /**< TX operation timeout timer */
+    rtctimers_millis_t rx_timeout_timer;              /**< RX operation timeout timer */
 } sx1272_internal_t;
 
 /**
@@ -170,6 +170,7 @@ typedef struct sx1272_s {
     gpio_t dio4_pin;                                                    /**< Interrupt line DIO4 (not used) */
     gpio_t dio5_pin;                                                    /**< Interrupt line DIO5 (not used) */
     gpio_t rfswitch_pin;                                                /**< PE4259 power switch control */
+    gpio_t rfswitch_mode;
 
     sx1272_settings_t settings;                                         /**< Transceiver settings */
 
@@ -188,6 +189,11 @@ typedef enum {
     SX1272_ERR_TEST_FAILED,     /**< SX1272 testing failed during initialization (check chip) */
     SX1272_ERR_THREAD           /**< Unable to create DIO handling thread (check amount of free memory) */
 } sx1272_init_result_t;
+
+typedef enum {
+    SX1272_MODE_CADDONE = 0,
+    SX1272_MODE_CADDETECT,
+} sx1276_cadmode_t;
 
 /**
  * Hardware IO IRQ callback function definition.

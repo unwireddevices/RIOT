@@ -229,11 +229,7 @@ void rtc_clear_alarm(void)
 }
 
 int rtc_millis_set_alarm(int milliseconds, rtc_alarm_cb_t cb, void *arg)
-{
-    if (milliseconds > 1000) {
-        return -2;
-    }
-    
+{   
     /* Enable write access to RTC registers */
     periph_clk_en(APB1, RCC_APB1ENR_PWREN);
     PWR->CR |= PWR_CR_DBP;
@@ -245,10 +241,15 @@ int rtc_millis_set_alarm(int milliseconds, rtc_alarm_cb_t cb, void *arg)
     RTC->CR &= ~(RTC_CR_ALRBE);
     while ((RTC->ISR & RTC_ISR_ALRBWF) == 0) ;
     
-    /* do not care for specific date and time */
-    RTC->ALRMBR |= (RTC_ALRMBR_MSK1 | RTC_ALRMBR_MSK2 | RTC_ALRMBR_MSK3 | RTC_ALRMBR_MSK4);
-       
-    uint32_t alarm_millis_time = 255 - (milliseconds*1000)/3922;
+    /* setting seconds */
+    uint8_t seconds = milliseconds/1000;
+    RTC->ALRMBR = (((uint32_t)byte2bcd(seconds) & (RTC_ALRMAR_ST | RTC_ALRMAR_SU)));
+    
+    /* minutes, hours and date doesn't matter */
+    RTC->ALRMBR |= (RTC_ALRMBR_MSK2 | RTC_ALRMBR_MSK3 | RTC_ALRMBR_MSK4);
+
+    uint32_t msec = milliseconds % 1000;
+    uint32_t alarm_millis_time = 255 - (msec*1000)/3922;
     
     /* set up subseconds alarm */
     uint32_t regalarm = RTC->ALRMBSSR;
@@ -308,8 +309,30 @@ int rtc_millis_get_time(uint32_t *millis)
         /* 3rd read if 1st and 2nd don't match */
         rtc_ssr_counter = RTC->SSR;
     }
+    
+    uint32_t milliseconds = ((255 - (rtc_ssr_counter & 0xFF))*3922)/1000;
+    
+    /* clear RSF bit */
+    RTC->ISR &= ~RTC_ISR_RSF;
+    
+    /* wait for RSF to be set by hardware */
+    while (!(RTC->ISR & RTC_ISR_RSF)) {}
+    
+    /* RTC registers need to be read at least twice when running at f < 32768*7 = 229376 Hz APB1 clock */
+    /* reading TR locks registers so it must be read first, DR must be read last */
+    uint32_t rtc_time_reg = RTC->TR;
 
-    *millis = ((255 - (rtc_ssr_counter & 0xFF))*3922)/1000;
+    /* second read */
+    if (RTC->TR != rtc_time_reg) {
+        /* 3rd read if 1st and 2nd don't match */
+        rtc_time_reg = RTC->TR;
+    }
+    
+    RTC->DR;
+    
+    uint32_t seconds  = (((rtc_time_reg & RTC_TR_ST)  >>  4) * 10) + ((rtc_time_reg & RTC_TR_SU)  >>  0);
+
+    *millis = milliseconds + 1000*seconds;
 
     /* unlock RTC registers by reading DR */
     rtc_ssr_counter = RTC->DR;

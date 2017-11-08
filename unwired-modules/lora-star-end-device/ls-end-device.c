@@ -219,7 +219,7 @@ static void close_rx_windows(ls_ed_t *ls)
     /* Clear the default settings flag just in case the second rx window is not expired yet */
     ls->_internal.use_rx_window_2_settings = false;
 
-    DEBUG("[LoRa] both rx windows closed");
+    DEBUG("[LoRa] both rx windows closed\n");
 
     /* Remove windows */
     rtctimers_remove(&ls->_internal.rx_window1);
@@ -307,7 +307,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             
             /* Remove app data we've got ACK for from FIFO */
             if (!appdata_fifo_empty(&ls->_internal.appdata_fifo)) {
-                DEBUG("[LoRa] remove FIFO entry");
+                DEBUG("[LoRa] remove FIFO entry\n");
                 appdata_fifo_pop(&ls->_internal.appdata_fifo, NULL);
             }
 
@@ -331,7 +331,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             
             /* Remove app data we've got ACK for from FIFO */
             if (!appdata_fifo_empty(&ls->_internal.appdata_fifo)) {
-                puts("[LoRa] remove FIFO entry");
+                DEBUG("[LoRa] remove FIFO entry\n");
                 appdata_fifo_pop(&ls->_internal.appdata_fifo, NULL);
             }
 
@@ -398,7 +398,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
             /* Check for queued data to send after join */
             appdata_fifo_t *fifo = &ls->_internal.appdata_fifo;
-            DEBUG("[LoRa] checking FIFO");
+            DEBUG("[LoRa] checking FIFO\n");
 
     		while(!appdata_fifo_empty(fifo)) {
     			appdata_fifo_entry_t e;
@@ -743,7 +743,7 @@ static void *tim_handler(void *arg)
 
         switch (cmd) {
             case LS_ED_RX1_EXPIRED:
-                DEBUG("[LoRa] first RX window expired");
+                DEBUG("[LoRa] first RX window expired\n");
 
                 if (ls->settings.class == LS_ED_CLASS_A) {
                     /* Use default settings for the transceiver in second RX window */
@@ -774,7 +774,7 @@ static void *tim_handler(void *arg)
                     		schedule_tx(ls);
                     	else {
                     		enter_rx(ls);
-                    		DEBUG("[LoRa] awaiting confirmation");
+                    		DEBUG("[LoRa] awaiting confirmation\n");
                     	}
                     }
                     else {
@@ -786,7 +786,7 @@ static void *tim_handler(void *arg)
                 break;
 
             case LS_ED_RX2_EXPIRED:
-                puts("[LoRa] second RX window expired"); // XXX: debug
+                DEBUG("[LoRa] second RX window expired\n"); // XXX: debug
 
                 /* Clear the default settings flag */
                 ls->_internal.use_rx_window_2_settings = false;
@@ -935,7 +935,7 @@ int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed
     /* Store current app. data in FIFO buffer
      * Data will be removed on receiving ACK from gate */
     if (!delayed && ((confirmed) || (!ls->settings.no_join && !ls->_internal.is_joined))) {
-        DEBUG("[LoRa] pushing data to FIFO");
+        DEBUG("[LoRa] pushing data to FIFO\n");
         appdata_fifo_t *fifo = &ls->_internal.appdata_fifo;
 
         /* Last data has priority, so we can pop oldest item from the queue if it's full */
@@ -1031,8 +1031,11 @@ void ls_ed_sleep(ls_ed_t *ls)
     assert(ls != NULL);
 
     if (ls->settings.class == LS_ED_CLASS_A) {
+        DEBUG("[LoRa] Class A device, sleeping\n");
         ls->state = LS_ED_SLEEP;
         sx1276_set_sleep(ls->_internal.sx1276);
+    } else {
+        DEBUG("[LoRa] Class C device, not sleeping\n");
     }
 }
 

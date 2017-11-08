@@ -20,6 +20,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 #include "periph/gpio.h"
@@ -989,9 +990,12 @@ void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode)
     if (op_mode != op_mode_prev) {
         /* Replace previous mode value and setup new mode value */
         sx1276_reg_write(dev, REG_OPMODE, (op_mode_prev & RF_OPMODE_MASK) | op_mode);
+    } else {
+        DEBUG("sx1276: opmode not changed\n");
     }
 	
 	if (op_mode == RF_OPMODE_SLEEP) {
+        DEBUG("sx1276: sleeping\n");
         if (dev->dio0_pin != GPIO_UNDEF ) {
             gpio_irq_disable(dev->dio0_pin);
         }
@@ -1014,6 +1018,7 @@ void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode)
             }
         }
 	} else {
+        DEBUG("sx1276: waking up\n");
         if (dev->dio0_pin != GPIO_UNDEF ) {
             gpio_irq_enable(dev->dio0_pin);
         }

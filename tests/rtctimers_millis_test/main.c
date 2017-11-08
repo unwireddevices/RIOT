@@ -62,7 +62,6 @@ static void *timer1_thread(void *arg) {
         printf("Timer1: %lu ms\n", now - timer1_prev);
         timer1_prev = now;
         
-        /* 800 ms */
         rtctimers_millis_set_msg(&timer1, TIMER1_PERIOD, &timer1_msg, timer1_pid);
     }
     return NULL;
@@ -82,7 +81,6 @@ static void *timer2_thread(void *arg) {
         printf("Timer2: %lu ms\n", now - timer2_prev);
         timer2_prev = now;
         
-        /* 300 ms */
         rtctimers_millis_set_msg(&timer2, TIMER2_PERIOD, &timer2_msg, timer2_pid);
     }
     return NULL;
@@ -92,13 +90,11 @@ int main(void)
 {
     puts("rtctimers-millis test");
     
-    lpm_prevent_sleep = 1;
+    lpm_prevent_sleep = 0;
     lpm_prevent_switch = 1;
-
+    
 	rtctimers_millis_init();
 	xtimer_init();
-
-	lpm_prevent_sleep = 0;
     
     puts("Creating timer1 thread");
     timer1_pid = thread_create(stack1, 2048, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer1_thread, NULL, "Timer 1");
@@ -106,17 +102,11 @@ int main(void)
     puts("Creating timer2 thread");
     timer2_pid = thread_create(stack2, 2048, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer2_thread, NULL, "Timer 2");
     
-    puts("Threads created");
-    
     uint32_t now = xtimer_now_usec()/1000;
     timer1_prev = now;
     timer2_prev = now;
     
-    puts("Sending messages");
-    
-    /* 800 ms */
     rtctimers_millis_set_msg(&timer1, TIMER1_PERIOD, &timer1_msg, timer1_pid);
-    /* 300 ms */
     rtctimers_millis_set_msg(&timer2, TIMER2_PERIOD, &timer2_msg, timer2_pid);
     
     while (1) {

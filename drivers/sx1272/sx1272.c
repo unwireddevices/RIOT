@@ -25,7 +25,7 @@
 #include "periph/gpio.h"
 #include "periph/spi.h"
 
-#include "xtimer.h"
+#include "rtctimers-millis.h"
 #include "thread.h"
 
 #include "sx1272.h"
@@ -99,10 +99,29 @@ static void sx1272_on_dio3_isr(void *arg);
 
 static void _init_isrs(sx1272_t *dev)
 {
-    gpio_init_int(dev->dio0_pin, GPIO_IN, GPIO_RISING, sx1272_on_dio0_isr, dev);
-    gpio_init_int(dev->dio1_pin, GPIO_IN, GPIO_RISING, sx1272_on_dio1_isr, dev);
-    gpio_init_int(dev->dio2_pin, GPIO_IN, GPIO_RISING, sx1272_on_dio2_isr, dev);
-    gpio_init_int(dev->dio3_pin, GPIO_IN, GPIO_RISING, sx1272_on_dio3_isr, dev);
+    if (dev->dio0_pin != GPIO_UNDEF ) {
+        gpio_init_int(dev->dio0_pin, GPIO_IN, GPIO_RISING, sx1272_on_dio0_isr, dev);
+    }
+    
+    if (dev->dio1_pin != GPIO_UNDEF ) {
+        gpio_init_int(dev->dio1_pin, GPIO_IN, GPIO_RISING, sx1272_on_dio1_isr, dev);
+    }
+    
+    if (dev->dio2_pin != GPIO_UNDEF ) {
+        gpio_init_int(dev->dio2_pin, GPIO_IN, GPIO_RISING, sx1272_on_dio2_isr, dev);
+    }
+    
+    if (dev->dio3_pin != GPIO_UNDEF ) {
+        gpio_init_int(dev->dio3_pin, GPIO_IN, GPIO_RISING, sx1272_on_dio3_isr, dev);
+    }
+    
+    if (dev->dio4_pin != GPIO_UNDEF ) {
+        gpio_init_int(dev->dio4_pin, GPIO_IN, GPIO_RISING, sx1272_on_dio4_isr, dev);
+    }
+    
+    if (dev->dio5_pin != GPIO_UNDEF ) {
+        gpio_init_int(dev->dio5_pin, GPIO_IN, GPIO_RISING, sx1272_on_dio5_isr, dev);
+    }
 }
 
 static inline void send_event(sx1272_t *dev, sx1272_event_type_t event_type)
@@ -745,21 +764,35 @@ void sx1272_start_cad(sx1272_t *dev)
         break;
         case SX1272_MODEM_LORA:
         {
-            sx1272_reg_write(dev, REG_LR_IRQFLAGSMASK, RFLR_IRQFLAGS_RXTIMEOUT |
-                             RFLR_IRQFLAGS_RXDONE |
-                             RFLR_IRQFLAGS_PAYLOADCRCERROR |
-                             RFLR_IRQFLAGS_VALIDHEADER |
-                             RFLR_IRQFLAGS_TXDONE |
-                                                                //RFLR_IRQFLAGS_CADDONE |
-                             RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL   // |
-                                                                //RFLR_IRQFLAGS_CADDETECTED
-                             );
+            uint32_t reg = RFLR_IRQFLAGS_RXTIMEOUT |
+                           RFLR_IRQFLAGS_RXDONE |
+                           RFLR_IRQFLAGS_PAYLOADCRCERROR |
+                           RFLR_IRQFLAGS_VALIDHEADER |
+                           RFLR_IRQFLAGS_TXDONE |
+                           RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL;
+                           
+            /* mask interrupt for CadDone or CadDetect */
+            if (cadmode == SX1272_MODE_CADDONE) {
+                reg |= RFLR_IRQFLAGS_CADDETECTED;
+            } else {
+                reg |= RFLR_IRQFLAGS_CADDONE;
+            }
+                             
+            sx1272_reg_write(dev, REG_LR_IRQFLAGSMASK, reg);
 
-            // DIO3=CADDone
-            sx1272_reg_write(dev,
-                             REG_DIOMAPPING1,
-                             (sx1272_reg_read(dev, REG_DIOMAPPING1)
-                              & RFLR_DIOMAPPING1_DIO0_MASK) | RFLR_DIOMAPPING1_DIO0_00);
+            // DIO3 = CADDone
+            // DIO4 = CADDetected
+            if (cadmode == SX1272_MODE_CADDONE) {
+                sx1272_reg_write(dev,
+                                 REG_DIOMAPPING1,
+                                 (sx1272_reg_read(dev, REG_DIOMAPPING1)
+                                  & RFLR_DIOMAPPING1_DIO3_MASK) | RFLR_DIOMAPPING1_DIO3_00);
+            } else {
+                sx1272_reg_write(dev,
+                                 REG_DIOMAPPING2,
+                                 (sx1272_reg_read(dev, REG_DIOMAPPING2)
+                                  & RFLR_DIOMAPPING2_DIO4_MASK) | RFLR_DIOMAPPING2_DIO4_00);
+            }
 
             sx1272_set_status(dev,  SX1272_RF_CAD);
             sx1272_set_op_mode(dev, RFLR_OPMODE_CAD);
@@ -799,19 +832,23 @@ void sx1272_reset(sx1272_t *dev)
      * 3. Wait at least 5 milliseconds
      */
 
-    gpio_init(dev->reset_pin, GPIO_OUT);
+    if (dev->reset_pin != GPIO_UNDEF) {
+        gpio_init(dev->reset_pin, GPIO_OUT);
 
-    /* Set reset pin to 1 */
-    gpio_set(dev->reset_pin);
+        /* Set reset pin to 0 */
+        gpio_clear(dev->reset_pin);
 
-    /* Wait 1 ms */
-    xtimer_spin(xtimer_ticks_from_usec(1000));
+        /* Wait 1 ms */
+        rtctimers_millis_sleep(1);
 
-    /* Put reset pin in High-Z */
-    gpio_init(dev->reset_pin, GPIO_AIN);
+        /* Put reset pin in High-Z */
+        gpio_init(dev->reset_pin, GPIO_OD);
 
-    /* Wait 10 ms */
-    xtimer_spin(xtimer_ticks_from_usec(1000*10));
+        gpio_set(dev->reset_pin);
+
+        /* Wait 10 ms */
+        rtctimers_millis_sleep(10);
+    }
 }
 
 void sx1272_set_op_mode(sx1272_t *dev, uint8_t op_mode)
@@ -826,18 +863,48 @@ void sx1272_set_op_mode(sx1272_t *dev, uint8_t op_mode)
     }
 	
 	if (op_mode == RF_OPMODE_SLEEP) {
-		gpio_irq_disable(dev->dio0_pin);
-		gpio_irq_disable(dev->dio1_pin);
-		gpio_irq_disable(dev->dio2_pin);
-		gpio_irq_disable(dev->dio3_pin);
-        gpio_set(dev->rfswitch_pin);
+        if (dev->dio0_pin != GPIO_UNDEF ) {
+            gpio_irq_disable(dev->dio0_pin);
+        }
+        if (dev->dio1_pin != GPIO_UNDEF ) {
+            gpio_irq_disable(dev->dio1_pin);
+        }
+        if (dev->dio2_pin != GPIO_UNDEF ) {
+            gpio_irq_disable(dev->dio2_pin);
+        }
+        if (dev->dio3_pin != GPIO_UNDEF ) {
+            gpio_irq_disable(dev->dio3_pin);
+        }
+        
+        /* disable RF switch power */
+        if (dev->rfswitch_pin != GPIO_UNDEF) {
+            if (dev->rfswitch_mode == SX1272_RFSWITCH_ACTIVE_LOW) {
+                gpio_set(dev->rfswitch_pin);
+            } else {
+                gpio_clear(dev->rfswitch_pin);
+            }
+        }
 	} else {
-		gpio_irq_enable(dev->dio0_pin);
-		gpio_irq_enable(dev->dio1_pin);
-		gpio_irq_enable(dev->dio2_pin);
-		gpio_irq_enable(dev->dio3_pin);
+        if (dev->dio0_pin != GPIO_UNDEF ) {
+            gpio_irq_enable(dev->dio0_pin);
+        }
+        if (dev->dio1_pin != GPIO_UNDEF ) {
+            gpio_irq_enable(dev->dio1_pin);
+        }
+        if (dev->dio2_pin != GPIO_UNDEF ) {
+            gpio_irq_enable(dev->dio2_pin);
+        }
+        if (dev->dio3_pin != GPIO_UNDEF ) {
+            gpio_irq_enable(dev->dio3_pin);
+        }
         /* enable RF switch power */
-        gpio_clear(dev->rfswitch_pin);
+        if (dev->rfswitch_pin != GPIO_UNDEF) {
+            if (dev->rfswitch_mode == SX1272_RFSWITCH_ACTIVE_LOW) {
+                gpio_clear(dev->rfswitch_pin);
+            } else {
+                gpio_set(dev->rfswitch_pin);
+            }
+        }
 	}
 }
 
@@ -1147,10 +1214,26 @@ void sx1272_on_dio3(void *arg)
     }
 }
 
-/* Following interrupt lines are not used */
+/* DIO4 may be used for CadDetect events */
 void sx1272_on_dio4(void *arg)
 {
-    (void) arg;
+    /* Get interrupt context */
+    sx1272_t *dev = (sx1272_t *) arg;
+
+    switch (dev->settings.modem) {
+        case SX1272_MODEM_FSK:
+            break;
+        case SX1272_MODEM_LORA:
+            /* Clear IRQ */
+            sx1272_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_CADDETECTED | RFLR_IRQFLAGS_CADDONE);
+
+            /* Send event message */
+            dev->_internal.is_last_cad_success = (sx1272_reg_read(dev, REG_LR_IRQFLAGS) & RFLR_IRQFLAGS_CADDETECTED) == RFLR_IRQFLAGS_CADDETECTED;
+            send_event(dev, SX1272_CAD_DETECTED);
+            break;
+        default:
+            break;
+    }
 }
 
 void sx1272_on_dio5(void *arg)

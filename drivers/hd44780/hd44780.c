@@ -211,7 +211,7 @@ int hd44780_init(hd44780_t *dev, const hd44780_params_t *params)
     /* verify cols and rows */
     if ((dev->p.cols > HD44780_MAX_COLS) || (dev->p.rows > HD44780_MAX_ROWS)
                                          || (dev->p.rows * dev->p.cols > 80)) {
-        LOG_ERROR("hd44780_init: invalid LCD size!\n");
+        DEBUG("hd44780_init: invalid LCD size!\n");
         return -1;
     }
     uint8_t count_pins = 0;

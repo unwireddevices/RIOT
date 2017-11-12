@@ -160,6 +160,12 @@ void umdk_mhz19_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 
     init_config();
     
+    mhz19.reader_stack = (uint8_t *) allocate_stack();
+    if (!mhz19.reader_stack) {
+        puts("[umdk-" _UMDK_NAME_ "] Unable to allocate memory. Is too many modules enabled?");
+        return;
+    }
+    
     mhz19_param_t mhz19_params;
     mhz19_params.mhz19_cb = mhz19_cb;
     mhz19_params.uart = UMDK_MHZ19_UART;

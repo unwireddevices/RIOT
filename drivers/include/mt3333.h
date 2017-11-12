@@ -80,7 +80,7 @@ typedef struct {
 	char rxbuf[MT3333_RXBUF_SIZE_BYTES];	/**< Memory buffer for the ring buffer data */
 	ringbuffer_t rxrb;						/**< Holds incoming data ring buffer */
 
-	uint8_t reader_stack[MT3333_READER_THREAD_STACK_SIZE_BYTES];	/**< Reader thread stack */
+	uint8_t *reader_stack;	                /**< Reader thread stack, has to be allocated by the application */
 	kernel_pid_t reader_pid;				/**< Reader thread PID */
 } mt3333_t;
 

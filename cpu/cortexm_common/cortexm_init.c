@@ -64,7 +64,7 @@ void cortexm_init(void)
 
 bool cpu_check_address(volatile const char *address)
 {
-#if defined(CPU_ARCH_CORTEX_M3) && defined(CPU_ARCH_CORTEX_M4) && defined(CPU_ARCH_CORTEX_M4F)
+#if defined(CPU_ARCH_CORTEX_M3) || defined(CPU_ARCH_CORTEX_M4) || defined(CPU_ARCH_CORTEX_M4F)
     bool is_valid = true;
 
     /* Clear BFAR ADDRESS VALID flag */
@@ -86,6 +86,8 @@ bool cpu_check_address(volatile const char *address)
     return is_valid;
 #else
     /* Cortex-M0 doesn't have BusFault */
+    puts("Cortex-M0 doesn't have BusFault");
+    assert(false);
     return true;
 #endif
 }

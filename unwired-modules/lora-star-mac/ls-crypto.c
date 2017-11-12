@@ -103,7 +103,7 @@ bool ls_validate_frame_mic(uint8_t *key, ls_frame_t *frame)
 
 static void generate_iv(uint8_t *iv)
 {
-    for (int i = 0; i < AES_BLOCK_SIZE; i++) {
+    for (uint32_t i = 0; i < AES_BLOCK_SIZE; i++) {
         iv[i] = random_uint32_range(0, 255);
     }
 }
@@ -125,7 +125,7 @@ int ls_encrypt_frame_payload(uint8_t *key, ls_payload_t *payload)
 	
 	if (payload->len <= LS_ECB_ENCRYPTION_MAX_SIZE) {
 		/* Add some salt */
-		int i;
+		uint32_t i;
 		for (i = payload->len; i < AES_BLOCK_SIZE; i++) {
 			ptr[i] = random_uint32_range(0, 255);
 		}

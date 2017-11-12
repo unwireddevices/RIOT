@@ -66,7 +66,7 @@ static void clear_nonce_list(ls_gate_devices_t *devlist, ls_addr_t addr) {
 ls_gate_node_t *add_nonce(ls_gate_devices_t *devlist, uint64_t node_id, uint32_t nonce) {
     DEBUG("ls-gate-device-list: adding nonce\n");
 	/* Look for a free cell (and address) to insert */
-	for (int i = 0; i < LS_GATE_MAX_NODES; i++) {
+	for (uint32_t i = 0; i < LS_GATE_MAX_NODES; i++) {
 		if (!devlist->nodes_free_list[i]) {
 			ls_gate_node_t *node = &devlist->nodes[i];
 
@@ -77,7 +77,7 @@ ls_gate_node_t *add_nonce(ls_gate_devices_t *devlist, uint64_t node_id, uint32_t
 				}
 
 				/* Add current nonce to nonce list */
-                for (int j = 0; j < LS_GATE_NONCES_PER_DEVICE; j++) {
+                for (uint32_t j = 0; j < LS_GATE_NONCES_PER_DEVICE; j++) {
                     if (node->nonce[j] == 0) {
                         node->nonce[j] = nonce;
                         node->num_nonces++;
@@ -109,7 +109,7 @@ static void init_node(ls_gate_devices_t *devlist, ls_gate_node_t *node, ls_addr_
 	}
 
 	/* Append nonce to the nonce list */
-    for (int j = 0; j < LS_GATE_NONCES_PER_DEVICE; j++) {
+    for (uint32_t j = 0; j < LS_GATE_NONCES_PER_DEVICE; j++) {
         if (node->nonce[j] == 0) {
             node->nonce[j] = nonce;
             node->num_nonces++;
@@ -187,7 +187,7 @@ ls_gate_node_t *ls_devlist_add(ls_gate_devices_t *devlist, uint64_t node_id, uin
 	mutex_lock(&devlist->mutex);
 
 	/* Look for a free cell (and address) to insert */
-	for (int i = 0; i < LS_GATE_MAX_NODES; i++) {
+	for (uint32_t i = 0; i < LS_GATE_MAX_NODES; i++) {
 		if (devlist->nodes_free_list[i]) {
 			/* Occupy node record */
 			devlist->nodes_free_list[i] = false;
@@ -215,7 +215,7 @@ ls_gate_node_t *ls_devlist_add(ls_gate_devices_t *devlist, uint64_t node_id, uin
 
 bool ls_devlist_check_nonce(ls_gate_devices_t *devlist, uint64_t node_id, uint32_t nonce) {
     DEBUG("ls-gate-device-list: checking nonce for the device\n");
-	for (int i = 0; i < LS_GATE_MAX_NODES; i++) {
+	for (uint32_t i = 0; i < LS_GATE_MAX_NODES; i++) {
 		if (devlist->nodes_free_list[i])
 			continue;
 
@@ -223,7 +223,7 @@ bool ls_devlist_check_nonce(ls_gate_devices_t *devlist, uint64_t node_id, uint32
 
 		if (node->node_id == node_id) {
 			/* Iterate through remembered nonce list */
-            for (int k = 0; k < LS_GATE_NONCES_PER_DEVICE; k++) {
+            for (uint32_t k = 0; k < LS_GATE_NONCES_PER_DEVICE; k++) {
                 if (node->nonce[k] == 0) {
                     DEBUG("ls-gate-device-list: end of nonce list\n");
                     break;
@@ -243,7 +243,7 @@ bool ls_devlist_check_nonce(ls_gate_devices_t *devlist, uint64_t node_id, uint32
 
 bool ls_devlist_is_added(ls_gate_devices_t *devlist, uint64_t node_id) {
     DEBUG("ls-gate-device-list: check if device is in the list\n");
-	for (int i = 0; i < LS_GATE_MAX_NODES; i++) {
+	for (uint32_t i = 0; i < LS_GATE_MAX_NODES; i++) {
 		/* Skip free cells */
 		if (devlist->nodes_free_list[i])
 			continue;
@@ -312,7 +312,7 @@ bool ls_devlist_is_full(ls_gate_devices_t *devlist) {
 }
 
 ls_gate_node_t *ls_devlist_get_by_nodeid(ls_gate_devices_t *devlist, uint64_t nodeid) {
-	for (int i = 0; i < LS_GATE_MAX_NODES; i++) {
+	for (uint32_t i = 0; i < LS_GATE_MAX_NODES; i++) {
 		/* Skip free cells */
 		if (devlist->nodes_free_list[i])
 			continue;

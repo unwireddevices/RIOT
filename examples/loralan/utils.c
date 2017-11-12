@@ -31,14 +31,14 @@ bool hex_to_bytes(char *hexstr, uint8_t *bytes, bool reverse_order) {
 	return hex_to_bytesn(hexstr, strlen(hexstr), bytes, reverse_order);
 }
 
-bool hex_to_bytesn(char *hexstr, int len, uint8_t *bytes, bool reverse_order) {
+bool hex_to_bytesn(char *hexstr, uint32_t len, uint8_t *bytes, bool reverse_order) {
 	/* Length must be even */
 	if (len % 2 != 0)
 		return false;
 
 	/* Move in string by two characters */
 	char *ptr = &(*hexstr);
-	int i = 0;
+	uint32_t i = 0;
 	if (reverse_order) {
 		ptr += len - 2;
 
@@ -61,7 +61,7 @@ bool hex_to_bytesn(char *hexstr, int len, uint8_t *bytes, bool reverse_order) {
 }
 
 void bytes_to_hex(uint8_t *bytes, size_t num_bytes, char *str, bool reverse_order) {
-	int i;
+	uint32_t i;
 	for (i = 0; i < num_bytes; i++) {
 		char buf[2];
 		sprintf(buf, "%02x", bytes[(reverse_order) ? num_bytes - 1 - i : i]);

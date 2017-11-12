@@ -353,10 +353,10 @@ static void print_regions(void)
 {
     puts("[ available regions ]");
 
-    int i;
+    uint32_t i;
     for (i = 0; i < LS_UNI_NUM_REGIONS; i++) {
-        printf("%d. %s [", i, regions[i].region);
-        int j;
+        printf("%lu. %s [", i, regions[i].region);
+        uint32_t j;
         for (j = 0; j < regions[i].num_channels; j++) {
             printf("%d", (unsigned) regions[i].channels[j]);
 
@@ -680,7 +680,7 @@ void init_node(shell_command_t **commands)
     uint32_t bootmode = rtc_restore_backup(0);
 
     /* fill the rest of shell_commands array with NULLs */
-    int i = 0;
+    uint32_t i = 0;
     bool fillzeros = false;
     for (i = 0; i < UNWDS_SHELL_COMMANDS_MAX; i++) {
         if (shell_commands[i].name == NULL) {

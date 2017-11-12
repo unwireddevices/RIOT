@@ -22,7 +22,7 @@
 #include <stdbool.h>
 
 bool hex_to_bytes(char *hexstr, uint8_t *bytes, bool reverse_order);
-bool hex_to_bytesn(char *hexstr, int len, uint8_t *bytes, bool reverse_order);
+bool hex_to_bytesn(char *hexstr, uint32_t len, uint8_t *bytes, bool reverse_order);
 void bytes_to_hex(uint8_t *bytes, size_t num_bytes, char *str, bool reverse_order);
 bool is_number(char* str);
 

@@ -106,7 +106,7 @@ bool load_config_nvram(nvram_t *nvram)
 
         memcpy(&config, &temp_config, sizeof(nvram_config_t));
 		
-		for (int i=0; i<16; i++) {
+		for (uint32_t i=0; i<16; i++) {
 			if (config.nwk_key[i] > 0) {
 				key_valid = true;
 			}

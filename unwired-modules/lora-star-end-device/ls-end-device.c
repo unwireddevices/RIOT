@@ -622,7 +622,7 @@ static void *uq_handler(void *arg)
         /* Listen Before Talk with LoRa CAD support */
         DEBUG("[LoRa] checking channel activity\n");
         int cad_tries = 0;
-        for (int k = 0; k < 10; k++) {
+        for (uint32_t k = 0; k < 10; k++) {
             sx1276_start_cad(ls->_internal.sx1276, SX1276_MODE_CADDONE);
             rtctimers_millis_sleep(delay_ms);
             if (ls->_internal.last_cad_success) {

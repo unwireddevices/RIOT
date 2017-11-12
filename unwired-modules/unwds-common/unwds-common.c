@@ -141,9 +141,9 @@ static bool unwds_storage_init(void) {
 }
 
 static bool unwds_storage_cleanup(void) {
-    int clean_blocks = 0;
-    int i = 0;
-    int k = 0;
+    uint32_t clean_blocks = 0;
+    uint32_t i = 0;
+    uint32_t k = 0;
     
     for (i = 0; i < unwds_eeprom_layout.storage_blocks; i++) {
         if (storage_blocks[i] == 0) {
@@ -188,7 +188,7 @@ static bool unwds_storage_cleanup(void) {
 }
 
 static bool unwds_create_storage_block(unwds_module_id_t module_id) {
-    int i = 0;
+    uint32_t i = 0;
     for (i = 0; i < unwds_eeprom_layout.storage_blocks; i++) {
         if (storage_blocks[i] == 0) {
             DEBUG("Found empty storage block\n");
@@ -211,8 +211,8 @@ static bool unwds_create_storage_block(unwds_module_id_t module_id) {
 
 bool unwds_read_nvram_storage(unwds_module_id_t module_id, uint8_t *data_out, uint8_t size) {
     
-    int addr = 0;
-    int i = 0;
+    uint32_t addr = 0;
+    uint32_t i = 0;
     
     /* add the module to the list of modules currently using EEPROM storage */
     for (i = 0; i < unwds_eeprom_layout.storage_blocks; i++) {
@@ -253,8 +253,8 @@ bool unwds_write_nvram_storage(unwds_module_id_t module_id, uint8_t *data, size_
     if (data_size > 128)
 		return false;
     
-    int addr = 0;
-    int i = 0;
+    uint32_t addr = 0;
+    uint32_t i = 0;
     
     for (i = 0; i < unwds_eeprom_layout.storage_blocks; i++) {
         if (storage_blocks[i] == module_id) {
@@ -417,7 +417,7 @@ uint32_t * unwds_get_enabled(void)
 }
 
 void unwds_add_shell_command(char *name, char *desc, void* handler) {
-    int i = 0;
+    uint32_t i = 0;
     for (i = 0; i < UNWDS_SHELL_COMMANDS_MAX; i++) {
         if (shell_commands[i].name == NULL) {
             shell_commands[i].name = name;
@@ -430,7 +430,7 @@ void unwds_add_shell_command(char *name, char *desc, void* handler) {
 }
 
 int unwds_modid_by_name(char *name) {
-    int i = 0;
+    uint32_t i = 0;
     for (i = 0; i < sizeof(modules)/sizeof(unwd_module_t); i++) {
         if (strcmp(name, modules[i].name) == 0) {
             return modules[i].module_id;
@@ -455,8 +455,8 @@ int unwds_gpio_pins_total(void)
 }
 
 void int_to_float_str(char *buf, int decimal, uint8_t precision) {  
-    int i = 0;
-    int divider = 1;
+    uint32_t i = 0;
+    uint32_t divider = 1;
     char format[10] = { };
     char digits[3];
     
@@ -470,7 +470,7 @@ void int_to_float_str(char *buf, int decimal, uint8_t precision) {
         divider *= 10;
     }
 
-    snprintf(digits, 3, "%dd", i);
+    snprintf(digits, 3, "%lud", i);
     strcat(format, digits);
     
     snprintf(buf, 50, format, abs(decimal/divider), abs(decimal%divider));

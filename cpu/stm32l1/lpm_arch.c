@@ -71,8 +71,8 @@ static void pin_set(GPIO_TypeDef* port, uint8_t pin, uint8_t value) {
 
 /* put GPIOs in low-power state */
 static void lpm_before_i_go_to_sleep (void) {
-	uint8_t i;
-    uint8_t p;
+	uint32_t i;
+    uint32_t p;
     uint32_t mask;
     GPIO_TypeDef *port;
 	
@@ -148,13 +148,16 @@ static void lpm_before_i_go_to_sleep (void) {
         port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
         mask = 0xFFFFFFFF;
         if (EXTI->IMR) {
-            for (p = 0; p < 16; p ++) {
+            for (p = 0; p < 16; p++) {
                 /* exclude GPIOs we previously set with pin_set */
+                uint32_t _mask = ~(0x03 << (p*2));
                 if ((lpm_portmask_system[i] | lpm_portmask_user[i]) & (1 << p)) {
-                    mask &= ~(0x03 << (p*2));
+                    mask &= _mask;
                 } else {
-                    if ((EXTI->IMR & (1 << p)) && ((((SYSCFG->EXTICR[p >> 2]) >> ((p & 0x03) * 4)) & 0xF) == i)) {
-                        mask &= ~(0x03 << (p*2));
+                    if (EXTI->IMR & (1 << p)) {
+                        if (SYSCFG->EXTICR[p >> 2] == i << (p << 2)) {
+                            mask &= _mask;
+                        }
                     }
                 }
             }
@@ -184,7 +187,7 @@ static void lpm_when_i_wake_up (void) {
     /* enable all GPIO clocks */
     periph_clk_en(AHB, 0xFF);
     
-    uint8_t i;
+    uint32_t i;
     GPIO_TypeDef *port;
       
     /* restore GPIO settings */
@@ -213,18 +216,18 @@ static void lpm_when_i_wake_up (void) {
 
 /* Do not change GPIO state in sleep mode */
 void lpm_arch_add_gpio_exclusion(gpio_t gpio) {
-	uint8_t port = ((uint32_t)gpio >> 10) & 0x0f;
-	uint8_t pin = ((uint32_t)gpio & 0x0f);
+	uint32_t port = ((uint32_t)gpio >> 10) & 0x0f;
+	uint32_t pin = ((uint32_t)gpio & 0x0f);
 	
-	lpm_portmask_user[port] |= (uint16_t)(1<<pin);
+	lpm_portmask_user[port] |= (1<<pin);
 }
 
 /* Change GPIO state to AIN in sleep mode */
 void lpm_arch_del_gpio_exclusion(gpio_t gpio) {
-	uint8_t port = ((uint32_t)gpio >> 10) & 0x0f;
-	uint8_t pin = ((uint32_t)gpio & 0x0f);
+	uint32_t port = ((uint32_t)gpio >> 10) & 0x0f;
+	uint32_t pin = ((uint32_t)gpio & 0x0f);
 	
-	lpm_portmask_user[port] &= ~(uint16_t)(1<<pin);
+	lpm_portmask_user[port] &= ~(1<<pin);
 }
 
 /* Select CPU clocking between default (LPM_ON) and medium-speed (LPM_IDLE) */

@@ -239,7 +239,7 @@ void umdk_counter_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     gpio_init_int(UMDK_COUNTER_BTN, GPIO_IN_PU, GPIO_FALLING, btn_connect, NULL);
 
     /* Create handler thread */
-    char *stack = (char *) allocate_stack();
+    char *stack = (char *) allocate_stack(UMDK_COUNTER_STACK_SIZE);
     if (!stack) {
         puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Is too many modules enabled?");
         return;
@@ -254,7 +254,7 @@ void umdk_counter_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     
     unwds_add_shell_command(_UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_counter_shell_cmd);
 
-    handler_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, \
+    handler_pid = thread_create(stack, UMDK_COUNTER_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, \
                                 THREAD_CREATE_STACKTEST, handler, NULL, _UMDK_NAME_ " thread");
 
     /* Start publishing timer */

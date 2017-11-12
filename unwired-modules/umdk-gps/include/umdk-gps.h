@@ -20,6 +20,8 @@
 
 #include "unwds-common.h"
 
+#define UMDK_GPS_READER_STACK_SIZE 1024
+
 #ifndef UMDK_GPS_UART
 #define UMDK_GPS_UART UMDK_UART_DEV
 #endif

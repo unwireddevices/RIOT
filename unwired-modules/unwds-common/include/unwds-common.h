@@ -68,7 +68,7 @@ bool unwds_write_nvram_config(unwds_module_id_t module_id, uint8_t *data, size_t
  */
 bool unwds_erase_nvram_config(unwds_module_id_t module_id);
 
-uint8_t *allocate_stack(void);
+uint8_t *allocate_stack(uint32_t stack_size);
 
 #define UNWDS_MAX_MODULE_NAME 10
 #define UNWDS_MAX_DATA_LEN 126
@@ -79,11 +79,11 @@ uint8_t *allocate_stack(void);
  * Stacks pool definitions.
  */
 #if defined(UNWDS_BUILD_MINIMAL)
-    #define UNWDS_STACK_SIZE_BYTES (1024U)
-    #define UNWDS_STACK_POOL_SIZE 2U
+    #define UNWDS_STACK_POOL_SIZE_BYTES (2048U)
+    #define UNWDS_SHELL_COMMANDS_MAX (12)
 #else
-    #define UNWDS_STACK_SIZE_BYTES (2048U)
-    #define UNWDS_STACK_POOL_SIZE 5U
+    #define UNWDS_STACK_POOL_SIZE_BYTES (10240U)
+    #define UNWDS_SHELL_COMMANDS_MAX (20)
 #endif
 
 #define UNWDS_MODULE_NO_DATA    0
@@ -93,7 +93,6 @@ uint8_t *allocate_stack(void);
 /**
  * Shell commands
  */
-#define UNWDS_SHELL_COMMANDS_MAX (10 + UNWDS_STACK_POOL_SIZE)
 extern shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX];
 
 /**

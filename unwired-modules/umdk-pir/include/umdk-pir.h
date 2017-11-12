@@ -20,6 +20,8 @@
 
 #include "unwds-common.h"
 
+#define UMDK_PIR_STACK_SIZE 1024
+
 #define UMDK_PIR UNWD_GPIO_24
 
 #define UMDK_PIR_DEBOUNCE_TIME_MS 150

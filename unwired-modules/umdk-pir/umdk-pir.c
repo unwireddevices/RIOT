@@ -97,13 +97,13 @@ void umdk_pir_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	gpio_init_int(UMDK_PIR, GPIO_IN_PD, GPIO_BOTH, pir_int_cb, NULL);
 
 	/* Create handler thread */
-	char *stack = (char *) allocate_stack();
+	char *stack = (char *) allocate_stack(UMDK_PIR_STACK_SIZE);
 	if (!stack) {
 		puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Is too many modules enabled?");
 		return;
 	}
 
-	handler_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, handler, NULL, "PIR thread");
+	handler_pid = thread_create(stack, UMDK_PIR_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, handler, NULL, "PIR thread");
 }
 
 bool umdk_pir_cmd(module_data_t *data, module_data_t *reply) {

@@ -54,7 +54,7 @@ void umdk_config_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     
     /* Create handler thread */
     /*
-	char *stack = (char *) allocate_stack();
+	char *stack = (char *) allocate_stack(1024);
 	if (!stack) {
 		puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Are too many modules enabled?");
 		return;

@@ -20,6 +20,8 @@
 
 #include "unwds-common.h"
 
+#define UMDK_COUNTER_STACK_SIZE 1024
+
 #define UMDK_COUNTER_NUM_SENS  4
 
 #define UMDK_COUNTER_1 UNWD_GPIO_5

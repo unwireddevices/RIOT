@@ -20,6 +20,8 @@
 
 #include "unwds-common.h"
 
+#define UMDK_IBUTTON_STACK_SIZE 1024
+
 #define	UMDK_IBUTTON_DEV UNWD_GPIO_4
 
 #define UMDK_IBUTTON_READ_ROM 0x33

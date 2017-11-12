@@ -361,7 +361,7 @@ void umdk_range_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	}
 
 	/* Create handler thread */
-	char *stack = (char *) allocate_stack();
+	char *stack = (char *) allocate_stack(UMDK_RANGE_STACK_SIZE);
 	if (!stack) {
 		printf("[umdk-" _UMDK_NAME_ "] Unable to allocate memory. Are too many modules enabled?");
 		return;
@@ -369,7 +369,7 @@ void umdk_range_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
     
     unwds_add_shell_command("range", "type 'range' for commands list", umdk_range_shell_cmd);
     
-	timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "range thread");
+	timer_pid = thread_create(stack, UMDK_RANGE_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "range thread");
 
     /* Start publishing timer */
 	rtctimers_set_msg(&timer, /* 60 * */ ultrasoundrange_config.publish_period_min, &timer_msg, timer_pid);

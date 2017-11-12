@@ -296,12 +296,12 @@ void umdk_lsm6ds3_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
         return;
     }
     
-    char *stack = (char *) allocate_stack();
+    char *stack = (char *) allocate_stack(UMDK_LSM6DS3_STACK_SIZE);
 	if (!stack) {
 		puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Are too many modules enabled?");
 		return;
 	}
-    acq_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,
+    acq_pid = thread_create(stack, UMDK_LSM6DS3_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,
                             acq_thread, NULL, "LSM6DS3 acquisition");
     
     unwds_add_shell_command(_UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_lsm6ds3_shell_cmd);

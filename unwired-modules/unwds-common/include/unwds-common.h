@@ -79,10 +79,10 @@ uint8_t *allocate_stack(uint32_t stack_size);
  * Stacks pool definitions.
  */
 #if defined(UNWDS_BUILD_MINIMAL)
-    #define UNWDS_STACK_POOL_SIZE_BYTES (2048U)
+//    #define UNWDS_STACK_POOL_SIZE_BYTES (2048U)
     #define UNWDS_SHELL_COMMANDS_MAX (12)
 #else
-    #define UNWDS_STACK_POOL_SIZE_BYTES (10240U)
+//    #define UNWDS_STACK_POOL_SIZE_BYTES (10240U)
     #define UNWDS_SHELL_COMMANDS_MAX (20)
 #endif
 

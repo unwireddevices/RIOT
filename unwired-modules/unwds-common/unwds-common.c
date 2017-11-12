@@ -296,11 +296,19 @@ bool unwds_erase_nvram_config(unwds_module_id_t module_id) {
 /**
  * Stacks pool.
  */
-static uint8_t stack_pool[UNWDS_STACK_POOL_SIZE_BYTES];
-static uint32_t stack_size_used = 0;
+// static uint8_t stack_pool[UNWDS_STACK_POOL_SIZE_BYTES];
+// static uint32_t stack_size_used = 0;
 
 uint8_t *allocate_stack(uint32_t stack_size) {
-	/* Stacks pool is full */
+    uint8_t *address = (uint8_t *)malloc(stack_size);
+    
+    /* additional check for allocation validity */
+    if (address && !cpu_check_address((char *)&address[stack_size - 1])) {
+        address = NULL;
+    }
+    
+    return address;
+/*
 	if (stack_size_used + stack_size > UNWDS_STACK_POOL_SIZE_BYTES)
 		return NULL;
     
@@ -308,6 +316,7 @@ uint8_t *allocate_stack(uint32_t stack_size) {
     stack_size_used += stack_size;
 
 	return stack_address;
+*/
 }
 
 void unwds_init_modules(uwnds_cb_t *event_callback)

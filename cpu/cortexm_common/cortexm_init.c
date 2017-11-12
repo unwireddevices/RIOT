@@ -64,6 +64,7 @@ void cortexm_init(void)
 
 bool cpu_check_address(volatile const char *address)
 {
+#if defined(CPU_ARCH_CORTEX_M3) && defined(CPU_ARCH_CORTEX_M4) && defined(CPU_ARCH_CORTEX_M4F)
     bool is_valid = true;
 
     /* Clear BFAR ADDRESS VALID flag */
@@ -83,4 +84,8 @@ bool cpu_check_address(volatile const char *address)
     SCB->CCR &= ~SCB_CCR_BFHFNMIGN;
 
     return is_valid;
+#else
+    /* Cortex-M0 doesn't have BusFault */
+    return true;
+#endif
 }

@@ -11,8 +11,8 @@
  * @ingroup     
  * @brief       
  * @{
- * @file		umdk-4btn.h
- * @brief       umdk-gps SL3333-based driver module definitions
+ * @file		umdk-gps.h
+ * @brief       umdk-gps MT3333-based driver module definitions
  * @author      EP
  */
 #ifndef UMDK_GPS_H
@@ -20,7 +20,7 @@
 
 #include "unwds-common.h"
 
-#define UMDK_GPS_READER_STACK_SIZE 1024
+#define UMDK_GPS_READER_STACK_SIZE 2048
 
 #ifndef UMDK_GPS_UART
 #define UMDK_GPS_UART UMDK_UART_DEV

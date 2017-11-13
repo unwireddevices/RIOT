@@ -69,6 +69,12 @@ static void *idle_thread(void *arg)
     (void) arg;
 
     while (1) {
+        /* workaround for a strange bug (?) in STM32L1 with RTC IRQs */
+        if (sched_context_switch_request) {
+            __asm("nop; nop; nop; nop;");
+            thread_yield();
+        }
+        
         if (lpm_prevent_sleep) {
             //lpm_set(LPM_IDLE);
         }

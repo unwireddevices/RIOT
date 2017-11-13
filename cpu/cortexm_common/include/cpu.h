@@ -97,9 +97,12 @@ static inline void cpu_sleep_until_event(void)
  */
 static inline void cortexm_isr_end(void)
 {
+    /* moved to kernel_init.c due to a strange bug (?) in STM32L1 with RTC IRQs */
+    /*
     if (sched_context_switch_request) {
         thread_yield();
     }
+    */
 }
 
 /**

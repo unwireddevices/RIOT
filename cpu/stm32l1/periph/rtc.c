@@ -331,6 +331,8 @@ int rtc_millis_get_time(uint32_t *millis)
     RTC->DR;
     
     uint32_t seconds  = (((rtc_time_reg & RTC_TR_ST)  >>  4) * 10) + ((rtc_time_reg & RTC_TR_SU)  >>  0);
+    
+    printf("%lu s %lu ms (%lu)\n", seconds, milliseconds, rtc_ssr_counter);
 
     *millis = milliseconds + 1000*seconds;
 
@@ -463,20 +465,22 @@ void rtc_poweroff(void)
 }
 
 void isr_rtc_alarm(void)
-{
-    if ((RTC->ISR & RTC_ISR_ALRAF) && (rtc_callback.cb != NULL)) {
+{    
+    if (RTC->ISR & RTC_ISR_ALRAF) {
         RTC->ISR &= ~RTC_ISR_ALRAF;
-        EXTI->PR = EXTI_PR_PR17;
-
-        rtc_callback.cb(rtc_callback.arg);
+        if (rtc_callback.cb) {        
+            rtc_callback.cb(rtc_callback.arg);
+        }
     }
     
-    if ((RTC->ISR & RTC_ISR_ALRBF) && (rtc_callback.millis_cb != NULL)) {
+    if (RTC->ISR & RTC_ISR_ALRBF) {
         RTC->ISR &= ~RTC_ISR_ALRBF;
-        EXTI->PR = EXTI_PR_PR17;
-
-        rtc_callback.millis_cb(rtc_callback.millis_arg);
+        if (rtc_callback.millis_cb) {
+            rtc_callback.millis_cb(rtc_callback.millis_arg);
+        }
     }
+    
+    EXTI->PR = EXTI_PR_PR17;
     
     cortexm_isr_end();
 }
@@ -484,12 +488,15 @@ void isr_rtc_alarm(void)
 
 void isr_rtc_wkup(void)
 {
-    if ((RTC->ISR & RTC_ISR_WUTF) && (rtc_callback.wkup_cb != NULL)) {
+    if (RTC->ISR & RTC_ISR_WUTF) {
         RTC->ISR &= ~RTC_ISR_WUTF;
-        EXTI->PR = EXTI_PR_PR20;
-
-        rtc_callback.wkup_cb(rtc_callback.wkup_arg);
+        if (rtc_callback.wkup_cb != NULL) {
+            rtc_callback.wkup_cb(rtc_callback.wkup_arg);
+        }
     }
+    
+    EXTI->PR = EXTI_PR_PR20;
+    
     cortexm_isr_end();
 }
 

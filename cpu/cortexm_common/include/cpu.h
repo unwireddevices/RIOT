@@ -95,15 +95,7 @@ static inline void cpu_sleep_until_event(void)
  *
  * This function is supposed to be called in the end of each ISR.
  */
-static inline void cortexm_isr_end(void)
-{
-    /* moved to kernel_init.c due to a strange bug (?) in STM32L1 with RTC IRQs */
-    /*
-    if (sched_context_switch_request) {
-        thread_yield();
-    }
-    */
-}
+void cortexm_isr_end(void);
 
 /**
  * @brief   Checks is memory address valid or not

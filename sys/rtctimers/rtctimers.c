@@ -38,6 +38,7 @@ static void _callback_msg(void* arg)
 {
     msg_t *msg = (msg_t*)arg;
     msg_send_int(msg, msg->sender_pid);
+    sched_context_switch_request = 2;
 }
 
 void rtctimers_sleep(uint32_t sleep_sec) {

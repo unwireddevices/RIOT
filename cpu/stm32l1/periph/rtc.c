@@ -332,8 +332,6 @@ int rtc_millis_get_time(uint32_t *millis)
     
     uint32_t seconds  = (((rtc_time_reg & RTC_TR_ST)  >>  4) * 10) + ((rtc_time_reg & RTC_TR_SU)  >>  0);
     
-    printf("%lu s %lu ms (%lu)\n", seconds, milliseconds, rtc_ssr_counter);
-
     *millis = milliseconds + 1000*seconds;
 
     /* unlock RTC registers by reading DR */

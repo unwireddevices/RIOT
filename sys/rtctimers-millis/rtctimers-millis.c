@@ -24,6 +24,7 @@ extern "C" {
 #include <stdlib.h>
 #include "mutex.h"
 #include "irq.h"
+#include "sched.h"
 
 #include "rtctimers-millis.h"
 
@@ -36,7 +37,9 @@ static void _callback_unlock_mutex(void* arg)
 static void _callback_msg(void* arg)
 {
     msg_t *msg = (msg_t*)arg;
+    printf("Callback: sending message to %d\n", msg->sender_pid);
     msg_send_int(msg, msg->sender_pid);
+    sched_context_switch_request = 2;
 }
 
 void rtctimers_millis_sleep(uint32_t sleep_millis) {
@@ -62,7 +65,10 @@ void rtctimers_millis_set_msg(rtctimers_millis_t *timer, uint32_t offset, msg_t 
 	timer->arg = (void *) msg;
 
 	msg->sender_pid = target_pid;
+    printf("Calling rtctimers_millis_set, target PID %d\n", target_pid);
+    //printf("Callback ");
 	rtctimers_millis_set(timer, offset);
+    puts("Done");
 }
 
 #ifdef __cplusplus

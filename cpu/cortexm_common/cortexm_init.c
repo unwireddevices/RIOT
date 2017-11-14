@@ -113,7 +113,8 @@ void cortexm_isr_end(void)
             sleep_status = lpm_prevent_sleep;
             lpm_prevent_sleep = 1;
             timer_yield.callback = thread_yield_later;
-            xtimer_set(&timer_yield, 50);
+            /* 1 RTCCLK = 30.5 us seems to be the right delay */
+            xtimer_set(&timer_yield, 32);
         }
     }
 }

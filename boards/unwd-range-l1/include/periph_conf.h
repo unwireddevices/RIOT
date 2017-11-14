@@ -85,6 +85,8 @@ static const timer_conf_t timer_config[] = {
  */
 #define RTC_NUMOF           (1U)
 
+#define RTC_IRQ_PRIO        CPU_DEFAULT_IRQ_PRIO
+
 /**
  * @brief UART configuration
  */
@@ -152,7 +154,7 @@ static const uart_conf_t uart_config[] = {
 #define GPIO_13_EN          1
 #define GPIO_14_EN          1
 #define GPIO_15_EN          1
-#define GPIO_IRQ_PRIO       1
+#define GPIO_IRQ_PRIO       CPU_DEFAULT_IRQ_PRIO
 
 /* IRQ config */
 #define GPIO_IRQ_0          GPIO_13
@@ -354,7 +356,7 @@ static const pwm_conf_t pwm_config[] = {
 #define I2C_0_EN            1
 #define I2C_1_EN            1
 #define I2C_NUMOF           (I2C_0_EN + I2C_1_EN)
-#define I2C_IRQ_PRIO        1
+#define I2C_IRQ_PRIO        CPU_DEFAULT_IRQ_PRIO
 #define I2C_APBCLK          (CLOCK_APB1)
 
 /* I2C 0 device configuration */

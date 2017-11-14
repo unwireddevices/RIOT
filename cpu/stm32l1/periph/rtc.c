@@ -188,7 +188,7 @@ int rtc_set_alarm(struct tm *time, rtc_alarm_cb_t cb, void *arg)
 
     EXTI->IMR  |= EXTI_IMR_MR17;
     EXTI->RTSR |= EXTI_RTSR_TR17;
-    NVIC_SetPriority(RTC_Alarm_IRQn, 5);
+    NVIC_SetPriority(RTC_Alarm_IRQn, RTC_IRQ_PRIO);
     NVIC_EnableIRQ(RTC_Alarm_IRQn);
 
     rtc_callback.cb = cb;
@@ -268,7 +268,7 @@ int rtc_millis_set_alarm(int milliseconds, rtc_alarm_cb_t cb, void *arg)
 
     EXTI->IMR  |= EXTI_IMR_MR17;
     EXTI->RTSR |= EXTI_RTSR_TR17;
-    NVIC_SetPriority(RTC_Alarm_IRQn, 5);
+    NVIC_SetPriority(RTC_Alarm_IRQn, RTC_IRQ_PRIO);
     NVIC_EnableIRQ(RTC_Alarm_IRQn);
 
     rtc_callback.millis_cb = cb;
@@ -332,8 +332,6 @@ int rtc_millis_get_time(uint32_t *millis)
     
     uint32_t seconds  = (((rtc_time_reg & RTC_TR_ST)  >>  4) * 10) + ((rtc_time_reg & RTC_TR_SU)  >>  0);
     
-    printf("%lu s %lu ms (%lu)\n", seconds, milliseconds, rtc_ssr_counter);
-
     *millis = milliseconds + 1000*seconds;
 
     /* unlock RTC registers by reading DR */
@@ -375,7 +373,7 @@ int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg)
 
     EXTI->IMR  |= EXTI_IMR_MR20;
     EXTI->RTSR |= EXTI_RTSR_TR20;
-    NVIC_SetPriority(RTC_WKUP_IRQn, 5);
+    NVIC_SetPriority(RTC_WKUP_IRQn, RTC_IRQ_PRIO);
     NVIC_EnableIRQ(RTC_WKUP_IRQn);
 
     rtc_callback.wkup_cb = cb;

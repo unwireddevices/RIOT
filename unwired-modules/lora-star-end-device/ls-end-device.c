@@ -624,6 +624,7 @@ static void *uq_handler(void *arg)
         int cad_tries = 0;
         for (uint32_t k = 0; k < 10; k++) {
             sx1276_start_cad(ls->_internal.sx1276, SX1276_MODE_CADDONE);
+            DEBUG("[LoRa] Sleep for %d ms\n", (int)delay_ms);
             rtctimers_millis_sleep(delay_ms);
             if (ls->_internal.last_cad_success) {
                 DEBUG("[LoRa] channel activity detected\n");
@@ -635,6 +636,7 @@ static void *uq_handler(void *arg)
                 }
                 
                 /* otherwise restart CAD after a pause */
+                DEBUG("[LoRa] Sleep for %d ms\n", (int)(5*delay_ms));
                 rtctimers_millis_sleep(5*delay_ms);
                 k = 0;
             }

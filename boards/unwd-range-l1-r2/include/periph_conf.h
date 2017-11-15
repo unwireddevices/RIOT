@@ -61,18 +61,20 @@ extern "C" {
  * @brief Timer configuration
  * @{
  */
+#define TIMER_0_MAX_VALUE   (0x0000ffff)
+ 
 static const timer_conf_t timer_config[] = {
     {
-        .dev      = TIM5,
-        .max      = 0xffffffff,
-        .rcc_mask = RCC_APB1ENR_TIM5EN,
-        .bus      = APB1,
-        .irqn     = TIM5_IRQn
+        .dev      = TIM11,
+        .max      = TIMER_0_MAX_VALUE,
+        .rcc_mask = RCC_APB2ENR_TIM11EN,
+        .bus      = APB2,
+        .irqn     = TIM11_IRQn
     }
 };
 
-/* interrupt routines */
-#define TIMER_0_ISR         (isr_tim5)
+#define TIMER_0_ISR         isr_tim11
+
 /* number of defined timers */
 #define TIMER_NUMOF         (sizeof(timer_config) / sizeof(timer_config[0]))
 /** @} */
@@ -82,6 +84,8 @@ static const timer_conf_t timer_config[] = {
  * @{
  */
 #define RTC_NUMOF           (1U)
+
+#define RTC_IRQ_PRIO        CPU_DEFAULT_IRQ_PRIO
 
 /**
  * @brief UART configuration
@@ -151,7 +155,7 @@ static const uart_conf_t uart_config[] = {
 #define GPIO_13_EN          1
 #define GPIO_14_EN          1
 #define GPIO_15_EN          1
-#define GPIO_IRQ_PRIO       1
+#define GPIO_IRQ_PRIO       CPU_DEFAULT_IRQ_PRIO
 
 /* IRQ config */
 #define GPIO_IRQ_0          GPIO_13
@@ -353,7 +357,7 @@ static const pwm_conf_t pwm_config[] = {
 #define I2C_0_EN            1
 #define I2C_1_EN            1
 #define I2C_NUMOF           (I2C_0_EN + I2C_1_EN)
-#define I2C_IRQ_PRIO        1
+#define I2C_IRQ_PRIO        CPU_DEFAULT_IRQ_PRIO
 #define I2C_APBCLK          (CLOCK_APB1)
 
 /* I2C 0 device configuration */

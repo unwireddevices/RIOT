@@ -31,7 +31,7 @@
 
 #define RTC_WRITE_PROTECTION_KEY1   (0xCA)
 #define RTC_WRITE_PROTECTION_KEY2   (0x53)
-#define RTC_ASYNC_PRESCALER         (0x7f)  /**< prescaler for 32.768 kHz oscillator */
+#define RTC_ASYNC_PRESCALER         (0x7)  /**< prescaler for 32.768 kHz oscillator */
 #define RTC_SYNC_PRESCALER          ((32768 / (RTC_ASYNC_PRESCALER + 1)) - 1)  /**< prescaler for 32.768 kHz oscillator */
 #define RTC_SSR_TO_US               (((10000000 / RTC_SYNC_PRESCALER) + 5)/10) /**< conversion from RTC_SSR to microseconds */
 

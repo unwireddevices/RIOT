@@ -31,8 +31,9 @@
 
 #define RTC_WRITE_PROTECTION_KEY1   (0xCA)
 #define RTC_WRITE_PROTECTION_KEY2   (0x53)
-#define RTC_SYNC_PRESCALER          (0xff)  /**< prescaler for 32.768 kHz oscillator */
 #define RTC_ASYNC_PRESCALER         (0x7f)  /**< prescaler for 32.768 kHz oscillator */
+#define RTC_SYNC_PRESCALER          ((32768 / (RTC_ASYNC_PRESCALER + 1)) - 1)  /**< prescaler for 32.768 kHz oscillator */
+#define RTC_SSR_TO_US               (((10000000 / RTC_SYNC_PRESCALER) + 5)/10) /**< conversion from RTC_SSR to microseconds */
 
 #define MCU_YEAR_OFFSET              (100)  /**< struct tm counts years since 1900
                                                 but RTC has only two-digit year
@@ -69,15 +70,15 @@ void rtc_init(void)
     RTC->ISR = 0;
     RTC->ISR |= RTC_ISR_INIT;
     while ((RTC->ISR & RTC_ISR_INITF) == 0) ;
+    
+    /* Configure the RTC PRER */
+    RTC->PRER = RTC_SYNC_PRESCALER;
+    RTC->PRER |= (RTC_ASYNC_PRESCALER << 16);
 
     /* Set 24-h clock */
     RTC->CR &= ~RTC_CR_FMT;
     /* Timestamps enabled */
     RTC->CR |= RTC_CR_TSE;
-
-    /* Configure the RTC PRER */
-    RTC->PRER = RTC_SYNC_PRESCALER;
-    RTC->PRER |= (RTC_ASYNC_PRESCALER << 16);
 
     /* Exit RTC init mode */
     RTC->ISR &= (uint32_t) ~RTC_ISR_INIT;
@@ -249,7 +250,8 @@ int rtc_millis_set_alarm(int milliseconds, rtc_alarm_cb_t cb, void *arg)
     RTC->ALRMBR |= (RTC_ALRMBR_MSK2 | RTC_ALRMBR_MSK3 | RTC_ALRMBR_MSK4);
 
     uint32_t msec = milliseconds % 1000;
-    uint32_t alarm_millis_time = 255 - (msec*1000)/3922;
+      
+    uint32_t alarm_millis_time = RTC_SYNC_PRESCALER - (msec*1000)/RTC_SSR_TO_US;
     
     /* set up subseconds alarm */
     uint32_t regalarm = RTC->ALRMBSSR;
@@ -309,8 +311,8 @@ int rtc_millis_get_time(uint32_t *millis)
         /* 3rd read if 1st and 2nd don't match */
         rtc_ssr_counter = RTC->SSR;
     }
-    
-    uint32_t milliseconds = ((255 - (rtc_ssr_counter & 0xFF))*3922)/1000;
+
+    uint32_t milliseconds = ((RTC_SYNC_PRESCALER - rtc_ssr_counter)*RTC_SSR_TO_US)/1000;
     
     /* clear RSF bit */
     RTC->ISR &= ~RTC_ISR_RSF;

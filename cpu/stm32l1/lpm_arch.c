@@ -154,10 +154,8 @@ static void lpm_before_i_go_to_sleep (void) {
                 if ((lpm_portmask_system[i] | lpm_portmask_user[i]) & (1 << p)) {
                     mask &= _mask;
                 } else {
-                    if (EXTI->IMR & (1 << p)) {
-                        if (SYSCFG->EXTICR[p >> 2] == i << (p << 2)) {
-                            mask &= _mask;
-                        }
+                    if ((EXTI->IMR & (1 << p)) && ((((SYSCFG->EXTICR[p >> 2]) >> ((p & 0x03) * 4)) & 0xF) == i)) {
+                        mask &= _mask;
                     }
                 }
             }

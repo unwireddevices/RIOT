@@ -26,10 +26,10 @@
     #define RTCTIMERS_MILLIS_OVERHEAD 0
 #endif
 #ifndef RTCTIMERS_MILLIS_BACKOFF
-    #define RTCTIMERS_MILLIS_BACKOFF 10
+    #define RTCTIMERS_MILLIS_BACKOFF 2
 #endif
 #ifndef RTCTIMERS_MILLIS_ISR_BACKOFF
-    #define RTCTIMERS_MILLIS_ISR_BACKOFF 10
+    #define RTCTIMERS_MILLIS_ISR_BACKOFF 2
 #endif
 
 typedef void (*rtctimers_millis_cb_t)(void*);

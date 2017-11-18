@@ -92,29 +92,3 @@ bool cpu_check_address(volatile const char *address)
     return true;
 #endif
 }
-
-#include "xtimer.h"
-static xtimer_t timer_yield;
-static volatile uint32_t sleep_status;
-
-static void thread_yield_later(void *arg) {
-    (void)arg;
-    lpm_prevent_sleep = sleep_status;
-    thread_yield();
-}
-
-void cortexm_isr_end(void)
-{
-    if (sched_context_switch_request == 1) {
-        thread_yield();
-    } else {
-    /* dirty workaround for a strange bug (?) in STM32L1 with RTC IRQs */
-        if (sched_context_switch_request == 2) {
-            sleep_status = lpm_prevent_sleep;
-            lpm_prevent_sleep = 1;
-            timer_yield.callback = thread_yield_later;
-            /* 1 RTCCLK = 30.5 us seems to be the right delay */
-            xtimer_set(&timer_yield, 32);
-        }
-    }
-}

@@ -28,6 +28,9 @@ extern "C" {
 
 #include "rtctimers-millis.h"
 
+#define ENABLE_DEBUG    (0)
+#include "debug.h"
+
 static void _callback_unlock_mutex(void* arg)
 {
     mutex_t *mutex = (mutex_t *) arg;
@@ -37,14 +40,13 @@ static void _callback_unlock_mutex(void* arg)
 static void _callback_msg(void* arg)
 {
     msg_t *msg = (msg_t*)arg;
-    printf("Callback: sending message to %d\n", msg->sender_pid);
+    DEBUG("Callback: sending message to %d\n", msg->sender_pid);
     msg_send_int(msg, msg->sender_pid);
-    sched_context_switch_request = 2;
 }
 
 void rtctimers_millis_sleep(uint32_t sleep_millis) {
     if (irq_is_in()) {
-    	puts("[rtctimers] Unable to sleep in IRQ"); // FIXME
+    	DEBUG("[rtctimers] Unable to sleep in IRQ"); // FIXME
         return;
     }
 
@@ -65,10 +67,8 @@ void rtctimers_millis_set_msg(rtctimers_millis_t *timer, uint32_t offset, msg_t 
 	timer->arg = (void *) msg;
 
 	msg->sender_pid = target_pid;
-    printf("Calling rtctimers_millis_set, target PID %d\n", target_pid);
-    //printf("Callback ");
+    DEBUG("Calling rtctimers_millis_set, target PID %d\n", target_pid);
 	rtctimers_millis_set(timer, offset);
-    puts("Done");
 }
 
 #ifdef __cplusplus

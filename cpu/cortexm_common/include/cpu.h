@@ -95,7 +95,11 @@ static inline void cpu_sleep_until_event(void)
  *
  * This function is supposed to be called in the end of each ISR.
  */
-void cortexm_isr_end(void);
+static inline void cortexm_isr_end(void) {
+    if (sched_context_switch_request) {
+        thread_yield();
+    }
+}
 
 /**
  * @brief   Checks is memory address valid or not

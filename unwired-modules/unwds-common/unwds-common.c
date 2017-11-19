@@ -468,7 +468,7 @@ int unwds_gpio_pins_total(void)
 
 void int_to_float_str(char *buf, int decimal, uint8_t precision) {  
     uint32_t i = 0;
-    uint32_t divider = 1;
+    int divider = 1;
     char format[10] = { };
     char digits[3];
     

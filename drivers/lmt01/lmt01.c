@@ -52,9 +52,21 @@ static inline void lmt01_on(lmt01_t *lmt01) {
 	lmt01->_internal.do_count = true;
 }
 
-static inline int pulses_to_temp(uint32_t pc) {   
-    /* Datasheet 7.3.2, equation 1, 0.1 deg C accuracy is enough*/
-    return ((2560 * pc) / 4096) - 500;
+static inline int pulses_to_temp(int pc) {   
+    /* Datasheet 7.3.2, equation 1
+     * calculate with 0.01 degree resolution with integer numbers
+     */
+    int temp = ((25600 * pc) / 4096) - 5000;
+    
+    /* proper rounding when converting to 0.1 degree resolution */
+    if (temp < 0) {
+        temp -= 5;
+    } else {
+        temp += 5;
+    }
+    
+    /* 0.1 deg resilting resolution */
+    return temp/10;
 }
 
 int lmt01_init(lmt01_t *lmt01, gpio_t en_pin, gpio_t sens_pin) {

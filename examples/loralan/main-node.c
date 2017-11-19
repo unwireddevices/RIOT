@@ -736,8 +736,10 @@ void init_node(shell_command_t **commands)
             wdg_reload();
             wdg_enable();
             
+#ifdef LPM_ENABLE_IDLE_MODE
             /* allow CPU frequency switching */
             lpm_prevent_switch = 0;
+#endif
             
             /* enable sleep for Class A devices only */        
             if (ls.settings.class == LS_ED_CLASS_A) {

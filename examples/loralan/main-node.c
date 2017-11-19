@@ -669,6 +669,10 @@ static void iwdg_reset (void *arg) {
 
 static void ls_enable_sleep (void *arg) {
     lpm_prevent_sleep = 0;
+#ifdef LPM_ENABLE_IDLE_MODE
+    /* allow CPU frequency switching */
+    lpm_prevent_switch = 0;
+#endif
     puts("Low-power sleep mode active");
     return;
 }
@@ -735,12 +739,7 @@ void init_node(shell_command_t **commands)
             wdg_set_reload((uint16_t) 0x0FFF);
             wdg_reload();
             wdg_enable();
-            
-#ifdef LPM_ENABLE_IDLE_MODE
-            /* allow CPU frequency switching */
-            lpm_prevent_switch = 0;
-#endif
-            
+
             /* enable sleep for Class A devices only */        
             if (ls.settings.class == LS_ED_CLASS_A) {
                 lpm_enable_timer.callback = ls_enable_sleep;

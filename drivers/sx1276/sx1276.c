@@ -26,8 +26,9 @@
 #include "periph/gpio.h"
 #include "periph/spi.h"
 
-#include "rtctimers-millis.h"
+#include "xtimer.h"
 #include "thread.h"
+#include "lpm.h"
 
 #include "sx1276.h"
 #include "include/sx1276_regs_fsk.h"
@@ -295,7 +296,7 @@ bool sx1276_is_channel_free(sx1276_t *dev, uint32_t freq, int16_t rssi_thresh)
     sx1276_set_channel(dev, freq);
     sx1276_set_op_mode(dev, RF_OPMODE_RECEIVER);
 
-    rtctimers_millis_sleep(1);
+    xtimer_spin(xtimer_ticks_from_usec(1000));
 
     rssi = sx1276_read_rssi(dev);
     sx1276_set_sleep(dev);
@@ -370,7 +371,7 @@ uint32_t sx1276_random(sx1276_t *dev)
 
     for (i = 0; i < 32; i++) {
         /* wait for the chaos */
-        rtctimers_millis_sleep(1);
+        xtimer_spin(xtimer_ticks_from_usec(1000));
 
         /* Non-filtered RSSI value reading. Only takes the LSB value */
         rnd |= ((uint32_t) sx1276_reg_read(dev, REG_LR_RSSIWIDEBAND) & 0x01) << i;
@@ -711,7 +712,7 @@ void sx1276_send(sx1276_t *dev, uint8_t *buffer, uint8_t size)
                 == RF_OPMODE_SLEEP) {
                 sx1276_set_standby(dev);
                 /* wait for chip wake up */
-                rtctimers_millis_sleep(SX1276_RADIO_WAKEUP_TIME);
+                xtimer_spin(xtimer_ticks_from_usec(SX1276_RADIO_WAKEUP_TIME));
             }
 
             /* Write payload buffer */
@@ -740,7 +741,7 @@ void sx1276_send(sx1276_t *dev, uint8_t *buffer, uint8_t size)
 
 
     /* Start TX timeout timer */
-    rtctimers_millis_set(&dev->_internal.tx_timeout_timer, dev->settings.lora.tx_timeout/1000);
+    xtimer_set(&dev->_internal.tx_timeout_timer, dev->settings.lora.tx_timeout);
 
     /* Put chip into transfer mode */
     sx1276_set_status(dev, SX1276_RF_TX_RUNNING);
@@ -750,8 +751,8 @@ void sx1276_send(sx1276_t *dev, uint8_t *buffer, uint8_t size)
 void sx1276_set_sleep(sx1276_t *dev)
 {
     /* Disable running timers */
-    rtctimers_millis_remove(&dev->_internal.tx_timeout_timer);
-    rtctimers_millis_remove(&dev->_internal.rx_timeout_timer);
+    xtimer_remove(&dev->_internal.tx_timeout_timer);
+    xtimer_remove(&dev->_internal.rx_timeout_timer);
 
     /* Put chip into sleep */
     sx1276_set_op_mode(dev, RF_OPMODE_SLEEP);
@@ -761,8 +762,8 @@ void sx1276_set_sleep(sx1276_t *dev)
 void sx1276_set_standby(sx1276_t *dev)
 {
     /* Disable running timers */
-    rtctimers_millis_remove(&dev->_internal.tx_timeout_timer);
-    rtctimers_millis_remove(&dev->_internal.rx_timeout_timer);
+    xtimer_remove(&dev->_internal.tx_timeout_timer);
+    xtimer_remove(&dev->_internal.rx_timeout_timer);
 
     sx1276_set_op_mode(dev, RF_OPMODE_STANDBY);
     sx1276_set_status(dev,  SX1276_RF_IDLE);
@@ -870,7 +871,7 @@ void sx1276_set_rx(sx1276_t *dev, uint32_t timeout)
     }
     else {
         if (timeout != 0) {
-            rtctimers_millis_set(&(dev->_internal.rx_timeout_timer), timeout/1000);
+            xtimer_set(&(dev->_internal.rx_timeout_timer), timeout);
         }
 
         sx1276_set_op_mode(dev, RFLR_OPMODE_RECEIVER_SINGLE);
@@ -969,7 +970,7 @@ void sx1276_reset(sx1276_t *dev)
         gpio_clear(dev->reset_pin);
 
         /* Wait 1 ms */
-        rtctimers_millis_sleep(1);
+        xtimer_spin(xtimer_ticks_from_usec(1000));
 
         /* Put reset pin in High-Z */
         gpio_init(dev->reset_pin, GPIO_OD);
@@ -977,7 +978,7 @@ void sx1276_reset(sx1276_t *dev)
         gpio_set(dev->reset_pin);
 
         /* Wait 10 ms */
-        rtctimers_millis_sleep(10);
+        xtimer_spin(xtimer_ticks_from_usec(1000*10));
     }
 }
 
@@ -1017,6 +1018,9 @@ void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode)
                 gpio_clear(dev->rfswitch_pin);
             }
         }
+        
+        /* switch CPU to low-power mode */
+        lpm_set(LPM_IDLE);
 	} else {
         DEBUG("sx1276: waking up\n");
         if (dev->dio0_pin != GPIO_UNDEF ) {
@@ -1216,7 +1220,7 @@ void sx1276_on_dio0(void *arg)
                             sx1276_set_status(dev,  SX1276_RF_IDLE);
                         }
 
-                        rtctimers_millis_remove(&dev->_internal.rx_timeout_timer);
+                        xtimer_remove(&dev->_internal.rx_timeout_timer);
 
                         send_event(dev, SX1276_RX_ERROR_CRC);
 
@@ -1260,7 +1264,7 @@ void sx1276_on_dio0(void *arg)
                         sx1276_set_status(dev,  SX1276_RF_IDLE);
                     }
 
-                    rtctimers_millis_remove(&dev->_internal.rx_timeout_timer);
+                    xtimer_remove(&dev->_internal.rx_timeout_timer);
 
                     /* Read the last packet from FIFO */
                     uint8_t last_rx_addr = sx1276_reg_read(dev, REG_LR_FIFORXCURRENTADDR);
@@ -1276,7 +1280,7 @@ void sx1276_on_dio0(void *arg)
             }
             break;
         case SX1276_RF_TX_RUNNING:
-            rtctimers_millis_remove(&dev->_internal.tx_timeout_timer);      /* Clear TX timeout timer */
+            xtimer_remove(&dev->_internal.tx_timeout_timer);                /* Clear TX timeout timer */
 
             sx1276_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_TXDONE);   /* Clear IRQ */
             sx1276_set_status(dev,  SX1276_RF_IDLE);
@@ -1297,7 +1301,7 @@ void sx1276_on_dio1(void *arg)
         case SX1276_RF_RX_RUNNING:
             switch (dev->settings.modem) {
                 case SX1276_MODEM_LORA:
-                    rtctimers_millis_remove(&dev->_internal.rx_timeout_timer);
+                    xtimer_remove(&dev->_internal.rx_timeout_timer);
 
                     sx1276_set_status(dev,  SX1276_RF_IDLE);
 

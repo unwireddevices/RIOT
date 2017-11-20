@@ -25,7 +25,7 @@
 #include "periph/gpio.h"
 #include "periph/spi.h"
 
-#include "rtctimers-millis.h"
+#include "xtimer.h"
 #include "thread.h"
 
 #include "sx1272.h"
@@ -96,6 +96,8 @@ static void sx1272_on_dio0_isr(void *arg);
 static void sx1272_on_dio1_isr(void *arg);
 static void sx1272_on_dio2_isr(void *arg);
 static void sx1272_on_dio3_isr(void *arg);
+static void sx1272_on_dio4_isr(void *arg);
+static void sx1272_on_dio5_isr(void *arg);
 
 static void _init_isrs(sx1272_t *dev)
 {
@@ -184,8 +186,14 @@ static int _init_peripherals(sx1272_t *dev)
         return 0;
     }
     
-    gpio_init(dev->rfswitch_pin, GPIO_OUT);
-    gpio_set(dev->rfswitch_pin);
+    if (dev->rfswitch_pin != GPIO_UNDEF) {
+        gpio_init(dev->rfswitch_pin, GPIO_OUT);
+        if (dev->rfswitch_mode == SX1272_RFSWITCH_ACTIVE_LOW) {
+            gpio_clear(dev->rfswitch_pin);
+        } else {
+            gpio_set(dev->rfswitch_pin);
+        }
+    }
 
     gpio_set(dev->nss_pin);
 
@@ -754,7 +762,7 @@ void sx1272_set_rx(sx1272_t *dev, uint32_t timeout)
     }
 }
 
-void sx1272_start_cad(sx1272_t *dev)
+void sx1272_start_cad(sx1272_t *dev, uint8_t cadmode)
 {
     switch (dev->settings.modem) {
         case SX1272_MODEM_FSK:
@@ -839,7 +847,7 @@ void sx1272_reset(sx1272_t *dev)
         gpio_clear(dev->reset_pin);
 
         /* Wait 1 ms */
-        rtctimers_millis_sleep(1);
+        xtimer_spin(xtimer_ticks_from_usec(1000));
 
         /* Put reset pin in High-Z */
         gpio_init(dev->reset_pin, GPIO_OD);
@@ -847,7 +855,7 @@ void sx1272_reset(sx1272_t *dev)
         gpio_set(dev->reset_pin);
 
         /* Wait 10 ms */
-        rtctimers_millis_sleep(10);
+        xtimer_spin(xtimer_ticks_from_usec(10000));
     }
 }
 

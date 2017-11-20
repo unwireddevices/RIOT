@@ -21,7 +21,7 @@
 
 #include "periph/gpio.h"
 #include "periph/spi.h"
-#include "rtctimers-millis.h"
+#include "xtimer.h"
 
 #define SX1272_RADIO_WAKEUP_TIME                           1000        /**< [us] */
 #define SX1272_RX_BUFFER_SIZE                              256
@@ -29,6 +29,9 @@
 #define SX1272_CHANNEL_HF                                  868000000
 
 #define SX1272_EVENT_HANDLER_STACK_SIZE 2048
+
+#define SX1272_RFSWITCH_ACTIVE_LOW     0
+#define SX1272_RFSWITCH_ACTIVE_HIGH    1
 
 #ifdef __cplusplus
 extern "C" {
@@ -151,8 +154,8 @@ typedef struct {
     uint8_t dio_polling_thread_stack[SX1272_EVENT_HANDLER_STACK_SIZE];
 
     /* Timers */
-    rtctimers_millis_t tx_timeout_timer;              /**< TX operation timeout timer */
-    rtctimers_millis_t rx_timeout_timer;              /**< RX operation timeout timer */
+    xtimer_t tx_timeout_timer;              /**< TX operation timeout timer */
+    xtimer_t rx_timeout_timer;              /**< RX operation timeout timer */
 } sx1272_internal_t;
 
 /**
@@ -193,7 +196,7 @@ typedef enum {
 typedef enum {
     SX1272_MODE_CADDONE = 0,
     SX1272_MODE_CADDETECT,
-} sx1276_cadmode_t;
+} sx1272_cadmode_t;
 
 /**
  * Hardware IO IRQ callback function definition.
@@ -370,7 +373,7 @@ void sx1272_set_tx(sx1272_t *dev, uint32_t timeout);
  * @param	[IN]	dev		The sx1272 device structure pointer
  */
 
-void sx1272_start_cad(sx1272_t *dev);
+void sx1272_start_cad(sx1272_t *dev, uint8_t cadmode);
 
 /**
  * @brief Reads the current RSSI value.

@@ -480,7 +480,7 @@ void isr_rtc_alarm(void)
         }
     }
     
-    EXTI->PR = EXTI_PR_PR17;
+    EXTI->PR |= EXTI_PR_PR17;
     
     cortexm_isr_end();
 }
@@ -495,7 +495,7 @@ void isr_rtc_wkup(void)
         }
     }
     
-    EXTI->PR = EXTI_PR_PR20;
+    EXTI->PR |= EXTI_PR_PR20;
     
     cortexm_isr_end();
 }

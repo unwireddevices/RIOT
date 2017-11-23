@@ -239,7 +239,7 @@ int adc_sample(adc_t line,  adc_res_t res)
 	/* VDD calculation based on VREFINT */
 	if ((adc_config[line].chan == ADC_VREF_CHANNEL) || (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL)) {
         uint16_t cal;
-        if (get_cpu_category() < 2) {
+        if (get_cpu_category() < 3) {
             /* low-end devices doesn't provide calibration values, see errata */
             cal = 1672;
             
@@ -253,7 +253,7 @@ int adc_sample(adc_t line,  adc_res_t res)
 	if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL) {
 
         uint16_t cal1, cal2;
-        if (get_cpu_category() < 2) {
+        if (get_cpu_category() < 3) {
         /* low-end devices doesn't provide calibration values, see errata */
                 cal1 = 670;
                 cal2 = 848;

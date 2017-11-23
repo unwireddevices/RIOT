@@ -1,3 +1,11 @@
+23.11.2017
+* stable subseconds RTC timer implementation with 60 s upper limit
+* ADC fix for STM32L1CB-A series
+* fix RTC interrupts priority
+* almost 8KB smaller footprint due to new AES128 implementation
+* fully dynamic memory allocation for enabled modules
+* small scale speed and memory optimizations
+
 06.11.2017
 * multiple fixes in loralan network stack
 * Listen-Before-Talk using LoRa Channel Activity Detection

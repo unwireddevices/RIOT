@@ -97,6 +97,7 @@ int main(void)
 {
     /* Gate never sleeps */
     lpm_prevent_sleep = 1;
+    lpm_prevent_switch = 1;
 
     print_logo();
     xtimer_init();

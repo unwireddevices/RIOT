@@ -110,6 +110,7 @@ typedef enum {
 	LS_INIT_E_TIM_THREAD,			/**< Unable to start rx window timing handler thread */
 	LS_SEND_E_FQ_OVERFLOW,			/**< Uplink frame queue is overflowed */
 	LS_SEND_E_NOT_JOINED,			/**< Not joined to the network */
+    LS_SEND_E_FIFO_ERROR,
 
 	LS_OK,							/**< Initialized successfully */
 
@@ -140,6 +141,7 @@ typedef struct {
 	ls_node_class_t class;						/**< Device class */
 	uint8_t max_retr;							/**< Maximum number of retransmissions */
 	bool no_join;								/**< Statically personalized device, no join required */
+    bool auto_shutdown;
 } ls_ed_settings_t;
 
 typedef struct {

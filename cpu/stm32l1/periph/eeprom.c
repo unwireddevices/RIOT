@@ -17,6 +17,9 @@
 
 #include "eeprom.h"
 
+#define ENABLE_DEBUG (0)
+#include "debug.h"
+
 /**
  * @ingroup     nvram
  * @{
@@ -50,6 +53,8 @@ static void eeprom_unlock(void)
         FLASH->PEKEYR = FLASH_PEKEY1;
         FLASH->PEKEYR = FLASH_PEKEY2;
     }
+    
+    while ((FLASH->PECR & FLASH_PECR_PELOCK) != RESET) {};
 }
 
 /**
@@ -133,22 +138,27 @@ static l1_flash_status_t flash_wait_for_last_operation(uint32_t timeout)
   */
 static l1_flash_status_t flash_data_eeprom_eraseword(uint32_t address)
 {
-  l1_flash_status_t status = FLASH_COMPLETE;
-  
-  /* Check the parameters */
-  assert(IS_FLASH_DATA_ADDRESS(address));
-  
-  /* Wait for last operation to be completed */
-  status = flash_wait_for_last_operation(FLASH_ER_PRG_TIMEOUT);
-  
-  if(status == FLASH_COMPLETE)
-  {
-    /* Write "00000000h" to valid address in the data memory" */
-    *(__IO uint32_t *) address = 0x00000000;
-  }
-   
-  /* Return the erase status */
-  return status;
+    l1_flash_status_t status = FLASH_COMPLETE;
+
+    /* Check the parameters */
+    assert(IS_FLASH_DATA_ADDRESS(address));
+
+    /* Wait for last operation to be completed */
+    status = flash_wait_for_last_operation(FLASH_ER_PRG_TIMEOUT);
+
+    if (status == FLASH_ERROR_WRP) {
+        FLASH->SR |= (uint32_t)FLASH_FLAG_WRPERR;
+        status = flash_wait_for_last_operation(FLASH_ER_PRG_TIMEOUT);
+    }
+
+    if(status == FLASH_COMPLETE)
+    {
+        /* Write "00000000h" to valid address in the data memory" */
+        *(__IO uint32_t *) address = 0x00000000;
+    }
+
+    /* Return the erase status */
+    return status;
 }
 
 /**
@@ -166,27 +176,31 @@ static l1_flash_status_t flash_data_eeprom_eraseword(uint32_t address)
   */
 static l1_flash_status_t flash_data_eeprom_fastprogramword(uint32_t address, uint32_t data)
 {
-  l1_flash_status_t status = FLASH_COMPLETE;
- 
-  /* Check the parameters */
-  assert(IS_FLASH_DATA_ADDRESS(address));
-  
-  /* Wait for last operation to be completed */
-  status = flash_wait_for_last_operation(FLASH_ER_PRG_TIMEOUT);
-  
-  if(status == FLASH_COMPLETE)
-  {
-    /* Clear the FTDW bit */
-    FLASH->PECR &= (uint32_t)(~((uint32_t)FLASH_PECR_FTDW));
-  
-    /* If the previous operation is completed, proceed to program the new data */    
-    *(__IO uint32_t *)address = data;
-    
+    l1_flash_status_t status = FLASH_COMPLETE;
+
+    /* Check the parameters */
+    assert(IS_FLASH_DATA_ADDRESS(address));
+
     /* Wait for last operation to be completed */
-    status = flash_wait_for_last_operation(FLASH_ER_PRG_TIMEOUT);       
-  }
-  /* Return the Write Status */
-  return status;
+    status = flash_wait_for_last_operation(FLASH_ER_PRG_TIMEOUT);
+
+    if (status == FLASH_ERROR_WRP) {
+        FLASH->SR |= (uint32_t)FLASH_FLAG_WRPERR;
+        status = flash_wait_for_last_operation(FLASH_ER_PRG_TIMEOUT);
+    }
+
+    if(status == FLASH_COMPLETE) {
+        /* Clear the FTDW bit */
+        FLASH->PECR &= (uint32_t)(~((uint32_t)FLASH_PECR_FTDW));
+
+        /* If the previous operation is completed, proceed to program the new data */    
+        *(__IO uint32_t *)address = data;
+
+        /* Wait for last operation to be completed */
+        status = flash_wait_for_last_operation(FLASH_ER_PRG_TIMEOUT);       
+    }
+    /* Return the Write Status */
+    return status;
 }
 
 /**
@@ -207,6 +221,11 @@ static l1_flash_status_t program_byte(uint32_t address, uint8_t data)
 
     /* Wait for last operation to be completed */
     status = flash_wait_for_last_operation(FLASH_ER_PRG_TIMEOUT);
+    
+    if (status == FLASH_ERROR_WRP) {
+        FLASH->SR |= (uint32_t)FLASH_FLAG_WRPERR;
+        status = flash_wait_for_last_operation(FLASH_ER_PRG_TIMEOUT);
+    }
 
     if (status == FLASH_COMPLETE) {
         if ((get_cpu_category() < 3) && (data == (uint8_t) 0x00)) {
@@ -216,13 +235,18 @@ static l1_flash_status_t program_byte(uint32_t address, uint8_t data)
             tmp &= ~tmpaddr;
             
             status = flash_data_eeprom_eraseword(address & 0xFFFFFFFC);
+            DEBUG("[EEPROM] Erase word: %d\n", status);
             status = flash_data_eeprom_fastprogramword((address & 0xFFFFFFFC), tmp);
+            DEBUG("[EEPROM] Fast program word: %d\n", status);
         } else {
+            DEBUG("[EEPROM] Cat. 3+ CPU: writing %d to %08x\n", data, (unsigned int)address);
             *(__IO uint8_t *)address = data;
 
             /* Wait for last operation to be completed */
             status = flash_wait_for_last_operation(FLASH_ER_PRG_TIMEOUT);
         }
+    } else {
+        DEBUG("[EEPROM] Error: timeout status %d\n", status);
     }
 
     /* Return the Write Status */
@@ -292,10 +316,13 @@ static int nvram_read(nvram_t *dev, uint8_t *dst, uint32_t src, size_t len)
     uint32_t eeprom_addr = EEPROM_BASE + src;
     uint32_t i = 0;
 
+    DEBUG("[EEPROM] RD @ %08x: ", (unsigned int)eeprom_addr);
     for (i = 0; i < len; i++) {
         /* Read byte from EEPROM memory */
         dst[i] = *((uint8_t *) (eeprom_addr + i));
+        DEBUG("%02x ", dst[i]);
     }
+    DEBUG("\n");
 
     return i;
 }
@@ -306,10 +333,14 @@ static int nvram_write(nvram_t *dev, const uint8_t *src, uint32_t dst, size_t le
 
     uint32_t eeprom_addr = EEPROM_BASE + dst;
     uint32_t i = 0;
+    
+    DEBUG("[EEPROM] WR @ %08x: ", (unsigned int)eeprom_addr);
     for (i = 0; i < len; i++) {
         /* Program byte */
+        DEBUG("%02x ", src[i]);
         program_byte(eeprom_addr + i, src[i]);
     }
+    DEBUG("\n");
 
     eeprom_lock();
 
@@ -321,7 +352,7 @@ static int nvram_clear(nvram_t *dev)
     eeprom_unlock();
 
     uint32_t i = 0;
-    size_t len = 0x1FFF;
+    size_t len = get_cpu_eeprom_size();
     for (i = 0; i < len; i++) {
         /* Program byte */
         program_byte(EEPROM_BASE + i, 0xFF);

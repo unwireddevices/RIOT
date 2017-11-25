@@ -20,7 +20,7 @@
 
 #include "unwds-common.h"
 
-#define FIRMWARE_VERSION "1.61"
+#define FIRMWARE_VERSION "1.62"
 
 typedef enum {
     UNWDS_BOOT_NORMAL_MODE = 0,

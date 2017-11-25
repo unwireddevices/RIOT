@@ -8,7 +8,7 @@ BOARD ?= unwd-range-l1-r3
 RIOTBASE ?= $(CURDIR)/../..
 
 CFLAGS += -DDEVELHELP
-CFLAGS += -DGATE_USE_WATCHDOG
+CFLAGS += -DDISPLAY_JOINKEY_2BYTES
 
 FEATURES_REQUIRED = periph_spi periph_gpio
 
@@ -33,10 +33,11 @@ USEMODULE += rtctimers-millis
 
 EXTERNAL_MODULE_DIRS += ../../unwired-modules/
 USEMODULE += lora-star-mac
-USEMODULE += lora-star-gate
+USEMODULE += lora-star-device
+USEMODULE += unwds-common
 
 INCLUDES += -I../../unwired-modules/lora-star-mac/include/
-INCLUDES += -I../../unwired-modules/lora-star-gate/include/
+INCLUDES += -I../../unwired-modules/lora-star-device/include/
 INCLUDES += -I../../unwired-modules/unwds-common/include/
 
 CFLAGS += -DCRYPTO_AES

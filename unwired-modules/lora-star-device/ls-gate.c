@@ -563,7 +563,6 @@ static void *uq_handler(void *arg)
     assert(arg != NULL);
 
     //ls_gate_t *ls = (ls_gate_t *) arg;
-
     msg_t msg_queue[LS_UQ_MSG_QUEUE_SIZE] = {};
     msg_init_queue(msg_queue, LS_UQ_MSG_QUEUE_SIZE);
 
@@ -711,10 +710,12 @@ static bool create_uq_handler_thread(ls_gate_t *ls)
 {
     puts("ls-gate: creating uplink queue handler thread...");
 
-    kernel_pid_t pid_uq = thread_create(ls->_internal.uq_thread_stack, LS_UQ_HANDLER_STACKSIZE, THREAD_PRIORITY_MAIN - 2,
+    kernel_pid_t pid_uq = KERNEL_PID_UNDEF;
+    
+    pid_uq = thread_create(ls->_internal.uq_thread_stack, sizeof(ls->_internal.uq_thread_stack), THREAD_PRIORITY_MAIN - 2,
                                          THREAD_CREATE_STACKTEST, uq_handler, ls,
                                          "uplink queue thread");
-
+    
     if (pid_uq <= KERNEL_PID_UNDEF) {
         puts("ls-gate: creation of uplink queue handler thread failed");
         return false;
@@ -738,13 +739,19 @@ static bool open_channel(ls_gate_channel_t *ch)
     /* Setup callbacks */
     sx1276->sx1276_event_cb = sx1276_handler;
     sx1276->callback_arg = ch;
+   
+    /* Initialize the transceiver */
+    sx1276_init(ch->_internal.sx1276);
 
+    /* Initialize random number generator */
+    random_init(sx1276_random(ch->_internal.sx1276));
+    
     /* Initialize and configure the transceiver for this channel */
     prepare_sx1276(ch);
 
     /* Set channel to receive */
     sx1276_set_rx(sx1276, sx1276->settings.lora.rx_timeout);
-
+    
     return true;
 }
 
@@ -776,18 +783,18 @@ int ls_gate_init(ls_gate_t *ls)
 
     msg_ping.type = LS_GATE_PING;
     msg_rx1_expired.type = LS_GATE_RX1_EXPIRED;
-
+    
     if (!create_tim_handler_thread(ls)) {
         return -LS_INIT_E_TIM_THREAD;
     }
-
+    
     if (!create_uq_handler_thread(ls)) {
     	return -LS_INIT_E_UQ_THREAD;
     }
 
     /* Start ping timer */
     xtimer_set_msg(&ls->_internal.ping_timer, LS_PING_TIMEOUT, &msg_ping, ls->_internal.tim_thread_pid);
-
+    
     ls_devlist_init(&ls->devices);
     initialize_channels(ls);
 

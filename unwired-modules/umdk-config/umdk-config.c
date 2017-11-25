@@ -35,6 +35,7 @@ extern "C" {
 #include "board.h"
 #include "unwds-common.h"
 #include "ls-settings.h"
+#include "rtctimers.h"
 
 #include "umdk-config.h"
 

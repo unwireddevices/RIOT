@@ -43,7 +43,6 @@
 #include "sx1276.h"
 
 #include "main.h"
-
 static nvram_t nvram;
 
 void print_logo(void)
@@ -91,24 +90,24 @@ static shell_command_t shell_commands_node[UNWDS_SHELL_COMMANDS_MAX] = {};
 
 static void init_role(config_role_t role) {
 	switch (role) {
-	case ROLE_NODE:
-		init_node((shell_command_t **) &shell_commands_node);
-		break;
+        case ROLE_NORMAL:
+            init_node((shell_command_t **) &shell_commands_node);
+            break;
 
-	case ROLE_NO_EUI64:
-		init_no_eui64((shell_command_t **) &shell_commands_node);
-		break;
-		
-	case ROLE_EMPTY_KEY:
-		init_no_key((shell_command_t **) &shell_commands_node);
-		break;
+        case ROLE_NO_EUI64:
+            init_no_eui64((shell_command_t **) &shell_commands_node);
+            break;
+            
+        case ROLE_EMPTY_KEY:
+            init_no_key((shell_command_t **) &shell_commands_node);
+            break;
 
-	default:
-	case ROLE_NO_CFG:
-		init_no_cfg((shell_command_t **) &shell_commands_node);
+        default:
+        case ROLE_NO_CFG:
+            init_no_cfg((shell_command_t **) &shell_commands_node);
 
-		break;
-	}
+            break;
+    }
 }
 
 int main(void)

@@ -308,15 +308,6 @@ uint8_t *allocate_stack(uint32_t stack_size) {
     }
     
     return address;
-/*
-	if (stack_size_used + stack_size > UNWDS_STACK_POOL_SIZE_BYTES)
-		return NULL;
-    
-    uint8_t *stack_address = &stack_pool[stack_size_used];
-    stack_size_used += stack_size;
-
-	return stack_address;
-*/
 }
 
 void unwds_init_modules(uwnds_cb_t *event_callback)
@@ -329,9 +320,8 @@ void unwds_init_modules(uwnds_cb_t *event_callback)
     while (modules[i].init_cb != NULL && modules[i].cmd_cb != NULL) {
     	if (enabled_bitmap[modules[i].module_id / 32] & (1 << (modules[i].module_id % 32))) {	/* Module enabled */
     		printf("[unwds] initializing \"%s\" module...\n", modules[i].name);
-        	modules[i].init_cb(&non_gpio_pin_map, event_callback);
+            modules[i].init_cb(&non_gpio_pin_map, event_callback);
     	}
-
         i++;
     }
     

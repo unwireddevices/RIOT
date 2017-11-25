@@ -338,8 +338,9 @@ int ls_set_cmd(int argc, char **argv)
     }
 
     unwds_set_nojoin(ls.settings.no_join);
-    if (unwds_get_node_settings().no_join)
+    if (unwds_get_node_settings().no_join) {
     	unwds_set_addr(ls._internal.dev_addr);
+    }
 
     unwds_set_channel(ls.settings.channel);
     unwds_set_dr(ls.settings.dr);
@@ -388,8 +389,9 @@ static void print_config(void)
     	printf("DEVNONCE = 0x...%01X\n", devnonce & 0x0F);
     }
 
-    if (unwds_get_node_settings().no_join)
+    if (unwds_get_node_settings().no_join) {
     	printf("ADDR = 0x%08X\n", (unsigned int) unwds_get_node_settings().dev_addr);
+    }
 
     printf("EUI64 = 0x%08x%08x\n", (unsigned int) (eui64 >> 32), (unsigned int) (eui64 & 0xFFFFFFFF));
     printf("APPID64 = 0x%08x%08x\n", (unsigned int) (appid >> 32), (unsigned int) (appid & 0xFFFFFFFF));

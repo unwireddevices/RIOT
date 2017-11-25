@@ -18,6 +18,9 @@
 #ifndef UNWIRED_MODULES_LORA_STAR_SETTINGS_H_
 #define UNWIRED_MODULES_LORA_STAR_SETTINGS_H_
 
+#include <stdbool.h>
+
+#include "ls-gate.h"
 #include "ls-end-device.h"
 #include "unwds-common.h"
 #include "unwds-gpio.h"

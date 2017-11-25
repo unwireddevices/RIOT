@@ -31,8 +31,8 @@
 typedef enum {
 	ROLE_NO_EUI64 = 0,
 	ROLE_NO_CFG,
-	ROLE_NODE,
-	ROLE_EMPTY_KEY
+    ROLE_EMPTY_KEY,
+	ROLE_NORMAL,
 } config_role_t;
 
 #define CONFIG_MAGIC 0xCAFEBABE

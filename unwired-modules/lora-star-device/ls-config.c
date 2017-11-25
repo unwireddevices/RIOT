@@ -171,7 +171,7 @@ config_role_t config_get_role(void)
 	}
 
     if (config_valid) {
-        return ROLE_NODE;
+        return ROLE_NORMAL;
     }
 
     return ROLE_NO_CFG;

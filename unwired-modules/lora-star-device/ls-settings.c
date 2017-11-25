@@ -23,6 +23,8 @@ extern "C" {
 #include "ls-settings.h"
 #include "ls-config.h"
 
+#include "unwds-common.h"
+
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
 
@@ -85,18 +87,21 @@ void unwds_set_addr(ls_addr_t dev_addr) {
 
 void unwds_set_module(uint8_t modid, bool enable) {
     
-    uint8_t index = modid / 32;
-    uint32_t mask = (uint32_t) (1 << (modid % 32));
-    
-    if (enable) {
-        /* Enable module */
-        node_settings.enabled_mods[index] |= mask;
-        printf("mod: %s [%d] enabled. Save and reboot to apply changes\n", unwds_get_module_name(modid), modid);
-    }
-    else {
-        /* Disable module */
-        node_settings.enabled_mods[index] &= ~(mask);
-        printf("mod: %s [%d] disabled. Save and reboot to apply changes\n", unwds_get_module_name(modid), modid);
+    if (unwds_is_module_exists(modid))
+    {    
+        uint8_t index = modid / 32;
+        uint32_t mask = (uint32_t) (1 << (modid % 32));
+        
+        if (enable) {
+            /* Enable module */
+            node_settings.enabled_mods[index] |= mask;
+            printf("mod: %s [%d] enabled. Save and reboot to apply changes\n", unwds_get_module_name(modid), modid);
+        }
+        else {
+            /* Disable module */
+            node_settings.enabled_mods[index] &= ~(mask);
+            printf("mod: %s [%d] disabled. Save and reboot to apply changes\n", unwds_get_module_name(modid), modid);
+        }
     }
 }
 
@@ -109,10 +114,11 @@ int unwds_config_save(void)
 
 void unwds_config_reset(void) {
     puts("[node] Node was not configured properly, setting default values");
-        
+    
+    node_settings.region_index = 1;
     node_settings.channel = 0;
     node_settings.dr = LS_DR0;
-    node_settings.max_retr = 1;
+    node_settings.max_retr = 3;
     node_settings.nodeclass = LS_ED_CLASS_C;
     
     memset((void *)node_settings.enabled_mods, 0, sizeof(node_settings.enabled_mods));

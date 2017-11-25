@@ -78,7 +78,6 @@ typedef enum {
 
 typedef enum {
 	LS_GATE_PING = 0,
-	LS_GATE_KEEPALIVE,
 
 	LS_GATE_RX1_EXPIRED,
 } ls_gate_tim_cmd_t;

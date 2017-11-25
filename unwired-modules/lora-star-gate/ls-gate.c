@@ -49,7 +49,6 @@ static const uint8_t datarate_table[7][3] = {
 };
 
 static msg_t msg_ping;
-static msg_t msg_keepalive;
 static msg_t msg_rx1_expired;
 
 static void schedule_tx(ls_gate_channel_t *ch) {
@@ -152,6 +151,7 @@ static int send_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame)
     /* Capture channel */
     mutex_lock(&ch->_internal.channel_mutex);
 
+    puts("ls-gate: state = TX");
     ch->state = LS_GATE_CHANNEL_STATE_TX;
 
     /* Prepare transceiver */
@@ -186,6 +186,7 @@ static bool enqueue_frame(ls_gate_channel_t *ch, ls_addr_t to, ls_type_t type, u
 
 static inline void close_rx_windows(ls_gate_channel_t *ch) {
 	xtimer_remove(&ch->_internal.rx_window1);
+    puts("ls-gate: state = IDLE");
 	ch->state = LS_GATE_CHANNEL_STATE_IDLE;
     
     DEBUG("ls-gate: RX window closed\n");
@@ -205,6 +206,7 @@ static inline void open_rx_windows(ls_gate_channel_t *ch) {
 
     /* Capture channel on RX */
     //mutex_lock(&ch->_internal.channel_mutex);
+    puts("ls-gate: state = RX");
     ch->state = LS_GATE_CHANNEL_STATE_RX;
 
 	DEBUG("ls-gate: rx1 window opened\n");
@@ -655,14 +657,6 @@ static void *tim_handler(void *arg)
                 xtimer_set_msg(&ls->_internal.ping_timer, LS_PING_TIMEOUT, &msg_ping, ls->_internal.tim_thread_pid);
                 break;
 
-            case LS_GATE_KEEPALIVE:
-            	/* Call application code */
-            	ls->keepalive_cb();
-
-            	/* Restart timer */
-            	xtimer_set_msg(&ls->_internal.keepalive_timer, 1000 * ls->settings.keepalive_period_ms, &msg_keepalive, ls->_internal.tim_thread_pid);
-            	break;
-
             case LS_GATE_RX1_EXPIRED: {
             	ls_gate_channel_t *ch = (ls_gate_channel_t *) msg.content.ptr;
             	if (!ch)
@@ -676,6 +670,7 @@ static void *tim_handler(void *arg)
             		close_rx_windows(ch);
             		schedule_tx(ch);
             	} else {
+                    puts("ls-gate: state = IDLE");
             		ch->state = LS_GATE_CHANNEL_STATE_IDLE;
             		puts("ls-gate: rx1 window expired, staying in RX, but IDLE");
             	}
@@ -780,7 +775,6 @@ int ls_gate_init(ls_gate_t *ls)
     assert(ls->num_channels > 0);
 
     msg_ping.type = LS_GATE_PING;
-    msg_keepalive.type = LS_GATE_KEEPALIVE;
     msg_rx1_expired.type = LS_GATE_RX1_EXPIRED;
 
     if (!create_tim_handler_thread(ls)) {
@@ -793,11 +787,6 @@ int ls_gate_init(ls_gate_t *ls)
 
     /* Start ping timer */
     xtimer_set_msg(&ls->_internal.ping_timer, LS_PING_TIMEOUT, &msg_ping, ls->_internal.tim_thread_pid);
-
-    /* Start keepalive timer */
-    if (ls->settings.keepalive_period_ms != 0 && ls->keepalive_cb != NULL) {
-    	xtimer_set_msg(&ls->_internal.keepalive_timer, 1000 * ls->settings.keepalive_period_ms, &msg_keepalive, ls->_internal.tim_thread_pid);
-    }
 
     ls_devlist_init(&ls->devices);
     initialize_channels(ls);

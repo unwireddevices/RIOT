@@ -30,18 +30,13 @@ extern "C" {
 
 static node_role_settings_t node_settings;
 
+/* gateway before ver. 1.63 settings structure */
 typedef struct {
     bool is_valid;
     ls_channel_t channel;
     ls_datarate_t dr;
-    uint8_t lnkchk_period;
-    uint8_t max_retr;
-    ls_node_class_t nodeclass;
-    uint64_t enabled_mods;
     bool region_not_set;
     uint8_t region_index;
-    bool no_join;
-    ls_addr_t dev_addr;
 } old_role_settings_t;
 
 static old_role_settings_t old_node_settings;
@@ -145,18 +140,13 @@ bool unwds_config_load(void)
     if (node_settings.config_version < UNWDS_LS_SETTINGS_CONFIG_VERSION) {
         config_read_role_block((uint8_t *) &old_node_settings, sizeof(old_role_settings_t));
         if (old_node_settings.is_valid == 1) {
-            puts("[node] Converting node configuration to a new format");
+            puts("[node] Converting gateway configuration to a new format");
             
             node_settings.channel = old_node_settings.channel;
             node_settings.dr = old_node_settings.dr;
-            node_settings.max_retr = old_node_settings.max_retr;
-            node_settings.nodeclass = old_node_settings.nodeclass;
-            node_settings.enabled_mods[0] = old_node_settings.enabled_mods & 0xFFFFFFFF;
             node_settings.region_index = old_node_settings.region_index;
-            node_settings.no_join = old_node_settings.no_join;
-            node_settings.dev_addr = old_node_settings.dev_addr;
             
-            puts("Saving new node configuration to EEPROM...");
+            puts("Saving new gateway configuration to EEPROM...");
             unwds_config_save();
             puts("Done.");
         }

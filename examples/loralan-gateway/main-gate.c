@@ -42,6 +42,7 @@ extern "C" {
 #include "ls-mac-types.h"
 #include "ls-crypto.h"
 #include "ls-gate.h"
+#include "rtctimers.h"
 
 #include "gate-commands.h"
 #include "pending-fifo.h"
@@ -52,8 +53,13 @@ extern "C" {
 
 #include "ls-regions.h"
 
+#define ENABLE_DEBUG    (0)
+#include "debug.h"
+
 static node_role_settings_t node_settings;
 static bool dr_set = false, channel_set = false;
+
+static rtctimer_t iwdg_timer;
 
 static sx1276_t sx1276;
 static ls_gate_t ls;
@@ -252,13 +258,6 @@ void app_data_ack_cb(ls_gate_node_t *node, ls_gate_channel_t *ch)
     gc_pending_fifo_push(&fifo, str);
 }
 
-#ifdef GATE_USE_WATCHDOG
-static void keepalive_cb(void) {
-	xtimer_usleep(100); /* XXX: watchdog timer don't want to reset without a small delay before */
-	wdg_reload();
-}
-#endif
-
 static void pending_frames_req_cb(ls_gate_node_t *node) {
 	printf("ls-gate: requesting next pending frame for 0x%08X%08X\n", (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF));
 
@@ -293,12 +292,6 @@ static void ls_setup(ls_gate_t *ls)
     ls->app_data_received_cb = app_data_received_cb;
 
     ls->app_data_ack_cb = app_data_ack_cb;
-
-#ifdef GATE_USE_WATCHDOG
-    ls->keepalive_cb = keepalive_cb;
-#else
-    ls->keepalive_cb = NULL;
-#endif
 
     ls->pending_frames_req = pending_frames_req_cb;
 }
@@ -573,6 +566,13 @@ static int kick_cmd(int argc, char **argv) {
 	return -1;
 }
 
+static void iwdg_reset (void *arg) {
+    wdg_reload();
+    rtctimers_set(&iwdg_timer, 15);
+    DEBUG("Watchdog reset\n");
+    return;
+}
+
 static const shell_command_t shell_commands[] = {
     { "set", "<config> <value> -- sets up value for the config entry", ls_set_cmd },
     { "listconfig", "-- prints out current configuration", ls_printc_cmd },
@@ -589,8 +589,10 @@ static const shell_command_t shell_commands[] = {
 
 #ifdef GATE_USE_WATCHDOG
 static void watchdog_start(void) {
-	/* Set watchdog to about 3.5 seconds */
-    wdg_set_prescaler(0x03);
+    iwdg_timer.callback = iwdg_reset;
+    rtctimers_set(&iwdg_timer, 15);
+    
+	wdg_set_prescaler(6);
     wdg_set_reload((uint16_t) 0x0FFF);
 
     /* Start watchdog */

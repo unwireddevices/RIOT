@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 cr0s
+ * Copyright (C) 2016 Unwired Devices LLC
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -20,9 +20,13 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "periph/gpio.h"
 
 bool hex_to_bytes(char *hexstr, uint8_t *bytes, bool reverse_order);
 bool hex_to_bytesn(char *hexstr, int len, uint8_t *bytes, bool reverse_order);
 void bytes_to_hex(uint8_t *bytes, size_t num_bytes, char *str, bool reverse_order);
+bool is_number(char* str);
+void blink_led(gpio_t led);
+void print_logo(void);
 
 #endif /* LORA_STAR_UNI_UTILS_H_ */

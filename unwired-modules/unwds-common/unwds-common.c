@@ -420,7 +420,7 @@ uint32_t * unwds_get_enabled(void)
 
 void unwds_add_shell_command(char *name, char *desc, void* handler) {
     uint32_t i = 0;
-    for (i = 0; i < UNWDS_SHELL_COMMANDS_MAX; i++) {
+    for (i = 0; i < UNWDS_SHELL_COMMANDS_MAX - 1; i++) {
         if (shell_commands[i].name == NULL) {
             shell_commands[i].name = name;
             shell_commands[i].desc = desc;

@@ -85,6 +85,10 @@ extern "C" {
 #define UNWD_USE_CONNECT_BTN	1
 #define UNWD_CONNECT_BTN		UNWD_GPIO_1
 
+/** LEDs */
+#define LED_GREEN   GPIO_PIN(PORT_B, 0)
+#define LED_RED     GPIO_UNDEF
+
 /** GPIO Ports */
 #define UNWD_GPIO_1 GPIO_PIN(PORT_B, 1)
 #define UNWD_GPIO_4 GPIO_PIN(PORT_A, 4)

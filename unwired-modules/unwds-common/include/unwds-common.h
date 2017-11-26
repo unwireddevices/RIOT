@@ -18,6 +18,8 @@
 #ifndef UNWDS_COMMON_H_
 #define UNWDS_COMMON_H_
 
+#define FIRMWARE_VERSION "1.62"
+
 #include <stdint.h>
 
 #include "shell.h"
@@ -75,20 +77,15 @@ uint8_t *allocate_stack(uint32_t stack_size);
 
 #define UNWDS_STORAGE_BLOCKS_MAX 16
 
-/**
- * Stacks pool definitions.
- */
-#if defined(UNWDS_BUILD_MINIMAL)
-//    #define UNWDS_STACK_POOL_SIZE_BYTES (2048U)
-    #define UNWDS_SHELL_COMMANDS_MAX (12)
-#else
-//    #define UNWDS_STACK_POOL_SIZE_BYTES (10240U)
-    #define UNWDS_SHELL_COMMANDS_MAX (20)
-#endif
-
 #define UNWDS_MODULE_NO_DATA    0
 #define UNWDS_MODULE_HAS_DATA   1
 #define UNWDS_MODULE_NOT_FOUND  255
+
+#if defined(UNWDS_BUILD_MINIMAL)
+    #define UNWDS_SHELL_COMMANDS_MAX (12)
+#else
+    #define UNWDS_SHELL_COMMANDS_MAX (20)
+#endif
 
 /**
  * Shell commands

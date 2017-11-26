@@ -422,55 +422,6 @@ static int ls_printc_cmd(int argc, char **argv)
     return 0;
 }
 
-static int ls_save_cmd(int argc, char **argv)
-{
-    (void) argc;
-    (void) argv;
-    
-    puts("[*] Saving configuration...");
-    
-    if (!unwds_config_save()) {
-        puts("[error] Unable to save configuration");
-    }
-
-    puts("[done] Configuration saved. Type \"reboot\" to apply changes.");
-    
-    return 0;
-}
-
-static int ls_clear_nvram(int argc, char **argv)
-{
-	if (argc != 2) {
-		puts("usage: clear <all | joinkey>");
-		puts("\tall -- clears all data in NVRAM including device EUI64");
-		puts("\tjoinkey -- clears network encryption key stored in NVRAM");
-
-		return 1;
-	}
-
-	char *arg = argv[1];
-	if (strcmp(arg, "all") == 0) {
-		if (!clear_nvram()) {
-			puts("[error] Unable to clear NVRAM");
-		}
-	} else if (strcmp(arg, "joinkey") == 0) {
-		puts("clear joinkey: not supported yet");
-		//config_clear_joinkey();
-	}
-
-	puts("[ok] Settings cleared");
-	puts("Type \"reboot\" to define new configuration");
-
-    return 0;
-}
-
-static int ls_goto_bootloader(int argc, char **argv)
-{
-    rtc_save_backup(0xB00710AD, 0);
-    NVIC_SystemReset();
-    return 0;
-}
-
 static int add_cmd(int argc, char **argv) {
 	if (argc != 6) {
 		puts("usage: add <nodeid> <appid> <addr> <devnonce> <channel>");
@@ -535,14 +486,9 @@ static void iwdg_reset (void *arg) {
     return;
 }
 
-static const shell_command_t shell_commands_gate[] = {
+shell_command_t shell_commands[] = {
     { "set", "<config> <value> -- sets up value for the config entry", ls_set_cmd },
     { "listconfig", "-- prints out current configuration", ls_printc_cmd },
-    { "save", "-- saves current settings in NVRAM", ls_save_cmd },
-
-	{ "clear", "<all | joinkey> clears settings in NVRAM", ls_clear_nvram },
-    { "update", "-- jumps to UART bootloader", ls_goto_bootloader},
-
     { "list", "-- prints list of connected devices", ls_list_cmd },
 	{ "add", "<nodeid> <appid> <addr> <devnonce> <channel> -- adds node to the list", add_cmd },
 	{ "kick", "<addr> -- kicks node from the list by its address", kick_cmd},
@@ -576,7 +522,7 @@ static bool is_connect_button_pressed(void) {
 	return false;
 }
 
-void init_gate(shell_command_t **commands)
+void init_normal(shell_command_t *commands)
 {
     if (!unwds_config_load()) {
         puts("[!] Gate is not configured yet. Type \"help\" to see list of possible configuration commands.");
@@ -600,11 +546,23 @@ void init_gate(shell_command_t **commands)
         
         unwds_setup_nvram_config(config_get_nvram(), UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
 
-        blink_led();
+        blink_led(LED_GREEN);
     }
 
-    /* Set our commands for shell */
-    memcpy(commands, shell_commands_gate, sizeof(shell_commands_gate));
+    /* Add our commands to shell */
+    int i = 0;
+    do {
+        i++;
+    } while (commands[i].name);
+    
+    int k = 0;
+    do {
+        k++;
+    } while (shell_commands[k].name);
+    
+    assert(i + k < UNWDS_SHELL_COMMANDS_MAX - 1);
+    
+    memcpy((void *)&commands[i], (void *)shell_commands, sizeof(shell_commands));
 }
 
 

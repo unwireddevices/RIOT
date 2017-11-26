@@ -66,13 +66,14 @@ USEMODULE += rtctimers
 USEMODULE += rtctimers-millis
 
 EXTERNAL_MODULE_DIRS += ../../unwired-modules/
-USEMODULE += lora-star-mac
-USEMODULE += lora-star-device
+USEMODULE += loralan-mac
+USEMODULE += loralan-device
+USEMODULE += loralan-common
 USEMODULE += unwds-common
 
-INCLUDES += -I../../unwired-modules/lora-star-mac/include/
-INCLUDES += -I../../unwired-modules/lora-star-device/include/
-INCLUDES += -I../../unwired-modules/lora-star-gate/include/
+INCLUDES += -I../../unwired-modules/loralan-mac/include/
+INCLUDES += -I../../unwired-modules/loralan-device/include/
+INCLUDES += -I../../unwired-modules/loralan-common/include/
 INCLUDES += -I../../unwired-modules/unwds-common/include/
 
 ####################################################

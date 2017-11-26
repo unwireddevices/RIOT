@@ -20,10 +20,8 @@
 
 #include <stdbool.h>
 
-#include "ls-gate.h"
-#include "ls-end-device.h"
+#include "ls-mac-types.h"
 #include "unwds-common.h"
-#include "unwds-gpio.h"
 
 #define UNWDS_LS_SETTINGS_CONFIG_VERSION 0x3
 

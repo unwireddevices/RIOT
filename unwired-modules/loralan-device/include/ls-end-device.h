@@ -37,11 +37,6 @@
 #define LS_ED_RX_NUM_REOPEN 2
 
 /**
- * @brief RSSI of the channel considered free.
- */
-#define LS_CHANNEL_FREE_RSSI -100
-
-/**
  * @brief Maximum time of awaiting for the confirmed application data acknowledge in seconds.
  */
 #define LS_ACK_TIMEOUT	15

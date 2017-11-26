@@ -28,7 +28,6 @@ extern "C" {
 #include "pending-fifo.h"
 #include "gate-commands.h"
 #include "ls-gate.h"
-#include "unwds-common.h"
 #include "ls-config.h"
 #include "ls-settings.h"
 #include "periph/rtc.h"

@@ -26,6 +26,51 @@ extern "C" {
 #include <stdio.h>
 
 #include "utils.h"
+#include "board.h"
+#include "unwds-common.h"
+#include "periph/gpio.h"
+#include "rtctimers-millis.h"
+
+void blink_led(gpio_t led)
+{
+    int i;
+    gpio_set(led);
+    for (i = 0; i < 4; i++) {
+        gpio_toggle(led);
+        rtctimers_millis_sleep(50);        
+    }
+    gpio_clear(led);
+}
+
+void print_logo(void)
+{
+	puts("*****************************************");
+	puts("Unwired Range firmware by Unwired Devices");
+	puts("www.unwds.com - info@unwds.com");
+#ifdef NO_RIOT_BANNER
+    puts("powered by RIOT - www.riot-os.org");
+#endif
+	puts("*****************************************");
+    printf("Version: %s (%s %s)\n", FIRMWARE_VERSION, __DATE__, __TIME__);
+    char cpu_model[20];
+    switch (get_cpu_category()) {
+        case 1:
+            snprintf(cpu_model, 20, "STM32L151CB");
+            break;
+        case 2:
+            snprintf(cpu_model, 20, "STM32L151CB-A");
+            break;
+        case 3:
+            snprintf(cpu_model, 20, "STM32L151CC");
+            break;
+    }
+    printf("%s %lu MHz (%s clock)\n", cpu_model,
+                                      cpu_clock_global/1000000,
+                                      cpu_clock_source);
+    printf("%lu KB RAM, %lu KB flash, %lu KB EEPROM\n\n", get_cpu_ram_size()/1024,
+                                                          get_cpu_flash_size()/1024,
+                                                          get_cpu_eeprom_size()/1024);
+}
 
 bool hex_to_bytes(char *hexstr, uint8_t *bytes, bool reverse_order) {
     uint32_t len = strlen(hexstr);
@@ -76,6 +121,17 @@ void bytes_to_hex(uint8_t *bytes, size_t num_bytes, char *str, bool reverse_orde
 		sprintf(buf, "%02x", bytes[(reverse_order) ? num_bytes - 1 - i : i]);
 		strcat(str, buf);
 	}
+}
+
+bool is_number(char* str) {
+    char *endptr = NULL;
+    strtol(str, &endptr, 0);
+    
+    if ( &str[strlen(str)] == endptr  ) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 #ifdef __cplusplus

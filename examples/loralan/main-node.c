@@ -34,10 +34,11 @@ extern "C" {
 #include "sx1276.h"
 #include "board.h"
 
-#include "ls-end-device.h"
 #include "unwds-common.h"
-#include "ls-settings.h"
 #include "unwds-gpio.h"
+#include "ls-settings.h"
+#include "ls-end-device.h"
+#include "ls-init-device.h"
 #include "ls-config.h"
 
 #include "main.h"
@@ -46,9 +47,6 @@ extern "C" {
 #include "ls-regions.h"
 #include "periph/wdg.h"
 #include "rtctimers.h"
-
-#define DISPLAY_JOINKEY_2BYTES 1
-#define DISPLAY_DEVNONCE_BYTE 1
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -124,7 +122,7 @@ void joined_cb(void)
 	current_join_retries = 0;
 
     puts("[LoRa] successfully joined to the network");
-    blink_led();
+    blink_led(LED_GREEN);
 }
 
 void appdata_send_failed_cb(void)
@@ -144,7 +142,7 @@ static bool appdata_received_cb(uint8_t *buf, size_t buflen)
     bytes_to_hex(buf, buflen, hex, false);
 
     printf("[LoRa] received data: \"%s\"\n", hex);
-    blink_led();
+    blink_led(LED_GREEN);
 
     if (buflen < 2) {
         return true;
@@ -193,7 +191,7 @@ static bool broadcast_appdata_received_cb(uint8_t *buf, size_t buflen) {
     bytes_to_hex(buf, buflen, hex, false);
 
     printf("[LoRa] received broadcast data: \"%s\"\n", hex);
-    blink_led();
+    blink_led(LED_GREEN);
 
     if (buflen < 2) {
         return true;
@@ -522,50 +520,6 @@ static int ls_module_cmd(int argc, char **argv)
     return 0;
 }
 
-static int ls_clear_nvram(int argc, char **argv)
-{
-    if (argc < 2) {
-        puts("Usage: clear <all|key|modules> -- clear all NVRAM contents or just the security key.");
-        return 1;
-    }
-
-    char *key = argv[1];
-
-    if (strcmp(key, "all") == 0) {
-        puts("Please wait a minute while I'm cleaning up here...");
-        if (clear_nvram()) {
-            puts("[ok] System settings cleared, let me reboot this device now");
-            NVIC_SystemReset();
-        }
-        else {
-            puts("[error] Unable to clear NVRAM");
-        }
-    }
-    else if (strcmp(key, "key") == 0) {
-        uint8_t joinkey_zero[16];
-        memset(joinkey_zero, 0, 16);
-        if (config_write_main_block(config_get_appid(), joinkey_zero, 0)) {
-            puts("[ok] Security key and device nonce was zeroed. Rebooting.");
-            NVIC_SystemReset();
-        }
-        else {
-            puts("[error] An error occurred trying to save the key");
-        }
-    }
-    else if (strcmp(key, "modules") == 0) {
-        puts("Please wait a minute while I'm cleaning up here...");
-        if (clear_nvram_modules(0)) {
-            puts("[ok] Module settings cleared, let me reboot this device now");
-            NVIC_SystemReset();
-        }
-        else {
-            puts("[error] Unable to clear NVRAM");
-        }
-    }
-
-    return 0;
-}
-
 static int print_regions_cmd(int argc, char **argv)
 {
     (void) argc;
@@ -573,21 +527,6 @@ static int print_regions_cmd(int argc, char **argv)
 
     print_regions();
 
-    return 0;
-}
-
-static int ls_save_cmd(int argc, char **argv) {
-    (void) argc;
-    (void) argv;
-    
-    puts("[*] Saving configuration...");
-    
-    if (!unwds_config_save()) {
-        puts("[error] Unable to save configuration");
-    }
-
-    puts("[done] Configuration saved. Type \"reboot\" to apply changes.");
-    
     return 0;
 }
 
@@ -601,24 +540,13 @@ static int ls_safe_cmd(int argc, char **argv) {
 
 shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX] = {
     { "set", "<config> <value> -- set value for the configuration entry", ls_set_cmd },
-
     { "lscfg", "-- print out current configuration", ls_printc_cmd },
-
     { "lsregion", "-- list available regions", print_regions_cmd },
-
     { "lsmod", "-- list available modules", ls_listmodules_cmd },
-
     { "mod", "<name> <enable|disable>	-- disable or enable selected module", ls_module_cmd },
-
-    { "save", "-- saves current configuration", ls_save_cmd },
-
-    { "clear", "<all|key|modules> -- clear settings stored in NVRAM", ls_clear_nvram },
-
-    { "cmd", "<modid> <cmdhex> -- send command to another UNWDS devices", ls_cmd_cmd },
-    
+    { "cmd", "<modid> <cmdhex> -- send command to another UNWDS device", ls_cmd_cmd },
     { "safe", " -- reboot in safe mode", ls_safe_cmd },
-
-    { NULL, NULL, NULL }
+    { NULL, NULL, NULL },
 };
 
 static void unwds_callback(module_data_t *buf)
@@ -641,7 +569,7 @@ static void unwds_callback(module_data_t *buf)
         }
     }
 
-    blink_led();
+    blink_led(LED_GREEN);
 }
 
 static bool is_connect_button_pressed(void)
@@ -679,26 +607,8 @@ static void ls_enable_sleep (void *arg) {
     return;
 }
 
-void init_node(shell_command_t **commands)
+void init_normal(shell_command_t *commands)
 {
-    puts("[node] Initializing...");
-    
-    uint32_t bootmode = rtc_restore_backup(0);
-
-    /* fill the rest of shell_commands array with NULLs */
-    uint32_t i = 0;
-    bool fillzeros = false;
-    for (i = 0; i < UNWDS_SHELL_COMMANDS_MAX; i++) {
-        if (shell_commands[i].name == NULL) {
-            fillzeros = true;
-        }
-        if (fillzeros) {
-            shell_commands[i].name = NULL;
-            shell_commands[i].desc = NULL;
-            shell_commands[i].handler = NULL;
-        }
-    }
-
     if (!unwds_config_load()) {
         puts("[!] Device is not configured yet. Type \"help\" to see list of possible configuration commands.");
         puts("[!] Configure the node and type \"reboot\" to reboot and apply settings.");
@@ -718,14 +628,16 @@ void init_node(shell_command_t **commands)
 
         unwds_setup_nvram_config(config_get_nvram(), UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
 
+        uint32_t bootmode = rtc_restore_backup(0);
+        
         if (is_connect_button_pressed() || (bootmode == UNWDS_BOOT_SAFE_MODE)) {
             uint32_t bootmode = UNWDS_BOOT_NORMAL_MODE;
             rtc_save_backup(bootmode, 0);
             
             puts("[!] Entering Safe Mode, all modules disabled, class C.");
-            blink_led();
-            blink_led();
-            blink_led();
+            blink_led(LED_GREEN);
+            blink_led(LED_GREEN);
+            blink_led(LED_GREEN);
         }
         else {
             unwds_init_modules(unwds_callback);
@@ -748,15 +660,27 @@ void init_node(shell_command_t **commands)
                 rtctimers_set(&lpm_enable_timer, 15);
             }
             
-            blink_led();
+            blink_led(LED_GREEN);
         }
 
         if (!unwds_get_node_settings().no_join) {
         	ls_ed_join(&ls);
         }
     }
-    /* Set our commands for shell */
-    memcpy(commands, shell_commands, sizeof(shell_commands));
+    /* Add our commands to shell */
+    int i = 0;
+    do {
+        i++;
+    } while (commands[i].name);
+    
+    int k = 0;
+    do {
+        k++;
+    } while (shell_commands[k].name);
+    
+    assert(i + k < UNWDS_SHELL_COMMANDS_MAX - 1);
+    
+    memcpy((void *)&commands[i], (void *)shell_commands, sizeof(shell_commands));
 }
 
 #ifdef __cplusplus

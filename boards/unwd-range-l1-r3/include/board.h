@@ -21,8 +21,6 @@
 #ifndef BOARD_H_
 #define BOARD_H_
 
-#include "board_common.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -126,6 +124,11 @@ extern "C" {
 #define XTIMER_OVERHEAD     (6)
 #define XTIMER_BACKOFF      (3)
 /** @} */
+
+/**
+ * @brief   Initialize board specific hardware, including clock, LEDs and std-IO
+ */
+void board_init(void);
 
 #ifdef __cplusplus
 }

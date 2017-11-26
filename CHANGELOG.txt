@@ -1,3 +1,10 @@
+26.11.2017
+* connection stability improvements
+* EEPROM write fails after failed EEPROM operation fixed
+* gateway running on MSI clock fixed
+* same EEPROM settings structure for both gateway and device
+* major internal refactoring
+
 23.11.2017
 * stable subseconds RTC timer implementation with 60 s upper limit
 * ADC fix for STM32L1CB-A series

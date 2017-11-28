@@ -41,6 +41,7 @@ typedef enum {
     UNWDS_ADXL345_MODULE_ID = 20,
     UNWDS_IBUTTON_MODULE_ID = 21,
     UNWDS_HD44780_MODULE_ID = 22,
+    UNWDS_R300_MODULE_ID = 23,
     /* Proprietary 50 to 99 */
     UNWDS_M200_MODULE_ID = 50,
     UNWDS_PULSE_MODULE_ID = 51,
@@ -48,6 +49,7 @@ typedef enum {
     UNWDS_SWITCH_MODULE_ID = 53,
     UNWDS_M230_MODULE_ID = 54,	
 	UNWDS_IEC61107_MODULE_ID = 55,
+    UNWDS_IDCARD_MODULE_UD = 56,
     /* Customer 100 to 125*/
     UNWDS_CUSTOMER_MODULE_ID = 100,
     /* System module 126 */

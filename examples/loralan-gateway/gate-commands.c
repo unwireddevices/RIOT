@@ -85,7 +85,9 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 
 		ls_gate_node_t *node = ls_devlist_get_by_nodeid(devs, nodeid);
 		if (node == NULL) {
-			puts("[error] Node with specified node ID is not found.\n");
+			printf("[error] Node with ID %08X%08X was not found.\n",
+                    (unsigned int) (nodeid >> 32),
+                    (unsigned int) (nodeid & 0xFFFFFFFF));
 			return;
 		}
 

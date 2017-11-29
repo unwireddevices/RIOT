@@ -107,7 +107,7 @@ int mt3333_init(mt3333_t *dev, mt3333_param_t *param);
 /**
  * @brief Change MT3333 baudrate
  */
-void mt3333_change_baudrate(int baudrate);
+void mt3333_set_baudrate(int baudrate);
 
 /**
  * @brief Set MT3333 to low-power GLP mode (support depends on core firmware version)

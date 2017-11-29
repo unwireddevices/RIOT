@@ -85,6 +85,20 @@ bool hex_to_bytes(char *hexstr, uint8_t *bytes, bool reverse_order) {
 	return hex_to_bytesn(hexstr, len, bytes, reverse_order);
 }
 
+static uint8_t ascii_to_number(char ascii) {
+    if (ascii < 'A') {
+        return (ascii - 48);
+    } else if (ascii < 'a') {
+        return (ascii - 65 + 10);
+    } else {
+        return (ascii - 97 + 10);
+    }
+}
+
+static uint8_t hex_to_number(char *hex) {
+    return ((ascii_to_number(*hex) << 4) | ascii_to_number(*(hex + 1)));
+}
+
 bool hex_to_bytesn(char *hexstr, int len, uint8_t *bytes, bool reverse_order) {
 	/* Length must be even */
 	if (len % 2 != 0)
@@ -97,17 +111,16 @@ bool hex_to_bytesn(char *hexstr, int len, uint8_t *bytes, bool reverse_order) {
 		ptr += len - 2;
 
 		for (; (len >> 1) - i; ptr -= 2) {
-			unsigned int v = 0;
-			sscanf(ptr, "%02x", &v);
-
-			bytes[i++] = (uint8_t) v;
+			uint8_t v = 0;
+            v = hex_to_number(ptr);
+			bytes[i++] = v;
 		}
 	} else {
 		for (; *ptr; ptr += 2) {
-			unsigned int v = 0;
-			sscanf(ptr, "%02x", &v);
+			uint8_t v = 0;
+			v = hex_to_number(ptr);
 
-			bytes[i++] = (uint8_t) v;
+			bytes[i++] = v;
 		}
 	}
 

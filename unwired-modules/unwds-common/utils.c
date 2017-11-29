@@ -87,11 +87,11 @@ bool hex_to_bytes(char *hexstr, uint8_t *bytes, bool reverse_order) {
 
 static uint8_t ascii_to_number(char ascii) {
     if (ascii < 'A') {
-        return (ascii - 48);
+        return (ascii - '0');
     } else if (ascii < 'a') {
-        return (ascii - 65 + 10);
+        return (ascii - 'A' + 10);
     } else {
-        return (ascii - 97 + 10);
+        return (ascii - 'a' + 10);
     }
 }
 

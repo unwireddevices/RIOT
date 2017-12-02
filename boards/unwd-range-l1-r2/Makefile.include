@@ -3,3 +3,4 @@ export CPU = stm32l1
 export CPU_MODEL = stm32l151rc
 
 CFLAGS += -DSTM32L1XX_MDP
+OFLAGS = -O ihex

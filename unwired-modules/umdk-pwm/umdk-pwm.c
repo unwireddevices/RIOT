@@ -191,7 +191,7 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
 {
     /* Check minimum command length */
     if (cmd->length < 6) {
-		printf("[umdk-" _UMDK_NAME_ "] Invalid command - wrong length of command\n");
+		printf("[umdk-" _UMDK_NAME_ "] wrong command length\n");
 		reply_error(reply);
         return true;
     }
@@ -204,7 +204,7 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
 			/* Check maximum value of frequency */
 			uint32_t freq = (((cmd->data[0] & 0x0F) << 16) + (cmd->data[1] << 8) + (cmd->data[2])) & 0x000FFFFF;
 			if(freq > UMDK_PWM_FREQ_MAX) {
-				printf("[umdk-" _UMDK_NAME_ "] Invalid frequency set: %d > %d Hz\n", (int)freq, UMDK_PWM_FREQ_MAX);
+				printf("[umdk-" _UMDK_NAME_ "] Error: frequncy is %d, max allowed is %d Hz\n", (int)freq, UMDK_PWM_FREQ_MAX);
 				reply_error(reply);
 				return true;
 			}
@@ -220,7 +220,7 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
 			/* Check allowing value of status channel */
 			uint8_t status = (cmd->data[4] >> 4) & 0x0F;
 			if(status > 1) {
-				printf("[umdk-" _UMDK_NAME_ "] Invalid value of command turn on/off channel: %d (Allow 1 or 0 )\n", status);
+				printf("[umdk-" _UMDK_NAME_ "] Invalid channel turn on/off command: %d (should be 1 or 0 )\n", status);
 				reply_error(reply);
 				return true;
 			}
@@ -228,7 +228,7 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
 			/* Check maximum value of number of the channel */
 			uint8_t ch_num = (cmd->data[4] & 0x0F);
 			if(ch_num >= pwm_devs[dev_id].num_chan) {
-				printf("[umdk-" _UMDK_NAME_ "] Invalid number of channel of the PWM device#%d selected: %d. Max: %d\n", dev_id, ch_num, pwm_devs[dev_id].num_chan);
+				printf("[umdk-" _UMDK_NAME_ "] Invalid PWM device #%d channel number: %d (maximum is %d)\n", dev_id, ch_num, pwm_devs[dev_id].num_chan);
 				reply_error(reply);
 				return true;
 			}
@@ -236,7 +236,7 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
 			/* Check maximum value of the duty cycle */
 			uint8_t duty_value = cmd->data[5];
 			if(duty_value > UMDK_PWM_DUTY_MAX) {
-				printf("[umdk-" _UMDK_NAME_ "] Invalid duty cycle selected: %d%%. Max: %d%%\n", duty_value, UMDK_PWM_DUTY_MAX);
+				printf("[umdk-" _UMDK_NAME_ "] Invalid duty cycle: %d%% (maximum is %d%%)\n", duty_value, UMDK_PWM_DUTY_MAX);
 				reply_error(reply);
 				return true;
 			}
@@ -247,14 +247,9 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
 
 			/* Check necessity Turning on/off channel */
 			if(status == UMDK_PWM_CH_TURN_OFF) {
-				if(ch->status == UMDK_PWM_CH_TURN_OFF) {
-					printf("[umdk-" _UMDK_NAME_ "] Channel %d of the #%d PWM device turned off YET\n", ch_num, dev_id);
-				}
-				else {
-					printf("[umdk-" _UMDK_NAME_ "] Channel %d of the #%d PWM device turned off\n", ch_num, dev_id);
-					umdk_pwm_turn_off_pin(pwm_config[dev_id].pins[ch->ch]);
-					ch->status = UMDK_PWM_CH_TURN_OFF;
-				}
+                printf("[umdk-" _UMDK_NAME_ "] PWM device #%d channel %d turned off\n", dev_id, ch_num);
+                umdk_pwm_turn_off_pin(pwm_config[dev_id].pins[ch->ch]);
+                ch->status = UMDK_PWM_CH_TURN_OFF;
 			}
 			else {
 
@@ -263,7 +258,7 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
 						gpio_init(pwm_config[dev_id].pins[ch->ch], GPIO_OUT);
 						gpio_init_af(pwm_config[dev_id].pins[ch->ch], pwm_config[dev_id].af);
 
-						printf("[umdk-" _UMDK_NAME_ "] Channel %d of the #%d PWM device turned on\n", ch_num, dev_id);
+						printf("[umdk-" _UMDK_NAME_ "] PWM device #%d channel %d turned on\n", dev_id, ch_num);
 						ch->status = UMDK_PWM_CH_TURN_ON;
 					}
 					/* Update value of frequency if it's don't same */

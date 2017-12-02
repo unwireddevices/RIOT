@@ -29,7 +29,6 @@ umdk-range     = 0
 umdk-hd44780   = 1
 umdk-ibutton   = 1
 umdk-irblaster = 1
-umdk-r300      = 0
 
 ####### UMDK MODULES defines and Makefile.include inclusion ############
 

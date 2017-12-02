@@ -45,13 +45,13 @@ static const uint16_t koeff_duty = (uint16_t)(UMDK_IR_RES_DEFAULT / UMDK_IR_DUTY
 
 static uint32_t freq = 38000; /* PWM device frequency */
 static uint8_t dev_id = 0; /* PWM device ID */
-static uint8_t ch_num = 0; /* channel number */
+static uint8_t ch_num = 1; /* channel number */
 static uint8_t duty_value = 50; /* duty cycle 50 % */
 
-static umdk_ir_dev_t *dev;
-static umdk_ir_ch_t *ch;
+static umdk_irblaster_dev_t *dev;
+static umdk_irblaster_ch_t *ch;
 
-static umdk_ir_dev_t pwm_devs[UMDK_IR_NUM_DEVS] = {
+static umdk_irblaster_dev_t pwm_devs[UMDK_IR_NUM_DEVS] = {
 			{
 				.dev      	= UMDK_IR_0,
 				.num_chan 	= UMDK_IR_0_NUM_CH_MAX,
@@ -93,18 +93,18 @@ static umdk_ir_dev_t pwm_devs[UMDK_IR_NUM_DEVS] = {
 };
 
 static void send_start(void) {
-    gpio_init(pwm_config[dev_id].pins[ch->ch], GPIO_OUT);
+    gpio_init_af(pwm_config[dev_id].pins[ch->ch], pwm_config[dev_id].af);
     xtimer_spin(xtimer_ticks_from_usec(3700));
-    gpio_init(pwm_config[dev_id].pins[ch->ch], GPIO_AIN);
+    gpio_init_af(pwm_config[dev_id].pins[ch->ch], 0);
     xtimer_spin(xtimer_ticks_from_usec(1800));
 }
 
 static void send_byte(uint8_t data) {
     int bit;
     for (bit = 7; bit >= 0; bit --) {
-        gpio_init(pwm_config[dev_id].pins[ch->ch], GPIO_OUT);
+        gpio_init_af(pwm_config[dev_id].pins[ch->ch], pwm_config[dev_id].af);
         xtimer_spin(xtimer_ticks_from_usec(350));
-        gpio_init(pwm_config[dev_id].pins[ch->ch], GPIO_AIN);
+        gpio_init_af(pwm_config[dev_id].pins[ch->ch], 0);
         if (data & (1 << bit)) {
             xtimer_spin(xtimer_ticks_from_usec(1400));
         } else {
@@ -113,9 +113,9 @@ static void send_byte(uint8_t data) {
     }
 }
 
-int umdk_ir_shell_cmd(int argc, char **argv) {
+int umdk_irblaster_shell_cmd(int argc, char **argv) {
     if (argc == 1) {
-        puts (_UMDK_NAME_ " fire <data> - send data (ascii-hex) to IR port");
+        puts (_UMDK_NAME_ " send <data> - send data (ascii-hex) to IR port");
         return 0;
     }
     
@@ -145,32 +145,14 @@ int umdk_ir_shell_cmd(int argc, char **argv) {
         }
         
         puts ("[" _UMDK_NAME_ "] data successfully sent");
+    } else {
+        puts ("[" _UMDK_NAME_ "] unknown command");
     }
     
     return 1;
 }
 
-static uwnds_cb_t *callback;
-
-void umdk_ir_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
-{
-    (void)non_gpio_pin_map;
-
-    callback = event_callback;
-
-    for (int i = 0; i < UMDK_IR_NUM_DEVS; i++) {
-        umdk_ir_dev_t *dev = &pwm_devs[i];
-
-        printf("[umdk-" _UMDK_NAME_ "] Initializing PWM#%d with frequency %d Hz and resolution up to %d\n", dev->dev, (int) dev->freq, dev->res);
-
-        pwm_init(dev->dev, dev->mode, dev->freq, dev->res);
-        pwm_stop(dev->dev);
-    }
-    
-    unwds_add_shell_command( _UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_ir_shell_cmd);
-}
-
-static inline void update_pwm_freq(umdk_ir_dev_t *dev, uint32_t freq)
+static inline void update_pwm_freq(umdk_irblaster_dev_t *dev, uint32_t freq)
 {
     dev->freq = freq;
 
@@ -178,7 +160,7 @@ static inline void update_pwm_freq(umdk_ir_dev_t *dev, uint32_t freq)
     pwm_init(dev->dev, dev->mode, dev->freq, dev->res);
 }
 
-static void set_pwm_value(umdk_ir_dev_t *dev, umdk_ir_ch_t *ch, uint8_t value)
+static void set_pwm_value(umdk_irblaster_dev_t *dev, umdk_irblaster_ch_t *ch, uint8_t value)
 {
     ch->duty_cycle = (uint16_t)(value * koeff_duty);
 
@@ -192,7 +174,7 @@ static void set_pwm_value(umdk_ir_dev_t *dev, umdk_ir_ch_t *ch, uint8_t value)
     uint8_t channel = ch->ch;
 
     for (int i = 0; i < dev->num_chan; i++) {
-        umdk_ir_ch_t *chan = &(dev->pwm_chs[i]);
+        umdk_irblaster_ch_t *chan = &(dev->pwm_chs[i]);
 		/* Device can't be stopped if it has initialization channels */
 		if (chan->status == UMDK_IR_CH_TURN_ON) {
 			can_be_stopped = false;
@@ -227,7 +209,7 @@ static void set_pwm_value(umdk_ir_dev_t *dev, umdk_ir_ch_t *ch, uint8_t value)
     }
 }
 
-static inline void umdk_ir_turn_off_pin(gpio_t pin)
+static inline void umdk_irblaster_turn_off_pin(gpio_t pin)
 {
 	GPIO_TypeDef *port = (GPIO_TypeDef *)( pin & ~(0x0F));
 	int pin_num =  ( pin & 0x0F );
@@ -255,22 +237,13 @@ static inline void reply_ok(module_data_t *reply)
 	reply->data[1] = 0;
 }
 
-bool umdk_ir_cmd(module_data_t *cmd, module_data_t *reply)
+bool umdk_irblaster_cmd(module_data_t *cmd, module_data_t *reply)
 {
-    umdk_ir_cmd_t c = (cmd->data[0] >> 4) & 0x0F;
+    umdk_irblaster_cmd_t c = (cmd->data[0] >> 4) & 0x0F;
 
     switch (c) {
         case UMDK_IR_CMD_SEND: {
             uint8_t data_size_bytes = cmd->data[1];
-            dev = &pwm_devs[dev_id];
-            ch = &(dev->pwm_chs[ch_num]);
-            
-            gpio_init(pwm_config[dev_id].pins[ch->ch], GPIO_OUT);
-            gpio_init_af(pwm_config[dev_id].pins[ch->ch], pwm_config[dev_id].af);
-            printf("[umdk-" _UMDK_NAME_ "] IR device #%d channel %d turned on\n", dev_id, ch_num);
-            update_pwm_freq(dev, freq);
-            set_pwm_value(dev, ch, duty_value);
-            
             send_start();
             int byte;
             for (byte = 0; byte < data_size_bytes; byte++) {
@@ -289,6 +262,32 @@ bool umdk_ir_cmd(module_data_t *cmd, module_data_t *reply)
     return false;
 }
 
+static uwnds_cb_t *callback;
+
+void umdk_irblaster_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
+{
+    (void)non_gpio_pin_map;
+
+    callback = event_callback;
+    
+    dev = &pwm_devs[dev_id];
+    ch = &(dev->pwm_chs[ch_num]);
+    
+    pwm_init(dev->dev, dev->mode, dev->freq, dev->res);
+    pwm_stop(dev->dev);
+    
+    gpio_init(pwm_config[dev_id].pins[ch->ch], GPIO_OUT);
+    gpio_init_af(pwm_config[dev_id].pins[ch->ch], pwm_config[dev_id].af);
+    ch->status = UMDK_IR_CH_TURN_ON;
+    printf("[umdk-" _UMDK_NAME_ "] IR device #%d channel %d turned on\n", dev_id, ch_num);
+    update_pwm_freq(dev, freq);
+    set_pwm_value(dev, ch, duty_value);
+
+    /* disable PWM for now */
+    gpio_init_af(pwm_config[dev_id].pins[ch->ch], 0);
+    
+    unwds_add_shell_command( _UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_irblaster_shell_cmd);
+}
 
 #ifdef __cplusplus
 }

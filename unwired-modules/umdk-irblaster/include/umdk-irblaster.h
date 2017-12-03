@@ -77,10 +77,10 @@ typedef struct {
 
 
 /**
- * @brief UMDK-PWM module commands list
+ * @brief UMDK-IRBLASTER module commands list
  */
 typedef enum {
-    UMDK_IR_CMD_SEND = 0, /**< Sets frequency and duty cycle for specified PWM channel  */
+    UMDK_IR_CMD_SEND = 0,
 } umdk_irblaster_cmd_t;
 
 void umdk_irblaster_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);

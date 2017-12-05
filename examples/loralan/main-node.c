@@ -85,19 +85,27 @@ void radio_init(void)
     puts("init_radio: sx1276 initialization done");
 }
 
+static void node_join(ls_ed_t *ls) {
+    /* limit max delay between attempts to 1 hour */
+    if (current_join_retries < 120) {
+        current_join_retries++;
+    }
+    ls_ed_join(ls);
+}
 void joined_timeout_cb(void)
 {
 	if (unwds_get_node_settings().no_join)
 		return;
 
-    if ((current_join_retries >= unwds_get_node_settings().max_retr) && (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A)) {
+    if ((current_join_retries >= unwds_get_node_settings().max_retr + 1) && (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A)) {
         /* class A node: go to sleep */
         puts("[LoRa] maximum join retries exceeded, stopping");
+        current_join_retries = 0;
     } else {
         puts("ls: join request timed out, resending");
         
         /* Pseudorandom delay for collision avoidance */
-        unsigned int delay = random_uint32_range(5 + current_join_retries*30, 30 + current_join_retries*30);
+        unsigned int delay = random_uint32_range(5 + (current_join_retries - 1)*30, 30 + (current_join_retries - 1)*30);
         printf("[LoRa] random delay %d s\n", (unsigned int) (delay));
         
         rtctimers_sleep(delay);
@@ -108,12 +116,12 @@ void joined_timeout_cb(void)
         }
         
         if (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A) {
-            printf("[LoRa] rejoining, attempt %d / %d\n", current_join_retries, unwds_get_node_settings().max_retr);
+            printf("[LoRa] joining, attempt %d / %d\n", current_join_retries, unwds_get_node_settings().max_retr);
         } else {
-            puts("[LoRa] rejoining");
+            puts("[LoRa] joining");
         }
         
-        ls_ed_join(&ls);
+        node_join(&ls);
     }
 }
 
@@ -130,7 +138,7 @@ void appdata_send_failed_cb(void)
 	if (!unwds_get_node_settings().no_join) {
 		puts("[LoRa] rejoining");
 //		joined_timeout_cb();
-        ls_ed_join(&ls);
+        node_join(&ls);
 	} else
 		puts("[LoRa] failed to send confirmed application data");
 }
@@ -561,8 +569,12 @@ static void unwds_callback(module_data_t *buf)
             puts("[error] Cannot send app. data: not joined to the network");
 
             /* Try to join to the network */
-            current_join_retries = 0;
-            ls_ed_join(&ls);
+            if (current_join_retries == 0) {
+                puts("[info] Attempting to rejoin");
+                node_join(&ls);
+            } else {
+                puts("[info] Waiting for the node to join");
+            }
         }
         else {
             printf("send: error #%d\n", res);
@@ -664,7 +676,7 @@ void init_normal(shell_command_t *commands)
         }
 
         if (!unwds_get_node_settings().no_join) {
-        	ls_ed_join(&ls);
+        	node_join(&ls);
         }
     }
     /* Add our commands to shell */

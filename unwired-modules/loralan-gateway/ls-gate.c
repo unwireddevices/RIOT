@@ -534,6 +534,8 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
 
         case SX1276_RX_ERROR_CRC:
             DEBUG("ls-gate: CRC error\n");
+            DEBUG("ls-gate: state = IDLE\n");
+            ch->state = LS_GATE_CHANNEL_STATE_IDLE;
             break;
 
         case SX1276_TX_DONE:
@@ -544,6 +546,8 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
 
         case SX1276_RX_TIMEOUT:
             DEBUG("ls-gate: RX timeout\n");
+            DEBUG("ls-gate: state = IDLE\n");
+            ch->state = LS_GATE_CHANNEL_STATE_IDLE;
             break;
 
         case SX1276_TX_TIMEOUT:

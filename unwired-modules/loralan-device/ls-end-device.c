@@ -478,6 +478,8 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
 	switch (event_type) {
 		case SX1276_RX_DONE:
 			printf("RX: %u bytes, | RSSI: %d\n", packet->size, packet->rssi_value);
+            DEBUG("[LoRa] state = IDLE\n");
+            ls->state = LS_ED_IDLE;
 
 			/* Save RSSI value of received frame */
 			ls->_internal.last_rssi = packet->rssi_value;
@@ -522,6 +524,8 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
 
 		case SX1276_RX_ERROR_CRC:
 			puts("sx1276: RX CRC failed");
+            DEBUG("[LoRa] state = IDLE\n");
+            ls->state = LS_ED_IDLE;
 			break;
 
 		case SX1276_TX_DONE:
@@ -534,7 +538,8 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
 
 		case SX1276_RX_TIMEOUT:
 			puts("sx1276: RX timeout");
-
+            DEBUG("[LoRa] state = IDLE\n");
+            ls->state = LS_ED_IDLE;
 			close_rx_windows(ls);
 			ls_ed_sleep(ls);
 			break;
@@ -555,6 +560,11 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
             DEBUG("sx1276: CAD detected\n");
             ls->_internal.last_cad_success = dev->_internal.is_last_cad_success;
             ls_ed_sleep(ls);
+            break;
+            
+        case SX1276_VALID_HEADER:
+            puts("[LoRa] header received, switch to RX state");
+            ls->state = LS_ED_LISTENING;
             break;
 
 		default:

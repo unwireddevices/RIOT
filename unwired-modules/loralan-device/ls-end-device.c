@@ -661,13 +661,11 @@ static void *uq_handler(void *arg)
         /* Listen Before Talk with LoRa CAD support */
         /* delays between CAD requests */
         int delay_ms = 5 + ((100 + 10*ls->settings.dr) >> ls->settings.dr);
-        /* check radio for 1 second */
-        int cad_tries_total = 1000/delay_ms;
         
         printf("[LoRa] checking channel activity every %d ms\n", delay_ms);
         
         int cad_tries = 0;
-        for (int k = 0; k < cad_tries_total; k++) {
+        for (int k = 0; k < 10; k++) {
             ls->_internal.last_cad_success = 0;
             sx1276_start_cad(ls->_internal.sx1276, SX1276_MODE_CADDETECT);
             //xtimer_spin(xtimer_ticks_from_usec(delay_ms * 1000));

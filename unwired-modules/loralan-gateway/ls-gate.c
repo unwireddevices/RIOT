@@ -32,7 +32,7 @@ extern "C" {
 
 #include <stdint.h>
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 /**
@@ -512,6 +512,9 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
     switch (event_type) {
         case SX1276_RX_DONE: {
             DEBUG("ls-gate: RX done\n");
+            DEBUG("ls-gate: state = IDLE\n");
+            ch->state = LS_GATE_CHANNEL_STATE_IDLE;
+            
             ch->last_rssi = packet->rssi_value;
 
             /* Copy packet's data as a frame to our stack */
@@ -547,6 +550,11 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
         	DEBUG("ls-gate: TX timeout");
             prepare_sx1276(ch);
             sx1276_set_rx(ch->_internal.sx1276, ch->_internal.sx1276->settings.lora.rx_timeout);
+            break;
+            
+        case SX1276_VALID_HEADER:
+            puts("ls-gate: header received, switch to RX state");
+            ch->state = LS_GATE_CHANNEL_STATE_RX;
             break;
 
         default:

@@ -21,7 +21,6 @@
 #ifndef BOARD_H_
 #define BOARD_H_
 
-#include "board_common.h"
 
 #ifdef __cplusplus
 extern "C" {

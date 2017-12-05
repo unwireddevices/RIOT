@@ -137,6 +137,7 @@ typedef enum {
     SX1272_FHSS_CHANGE_CHANNEL,
     SX1272_CAD_DONE,
     SX1272_CAD_DETECTED,
+    SX1272_VALID_HEADER,
 } sx1272_event_type_t;
 
 /***

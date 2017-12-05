@@ -1185,11 +1185,11 @@ void sx1272_on_dio2(void *arg)
                     break;
                 case SX1272_MODEM_LORA:
                     if (dev->settings.lora.freq_hop_on) {
-                        /* Clear IRQ */
-                        sx1272_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL);
-
                         dev->_internal.last_channel = sx1272_reg_read(dev, REG_LR_HOPCHANNEL) & RFLR_HOPCHANNEL_CHANNEL_MASK;
                         send_event(dev, SX1272_FHSS_CHANGE_CHANNEL);
+                        
+                        /* Clear IRQ */
+                        sx1272_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL);
                     }
                     break;
                 default:
@@ -1210,13 +1210,19 @@ void sx1272_on_dio3(void *arg)
         case SX1272_MODEM_FSK:
             break;
         case SX1272_MODEM_LORA:
-            /* Clear IRQ */
-            sx1272_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_CADDETECTED | RFLR_IRQFLAGS_CADDONE);
-
             /* Send event message */
-            dev->_internal.is_last_cad_success = (sx1272_reg_read(dev, REG_LR_IRQFLAGS) & RFLR_IRQFLAGS_CADDETECTED) == RFLR_IRQFLAGS_CADDETECTED;
-            send_event(dev, SX1272_CAD_DONE);
-            break;
+            if ((sx1272_reg_read(dev, REG_LR_IRQFLAGS) & RFLR_IRQFLAGS_VALIDHEADER) == RFLR_IRQFLAGS_VALIDHEADER) {
+                send_event(dev, SX1272_VALID_HEADER);
+                
+                /* Clear IRQ */
+                sx1272_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_VALIDHEADER);
+            } else {
+                dev->_internal.is_last_cad_success = (sx1272_reg_read(dev, REG_LR_IRQFLAGS) & RFLR_IRQFLAGS_CADDETECTED) == RFLR_IRQFLAGS_CADDETECTED;
+                send_event(dev, SX1272_CAD_DONE);
+                
+                /* Clear IRQ */
+                sx1272_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_CADDETECTED | RFLR_IRQFLAGS_CADDONE);
+            }
         default:
             break;
     }

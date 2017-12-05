@@ -1,3 +1,7 @@
+05.12.2017
+* connection stability improvements
+* better collision avoidance algorithms
+
 26.11.2017
 * connection stability improvements
 * EEPROM write fails after failed EEPROM operation fixed

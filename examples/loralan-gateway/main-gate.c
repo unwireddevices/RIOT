@@ -43,17 +43,27 @@ extern "C" {
 #include "ls-crypto.h"
 #include "ls-gate.h"
 
+#include "periph/adc.h"
+
 #include "gate-commands.h"
 #include "pending-fifo.h"
 
 #include "main.h"
 #include "config.h"
 #include "utils.h"
-
+#include "rtctimers.h"
 #include "ls-regions.h"
+
+#include "unwds-common.h"
 
 static node_role_settings_t node_settings;
 static bool dr_set = false, channel_set = false;
+
+static kernel_pid_t display_timer_pid;
+static msg_t display_timer_msg = {};
+static rtctimer_t display_timer;
+
+static hd44780_t hd44780_dev;
 
 static sx1276_t sx1276;
 static ls_gate_t ls;
@@ -372,6 +382,36 @@ static int ls_set_cmd(int argc, char **argv)
     return 0;
 }
 
+static void *display_thread (void *arg) {
+    msg_t msg;
+    msg_t msg_queue[4];
+    msg_init_queue(msg_queue, 4);
+
+    puts("Display thread started");
+    
+    while (1) {
+        msg_receive(&msg);
+        
+        hd44780_set_cursor(&hd44780_dev, 0, 1); 
+        char line[17] = { 0 };
+//        snprintf(line, 17, "LoRa %d dBm      ", ch->last_rssi);
+//        hd44780_print(&hd44780_dev, line);
+
+        hd44780_set_cursor(&hd44780_dev, 8, 0);
+        adc_init(ADC_LINE(0));
+        uint16_t voltage = adc_sample(ADC_LINE(0), ADC_RES_12BIT);
+        uint16_t vref = adc_sample(ADC_LINE(ADC_VREF_INDEX), ADC_RES_12BIT);
+        voltage = (uint32_t)(voltage * vref) / 1706;
+
+        snprintf(line, 17, "%d mV     ", (int)voltage);
+        hd44780_print(&hd44780_dev, line);
+
+        rtctimers_set_msg(&display_timer, 3, &display_timer_msg, display_timer_pid);
+    }
+    
+    return NULL;
+}
+
 static int ls_list_cmd(int argc, char **argv)
 {
     ls_gate_devices_t *devs = &ls.devices;
@@ -573,7 +613,7 @@ static int kick_cmd(int argc, char **argv) {
 	return -1;
 }
 
-static const shell_command_t shell_commands[] = {
+static const shell_command_t shell_commands_gate[] = {
     { "set", "<config> <value> -- sets up value for the config entry", ls_set_cmd },
     { "listconfig", "-- prints out current configuration", ls_printc_cmd },
     { "save", "-- saves current settings in NVRAM", ls_save_cmd },
@@ -586,34 +626,6 @@ static const shell_command_t shell_commands[] = {
 	{ "kick", "<addr> -- kicks node from the list by its address", kick_cmd},
     { NULL, NULL, NULL }
 };
-
-#ifdef GATE_USE_WATCHDOG
-static void watchdog_start(void) {
-	/* Set watchdog to about 3.5 seconds */
-    wdg_set_prescaler(0x03);
-    wdg_set_reload((uint16_t) 0x0FFF);
-
-    /* Start watchdog */
-    wdg_reload();
-    wdg_enable();
-
-	puts("[!] Watchdog timer is enabled. Use `connect` button on reset to disable watchdog timer");
-}
-
-static bool is_connect_button_pressed(void) {
-    if (!gpio_init(UNWD_CONNECT_BTN, GPIO_IN_PU)) {
-		if (!gpio_read(UNWD_CONNECT_BTN)) {
-			return true;
-		}
-	}
-	else
-	{
-		puts("Error initializing Connect button");
-	}
-
-	return false;
-}
-#endif
 
 static bool load_config(void)
 {
@@ -632,13 +644,6 @@ void init_gate(shell_command_t **commands)
         print_config();
         puts("[ok] Configuration seems valid, initializing LoRa gate...");
 
-#ifdef GATE_USE_WATCHDOG
-        if (!is_connect_button_pressed())
-        	watchdog_start();
-        else
-        	puts("[!] Watchdog timer is suppressed by `connect` button");
-#endif
-
         uart_gate_init();
 
         radio_init();
@@ -655,9 +660,28 @@ void init_gate(shell_command_t **commands)
         puts("[!] This gate is not configured yet. Type \"help\" to see list of possible configuration commands.");
         puts("[!] Configure this node via \"set\" commands and type \"reboot\" to reboot and apply settings.");
     }
+    
+    hd44780_init(&hd44780_dev, &hd44780_params[0]);
+    hd44780_clear(&hd44780_dev);
+    hd44780_set_cursor(&hd44780_dev, 0, 0);
+    hd44780_print(&hd44780_dev, "FW " FIRMWARE_VERSION);
+    hd44780_set_cursor(&hd44780_dev, 0, 1);
+    hd44780_print(&hd44780_dev, "LoRa GATEWAY");
+    
+    char *stack = (char *) allocate_stack();
+    if (!stack) {
+        puts("Error allocating stack");
+        while (1);
+    }
+    
+    rtctimers_init();
+    
+	display_timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, display_thread, NULL, "Display thread");
+
+    rtctimers_set_msg(&display_timer, 3, &display_timer_msg, display_timer_pid);
 
     /* Set our commands for shell */
-    memcpy(commands, shell_commands, sizeof(shell_commands));
+    memcpy(commands, shell_commands_gate, sizeof(shell_commands_gate));
 }
 
 

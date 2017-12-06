@@ -2,13 +2,19 @@
 APPLICATION = loralan-gateway
 
 # If no BOARD is found in the environment, use this default:
-BOARD ?= unwd-range-l1-r3
+BOARD ?= unwd-relay
+
+CFLAGS += -DHD44780_CYRILLIC
+CFLAGS += -DHD44780_PCF8574
+USEMODULE += hd44780
 
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../..
 
 CFLAGS += -DDEVELHELP
 CFLAGS += -DGATE_USE_WATCHDOG
+
+CFLAGS += -Wno-unused
 
 FEATURES_REQUIRED = periph_spi periph_gpio
 
@@ -33,6 +39,7 @@ USEMODULE += rtctimers
 EXTERNAL_MODULE_DIRS += ../../unwired-modules/
 USEMODULE += lora-star-mac
 USEMODULE += lora-star-gate
+USEMODULE += unwds-common
 
 INCLUDES += -I../../unwired-modules/lora-star-mac/include/
 INCLUDES += -I../../unwired-modules/lora-star-gate/include/

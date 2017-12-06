@@ -51,11 +51,11 @@ extern "C" {
 #define LORA_FIX_LENGTH_PAYLOAD_ON                  true
 #define LORA_IQ_INVERSION							false
 
-#define SX1276_DIO0 GPIO_PIN(PORT_A, 15)
-#define SX1276_DIO1 GPIO_PIN(PORT_A, 14)
+#define SX1276_DIO0 GPIO_PIN(PORT_A, 8)
+#define SX1276_DIO1 GPIO_PIN(PORT_A, 7)
 #define SX1276_DIO2 GPIO_UNDEF
-#define SX1276_DIO3 GPIO_PIN(PORT_A, 12)
-#define SX1276_DIO4 GPIO_PIN(PORT_A, 11)
+#define SX1276_DIO3 GPIO_PIN(PORT_A, 5)
+#define SX1276_DIO4 GPIO_PIN(PORT_A, 4)
 #define SX1276_DIO5 GPIO_UNDEF
 
 #define SX1276_RESET GPIO_UNDEF
@@ -69,7 +69,7 @@ extern "C" {
 
 #ifdef USE_SPI_1
 #define SX1276_SPI SPI_1
-#define SX1276_SPI_NSS GPIO_PIN(PORT_B, 6)
+#define SX1276_SPI_NSS GPIO_PIN(PORT_B, 7)
 #define SX1276_SPI_MODE SPI_CONF_FIRST_RISING
 #define SX1276_SPI_SPEED SPI_SPEED_1MHZ
 #endif
@@ -86,6 +86,8 @@ extern "C" {
 #define UART_STDIO_DEV              UART_DEV(0)
 #define UART_STDIO_BAUDRATE         (115200U)
 #define UART_STDIO_RX_BUFSIZE       (64U)
+
+#define GATE_COMM_UART              (UART_DEV(1))
 
 /**
  * @name xtimer configuration

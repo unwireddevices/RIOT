@@ -203,6 +203,7 @@ sx1276_init_result_t sx1276_init(sx1276_t *dev)
     sx1276_reset(dev);
 
     /** Do internal initialization routines */
+    
     if (!_init_peripherals(dev)) {
         return SX1276_ERR_SPI;
     }
@@ -226,7 +227,7 @@ sx1276_init_result_t sx1276_init(sx1276_t *dev)
 
     /* Set current frequency */
     sx1276_set_channel(dev, dev->settings.channel);
-
+    puts("4");
     /* Create DIO event lines handler */
     kernel_pid_t pid = thread_create((char *) dev->_internal.dio_polling_thread_stack, sizeof(dev->_internal.dio_polling_thread_stack), THREAD_PRIORITY_MAIN - 2,
                                      THREAD_CREATE_STACKTEST, dio_polling_thread, dev,
@@ -237,7 +238,7 @@ sx1276_init_result_t sx1276_init(sx1276_t *dev)
         return SX1276_ERR_THREAD;
     }
     dev->_internal.dio_polling_thread_pid = pid;
-
+    puts("5");
     return SX1276_INIT_OK;
 }
 
@@ -407,6 +408,7 @@ static void _rx_chain_calibration(sx1276_t *dev)
                      REG_IMAGECAL,
                      (sx1276_reg_read(dev, REG_IMAGECAL) & RF_IMAGECAL_IMAGECAL_MASK)
                      | RF_IMAGECAL_IMAGECAL_START);
+
     while ((sx1276_reg_read(dev, REG_IMAGECAL) & RF_IMAGECAL_IMAGECAL_RUNNING)
            == RF_IMAGECAL_IMAGECAL_RUNNING) {
     }

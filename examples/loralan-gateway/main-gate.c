@@ -42,6 +42,8 @@ extern "C" {
 #include "shell.h"
 #include "shell_commands.h"
 
+#include "hd44780.h"
+
 #include "board.h"
 
 #include "ls-settings.h"
@@ -61,7 +63,7 @@ extern "C" {
 #define IWDG_RELOAD     (0x0FFF)
 #define IWDG_TIMEOUT    ((((IWDG_RELOAD) * (1 << (IWDG_PRESCALER + 2))) / 56000) - 3)
 
-//static node_role_settings_t node_settings;
+static hd44780_t hd44780_dev;
 
 static rtctimer_t iwdg_timer;
 
@@ -213,6 +215,13 @@ static uint32_t node_joined_cb(ls_gate_node_t *node)
     printf("gate: node with ID 0x%08X%08X joined to the network with address 0x%08X, RSSI %d dBm\n",
            (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF),
            (unsigned int) node->addr, ch->last_rssi);
+           
+    hd44780_set_cursor(&hd44780_dev, 0, 1);
+    char buf[17];
+    memset(buf, ' ', 16);
+    snprintf(buf, 17, "J %04x %d dB    ", (unsigned int)(node->node_id & 0xFFFF), ch->last_rssi);
+    
+    hd44780_print(&hd44780_dev, "J");
 
     /* Notify the gate */
     char str[128] = { '\0' };
@@ -529,6 +538,19 @@ static bool is_connect_button_pressed(void) {
 
 void init_normal(shell_command_t *commands)
 {
+    /* disable 3G modem */
+    gpio_init(MODEM_POWER_ENABLE, GPIO_OUT);
+    gpio_clear(MODEM_POWER_ENABLE);
+    
+    gpio_init(MODEM_POWER_SELECT, GPIO_OUT);
+    gpio_clear(MODEM_POWER_SELECT);
+    
+    gpio_init(RS485_POWER_ENABLE, GPIO_OUT);
+    gpio_clear(RS485_POWER_ENABLE);
+    
+    gpio_init(LORA2_NSS, GPIO_OUT);
+    gpio_set(LORA2_NSS);
+    
     if (!unwds_config_load()) {
         puts("[!] Gate is not configured yet. Type \"help\" to see list of possible configuration commands.");
         puts("[!] Configure the node and type \"reboot\" to reboot and apply settings.");
@@ -568,6 +590,11 @@ void init_normal(shell_command_t *commands)
     assert(i + k < UNWDS_SHELL_COMMANDS_MAX - 1);
     
     memcpy((void *)&commands[i], (void *)shell_commands, sizeof(shell_commands));
+    
+    hd44780_init(&hd44780_dev, &hd44780_params[0]);
+    hd44780_clear(&hd44780_dev);
+    hd44780_set_cursor(&hd44780_dev, 0, 0);
+    hd44780_print(&hd44780_dev, "Gate");
 }
 
 

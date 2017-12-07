@@ -4,6 +4,10 @@ APPLICATION = loralan-gateway
 # If no BOARD is found in the environment, use this default:
 BOARD ?= unwd-relay
 
+CFLAGS += -DHD44780_CYRILLIC
+CFLAGS += -DHD44780_PCF8574
+USEMODULE += hd44780
+
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../..
 

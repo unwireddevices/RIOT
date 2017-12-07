@@ -21,6 +21,8 @@
 #ifndef BOARD_H_
 #define BOARD_H_
 
+#include "hd44780.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -60,6 +62,11 @@ extern "C" {
 /** RF on/off switching pin */
 #define SX1276_RFSWITCH GPIO_PIN(PORT_B, 12)
 
+#define RS485_POWER_ENABLE GPIO_PIN(PORT_C, 13)
+#define MODEM_POWER_ENABLE GPIO_PIN(PORT_A, 13)
+#define MODEM_POWER_SELECT GPIO_PIN(PORT_A, 6)
+
+#define LORA2_NSS GPIO_PIN(PORT_B, 6)
 
 /** SX1276 SPI */
 
@@ -84,7 +91,7 @@ extern "C" {
 #define UNWD_CONNECT_BTN		GPIO_UNDEF
 
 /** LEDs */
-#define LED_GREEN   GPIO_PIN(PORT_B, 0)
+#define LED_GREEN   GPIO_UNDEF
 #define LED_RED     GPIO_UNDEF
 
 /** GPIO Ports */
@@ -124,6 +131,28 @@ extern "C" {
 #define XTIMER_OVERHEAD     (6)
 #define XTIMER_BACKOFF      (3)
 /** @} */
+
+/**
+ * @name display configuration
+ * @{
+ */
+#define UMDK_HD44780_PARAMS {    \
+    .cols   = 16,       \
+    .rows   = 2,        \
+    .rs     = 4,        \
+    .rw     = 5,        \
+    .enable = 6,        \
+    .data   = {0, 1, 2, 3,     \
+               HD44780_RW_OFF, HD44780_RW_OFF, HD44780_RW_OFF, HD44780_RW_OFF}, \
+    .backlight = 7,     \
+    .i2c_dev = 0,       \
+    .i2c_address = 0x20 \
+}
+
+static const hd44780_params_t hd44780_params[] =
+{
+    UMDK_HD44780_PARAMS,
+};
 
 /**
  * @brief   Initialize board specific hardware, including clock, LEDs and std-IO

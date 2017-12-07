@@ -59,6 +59,8 @@ static ls_ed_t ls;
 
 static uint8_t current_join_retries = 0;
 
+static hd44780_t hd44780_dev;
+
 void radio_init(void)
 {
     sx1276.nss_pin = SX1276_SPI_NSS;
@@ -557,6 +559,7 @@ shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX] = {
     { NULL, NULL, NULL },
 };
 
+#if 0
 static void unwds_callback(module_data_t *buf)
 {
     int res = ls_ed_send_app_data(&ls, buf->data, buf->length, true, buf->as_ack, false);
@@ -583,6 +586,7 @@ static void unwds_callback(module_data_t *buf)
 
     blink_led(LED_GREEN);
 }
+#endif
 
 static bool is_connect_button_pressed(void)
 {
@@ -621,6 +625,19 @@ static void ls_enable_sleep (void *arg) {
 
 void init_normal(shell_command_t *commands)
 {
+    /* disable 3G modem */
+    gpio_init(MODEM_POWER_ENABLE, GPIO_OUT);
+    gpio_clear(MODEM_POWER_ENABLE);
+    
+    gpio_init(MODEM_POWER_SELECT, GPIO_OUT);
+    gpio_clear(MODEM_POWER_SELECT);
+    
+    gpio_init(RS485_POWER_ENABLE, GPIO_OUT);
+    gpio_clear(RS485_POWER_ENABLE);
+    
+    gpio_init(LORA2_NSS, GPIO_OUT);
+    gpio_set(LORA2_NSS);
+    
     if (!unwds_config_load()) {
         puts("[!] Device is not configured yet. Type \"help\" to see list of possible configuration commands.");
         puts("[!] Configure the node and type \"reboot\" to reboot and apply settings.");
@@ -652,7 +669,7 @@ void init_normal(shell_command_t *commands)
             blink_led(LED_GREEN);
         }
         else {
-            unwds_init_modules(unwds_callback);
+            //unwds_init_modules(unwds_callback);
             
             /* reset IWDG timer every 15 seconds */
             /* NB: unwired-module MUST NOT need more than 3 seconds to finish its job */
@@ -693,6 +710,11 @@ void init_normal(shell_command_t *commands)
     assert(i + k < UNWDS_SHELL_COMMANDS_MAX - 1);
     
     memcpy((void *)&commands[i], (void *)shell_commands, sizeof(shell_commands));
+    
+    hd44780_init(&hd44780_dev, &hd44780_params[0]);
+    hd44780_clear(&hd44780_dev);
+    hd44780_set_cursor(&hd44780_dev, 0, 0);
+    hd44780_print(&hd44780_dev, "Node");
 }
 
 #ifdef __cplusplus

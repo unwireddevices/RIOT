@@ -38,7 +38,7 @@
     .i2c_address = 0x20 \
 }
 
-static const hd44780_params_t umdk_hd44780_params[] =
+static const hd44780_params_t hd44780_params[] =
 {
     UMDK_HD44780_PARAMS,
 };

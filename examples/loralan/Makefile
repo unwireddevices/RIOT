@@ -1,6 +1,10 @@
 # If no BOARD is found in the environment, use this default:
 BOARD ?= unwd-relay
 
+CFLAGS += -DHD44780_CYRILLIC
+CFLAGS += -DHD44780_PCF8574
+USEMODULE += hd44780
+
 ############ UMDK MODULES USED #####################
 # variable in the list below must match modules'
 # subdirectory name in ../../unwired-modules/
@@ -23,7 +27,7 @@ umdk-pwm	   = 0
 umdk-opt3001   = 0
 umdk-dali	   = 0
 umdk-bme280    = 0
-umdk-config    = 1
+umdk-config    = 0
 umdk-mhz19     = 0
 umdk-range     = 0
 umdk-hd44780   = 0

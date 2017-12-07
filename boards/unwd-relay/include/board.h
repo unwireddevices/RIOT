@@ -58,7 +58,7 @@ extern "C" {
 #define SX1276_DIO4 GPIO_PIN(PORT_A, 11)
 #define SX1276_DIO5 GPIO_UNDEF
 
-#define SX1276_RESET GPIO_UNDEF
+#define SX1276_RESET GPIO_PIN(PORT_H, 0)
 
 /** RF on/off switching pin */
 #define SX1276_RFSWITCH GPIO_PIN(PORT_B, 12)

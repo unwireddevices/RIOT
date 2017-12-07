@@ -263,9 +263,9 @@ void app_data_received_cb(ls_gate_node_t *node, ls_gate_channel_t *ch, uint8_t *
 			hex);
             
     hd44780_set_cursor(&hd44780_dev, 0, 1);
-    char buf[17];
-    memset(buf, ' ', 16);
-    snprintf(buf, 17, "D %04x %d dB    ", (unsigned int)(node->node_id & 0xFFFF), rssi);
+    char oled_buf[17];
+    memset(oled_buf, ' ', 16);
+    snprintf(oled_buf, 17, "D %04x %d dB    ", (unsigned int)(node->node_id & 0xFFFF), rssi);
 
     gc_pending_fifo_push(&fifo, str);
 }

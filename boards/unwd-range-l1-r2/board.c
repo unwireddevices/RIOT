@@ -20,6 +20,7 @@
 
 #include "board.h"
 #include "periph/gpio.h"
+#include "lpm.h"
 
 void board_init(void)
 {
@@ -27,5 +28,13 @@ void board_init(void)
     cpu_init();
 
     /* initialize the boards LEDs */
-    gpio_init(LED0_PIN, GPIO_OUT);
+    if (LED_GREEN != GPIO_UNDEF) {
+        gpio_init(LED_GREEN, GPIO_OUT);
+        lpm_add_gpio_exclusion(LED_GREEN);
+    }
+    
+    if (LED_RED != GPIO_UNDEF) {
+        gpio_init(LED_RED, GPIO_OUT);
+        lpm_add_gpio_exclusion(LED_RED);
+    }
 }

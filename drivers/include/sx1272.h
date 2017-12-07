@@ -30,6 +30,9 @@
 
 #define SX1272_EVENT_HANDLER_STACK_SIZE 2048
 
+#define SX1272_RFSWITCH_ACTIVE_LOW     0
+#define SX1272_RFSWITCH_ACTIVE_HIGH    1
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -133,7 +136,8 @@ typedef enum {
 
     SX1272_FHSS_CHANGE_CHANNEL,
     SX1272_CAD_DONE,
-
+    SX1272_CAD_DETECTED,
+    SX1272_VALID_HEADER,
 } sx1272_event_type_t;
 
 /***
@@ -170,6 +174,7 @@ typedef struct sx1272_s {
     gpio_t dio4_pin;                                                    /**< Interrupt line DIO4 (not used) */
     gpio_t dio5_pin;                                                    /**< Interrupt line DIO5 (not used) */
     gpio_t rfswitch_pin;                                                /**< PE4259 power switch control */
+    gpio_t rfswitch_mode;
 
     sx1272_settings_t settings;                                         /**< Transceiver settings */
 
@@ -188,6 +193,11 @@ typedef enum {
     SX1272_ERR_TEST_FAILED,     /**< SX1272 testing failed during initialization (check chip) */
     SX1272_ERR_THREAD           /**< Unable to create DIO handling thread (check amount of free memory) */
 } sx1272_init_result_t;
+
+typedef enum {
+    SX1272_MODE_CADDONE = 0,
+    SX1272_MODE_CADDETECT,
+} sx1272_cadmode_t;
 
 /**
  * Hardware IO IRQ callback function definition.
@@ -364,7 +374,7 @@ void sx1272_set_tx(sx1272_t *dev, uint32_t timeout);
  * @param	[IN]	dev		The sx1272 device structure pointer
  */
 
-void sx1272_start_cad(sx1272_t *dev);
+void sx1272_start_cad(sx1272_t *dev, uint8_t cadmode);
 
 /**
  * @brief Reads the current RSSI value.

@@ -27,6 +27,7 @@
 
 #include "xtimer.h"
 #include "thread.h"
+#include "lpm.h"
 
 #include "sx1276.h"
 #include "include/sx1276_regs_fsk.h"
@@ -104,6 +105,8 @@ static void sx1276_on_dio0_isr(void *arg);
 static void sx1276_on_dio1_isr(void *arg);
 static void sx1276_on_dio2_isr(void *arg);
 static void sx1276_on_dio3_isr(void *arg);
+static void sx1276_on_dio4_isr(void *arg);
+static void sx1276_on_dio5_isr(void *arg);
 
 static void _init_isrs(sx1276_t *dev)
 {
@@ -121,6 +124,13 @@ static void _init_isrs(sx1276_t *dev)
     
     if (dev->dio3_pin != GPIO_UNDEF ) {
         gpio_init_int(dev->dio3_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio3_isr, dev);
+    }
+    if (dev->dio4_pin != GPIO_UNDEF ) {
+        gpio_init_int(dev->dio4_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio4_isr, dev);
+    }
+    
+    if (dev->dio5_pin != GPIO_UNDEF ) {
+        gpio_init_int(dev->dio5_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio5_isr, dev);
     }
 }
 
@@ -284,7 +294,6 @@ bool sx1276_is_channel_free(sx1276_t *dev, uint32_t freq, int16_t rssi_thresh)
     sx1276_set_channel(dev, freq);
     sx1276_set_op_mode(dev, RF_OPMODE_RECEIVER);
 
-    // xtimer_usleep(1000); /* wait 1 millisecond */
     xtimer_spin(xtimer_ticks_from_usec(1000));
 
     rssi = sx1276_read_rssi(dev);
@@ -311,7 +320,8 @@ void sx1276_set_modem(sx1276_t *dev, sx1276_radio_modems_t modem)
                              | RFLR_OPMODE_LONGRANGEMODE_ON);
 
             sx1276_reg_write(dev, REG_DIOMAPPING1, 0x00);
-            sx1276_reg_write(dev, REG_DIOMAPPING2, 0x10); /* DIO5=ClkOut */
+            /* sx1276_reg_write(dev, REG_DIOMAPPING2, 0x10); */ /* DIO5=ClkOut */
+            sx1276_reg_write(dev, REG_DIOMAPPING2, 0x00);
             break;
 
         case SX1276_MODEM_FSK:
@@ -358,7 +368,7 @@ uint32_t sx1276_random(sx1276_t *dev)
     sx1276_set_op_mode(dev, RF_OPMODE_RECEIVER);
 
     for (i = 0; i < 32; i++) {
-        //xtimer_usleep(1000); /* wait for the chaos */
+        /* wait for the chaos */
         xtimer_spin(xtimer_ticks_from_usec(1000));
 
         /* Non-filtered RSSI value reading. Only takes the LSB value */
@@ -699,8 +709,8 @@ void sx1276_send(sx1276_t *dev, uint8_t *buffer, uint8_t size)
             if ((sx1276_reg_read(dev, REG_OPMODE) & ~RF_OPMODE_MASK)
                 == RF_OPMODE_SLEEP) {
                 sx1276_set_standby(dev);
-                //xtimer_usleep(SX1276_RADIO_WAKEUP_TIME); /* wait for chip wake up */
-                xtimer_spin(xtimer_ticks_from_usec(SX1276_RADIO_WAKEUP_TIME));
+                /* wait for chip wake up */
+                xtimer_spin(xtimer_ticks_from_usec(1000*SX1276_RADIO_WAKEUP_TIME));
             }
 
             /* Write payload buffer */
@@ -832,7 +842,7 @@ void sx1276_set_rx(sx1276_t *dev, uint32_t timeout)
                 sx1276_reg_write(dev, REG_LR_IRQFLAGSMASK,  //RFLR_IRQFLAGS_RXTIMEOUT |
                                                             //RFLR_IRQFLAGS_RXDONE |
                                                             //RFLR_IRQFLAGS_PAYLOADCRCERROR |
-                                 RFLR_IRQFLAGS_VALIDHEADER |
+                                                            //RFLR_IRQFLAGS_VALIDHEADER |
                                  RFLR_IRQFLAGS_TXDONE |
                                  RFLR_IRQFLAGS_CADDONE |
                                  RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL |
@@ -844,6 +854,13 @@ void sx1276_set_rx(sx1276_t *dev, uint32_t timeout)
                                  (sx1276_reg_read(dev, REG_DIOMAPPING1)
                                   & RFLR_DIOMAPPING1_DIO0_MASK)
                                  | RFLR_DIOMAPPING1_DIO0_00);
+                                 
+                // DIO3=ValidHeader
+                sx1276_reg_write(dev,
+                                 REG_DIOMAPPING1,
+                                 (sx1276_reg_read(dev, REG_DIOMAPPING1)
+                                  & RFLR_DIOMAPPING1_DIO3_MASK)
+                                 | RFLR_DIOMAPPING1_DIO3_01);
             }
 
             sx1276_reg_write(dev, REG_LR_FIFORXBASEADDR, 0);
@@ -866,7 +883,7 @@ void sx1276_set_rx(sx1276_t *dev, uint32_t timeout)
     }
 }
 
-void sx1276_start_cad(sx1276_t *dev)
+void sx1276_start_cad(sx1276_t *dev, uint8_t cadmode)
 {
     switch (dev->settings.modem) {
         case SX1276_MODEM_FSK:
@@ -876,23 +893,39 @@ void sx1276_start_cad(sx1276_t *dev)
         break;
         case SX1276_MODEM_LORA:
         {
-            sx1276_reg_write(dev, REG_LR_IRQFLAGSMASK, RFLR_IRQFLAGS_RXTIMEOUT |
-                             RFLR_IRQFLAGS_RXDONE |
-                             RFLR_IRQFLAGS_PAYLOADCRCERROR |
-                             RFLR_IRQFLAGS_VALIDHEADER |
-                             RFLR_IRQFLAGS_TXDONE |
-                                                                //RFLR_IRQFLAGS_CADDONE |
-                             RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL   // |
-                                                                //RFLR_IRQFLAGS_CADDETECTED
-                             );
+            uint32_t reg = RFLR_IRQFLAGS_RXTIMEOUT |
+                           RFLR_IRQFLAGS_RXDONE |
+                           RFLR_IRQFLAGS_PAYLOADCRCERROR |
+                           RFLR_IRQFLAGS_VALIDHEADER |
+                           RFLR_IRQFLAGS_TXDONE |
+                           RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL;
+                           
+            /* mask interrupt for CadDone or CadDetect */
+            if (cadmode == SX1276_MODE_CADDONE) {
+                reg |= RFLR_IRQFLAGS_CADDETECTED;
+            } else {
+                reg |= RFLR_IRQFLAGS_CADDONE;
+            }
+                             
+            sx1276_reg_write(dev, REG_LR_IRQFLAGSMASK, reg);
 
-            // DIO3=CADDone
-            sx1276_reg_write(dev,
-                             REG_DIOMAPPING1,
-                             (sx1276_reg_read(dev, REG_DIOMAPPING1)
-                              & RFLR_DIOMAPPING1_DIO0_MASK) | RFLR_DIOMAPPING1_DIO0_00);
+            // DIO3 = CADDone
+            // DIO4 = CADDetected
+            if (cadmode == SX1276_MODE_CADDONE) {
+                sx1276_reg_write(dev,
+                                 REG_DIOMAPPING1,
+                                 (sx1276_reg_read(dev, REG_DIOMAPPING1)
+                                  & RFLR_DIOMAPPING1_DIO3_MASK) | RFLR_DIOMAPPING1_DIO3_00);
+            } else {
+                sx1276_reg_write(dev,
+                                 REG_DIOMAPPING2,
+                                 (sx1276_reg_read(dev, REG_DIOMAPPING2)
+                                  & RFLR_DIOMAPPING2_DIO4_MASK) | RFLR_DIOMAPPING2_DIO4_00);
+            }
+                              
 
             sx1276_set_status(dev,  SX1276_RF_CAD);
+                              
             sx1276_set_op_mode(dev, RFLR_OPMODE_CAD);
         }
         break;
@@ -942,7 +975,6 @@ void sx1276_reset(sx1276_t *dev)
         gpio_clear(dev->reset_pin);
 
         /* Wait 1 ms */
-        //xtimer_usleep(1000);
         xtimer_spin(xtimer_ticks_from_usec(1000));
 
         /* Put reset pin in High-Z */
@@ -951,8 +983,7 @@ void sx1276_reset(sx1276_t *dev)
         gpio_set(dev->reset_pin);
 
         /* Wait 10 ms */
-        //xtimer_usleep(1000 * 10);
-        xtimer_spin(xtimer_ticks_from_usec(1000*10));
+        xtimer_spin(xtimer_ticks_from_usec(10000));
     }
 }
 
@@ -988,7 +1019,9 @@ void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode)
             } else {
                 gpio_clear(dev->rfswitch_pin);
             }
-        }
+        }        
+        /* switch CPU to low-power mode */
+        /* lpm_set(LPM_IDLE); */
 	} else {
         if (dev->dio0_pin != GPIO_UNDEF ) {
             gpio_irq_enable(dev->dio0_pin);
@@ -1087,6 +1120,27 @@ void sx1276_write_fifo(sx1276_t *dev, uint8_t *buffer, uint8_t size)
 void sx1276_read_fifo(sx1276_t *dev, uint8_t *buffer, uint8_t size)
 {
     sx1276_reg_read_burst(dev, 0, buffer, size);
+}
+
+sx1276_modem_status_t sx1276_get_modem_status(sx1276_t *dev) {
+    uint8_t status = sx1276_reg_read(dev, REG_LR_MODEMSTAT);
+    if (status & (1 << 4)) {
+        return SX1276_MODEM_CLEAR;
+    }
+    
+    if (status & (1 << 3)) {
+        return SX1276_HEADER_INFO_VALID;
+    }
+    
+    if (status & (1 << 1)) {
+        return SX1276_SIGNAL_SYNC;
+    }
+    
+    if (status & (1 << 0)) {
+        return SX1276_SIGNAL_DETECT;
+    }
+    
+    return SX1276_STATUS_OTHER;
 }
 
 /**
@@ -1226,7 +1280,7 @@ void sx1276_on_dio0(void *arg)
             }
             break;
         case SX1276_RF_TX_RUNNING:
-            xtimer_remove(&dev->_internal.tx_timeout_timer);                /* Clear TX timeout timer */
+            xtimer_remove(&dev->_internal.tx_timeout_timer);      /* Clear TX timeout timer */
 
             sx1276_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_TXDONE);   /* Clear IRQ */
             sx1276_set_status(dev,  SX1276_RF_IDLE);
@@ -1317,12 +1371,41 @@ void sx1276_on_dio3(void *arg)
         case SX1276_MODEM_FSK:
             break;
         case SX1276_MODEM_LORA:
-            /* Clear IRQ */
-            sx1276_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_CADDETECTED | RFLR_IRQFLAGS_CADDONE);
+            /* Send event message */
+            if ((sx1276_reg_read(dev, REG_LR_IRQFLAGS) & RFLR_IRQFLAGS_VALIDHEADER) == RFLR_IRQFLAGS_VALIDHEADER) {
+                send_event(dev, SX1276_VALID_HEADER);
+                
+                /* Clear IRQ */
+                sx1276_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_VALIDHEADER);
+            } else {
+                dev->_internal.is_last_cad_success = (sx1276_reg_read(dev, REG_LR_IRQFLAGS) & RFLR_IRQFLAGS_CADDETECTED) == RFLR_IRQFLAGS_CADDETECTED;
+                send_event(dev, SX1276_CAD_DONE);
+                
+                /* Clear IRQ */
+                sx1276_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_CADDETECTED | RFLR_IRQFLAGS_CADDONE);
+            }
+            break;
+        default:
+            break;
+    }
+}
 
+/* DIO4 may be used for CadDetect events */
+void sx1276_on_dio4(void *arg)
+{
+    /* Get interrupt context */
+    sx1276_t *dev = (sx1276_t *) arg;
+
+    switch (dev->settings.modem) {
+        case SX1276_MODEM_FSK:
+            break;
+        case SX1276_MODEM_LORA:
             /* Send event message */
             dev->_internal.is_last_cad_success = (sx1276_reg_read(dev, REG_LR_IRQFLAGS) & RFLR_IRQFLAGS_CADDETECTED) == RFLR_IRQFLAGS_CADDETECTED;
-            send_event(dev, SX1276_CAD_DONE);
+            send_event(dev, SX1276_CAD_DETECTED);
+            
+            /* Clear IRQ */
+            sx1276_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_CADDETECTED | RFLR_IRQFLAGS_CADDONE);
             break;
         default:
             break;
@@ -1330,11 +1413,6 @@ void sx1276_on_dio3(void *arg)
 }
 
 /* Following interrupt lines are not used */
-void sx1276_on_dio4(void *arg)
-{
-    (void) arg;
-}
-
 void sx1276_on_dio5(void *arg)
 {
     (void) arg;

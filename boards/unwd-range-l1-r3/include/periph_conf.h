@@ -30,20 +30,27 @@ extern "C" {
  * @name Clock system configuration
  * @{
  **/
-#define CLOCK_HSI           (16000000U)             /* frequency of internal oscillator */
+#define CLOCK_HSE           (24000000U)             /* external high-speed crystal frequency */
+#define CLOCK_HSI           (16000000U)             /* internal high-speed crystal frequency */
 #define CLOCK_CORECLOCK     (32000000U)             /* targeted core clock frequency */
 /* configuration of PLL prescaler and multiply values */
 /* CORECLOCK := HSI / CLOCK_PLL_DIV * CLOCK_PLL_MUL */
 #define CLOCK_PLL_DIV       RCC_CFGR_PLLDIV2
 #define CLOCK_PLL_MUL       RCC_CFGR_PLLMUL4
+
+#define CLOCK_PLL_DIV_HSI   RCC_CFGR_PLLDIV2
+#define CLOCK_PLL_MUL_HSI   RCC_CFGR_PLLMUL4
+
+#define CLOCK_PLL_DIV_HSE   RCC_CFGR_PLLDIV3
+#define CLOCK_PLL_MUL_HSE   RCC_CFGR_PLLMUL4
+
+#define CLOCK_STATUS_BACKUP_REG 1
 /* configuration of peripheral bus clock prescalers */
 #define CLOCK_AHB_DIV       RCC_CFGR_HPRE_DIV1      /* AHB clock -> 32MHz */
 #define CLOCK_APB2_DIV      RCC_CFGR_PPRE2_DIV1     /* APB2 clock -> 32MHz */
 #define CLOCK_APB1_DIV      RCC_CFGR_PPRE1_DIV1     /* APB1 clock -> 32MHz */
 /* configuration of flash access cycles */
 #define CLOCK_FLASH_LATENCY FLASH_ACR_LATENCY
-/* only PA, PB and PC are in use */
-#define CPU_NUMBER_OF_PORTS 3
 /** @} */
 
 /* bus clocks for simplified peripheral initialization, UPDATE MANUALLY! */
@@ -63,19 +70,20 @@ extern "C" {
  * @brief Timer configuration
  * @{
  */
+#define TIMER_0_MAX_VALUE   (0x0000ffff)
+ 
 static const timer_conf_t timer_config[] = {
     {
-        .dev      = TIM5,
-        .max      = 0xffffffff,
-        .rcc_mask = RCC_APB1ENR_TIM5EN,
-        .bus      = APB1,
-        .irqn     = TIM5_IRQn
+        .dev      = TIM11,
+        .max      = TIMER_0_MAX_VALUE,
+        .rcc_mask = RCC_APB2ENR_TIM11EN,
+        .bus      = APB2,
+        .irqn     = TIM11_IRQn
     }
 };
 
-/* interrupt routines */
-#define TIMER_0_ISR         (isr_tim5)
-/* number of defined timers */
+#define TIMER_0_ISR         isr_tim11
+
 #define TIMER_NUMOF         (sizeof(timer_config) / sizeof(timer_config[0]))
 /** @} */
 
@@ -84,6 +92,8 @@ static const timer_conf_t timer_config[] = {
  * @{
  */
 #define RTC_NUMOF           (1U)
+
+#define RTC_IRQ_PRIO        CPU_DEFAULT_IRQ_PRIO
 
 /**
  * @brief UART configuration
@@ -153,7 +163,7 @@ static const uart_conf_t uart_config[] = {
 #define GPIO_13_EN          1
 #define GPIO_14_EN          1
 #define GPIO_15_EN          1
-#define GPIO_IRQ_PRIO       1
+#define GPIO_IRQ_PRIO       CPU_DEFAULT_IRQ_PRIO
 
 /* IRQ config */
 #define GPIO_IRQ_0          GPIO_13
@@ -355,7 +365,7 @@ static const pwm_conf_t pwm_config[] = {
 #define I2C_0_EN            1
 #define I2C_1_EN            1
 #define I2C_NUMOF           (I2C_0_EN + I2C_1_EN)
-#define I2C_IRQ_PRIO        1
+#define I2C_IRQ_PRIO        CPU_DEFAULT_IRQ_PRIO
 #define I2C_APBCLK          (CLOCK_APB1)
 
 /* I2C 0 device configuration */

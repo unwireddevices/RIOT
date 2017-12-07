@@ -1,3 +1,35 @@
+05.12.2017
+* connection stability improvements
+* better collision avoidance algorithms
+
+26.11.2017
+* connection stability improvements
+* EEPROM write fails after failed EEPROM operation fixed
+* gateway running on MSI clock fixed
+* same EEPROM settings structure for both gateway and device
+* major internal refactoring
+
+23.11.2017
+* stable subseconds RTC timer implementation with 60 s upper limit
+* ADC fix for STM32L1CB-A series
+* fix RTC interrupts priority
+* almost 8KB smaller footprint due to new AES128 implementation
+* fully dynamic memory allocation for enabled modules
+* small scale speed and memory optimizations
+
+06.11.2017
+* multiple fixes in loralan network stack
+* Listen-Before-Talk using LoRa Channel Activity Detection
+* determine MCU RAM/flash/EEPROM size in runtime
+* MCU HSE/HSI crystal selection in runtime on startup
+* subseconds RTC timers and better power efficiency
+* better SX1276 settings handling
+
+31.10.2017
+* HD44780 driver, both direct bitbang and PCF8574 I2C GPIO expander
+* umdk-ibutton module
+* umdk-pacs module (commercial firmware only)
+
 10.10.2017
 * automatically determine EEPROM size to seamlessly support both L151CB and L151CC
 

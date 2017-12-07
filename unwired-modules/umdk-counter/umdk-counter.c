@@ -46,11 +46,13 @@ extern "C" {
 #include "thread.h"
 #include "xtimer.h"
 #include "rtctimers.h"
+#include "rtctimers-millis.h"
 
 static kernel_pid_t handler_pid;
 
 static uwnds_cb_t *callback;
 static rtctimer_t publishing_timer;
+static rtctimers_millis_t polling_timer;
 
 static uint8_t ignore_irq[UMDK_COUNTER_NUM_SENS] = { };
 static uint32_t last_value[UMDK_COUNTER_NUM_SENS] = { };
@@ -68,7 +70,6 @@ static gpio_t pins_sens[UMDK_COUNTER_NUM_SENS] = { UMDK_COUNTER_1, UMDK_COUNTER_
 static void counter_poll(void *arg)
 {
     int i = 0;
-    bool wakeup = false;
     
     for (i = 0; i < UMDK_COUNTER_NUM_SENS; i++) {
         if (ignore_irq[i]) {
@@ -88,15 +89,11 @@ static void counter_poll(void *arg)
             } else {
                 gpio_init(pins_sens[i], GPIO_AIN);
                 last_value[i] = value;
-                wakeup = true;
             }
         }
     }
     
-    /* All counters in IRQ mode */
-    if (!wakeup) {
-        rtc_disable_wakeup();
-    }
+    rtctimers_millis_set(&polling_timer, UMDK_COUNTER_SLEEP_TIME_MS);
 }
 
 static void counter_irq(void* arg)
@@ -113,7 +110,7 @@ static void counter_irq(void* arg)
     conf_counter.count_value[num]++;
     /* Start periodic check every 100 ms */
     last_value[num] = 0;
-    rtc_enable_wakeup();
+    rtctimers_millis_set(&polling_timer, UMDK_COUNTER_SLEEP_TIME_MS);
 }
 
 static inline void save_config(void)
@@ -242,7 +239,7 @@ void umdk_counter_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     gpio_init_int(UMDK_COUNTER_BTN, GPIO_IN_PU, GPIO_FALLING, btn_connect, NULL);
 
     /* Create handler thread */
-    char *stack = (char *) allocate_stack();
+    char *stack = (char *) allocate_stack(UMDK_COUNTER_STACK_SIZE);
     if (!stack) {
         puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Is too many modules enabled?");
         return;
@@ -257,7 +254,7 @@ void umdk_counter_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     
     unwds_add_shell_command(_UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_counter_shell_cmd);
 
-    handler_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, \
+    handler_pid = thread_create(stack, UMDK_COUNTER_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, \
                                 THREAD_CREATE_STACKTEST, handler, NULL, _UMDK_NAME_ " thread");
 
     /* Start publishing timer */
@@ -265,10 +262,8 @@ void umdk_counter_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
                       UMDK_COUNTER_VALUE_PERIOD_PER_SEC * conf_counter.publish_period, \
                       &publishing_msg, handler_pid);
                       
-    /* Configure periodic wakeup */
-    rtc_set_wakeup(UMDK_COUNTER_SLEEP_TIME_MS*1e3, &counter_poll, NULL);
-    /* But disable it for now */
-    rtc_disable_wakeup();
+    /* Configure periodic timer  */
+    polling_timer.callback = &counter_poll;
 }
 
 

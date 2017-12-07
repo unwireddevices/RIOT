@@ -57,7 +57,7 @@ typedef struct {
 typedef struct {
 	mhz19_param_t params;					/**< Holds driver parameters */
 	uint8_t rxbuf[MHZ19_RXBUF_SIZE_BYTES];     /**< Memory buffer for the data */
-	uint8_t reader_stack[MHZ19_READER_THREAD_STACK_SIZE_BYTES];	/**< Reader thread stack */
+	uint8_t *reader_stack;	/**< Reader thread stack */
 	kernel_pid_t reader_pid;				/**< Reader thread PID */
 } mhz19_t;
 

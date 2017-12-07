@@ -25,6 +25,8 @@
 #define UMDK_4BTN_3 UNWD_GPIO_6
 #define UMDK_4BTN_4 UNWD_GPIO_7
 
+#define UMDK_4BTN_STACK_SIZE 1024
+
 #define UMDK_4BTN_DEBOUNCE_TIME_MS 100
 
 void umdk_4btn_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);

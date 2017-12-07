@@ -21,9 +21,6 @@
 #ifndef BOARD_H_
 #define BOARD_H_
 
-#include "board_common.h"
-#include "hd44780.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -32,7 +29,7 @@ extern "C" {
  * @name SX1276 configuration
  * @{
  */
-#define RF_FREQUENCY                                868900000 // Hz, 868MHz
+#define RF_FREQUENCY                                868850000 // Hz, 868MHz
 #define TX_OUTPUT_POWER                             17        // dBm
 
 
@@ -51,17 +48,18 @@ extern "C" {
 #define LORA_FIX_LENGTH_PAYLOAD_ON                  true
 #define LORA_IQ_INVERSION							false
 
-#define SX1276_DIO0 GPIO_PIN(PORT_A, 15)
-#define SX1276_DIO1 GPIO_PIN(PORT_A, 14)
+#define SX1276_DIO0 GPIO_PIN(PORT_A, 8)
+#define SX1276_DIO1 GPIO_PIN(PORT_A, 7)
 #define SX1276_DIO2 GPIO_UNDEF
-#define SX1276_DIO3 GPIO_PIN(PORT_A, 12)
-#define SX1276_DIO4 GPIO_PIN(PORT_A, 11)
+#define SX1276_DIO3 GPIO_PIN(PORT_A, 5) /* CadDone */
+#define SX1276_DIO4 GPIO_PIN(PORT_A, 4) /* CadDetect */
 #define SX1276_DIO5 GPIO_UNDEF
 
-#define SX1276_RESET GPIO_PIN(PORT_H, 0)
+#define SX1276_RESET GPIO_PIN(PORT_H, 1)
 
 /** RF on/off switching pin */
 #define SX1276_RFSWITCH GPIO_PIN(PORT_B, 12)
+
 
 /** SX1276 SPI */
 
@@ -69,7 +67,7 @@ extern "C" {
 
 #ifdef USE_SPI_1
 #define SX1276_SPI SPI_1
-#define SX1276_SPI_NSS GPIO_PIN(PORT_B, 6)
+#define SX1276_SPI_NSS GPIO_PIN(PORT_B, 7)
 #define SX1276_SPI_MODE SPI_CONF_FIRST_RISING
 #define SX1276_SPI_SPEED SPI_SPEED_1MHZ
 #endif
@@ -81,11 +79,41 @@ extern "C" {
 #define SX1276_SPI_SPEED SPI_SPEED_1MHZ
 #endif
 
+/** "Connect" Button */
+#define UNWD_USE_CONNECT_BTN	0
+#define UNWD_CONNECT_BTN		GPIO_UNDEF
+
+/** LEDs */
+#define LED_GREEN   GPIO_PIN(PORT_B, 0)
+#define LED_RED     GPIO_UNDEF
+
+/** GPIO Ports */
+#define UNWD_GPIO_1 GPIO_PIN(PORT_B, 1)
+#define UNWD_GPIO_4 GPIO_PIN(PORT_A, 4)
+#define UNWD_GPIO_5 GPIO_PIN(PORT_A, 5)
+#define UNWD_GPIO_6 GPIO_PIN(PORT_B, 8)
+#define UNWD_GPIO_7 GPIO_PIN(PORT_B, 9)
+#define UNWD_GPIO_16 GPIO_PIN(PORT_B, 3)
+#define UNWD_GPIO_17 GPIO_PIN(PORT_A, 15)
+
+#define UNWD_GPIO_30 GPIO_PIN(PORT_B, 11)
+#define UNWD_GPIO_29 GPIO_PIN(PORT_B, 10)
+#define UNWD_GPIO_28 GPIO_PIN(PORT_A, 7)
+#define UNWD_GPIO_27 GPIO_PIN(PORT_A, 6)
+#define UNWD_GPIO_26 GPIO_PIN(PORT_A, 3)
+#define UNWD_GPIO_25 GPIO_PIN(PORT_A, 2)
+#define UNWD_GPIO_24 GPIO_PIN(PORT_A, 1)
+
 /** @} */
 
 #define UART_STDIO_DEV              UART_DEV(0)
 #define UART_STDIO_BAUDRATE         (115200U)
 #define UART_STDIO_RX_BUFSIZE       (64U)
+
+#define GATE_COMM_UART              (UART_DEV(1))
+
+#define UMDK_UART_DEV 1
+#define UMDK_UART_BAUDRATE_NO 7 /* 115200 */
 
 /**
  * @name xtimer configuration
@@ -97,41 +125,10 @@ extern "C" {
 #define XTIMER_BACKOFF      (3)
 /** @} */
 
-/* umdk-16x2 board uses PCF8574 I2C GPIO expander */ 
-/* so below are not MCU GPIOs but PCF8574 GPIO numbers */
-#define UMDK_HD44780_PARAMS {    \
-    .cols   = 16,       \
-    .rows   = 2,        \
-    .rs     = 4,        \
-    .rw     = 5,        \
-    .enable = 6,        \
-    .data   = {0, 1, 2, 3,     \
-               HD44780_RW_OFF, HD44780_RW_OFF, HD44780_RW_OFF, HD44780_RW_OFF}, \
-    .backlight = 7,     \
-    .i2c_dev = 0,       \
-    .i2c_address = 0x20 \
-}
-
-static const hd44780_params_t hd44780_params[] =
-{
-    UMDK_HD44780_PARAMS,
-};
-
-#define UMDK_HD44780_ROWS 2
-#define UMDK_HD44780_COLS 16
-
-/* 1 to normal mode, 0 to low-power mode */
-#define VOUT_3V3_SLEEP_PIN  GPIO_PIN(PORT_A, 1)
-
-/* 1 to enable, 0 to disable */
-#define RS485_POWER_PIN  GPIO_PIN(PORT_C, 13)
-
-/* 1 to enable, 0 to disable */
-#define MODEM_POWER_PIN  GPIO_PIN(PORT_A, 13)
-
-/* 1 to 5 V, 0 to 3.8V */
-#define MODEM_POWER_SELECT  GPIO_PIN(PORT_A, 6)
-
+/**
+ * @brief   Initialize board specific hardware, including clock, LEDs and std-IO
+ */
+void board_init(void);
 
 #ifdef __cplusplus
 }

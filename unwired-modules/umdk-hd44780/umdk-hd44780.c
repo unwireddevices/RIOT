@@ -118,11 +118,13 @@ bool umdk_hd44780_cmd(module_data_t *data, module_data_t *reply) {
                 hd44780_clear(&dev);
             }
             
-            uint8_t row = (data->data[1] & 0x40) >> 6;         
-            uint8_t col = (data->data[1] & 0x3F);
+            uint8_t row = (data->data[1] & 0x60) >> 5;         
+            uint8_t col = (data->data[1] & 0x1F);
             
             hd44780_set_cursor(&dev, row, col);
             char line[UMDK_HD44780_COLS + 1] = { 0 };
+            /* fill the string with spaces to clear whole line on LCD */
+            memset(line, ' ', UMDK_HD44780_COLS);
             
             if (data->length - 2 > UMDK_HD44780_COLS) {
                 memcpy(line, &data->data[2], UMDK_HD44780_COLS);

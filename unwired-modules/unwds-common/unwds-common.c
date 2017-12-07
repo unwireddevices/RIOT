@@ -141,9 +141,9 @@ static bool unwds_storage_init(void) {
 }
 
 static bool unwds_storage_cleanup(void) {
-    int clean_blocks = 0;
-    int i = 0;
-    int k = 0;
+    uint32_t clean_blocks = 0;
+    uint32_t i = 0;
+    uint32_t k = 0;
     
     for (i = 0; i < unwds_eeprom_layout.storage_blocks; i++) {
         if (storage_blocks[i] == 0) {
@@ -188,7 +188,7 @@ static bool unwds_storage_cleanup(void) {
 }
 
 static bool unwds_create_storage_block(unwds_module_id_t module_id) {
-    int i = 0;
+    uint32_t i = 0;
     for (i = 0; i < unwds_eeprom_layout.storage_blocks; i++) {
         if (storage_blocks[i] == 0) {
             DEBUG("Found empty storage block\n");
@@ -211,8 +211,8 @@ static bool unwds_create_storage_block(unwds_module_id_t module_id) {
 
 bool unwds_read_nvram_storage(unwds_module_id_t module_id, uint8_t *data_out, uint8_t size) {
     
-    int addr = 0;
-    int i = 0;
+    uint32_t addr = 0;
+    uint32_t i = 0;
     
     /* add the module to the list of modules currently using EEPROM storage */
     for (i = 0; i < unwds_eeprom_layout.storage_blocks; i++) {
@@ -253,8 +253,8 @@ bool unwds_write_nvram_storage(unwds_module_id_t module_id, uint8_t *data, size_
     if (data_size > 128)
 		return false;
     
-    int addr = 0;
-    int i = 0;
+    uint32_t addr = 0;
+    uint32_t i = 0;
     
     for (i = 0; i < unwds_eeprom_layout.storage_blocks; i++) {
         if (storage_blocks[i] == module_id) {
@@ -296,15 +296,18 @@ bool unwds_erase_nvram_config(unwds_module_id_t module_id) {
 /**
  * Stacks pool.
  */
-static uint8_t stacks_pool[UNWDS_STACK_POOL_SIZE][UNWDS_STACK_SIZE_BYTES];
-static uint8_t stacks_allocated = 0;
+// static uint8_t stack_pool[UNWDS_STACK_POOL_SIZE_BYTES];
+// static uint32_t stack_size_used = 0;
 
-uint8_t *allocate_stack(void) {
-	/* Stacks pool is full */
-	if (stacks_allocated == UNWDS_STACK_POOL_SIZE)
-		return NULL;
-
-	return stacks_pool[stacks_allocated++];
+uint8_t *allocate_stack(uint32_t stack_size) {
+    uint8_t *address = (uint8_t *)malloc(stack_size);
+    
+    /* additional check for allocation validity */
+    if (address && !cpu_check_address((char *)&address[stack_size - 1])) {
+        address = NULL;
+    }
+    
+    return address;
 }
 
 void unwds_init_modules(uwnds_cb_t *event_callback)
@@ -317,9 +320,8 @@ void unwds_init_modules(uwnds_cb_t *event_callback)
     while (modules[i].init_cb != NULL && modules[i].cmd_cb != NULL) {
     	if (enabled_bitmap[modules[i].module_id / 32] & (1 << (modules[i].module_id % 32))) {	/* Module enabled */
     		printf("[unwds] initializing \"%s\" module...\n", modules[i].name);
-        	modules[i].init_cb(&non_gpio_pin_map, event_callback);
+            modules[i].init_cb(&non_gpio_pin_map, event_callback);
     	}
-
         i++;
     }
     
@@ -376,6 +378,14 @@ bool unwds_is_module_exists(unwds_module_id_t modid) {
 	return find_module(modid) != NULL;
 }
 
+bool unwds_is_module_enabled(unwds_module_id_t modid) {
+    if (!find_module(modid)) {
+        return false;
+    }
+    
+	return (enabled_bitmap[modid / 32] & (1 << (modid % 32)));
+}
+
 bool unwds_send_broadcast(unwds_module_id_t modid, module_data_t *data, module_data_t *reply)
 {
 	unwd_module_t *module = find_module(modid);
@@ -388,12 +398,13 @@ bool unwds_send_broadcast(unwds_module_id_t modid, module_data_t *data, module_d
 	return false;
 }
 
-bool unwds_send_to_module(unwds_module_id_t modid, module_data_t *data, module_data_t *reply)
+int unwds_send_to_module(unwds_module_id_t modid, module_data_t *data, module_data_t *reply)
 {
+    if (!unwds_is_module_enabled(modid)) {
+        return UNWDS_MODULE_NOT_FOUND;
+    }
+    
 	unwd_module_t *module = find_module(modid);
-	if (!module)
-		return false;
-
 	return module->cmd_cb(data, reply);
 }
 
@@ -408,8 +419,8 @@ uint32_t * unwds_get_enabled(void)
 }
 
 void unwds_add_shell_command(char *name, char *desc, void* handler) {
-    int i = 0;
-    for (i = 0; i < UNWDS_SHELL_COMMANDS_MAX; i++) {
+    uint32_t i = 0;
+    for (i = 0; i < UNWDS_SHELL_COMMANDS_MAX - 1; i++) {
         if (shell_commands[i].name == NULL) {
             shell_commands[i].name = name;
             shell_commands[i].desc = desc;
@@ -421,7 +432,7 @@ void unwds_add_shell_command(char *name, char *desc, void* handler) {
 }
 
 int unwds_modid_by_name(char *name) {
-    int i = 0;
+    uint32_t i = 0;
     for (i = 0; i < sizeof(modules)/sizeof(unwd_module_t); i++) {
         if (strcmp(name, modules[i].name) == 0) {
             return modules[i].module_id;
@@ -446,7 +457,7 @@ int unwds_gpio_pins_total(void)
 }
 
 void int_to_float_str(char *buf, int decimal, uint8_t precision) {  
-    int i = 0;
+    uint32_t i = 0;
     int divider = 1;
     char format[10] = { };
     char digits[3];
@@ -461,7 +472,7 @@ void int_to_float_str(char *buf, int decimal, uint8_t precision) {
         divider *= 10;
     }
 
-    snprintf(digits, 3, "%dd", i);
+    snprintf(digits, 3, "%lud", i);
     strcat(format, digits);
     
     snprintf(buf, 50, format, abs(decimal/divider), abs(decimal%divider));

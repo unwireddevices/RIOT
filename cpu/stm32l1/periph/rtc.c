@@ -31,8 +31,9 @@
 
 #define RTC_WRITE_PROTECTION_KEY1   (0xCA)
 #define RTC_WRITE_PROTECTION_KEY2   (0x53)
-#define RTC_SYNC_PRESCALER          (0xff)  /**< prescaler for 32.768 kHz oscillator */
-#define RTC_ASYNC_PRESCALER         (0x7f)  /**< prescaler for 32.768 kHz oscillator */
+#define RTC_ASYNC_PRESCALER         (0x7)  /**< prescaler for 32.768 kHz oscillator */
+#define RTC_SYNC_PRESCALER          ((32768 / (RTC_ASYNC_PRESCALER + 1)) - 1)  /**< prescaler for 32.768 kHz oscillator */
+#define RTC_SSR_TO_US               (((10000000 / RTC_SYNC_PRESCALER) + 5)/10) /**< conversion from RTC_SSR to microseconds */
 
 #define MCU_YEAR_OFFSET              (100)  /**< struct tm counts years since 1900
                                                 but RTC has only two-digit year
@@ -41,9 +42,11 @@
 typedef struct {
     rtc_alarm_cb_t cb;          /**< callback called from RTC interrupt */
     rtc_wkup_cb_t wkup_cb;      /**< Wake up timer callback */
+    rtc_alarm_cb_t millis_cb;       /**< Subseconds alarm callback */
 
     void *arg;                  /**< argument passed to the callback */
     void *wkup_arg;             /**< argument passed to wakeup callback */
+    void *millis_arg;               /**< argument passed to subseconds alarm callback */
 } rtc_state_t;
 
 static rtc_state_t rtc_callback;
@@ -67,15 +70,15 @@ void rtc_init(void)
     RTC->ISR = 0;
     RTC->ISR |= RTC_ISR_INIT;
     while ((RTC->ISR & RTC_ISR_INITF) == 0) ;
+    
+    /* Configure the RTC PRER */
+    RTC->PRER = RTC_SYNC_PRESCALER;
+    RTC->PRER |= (RTC_ASYNC_PRESCALER << 16);
 
     /* Set 24-h clock */
     RTC->CR &= ~RTC_CR_FMT;
     /* Timestamps enabled */
     RTC->CR |= RTC_CR_TSE;
-
-    /* Configure the RTC PRER */
-    RTC->PRER = RTC_SYNC_PRESCALER;
-    RTC->PRER |= (RTC_ASYNC_PRESCALER << 16);
 
     /* Exit RTC init mode */
     RTC->ISR &= (uint32_t) ~RTC_ISR_INIT;
@@ -164,10 +167,6 @@ int rtc_set_alarm(struct tm *time, rtc_alarm_cb_t cb, void *arg)
     RTC->WPR = RTC_WRITE_PROTECTION_KEY1;
     RTC->WPR = RTC_WRITE_PROTECTION_KEY2;
 
-    /* Enter RTC Init mode */
-    RTC->ISR |= RTC_ISR_INIT;
-    while ((RTC->ISR & RTC_ISR_INITF) == 0) ;
-
     RTC->CR &= ~(RTC_CR_ALRAE);
     while ((RTC->ISR & RTC_ISR_ALRAWF) == 0) ;
     
@@ -185,14 +184,12 @@ int rtc_set_alarm(struct tm *time, rtc_alarm_cb_t cb, void *arg)
     RTC->CR |= RTC_CR_ALRAIE;
     RTC->ISR &= ~(RTC_ISR_ALRAF);
 
-    /* Exit RTC init mode */
-    RTC->ISR &= (uint32_t) ~RTC_ISR_INIT;
     /* Enable RTC write protection */
     RTC->WPR = 0xFF;
 
     EXTI->IMR  |= EXTI_IMR_MR17;
     EXTI->RTSR |= EXTI_RTSR_TR17;
-    NVIC_SetPriority(RTC_Alarm_IRQn, 5);
+    NVIC_SetPriority(RTC_Alarm_IRQn, RTC_IRQ_PRIO);
     NVIC_EnableIRQ(RTC_Alarm_IRQn);
 
     rtc_callback.cb = cb;
@@ -232,6 +229,119 @@ void rtc_clear_alarm(void)
     rtc_callback.arg = NULL;
 }
 
+int rtc_millis_set_alarm(int milliseconds, rtc_alarm_cb_t cb, void *arg)
+{   
+    /* Enable write access to RTC registers */
+    periph_clk_en(APB1, RCC_APB1ENR_PWREN);
+    PWR->CR |= PWR_CR_DBP;
+
+    /* Unlock RTC write protection */
+    RTC->WPR = RTC_WRITE_PROTECTION_KEY1;
+    RTC->WPR = RTC_WRITE_PROTECTION_KEY2;
+
+    RTC->CR &= ~(RTC_CR_ALRBE);
+    while ((RTC->ISR & RTC_ISR_ALRBWF) == 0) ;
+    
+    /* setting seconds */
+    uint8_t seconds = milliseconds/1000;
+    RTC->ALRMBR = (((uint32_t)byte2bcd(seconds) & (RTC_ALRMAR_ST | RTC_ALRMAR_SU)));
+    
+    /* minutes, hours and date doesn't matter */
+    RTC->ALRMBR |= (RTC_ALRMBR_MSK2 | RTC_ALRMBR_MSK3 | RTC_ALRMBR_MSK4);
+
+    uint32_t msec = milliseconds % 1000;
+      
+    uint32_t alarm_millis_time = RTC_SYNC_PRESCALER - (msec*1000)/RTC_SSR_TO_US;
+    
+    /* set up subseconds alarm */
+    uint32_t regalarm = RTC->ALRMBSSR;
+    regalarm |= (0x8 << 24); // compare 8 bits only
+    regalarm &= ~(RTC_ALRMBSSR_SS);
+    regalarm |= (alarm_millis_time & 0xFF);
+    RTC->ALRMBSSR = regalarm;
+    
+    /* Enable Alarm B */
+    RTC->CR |= RTC_CR_ALRBE;
+    RTC->CR |= RTC_CR_ALRBIE;
+    RTC->ISR &= ~(RTC_ISR_ALRBF);
+    
+    /* Enable RTC write protection */
+    RTC->WPR = 0xFF;
+
+    EXTI->IMR  |= EXTI_IMR_MR17;
+    EXTI->RTSR |= EXTI_RTSR_TR17;
+    NVIC_SetPriority(RTC_Alarm_IRQn, RTC_IRQ_PRIO);
+    NVIC_EnableIRQ(RTC_Alarm_IRQn);
+
+    rtc_callback.millis_cb = cb;
+    rtc_callback.millis_arg = arg;
+
+    return 0;
+}
+
+void rtc_millis_clear_alarm(void)
+{
+    /* Disable Alarm B */
+    
+    RTC->WPR = RTC_WRITE_PROTECTION_KEY1;
+    RTC->WPR = RTC_WRITE_PROTECTION_KEY2;
+    
+    RTC->CR &= ~RTC_CR_ALRBE;
+    RTC->CR &= ~RTC_CR_ALRBIE;
+    
+    RTC->WPR = 0xFF;
+
+    rtc_callback.millis_cb = NULL;
+    rtc_callback.millis_arg = NULL;
+}
+
+int rtc_millis_get_time(uint32_t *millis)
+{
+    /* clear RSF bit */
+    RTC->ISR &= ~RTC_ISR_RSF;
+    
+    /* wait for RSF to be set by hardware */
+    while (!(RTC->ISR & RTC_ISR_RSF)) {}
+    
+    /* RTC registers need to be read at least twice when running at f < 32768*7 = 229376 Hz APB1 clock */
+    uint32_t rtc_ssr_counter = RTC->SSR;
+
+    /* second read */
+    if (RTC->SSR != rtc_ssr_counter) {
+        /* 3rd read if 1st and 2nd don't match */
+        rtc_ssr_counter = RTC->SSR;
+    }
+
+    uint32_t milliseconds = ((RTC_SYNC_PRESCALER - rtc_ssr_counter)*RTC_SSR_TO_US)/1000;
+    
+    /* clear RSF bit */
+    RTC->ISR &= ~RTC_ISR_RSF;
+    
+    /* wait for RSF to be set by hardware */
+    while (!(RTC->ISR & RTC_ISR_RSF)) {}
+    
+    /* RTC registers need to be read at least twice when running at f < 32768*7 = 229376 Hz APB1 clock */
+    /* reading TR locks registers so it must be read first, DR must be read last */
+    uint32_t rtc_time_reg = RTC->TR;
+
+    /* second read */
+    if (RTC->TR != rtc_time_reg) {
+        /* 3rd read if 1st and 2nd don't match */
+        rtc_time_reg = RTC->TR;
+    }
+    
+    RTC->DR;
+    
+    uint32_t seconds  = (((rtc_time_reg & RTC_TR_ST)  >>  4) * 10) + ((rtc_time_reg & RTC_TR_SU)  >>  0);
+    
+    *millis = milliseconds + 1000*seconds;
+
+    /* unlock RTC registers by reading DR */
+    rtc_ssr_counter = RTC->DR;
+    
+    return 0;
+}
+
 int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg)
 {
     /* Enable write access to RTC registers */
@@ -247,12 +357,13 @@ int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg)
     while ((RTC->ISR & RTC_ISR_WUTWF) == 0) ;
     
     /* Set wakeup timer value */
-    period_us = ((period_us * 100)/48828) - 1;   
+    period_us = ((period_us * 100)/12207) - 1;   
     RTC->WUTR = (period_us & 0xFFFF);
     
-    /* Set wakeup timer clock source to RTCCLK/16 */
-    /* Min period 488.28 us, maximum 32 s */
+    /* Set wakeup timer clock source to RTCCLK/4 */
+    /* Min period 244 us, maximum 8 s */
     RTC->CR &= ~(RTC_CR_WUCKSEL);
+    RTC->CR |= (RTC_CR_WUCKSEL_1);
     
     /* Enable periodic wakeup */
     RTC->CR |= RTC_CR_WUTE;
@@ -264,7 +375,7 @@ int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg)
 
     EXTI->IMR  |= EXTI_IMR_MR20;
     EXTI->RTSR |= EXTI_RTSR_TR20;
-    NVIC_SetPriority(RTC_WKUP_IRQn, 5);
+    NVIC_SetPriority(RTC_WKUP_IRQn, RTC_IRQ_PRIO);
     NVIC_EnableIRQ(RTC_WKUP_IRQn);
 
     rtc_callback.wkup_cb = cb;
@@ -354,25 +465,38 @@ void rtc_poweroff(void)
 }
 
 void isr_rtc_alarm(void)
-{
-    if ((RTC->ISR & RTC_ISR_ALRAF) && (rtc_callback.cb != NULL)) {
+{    
+    if (RTC->ISR & RTC_ISR_ALRAF) {
         RTC->ISR &= ~RTC_ISR_ALRAF;
-        EXTI->PR = EXTI_PR_PR17;
-
-        rtc_callback.cb(rtc_callback.arg);
+        if (rtc_callback.cb) {        
+            rtc_callback.cb(rtc_callback.arg);
+        }
     }
+    
+    if (RTC->ISR & RTC_ISR_ALRBF) {
+        RTC->ISR &= ~RTC_ISR_ALRBF;
+        if (rtc_callback.millis_cb) {
+            rtc_callback.millis_cb(rtc_callback.millis_arg);
+        }
+    }
+    
+    EXTI->PR |= EXTI_PR_PR17;
+    
     cortexm_isr_end();
 }
 
 
 void isr_rtc_wkup(void)
 {
-    if ((RTC->ISR & RTC_ISR_WUTF) && (rtc_callback.wkup_cb != NULL)) {
+    if (RTC->ISR & RTC_ISR_WUTF) {
         RTC->ISR &= ~RTC_ISR_WUTF;
-        EXTI->PR = EXTI_PR_PR20;
-
-        rtc_callback.wkup_cb(rtc_callback.wkup_arg);
+        if (rtc_callback.wkup_cb != NULL) {
+            rtc_callback.wkup_cb(rtc_callback.wkup_arg);
+        }
     }
+    
+    EXTI->PR |= EXTI_PR_PR20;
+    
     cortexm_isr_end();
 }
 

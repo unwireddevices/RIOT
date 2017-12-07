@@ -27,8 +27,9 @@ extern "C" {
 
 #include "periph/gpio.h"
 #include "assert.h"
-#include "xtimer.h"
 #include "lpm.h"
+#include "xtimer.h"
+#include "rtctimers-millis.h"
 
 #include "lmt01.h"
 
@@ -51,9 +52,21 @@ static inline void lmt01_on(lmt01_t *lmt01) {
 	lmt01->_internal.do_count = true;
 }
 
-static inline int pulses_to_temp(uint32_t pc) {   
-    /* Datasheet 7.3.2, equation 1, 0.1 deg C accuracy is enough*/
-    return ((2560 * pc) / 4096) - 500;
+static inline int pulses_to_temp(int pc) {   
+    /* Datasheet 7.3.2, equation 1
+     * calculate with 0.01 degree resolution with integer numbers
+     */
+    int temp = ((25600 * pc) / 4096) - 5000;
+    
+    /* proper rounding when converting to 0.1 degree resolution */
+    if (temp < 0) {
+        temp -= 5;
+    } else {
+        temp += 5;
+    }
+    
+    /* 0.1 deg resilting resolution */
+    return temp/10;
 }
 
 int lmt01_init(lmt01_t *lmt01, gpio_t en_pin, gpio_t sens_pin) {
@@ -64,6 +77,9 @@ int lmt01_init(lmt01_t *lmt01, gpio_t en_pin, gpio_t sens_pin) {
 
 	lmt01->_internal.pulse_count = 0;
 	lmt01->_internal.state = LMT01_UNKNOWN;
+    
+    lpm_add_gpio_exclusion(lmt01->en_pin);
+    lpm_add_gpio_exclusion(lmt01->sens_pin);
 
     /*
 	int res = gpio_init(en_pin, GPIO_OUT);
@@ -79,7 +95,7 @@ static int count_pulses(lmt01_t *lmt01) {
 	lmt01_on(lmt01);
 
 	/* Wait minimum time for sensor wake up and all transitions to be done */
-    xtimer_spin(xtimer_ticks_from_usec(1e3 * LMT01_MIN_TIMEOUT_MS));
+    rtctimers_millis_sleep(LMT01_MIN_TIMEOUT_MS);
     
     uint8_t powermode = lpm_get();
     if (powermode != LPM_ON) {

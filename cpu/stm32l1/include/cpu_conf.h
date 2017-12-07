@@ -52,7 +52,9 @@ extern "C" {
 /** @} */
 
 /**
- * @brief   Switch to MSI clock
+ * @brief Switch to MSI clock
+ * @param[in] msi_range MSI frequency range
+ * @param[in] ahb_divider AHB bus divider
  */
 void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider);
 
@@ -61,10 +63,36 @@ void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider);
  */
 void clk_init(void);
 
-int get_cpu_ram_size(void);
-int get_cpu_flash_size(void);
-int get_cpu_eeprom_size(void);
-int get_cpu_category(void);
+/**
+ * @brief   Determine CPU RAM size
+ * @return	RAM size in bytes
+ */
+uint32_t get_cpu_ram_size(void);
+
+/**
+ * @brief   Determine CPU flash size
+ * @return	Flash size in bytes
+ */
+uint32_t get_cpu_flash_size(void);
+
+/**
+ * @brief   Determine CPU EEPROM size
+ * @return	EEPROM size in bytes
+ */
+uint32_t get_cpu_eeprom_size(void);
+
+/**
+ * @brief   Determine CPU Category size
+ * @return	CPU category according to RM0038 Reference Manual
+ */
+uint32_t get_cpu_category(void);
+
+/**
+ * @brief   Determine CPU RAM size
+ * @param[out]	name Pointer to char array to store CPU name
+ * @return	0 on success
+ */
+uint32_t get_cpu_name(char *name);
 
 #ifdef __cplusplus
 }

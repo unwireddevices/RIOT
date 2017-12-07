@@ -3,6 +3,4 @@ export CPU = stm32l1
 export CPU_MODEL = stm32l151rc
 
 CFLAGS += -DSTM32L1XX_MDP
-
-# load the common Makefile.include for Unwired Range boards
-include $(RIOTBOARD)/unwd-range-common/Makefile.include
+OFLAGS = -O ihex

@@ -24,21 +24,29 @@ extern "C" {
 #include <string.h>
 #include <stdlib.h>
 
+#include "main.h"
+
+#include "lpm.h"
+#include "arch/lpm_arch.h"
+#include "thread.h"
+#include "random.h"
+#include "sx1276.h"
+#include "xtimer.h"
+#include "periph/rtc.h"
+#include "periph/wdg.h"
+#include "periph/gpio.h"
+#include "periph/uart.h"
+#include "ringbuffer.h"
+#include "rtctimers.h"
+#include "utils.h"
 #include "shell.h"
 #include "shell_commands.h"
-#include "thread.h"
-#include "xtimer.h"
-#include "lpm.h"
-#include "periph/rtc.h"
-#include "periph/uart.h"
-#include "periph/wdg.h"
 
-#include "random.h"
-#include "ringbuffer.h"
 #include "board.h"
 
-#include "sx1276.h"
-
+#include "ls-settings.h"
+#include "ls-config.h"
+#include "ls-regions.h"
 #include "ls-mac-types.h"
 #include "ls-crypto.h"
 #include "ls-gate.h"
@@ -46,14 +54,16 @@ extern "C" {
 #include "gate-commands.h"
 #include "pending-fifo.h"
 
-#include "main.h"
-#include "config.h"
-#include "utils.h"
+#define ENABLE_DEBUG    (0)
+#include "debug.h"
 
-#include "ls-regions.h"
+#define IWDG_PRESCALER  (5)
+#define IWDG_RELOAD     (0x0FFF)
+#define IWDG_TIMEOUT    ((((IWDG_RELOAD) * (1 << (IWDG_PRESCALER + 2))) / 56000) - 3)
 
-static node_role_settings_t node_settings;
-static bool dr_set = false, channel_set = false;
+//static node_role_settings_t node_settings;
+
+static rtctimer_t iwdg_timer;
 
 static sx1276_t sx1276;
 static ls_gate_t ls;
@@ -169,6 +179,9 @@ static void radio_init(void)
     sx1276.dio4_pin = (gpio_t) NULL;
     sx1276.dio5_pin = (gpio_t) NULL;
     sx1276.reset_pin = (gpio_t) SX1276_RESET;
+    
+    sx1276.rfswitch_pin = SX1276_RFSWITCH;
+    sx1276.rfswitch_mode = SX1276_RFSWITCH_ACTIVE_HIGH;
 
     sx1276_settings_t settings;
     settings.channel = RF_FREQUENCY;
@@ -254,13 +267,6 @@ void app_data_ack_cb(ls_gate_node_t *node, ls_gate_channel_t *ch)
     gc_pending_fifo_push(&fifo, str);
 }
 
-#ifdef GATE_USE_WATCHDOG
-static void keepalive_cb(void) {
-	xtimer_usleep(100); /* XXX: watchdog timer don't want to reset without a small delay before */
-	wdg_reload();
-}
-#endif
-
 static void pending_frames_req_cb(ls_gate_node_t *node) {
 	printf("ls-gate: requesting next pending frame for 0x%08X%08X\n", (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF));
 
@@ -275,16 +281,8 @@ static void ls_setup(ls_gate_t *ls)
     ls->settings.gate_id = config_get_nodeid();
     ls->settings.join_key = config_get_joinkey();
 
-#ifdef GATE_USE_WATCHDOG
-    ls->settings.keepalive_period_ms = 1000; /* 1 second */
-#else
-    ls->settings.keepalive_period_ms = 0;
-#endif
-
-    if (node_settings.is_valid) {
-        channels[0].frequency = regions[node_settings.region_index].channels[node_settings.channel];
-        channels[0].dr = node_settings.dr;
-    }
+    channels[0].frequency = regions[unwds_get_node_settings().region_index].channels[unwds_get_node_settings().channel];
+    channels[0].dr = unwds_get_node_settings().dr;
 
     ls->channels = channels;
     ls->num_channels = 1;
@@ -295,12 +293,6 @@ static void ls_setup(ls_gate_t *ls)
     ls->app_data_received_cb = app_data_received_cb;
 
     ls->app_data_ack_cb = app_data_ack_cb;
-
-#ifdef GATE_USE_WATCHDOG
-    ls->keepalive_cb = keepalive_cb;
-#else
-    ls->keepalive_cb = NULL;
-#endif
 
     ls->pending_frames_req = pending_frames_req_cb;
 }
@@ -320,56 +312,49 @@ static int ls_set_cmd(int argc, char **argv)
     char *key = argv[1];
     char *value = argv[2];
 
+    int v;
+    
     if (strcmp(key, "dr") == 0) {
-        uint8_t v = strtol(value, NULL, 10);
+        v = strtol(value, NULL, 10);
 
         if (v > 6) {
-            puts("set dr: datarate value must be from 0 to 6");
+            puts("ls-gate: datarate value must be from 0 to 6");
             return 1;
+        } else {
+            printf("ls-gate: datarate set to %u\n", v);
         }
 
-        node_settings.dr = (ls_datarate_t) v;
-        dr_set = true;
+        ls.channels[0].dr = (ls_datarate_t) v;
+        unwds_set_dr(v);
     }
     else if (strcmp(key, "region") == 0) {
-        uint8_t v = strtol(value, NULL, 10);
+        v = strtol(value, NULL, 10);
 
         if (v > LS_UNI_NUM_REGIONS - 1) {
-            printf("set region: region value must be from 0 to %d\n", LS_UNI_NUM_REGIONS - 1);
+            printf("ls-gate: region value must be from 0 to %d\n", LS_UNI_NUM_REGIONS - 1);
             return 1;
+        } else {
+            printf("ls-gate: region set to %u\n", v);
         }
 
-        node_settings.region_index = v;
-        node_settings.region_not_set = false;
+        unwds_set_region(v, false);
     }
     else if (strcmp(key, "ch") == 0) {
-        uint8_t v = strtol(value, NULL, 10);
+        v = strtol(value, NULL, 10);
 
-        if (node_settings.region_not_set) {
-        	puts("set ch: set region first");
-        	return 1;
-        }
-
-
-        if (v > regions[node_settings.region_index].num_channels - 1) {
-            printf("set ch: channel value must be from 0 to %d\n", regions[node_settings.region_index].num_channels - 1);
+        if (v > regions[unwds_get_node_settings().region_index].num_channels - 1) {
+            printf("set ch: channel value must be from 0 to %d for this region\n", regions[unwds_get_node_settings().region_index].num_channels - 1);
             return 1;
         }
 
-        node_settings.channel = (ls_channel_t) v;
-        channel_set = true;
+        unwds_set_channel(v);
     }
     else {
         printf("set: unknown key %s\n", key);
         return 1;
     }
 
-    node_settings.is_valid = channel_set && dr_set;
-
-    if (node_settings.is_valid) {
-        channels[0].frequency = regions[node_settings.region_index].channels[node_settings.channel];
-        channels[0].dr = node_settings.dr;
-    }
+    ls.channels[0].frequency = regions[unwds_get_node_settings().region_index].channels[unwds_get_node_settings().channel];
 
     return 0;
 }
@@ -394,6 +379,7 @@ static int ls_list_cmd(int argc, char **argv)
     return 0;
 }
 
+/*
 static void print_regions(void) {
 	puts("[ available regions ]");
 
@@ -411,110 +397,33 @@ static void print_regions(void) {
 		puts("]");
 	}
 }
+*/
 
 static void print_config(void)
 {
-	if (node_settings.region_not_set) {
-		puts("[!] Region is not set yet");
-		print_regions();
-	}
-
     puts("[ gate configuration ]");
 
     uint64_t eui64 = config_get_nodeid();
     uint64_t appid = config_get_appid();
 
+    if (DISPLAY_JOINKEY_2BYTES) {
+        uint8_t *key = config_get_joinkey();
+        printf("JOINKEY = 0x....%01X%01X\n", key[14], key[15]);
+    }
+
     printf("EUI64 = 0x%08x%08x\n", (unsigned int) (eui64 >> 32), (unsigned int) (eui64 & 0xFFFFFFFF));
     printf("APPID64 = 0x%08x%08x\n", (unsigned int) (appid >> 32), (unsigned int) (appid & 0xFFFFFFFF));
 
-    if (!node_settings.region_not_set) {
-    	printf("REGION = %s\n", regions[node_settings.region_index].region);
+    printf("REGION = %s\n", regions[unwds_get_node_settings().region_index].region);
+    printf("CHANNEL = %d [%d]\n", unwds_get_node_settings().channel, (unsigned) regions[unwds_get_node_settings().region_index].channels[unwds_get_node_settings().channel]);
 
-        if (channel_set || node_settings.is_valid) {
-            printf("CHANNEL = %d\n", (unsigned) regions[node_settings.region_index].channels[node_settings.channel]);
-        }
-        else {
-            puts("CHANNEL = <not set>");
-        }
-    } else {
-    	puts("REGION = <not set>");
-    	puts("CHANNEL = <set region first>");
-    }
-
-    if (dr_set || node_settings.is_valid) {
-        printf("DATARATE = %d\n", node_settings.dr);
-    }
-    else {
-        puts("DATARATE = <not set>");
-    }
+    printf("DATARATE = %d\n", unwds_get_node_settings().dr);
 }
 
 static int ls_printc_cmd(int argc, char **argv)
 {
     print_config();
 
-    return 0;
-}
-
-static int ls_save_cmd(int argc, char **argv)
-{
-	if (node_settings.region_not_set) {
-		puts("[error] You must setup region via `set region` command");
-		return 1;
-	}
-
-    if (!node_settings.is_valid) {
-        puts("[error] You must setup following settings via `set` command(s):");
-        if (!dr_set) {
-            puts("\tset dr");
-        }
-        if (!channel_set) {
-            puts("\tset ch");
-        }
-
-        return 1;
-    }
-
-    puts("[*] Saving configuration...");
-    if (!config_write_role_block((uint8_t *) &node_settings, sizeof(node_role_settings_t))) {
-        puts("[error] Unable to save configuration");
-    }
-
-    puts("[done] Configuration saved. Type \"reboot\" to apply changes.");
-
-    return 0;
-}
-
-static int ls_clear_nvram(int argc, char **argv)
-{
-	if (argc != 2) {
-		puts("usage: clear <all | joinkey>");
-		puts("\tall -- clears all data in NVRAM including device EUI64");
-		puts("\tjoinkey -- clears network encryption key stored in NVRAM");
-
-		return 1;
-	}
-
-	char *arg = argv[1];
-	if (strcmp(arg, "all") == 0) {
-		if (!clear_nvram()) {
-			puts("[error] Unable to clear NVRAM");
-		}
-	} else if (strcmp(arg, "joinkey") == 0) {
-		puts("clear joinkey: not supported yet");
-		//config_clear_joinkey();
-	}
-
-	puts("[ok] Settings cleared");
-	puts("Type \"reboot\" to define new configuration");
-
-    return 0;
-}
-
-static int ls_goto_bootloader(int argc, char **argv)
-{
-    rtc_save_backup(0xB00710AD, 0);
-    NVIC_SystemReset();
     return 0;
 }
 
@@ -575,25 +484,28 @@ static int kick_cmd(int argc, char **argv) {
 	return -1;
 }
 
-static const shell_command_t shell_commands[] = {
+static void iwdg_reset (void *arg) {
+    wdg_reload();
+    rtctimers_set(&iwdg_timer, IWDG_TIMEOUT);
+    DEBUG("Watchdog reset\n");
+    return;
+}
+
+shell_command_t shell_commands[] = {
     { "set", "<config> <value> -- sets up value for the config entry", ls_set_cmd },
     { "listconfig", "-- prints out current configuration", ls_printc_cmd },
-    { "save", "-- saves current settings in NVRAM", ls_save_cmd },
-
-	{ "clear", "<all | joinkey> clears settings in NVRAM", ls_clear_nvram },
-    { "update", "-- jumps to UART bootloader", ls_goto_bootloader},
-
     { "list", "-- prints list of connected devices", ls_list_cmd },
 	{ "add", "<nodeid> <appid> <addr> <devnonce> <channel> -- adds node to the list", add_cmd },
 	{ "kick", "<addr> -- kicks node from the list by its address", kick_cmd},
     { NULL, NULL, NULL }
 };
 
-#ifdef GATE_USE_WATCHDOG
 static void watchdog_start(void) {
-	/* Set watchdog to about 3.5 seconds */
-    wdg_set_prescaler(0x03);
-    wdg_set_reload((uint16_t) 0x0FFF);
+    iwdg_timer.callback = iwdg_reset;
+    rtctimers_set(&iwdg_timer, IWDG_TIMEOUT);
+    
+	wdg_set_prescaler(IWDG_PRESCALER);
+    wdg_set_reload(IWDG_RELOAD);
 
     /* Start watchdog */
     wdg_reload();
@@ -608,58 +520,54 @@ static bool is_connect_button_pressed(void) {
 			return true;
 		}
 	}
-	else
-	{
+	else {
 		puts("Error initializing Connect button");
 	}
 
 	return false;
 }
-#endif
 
-static bool load_config(void)
+void init_normal(shell_command_t *commands)
 {
-    if (!config_read_role_block((uint8_t *) &node_settings, sizeof(node_role_settings_t))) {
-        puts("[node] Unable to load role specific configuration");
+    if (!unwds_config_load()) {
+        puts("[!] Gate is not configured yet. Type \"help\" to see list of possible configuration commands.");
+        puts("[!] Configure the node and type \"reboot\" to reboot and apply settings.");
 
-        return false;
-    }
-
-    return node_settings.is_valid;
-}
-
-void init_gate(shell_command_t **commands)
-{
-    if (load_config()) {
+        print_config();
+    } else {
         print_config();
         puts("[ok] Configuration seems valid, initializing LoRa gate...");
 
-#ifdef GATE_USE_WATCHDOG
         if (!is_connect_button_pressed())
         	watchdog_start();
         else
         	puts("[!] Watchdog timer is suppressed by `connect` button");
-#endif
 
         uart_gate_init();
-
         radio_init();
-        sx1276_init(&sx1276);
-
+        
         ls_setup(&ls);
         ls_gate_init(&ls);
+        
+        unwds_setup_nvram_config(config_get_nvram(), UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
 
-        blink_led();
-    }
-    else {
-        print_config();
-
-        puts("[!] This gate is not configured yet. Type \"help\" to see list of possible configuration commands.");
-        puts("[!] Configure this node via \"set\" commands and type \"reboot\" to reboot and apply settings.");
+        blink_led(LED_GREEN);
     }
 
-    /* Set our commands for shell */
-    memcpy(commands, shell_commands, sizeof(shell_commands));
+    /* Add our commands to shell */
+    int i = 0;
+    do {
+        i++;
+    } while (commands[i].name);
+    
+    int k = 0;
+    do {
+        k++;
+    } while (shell_commands[k].name);
+    
+    assert(i + k < UNWDS_SHELL_COMMANDS_MAX - 1);
+    
+    memcpy((void *)&commands[i], (void *)shell_commands, sizeof(shell_commands));
 }
 
 

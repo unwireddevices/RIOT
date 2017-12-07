@@ -25,11 +25,16 @@
 #include "ringbuffer.h"
 #include "periph/uart.h"
 
+#define ENABLE_DEBUG (0)
+#include "debug.h"
+
 #include "mt3333.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+mt3333_t *_dev;
 
 static void rx_cb(void *arg, uint8_t data)
 {
@@ -154,23 +159,86 @@ static void *reader(void *arg) {
     return NULL;
 }
 
+static void mt3333_send_at_command(char *command) {
+    uint8_t checksum = 0;
+    int i;
+    for (i = 0; i < strlen(command); i++) {
+        checksum ^= (uint8_t)command[i];
+    }
+    
+    /* command + delimeters + checksum + CRLF + ending 0 */
+    if (strlen(command) + 2 + 2 + 3 > 100) {
+        DEBUG("[mt3333 ] command too long\n");
+        return;
+    }
+    
+    /* first 100 bytes are free to use */
+    char *cmd = (char *)_dev->reader_stack;
+    
+    snprintf(cmd, 2, "$");
+    strcat(cmd, command);
+    strcat(cmd, "*");
+    snprintf(cmd, 5, "\r\n%02x", checksum);
+    
+    uart_write(_dev->params.uart, (uint8_t *)cmd, strlen(cmd));
+}
+
+void mt3333_set_baudrate(int baudrate) {
+    char cmd[20] = {};
+    snprintf(cmd, 20, "PQBAUD,W,%d", baudrate);
+    mt3333_send_at_command(cmd);
+    
+    _dev->params.baudrate = baudrate;
+    uart_init(_dev->params.uart, _dev->params.baudrate, rx_cb, _dev);
+}
+
+void mt3333_set_glp(bool enabled) {
+    char cmd[20] = {};
+    if (enabled) {
+        snprintf(cmd, 20, "PQGLP,W,1,1");
+    } else {
+        snprintf(cmd, 20, "PQGLP,W,0,1");
+    }
+    mt3333_send_at_command(cmd);
+}
+
+void mt3333_set_powersave(mt3333_powersave_mode_t mode) {
+    char cmd[20] = {};
+    if (mode == MT3333_POWERSAVE_STANDBY) {
+        snprintf(cmd, 20, "PMTK161,0");
+    } else if (mode == MT3333_POWERSAVE_BACKUP) {
+        snprintf(cmd, 20, "PMTK225,4");
+    } else if (mode == MT3333_POWERSAVE_FULLON) {
+        snprintf(cmd, 20, "PMTK225,0");
+    }
+    mt3333_send_at_command(cmd);
+}
+
+void mt3333_set_periodic(mt3333_powersave_mode_t mode, int run, int sleep, int run_ext, int sleep_ext) {
+    char cmd[50] = {};
+    snprintf(cmd, 50, "PMTK225,%d,%d,%d,%d,%d", (int)mode, run, sleep, run_ext, sleep_ext);
+    mt3333_send_at_command(cmd);
+}
+
 int mt3333_init(mt3333_t *dev, mt3333_param_t *param) {
 	assert(dev != NULL);
 	assert(param != NULL);
 
 	/* Copy parameters */
 	dev->params = *param;
+    
+    _dev = dev;
 
 	/* Initialize the input ring buffer */
 	ringbuffer_init(&dev->rxrb, dev->rxbuf, MT3333_RXBUF_SIZE_BYTES);
 
 	/* Initialize the UART */
-	if (uart_init(dev->params.uart, MT3333_UART_BAUDRATE, rx_cb, dev)) {
+	if (uart_init(dev->params.uart, dev->params.baudrate, rx_cb, dev)) {
 		return -1;
 	}
 
 	/* Create reader thread */
-	dev->reader_pid = thread_create((char *) dev->reader_stack, MT3333_READER_THREAD_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, 0, reader, dev, "MT3333 reader");
+	dev->reader_pid = thread_create((char *) dev->reader_stack + 100, MT3333_READER_THREAD_STACK_SIZE_BYTES - 100, THREAD_PRIORITY_MAIN - 1, 0, reader, dev, "MT3333 reader");
 	if (dev->reader_pid <= KERNEL_PID_UNDEF) {
 		return -2;
 	}

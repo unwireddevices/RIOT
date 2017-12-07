@@ -238,35 +238,36 @@ int adc_sample(adc_t line,  adc_res_t res)
     
 	/* VDD calculation based on VREFINT */
 	if ((adc_config[line].chan == ADC_VREF_CHANNEL) || (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL)) {
-#if !defined (STM32L1XX_MDP) && !defined (STM32L1XX_HD) && !defined (STM32L1XX_XL)
-/* low-end devices doesn't provide calibration values, see errata */
-        uint16_t *cal;
-        *cal = 1672;
-#else
-		uint16_t *cal = ADC_VREFINT_CAL;
-#endif
-		sample = 3000 * (*cal) / sample;
+        uint16_t cal;
+        if (get_cpu_category() < 3) {
+            /* low-end devices doesn't provide calibration values, see errata */
+            cal = 1672;
+            
+        } else {
+            cal = *(uint16_t *)ADC_VREFINT_CAL;
+        }
+        sample = 3000 * (cal) / sample;
 	}
 
 	/* Chip temperature calculation */
 	if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL) {
 
-#if !defined (STM32L1XX_MDP) && !defined (STM32L1XX_HD) && !defined (STM32L1XX_XL)
-/* low-end devices doesn't provide calibration values, see errata */
-        uint16_t *cal1, *cal2;
-        *cal1 = 670;
-        *cal2 = 848;
-#else
-        uint16_t *cal1 = ADC_TS_CAL1;
-		uint16_t *cal2 = ADC_TS_CAL2;
-#endif
+        uint16_t cal1, cal2;
+        if (get_cpu_category() < 3) {
+        /* low-end devices doesn't provide calibration values, see errata */
+                cal1 = 670;
+                cal2 = 848;
+        } else {
+                cal1 = *(uint16_t *)ADC_TS_CAL1;
+                cal2 = *(uint16_t *)ADC_TS_CAL2;
+        }
         /* Correct temperature sensor data for actual Vdd */
         sample_ts = (sample_ts * sample)/3000;
         
         /* Calculate chip temperature */
         /* sample = Vdd, sample_ts = temperature sensor data */
         /* 0.1 C resolution */
-        sample_ts = 300 - (((int)*cal1 - sample_ts)*80) / (int)(*cal2 - *cal1);
+        sample_ts = 300 - (((int)cal1 - sample_ts)*80) / (int)(cal2 - cal1);
         
         ADC1->CR1 &= ~ADC_CR1_SCAN;
         ADC1->CR2 &= ~ADC_CR2_DELS;
@@ -280,4 +281,4 @@ int adc_sample(adc_t line,  adc_res_t res)
     done();
 
     return sample;
-}
+}

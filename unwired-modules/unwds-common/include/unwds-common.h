@@ -18,6 +18,8 @@
 #ifndef UNWDS_COMMON_H_
 #define UNWDS_COMMON_H_
 
+#define FIRMWARE_VERSION "1.71"
+
 #include <stdint.h>
 
 #include "shell.h"
@@ -68,28 +70,26 @@ bool unwds_write_nvram_config(unwds_module_id_t module_id, uint8_t *data, size_t
  */
 bool unwds_erase_nvram_config(unwds_module_id_t module_id);
 
-/**
- * Stacks pool definitions.
- */
-uint8_t *allocate_stack(void);
+uint8_t *allocate_stack(uint32_t stack_size);
 
 #define UNWDS_MAX_MODULE_NAME 10
 #define UNWDS_MAX_DATA_LEN 126
 
 #define UNWDS_STORAGE_BLOCKS_MAX 16
 
+#define UNWDS_MODULE_NO_DATA    0
+#define UNWDS_MODULE_HAS_DATA   1
+#define UNWDS_MODULE_NOT_FOUND  255
+
 #if defined(UNWDS_BUILD_MINIMAL)
-    #define UNWDS_STACK_SIZE_BYTES (1024U)
-    #define UNWDS_STACK_POOL_SIZE 2U
+    #define UNWDS_SHELL_COMMANDS_MAX (12)
 #else
-    #define UNWDS_STACK_SIZE_BYTES (2048U)
-    #define UNWDS_STACK_POOL_SIZE 2U
+    #define UNWDS_SHELL_COMMANDS_MAX (20)
 #endif
 
 /**
  * Shell commands
  */
-#define UNWDS_SHELL_COMMANDS_MAX (10 + UNWDS_STACK_POOL_SIZE)
 extern shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX];
 
 /**
@@ -116,7 +116,7 @@ typedef struct {
 } unwd_module_t;
 
 void unwds_init_modules(uwnds_cb_t *event_callback);
-bool unwds_send_to_module(unwds_module_id_t modid, module_data_t *data, module_data_t *reply);
+int unwds_send_to_module(unwds_module_id_t modid, module_data_t *data, module_data_t *reply);
 bool unwds_send_broadcast(unwds_module_id_t modid, module_data_t *data, module_data_t *reply);
 
 void unwds_add_shell_command(char *name, char *desc, void* handler);
@@ -130,6 +130,7 @@ void unwds_list_modules(uint32_t *ability, bool enabled_only);
 
 bool unwds_is_pin_occupied(uint32_t pin);
 bool unwds_is_module_exists(unwds_module_id_t modid);
+bool unwds_is_module_enabled(unwds_module_id_t modid);
 
 uint64_t unwds_get_ability_mask(unwds_module_id_t modid);
 

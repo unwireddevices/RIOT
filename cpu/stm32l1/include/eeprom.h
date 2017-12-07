@@ -21,6 +21,7 @@
 #define EEPROM_H
 
 #include "nvram.h"
+#include "cpu.h"
 
 /**
  * @brief Initializes an nvram_t structure
@@ -73,10 +74,5 @@ int nvram_eeprom_init(nvram_t *dev);
  * @brief Timeout of FLASH programming
  */
 #define FLASH_ER_PRG_TIMEOUT         ((uint32_t)0x8000)
-
-/**
- * @brief Data EEPROM base address
- */
-#define EEPROM_BASE ((uint32_t) 0x08080000)
 
 #endif /* EEPROM_H */

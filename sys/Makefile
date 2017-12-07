@@ -104,6 +104,10 @@ ifneq (,$(filter rtctimers,$(USEMODULE)))
     DIRS += rtctimers
 endif
 
+ifneq (,$(filter rtctimers-millis,$(USEMODULE)))
+    DIRS += rtctimers-millis
+endif
+
 DIRS += $(dir $(wildcard $(addsuffix /Makefile, ${USEMODULE})))
 
 include $(RIOTBASE)/Makefile.base

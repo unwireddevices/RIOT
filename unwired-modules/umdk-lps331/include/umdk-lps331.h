@@ -20,6 +20,8 @@
 
 #include "unwds-common.h"
 
+#define UMDK_LPS331_STACK_SIZE 1024
+
 #define UMDK_LPS331_I2C 1
 
 #define UMDK_LPS331_PUBLISH_PERIOD_MIN 1

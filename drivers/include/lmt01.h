@@ -23,12 +23,12 @@
 /**
  * @brief Maximum idle time
  */
-#define LMT01_MAX_IDLE_TIME_MS 30
+#define LMT01_MAX_IDLE_TIME_MS 35
 
 /**
  * @brief Minimum timeout of sensor response in milliseconds
  */
-#define LMT01_MIN_TIMEOUT_MS 40
+#define LMT01_MIN_TIMEOUT_MS 30
 
 /*
  * @brief Maximum duration of pulses train in milliseconds

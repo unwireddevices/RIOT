@@ -28,8 +28,8 @@ extern "C" {
 #include "pending-fifo.h"
 #include "gate-commands.h"
 #include "ls-gate.h"
-#include "unwds-common.h"
-#include "config.h"
+#include "ls-config.h"
+#include "ls-settings.h"
 #include "periph/rtc.h"
 
 static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *fifo, char *data) {
@@ -85,7 +85,9 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 
 		ls_gate_node_t *node = ls_devlist_get_by_nodeid(devs, nodeid);
 		if (node == NULL) {
-			puts("[error] Node with specified node ID is not found.\n");
+			printf("[error] Node with ID %08X%08X was not found.\n",
+                    (unsigned int) (nodeid >> 32),
+                    (unsigned int) (nodeid & 0xFFFFFFFF));
 			return;
 		}
 
@@ -292,14 +294,7 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 		}
         
         uint8_t region = atoi(payload);
-        node_role_settings_t node_settings;
-        config_read_role_block((uint8_t *) &node_settings, sizeof(node_role_settings_t));
-        node_settings.region_index = region;
-        if (config_write_role_block((uint8_t *) &node_settings, sizeof(node_role_settings_t))) {
-            printf("[ok] Region set to %d\n", region);
-        } else {
-            printf("[error] Error saving config\n");
-        }
+        unwds_set_region(region, false);
         
         break;
     }
@@ -308,16 +303,8 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 			printf("[error] Invalid command received: %s\n", payload);
 			return;
 		}
-        
         uint8_t dr = atoi(payload);
-        node_role_settings_t node_settings;
-        config_read_role_block((uint8_t *) &node_settings, sizeof(node_role_settings_t));
-        node_settings.dr = dr;
-        if (config_write_role_block((uint8_t *) &node_settings, sizeof(node_role_settings_t))) {
-            printf("[ok] Datarate set to %d\n", dr);
-        } else {
-            printf("[error] Error saving config\n");
-        }
+        unwds_set_dr(dr);
         break;
     }
     
@@ -328,14 +315,7 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 		}
         
         uint8_t ch = atoi(payload);
-        node_role_settings_t node_settings;
-        config_read_role_block((uint8_t *) &node_settings, sizeof(node_role_settings_t));
-        node_settings.channel = ch;
-        if (config_write_role_block((uint8_t *) &node_settings, sizeof(node_role_settings_t))) {
-            printf("[ok] Channel set to %d\n", ch);
-        } else {
-            printf("[error] Error saving config\n");
-        }
+        unwds_set_channel(ch);
         
         break;
     }
@@ -353,7 +333,7 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 			return;
 		}
              
-        if (config_write_main_block(appid64, joinkey)) {
+        if (config_write_main_block(appid64, joinkey, 0)) {
             char s[32] = {};
             bytes_to_hex(joinkey, 16, s, false);
             printf("[ok] JOINKEY = %s\n", s);

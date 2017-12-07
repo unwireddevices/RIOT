@@ -23,7 +23,7 @@
 #ifndef SX1276_H
 #define SX1276_H
 
-#define SX1276_RADIO_WAKEUP_TIME                           1000        /**< [us] */
+#define SX1276_RADIO_WAKEUP_TIME                           1        /**< [ms] */
 #define SX1276_RX_BUFFER_SIZE                              256
 #define SX1276_RF_MID_BAND_THRESH                          525000000
 #define SX1276_CHANNEL_HF                                  868000000
@@ -112,6 +112,19 @@ typedef enum {
 } sx1276_radio_state_t;
 
 /**
+ * LoRa modem live status
+ */
+typedef enum {
+    SX1276_MODEM_CLEAR = 0,
+    SX1276_HEADER_INFO_VALID,
+    SX1276_RX_ONGOING,
+    SX1276_SIGNAL_SYNC,
+    SX1276_SIGNAL_DETECT,
+    SX1276_STATUS_OTHER,
+} sx1276_modem_status_t;
+
+
+/**
  * Radio settings.
  */
 typedef struct {
@@ -132,7 +145,8 @@ typedef enum {
 
     SX1276_FHSS_CHANGE_CHANNEL,
     SX1276_CAD_DONE,
-
+    SX1276_CAD_DETECTED,
+    SX1276_VALID_HEADER,
 } sx1276_event_type_t;
 
 /***
@@ -192,6 +206,11 @@ typedef enum {
     SX1276_ERR_TEST_FAILED,     /**< SX1276 testing failed during initialization (check chip) */
     SX1276_ERR_THREAD           /**< Unable to create DIO handling thread (check amount of free memory) */
 } sx1276_init_result_t;
+
+typedef enum {
+    SX1276_MODE_CADDONE = 0,
+    SX1276_MODE_CADDETECT,
+} sx1276_cadmode_t;
 
 /**
  * Hardware IO IRQ callback function definition.
@@ -366,9 +385,10 @@ void sx1276_set_tx(sx1276_t *dev, uint32_t timeout);
  * @brief Start a channel activity detection.
  *
  * @param	[IN]	dev		The sx1276 device structure pointer
+ * @param	[IN]	cadmode SX1276_MODE_CADDONE or SX1276_MODE_CADDETECT
  */
 
-void sx1276_start_cad(sx1276_t *dev);
+void sx1276_start_cad(sx1276_t *dev, uint8_t cadmode);
 
 /**
  * @brief Reads the current RSSI value.
@@ -439,6 +459,13 @@ void sx1276_reg_read_burst(sx1276_t *dev, uint8_t addr, uint8_t *buffer,
  * @param	[IN]	maxlen	Maximum payload length in bytes
  */
 void sx1276_set_max_payload_len(sx1276_t *dev, sx1276_radio_modems_t modem, uint8_t maxlen);
+
+/**
+ * @brief Gets modem live status.
+ *
+ * @param	[IN]	dev		The sx1276 device structure pointer
+ */
+sx1276_modem_status_t sx1276_get_modem_status(sx1276_t *dev);
 
 /**
  * @brief sx1276 state machine hanlder thread body.

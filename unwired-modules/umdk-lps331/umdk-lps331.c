@@ -175,7 +175,6 @@ int umdk_lps331_shell_cmd(int argc, char **argv) {
     }
     
     if (strcmp(cmd, "send") == 0) {
-        is_polled = true;
 		/* Send signal to publisher thread */
 		msg_send(&timer_msg, timer_pid);
     }
@@ -211,7 +210,7 @@ void umdk_lps331_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     }
 
     /* Create handler thread */
-    char *stack = (char *) allocate_stack();
+    char *stack = (char *) allocate_stack(UMDK_LPS331_STACK_SIZE);
     if (!stack) {
     	puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Are too many modules enabled?");
     	return;
@@ -219,7 +218,7 @@ void umdk_lps331_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 
     unwds_add_shell_command(_UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_lps331_shell_cmd);
 
-    timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "lps331ap thread");
+    timer_pid = thread_create(stack, UMDK_LPS331_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "lps331ap thread");
 
     /* Start publishing timer */
     rtctimers_set_msg(&timer, 60 * lps331_config.publish_period_min, &timer_msg, timer_pid);

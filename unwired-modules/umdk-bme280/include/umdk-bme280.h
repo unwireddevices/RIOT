@@ -20,6 +20,8 @@
 
 #include "unwds-common.h"
 
+#define UMDK_BME280_STACK_SIZE 1024
+
 #define UMDK_BME280_PUBLISH_PERIOD_MIN 1
 
 #define UMDK_BME280_I2C 1

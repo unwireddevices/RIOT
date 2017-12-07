@@ -26,75 +26,81 @@
 #include "periph_conf.h"
 #include "periph/timer.h"
 #include "periph/rtc.h"
+#include <string.h>
 
 /* See if we want to use the PLL */
-#if defined(CLOCK_PLL_DIV) || defined(CLOCK_PLL_MUL)
-#define CLOCK_USE_PLL              1
+#if defined(CLOCK_PLL_DIV) || defined(CLOCK_PLL_MUL) || \
+    defined(CLOCK_PLL_DIV_HSE) || defined(CLOCK_PLL_MUL_HSE) || \
+    defined(CLOCK_PLL_DIV_HSI) || defined(CLOCK_PLL_MUL_HSI)
+    
+    #define CLOCK_USE_PLL              1
 #else
-#define CLOCK_USE_PLL              0
+    #define CLOCK_USE_PLL              0
+#endif
+
+#if !defined(CLOCK_HSI) && !defined(CLOCK_HSE) && !defined(CLOCK_MSI)
+    #error "Please provide clock source in board.h or periph_conf.h file"
 #endif
 
 /* Check the source to be used for the PLL */
 #if defined(CLOCK_HSI) && defined(CLOCK_HSE)
-#error "Only provide one of two CLOCK_HSI/CLOCK_HSE"
-#elif (CLOCK_USE_PLL == 1) && (!defined(CLOCK_PLL_MUL) || !defined(CLOCK_PLL_DIV))
-#error "When using PLL both CLOCK_PLL_DIV and CLOCK_PLL_MUL must be provided"
-
-#elif CLOCK_HSI
-#define CLOCK_CR_SOURCE            RCC_CR_HSION
-#define CLOCK_CR_SOURCE_RDY        RCC_CR_HSIRDY
-#define CLOCK_PLL_SOURCE           RCC_CFGR_PLLSRC_HSI
-#define CLOCK_DISABLE_OTHERS       (RCC_CR_HSEON | RCC_CR_MSION)
-
-#if (CLOCK_USE_PLL == 0)
-#define CLOCK_CFGR_SW              RCC_CFGR_SW_HSI
-#define CLOCK_CFGR_SW_RDY          RCC_CFGR_SWS_HSI
+    #define CLOCK_HS_MULTI
 #endif
 
-#elif CLOCK_HSE
-#define CLOCK_CR_SOURCE            RCC_CR_HSEON
-#define CLOCK_CR_SOURCE_RDY        RCC_CR_HSERDY
-#define CLOCK_PLL_SOURCE           RCC_CFGR_PLLSRC_HSE
-#define CLOCK_DISABLE_OTHERS       (RCC_CR_HSION | RCC_CR_MSION)
+#if !defined(CLOCK_HS_MULTI)
+    #if defined(CLOCK_HSI)
+        #define CLOCK_CR_SOURCE            RCC_CR_HSION
+        #define CLOCK_CR_SOURCE_RDY        RCC_CR_HSIRDY
+        #define CLOCK_PLL_SOURCE           RCC_CFGR_PLLSRC_HSI
+        #define CLOCK_DISABLE_OTHERS       (RCC_CR_HSEON | RCC_CR_MSION)
 
-#if (CLOCK_USE_PLL == 0)
-#define CLOCK_CFGR_SW              RCC_CFGR_SW_HSE
-#define CLOCK_CFGR_SW_RDY          RCC_CFGR_SWS_HSE
+        #if (CLOCK_USE_PLL == 0)
+            #define CLOCK_CFGR_SW              RCC_CFGR_SW_HSI
+            #define CLOCK_CFGR_SW_RDY          RCC_CFGR_SWS_HSI
+        #endif
+    #elif defined(CLOCK_HSE)
+        #define CLOCK_CR_SOURCE            RCC_CR_HSEON
+        #define CLOCK_CR_SOURCE_RDY        RCC_CR_HSERDY
+        #define CLOCK_PLL_SOURCE           RCC_CFGR_PLLSRC_HSE
+        #define CLOCK_DISABLE_OTHERS       (RCC_CR_HSION | RCC_CR_MSION)
+
+        #if (CLOCK_USE_PLL == 0)
+            #define CLOCK_CFGR_SW              RCC_CFGR_SW_HSE
+            #define CLOCK_CFGR_SW_RDY          RCC_CFGR_SWS_HSE
+        #endif
+    #endif
 #endif
 
-#elif CLOCK_MSI
-#define CLOCK_CR_SOURCE            RCC_CR_MSION
-#define CLOCK_CR_SOURCE_RDY        RCC_CR_MSIRDY
-#define CLOCK_CFGR_SW              RCC_CFGR_SW_MSI
-#define CLOCK_CFGR_SW_RDY          RCC_CFGR_SWS_MSI
-#define CLOCK_DISABLE_OTHERS       (RCC_CR_HSEON | RCC_CR_HSION)
-#define CLOCK_MSIRANGE             RCC_ICSCR_MSIRANGE_6
+#if defined(CLOCK_MSI)
+    #define CLOCK_CR_SOURCE            RCC_CR_MSION
+    #define CLOCK_CR_SOURCE_RDY        RCC_CR_MSIRDY
+    #define CLOCK_CFGR_SW              RCC_CFGR_SW_MSI
+    #define CLOCK_CFGR_SW_RDY          RCC_CFGR_SWS_MSI
+    #define CLOCK_DISABLE_OTHERS       (RCC_CR_HSEON | RCC_CR_HSION)
+    #define CLOCK_MSIRANGE             RCC_ICSCR_MSIRANGE_6
 
-#if (CLOCK_USE_PLL == 1)
-#error "PLL can't be used with MSI"
-#endif
-
-#else
-#error "Please provide CLOCK_HSI or CLOCK_HSE in boards/NAME/includes/perhip_cpu.h"
+    #if (CLOCK_USE_PLL == 1)
+        #error "PLL can't be used with MSI"
+    #endif
 #endif
 
 #if (CLOCK_USE_PLL == 1)
-#define CLOCK_CFGR_SW              RCC_CFGR_SW_PLL
-#define CLOCK_CFGR_SW_RDY          RCC_CFGR_SWS_PLL
+    #define CLOCK_CFGR_SW              RCC_CFGR_SW_PLL
+    #define CLOCK_CFGR_SW_RDY          RCC_CFGR_SWS_PLL
 #endif
 
 #if (CLOCK_CORECLOCK > 16000000U)
-#define CORE_VOLTAGE PWR_CR_VOS_0
+    #define CORE_VOLTAGE PWR_CR_VOS_0
 #elif (CLOCK_CORECLOCK > 8000000U)
-#define CORE_VOLTAGE PWR_CR_VOS_1
+    #define CORE_VOLTAGE PWR_CR_VOS_1
 #else
-#define CORE_VOLTAGE (PWR_CR_VOS_1 | PWR_CR_VOS_0)
+    #define CORE_VOLTAGE (PWR_CR_VOS_1 | PWR_CR_VOS_0)
 #endif
 
 static uint32_t tmpreg;
 volatile uint32_t cpu_clock_global;
-
-void (*SysMemBootJump)(void);
+volatile uint32_t cpu_ports_number;
+char cpu_clock_source[10] = { 0 };
 
 void cpu_init(void)
 {
@@ -111,26 +117,36 @@ void cpu_init(void)
         
         /* System Memory on STM32L1 is at 0x1FF0 0000*/
         /* point the PC to the System Memory reset vector (+4) */
-        SysMemBootJump = (void (*)(void)) (*((uint32_t *) 0x1ff00004));
-        SysMemBootJump();
-    } else {
-        /* if we need RTC we reenable it later, if we don't - we don't */
-        rtc_poweroff();
+        typedef void (*ptr_func)(void);
+        ptr_func jump_to_bootloader;
+        jump_to_bootloader = (ptr_func)(0x1ff00004);
+        jump_to_bootloader();
     }
     
     /* initialize system clocks */
     clk_init();
+    
+    /* determine available ports */
+    cpu_ports_number = 0;
+    for (uint32_t i = GPIOA_BASE; i<=GPIOG_BASE; i += (GPIOB_BASE - GPIOA_BASE)) {
+        if (cpu_check_address((char *)i)) {
+            cpu_ports_number++;
+        } else {
+            break;
+        }
+    }
+    
     /* switch all GPIOs to AIN mode to minimize power consumption */
     uint8_t i;
     GPIO_TypeDef *port;
-    for (i = 0; i < CPU_NUMBER_OF_PORTS; i++) {
+    for (i = 0; i < cpu_ports_number; i++) {
         port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
         port->MODER = 0xffffffff;
     }
 }
 
 /**
- * @brief Configure the clock system of the stm32f1
+ * @brief Configure the clock system of the stm32l1
  */
 void clk_init(void)
 {
@@ -149,11 +165,33 @@ void clk_init(void)
     RCC->CIR = 0x0;
 
     /* SYSCLK, HCLK, PCLK2 and PCLK1 configuration */
+#if defined(CLOCK_HS_MULTI)
+    uint32_t clock_source_rdy;
+    
+    RCC->CR |= (RCC_CR_HSION | RCC_CR_HSEON);
+    
+    if (rtc_restore_backup(CLOCK_STATUS_BACKUP_REG) == RCC_CR_HSIRDY) {
+        clock_source_rdy = RCC_CR_HSIRDY;
+    } else {
+        clock_source_rdy = RCC_CR_HSERDY;
+    }
+        
+    volatile int timeout = 0;
+    while (!(RCC->CR & clock_source_rdy)) {
+        timeout++;
+        if (timeout > 10000) {
+            clock_source_rdy = RCC_CR_HSIRDY;
+            rtc_save_backup(RCC_CR_HSIRDY, CLOCK_STATUS_BACKUP_REG);
+            timeout = 0;
+        }
+    }
+#else
     /* Enable high speed clock source */
     RCC->CR |= CLOCK_CR_SOURCE;
     /* Wait till the clock source is ready
      * NOTE: the MCU will stay here forever if you use an external clock source and it's not connected */
     while (!(RCC->CR & CLOCK_CR_SOURCE_RDY)) {}
+#endif
     
     /* Choose the most efficient flash configuration */
 #if (CLOCK_CORECLOCK > 8000000U)
@@ -204,7 +242,15 @@ void clk_init(void)
 
 #if CLOCK_USE_PLL
     /*  PLL configuration: PLLCLK = CLOCK_SOURCE / PLL_DIV * PLL_MUL */
-    RCC->CFGR |= (uint32_t)(CLOCK_PLL_SOURCE | CLOCK_PLL_DIV | CLOCK_PLL_MUL);
+    #if defined(CLOCK_HS_MULTI)
+        if (clock_source_rdy == RCC_CR_HSERDY) {
+            RCC->CFGR |= (uint32_t)(RCC_CFGR_PLLSRC_HSE | CLOCK_PLL_DIV_HSE | CLOCK_PLL_MUL_HSE);
+        } else {
+            RCC->CFGR |= (uint32_t)(RCC_CFGR_PLLSRC_HSI | CLOCK_PLL_DIV_HSI | CLOCK_PLL_MUL_HSI);
+        }
+    #else
+        RCC->CFGR |= (uint32_t)(CLOCK_PLL_SOURCE | CLOCK_PLL_DIV | CLOCK_PLL_MUL);
+    #endif
     /* Enable PLL */
     RCC->CR |= RCC_CR_PLLON;
     /* Wait till PLL is ready */
@@ -219,15 +265,70 @@ void clk_init(void)
     /* Select system clock source */
     tmpreg = RCC->CFGR;
     tmpreg &= ~RCC_CFGR_SW;
-    tmpreg |= (uint32_t)CLOCK_CFGR_SW;;
+
+#if defined(CLOCK_HS_MULTI)
+    uint32_t clock_cfgr_sw;
+    uint32_t clock_cfgr_sw_rdy;
+    uint32_t clock_disable_clocks;
+
+    if (clock_source_rdy == RCC_CR_HSERDY) {
+        clock_cfgr_sw = RCC_CFGR_SW_HSE;
+        clock_cfgr_sw_rdy = RCC_CFGR_SWS_HSE;
+        clock_disable_clocks = RCC_CR_HSION | RCC_CR_MSION;
+    } else {
+        clock_cfgr_sw = RCC_CFGR_SW_HSI;
+        clock_cfgr_sw_rdy = RCC_CFGR_SWS_HSI;
+        clock_disable_clocks = RCC_CR_HSEON | RCC_CR_MSION;
+    }
+    
+    if (CLOCK_USE_PLL) {
+        clock_cfgr_sw = RCC_CFGR_SW_PLL;
+        clock_cfgr_sw_rdy = RCC_CFGR_SWS_PLL;
+    }
+    
+    tmpreg |= (uint32_t)clock_cfgr_sw;
+    RCC->CFGR = tmpreg;
+    while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS) != clock_cfgr_sw_rdy) {}
+    RCC->CR &= ~(clock_disable_clocks);
+#else
+    tmpreg |= (uint32_t)CLOCK_CFGR_SW;
+
     RCC->CFGR = tmpreg;
     /* Wait till clock is used as system clock source */
     while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS) != CLOCK_CFGR_SW_RDY) {}
 
     /* Disable other clock sources */
     RCC->CR &= ~(CLOCK_DISABLE_OTHERS);
+#endif
     
     cpu_clock_global = CLOCK_CORECLOCK;
+    
+#if CLOCK_MSI
+    memcpy(cpu_clock_source, "MSI", 3);   
+#elif defined(CLOCK_HS_MULTI)
+    uint32_t n = 0;
+    if (CLOCK_USE_PLL) {
+        memcpy(cpu_clock_source, "PLL", 3);
+        n += 3;
+    }
+    if (clock_source_rdy == RCC_CR_HSERDY) {
+        memcpy(cpu_clock_source + n, "/HSE", 4);
+    } else {
+        memcpy(cpu_clock_source + n, "/HSI", 4);
+    }
+#elif defined(CLOCK_HSI)
+    #if CLOCK_USE_PLL
+        memcpy(cpu_clock_source, "PLL/HSI", 7);
+    #elif
+        memcpy(cpu_clock_source, "HSI", 3);
+    #endif
+#elif defined(CLOCK_HSE)
+    #if CLOCK_USE_PLL
+        memcpy(cpu_clock_source, "PLL/HSE", 7);
+    #elif
+        memcpy(cpu_clock_source, "HSE", 3);
+    #endif
+#endif
 }
 
 void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider)
@@ -273,7 +374,31 @@ void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider)
     cpu_clock_global = 65536 * (1 << (msi_range >> 13));
 }
 
-int get_cpu_category(void) {
+static uint32_t cpu_find_memory_size(char *base, uint32_t block, uint32_t maxsize) {
+    char *address = base;
+    do {
+        address += block;
+        if (!cpu_check_address(address)) {
+            break;
+        }
+    } while ((uint32_t)(address - base) < maxsize);
+
+    return (uint32_t)(address - base);
+}
+
+uint32_t get_cpu_ram_size(void) {
+    return cpu_find_memory_size((char *)SRAM_BASE, 4096, 81920);
+}
+
+uint32_t get_cpu_flash_size(void) {
+    return cpu_find_memory_size((char *)FLASH_BASE, 32768, 524288);
+}
+
+uint32_t get_cpu_eeprom_size(void) {
+    return cpu_find_memory_size((char *)EEPROM_BASE, 2048, 16384);
+}
+
+uint32_t get_cpu_category(void) {
     switch (ST_DEV_ID) {
         case STM32L1_DEV_ID_CAT1:
             return 1;
@@ -294,31 +419,22 @@ int get_cpu_category(void) {
     return 0;
 }
 
-int get_cpu_ram_size(void) {
-    return 0;
-}
-
-int get_cpu_flash_size(void) {
-    return 0;
-}
-
-/* doesn't work with STM32L100 */
-int get_cpu_eeprom_size(void) {
+uint32_t get_cpu_name(char *name) {
     switch (ST_DEV_ID) {
         case STM32L1_DEV_ID_CAT1:
-            return 4096;
+            sprintf(name, "STM32L1xxxB");
             break;
         case STM32L1_DEV_ID_CAT2:
-            return 4096;
+            sprintf(name, "STM32L1xxxB-A");
             break;
         case STM32L1_DEV_ID_CAT3:
-            return 8192;
+            sprintf(name, "STM32L1xxxC");
             break;
         case STM32L1_DEV_ID_CAT4:
-            return 12288;
+            sprintf(name, "STM32L1xxxD");
             break;
         case STM32L1_DEV_ID_CAT56:
-            return 16384;
+            sprintf(name, "STM32L1xxxE");
             break;
     }
     return 0;

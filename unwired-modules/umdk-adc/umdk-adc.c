@@ -225,7 +225,6 @@ int umdk_adc_shell_cmd(int argc, char **argv) {
     }
     
     if (strcmp(cmd, "send") == 0) {
-        is_polled = true;
 		/* Send signal to publisher thread */
 		msg_send(&timer_msg, timer_pid);
     }
@@ -277,7 +276,7 @@ void umdk_adc_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     init_adc();
 
     /* Create handler thread */
-    char *stack = (char *) allocate_stack();
+    char *stack = (char *) allocate_stack(UMDK_ADC_STACK_SIZE);
     if (!stack) {
     	puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Is too many modules enabled?");
     	return;
@@ -285,7 +284,7 @@ void umdk_adc_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 
     unwds_add_shell_command( _UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_adc_shell_cmd);
 
-    timer_pid = thread_create(stack, UNWDS_STACK_SIZE_BYTES, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "ADC thread");
+    timer_pid = thread_create(stack, UMDK_ADC_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "ADC thread");
 
     /* Start publishing timer */
     rtctimers_set_msg(&timer, 60 * adc_config.publish_period_min, &timer_msg, timer_pid);

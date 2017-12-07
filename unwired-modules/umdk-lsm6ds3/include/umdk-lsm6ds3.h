@@ -22,6 +22,8 @@
 
 #define UMDK_LSM6DS3_I2C I2C_1
 
+#define UMDK_LSM6DS3_STACK_SIZE 1024
+
 typedef enum {
 	UMDK_LSM6DS3_CMD_POLL = 0,
 } umdk_lsm6ds3_cmd_t;

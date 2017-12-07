@@ -37,16 +37,16 @@
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-static uint32_t lpm_gpio_moder[CPU_NUMBER_OF_PORTS];
-static uint32_t lpm_gpio_pupdr[CPU_NUMBER_OF_PORTS];
-static uint16_t lpm_gpio_otyper[CPU_NUMBER_OF_PORTS];
-static uint16_t lpm_gpio_odr[CPU_NUMBER_OF_PORTS];
+static uint32_t lpm_gpio_moder[8];
+static uint32_t lpm_gpio_pupdr[8];
+static uint16_t lpm_gpio_otyper[8];
+static uint16_t lpm_gpio_odr[8];
 static uint8_t  lpm_usart[UART_NUMOF];
 static uint32_t ahb_gpio_clocks;
 static uint32_t tmpreg;
 
-static uint16_t lpm_portmask_system[CPU_NUMBER_OF_PORTS] = { 0 };
-static uint16_t lpm_portmask_user[CPU_NUMBER_OF_PORTS] = { 0 };
+static uint16_t lpm_portmask_system[8] = { 0 };
+static uint16_t lpm_portmask_user[8] = { 0 };
 
 volatile int lpm_run_mode;
 
@@ -71,12 +71,12 @@ static void pin_set(GPIO_TypeDef* port, uint8_t pin, uint8_t value) {
 
 /* put GPIOs in low-power state */
 static void lpm_before_i_go_to_sleep (void) {
-	uint8_t i;
-    uint8_t p;
+	uint32_t i;
+    uint32_t p;
     uint32_t mask;
     GPIO_TypeDef *port;
 	
-	for (i = 0; i < CPU_NUMBER_OF_PORTS; i++) {
+	for (i = 0; i < cpu_ports_number; i++) {
         port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
 
         /* save GPIO registers values */
@@ -144,17 +144,18 @@ static void lpm_before_i_go_to_sleep (void) {
     /* enable all GPIO clocks */
     periph_clk_en(AHB, 0xFF);
     
-    for (i = 0; i < CPU_NUMBER_OF_PORTS; i++) {
+    for (i = 0; i < cpu_ports_number; i++) {
         port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
         mask = 0xFFFFFFFF;
         if (EXTI->IMR) {
-            for (p = 0; p < 16; p ++) {
+            for (p = 0; p < 16; p++) {
                 /* exclude GPIOs we previously set with pin_set */
+                uint32_t _mask = ~(0x03 << (p*2));
                 if ((lpm_portmask_system[i] | lpm_portmask_user[i]) & (1 << p)) {
-                    mask &= ~(0x03 << (p*2));
+                    mask &= _mask;
                 } else {
                     if ((EXTI->IMR & (1 << p)) && ((((SYSCFG->EXTICR[p >> 2]) >> ((p & 0x03) * 4)) & 0xF) == i)) {
-                        mask &= ~(0x03 << (p*2));
+                        mask &= _mask;
                     }
                 }
             }
@@ -184,11 +185,11 @@ static void lpm_when_i_wake_up (void) {
     /* enable all GPIO clocks */
     periph_clk_en(AHB, 0xFF);
     
-    uint8_t i;
+    uint32_t i;
     GPIO_TypeDef *port;
       
     /* restore GPIO settings */
-    for (i = 0; i < CPU_NUMBER_OF_PORTS; i++) {
+    for (i = 0; i < cpu_ports_number; i++) {
         port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
         
         port->PUPDR = lpm_gpio_pupdr[i];
@@ -213,18 +214,18 @@ static void lpm_when_i_wake_up (void) {
 
 /* Do not change GPIO state in sleep mode */
 void lpm_arch_add_gpio_exclusion(gpio_t gpio) {
-	uint8_t port = ((uint32_t)gpio >> 10) & 0x0f;
-	uint8_t pin = ((uint32_t)gpio & 0x0f);
+	uint32_t port = ((uint32_t)gpio >> 10) & 0x0f;
+	uint32_t pin = ((uint32_t)gpio & 0x0f);
 	
-	lpm_portmask_user[port] |= (uint16_t)(1<<pin);
+	lpm_portmask_user[port] |= (1<<pin);
 }
 
 /* Change GPIO state to AIN in sleep mode */
 void lpm_arch_del_gpio_exclusion(gpio_t gpio) {
-	uint8_t port = ((uint32_t)gpio >> 10) & 0x0f;
-	uint8_t pin = ((uint32_t)gpio & 0x0f);
+	uint32_t port = ((uint32_t)gpio >> 10) & 0x0f;
+	uint32_t pin = ((uint32_t)gpio & 0x0f);
 	
-	lpm_portmask_user[port] &= ~(uint16_t)(1<<pin);
+	lpm_portmask_user[port] &= ~(1<<pin);
 }
 
 /* Select CPU clocking between default (LPM_ON) and medium-speed (LPM_IDLE) */

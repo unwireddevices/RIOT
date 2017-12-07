@@ -23,6 +23,8 @@
 #define UMDK_UART_RXBUF_SIZE (UNWDS_MAX_DATA_LEN - 1)
 #define UMDK_UART_SYMBOL_TIMEOUT_MS 500
 
+#define UMDK_UART_STACK_SIZE 2048
+
 /**
  * @brief   DE/RE pins definitions and handlers
  * @{

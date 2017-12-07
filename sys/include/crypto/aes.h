@@ -37,6 +37,8 @@ typedef uint32_t u32;
 typedef uint16_t u16;
 typedef uint8_t u8;
 
+/* Trade flash usage for CPU usage */
+#define AES_CALCULATE_TABLES
 
 /* This controls loop-unrolling in aes_core.c */
 #undef FULL_UNROLL

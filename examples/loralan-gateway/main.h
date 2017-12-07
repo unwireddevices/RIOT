@@ -15,20 +15,15 @@
  * @brief       
  * @author      Evgeniy Ponomarev
  */
-#ifndef LORA_STAR_UNI_MAIN_H_
-#define LORA_STAR_UNI_MAIN_H_
+#ifndef LORALAN_GATEWAY_MAIN_H_
+#define LORALAN_GATEWAY_MAIN_H_
+
+#define DISPLAY_JOINKEY_2BYTES 1
+#define DISPLAY_DEVNONCE_BYTE 1
 
 #include "shell.h"
+#include "unwds-common.h"
 
-#define FIRMWARE_VERSION "1.26"
+extern void init_normal(shell_command_t *commands);
 
-typedef int (*cmd_fun_t)(int, char **);
-
-extern void init_node(shell_command_t **commands);
-extern void init_gate(shell_command_t **commands);
-extern void init_no_eui64(shell_command_t **commands);
-extern void init_no_cfg(shell_command_t **commands);
-
-void blink_led(void);
-
-#endif /* LORA_STAR_UNI_MAIN_H_ */
+#endif /* LORALAN_GATEWAY_MAIN_H_ */

@@ -205,9 +205,11 @@ static void node_kicked_cb(ls_gate_node_t *node)
 
 static uint32_t node_joined_cb(ls_gate_node_t *node)
 {
-    printf("gate: node with ID 0x%08X%08X joined to the network with address 0x%08X\n",
+    ls_gate_channel_t *ch = (ls_gate_channel_t *)node->node_ch;
+    
+    printf("gate: node with ID 0x%08X%08X joined to the network with address 0x%08X, RSSI %d dBm\n",
            (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF),
-           (unsigned int) node->addr);
+           (unsigned int) node->addr, ch->last_rssi);
 
     /* Notify the gate */
     char str[128] = { '\0' };

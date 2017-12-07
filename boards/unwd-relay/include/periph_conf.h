@@ -30,11 +30,11 @@ extern "C" {
  * @name Clock system configuration
  * @{
  **/
-#define CLOCK_HSE           (24000000U)             /* frequency of internal oscillator */
+#define CLOCK_HSI           (16000000U)             /* frequency of internal oscillator */
 #define CLOCK_CORECLOCK     (32000000U)             /* targeted core clock frequency */
 /* configuration of PLL prescaler and multiply values */
 /* CORECLOCK := HSI / CLOCK_PLL_DIV * CLOCK_PLL_MUL */
-#define CLOCK_PLL_DIV       RCC_CFGR_PLLDIV3
+#define CLOCK_PLL_DIV       RCC_CFGR_PLLDIV2
 #define CLOCK_PLL_MUL       RCC_CFGR_PLLMUL4
 /* configuration of peripheral bus clock prescalers */
 #define CLOCK_AHB_DIV       RCC_CFGR_HPRE_DIV1      /* AHB clock -> 32MHz */

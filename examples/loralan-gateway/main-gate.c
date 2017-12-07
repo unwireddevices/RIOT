@@ -500,7 +500,7 @@ static void iwdg_reset (void *arg) {
     return;
 }
 
-shell_command_t shell_commands[] = {
+shell_command_t shell_commands_gate[6] = {
     { "set", "<config> <value> -- sets up value for the config entry", ls_set_cmd },
     { "listconfig", "-- prints out current configuration", ls_printc_cmd },
     { "list", "-- prints list of connected devices", ls_list_cmd },
@@ -572,10 +572,10 @@ void init_normal(shell_command_t *commands)
         ls_gate_init(&ls);
         
         unwds_setup_nvram_config(config_get_nvram(), UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
-
+        
         blink_led(LED_GREEN);
     }
-
+    
     /* Add our commands to shell */
     int i = 0;
     do {
@@ -585,16 +585,18 @@ void init_normal(shell_command_t *commands)
     int k = 0;
     do {
         k++;
-    } while (shell_commands[k].name);
-    
+    } while (shell_commands_gate[k].name);
+
     assert(i + k < UNWDS_SHELL_COMMANDS_MAX - 1);
-    
-    memcpy((void *)&commands[i], (void *)shell_commands, sizeof(shell_commands));
+
+    memcpy((void *)&commands[i], (void *)shell_commands_gate, sizeof(shell_commands_gate));
     
     hd44780_init(&hd44780_dev, &hd44780_params[0]);
     hd44780_clear(&hd44780_dev);
     hd44780_set_cursor(&hd44780_dev, 0, 0);
     hd44780_print(&hd44780_dev, "Gate");
+    hd44780_set_cursor(&hd44780_dev, 0, 1);
+    hd44780_print(&hd44780_dev, "No events");
 }
 
 

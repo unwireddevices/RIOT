@@ -113,6 +113,7 @@ static inline void _gpio_init(const hd44780_t *dev, gpio_t pin, gpio_mode_t mode
  */
 static inline void _command(const hd44780_t *dev, uint8_t value)
 {
+    xtimer_spin(xtimer_ticks_from_usec(1000));
     _send(dev, value, HD44780_OFF);
 }
 
@@ -263,7 +264,10 @@ int hd44780_init(hd44780_t *dev, const hd44780_params_t *params)
     
     if (dev->p.backlight != HD44780_RW_OFF) {
         _gpio_init(dev, dev->p.backlight, GPIO_OUT);
+        _gpio_set(dev, dev->p.backlight);
+        xtimer_spin(xtimer_ticks_from_usec(250000));
         _gpio_clear(dev, dev->p.backlight);
+        xtimer_spin(xtimer_ticks_from_usec(500000));
     }
     DEBUG("Backlight GPIO initialized\n");
     
@@ -296,6 +300,13 @@ int hd44780_init(hd44780_t *dev, const hd44780_params_t *params)
 
         _write_bits(dev, 4, 0x02);
     } else {
+        /* specific for WS0010 controller */
+        volatile int i = 0;
+        for (i = 0; i < 5; i++) {
+            _command(dev, 0);
+            xtimer_spin(xtimer_ticks_from_usec(5000));
+        }
+        
         /* see hitachi HD44780 datasheet page 45 figure 23 */
         _command(dev, HD44780_FUNCTIONSET | dev->flag);
         xtimer_usleep(HD44780_INIT_WAIT_LONG);  // wait more than 4.1ms

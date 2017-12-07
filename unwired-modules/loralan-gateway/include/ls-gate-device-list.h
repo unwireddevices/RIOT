@@ -31,7 +31,7 @@
 /**
  * Max devices number that gate can hold
  */
-#define LS_GATE_MAX_NODES 100
+#define LS_GATE_MAX_NODES 50
 
 /**
  * Max nonce count to remember in order to prevent nonce reuse

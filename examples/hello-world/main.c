@@ -27,6 +27,8 @@
 #include "thread.h"
 #include "lpm.h"
 
+#include "xtimer.h"
+
 static rtctimers_millis_t led_timer;
 static msg_t timer_msg = {};
 static kernel_pid_t led_pid;
@@ -44,6 +46,19 @@ void *blink_a_led(void *arg) {
     }
 }
 
+volatile uint32_t last_button_press;
+
+void rgb_toggle(void *arg) {
+    if (xtimer_now_usec() < last_button_press + 100000) {
+        return;
+    }
+    last_button_press = xtimer_now_usec();
+        
+    gpio_toggle(UNWD_GPIO_26);
+    
+    return;
+}
+
 int main(void)
 {
     lpm_prevent_sleep = 1;
@@ -59,6 +74,10 @@ int main(void)
     led_pid = thread_create(stack, 2048, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, blink_a_led, NULL, "led thread");
     
     rtctimers_millis_set_msg(&led_timer, 500, &timer_msg, led_pid);
+    
+    gpio_init(UNWD_GPIO_26, GPIO_OUT);
+    
+    gpio_init_int(UNWD_GPIO_4, GPIO_IN_PU, GPIO_FALLING, rgb_toggle, NULL);
 
     return 0;
 }

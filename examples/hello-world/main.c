@@ -49,7 +49,7 @@ void *blink_a_led(void *arg) {
 volatile uint32_t last_button_press;
 
 void rgb_toggle(void *arg) {
-    if (xtimer_now_usec() > last_button_press + 100000) {
+    if (xtimer_now_usec() < last_button_press + 200000) {
         puts("Bounce");
         return;
     }

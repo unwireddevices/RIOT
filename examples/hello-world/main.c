@@ -50,8 +50,10 @@ volatile uint32_t last_button_press;
 
 void rgb_toggle(void *arg) {
     if (xtimer_now_usec() > last_button_press + 100000) {
+        puts("Bounce");
         return;
     }
+    puts("Press");
     last_button_press = xtimer_now_usec();
         
     gpio_toggle(UNWD_GPIO_26);
@@ -64,6 +66,7 @@ int main(void)
     lpm_prevent_sleep = 1;
     
     rtctimers_millis_init();
+    xtimer_init();
     
     puts("Hello World!");
 

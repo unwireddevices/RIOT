@@ -24,6 +24,7 @@ extern "C" {
 #include "assert.h"
 #include "thread.h"
 
+#include "ls-init-device.h"
 #include "ls-mac-types.h"
 #include "ls-mac.h"
 #include "ls-gate.h"
@@ -34,19 +35,6 @@ extern "C" {
 
 #define ENABLE_DEBUG (1)
 #include "debug.h"
-
-/**
- * Data rates table.
- */
-static const uint8_t datarate_table[7][3] = {
-    { SX1276_SF12, SX1276_BW_125_KHZ, SX1276_CR_4_5 },          /* DR0 */
-    { SX1276_SF11, SX1276_BW_125_KHZ, SX1276_CR_4_5 },          /* DR1 */
-    { SX1276_SF10, SX1276_BW_125_KHZ, SX1276_CR_4_5 },          /* DR2 */
-    { SX1276_SF9, SX1276_BW_125_KHZ, SX1276_CR_4_5 },           /* DR3 */
-    { SX1276_SF8, SX1276_BW_125_KHZ, SX1276_CR_4_5 },           /* DR4 */
-    { SX1276_SF7, SX1276_BW_125_KHZ, SX1276_CR_4_5 },           /* DR5 */
-    { SX1276_SF7, SX1276_BW_250_KHZ, SX1276_CR_4_5 },           /* DR6 */
-};
 
 static msg_t msg_ping;
 static msg_t msg_rx1_expired;
@@ -66,34 +54,7 @@ static void schedule_tx(ls_gate_channel_t *ch) {
 
 static void prepare_sx1276(ls_gate_channel_t *ch)
 {
-    /* Choose data rate */
-    const uint8_t *datarate = datarate_table[ch->dr];
-
-    /* Setup transceiver settings according to datarate */
-    sx1276_lora_settings_t settings;
-
-    settings.datarate = datarate[0];
-    settings.bandwidth = datarate[1];
-    settings.coderate = datarate[2];
-
-    settings.crc_on = true;
-    settings.freq_hop_on = false;
-    settings.hop_period = 0;
-    settings.implicit_header = false;
-    settings.iq_inverted = false;
-    settings.low_datarate_optimize = false;
-    settings.payload_len = 0;
-    settings.power = TX_OUTPUT_POWER;
-    settings.preamble_len = LORA_PREAMBLE_LENGTH;
-    settings.rx_continuous = true;
-    settings.tx_timeout = 1e6 * 30; // 30 sec
-    settings.rx_timeout = LORA_SYMBOL_TIMEOUT;
-
-    sx1276_configure_lora(ch->_internal.sx1276, &settings);
-
-    /* Setup channel */
-    sx1276_set_channel(ch->_internal.sx1276, ch->frequency);
-    
+    ls_setup_sx1276(ch->_internal.sx1276, ch->dr, ch->frequency);
     DEBUG("ls-gate: SX1276 configured\n");
 }
 
@@ -511,7 +472,7 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
 
     switch (event_type) {
         case SX1276_RX_DONE: {
-            DEBUG("ls-gate: RX done\n");
+            printf("RX: %u bytes, | RSSI: %d\n", packet->size, packet->rssi_value);
             DEBUG("ls-gate: state = IDLE\n");
             ch->state = LS_GATE_CHANNEL_STATE_IDLE;
             

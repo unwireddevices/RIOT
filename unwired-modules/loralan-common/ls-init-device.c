@@ -42,6 +42,7 @@ extern "C" {
 
 #include "ls-settings.h"
 #include "ls-init-device.h"
+#include "ls-mac.h"
 
 static nvram_t nvram;
 
@@ -56,6 +57,49 @@ static uint64_t eui64 = 0;
 static uint64_t appid = 0;
 static uint8_t joinkey[16] = {};
 static uint32_t devnonce = 0;
+
+/**
+ * Data rates table.
+ */
+const uint8_t datarate_table[7][3] = {
+    { SX1276_SF12, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR0 */
+    { SX1276_SF11, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR1 */
+    { SX1276_SF10, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR2 */
+    { SX1276_SF9, SX1276_BW_125_KHZ, SX1276_CR_4_5 },        /* DR3 */
+    { SX1276_SF8, SX1276_BW_125_KHZ, SX1276_CR_4_5 },        /* DR4 */
+    { SX1276_SF7, SX1276_BW_125_KHZ, SX1276_CR_4_5 },        /* DR5 */
+    { SX1276_SF7, SX1276_BW_250_KHZ, SX1276_CR_4_5 },        /* DR6 */
+};
+
+void ls_setup_sx1276(sx1276_t *dev, ls_datarate_t dr, uint32_t frequency) {
+    /* Choose data rate */
+    const uint8_t *datarate = datarate_table[dr];
+    
+    /* Setup transceiver settings according to datarate */
+    sx1276_lora_settings_t settings;
+
+    settings.datarate = datarate[0];
+    settings.bandwidth = datarate[1];
+    settings.coderate = datarate[2];
+
+    settings.crc_on = true;
+    settings.freq_hop_on = false;
+    settings.hop_period = 0;
+    settings.implicit_header = false;
+    settings.iq_inverted = false;
+    settings.low_datarate_optimize = false;
+    settings.payload_len = 0;
+    settings.power = TX_OUTPUT_POWER;
+    settings.preamble_len = LORA_PREAMBLE_LENGTH;
+    settings.rx_continuous = true;
+    settings.tx_timeout = 1e6 * 30; // 30 sec
+    settings.rx_timeout = LORA_SYMBOL_TIMEOUT;
+
+    sx1276_configure_lora(dev, &settings);
+
+    /* Setup channel */
+    sx1276_set_channel(dev, frequency);
+}
 
 void init_role(shell_command_t *commands) {
     lpm_arch_init();

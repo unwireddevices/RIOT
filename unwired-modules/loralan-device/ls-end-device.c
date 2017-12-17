@@ -53,17 +53,17 @@ static void configure_sx1276(ls_ed_t *ls, bool tx)
     
     ls_setup_sx1276(ls->_internal.sx1276, dr, ls->settings.channels_table[ch]);
     
-    DEBUG("[LoRa] SX1276 configured\n");
+    DEBUG("[LoRa] configure_sx1276: SX1276 configured\n");
 }
 
 static void anticollision_delay(void) {
 	/* Pseudorandom delay up to 8 seconds for collision avoidance */
 	unsigned int delay = random_uint32_range(1, 8); // XXX: return to original
 
-	DEBUG("[LoRa] random delay %d s\n", (unsigned int) (delay));
+	DEBUG("[LoRa] anticollision_delay: random delay %d s\n", (unsigned int) (delay));
 	rtctimers_sleep(delay);
 
-	DEBUG("[LoRa] delay end\n");
+	DEBUG("[LoRa] anticollision_delay: delay end\n");
 }
 
 static void enter_rx(ls_ed_t *ls)

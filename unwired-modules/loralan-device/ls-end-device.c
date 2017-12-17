@@ -263,16 +263,66 @@ static void data_recv(ls_ed_t *ls, ls_frame_t *frame) {
 
 static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 {
-    DEBUG("[LoRa] frame_recv: frame received\n");
+#if ENABLE_DEBUG
+    char debug_frame_type[20];
+    switch (frame->header.type) {
+    	case LS_DL:
+            snprintf(debug_frame_type, 20, "LS_DL");
+            break;
+        case LS_DL_ACK:
+            snprintf(debug_frame_type, 20, "LS_DL_ACK");
+            break;
+        case LS_DL_ACK_W_DATA:
+            snprintf(debug_frame_type, 20, "LS_DL_ACK_W_DATA");
+            break;
+        case LS_DL_BROADCAST:
+            snprintf(debug_frame_type, 20, "LS_DL_BROADCAST");
+            break;
+        case LS_UL_JOIN_REQ:
+            snprintf(debug_frame_type, 20, "LS_UL_JOIN_REQ");
+            break;
+        case LS_DL_JOIN_ACK:
+            snprintf(debug_frame_type, 20, "LS_DL_JOIN_ACK");
+            break;
+        case LS_DL_INVITE:
+            snprintf(debug_frame_type, 20, "LS_DL_INVITE");
+            break;
+        default:
+            snprintf(debug_frame_type, 20, "UNKNOWN");
+            break;
+    }
+    DEBUG("[LoRa] frame_recv: downlink frame received, type %s\n", debug_frame_type);
+#endif
+
+    if ((frame->header.type == LS_DL_ACK_W_DATA) ||
+        (frame->header.type == LS_DL_ACK) ||
+        (frame->header.type == LS_DL)) {
+        if (!ls->settings.no_join && !ls->_internal.is_joined) {
+            DEBUG("[LoRa] frame_recv: not joined\n");
+            return false;
+        }
+
+        if (frame->header.dev_addr != ls->_internal.dev_addr) {
+            DEBUG("[LoRa] frame_recv: address mismatch\n");
+            return false;
+        }
+
+        if (!ls_validate_frame_mic(ls->settings.crypto.mic_key, frame)) {
+            DEBUG("[LoRa] frame_recv: invalid MIC\n");
+            return false;
+        }
+    } else {
+        if (!ls_validate_frame_mic(ls->settings.crypto.join_key, frame)) {
+            DEBUG("[LoRa] frame_recv: invalid MIC\n");
+            return false;
+        }
+    }
     
     switch (frame->header.type) {
     	case LS_DL_BROADCAST: { /* Downlink broadcast message */
     		/* Validate and decipher incoming broadcast message */
             DEBUG("[LoRa] frame_recv: broadcast message\n");
-            if (!ls_validate_frame_mic(ls->settings.crypto.join_key, frame)) {
-                DEBUG("[LoRa] frame_recv: invalid MIC\n");
-                return false;
-            }
+            
             ls_decrypt_frame_payload(ls->settings.crypto.join_key, &frame->payload);
 
             /* Notify application code about incoming data */
@@ -280,7 +330,6 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
                 DEBUG("[LoRa] frame_recv: notify application\n");
             	return ls->broadcast_appdata_received_cb(frame->payload.data, frame->payload.len);
             }
-
             return false;
     	}
     	break;
@@ -288,22 +337,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
     	case LS_DL_ACK_W_DATA: /* Acknowledge with additional data */
             /* Must be joined to the network first */
             DEBUG("[LoRa] frame_recv: ack with data received\n");
-            
-            if (!ls->settings.no_join && !ls->_internal.is_joined) {
-                DEBUG("[LoRa] frame_recv: not joined\n");
-                return false;
-            }
 
-            if (frame->header.dev_addr != ls->_internal.dev_addr) {
-                DEBUG("[LoRa] frame_recv: address mismatch\n");
-            	return false;
-            }
-
-            if (!ls_validate_frame_mic(ls->settings.crypto.mic_key, frame)) {
-                DEBUG("[LoRa] frame_recv: invalid MIC\n");
-                return false;
-            }
-            
             /* Remove app data we've got ACK for from FIFO */
             if (!appdata_fifo_empty(&ls->_internal.appdata_fifo)) {
                 DEBUG("[LoRa] frame_recv: remove FIFO entry\n");
@@ -322,17 +356,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
         case LS_DL_ACK:                             /* Downlink frame acknowledge for confirmed messages */
             DEBUG("[LoRa] frame_recv: ack received\n");
-            
-            if (frame->header.dev_addr != ls->_internal.dev_addr) {
-                DEBUG("[LoRa] frame_recv: address mismatch\n");  
-            	return false;
-            }
 
-            if (!ls_validate_frame_mic(ls->settings.crypto.mic_key, frame)) {
-                DEBUG("[LoRa] frame_recv: invalid MIC\n");
-                return false;
-            }
-            
             /* Remove app data we've got ACK for from FIFO */
             if (!appdata_fifo_empty(&ls->_internal.appdata_fifo)) {
                 DEBUG("[LoRa] frame_recv: remove FIFO entry\n");
@@ -343,22 +367,6 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
         case LS_DL:         /* Downlink frame */
             DEBUG("[LoRa] frame_recv: donwlink frame received\n");
-            /* Must be joined to the network first */
-            if (!ls->settings.no_join && !ls->_internal.is_joined) {
-                DEBUG("[LoRa] frame_recv: not joined\n");
-                return false;
-            }
-
-            if (frame->header.dev_addr != ls->_internal.dev_addr) {
-                DEBUG("[LoRa] frame_recv: address mismatch\n"); 
-            	return false;
-            }
-
-            if (!ls_validate_frame_mic(ls->settings.crypto.mic_key, frame)) {
-                DEBUG("[LoRa] frame_recv: invalid MIC\n");
-                return false;
-            }
-
             DEBUG("[LoRa] frame_recv: decrypting payload\n");
             ls_decrypt_frame_payload(ls->settings.crypto.aes_key, &frame->payload);
 
@@ -366,7 +374,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             return true;
 
         case LS_DL_JOIN_ACK: { /* Downlink join acknowledge */
-            DEBUG("[LoRa] frame_recv: join ACK receinved\n");
+            DEBUG("[LoRa] frame_recv: join ACK received\n");
         	/* Joins are disabled */
         	if (ls->settings.no_join) {
                 DEBUG("[LoRa] frame_recv: OTA disabled\n");
@@ -375,11 +383,6 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
             if (frame->payload.len != sizeof(ls_join_ack_t)) {
                 DEBUG("[LoRa] frame_recv: incorrect payload length\n");
-                return false;
-            }
-
-            if (!ls_validate_frame_mic(ls->settings.crypto.join_key, frame)) {
-                DEBUG("[LoRa] frame_recv: invalid MIC\n");
                 return false;
             }
 
@@ -446,11 +449,6 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
         	/* Validate and decrypt frame */
             if (frame->payload.len != sizeof(ls_invite_t)) {
                 DEBUG("[LoRa] frame_recv: invalid payload length\n");
-                return false;
-            }
-
-            if (!ls_validate_frame_mic(ls->settings.crypto.join_key, frame)) {
-                DEBUG("[LoRa] frame_recv: invalid MIC\n");
                 return false;
             }
 

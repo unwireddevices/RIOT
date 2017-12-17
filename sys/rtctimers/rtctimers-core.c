@@ -225,9 +225,11 @@ static void _timer_callback(void)
         next_target = timer_list_head->target - RTCTIMERS_OVERHEAD;
 
         /* make sure we're not setting a time in the past */
+        #if ENABLE_DEBUG
         if (next_target < (rtctimers_now() + RTCTIMERS_ISR_BACKOFF)) {
             DEBUG("[rtctimers] next_target < now + isr\n");
         }
+        #endif
     }
 
     /* set low level timer */

@@ -546,6 +546,11 @@ static int ls_safe_cmd(int argc, char **argv) {
     return 0;
 }
 
+static int ls_join_cmd(int argc, char **argv) {
+    node_join(&ls);
+    return 0;
+}
+
 shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX] = {
     { "set", "<config> <value> -- set value for the configuration entry", ls_set_cmd },
     { "lscfg", "-- print out current configuration", ls_printc_cmd },
@@ -554,6 +559,7 @@ shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX] = {
     { "mod", "<name> <enable|disable>	-- disable or enable selected module", ls_module_cmd },
     { "cmd", "<modid> <cmdhex> -- send command to another UNWDS device", ls_cmd_cmd },
     { "safe", " -- reboot in safe mode", ls_safe_cmd },
+    { "join", " -- join now", ls_join_cmd },
     { NULL, NULL, NULL },
 };
 

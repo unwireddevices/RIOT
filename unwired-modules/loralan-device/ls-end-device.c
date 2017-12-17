@@ -594,6 +594,7 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
 	}
 }
 
+#if ENABLE_DEBUG
 static void get_type_str(ls_type_t type, char *str) {
 	switch (type) {
 	case LS_UL_ACK:		/**< Uplink acknowledge from the end device */
@@ -622,6 +623,7 @@ static void get_type_str(ls_type_t type, char *str) {
 		break;
 	}
 }
+#endif
 
 /**
  * Uplink frame queue handler thread body.
@@ -727,12 +729,9 @@ static void *uq_handler(void *arg)
         }
         DEBUG("[LoRa] uq_handler: sending data to transceiver\n");
 
-
-        // XXX: debug
+#if ENABLE_DEBUG
         char type_str[10] = {};
         get_type_str(f->header.type, type_str);
-
-#if ENABLE_DEBUG
         printf(">mhdr=0x%02X, mic=0x%04X, addr=0x%02X, <%s> fid=0x%02X (%d bytes) [%d left]\n", (unsigned int) f->header.mhdr,
                (unsigned int) f->header.mic, (unsigned int) f->header.dev_addr,
                type_str,

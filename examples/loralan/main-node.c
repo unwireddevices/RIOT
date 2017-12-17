@@ -438,7 +438,7 @@ int ls_cmd_cmd(int argc, char **argv)
 
     uint8_t modid = atoi(argv[1]);
     if (!unwds_is_module_exists(modid)) {
-        puts("cmd: module with specified id is not exists");
+        printf("cmd: module with ID %d does not exists\n", modid);
         return 1;
     }
 
@@ -446,12 +446,12 @@ int ls_cmd_cmd(int argc, char **argv)
 
     int len = strlen(argv[2]);
     if (len % 2 != 0) {
-        puts("cmd: command in hex must have an even length. Example: a0b100cc (4 bytes)");
+        puts("cmd: invalid hex number");
         return 1;
     }
 
     if (len / 2 > UNWDS_MAX_DATA_LEN) {
-        printf("cmd: command in hex is too long. Maximum is %d bytes long\n", UNWDS_MAX_DATA_LEN);
+        printf("cmd: command too long. Maximum is %d bytes\n", UNWDS_MAX_DATA_LEN);
         return 1;
     }
 
@@ -500,12 +500,12 @@ static int ls_module_cmd(int argc, char **argv)
     }
     
     if (modid < 0) {
-        puts("mod: module with specified name doesn't exist");
+        printf("mod: module %s does not exist\n", argv[1]);
         return 1;
     }
     
     if (!unwds_is_module_exists(modid)) {
-        puts("mod: module with specified id doesn't exist");
+        printf("mod: module with ID %d does not exist\n", modid);
         return 1;
     }
 
@@ -668,7 +668,7 @@ void init_normal(shell_command_t *commands)
             
             /* IWDG period is 18 seconds minimum, 28 seconds typical */
             wdg_set_prescaler(6);
-            wdg_set_reload((uint16_t) 0x0FFF);
+            wdg_set_reload(0x0FFF);
             wdg_reload();
             wdg_enable();
 

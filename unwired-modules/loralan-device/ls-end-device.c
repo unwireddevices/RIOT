@@ -1005,7 +1005,14 @@ int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed
 
     ls->_internal.confirmation_required = false;
 
-    ls_type_t type = (with_ack) ? LS_UL_UNC_ACK : (confirmed) ? LS_UL_CONF : LS_UL_UNC;
+    ls_type_t type = LS_UL_UNC;
+    if (with_ack) {
+        type = LS_UL_UNC_ACK;
+    } else {
+        if (confirmed) {
+            type = LS_UL_CONF;
+        }
+    }
 
     DEBUG("[LoRa] ls_ed_send_app_data: send_frame\n");
     int res = send_frame(ls, type, buf, buflen);

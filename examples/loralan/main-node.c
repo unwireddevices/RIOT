@@ -336,7 +336,7 @@ int ls_set_cmd(int argc, char **argv)
         uint32_t addr = 0;
 
         if (!hex_to_bytesn(value, 8, (uint8_t *) &addr, true)) {
-            puts("[error] Pardon me, but that's not a hex number!");
+            puts("[error] Invalid hex number!");
             return 1;
         }
 

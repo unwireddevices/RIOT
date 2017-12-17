@@ -241,8 +241,10 @@ bool unwds_read_nvram_storage(unwds_module_id_t module_id, uint8_t *data_out, ui
 	if (nvram->read(nvram, data_out, addr, size + 2) < 0)
 		return false;
     
-    uint16_t *crc16 = (uint16_t *)(data_out + size);
-    if (fletcher16(data_out, size) != *crc16) {
+    uint16_t crc16;
+    memcpy(&crc16, data_out+size, 2);
+    
+    if (fletcher16(data_out, size) != crc16) {
         return false;
     }
     

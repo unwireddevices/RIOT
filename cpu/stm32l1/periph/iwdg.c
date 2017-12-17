@@ -46,7 +46,7 @@ static inline void iwdg_lock(void)
 void wdg_set_prescaler(uint8_t prescaler)
 {
     /* Check valid prescaler values */
-    assert(prescaler == 0x00    ||
+    assert(prescaler == 0x00   ||
            prescaler == 0x01   ||
            prescaler == 0x02   ||
            prescaler == 0x03   ||

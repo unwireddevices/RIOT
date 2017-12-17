@@ -192,7 +192,7 @@ int adc_sample(adc_t line,  adc_res_t res)
     uint32_t etrig = 0x03000000;
     uint32_t continuous_conv_mode = 0;
 
-    tmpreg1 |= (uint32_t)(align | edge | etrig | ((uint32_t)continuous_conv_mode << 1));
+    tmpreg1 |= align | edge | etrig | (continuous_conv_mode << 1);
     ADC1->CR2 = tmpreg1;
 
     if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL) {

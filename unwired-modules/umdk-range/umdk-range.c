@@ -90,7 +90,7 @@ static bool init_sensor(void) {
 
 }
 
-static void prepare_result(module_data_t *buf) {
+static void prepare_result(module_data_t *data) {
 	ultrasoundrange_measure_t measure = {};
 	ultrasoundrange_measure(&dev, &measure);
     
@@ -99,12 +99,14 @@ static void prepare_result(module_data_t *buf) {
     
 	printf("[umdk-" _UMDK_NAME_ "] Echo distance %d mm\n", range);
 
-	buf->length = 1 + sizeof(range); /* Additional byte for module ID */
+    if (data) {
+        data->length = 1 + sizeof(range); /* Additional byte for module ID */
 
-	buf->data[0] = _UMDK_MID_;
+        data->data[0] = _UMDK_MID_;
 
-	/* Copy measurements into response */
-	memcpy(buf->data + 1, (uint8_t *) &range, sizeof(range));
+        /* Copy measurements into response */
+        memcpy(data->data + 1, (uint8_t *) &range, sizeof(range));
+    }
 }
 
 static void *timer_thread(void *arg) {
@@ -220,8 +222,7 @@ int umdk_range_shell_cmd(int argc, char **argv) {
     char *cmd = argv[1];
 	
     if (strcmp(cmd, "get") == 0) {
-        module_data_t data = {};
-        prepare_result(&data);
+        prepare_result(NULL);
     }
     
     if (strcmp(cmd, "send") == 0) {

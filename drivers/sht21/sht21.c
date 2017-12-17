@@ -52,10 +52,10 @@ int sht21_init(sht21_t *dev)
     }
     
     if (i2c_read_reg(dev->i2c, SHT21_ADDRESS, SHT21_USER_REG_READ, (char *)&config) != 1) {
-      puts("[sht21 driver] Error: sensor not found");
-      i2c_release(dev->i2c);
+        puts("[sht21 driver] Error: sensor not found");
+        i2c_release(dev->i2c);
 
-      return -1;
+        return -1;
     }
 
     /* Clean all configuration bits except those reserved */
@@ -73,16 +73,15 @@ int sht21_init(sht21_t *dev)
 
 static int sht21_check_crc(uint8_t data[], uint8_t nbrOfBytes, uint8_t checksum)
 {
-    uint8_t crc = 0;
-    uint8_t byteCtr;
+    int crc = 0;
+    int byteCtr;
     //calculates 8-Bit checksum with given polynomial
     for (byteCtr = 0; byteCtr < nbrOfBytes; ++byteCtr) {
         crc ^= (data[byteCtr]);
-        for (uint8_t bit = 8; bit > 0; --bit) {
+        for (int bit = 8; bit > 0; --bit) {
+            crc = (crc << 1);
             if (crc & 0x80) {
-                crc = (crc << 1) ^ 0x131;
-            } else {
-                crc = (crc << 1);
+                crc ^= 0x131;
             }
         }
     }

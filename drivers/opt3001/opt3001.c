@@ -19,7 +19,7 @@
 #include "opt3001.h"
 #include "periph/i2c.h"
 
-#include "xtimer.h"
+#include "rtctimers-millis.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -82,11 +82,22 @@ static uint32_t read_sensor(opt3001_t *dev) {
     i2c_write_regs(dev->i2c, OPT3001_ADDRESS, OPT3001_REG_CONFIG, (char *)&data, 2);
     
     /* wait till measurement is finished */
-    volatile uint16_t i = 0;
+    int i = 100;
     do {
-        for (i=0; i<1000; i++) {}
+        /* 10 ms delay */
+        rtctimers_millis_sleep(10);
+        
         i2c_read_regs(dev->i2c, OPT3001_ADDRESS, OPT3001_REG_CONFIG, (char *)&data, 2);
-    } while (!(data & OPT3001_CFG_CRF));
+        if (data & OPT3001_CFG_CRF) {
+            break;
+        }
+        
+        i--;
+    } while (i);
+    
+    if (i == 0) {
+        return 0;
+    }
 
     /* read result */
     i2c_read_regs(dev->i2c, OPT3001_ADDRESS, OPT3001_REG_RESULT, (char *)&data, 2);

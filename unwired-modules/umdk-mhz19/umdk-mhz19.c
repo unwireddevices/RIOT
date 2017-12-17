@@ -85,19 +85,19 @@ void mhz19_cb(mhz19_data_t mhz19_data)
     data.data[0] = _UMDK_MID_;
     data.length = 1;
     
-    int16_t co2 = mhz19_data.co2;
-    int16_t temperature = mhz19_data.temperature;
+    int16_t measurements[2];
+    
+    measurements[0] = mhz19_data.co2;
+    measurements[1] = mhz19_data.temperature;
     uint8_t validity = mhz19_data.validity;
     
     printf("[umdk-" _UMDK_NAME_ "] CO2: %d, temperature: %d, validity: %d\n",
-            (int)co2, (int)temperature, (int)validity);
+            measurements[0], measurements[1], (int)validity);
     
-    memcpy((void *)&data.data[data.length], &co2, sizeof(co2));
-    data.length += sizeof(co2);
-
-    temperature *= 10;
-    memcpy((void *)&data.data[data.length], &temperature, sizeof(temperature));
-    data.length += sizeof(temperature);
+    
+    measurements[1] *= 10;
+    memcpy((void *)&data.data[data.length], measurements, sizeof(measurements));
+    data.length += sizeof(measurements);
 
     data.data[data.length] = validity;
     data.length++;

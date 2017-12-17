@@ -58,7 +58,7 @@ static void configure_sx1276(ls_ed_t *ls, bool tx)
 
 static void anticollision_delay(void) {
 	/* Pseudorandom delay up to 8 seconds for collision avoidance */
-	unsigned int delay = random_uint32_range(1, 8); // XXX: return to original
+	unsigned int delay = random_uint32_range(1, 8);
 
 	DEBUG("[LoRa] anticollision_delay: random delay %d s\n", (unsigned int) (delay));
 	rtctimers_sleep(delay);
@@ -102,22 +102,15 @@ static void open_rx_windows(ls_ed_t *ls)
     
     DEBUG("[LoRa] open_rx_windows\n");
 
-    /* Open 2 RX windows if class A device */
+    rtctimers_set_msg(&ls->_internal.rx_window1, LS_RX_DELAY1, &msg_rx1, ls->_internal.tim_thread_pid);
+    
+    /* Open second RX windows if class A device */
     if (ls->settings.class == LS_ED_CLASS_A) {
-        DEBUG("[LoRa] open_rx_windows: class A\n");
-        rtctimers_set_msg(&ls->_internal.rx_window1, LS_RX_DELAY1, &msg_rx1, ls->_internal.tim_thread_pid);
+        DEBUG("[LoRa] open_rx_windows: class A second window\n");        
         rtctimers_set_msg(&ls->_internal.rx_window2, LS_RX_DELAY1 + LS_RX_DELAY2, &msg_rx2, ls->_internal.tim_thread_pid);
-
-        /* Enter reception mode */
-        enter_rx(ls);
     }
-
-	/* For a while, B and C are the same */
-	else if ((ls->settings.class == LS_ED_CLASS_C) || (ls->settings.class == LS_ED_CLASS_B)) {
-        DEBUG("[LoRa] open_rx_windows: class C\n");
-        rtctimers_set_msg(&ls->_internal.rx_window1, LS_RX_DELAY1, &msg_rx1, ls->_internal.tim_thread_pid);
-        enter_rx(ls);
-    }
+    
+    enter_rx(ls);
 }
 
 static void send_next(ls_ed_t *ls) {
@@ -145,17 +138,16 @@ static uint8_t get_node_status(void)
         return 0;
     }
     uint16_t vdd;
-    vdd = adc_sample(ADC_LINE(ADC_VREF_INDEX), ADC_RES_12BIT);
-    vdd -= 2000; /* 2000 mV min voltage */
-    vdd /= 50; /* 50 mV per bit resolution */
+    /* 2000 mV min voltage */
+    /* 50 mV per bit resolution */
+    vdd = (adc_sample(ADC_LINE(ADC_VREF_INDEX), ADC_RES_12BIT) - 2000)/50;
     
     if (adc_init(ADC_LINE(ADC_TEMPERATURE_INDEX)) < 0) {
         return ((uint8_t)vdd & 0x1F);
     }
-    int16_t temp;
-    temp = (adc_sample(ADC_LINE(ADC_TEMPERATURE_INDEX), ADC_RES_12BIT) + 5) / 10;
-    temp += 40; /* -40 is the minimim */
-    temp = (temp + 10) / 20; /* 20 deg C per bit */
+    int temp;
+    temp = adc_sample(ADC_LINE(ADC_TEMPERATURE_INDEX), ADC_RES_12BIT);
+    temp = 40 + ((temp + 105) / 200); /* -40 is the minimim, 20 deg C per bit */
     
     DEBUG("[LoRa] get_node_status: V = %d, T = %d\n", vdd, temp);
     
@@ -516,20 +508,18 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
 						close_rx_windows(ls);
 					}
 				} else {
+                    rtctimers_remove(&ls->_internal.rx_window1);
+                    rtctimers_remove(&ls->_internal.rx_window2);
+                    
 					if (ls->_internal.num_reopened++ < LS_ED_RX_NUM_REOPEN) {
 						DEBUG("[LoRa] first RX window reopened\n");
 
 						/* Reopen RX window */
-						rtctimers_remove(&ls->_internal.rx_window1);
-						rtctimers_remove(&ls->_internal.rx_window2);
-
 						open_rx_windows(ls);
 					} else {
 						DEBUG("[LoRa] forcing RX window expiring\n");
 
 						ls->_internal.num_reopened = 0;
-						rtctimers_remove(&ls->_internal.rx_window1);
-						rtctimers_remove(&ls->_internal.rx_window2);
 
 						/* Notify timeouts thread about RX window expiration */
 						msg_send(&msg_rx1, ls->_internal.tim_thread_pid);
@@ -719,7 +709,7 @@ static void *uq_handler(void *arg)
                 
                 /* otherwise restart CAD after a pause */
                 if ((f->header.type == LS_UL_ACK) || (f->header.type == LS_UL_UNC_ACK)) {
-                    rtctimers_sleep(1);
+                    rtctimers_millis_sleep(500);
                 } else {
                     rtctimers_sleep(3);
                 }

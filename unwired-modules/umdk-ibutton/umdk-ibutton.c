@@ -50,6 +50,7 @@ extern "C" {
 #define ENABLE_DEBUG 0
 #include "debug.h"
 
+/*
 static const uint8_t Crc8Table[256] =  {
             0, 94, 188, 226, 97, 63, 221, 131, 194, 156, 126, 32, 163, 253, 31, 65,
             157, 195, 33, 127, 252, 162, 64, 30, 95, 1, 227, 189, 62, 96, 130, 220,
@@ -67,17 +68,41 @@ static const uint8_t Crc8Table[256] =  {
             87, 9, 235, 181, 54, 104, 138, 212, 149, 203, 41, 119, 244, 170, 72, 22,
             233, 183, 85, 11, 136, 214, 52, 106, 43, 117, 151, 201, 74, 20, 246, 168,
             116, 42, 200, 150, 21, 75, 169, 247, 182, 232, 10, 84, 215, 137, 107, 53};
-
+*/
 
 static uwnds_cb_t *callback;
 static kernel_pid_t ibutton_pid;
 
 static rtctimers_millis_t detect_timer;
-static msg_t detect_msg = {.type = UMDK_IBUTTON_MSG_DETECT,     .content.value = 0, };
 static uint8_t id_detected[UMDK_IBUTTON_SIZE_ID] = { 0 };
 
 static int led_gpio_enabled = 0;
 
+static uint8_t crc8(uint8_t *data, uint8_t length)
+{
+    uint8_t crc = 0;
+    uint8_t data_in;
+    
+    int i, bits;
+
+    for (i = 0; i < length; i++) {
+        data_in = data[i];
+        
+        for (bits = 8; bits > 0; bits--) {
+            if (((crc ^ data_in) & 0x01) == 0) {
+                crc >>= 1;
+            } else {
+                crc ^= 0x18;
+                crc >>= 1;
+                crc |= 0x80;
+            }
+            data_in >>= 1;
+        }
+    }
+    return crc;
+}
+
+/*
 static uint8_t crc8(uint8_t *ptrBlock, uint8_t length)
 {
     uint8_t crc = 0x00;
@@ -88,6 +113,7 @@ static uint8_t crc8(uint8_t *ptrBlock, uint8_t length)
     
     return crc;
 }
+*/
 
 static uint8_t check_crc(void)
 {
@@ -167,6 +193,7 @@ static void detect_handler(void *arg)
     else {
         if (onewire_detect()) {
             if (detect_device() == DEVICE_OK) {
+                msg_t detect_msg;
                 msg_try_send(&detect_msg, ibutton_pid);
             }
         }

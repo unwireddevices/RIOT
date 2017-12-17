@@ -86,12 +86,12 @@ static void prepare_result(module_data_t *buf) {
 
 	printf("[umdk-" _UMDK_NAME_ "] Luminocity %u lux\n", luminocity);
 
-	buf->length = 1 + sizeof(luminocity); /* Additional byte for module ID */
-
-	buf->data[0] = _UMDK_MID_;
-
-	/* Copy measurements into response */
-	memcpy(buf->data + 1, (uint8_t *) &luminocity, sizeof(luminocity));
+    if (buf) {
+        buf->length = 1 + sizeof(luminocity); /* Additional byte for module ID */
+        buf->data[0] = _UMDK_MID_;
+        /* Copy measurements into response */
+        memcpy(buf->data + 1, (uint8_t *) &luminocity, sizeof(luminocity));
+    }
 }
 
 static void *timer_thread(void *arg) {
@@ -168,8 +168,7 @@ int umdk_opt3001_shell_cmd(int argc, char **argv) {
     char *cmd = argv[1];
 	
     if (strcmp(cmd, "get") == 0) {
-        module_data_t data = {};
-        prepare_result(&data);
+        prepare_result(NULL);
     }
     
     if (strcmp(cmd, "send") == 0) {

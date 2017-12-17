@@ -83,15 +83,10 @@ bool ls_validate_frame_mic(uint8_t *key, ls_frame_t *frame)
 {
     /* Payload size is zero or matched to the AES block size + AES-CBC IV length */
 	uint8_t payload_size;
-	if (frame->payload.len == 0) {
-		payload_size = 0;
-	} else {
-		if (frame->payload.len <= LS_ECB_ENCRYPTION_MAX_SIZE) {
-			payload_size = resize(frame->payload.len);
-		} else {
-			payload_size = resize(frame->payload.len) + AES_BLOCK_SIZE;
-		}
-	}
+    payload_size = resize(frame->payload.len);
+    if (frame->payload.len > LS_ECB_ENCRYPTION_MAX_SIZE) {
+        payload_size += AES_BLOCK_SIZE;
+    }
 
     /* Compare MIC from header and actual */
     ls_mic_t expected_mic = ls_calculate_mic(key, frame, payload_size);
@@ -112,7 +107,6 @@ int ls_encrypt_frame_payload(uint8_t *key, ls_payload_t *payload)
 {
     if (payload->len == 0) {
         return 0; /* Nothing to do with empty payload */
-
     }
 	
     uint8_t size = resize(payload->len);
@@ -157,7 +151,6 @@ void ls_decrypt_frame_payload(uint8_t *key, ls_payload_t *payload)
 {
     if (payload->len == 0) {
         return; /* Nothing to do with empty payload */
-
     }
 	
     /* Payload is guaranteed to be matched to the AES block size */
@@ -191,17 +184,12 @@ void ls_decrypt_frame_payload(uint8_t *key, ls_payload_t *payload)
 }
 
 void ls_encrypt_frame(uint8_t *key_mic, uint8_t *key_aes, ls_frame_t *frame, size_t *newsize) {
-	if (frame->payload.len > 0) {
-		if (frame->payload.len <= LS_ECB_ENCRYPTION_MAX_SIZE) {
-			/* simplified encryption */
-			*newsize = ls_encrypt_frame_payload(key_aes, &frame->payload);
-		} else {
-			/* AES-CBC initialization vector block is added */
-			*newsize = AES_BLOCK_SIZE + ls_encrypt_frame_payload(key_aes, &frame->payload);
-		}
-	} else
-		*newsize = 0;
-
+    *newsize = ls_encrypt_frame_payload(key_aes, &frame->payload);
+    if (frame->payload.len > LS_ECB_ENCRYPTION_MAX_SIZE) {
+        /* AES-CBC initialization vector block is added */
+        *newsize += AES_BLOCK_SIZE;
+    }
+    
 	frame->header.mic = ls_calculate_mic(key_mic, frame, *newsize);
 }
 

@@ -46,7 +46,7 @@ static uwnds_cb_t *callback;
 
 int umdk_hd44780_shell_cmd(int argc, char **argv) {
     if (argc == 1) {
-        puts (_UMDK_NAME_ " print N <string> - print string on row N");
+        puts (_UMDK_NAME_ " print <N> <string> - print string on row N");
         puts (_UMDK_NAME_ " clear - clear display");
         return 0;
     }

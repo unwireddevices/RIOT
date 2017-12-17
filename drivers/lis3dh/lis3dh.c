@@ -76,9 +76,9 @@ int lis3dh_init(lis3dh_t *dev, spi_t spi, gpio_t cs_pin, uint8_t scale)
 
 int lis3dh_read_xyz(const lis3dh_t *dev, lis3dh_data_t *acc_data)
 {
-    uint8_t i;
+    int i;
     /* Set READ MULTIPLE mode */
-    static const uint8_t addr = (LIS3DH_REG_OUT_X_L | LIS3DH_SPI_READ_MASK | LIS3DH_SPI_MULTI_MASK);
+    uint8_t addr = (LIS3DH_REG_OUT_X_L | LIS3DH_SPI_READ_MASK | LIS3DH_SPI_MULTI_MASK);
 
     /* Acquire exclusive access to the bus. */
     spi_acquire(dev->spi);

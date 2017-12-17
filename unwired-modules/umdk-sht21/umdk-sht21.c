@@ -70,37 +70,32 @@ static bool init_sensor(void) {
 	return sht21_init(&dev) == 0;
 }
 
-static int16_t convert_temp(int temp) {
-	return ((temp + 50) / 100);
-}
-
-static int16_t convert_humid(int humid) {
-	return ((humid + 50) / 100);
-}
-
 static int prepare_result(module_data_t *data) {
+    
+    int16_t measurements[2];
 	sht21_measure_t measure = {};
 	if (sht21_measure(&dev, &measure)) {
         puts("[umdk-" _UMDK_NAME_ "] CRC error");
         return -1;
     }
 
-	int16_t temp = convert_temp(measure.temperature);
-	int16_t hum = convert_humid(measure.humidity);
+	measurements[0] = (measure.temperature + 50) / 100;
+	measurements[1] = (measure.humidity + 50) / 100;
 
     char buf[2][10];
-    int_to_float_str(buf[0], temp, 1);
-    int_to_float_str(buf[1], hum, 1);
+    int_to_float_str(buf[0], measurements[0], 1);
+    int_to_float_str(buf[1], measurements[1], 1);
 	printf("[umdk-" _UMDK_NAME_ "] Temperature %s C, humidity: %s%%\n", buf[0], buf[1]);
+    
+    if (data) {
+        /* One byte for module ID, two bytes for temperature, two bytes for humidity */
+        data->length = 1 + sizeof(measurements);
 
-    /* One byte for module ID, two bytes for temperature, two bytes for humidity */
-	data->length = 1 + sizeof(temp) + sizeof(hum);
+        data->data[0] = _UMDK_MID_;
 
-	data->data[0] = _UMDK_MID_;
-
-	/* Copy measurements into response */
-	memcpy(data->data + 1, (uint8_t *) &temp, sizeof(temp));
-	memcpy(data->data + 1 + sizeof(temp), (uint8_t *) &hum, sizeof(hum));
+        /* Copy measurements into response */
+        memcpy(data->data + 1, (uint8_t *)measurements, sizeof(measurements));
+    }
     
     return 0;
 }
@@ -176,8 +171,7 @@ int umdk_sht21_shell_cmd(int argc, char **argv) {
     char *cmd = argv[1];
 	
     if (strcmp(cmd, "get") == 0) {
-        module_data_t data = {};
-        prepare_result(&data);
+        prepare_result(NULL);
     }
     
     if (strcmp(cmd, "send") == 0) {

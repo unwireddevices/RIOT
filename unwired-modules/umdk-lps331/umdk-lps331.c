@@ -73,26 +73,24 @@ static bool init_sensor(void)
 
 static void prepare_result(module_data_t *data)
 {
-    int temperature_mc, pressure_mbar;
-	int16_t temperature_unwds;
+    int16_t measurements[2];
 
-    temperature_mc = lps331ap_read_temp(&dev);
-	temperature_unwds = (temperature_mc + 50)/100;
-	
-    pressure_mbar = lps331ap_read_pres(&dev);
+    measurements[0] = (lps331ap_read_temp(&dev) + 50 / 100);
+    measurements[1] = lps331ap_read_pres(&dev);
     
     char buf[10];
-    int_to_float_str(buf, temperature_unwds, 1);
-	printf("[lps331] T: %s C, P: %d mbar\n", buf, pressure_mbar);
+    int_to_float_str(buf, measurements[0], 1);
+	printf("[lps331] T: %s C, P: %d mbar\n", buf, measurements[1]);
 
-     /* One byte for module ID, two bytes for temperature, two bytes for pressure*/
-    data->length = 1 + sizeof(temperature_unwds) + sizeof(pressure_mbar);
+    if (data) {
+        /* One byte for module ID, two bytes for temperature, two bytes for pressure*/
+        data->length = 1 + sizeof(measurements);
 
-    data->data[0] = _UMDK_MID_;
+        data->data[0] = _UMDK_MID_;
 
-    /* Copy measurements into response */
-    memcpy(data->data + 1, &temperature_unwds, sizeof(temperature_unwds));
-    memcpy(data->data + 1 + sizeof(temperature_unwds), &pressure_mbar, sizeof(pressure_mbar));
+        /* Copy measurements into response */
+        memcpy(data->data + 1, (uint8_t *)measurements, sizeof(measurements));
+    }
 }
 
 static void *timer_thread(void *arg)
@@ -170,8 +168,7 @@ int umdk_lps331_shell_cmd(int argc, char **argv) {
     char *cmd = argv[1];
 	
     if (strcmp(cmd, "get") == 0) {
-        module_data_t data = {};
-        prepare_result(&data);
+        prepare_result(NULL);
     }
     
     if (strcmp(cmd, "send") == 0) {

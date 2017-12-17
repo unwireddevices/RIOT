@@ -99,7 +99,7 @@ int lps331ap_read_pres(lps331ap_t *dev)
 {
     uint8_t tmp;
     int32_t val = 0;
-    float res;
+    /* int res; */
 
     i2c_acquire(dev->i2c);
     i2c_read_reg(dev->i2c, dev->address, LPS331AP_REG_PRESS_OUT_XL, &tmp);
@@ -115,9 +115,9 @@ int lps331ap_read_pres(lps331ap_t *dev)
     }
 
     /* compute actual pressure value in mbar */
-    res = ((float)val) / PRES_DIVIDER;
+    /* res = ((float)val) / PRES_DIVIDER; */
 
-    return (int)res;
+    return val / PRES_DIVIDER;
 }
 
 

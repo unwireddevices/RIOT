@@ -147,7 +147,7 @@ static bool enqueue_frame(ls_gate_channel_t *ch, ls_addr_t to, ls_type_t type, u
 
 static inline void close_rx_windows(ls_gate_channel_t *ch) {
 	xtimer_remove(&ch->_internal.rx_window1);
-    puts("ls-gate: state = IDLE");
+    DEBUG("ls-gate: state = IDLE");
 	ch->state = LS_GATE_CHANNEL_STATE_IDLE;
     
     DEBUG("ls-gate: RX window closed\n");
@@ -167,7 +167,7 @@ static inline void open_rx_windows(ls_gate_channel_t *ch) {
 
     /* Capture channel on RX */
     //mutex_lock(&ch->_internal.channel_mutex);
-    puts("ls-gate: state = RX");
+    DEBUG("ls-gate: state = RX");
     ch->state = LS_GATE_CHANNEL_STATE_RX;
 
 	DEBUG("ls-gate: rx1 window opened\n");
@@ -642,7 +642,6 @@ static void *tim_handler(void *arg)
             		close_rx_windows(ch);
             		schedule_tx(ch);
             	} else {
-                    puts("ls-gate: state = IDLE");
             		ch->state = LS_GATE_CHANNEL_STATE_IDLE;
             		puts("ls-gate: rx1 window expired, staying in RX, but IDLE");
             	}

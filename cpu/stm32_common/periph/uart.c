@@ -149,13 +149,11 @@ int uart_init_ext(uart_t uart, uart_params_t *params, uart_rx_cb_t rx_cb, void *
         return UART_NOBAUD;
     }
 
+    dev(uart)->CR1 = (USART_CR1_UE | USART_CR1_TE);
     /* enable RX interrupt if applicable */
     if (rx_cb) {
         NVIC_EnableIRQ(uart_config[uart].irqn);
-        dev(uart)->CR1 = (USART_CR1_UE | USART_CR1_TE | RXENABLE);
-    }
-    else {
-        dev(uart)->CR1 = (USART_CR1_UE | USART_CR1_TE);
+        dev(uart)->CR1 |= RXENABLE;
     }
 
     return UART_OK;

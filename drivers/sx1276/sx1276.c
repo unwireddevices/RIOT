@@ -110,29 +110,12 @@ static void sx1276_on_dio5_isr(void *arg);
 
 static void _init_isrs(sx1276_t *dev)
 {
-    if (dev->dio0_pin != GPIO_UNDEF ) {
-        gpio_init_int(dev->dio0_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio0_isr, dev);
-    }
-    
-    if (dev->dio1_pin != GPIO_UNDEF ) {
-        gpio_init_int(dev->dio1_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio1_isr, dev);
-    }
-    
-    if (dev->dio2_pin != GPIO_UNDEF ) {
-        gpio_init_int(dev->dio2_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio2_isr, dev);
-    }
-    
-    if (dev->dio3_pin != GPIO_UNDEF ) {
-        gpio_init_int(dev->dio3_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio3_isr, dev);
-    }
-    
-    if (dev->dio4_pin != GPIO_UNDEF ) {
-        gpio_init_int(dev->dio4_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio4_isr, dev);
-    }
-    
-    if (dev->dio5_pin != GPIO_UNDEF ) {
-        gpio_init_int(dev->dio5_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio5_isr, dev);
-    }
+    gpio_init_int(dev->dio0_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio0_isr, dev);
+    gpio_init_int(dev->dio1_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio1_isr, dev);
+    gpio_init_int(dev->dio2_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio2_isr, dev);
+    gpio_init_int(dev->dio3_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio3_isr, dev);
+    gpio_init_int(dev->dio4_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio4_isr, dev);
+    gpio_init_int(dev->dio5_pin, GPIO_IN, GPIO_RISING, sx1276_on_dio5_isr, dev);
 }
 
 static inline void send_event(sx1276_t *dev, sx1276_event_type_t event_type)
@@ -195,13 +178,11 @@ static int _init_peripherals(sx1276_t *dev)
         return 0;
     }
     
-    if (dev->rfswitch_pin != GPIO_UNDEF) {
-        gpio_init(dev->rfswitch_pin, GPIO_OUT);
-        if (dev->rfswitch_mode == SX1276_RFSWITCH_ACTIVE_LOW) {
-            gpio_clear(dev->rfswitch_pin);
-        } else {
-            gpio_set(dev->rfswitch_pin);
-        }
+    gpio_init(dev->rfswitch_pin, GPIO_OUT);
+    if (dev->rfswitch_mode == SX1276_RFSWITCH_ACTIVE_LOW) {
+        gpio_clear(dev->rfswitch_pin);
+    } else {
+        gpio_set(dev->rfswitch_pin);
     }
 
     gpio_set(dev->nss_pin);
@@ -346,7 +327,7 @@ void sx1276_set_modem(sx1276_t *dev, sx1276_radio_modems_t modem)
 
 uint32_t sx1276_random(sx1276_t *dev)
 {
-    uint8_t i;
+    int i;
     uint32_t rnd = 0;
 
     sx1276_set_modem(dev, SX1276_MODEM_LORA); /* Set LoRa modem ON */
@@ -944,11 +925,12 @@ int16_t sx1276_read_rssi(sx1276_t *dev)
             rssi = -(sx1276_reg_read(dev, REG_RSSIVALUE) >> 1);
             break;
         case SX1276_MODEM_LORA:
+            rssi = sx1276_reg_read(dev, REG_LR_RSSIVALUE);
             if (dev->settings.channel > SX1276_RF_MID_BAND_THRESH) {
-                rssi = RSSI_OFFSET_HF + sx1276_reg_read(dev, REG_LR_RSSIVALUE);
+                rssi += RSSI_OFFSET_HF;
             }
             else {
-                rssi = RSSI_OFFSET_LF + sx1276_reg_read(dev, REG_LR_RSSIVALUE);
+                rssi += RSSI_OFFSET_LF;
             }
             break;
         default:
@@ -968,24 +950,22 @@ void sx1276_reset(sx1276_t *dev)
      * 2. Set NReset in Hi-Z state
      * 3. Wait at least 5 milliseconds
      */
+    
+    gpio_init(dev->reset_pin, GPIO_OUT);
 
-    if (dev->reset_pin != GPIO_UNDEF) {
-        gpio_init(dev->reset_pin, GPIO_OUT);
+    /* Set reset pin to 0 */
+    gpio_clear(dev->reset_pin);
 
-        /* Set reset pin to 0 */
-        gpio_clear(dev->reset_pin);
+    /* Wait 1 ms */
+    xtimer_spin(xtimer_ticks_from_usec(1000));
 
-        /* Wait 1 ms */
-        xtimer_spin(xtimer_ticks_from_usec(1000));
+    /* Put reset pin in High-Z */
+    gpio_init(dev->reset_pin, GPIO_OD);
 
-        /* Put reset pin in High-Z */
-        gpio_init(dev->reset_pin, GPIO_OD);
+    gpio_set(dev->reset_pin);
 
-        gpio_set(dev->reset_pin);
-
-        /* Wait 10 ms */
-        xtimer_spin(xtimer_ticks_from_usec(10000));
-    }
+    /* Wait 10 ms */
+    xtimer_spin(xtimer_ticks_from_usec(10000));
 }
 
 void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode)
@@ -1000,50 +980,31 @@ void sx1276_set_op_mode(sx1276_t *dev, uint8_t op_mode)
     }
 	
 	if (op_mode == RF_OPMODE_SLEEP) {
-        if (dev->dio0_pin != GPIO_UNDEF ) {
-            gpio_irq_disable(dev->dio0_pin);
-        }
-        if (dev->dio1_pin != GPIO_UNDEF ) {
-            gpio_irq_disable(dev->dio1_pin);
-        }
-        if (dev->dio2_pin != GPIO_UNDEF ) {
-            gpio_irq_disable(dev->dio2_pin);
-        }
-        if (dev->dio3_pin != GPIO_UNDEF ) {
-            gpio_irq_disable(dev->dio3_pin);
-        }
+        gpio_irq_disable(dev->dio0_pin);
+        gpio_irq_disable(dev->dio1_pin);
+        gpio_irq_disable(dev->dio2_pin);
+        gpio_irq_disable(dev->dio3_pin);
         
         /* disable RF switch power */
-        if (dev->rfswitch_pin != GPIO_UNDEF) {
-            if (dev->rfswitch_mode == SX1276_RFSWITCH_ACTIVE_LOW) {
-                gpio_set(dev->rfswitch_pin);
-            } else {
-                gpio_clear(dev->rfswitch_pin);
-            }
+        if (dev->rfswitch_mode == SX1276_RFSWITCH_ACTIVE_LOW) {
+            gpio_set(dev->rfswitch_pin);
+        } else {
+            gpio_clear(dev->rfswitch_pin);
         }
         
         /* switch CPU to low-power mode */
         /* lpm_set(LPM_IDLE); */
 	} else {
-        if (dev->dio0_pin != GPIO_UNDEF ) {
-            gpio_irq_enable(dev->dio0_pin);
-        }
-        if (dev->dio1_pin != GPIO_UNDEF ) {
-            gpio_irq_enable(dev->dio1_pin);
-        }
-        if (dev->dio2_pin != GPIO_UNDEF ) {
-            gpio_irq_enable(dev->dio2_pin);
-        }
-        if (dev->dio3_pin != GPIO_UNDEF ) {
-            gpio_irq_enable(dev->dio3_pin);
-        }
+        gpio_irq_enable(dev->dio0_pin);
+        gpio_irq_enable(dev->dio1_pin);
+        gpio_irq_enable(dev->dio2_pin);
+        gpio_irq_enable(dev->dio3_pin);
+        
         /* enable RF switch power */
-        if (dev->rfswitch_pin != GPIO_UNDEF) {
-            if (dev->rfswitch_mode == SX1276_RFSWITCH_ACTIVE_LOW) {
-                gpio_clear(dev->rfswitch_pin);
-            } else {
-                gpio_set(dev->rfswitch_pin);
-            }
+        if (dev->rfswitch_mode == SX1276_RFSWITCH_ACTIVE_LOW) {
+            gpio_clear(dev->rfswitch_pin);
+        } else {
+            gpio_set(dev->rfswitch_pin);
         }
 	}
 }
@@ -1207,7 +1168,7 @@ void sx1276_on_dio0(void *arg)
     switch (dev->settings.state) {
         case SX1276_RF_RX_RUNNING:
             switch (dev->settings.modem) {
-                case SX1276_MODEM_LORA:
+                if (dev->settings.modem == SX1276_MODEM_LORA)
                 {
                     int8_t snr = 0;
 
@@ -1243,27 +1204,23 @@ void sx1276_on_dio0(void *arg)
                     }
 
                     int16_t rssi = sx1276_reg_read(dev, REG_LR_PKTRSSIVALUE);
-                    if (snr < 0) {
-                        if (dev->settings.channel > SX1276_RF_MID_BAND_THRESH) {
-                            packet->rssi_value = RSSI_OFFSET_HF + rssi + (rssi >> 4) + snr;
-                        }
-                        else {
-                            packet->rssi_value = RSSI_OFFSET_LF + rssi + (rssi >> 4) + snr;
-                        }
+                    
+                    packet->rssi_value = rssi + (rssi >> 4);
+                    if (dev->settings.channel > SX1276_RF_MID_BAND_THRESH) {
+                        packet->rssi_value += RSSI_OFFSET_HF;
                     }
                     else {
-                        if (dev->settings.channel > SX1276_RF_MID_BAND_THRESH) {
-                            packet->rssi_value = RSSI_OFFSET_HF + rssi + (rssi >> 4);
-                        }
-                        else {
-                            packet->rssi_value = RSSI_OFFSET_LF + rssi + (rssi >> 4);
-                        }
+                        packet->rssi_value += RSSI_OFFSET_LF;
+                    }
+                    
+                    if (snr < 0) {
+                        packet->rssi_value += snr;
                     }
 
                     packet->size = sx1276_reg_read(dev, REG_LR_RXNBBYTES);
 
                     if (!dev->settings.lora.rx_continuous) {
-                        sx1276_set_status(dev,  SX1276_RF_IDLE);
+                        sx1276_set_status(dev, SX1276_RF_IDLE);
                     }
 
                     xtimer_remove(&dev->_internal.rx_timeout_timer);
@@ -1325,40 +1282,19 @@ void sx1276_on_dio2(void *arg)
     /* Get interrupt context */
     sx1276_t *dev = (sx1276_t *) arg;
 
-    switch (dev->settings.state) {
-        case SX1276_RF_RX_RUNNING:
-            switch (dev->settings.modem) {
-                case SX1276_MODEM_LORA:
-                    if (dev->settings.lora.freq_hop_on) {
-                        /* Clear IRQ */
-                        sx1276_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL);
+    switch (dev->settings.modem) {
+        case SX1276_MODEM_LORA: {
+            if (dev->settings.lora.freq_hop_on) {
+                if ((dev->settings.state == SX1276_RF_RX_RUNNING) || (dev->settings.state == SX1276_RF_TX_RUNNING)) {
+                    /* Clear IRQ */
+                    sx1276_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL);
 
-                        dev->_internal.last_channel = sx1276_reg_read(dev, REG_LR_HOPCHANNEL) & RFLR_HOPCHANNEL_CHANNEL_MASK;
-                        send_event(dev, SX1276_FHSS_CHANGE_CHANNEL);
-                    }
-
-                    break;
-                default:
-                    break;
+                    dev->_internal.last_channel = sx1276_reg_read(dev, REG_LR_HOPCHANNEL) & RFLR_HOPCHANNEL_CHANNEL_MASK;
+                    send_event(dev, SX1276_FHSS_CHANGE_CHANNEL);
+                }
             }
             break;
-        case SX1276_RF_TX_RUNNING:
-            switch (dev->settings.modem) {
-                case SX1276_MODEM_FSK:
-                    break;
-                case SX1276_MODEM_LORA:
-                    if (dev->settings.lora.freq_hop_on) {
-                        /* Clear IRQ */
-                        sx1276_reg_write(dev, REG_LR_IRQFLAGS, RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL);
-
-                        dev->_internal.last_channel = sx1276_reg_read(dev, REG_LR_HOPCHANNEL) & RFLR_HOPCHANNEL_CHANNEL_MASK;
-                        send_event(dev, SX1276_FHSS_CHANGE_CHANNEL);
-                    }
-                    break;
-                default:
-                    break;
-            }
-            break;
+        }
         default:
             break;
     }

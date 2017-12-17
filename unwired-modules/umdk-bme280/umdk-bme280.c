@@ -57,49 +57,45 @@ static rtctimer_t timer;
 
 static bool is_polled = false;
 
-static const bme280_params_t bme280_params[] = { BME280_PARAMS_BOARD };
-
 static struct {
 	uint8_t publish_period_min;
 } bme280_config;
 
 static bool init_sensor(void) {
+    bme280_params_t bme280_params[] = { BME280_PARAMS_BOARD };
+    
 	printf("[umdk-" _UMDK_NAME_ "] Initializing BME280 on I2C #%d\n", bme280_params[0].i2c_dev);
     
 	return bme280_init(&dev, &bme280_params[0]) == BME280_OK;
 }
 
 static void prepare_result(module_data_t *data) {
-	int16_t temperature = bme280_read_temperature(&dev); /* degrees C * 100 */
-    uint32_t pressure = bme280_read_pressure(&dev); /* Pa */
-    uint16_t humidity = bme280_read_humidity(&dev); /* percents * 100 */
-
-    int16_t temp = (5 + temperature)/10; /* 0.1 °C */
-    int16_t hum = (5 + humidity)/10; /* 0.1 % */
-    uint16_t press = (pressure/100); /* mbar */
+    int16_t measurements[3];
+    
+	measurements[0] = (5 + bme280_read_temperature(&dev))/10; /* degrees C * 100 -> degrees C * 10 */
+    measurements[1] = (5 + bme280_read_humidity(&dev))/10; /* percents * 100 -> percents * 10 */
+    measurements[2] = bme280_read_pressure(&dev)/100; /* Pa -> mbar */
     
     char buf[2][10];
-    int_to_float_str(buf[0], temp, 1);
-    int_to_float_str(buf[1], hum, 1);
+    int_to_float_str(buf[0], measurements[0], 1);
+    int_to_float_str(buf[1], measurements[1], 1);
     
-	printf("[umdk-" _UMDK_NAME_ "] Temperature %s C, humidity: %s%%, pressure: %d mbar\n", buf[0], buf[1], press);
+	printf("[umdk-" _UMDK_NAME_ "] Temperature %s C, humidity: %s%%, pressure: %d mbar\n", buf[0], buf[1], measurements[2]);
 
-    /* One byte for module ID, two bytes for temperature, two bytes for humidity, two bytes for pressure */
-	data->length = 1 + sizeof(temp) + sizeof(hum) + sizeof(press);
+    if (data) {
+        /* One byte for module ID, two bytes for temperature, two bytes for humidity, two bytes for pressure */
+        data->length = 1 + sizeof(measurements);
 
-	data->data[0] = _UMDK_MID_;
+        data->data[0] = _UMDK_MID_;
 
-	/* Copy measurements into response */
-	memcpy(data->data + 1, (uint8_t *) &temp, sizeof(temp));
-	memcpy(data->data + 1 + sizeof(temp), (uint8_t *) &hum, sizeof(hum));
-    memcpy(data->data + 1 + sizeof(temp) + sizeof(hum), (uint8_t *) &press, sizeof(press));
+        /* Copy measurements into response */
+        memcpy(data->data + 1, (uint8_t *)measurements, sizeof(measurements));
+    }
 }
 
 static void *timer_thread(void *arg) {
     msg_t msg;
-    msg_t msg_queue[4];
-    msg_init_queue(msg_queue, 4);
-
+    
     puts("[umdk-" _UMDK_NAME_ "] Periodic publisher thread started");
 
     while (1) {
@@ -163,8 +159,7 @@ int umdk_bme280_shell_cmd(int argc, char **argv) {
     char *cmd = argv[1];
 	
     if (strcmp(cmd, "get") == 0) {
-        module_data_t data = {};
-        prepare_result(&data);
+        prepare_result(NULL);
     }
     
     if (strcmp(cmd, "send") == 0) {

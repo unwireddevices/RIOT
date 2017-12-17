@@ -87,7 +87,7 @@ static void init_sensors(void) {
 	}
 }
 
-static void prepare_result(module_data_t *buf) {
+static void prepare_result(module_data_t *data) {
 	int results = 0;
 	int i;
 
@@ -114,9 +114,11 @@ static void prepare_result(module_data_t *buf) {
         rtctimers_millis_sleep(UMDK_LMT01_SWITCHING_DELAY_MS);
 	}
 
-	buf->data[0] = _UMDK_MID_;
-	memcpy(buf->data + 1, (uint8_t *) res, sizeof(res));
-	buf->length = sizeof(res) + 1;
+    if (data) {
+        data->data[0] = _UMDK_MID_;
+        memcpy(data->data + 1, (uint8_t *) res, sizeof(res));
+        data->length = sizeof(res) + 1;
+    }
 }
 
 void *timer_thread(void *arg) {
@@ -185,8 +187,7 @@ int umdk_lmt01_shell_cmd(int argc, char **argv) {
     char *cmd = argv[1];
 	
     if (strcmp(cmd, "get") == 0) {
-        module_data_t data = {};
-        prepare_result(&data);
+        prepare_result(NULL);
     }
     
     if (strcmp(cmd, "send") == 0) {

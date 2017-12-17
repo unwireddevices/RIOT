@@ -161,9 +161,11 @@ static void prepare_result(module_data_t *buf)
         }
     }
 
-    buf->data[0] = _UMDK_MID_;
-    memcpy(buf->data + 1, (uint8_t *) &samples, sizeof(samples));
-    buf->length = sizeof(samples) + 1; /* Additional byte for module ID */
+    if (buf) {
+        buf->data[0] = _UMDK_MID_;
+        memcpy(buf->data + 1, (uint8_t *) &samples, sizeof(samples));
+        buf->length = sizeof(samples) + 1; /* Additional byte for module ID */
+    }
 }
 
 static void *timer_thread(void *arg)
@@ -220,8 +222,7 @@ int umdk_adc_shell_cmd(int argc, char **argv) {
     char *cmd = argv[1];
 	
     if (strcmp(cmd, "get") == 0) {
-        module_data_t data = {};
-        prepare_result(&data);
+        prepare_result(NULL);
     }
     
     if (strcmp(cmd, "send") == 0) {

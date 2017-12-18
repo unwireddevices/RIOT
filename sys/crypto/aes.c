@@ -1400,7 +1400,7 @@ int aes_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock,
 
     while (1) {
         for (int k = 0; k < 4; k++) {
-            t[0] =
+            t[k] =
                 Td0((s[k] >> 24)       ) ^
                 Td1((s[(k+3)%4] >> 16) & 0xff) ^
                 Td2((s[(k+2)%4] >>  8) & 0xff) ^
@@ -1415,7 +1415,7 @@ int aes_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock,
         }
 
         for (int k = 0; k < 4; k++) {
-            s[0] =
+            s[k] =
                 Td0((t[k] >> 24)       ) ^
                 Td1((t[(k+3)%4] >> 16) & 0xff) ^
                 Td2((t[(k+2)%4] >>  8) & 0xff) ^

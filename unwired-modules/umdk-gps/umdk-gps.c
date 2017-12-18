@@ -57,16 +57,34 @@ static void make_reply(module_data_t *reply) {
             last_data.time);
 
     char *num;
+    /* latitude is ggmm.mmmm, max is 90600 -> 14 bits */
     num = strtok(last_data.lat, ".");
     int32_t lat = atoi(num);
     lat = lat << 8;
+    
     num = strtok(NULL, "");
+    /* reduce precision to 2 digits to fit in a byte */
+    if (strlen(num) > 2) {
+        if (num[2] >= '5') {
+            num[1] += 1;
+        }
+        num[2] = 0;
+    }
     lat |= atoi(num);
     
+    /* longitude is gggmm.mmmm, max is 180600 -> 15 bits */
     num = strtok(last_data.lon, ".");
     int32_t lon = atoi(num);
     lon = lon << 8;
+    
     num = strtok(NULL, "");
+    /* reduce precision to 2 digits to fit in a byte */
+    if (strlen(num) > 2) {
+        if (num[2] >= '5') {
+            num[1] += 1;
+        }
+        num[2] = 0;
+    }
     lon |= atoi(num);
 
     /* Negative latitude and longitude */

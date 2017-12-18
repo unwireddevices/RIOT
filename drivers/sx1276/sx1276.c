@@ -1167,75 +1167,70 @@ void sx1276_on_dio0(void *arg)
 
     switch (dev->settings.state) {
         case SX1276_RF_RX_RUNNING:
-            switch (dev->settings.modem) {
-                if (dev->settings.modem == SX1276_MODEM_LORA)
-                {
-                    int8_t snr = 0;
+            if (dev->settings.modem == SX1276_MODEM_LORA)
+            {
+                int8_t snr = 0;
 
-                    /* Clear IRQ */
-                    sx1276_reg_write(dev,  REG_LR_IRQFLAGS, RFLR_IRQFLAGS_RXDONE);
+                /* Clear IRQ */
+                sx1276_reg_write(dev,  REG_LR_IRQFLAGS, RFLR_IRQFLAGS_RXDONE);
 
-                    irq_flags = sx1276_reg_read(dev,  REG_LR_IRQFLAGS);
-                    if ((irq_flags & RFLR_IRQFLAGS_PAYLOADCRCERROR_MASK) == RFLR_IRQFLAGS_PAYLOADCRCERROR) {
-                        sx1276_reg_write(dev,  REG_LR_IRQFLAGS, RFLR_IRQFLAGS_PAYLOADCRCERROR); /* Clear IRQ */
-
-                        if (!dev->settings.lora.rx_continuous) {
-                            sx1276_set_status(dev,  SX1276_RF_IDLE);
-                        }
-
-                        xtimer_remove(&dev->_internal.rx_timeout_timer);
-
-                        send_event(dev, SX1276_RX_ERROR_CRC);
-
-                        break;
-                    }
-
-                    sx1276_rx_packet_t *packet = &dev->_internal.last_packet;
-
-                    packet->snr_value = sx1276_reg_read(dev,  REG_LR_PKTSNRVALUE);
-                    if (packet->snr_value & 0x80) { /* The SNR is negative */
-                        /* Invert and divide by 4 */
-                        snr = ((~packet->snr_value + 1) & 0xFF) >> 2;
-                        snr = -snr;
-                    }
-                    else {
-                        /* Divide by 4 */
-                        snr = (packet->snr_value & 0xFF) >> 2;
-                    }
-
-                    int16_t rssi = sx1276_reg_read(dev, REG_LR_PKTRSSIVALUE);
-                    
-                    packet->rssi_value = rssi + (rssi >> 4);
-                    if (dev->settings.channel > SX1276_RF_MID_BAND_THRESH) {
-                        packet->rssi_value += RSSI_OFFSET_HF;
-                    }
-                    else {
-                        packet->rssi_value += RSSI_OFFSET_LF;
-                    }
-                    
-                    if (snr < 0) {
-                        packet->rssi_value += snr;
-                    }
-
-                    packet->size = sx1276_reg_read(dev, REG_LR_RXNBBYTES);
+                irq_flags = sx1276_reg_read(dev,  REG_LR_IRQFLAGS);
+                if ((irq_flags & RFLR_IRQFLAGS_PAYLOADCRCERROR_MASK) == RFLR_IRQFLAGS_PAYLOADCRCERROR) {
+                    sx1276_reg_write(dev,  REG_LR_IRQFLAGS, RFLR_IRQFLAGS_PAYLOADCRCERROR); /* Clear IRQ */
 
                     if (!dev->settings.lora.rx_continuous) {
-                        sx1276_set_status(dev, SX1276_RF_IDLE);
+                        sx1276_set_status(dev,  SX1276_RF_IDLE);
                     }
 
                     xtimer_remove(&dev->_internal.rx_timeout_timer);
 
-                    /* Read the last packet from FIFO */
-                    uint8_t last_rx_addr = sx1276_reg_read(dev, REG_LR_FIFORXCURRENTADDR);
-                    sx1276_reg_write(dev, REG_LR_FIFOADDRPTR, last_rx_addr);
-                    sx1276_read_fifo(dev, (uint8_t *) packet->content, packet->size);
+                    send_event(dev, SX1276_RX_ERROR_CRC);
 
-                    /* Notify application about new packet received */
-                    send_event(dev, SX1276_RX_DONE);
-                }
-                break;
-                default:
                     break;
+                }
+
+                sx1276_rx_packet_t *packet = &dev->_internal.last_packet;
+
+                packet->snr_value = sx1276_reg_read(dev,  REG_LR_PKTSNRVALUE);
+                if (packet->snr_value & 0x80) { /* The SNR is negative */
+                    /* Invert and divide by 4 */
+                    snr = ((~packet->snr_value + 1) & 0xFF) >> 2;
+                    snr = -snr;
+                }
+                else {
+                    /* Divide by 4 */
+                    snr = (packet->snr_value & 0xFF) >> 2;
+                }
+
+                int16_t rssi = sx1276_reg_read(dev, REG_LR_PKTRSSIVALUE);
+                
+                packet->rssi_value = rssi + (rssi >> 4);
+                if (dev->settings.channel > SX1276_RF_MID_BAND_THRESH) {
+                    packet->rssi_value += RSSI_OFFSET_HF;
+                }
+                else {
+                    packet->rssi_value += RSSI_OFFSET_LF;
+                }
+                
+                if (snr < 0) {
+                    packet->rssi_value += snr;
+                }
+
+                packet->size = sx1276_reg_read(dev, REG_LR_RXNBBYTES);
+
+                if (!dev->settings.lora.rx_continuous) {
+                    sx1276_set_status(dev, SX1276_RF_IDLE);
+                }
+
+                xtimer_remove(&dev->_internal.rx_timeout_timer);
+
+                /* Read the last packet from FIFO */
+                uint8_t last_rx_addr = sx1276_reg_read(dev, REG_LR_FIFORXCURRENTADDR);
+                sx1276_reg_write(dev, REG_LR_FIFOADDRPTR, last_rx_addr);
+                sx1276_read_fifo(dev, (uint8_t *) packet->content, packet->size);
+
+                /* Notify application about new packet received */
+                send_event(dev, SX1276_RX_DONE);
             }
             break;
         case SX1276_RF_TX_RUNNING:

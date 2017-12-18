@@ -1226,8 +1226,11 @@ int aes_encrypt(const cipher_context_t *context, const uint8_t *plainBlock,
             (Te4((t[(k+2)%4] >>  8) & 0xff) & 0x0000ff00) ^
             (Te4((t[(k+3)%4]) & 0xff)       & 0x000000ff) ^
             rk[k];
-        PUTU32(cipherBlock + (k*2), s[k]);
     }
+    PUTU32(cipherBlock     , s[0]);
+    PUTU32(cipherBlock +  4, s[1]);
+    PUTU32(cipherBlock +  8, s[2]);
+    PUTU32(cipherBlock + 12, s[3]);
 
     return 1;
 }
@@ -1437,8 +1440,11 @@ int aes_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock,
             (Td4((t[(k+2)%4] >>  8) & 0xff) & 0x0000ff00) ^
             (Td4((t[(k+1)%4]) & 0xff)       & 0x000000ff) ^
             rk[k];
-        PUTU32(plainBlock + (k*2), s[k]);
     }
+    PUTU32(plainBlock     , s[0]);
+    PUTU32(plainBlock +  4, s[1]);
+    PUTU32(plainBlock +  8, s[2]);
+    PUTU32(plainBlock + 12, s[3]);
 
     return 1;
 }

@@ -1,3 +1,8 @@
+18.12.2017
+* connection stability improvements
+* GPS fixes for Quectel L76 modules
+* firmware size optimizations
+
 05.12.2017
 * connection stability improvements
 * better collision avoidance algorithms

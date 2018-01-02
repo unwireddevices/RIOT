@@ -51,6 +51,8 @@ static const cipher_interface_t aes_interface = {
 };
 const cipher_id_t CIPHER_AES_128 = &aes_interface;
 
+#ifndef AES_ASM
+
 static const u32 Te0[256] = {
     0xc66363a5U, 0xf87c7c84U, 0xee777799U, 0xf67b7b8dU,
     0xfff2f20dU, 0xd66b6bbdU, 0xde6f6fb1U, 0x91c5c554U,
@@ -790,6 +792,7 @@ static const u32 rcon[] = {
     0x1B000000, 0x36000000,
 };
 
+#endif /* AES_ASM */
 
 int aes_init(cipher_context_t *context, const uint8_t *key, uint8_t keySize)
 {
@@ -816,6 +819,8 @@ int aes_init(cipher_context_t *context, const uint8_t *key, uint8_t keySize)
 
     return CIPHER_INIT_SUCCESS;
 }
+
+#ifndef AES_ASM
 
 /**
  * Expand the cipher key into the encryption key schedule.
@@ -991,7 +996,6 @@ static int aes_set_decrypt_key(const unsigned char *userKey, const int bits,
                 Td1(Te4((rk[0] >> 16) & 0xff) & 0xff) ^
                 Td2(Te4((rk[0] >>  8) & 0xff) & 0xff) ^
                 Td3(Te4((rk[0]) & 0xff)       & 0xff);
-            }
             rk[1] =
                 Td0(Te4((rk[1] >> 24)       ) & 0xff) ^
                 Td1(Te4((rk[1] >> 16) & 0xff) & 0xff) ^
@@ -1021,7 +1025,6 @@ static int aes_set_decrypt_key(const unsigned char *userKey, const int bits,
     return 0;
 }
 
-#ifndef AES_ASM
 /*
  * Encrypt a single block
  * in and out can overlap
@@ -1231,7 +1234,7 @@ int aes_encrypt(const cipher_context_t *context, const uint8_t *plainBlock,
     PUTU32(cipherBlock +  4, s[1]);
     PUTU32(cipherBlock +  8, s[2]);
     PUTU32(cipherBlock + 12, s[3]);
-
+    
     return 1;
 }
 
@@ -1445,7 +1448,35 @@ int aes_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock,
     PUTU32(plainBlock +  4, s[1]);
     PUTU32(plainBlock +  8, s[2]);
     PUTU32(plainBlock + 12, s[3]);
+    
+    return 1;
+}
+#else /* AES_ASM */
+extern void aes_128_asm_keyschedule(const uint8_t *, uint8_t *);
+extern void aes_128_asm_keyschedule_dec(const uint8_t *, uint8_t *);
+extern void aes_128_asm_encrypt(const uint8_t *key, const uint8_t *plain, uint8_t *cypher);
+extern void aes_128_asm_decrypt(const uint8_t *key, const uint8_t *cypher, uint8_t *plain);
 
+int aes_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock,
+                uint8_t *plainBlock)
+{
+    uint8_t rk[11*16];
+    memcpy(rk+160, context->context, 16);
+    aes_128_asm_keyschedule_dec(context->context, rk);
+    aes_128_asm_decrypt(rk, cipherBlock, plainBlock);
+
+    return 1;
+}
+
+int aes_encrypt(const cipher_context_t *context, const uint8_t *plainBlock,
+                uint8_t *cipherBlock)
+{
+    uint8_t rk[11*16];
+    memcpy(rk, context->context, 16);
+    
+    aes_128_asm_keyschedule(context->context, rk+16);
+    aes_128_asm_encrypt(rk, plainBlock, cipherBlock);
+    
     return 1;
 }
 

@@ -40,6 +40,9 @@ typedef uint8_t u8;
 /* Trade flash usage for CPU usage */
 #define AES_CALCULATE_TABLES
 
+/* Use assembler implementation (Cortex-M only) */
+/* #define AES_ASM */
+
 /* This controls loop-unrolling in aes_core.c */
 #undef FULL_UNROLL
 # define GETU32(pt) (((u32)(pt)[0] << 24) ^ ((u32)(pt)[1] << 16) ^ \

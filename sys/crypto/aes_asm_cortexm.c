@@ -1,4 +1,13 @@
-#ifdef MODULE_CORTEXM_COMMON
+/* Copyright (C) 2016 Radboud University, Digital Security Group, Nijmegen, The Netherlands
+ * Peter Schwabe and Ko Stoffelen
+ * "All the AES You Need on Cortex-M3 and M4"
+ * https://github.com/Ko-/aes-armcortexm
+ * https://ko.stoffelen.nl/talks/20160810-sac.pdf
+ * https://eprint.iacr.org/2016/714.pdf
+ */
+
+#if defined(CPU_ARCH_CORTEX_M3) || defined(CPU_ARCH_CORTEX_M4) || \
+    defined(CPU_ARCH_CORTEX_M4F)
 __asm__(
 
 ".syntax unified	\n\t"
@@ -2812,4 +2821,4 @@ __asm__(
 "    bx lr	\n\t"
 
 );
-#endif /* MODULE_CORTEXM_COMMON */
+#endif

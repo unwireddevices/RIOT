@@ -62,7 +62,7 @@ USEMODULE += random
 USEMODULE += hashes
 USEMODULE += checksum
 
-USEMODULE += sx1276
+USEMODULE += sx127x
 USEMODULE += rtctimers
 USEMODULE += rtctimers-millis
 

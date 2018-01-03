@@ -31,7 +31,7 @@ extern "C" {
 #include "periph/gpio.h"
 #include "random.h"
 
-#include "sx1276.h"
+#include "sx127x.h"
 #include "board.h"
 
 #include "unwds-common.h"

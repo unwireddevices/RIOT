@@ -3,6 +3,7 @@
  *               2016 Laksh Bhatia
  *               2016-2017 OTA keys S.A.
  *               2017 Freie Universität Berlin
+ *               2017 Unwired Devices LLC [info@unwds.com]
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -19,6 +20,7 @@
  * @author      Laksh Bhatia <bhatialaksh3@gmail.com>
  * @author      Vincent Dupont <vincent@otakeys.com>
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
+ * @author      Oleg Artamonov <oleg@unwds.com>
  * @}
  */
 
@@ -34,6 +36,7 @@
 #if defined (CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L1)
 #define EN_REG              (RCC->CSR)
 #define EN_BIT              (RCC_CSR_RTCEN)
+#define RST_BIT             (RCC_CSR_RTCRST)
 #define CLKSEL_MASK         (RCC_CSR_RTCSEL)
 #define CLKSEL_LSE          (RCC_CSR_RTCSEL_LSE)
 #define CLKSEL_LSI          (RCC_CSR_RTCSEL_LSI)
@@ -82,6 +85,7 @@
 #define DR_Y_MASK           (RTC_DR_YU | RTC_DR_YT)
 #define DR_M_MASK           (RTC_DR_MU | RTC_DR_MT)
 #define DR_D_MASK           (RTC_DR_DU | RTC_DR_DT)
+#define DR_WDU_MASK         (RTC_DR_WDU)
 #define ALRM_D_MASK         (RTC_ALRMAR_DU | RTC_ALRMAR_DT)
 #define ALRM_H_MASK         (RTC_ALRMAR_HU | RTC_ALRMAR_HT)
 #define ALRM_M_MASK         (RTC_ALRMAR_MNU | RTC_ALRMAR_MNT)
@@ -94,6 +98,9 @@
 #endif
 #ifndef RTC_DR_DU_Pos
 #define RTC_DR_DU_Pos       (0U)
+#endif
+#ifndef RTC_DR_WDU_Pos
+#define RTC_DR_WDU_Pos      (13U)
 #endif
 #ifndef RTC_TR_HU_Pos
 #define RTC_TR_HU_Pos       (16U)
@@ -118,9 +125,10 @@
 #endif
 
 /* figure out sync and async prescaler */
+
 #if CLOCK_LSE
-#define PRE_SYNC            (255)
-#define PRE_ASYNC           (127)
+#define PRE_ASYNC           (0x7)  /**< prescaler for 32.768 kHz oscillator */
+#define PRE_SYNC            ((32768 / (PRE_ASYNC + 1)) - 1)  /**< prescaler for 32.768 kHz oscillator */
 #elif (CLOCK_LSI == 40000)
 #define PRE_SYNC            (319)
 #define PRE_ASYNC           (124)
@@ -134,13 +142,20 @@
 #error "rtc: unable to determine RTC SYNC and ASYNC prescalers from LSI value"
 #endif
 
+#define RTC_SSR_TO_US               (((10000000 / PRE_SYNC) + 5)/10) /**< conversion from RTC_SSR to microseconds */
+
 /* struct tm counts years since 1900 but RTC has only two-digit year hence the
  * offset of 100 years. */
 #define YEAR_OFFSET         (100)
 
 static struct {
-    rtc_alarm_cb_t cb;          /**< callback called from RTC interrupt */
-    void *arg;                  /**< argument passed to the callback */
+    rtc_alarm_cb_t cb_a;        /**< callback called from RTC interrupt */
+    rtc_alarm_cb_t cb_b;        /**< Subseconds alarm callback */
+    rtc_wkup_cb_t  cb_wkup;     /**< Wake up timer callback */
+    
+    void *arg_a;                /**< argument passed to the callback */
+    void *arg_b;                /**< argument passed to subseconds alarm callback */
+    void *arg_wkup;             /**< argument passed to wakeup callback */
 } isr_ctx;
 
 static uint32_t val2bcd(int val, int shift, uint32_t mask)
@@ -204,6 +219,10 @@ void rtc_init(void)
     RTC->ISR = RTC_ISR_INIT;
     /* configure prescaler (RTC PRER) */
     RTC->PRER = (PRE_SYNC | (PRE_ASYNC << 16));
+    /* Set 24-h clock */
+    RTC->CR &= ~RTC_CR_FMT;
+    /* Timestamps enabled */
+    RTC->CR |= RTC_CR_TSE;
     rtc_lock();
 
     /* configure the EXTI channel, as RTC interrupts are routed through it.
@@ -221,6 +240,7 @@ int rtc_set_time(struct tm *time)
     rtc_unlock();
     RTC->DR = (val2bcd((time->tm_year % 100), RTC_DR_YU_Pos, DR_Y_MASK) |
                val2bcd(time->tm_mon,  RTC_DR_MU_Pos, DR_M_MASK) |
+               val2bcd(time->tm_wday, RTC_DR_WDU_Pos, DR_WDU_MASK) |
                val2bcd(time->tm_mday, RTC_DR_DU_Pos, DR_D_MASK));
     RTC->TR = (val2bcd(time->tm_hour, RTC_TR_HU_Pos, TR_H_MASK) |
                val2bcd(time->tm_min,  RTC_TR_MNU_Pos, TR_M_MASK) |
@@ -239,7 +259,19 @@ int rtc_get_time(struct tm *time)
     time->tm_year = bcd2val(dr, RTC_DR_YU_Pos, DR_Y_MASK) + YEAR_OFFSET;
     time->tm_mon  = bcd2val(dr, RTC_DR_MU_Pos, DR_M_MASK);
     time->tm_mday = bcd2val(dr, RTC_DR_DU_Pos, DR_D_MASK);
+    
+    time->tm_wday = bcd2val(dr, RTC_DR_WDU_Pos, DR_WDU_MASK);
+    /* tm_wday should be days since Sunday, so it's 0 if today is Sunday */
+    /* STM32 returns day of week instead, so Monday is 1 and Sunday is 7 */
+    if (time->tm_wday == 7) {
+        time->tm_wday = 0;
+    }
+    
     time->tm_hour = bcd2val(tr, RTC_TR_HU_Pos, TR_H_MASK);
+    if ((tr & RTC_TR_PM) && (RTC->CR & RTC_CR_FMT)) {
+        time->tm_hour += 12;
+    }
+    
     time->tm_min  = bcd2val(tr, RTC_TR_MNU_Pos, TR_M_MASK);
     time->tm_sec  = bcd2val(tr, RTC_TR_SU_Pos, TR_S_MASK);
 
@@ -254,11 +286,11 @@ int rtc_set_alarm(struct tm *time, rtc_alarm_cb_t cb, void *arg)
     rtc_clear_alarm();
 
     /* save callback and argument */
-    isr_ctx.cb = cb;
-    isr_ctx.arg = arg;
+    isr_ctx.cb_a = cb;
+    isr_ctx.arg_a = arg;
 
     /* set wakeup time */
-    RTC->ALRMAR = (val2bcd(time->tm_mday, RTC_ALRMAR_DU_Pos, ALRM_D_MASK) |
+    RTC->ALRMAR = (val2bcd(time->tm_wday, RTC_ALRMAR_DU_Pos, ALRM_D_MASK) |
                    val2bcd(time->tm_hour, RTC_ALRMAR_HU_Pos, ALRM_H_MASK) |
                    val2bcd(time->tm_min, RTC_ALRMAR_MNU_Pos, ALRM_M_MASK) |
                    val2bcd(time->tm_sec,  RTC_ALRMAR_SU_Pos, ALRM_S_MASK));
@@ -292,8 +324,176 @@ void rtc_clear_alarm(void)
     RTC->CR &= ~(RTC_CR_ALRAE | RTC_CR_ALRAIE);
     while (!(RTC->ISR & RTC_ISR_ALRAWF)) {}
 
-    isr_ctx.cb = NULL;
-    isr_ctx.arg = NULL;
+    isr_ctx.cb_a = NULL;
+    isr_ctx.arg_a = NULL;
+}
+
+int rtc_millis_set_alarm(int milliseconds, rtc_alarm_cb_t cb, void *arg)
+{   
+    rtc_unlock();
+    rtc_millis_clear_alarm();
+    
+    /* setting seconds */
+    uint8_t seconds = milliseconds/1000;
+    
+    RTC->ALRMBR = val2bcd(seconds,  RTC_ALRMAR_SU_Pos, ALRM_S_MASK);
+    
+    /* minutes, hours and date doesn't matter */
+    RTC->ALRMBR |= (RTC_ALRMBR_MSK2 | RTC_ALRMBR_MSK3 | RTC_ALRMBR_MSK4);
+
+    uint32_t msec = milliseconds % 1000;
+      
+    uint32_t alarm_millis_time = PRE_SYNC - (msec*1000)/RTC_SSR_TO_US;
+    
+    /* set up subseconds alarm */
+    uint32_t regalarm = RTC->ALRMBSSR;
+    regalarm |= (0x8 << 24); // compare 8 bits only
+    regalarm &= ~(RTC_ALRMBSSR_SS);
+    regalarm |= (alarm_millis_time & 0xFF);
+    RTC->ALRMBSSR = regalarm;
+    
+    /* Enable Alarm B */
+    RTC->CR |= RTC_CR_ALRBE;
+    RTC->CR |= RTC_CR_ALRBIE;
+    RTC->ISR &= ~(RTC_ISR_ALRBF);
+
+    isr_ctx.cb_b = cb;
+    isr_ctx.arg_b = arg;
+    
+    rtc_lock();
+
+    return 0;
+}
+
+void rtc_millis_clear_alarm(void)
+{
+    /* Disable Alarm B */
+    RTC->CR &= ~RTC_CR_ALRBE;
+    RTC->CR &= ~RTC_CR_ALRBIE;
+    
+    isr_ctx.cb_b = NULL;
+    isr_ctx.arg_b = NULL;
+}
+
+int rtc_millis_get_time(uint32_t *millis)
+{
+    /* clear RSF bit */
+    RTC->ISR &= ~RTC_ISR_RSF;
+    
+    /* wait for RSF to be set by hardware */
+    while (!(RTC->ISR & RTC_ISR_RSF)) {}
+    
+    /* RTC registers need to be read at least twice when running at f < 32768*7 = 229376 Hz APB1 clock */
+    uint32_t rtc_ssr_counter = RTC->SSR;
+
+    /* second read */
+    if (RTC->SSR != rtc_ssr_counter) {
+        /* 3rd read if 1st and 2nd don't match */
+        rtc_ssr_counter = RTC->SSR;
+    }
+
+    uint32_t milliseconds = ((PRE_SYNC - rtc_ssr_counter)*RTC_SSR_TO_US)/1000;
+    
+    /* clear RSF bit */
+    RTC->ISR &= ~RTC_ISR_RSF;
+    
+    /* wait for RSF to be set by hardware */
+    while (!(RTC->ISR & RTC_ISR_RSF)) {}
+    
+    /* RTC registers need to be read at least twice when running at f < 32768*7 = 229376 Hz APB1 clock */
+    /* reading TR locks registers so it must be read first, DR must be read last */
+    uint32_t rtc_time_reg = RTC->TR;
+
+    /* second read */
+    if (RTC->TR != rtc_time_reg) {
+        /* 3rd read if 1st and 2nd don't match */
+        rtc_time_reg = RTC->TR;
+    }
+    
+    RTC->DR;
+    
+    uint32_t seconds  = (((rtc_time_reg & RTC_TR_ST)  >>  4) * 10) + ((rtc_time_reg & RTC_TR_SU)  >>  0);
+    
+    *millis = milliseconds + 1000*seconds;
+
+    /* unlock RTC registers by reading DR */
+    rtc_ssr_counter = RTC->DR;
+    
+    return 0;
+}
+
+int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg)
+{
+    /* Enable write access to RTC registers */
+    rtc_unlock();
+    
+    /* Disable periodic wakeup */
+    RTC->CR &= ~(RTC_CR_WUTE);
+    while ((RTC->ISR & RTC_ISR_WUTWF) == 0) ;
+    
+    /* Set wakeup timer value */
+    period_us = ((period_us * 100)/12207) - 1;   
+    RTC->WUTR = (period_us & 0xFFFF);
+    
+    /* Set wakeup timer clock source to RTCCLK/4 */
+    /* Min period 244 us, maximum 8 s */
+    RTC->CR &= ~(RTC_CR_WUCKSEL);
+    RTC->CR |= (RTC_CR_WUCKSEL_1);
+    
+    /* Enable periodic wakeup */
+    RTC->CR |= RTC_CR_WUTE;
+    RTC->CR |= RTC_CR_WUTIE;
+    RTC->ISR &= ~(RTC_ISR_WUTF);
+
+    /* Enable RTC write protection */
+    rtc_lock();
+
+    EXTI->IMR  |= EXTI_IMR_MR20;
+    EXTI->RTSR |= EXTI_RTSR_TR20;
+    NVIC_SetPriority(RTC_WKUP_IRQn, RTC_IRQ_PRIO);
+    NVIC_EnableIRQ(RTC_WKUP_IRQn);
+
+    isr_ctx.cb_wkup = cb;
+    isr_ctx.arg_wkup = arg;
+
+    return 0;
+}
+
+void rtc_enable_wakeup(void) {
+    rtc_unlock();
+    /* Enable wakeup */
+    RTC->CR |= RTC_CR_WUTE;
+    rtc_lock();
+}
+
+void rtc_disable_wakeup(void)
+{
+    rtc_unlock();
+    /* Disable wakeup */
+    RTC->CR &= ~(RTC_CR_WUTE);
+    rtc_lock();
+}
+
+int rtc_save_backup(uint32_t data, uint8_t reg_num) {    
+    __IO uint32_t tmp = 0;
+    
+    tmp = RTC_BASE + 0x50;
+    tmp += (reg_num * 4);
+
+    /* Write the specified register */
+    *(__IO uint32_t *)tmp = (uint32_t)data;
+    
+    return 0;
+}
+
+uint32_t rtc_restore_backup(uint8_t reg_num) {
+    __IO uint32_t tmp = 0;
+    
+    tmp = RTC_BASE + 0x50;
+    tmp += (reg_num * 4);
+
+    /* Read the specified register */
+    return (*(__IO uint32_t *)tmp);
 }
 
 void rtc_poweron(void)
@@ -313,12 +513,34 @@ void rtc_poweroff(void)
 void ISR_NAME(void)
 {
     if (RTC->ISR & RTC_ISR_ALRAF) {
-        if (isr_ctx.cb != NULL) {
-            isr_ctx.cb(isr_ctx.arg);
+        if (isr_ctx.cb_a != NULL) {
+            isr_ctx.cb_a(isr_ctx.arg_a);
         }
         RTC->ISR &= ~RTC_ISR_ALRAF;
     }
+    
+    if (RTC->ISR & RTC_ISR_ALRBF) {
+        if (isr_ctx.cb_b) {
+            isr_ctx.cb_b(isr_ctx.arg_b);
+        }
+        RTC->ISR &= ~RTC_ISR_ALRBF;
+    }
+    
     EXTI->PR |= EXTI_PR_BIT;
+    cortexm_isr_end();
+}
+
+void isr_rtc_wkup(void)
+{
+    if (RTC->ISR & RTC_ISR_WUTF) {
+        RTC->ISR &= ~RTC_ISR_WUTF;
+        if (isr_ctx.cb_wkup != NULL) {
+            isr_ctx.cb_wkup(isr_ctx.arg_wkup);
+        }
+    }
+    
+    EXTI->PR |= EXTI_PR_PR20;
+    
     cortexm_isr_end();
 }
 

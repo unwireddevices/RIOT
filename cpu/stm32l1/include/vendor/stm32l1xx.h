@@ -904,6 +904,7 @@ typedef struct
 #define FLASH_BASE            ((uint32_t)0x08000000) /*!< FLASH base address in the alias region */
 #define SRAM_BASE             ((uint32_t)0x20000000) /*!< SRAM base address in the alias region */
 #define PERIPH_BASE           ((uint32_t)0x40000000) /*!< Peripheral base address in the alias region */
+#define EEPROM_BASE           ((uint32_t)0x08080000) /*!< EEPROM base address in the alias region */
 
 #define SRAM_BB_BASE          ((uint32_t)0x22000000) /*!< SRAM base address in the bit-band region */
 #define PERIPH_BB_BASE        ((uint32_t)0x42000000) /*!< Peripheral base address in the bit-band region */
@@ -1625,6 +1626,11 @@ typedef struct
 #define  ADC_CCR_ADCPRE_0                    ((uint32_t)0x00010000)        /*!< Bit 0 */
 #define  ADC_CCR_ADCPRE_1                    ((uint32_t)0x00020000)        /*!< Bit 1 */
 #define  ADC_CCR_TSVREFE                     ((uint32_t)0x00800000)        /*!< Temperature Sensor and VREFINT Enable */
+
+/***********************  Calibration Data Addresses  *************************/
+#define  ADC_VREFINT_CAL                     ((uint16_t *)0x1FF800F8)      /*!< VREFINT calibration data address */
+#define  ADC_TS_CAL1                         ((uint16_t *)0x1FF800FA)      /*!< Temperature Sensor calibration data address */
+#define  ADC_TS_CAL2                         ((uint16_t *)0x1FF800FE)      /*!< Temperature Sensor calibration data address */
 
 /******************************************************************************/
 /*                                                                            */

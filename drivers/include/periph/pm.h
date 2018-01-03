@@ -36,6 +36,18 @@ extern "C" {
 #endif
 
 /**
+ * @name Available power modes
+ */
+enum pm_mode {
+    PM_ON,             /**< MCU is active */
+    PM_IDLE,           /**< MCU is idle */
+    PM_SLEEP,          /**< MCU in sleep mode */
+    PM_POWERDOWN,      /**< MCU is powered down */
+    PM_OFF,            /**< MCU is off */
+    PM_UNKNOWN = -1    /**< status unknown/unavailable */
+};
+
+/**
  * @brief   Reboot MCU
  */
 void pm_reboot(void);
@@ -44,6 +56,43 @@ void pm_reboot(void);
  * @brief   Turn off MCU completely
  */
 void pm_off(void);
+
+/**
+ * @brief   Initialization of power management (including clock setup)
+ *
+ * This function is invoked once during boot.
+ */
+void pm_init(void);
+
+/**
+ * @brief   Switches the MCU to a new power mode
+ * @param[in]   target      Target power mode
+ * @return                  The previous power mode
+ */
+enum pm_mode pm_set(enum pm_mode target);
+
+/**
+ * @brief   Returns the current power mode
+ * @return  Current power mode
+ */
+enum pm_mode pm_get(void);
+
+/**
+ * @brief This hook is called to exclude GPIO from PM
+ */
+void pm_add_gpio_exclusion(gpio_t gpio);
+
+/**
+ * @brief This hook is called to remove GPIO exclusion
+ */
+void pm_del_gpio_exclusion(gpio_t gpio);
+
+/**
+ * @brief PM-internal variables
+ */
+extern volatile int pm_prevent_sleep;
+extern volatile int pm_run_mode;
+extern volatile int pm_prevent_switch;
 
 /**
  * @brief   Switches the MCU to the lowest possible power mode

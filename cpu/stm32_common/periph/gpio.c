@@ -71,6 +71,10 @@ static inline int _pin_num(gpio_t pin)
 
 int gpio_init(gpio_t pin, gpio_mode_t mode)
 {
+    if (pin == GPIO_UNDEF) {
+        return -1;
+    }
+    
     GPIO_TypeDef *port = _port(pin);
     int pin_num = _pin_num(pin);
 
@@ -96,6 +100,9 @@ int gpio_init(gpio_t pin, gpio_mode_t mode)
     port->OTYPER |=  (((mode >> 4) & 0x1) << pin_num);
     /* set pin speed to maximum */
     port->OSPEEDR |= (3 << (2 * pin_num));
+#if defined (STM32L1XX_HD) || defined (STM32L1XX_XL)
+    port->BRR = (1 << pin_num);
+#endif
 
     return 0;
 }
@@ -103,6 +110,10 @@ int gpio_init(gpio_t pin, gpio_mode_t mode)
 int gpio_init_int(gpio_t pin, gpio_mode_t mode, gpio_flank_t flank,
                   gpio_cb_t cb, void *arg)
 {
+    if (pin == GPIO_UNDEF) {
+        return -1;
+    }
+    
     int pin_num = _pin_num(pin);
     int port_num = _port_num(pin);
 
@@ -161,19 +172,32 @@ int gpio_init_int(gpio_t pin, gpio_mode_t mode, gpio_flank_t flank,
 
 void gpio_init_af(gpio_t pin, gpio_af_t af)
 {
+    if (pin == GPIO_UNDEF) {
+        return;
+    }
+    
     GPIO_TypeDef *port = _port(pin);
     uint32_t pin_num = _pin_num(pin);
 
     /* set pin to AF mode */
-    port->MODER &= ~(3 << (2 * pin_num));
-    port->MODER |= (2 << (2 * pin_num));
+    uint32_t tmpreg;
+	tmpreg = port->MODER;
+    tmpreg &= ~(3 << (2 * pin_num));
+    tmpreg |= (2 << (2 * pin_num));
+	port->MODER = tmpreg;
     /* set selected function */
-    port->AFR[(pin_num > 7) ? 1 : 0] &= ~(0xf << ((pin_num & 0x07) * 4));
-    port->AFR[(pin_num > 7) ? 1 : 0] |= (af << ((pin_num & 0x07) * 4));
+	tmpreg = port->AFR[(pin_num > 7) ? 1 : 0];
+    tmpreg &= ~(0xf << ((pin_num & 0x07) * 4));
+    tmpreg |= (af << ((pin_num & 0x07) * 4));
+	port->AFR[(pin_num > 7) ? 1 : 0] = tmpreg;
 }
 
 void gpio_init_analog(gpio_t pin)
 {
+    if (pin == GPIO_UNDEF) {
+        return;
+    }
+    
     /* enable clock, needed as this function can be used without calling
      * gpio_init first */
 #if defined(CPU_FAM_STM32F0) || defined (CPU_FAM_STM32F3) || defined(CPU_FAM_STM32L1)
@@ -191,36 +215,87 @@ void gpio_init_analog(gpio_t pin)
 
 void gpio_irq_enable(gpio_t pin)
 {
-    EXTI->IMR |= (1 << _pin_num(pin));
+    if (pin == GPIO_UNDEF) {
+        return;
+    }
+    
+    int pin_num = _pin_num(pin);
+    int port_num = _port_num(pin);
+	
+	/* check if IRQ is actually configured for this pin and port */
+	if (!((SYSCFG->EXTICR[pin_num >> 2] & (0xf << ((pin_num & 0x03) * 4))) ^ (port_num << ((pin_num & 0x03) * 4)))) {
+		EXTI->IMR |= (1 << _pin_num(pin));
+	}
 }
 
 void gpio_irq_disable(gpio_t pin)
 {
-    EXTI->IMR &= ~(1 << _pin_num(pin));
+    if (pin == GPIO_UNDEF) {
+        return;
+    }
+    
+    int pin_num = _pin_num(pin);
+    int port_num = _port_num(pin);
+	
+	/* check if IRQ is actually configured for this pin and port */
+	if (!((SYSCFG->EXTICR[pin_num >> 2] & (0xf << ((pin_num & 0x03) * 4))) ^ (port_num << ((pin_num & 0x03) * 4)))) {
+		EXTI->IMR &= ~(1 << pin_num);
+	}
 }
 
 int gpio_read(gpio_t pin)
 {
-    if (_port(pin)->MODER & (0x3 << (_pin_num(pin) * 2))) {
-        return _port(pin)->ODR & (1 << _pin_num(pin));
+    if (pin == GPIO_UNDEF) {
+        return -2;
     }
-    else {
-        return _port(pin)->IDR & (1 << _pin_num(pin));
+    
+    GPIO_TypeDef *port = _port(pin);
+    uint32_t pin_num = _pin_num(pin);
+
+    uint8_t port_mode = (port->MODER & (3 << (pin_num * 2))) >> (pin_num * 2);
+	
+    if (port_mode == 1) {   /* if configured as output */
+        return (port->ODR & (1 << pin_num)) >> pin_num;      /* read output data reg */
     }
+    if (port_mode == 0) {
+        return (port->IDR & (1 << pin_num)) >> pin_num;      /* else read input data reg */
+    }
+	
+    /* configured as AF or AIN */
+	return -1;
+}
+
+int gpio_get_status(gpio_t pin) {
+    if (pin == GPIO_UNDEF) {
+        return -1;
+    }
+    
+    GPIO_TypeDef *port = _port(pin);
+    uint32_t pin_num = _pin_num(pin);
+    
+    return (port->MODER & (3 << (pin_num * 2))) >> (pin_num * 2);
 }
 
 void gpio_set(gpio_t pin)
 {
+    if (pin == GPIO_UNDEF) {
+        return;
+    }
+    
     _port(pin)->BSRR = (1 << _pin_num(pin));
 }
 
 void gpio_clear(gpio_t pin)
 {
+    if (pin == GPIO_UNDEF) {
+        return;
+    }
+    
     _port(pin)->BSRR = (1 << (_pin_num(pin) + 16));
 }
 
 void gpio_toggle(gpio_t pin)
-{
+{    
     if (gpio_read(pin)) {
         gpio_clear(pin);
     } else {
@@ -229,7 +304,7 @@ void gpio_toggle(gpio_t pin)
 }
 
 void gpio_write(gpio_t pin, int value)
-{
+{   
     if (value) {
         gpio_set(pin);
     } else {

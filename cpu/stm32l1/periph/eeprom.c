@@ -9,8 +9,6 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include "stm32l1xx.h"
-
 #include "nvram.h"
 #include "assert.h"
 #include "cpu.h"

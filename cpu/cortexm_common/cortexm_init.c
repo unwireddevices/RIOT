@@ -19,7 +19,7 @@
  */
 
 #include "cpu.h"
-#include "lpm.h"
+#include "periph/pm.h"
 
 /**
  * @name   Pattern to write into the co-processor Access Control Register to

@@ -21,8 +21,6 @@
 #ifndef CPU_CONF_H
 #define CPU_CONF_H
 
-#include "cpu_conf_common.h"
-
 /**
  * @brief  STM32 L1 cpu type
  *
@@ -53,6 +51,8 @@
 #else
 #define STM32L1XX_XL (1U)
 #endif
+
+#include "cpu_conf_common.h"
 #include "vendor/stm32l1xx.h"
 
 #define  FLASH_PDKEY1                       ((uint32_t)0x04152637)       /*!< FLASH_PEC and data matrix Key 1 */

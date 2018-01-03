@@ -41,7 +41,7 @@
 #define PM_STOP_CONFIG (PWR_CR_LPDS | PWR_CR_FPDS)
 #endif
 
-void pm_set(unsigned mode)
+enum pm_mode pm_set(enum pm_mode target)
 {
     int deep = 0;
 
@@ -76,6 +76,7 @@ void pm_set(unsigned mode)
         stmclk_init_sysclk();
     }
 #endif
+    return PM_UNKNOWN;
 }
 
 #if defined(CPU_FAM_STM32F1) || defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4)

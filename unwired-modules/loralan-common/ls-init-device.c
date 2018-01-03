@@ -30,8 +30,7 @@ extern "C" {
 #include "utils.h"
 #include "ls-config.h"
 
-#include "lpm.h"
-#include "arch/lpm_arch.h"
+#include "periph/pm.h"
 #include "periph/rtc.h"
 #include "random.h"
 #include "cpu.h"
@@ -62,21 +61,21 @@ static uint32_t devnonce = 0;
  * Data rates table.
  */
 const uint8_t datarate_table[7][3] = {
-    { SX1276_SF12, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR0 */
-    { SX1276_SF11, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR1 */
-    { SX1276_SF10, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR2 */
-    { SX1276_SF9, SX1276_BW_125_KHZ, SX1276_CR_4_5 },        /* DR3 */
-    { SX1276_SF8, SX1276_BW_125_KHZ, SX1276_CR_4_5 },        /* DR4 */
-    { SX1276_SF7, SX1276_BW_125_KHZ, SX1276_CR_4_5 },        /* DR5 */
-    { SX1276_SF7, SX1276_BW_250_KHZ, SX1276_CR_4_5 },        /* DR6 */
+    { SX127X_SF12, SX127X_BW_125_KHZ, SX127X_CR_4_5 },       /* DR0 */
+    { SX127X_SF11, SX127X_BW_125_KHZ, SX127X_CR_4_5 },       /* DR1 */
+    { SX127X_SF10, SX127X_BW_125_KHZ, SX127X_CR_4_5 },       /* DR2 */
+    { SX127X_SF9, SX127X_BW_125_KHZ, SX127X_CR_4_5 },        /* DR3 */
+    { SX127X_SF8, SX127X_BW_125_KHZ, SX127X_CR_4_5 },        /* DR4 */
+    { SX127X_SF7, SX127X_BW_125_KHZ, SX127X_CR_4_5 },        /* DR5 */
+    { SX127X_SF7, SX127X_BW_250_KHZ, SX127X_CR_4_5 },        /* DR6 */
 };
 
-void ls_setup_sx1276(sx1276_t *dev, ls_datarate_t dr, uint32_t frequency) {
+void ls_setup_sx127x(sx127x_t *dev, ls_datarate_t dr, uint32_t frequency) {
     /* Choose data rate */
     const uint8_t *datarate = datarate_table[dr];
     
     /* Setup transceiver settings according to datarate */
-    sx1276_lora_settings_t settings;
+    sx127x_lora_settings_t settings;
 
     settings.datarate = datarate[0];
     settings.bandwidth = datarate[1];
@@ -95,18 +94,18 @@ void ls_setup_sx1276(sx1276_t *dev, ls_datarate_t dr, uint32_t frequency) {
     settings.tx_timeout = 1e6 * 30; // 30 sec
     settings.rx_timeout = LORA_SYMBOL_TIMEOUT;
 
-    sx1276_configure_lora(dev, &settings);
+    sx127x_configure_lora(dev, &settings);
 
     /* Setup channel */
-    sx1276_set_channel(dev, frequency);
+    sx127x_set_channel(dev, frequency);
 }
 
 void init_role(shell_command_t *commands) {
-    lpm_arch_init();
+    pm_init();
 	
     /* disable sleep and frequency switching for now */
-	lpm_prevent_sleep = 1;
-    lpm_prevent_switch = 1;
+	pm_prevent_sleep = 1;
+    pm_prevent_switch = 1;
     
     print_logo();
     xtimer_init();

@@ -24,9 +24,8 @@ extern "C" {
 #include <string.h>
 #include <stdlib.h>
 
-#include "lpm.h"
-#include "arch/lpm_arch.h"
 #include "thread.h"
+#include "periph/pm.h"
 #include "periph/rtc.h"
 #include "periph/gpio.h"
 #include "random.h"
@@ -52,7 +51,7 @@ extern "C" {
 #include "debug.h"
 
 static rtctimer_t iwdg_timer;
-static rtctimer_t lpm_enable_timer;
+static rtctimer_t pm_enable_timer;
 
 static sx127x_t sx127x;
 static sx127x_params_t sx127x_params;
@@ -617,10 +616,10 @@ static void iwdg_reset (void *arg) {
 }
 
 static void ls_enable_sleep (void *arg) {
-    lpm_prevent_sleep = 0;
+    pm_prevent_sleep = 0;
 #ifdef LPM_ENABLE_IDLE_MODE
     /* allow CPU frequency switching */
-    lpm_prevent_switch = 0;
+    pm_prevent_switch = 0;
 #endif
     puts("Low-power sleep mode active");
     return;
@@ -675,8 +674,8 @@ void init_normal(shell_command_t *commands)
 
             /* enable sleep for Class A devices only */        
             if (ls.settings.class == LS_ED_CLASS_A) {
-                lpm_enable_timer.callback = ls_enable_sleep;
-                rtctimers_set(&lpm_enable_timer, 15);
+                pm_enable_timer.callback = ls_enable_sleep;
+                rtctimers_set(&pm_enable_timer, 15);
             }
             
             blink_led(LED_GREEN);

@@ -129,6 +129,14 @@ enum {
 };
 
 /**
+ * @brief   SX127X Channel Activity Detection mode.
+ */
+typedef enum {
+    SX127X_MODE_CADDONE = 0,           /**< CAD Done event   */
+    SX127X_MODE_CADDETECT,             /**< CAD Detect event */
+} sx127x_cadmode_t;
+
+/**
  * @brief   Radio driver supported modems.
  */
 enum {

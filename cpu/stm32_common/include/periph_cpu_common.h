@@ -344,6 +344,7 @@ void gpio_init_analog(gpio_t pin);
  * @brief   Get status of the pin
  *
  * @param[in] pin       pin
+ * @param[out]          -1 if pin is not defined, otherwise pin mode
  */
 int gpio_get_status(gpio_t pin);
 

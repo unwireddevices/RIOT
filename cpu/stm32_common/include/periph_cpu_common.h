@@ -187,7 +187,8 @@ typedef enum {
     GPIO_IN_PU = GPIO_MODE(0, 1, 0),    /**< input with pull-up */
     GPIO_OUT   = GPIO_MODE(1, 0, 0),    /**< push-pull output */
     GPIO_OD    = GPIO_MODE(1, 0, 1),    /**< open-drain w/o pull R */
-    GPIO_OD_PU = GPIO_MODE(1, 1, 1)     /**< open-drain with pull-up */
+    GPIO_OD_PU = GPIO_MODE(1, 1, 1),    /**< open-drain with pull-up */
+    GPIO_AIN   = GPIO_MODE(3, 0, 0)     /**< analog input mode */
 } gpio_mode_t;
 /** @} */
 

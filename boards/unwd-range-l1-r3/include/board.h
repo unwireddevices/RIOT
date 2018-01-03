@@ -48,20 +48,21 @@ extern "C" {
 #define LORA_FIX_LENGTH_PAYLOAD_ON                  true
 #define LORA_IQ_INVERSION							false
 
-#define SX1276_DIO0 GPIO_PIN(PORT_A, 12)
-#define SX1276_DIO1 GPIO_PIN(PORT_C, 13)
-#define SX1276_DIO2 GPIO_PIN(PORT_A, 0)
-#define SX1276_DIO3 GPIO_PIN(PORT_B, 6) /* CadDone */
-#define SX1276_DIO4 GPIO_PIN(PORT_B, 7) /* CadDetect */
-#define SX1276_DIO5 GPIO_UNDEF
+#define SX127X_DIO0 GPIO_PIN(PORT_A, 12)
+#define SX127X_DIO1 GPIO_PIN(PORT_C, 13)
+#define SX127X_DIO2 GPIO_PIN(PORT_A, 0)
+#define SX127X_DIO3 GPIO_PIN(PORT_B, 6) /* CadDone */
+#define SX127X_DIO4 GPIO_PIN(PORT_B, 7) /* CadDetect */
+#define SX127X_DIO5 GPIO_UNDEF
 
-#define SX1276_RESET GPIO_PIN(PORT_A, 8)
+#define SX127X_RESET GPIO_PIN(PORT_A, 8)
 
 /** RF on/off switching pin */
-#define SX1276_RFSWITCH GPIO_PIN(PORT_A, 11)
+#define SX127X_RFSWITCH GPIO_PIN(PORT_A, 11)
 
-/** SX1276 SPI */
-#define SX1276_SPI 1
+/** SX127x SPI */
+#define SX127X_SPI 1
+#define SX127X_SPI_NSS  GPIO_PIN(PORT_B, 12)
 
 /** "Connect" Button */
 #define UNWD_USE_CONNECT_BTN	1

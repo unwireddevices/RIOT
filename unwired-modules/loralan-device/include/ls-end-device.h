@@ -25,7 +25,7 @@
 #include "ls-mac-types.h"
 #include "ls-crypto.h"
 
-#include "sx1276.h"
+#include "sx127x.h"
 
 #define LS_RX2_DR LS_DR3
 #define LS_RX2_CH 0
@@ -100,7 +100,7 @@ typedef enum {
  *
  */
 typedef enum {
-	LS_INIT_E_SX1276_THREAD = 1,	/**< Unable to start sx1276 event handler thread */
+	LS_INIT_E_SX127X_THREAD = 1,	/**< Unable to start sx127x event handler thread */
 	LS_INIT_E_FQ_THREAD,			/**< Unable to start uplink frame queue handler thread */
 	LS_INIT_E_TIM_THREAD,			/**< Unable to start rx window timing handler thread */
 	LS_SEND_E_FQ_OVERFLOW,			/**< Uplink frame queue is overflowed */
@@ -140,9 +140,9 @@ typedef struct {
 } ls_ed_settings_t;
 
 typedef struct {
-	sx1276_t *sx1276;		/**< Pointer to the radio PHY structure */
+	sx127x_t *sx127x;		/**< Pointer to the radio PHY structure */
 
-    msg_t sx1276_event_queue[16];
+    msg_t sx127x_event_queue[16];
 
     /* Timers for first and second RX windows */
     rtctimer_t rx_window1, rx_window2;

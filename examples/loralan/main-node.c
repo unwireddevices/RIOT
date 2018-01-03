@@ -54,33 +54,34 @@ extern "C" {
 static rtctimer_t iwdg_timer;
 static rtctimer_t lpm_enable_timer;
 
-static sx1276_t sx1276;
+static sx127x_t sx127x;
+static sx127x_params_t sx127x_params;
 static ls_ed_t ls;
 
 static uint8_t current_join_retries = 0;
 
 void radio_init(void)
 {
-    sx1276.nss_pin = SX1276_SPI_NSS;
-    sx1276.spi = SX1276_SPI;
+    sx127x_params.nss_pin = SX127X_SPI_NSS;
+    sx127x_params.spi = SX127X_SPI;
 
-    sx1276.dio0_pin = SX1276_DIO0;
-    sx1276.dio1_pin = SX1276_DIO1;
-    sx1276.dio2_pin = SX1276_DIO2;
-    sx1276.dio3_pin = SX1276_DIO3;
-    sx1276.dio4_pin = SX1276_DIO4;
-    sx1276.dio5_pin = SX1276_DIO5;
-    sx1276.reset_pin = SX1276_RESET;
-    
-    sx1276.rfswitch_pin = SX1276_RFSWITCH;
-    sx1276.rfswitch_mode = SX1276_RFSWITCH_ACTIVE_LOW;
+    sx127x_params.dio0_pin = SX127X_DIO0;
+    sx127x_params.dio1_pin = SX127X_DIO1;
+    sx127x_params.dio2_pin = SX127X_DIO2;
+    sx127x_params.dio3_pin = SX127X_DIO3;
+    sx127x_params.dio4_pin = SX127X_DIO4;
+    sx127x_params.dio5_pin = SX127X_DIO5;
+    sx127x_params.reset_pin = SX127X_RESET;
+   
+    sx127x_params.rfswitch_pin = SX127X_RFSWITCH;
+    sx127x_params.rfswitch_active_level = 0;
 
-    sx1276_settings_t settings;
+    sx127x_radio_settings_t settings;
     settings.channel = RF_FREQUENCY;
-    settings.modem = SX1276_MODEM_LORA;
-    settings.state = SX1276_RF_IDLE;
+    settings.modem = SX127X_MODEM_LORA;
+    settings.state = SX127X_RF_IDLE;
 
-    sx1276.settings = settings;
+    sx127x.settings = settings;
 
     puts("init_radio: sx1276 initialization done");
 }
@@ -249,7 +250,7 @@ static void ls_setup(ls_ed_t *ls)
     ls->appdata_received_cb = appdata_received_cb;
     ls->broadcast_appdata_received_cb = broadcast_appdata_received_cb;
 
-    ls->_internal.sx1276 = &sx1276;
+    ls->_internal.sx127x = &sx127x;
 }
 
 int ls_set_cmd(int argc, char **argv)

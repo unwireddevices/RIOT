@@ -60,24 +60,8 @@ extern "C" {
 /** RF on/off switching pin */
 #define SX1276_RFSWITCH GPIO_PIN(PORT_A, 11)
 
-
 /** SX1276 SPI */
-
-#define USE_SPI_1
-
-#ifdef USE_SPI_1
 #define SX1276_SPI 1
-#define SX1276_SPI_NSS GPIO_PIN(PORT_B, SPI_1_PIN_NSS)
-#define SX1276_SPI_MODE SPI_CONF_FIRST_RISING
-#define SX1276_SPI_SPEED SPI_SPEED_1MHZ
-#endif
-
-#ifdef USE_SPI_0
-#define SX1276_SPI 0
-#define SX1276_SPI_NSS GPIO_PIN(PORT_A, SPI_0_PIN_NSS)
-#define SX1276_SPI_MODE SPI_CONF_FIRST_RISING
-#define SX1276_SPI_SPEED SPI_SPEED_1MHZ
-#endif
 
 /** "Connect" Button */
 #define UNWD_USE_CONNECT_BTN	1

@@ -288,26 +288,34 @@ static const pwm_conf_t pwm_config[] = {
     {
         .dev      = TIM2,
         .rcc_mask = RCC_APB1ENR_TIM2EN,
-        .pins     = { GPIO_PIN(PORT_A, 5), GPIO_PIN(PORT_A, 1),
-                      GPIO_PIN(PORT_A, 2), GPIO_PIN(PORT_A, 3) },
+        /* FIXME */
+        .chan     = { { .pin = GPIO_PIN(PORT_A, 5), .cc_chan = 1 },
+                      { .pin = GPIO_PIN(PORT_A, 1), .cc_chan = 2 },
+                      { .pin = GPIO_PIN(PORT_A, 2), .cc_chan = 1 },
+                      { .pin = GPIO_PIN(PORT_A, 3), .cc_chan = 1 } },
         .af       = GPIO_AF1,
-        .chan     = 4,
         .bus      = APB1
     },
     {
         .dev      = TIM3,
         .rcc_mask = RCC_APB1ENR_TIM3EN,
-        .pins     = { GPIO_PIN(PORT_A, 6), GPIO_PIN(PORT_A, 7) },
+        /* FIXME */
+        .chan     = { { .pin = GPIO_PIN(PORT_A, 6), .cc_chan = 1 },
+                      { .pin = GPIO_PIN(PORT_A, 7), .cc_chan = 2 },
+                      { .pin = GPIO_UNDEF,          .cc_chan = 0 },
+                      { .pin = GPIO_UNDEF,          .cc_chan = 0 } },
         .af       = GPIO_AF2,
-        .chan     = 2,
         .bus      = APB1
     },
         {
         .dev      = TIM4,
         .rcc_mask = RCC_APB1ENR_TIM4EN,
-        .pins     = { 0, 0, GPIO_PIN(PORT_B, 8), GPIO_PIN(PORT_B, 9) },
+        /* FIXME */
+        .chan     = { { .pin = GPIO_PIN(PORT_B, 8), .cc_chan = 1 },
+                      { .pin = GPIO_PIN(PORT_B, 9), .cc_chan = 2 },
+                      { .pin = GPIO_UNDEF,          .cc_chan = 0 },
+                      { .pin = GPIO_UNDEF,          .cc_chan = 0 } },
         .af       = GPIO_AF2,
-        .chan     = 4,
         .bus      = APB1
     }
 };

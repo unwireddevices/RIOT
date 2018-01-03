@@ -38,7 +38,7 @@ extern "C" {
 
 #include "board.h"
 
-#include "bme280.h"
+#include "bmx280.h"
 
 #include "unwds-common.h"
 #include "umdk-bme280.h"
@@ -46,7 +46,7 @@ extern "C" {
 #include "thread.h"
 #include "rtctimers.h"
 
-static bme280_t dev;
+static bmx280_t dev;
 
 static uwnds_cb_t *callback;
 
@@ -62,19 +62,19 @@ static struct {
 } bme280_config;
 
 static bool init_sensor(void) {
-    bme280_params_t bme280_params[] = { BME280_PARAMS_BOARD };
+    bmx280_params_t bme280_params[] = { BME280_PARAMS_BOARD };
     
 	printf("[umdk-" _UMDK_NAME_ "] Initializing BME280 on I2C #%d\n", bme280_params[0].i2c_dev);
     
-	return bme280_init(&dev, &bme280_params[0]) == BME280_OK;
+	return bmx280_init(&dev, &bme280_params[0]) == BMX280_OK;
 }
 
 static void prepare_result(module_data_t *data) {
     int16_t measurements[3];
     
-	measurements[0] = (5 + bme280_read_temperature(&dev))/10; /* degrees C * 100 -> degrees C * 10 */
+	measurements[0] = (5 + bmx280_read_temperature(&dev))/10; /* degrees C * 100 -> degrees C * 10 */
     measurements[1] = (5 + bme280_read_humidity(&dev))/10; /* percents * 100 -> percents * 10 */
-    measurements[2] = bme280_read_pressure(&dev)/100; /* Pa -> mbar */
+    measurements[2] = bmx280_read_pressure(&dev)/100; /* Pa -> mbar */
     
     char buf[2][10];
     int_to_float_str(buf[0], measurements[0], 1);

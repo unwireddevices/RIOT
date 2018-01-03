@@ -30,7 +30,12 @@ extern "C" {
 #include "periph/gpio.h"
 #include "random.h"
 
-#include "sx127x.h"
+#include "net/gnrc/netdev.h"
+#include "net/netdev.h"
+#include "sx127x_internal.h"
+#include "sx127x_params.h"
+#include "sx127x_netdev.h"
+
 #include "board.h"
 
 #include "unwds-common.h"
@@ -54,13 +59,16 @@ static rtctimer_t iwdg_timer;
 static rtctimer_t pm_enable_timer;
 
 static sx127x_t sx127x;
-static sx127x_params_t sx127x_params;
+static netdev_t *netdev;
+
 static ls_ed_t ls;
 
 static uint8_t current_join_retries = 0;
 
 void radio_init(void)
 {
+    sx127x_params_t sx127x_params;
+    
     sx127x_params.nss_pin = SX127X_SPI_NSS;
     sx127x_params.spi = SX127X_SPI;
 
@@ -81,8 +89,12 @@ void radio_init(void)
     settings.state = SX127X_RF_IDLE;
 
     sx127x.settings = settings;
+    memcpy(&sx127x.params, &sx127x_params, sizeof(sx127x_params));
+    
+    netdev = (netdev_t*)&sx127x;
+    netdev->driver = &sx127x_driver;
 
-    puts("init_radio: sx1276 initialization done");
+    puts("init_radio: sx127x initialization done");
 }
 
 static void node_join(ls_ed_t *ls) {
@@ -249,7 +261,7 @@ static void ls_setup(ls_ed_t *ls)
     ls->appdata_received_cb = appdata_received_cb;
     ls->broadcast_appdata_received_cb = broadcast_appdata_received_cb;
 
-    ls->_internal.sx127x = &sx127x;
+    ls->_internal.device = netdev;
 }
 
 int ls_set_cmd(int argc, char **argv)

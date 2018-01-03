@@ -25,7 +25,12 @@
 #include "ls-mac-types.h"
 #include "ls-crypto.h"
 
-#include "sx127x.h"
+#include "sx127x_internal.h"
+#include "sx127x_params.h"
+#include "sx127x_netdev.h"
+
+#include "net/gnrc/netdev.h"
+#include "net/netdev.h"
 
 #define LS_RX2_DR LS_DR3
 #define LS_RX2_CH 0
@@ -140,9 +145,9 @@ typedef struct {
 } ls_ed_settings_t;
 
 typedef struct {
-	sx127x_t *sx127x;		/**< Pointer to the radio PHY structure */
+	netdev_t *device;		/**< Pointer to the radio PHY structure */
 
-    msg_t sx127x_event_queue[16];
+    msg_t device_event_queue[16];
 
     /* Timers for first and second RX windows */
     rtctimer_t rx_window1, rx_window2;

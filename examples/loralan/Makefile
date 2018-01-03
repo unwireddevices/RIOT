@@ -19,7 +19,7 @@ umdk-adc	   = 1
 umdk-lps331    = 1
 umdk-counter   = 1
 umdk-rssiecho  = 1
-umdk-pwm	   = 1
+umdk-pwm	   = 0
 umdk-opt3001   = 1
 umdk-dali	   = 1
 umdk-bme280    = 1
@@ -28,7 +28,7 @@ umdk-mhz19     = 1
 umdk-range     = 0
 umdk-hd44780   = 1
 umdk-ibutton   = 1
-umdk-irblaster = 1
+umdk-irblaster = 0
 
 ####### UMDK MODULES defines and Makefile.include inclusion ############
 
@@ -61,10 +61,11 @@ USEMODULE += cipher_modes
 USEMODULE += random
 USEMODULE += hashes
 USEMODULE += checksum
-
-USEMODULE += sx127x
 USEMODULE += rtctimers
 USEMODULE += rtctimers-millis
+
+DRIVER ?= sx1276
+USEMODULE += ${DRIVER}
 
 EXTERNAL_MODULE_DIRS += ../../unwired-modules/
 USEMODULE += loralan-mac

@@ -170,7 +170,7 @@ uint32_t sx127x_random(sx127x_t *dev)
 void sx127x_isr(netdev_t *dev)
 {
     if (dev->event_callback) {
-        dev->event_callback(dev, NETDEV_EVENT_ISR);
+        dev->event_callback(dev, NETDEV_EVENT_ISR, dev->event_callback_arg);
     }
 }
 
@@ -224,14 +224,14 @@ static void _on_tx_timeout(void *arg)
 {
     netdev_t *dev = (netdev_t *) arg;
 
-    dev->event_callback(dev, NETDEV_EVENT_TX_TIMEOUT);
+    dev->event_callback(dev, NETDEV_EVENT_TX_TIMEOUT, dev->event_callback_arg);
 }
 
 static void _on_rx_timeout(void *arg)
 {
     netdev_t *dev = (netdev_t *) arg;
 
-    dev->event_callback(dev, NETDEV_EVENT_RX_TIMEOUT);
+    dev->event_callback(dev, NETDEV_EVENT_RX_TIMEOUT, dev->event_callback_arg);
 }
 
 static void _init_timers(sx127x_t *dev)

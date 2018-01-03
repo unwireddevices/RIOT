@@ -1,0 +1,1 @@
+include $(RIOTBOARD)/arduino-mkr-common/Makefile.dep

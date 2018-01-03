@@ -16,8 +16,8 @@
  * @author  Ludwig Knüpfer <ludwig.knuepfer@fu-berlin.de>
  */
 
-#ifndef _NATIVE_INTERNAL_H
-#define _NATIVE_INTERNAL_H
+#ifndef NATIVE_INTERNAL_H
+#define NATIVE_INTERNAL_H
 
 #include <signal.h>
 #include <stdio.h>
@@ -61,6 +61,7 @@ extern "C" {
 typedef void (*_native_callback_t)(void);
 
 /**
+ * @cond INTERNAL
  * internal functions
  */
 void native_cpu_init(void);
@@ -95,6 +96,7 @@ extern int (*real_accept)(int socket, ...);
 extern int (*real_bind)(int socket, ...);
 extern int (*real_chdir)(const char *path);
 extern int (*real_close)(int);
+extern int (*real_fcntl)(int, int, ...);
 /* The ... is a hack to save includes: */
 extern int (*real_creat)(const char *path, ...);
 extern int (*real_dup2)(int, int);
@@ -123,6 +125,10 @@ extern int (*real_unlink)(const char *);
 extern long int (*real_random)(void);
 extern const char* (*real_gai_strerror)(int errcode);
 extern FILE* (*real_fopen)(const char *path, const char *mode);
+extern int (*real_fclose)(FILE *stream);
+extern int (*real_fseek)(FILE *stream, long offset, int whence);
+extern int (*real_fputc)(int c, FILE *stream);
+extern int (*real_fgetc)(FILE *stream);
 extern mode_t (*real_umask)(mode_t cmask);
 extern ssize_t (*real_writev)(int fildes, const struct iovec *iov, int iovcnt);
 
@@ -160,6 +166,10 @@ ssize_t _native_write(int fd, const void *buf, size_t count);
 ssize_t _native_writev(int fildes, const struct iovec *iov, int iovcnt);
 
 /**
+ * @endcond
+ */
+
+/**
  * register interrupt handler handler for interrupt sig
  */
 int register_interrupt(int sig, _native_callback_t handler);
@@ -178,4 +188,4 @@ int unregister_interrupt(int sig);
 #include "sched.h"
 
 /** @} */
-#endif /* _NATIVE_INTERNAL_H */
+#endif /* NATIVE_INTERNAL_H */

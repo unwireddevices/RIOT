@@ -7,7 +7,7 @@
  */
 
 /**
- * @defgroup    drivers_ethos ethos
+ * @defgroup    drivers_ethos Ethernet-over-serial driver
  * @ingroup     drivers_netdev
  * @brief       Driver for the ethernet-over-serial module
  * @{
@@ -23,7 +23,7 @@
 
 #include "kernel_types.h"
 #include "periph/uart.h"
-#include "net/netdev2.h"
+#include "net/netdev.h"
 #include "tsrb.h"
 #include "mutex.h"
 
@@ -43,7 +43,7 @@ extern "C" {
 #endif
 
 /**
- * @name Escape char definitions
+ * @name    Escape char definitions
  * @{
  */
 #define ETHOS_FRAME_DELIMITER           (0x7E)
@@ -55,7 +55,7 @@ extern "C" {
 /** @} */
 
 /**
- * @brief   enum describing line state
+ * @brief   Enum describing line state
  */
 typedef enum {
     WAIT_FRAMESTART,
@@ -64,11 +64,11 @@ typedef enum {
 } line_state_t;
 
 /**
- * @brief ethos netdev2 device
- * @extends netdev2_t
+ * @brief   ethos netdev device
+ * @extends netdev_t
  */
 typedef struct {
-    netdev2_t netdev;       /**< extended netdev2 structure */
+    netdev_t netdev;        /**< extended netdev structure */
     uart_t uart;            /**< UART device the to use */
     uint8_t mac_addr[6];    /**< this device's MAC address */
     uint8_t remote_mac_addr[6]; /**< this device's MAC address */
@@ -91,7 +91,7 @@ typedef struct {
 } ethos_params_t;
 
 /**
- * @brief Setup an ethos based device state.
+ * @brief   Setup an ethos based device state.
  *
  * The supplied buffer *must* have a power-of-two size, and it *must* be large
  * enough for the largest expected packet + enough buffer space to buffer
@@ -105,7 +105,7 @@ typedef struct {
 void ethos_setup(ethos_t *dev, const ethos_params_t *params);
 
 /**
- * @brief send frame over serial port using ethos' framing
+ * @brief   Send frame over serial port using ethos' framing
  *
  * This is used by e.g., stdio over ethos to send text frames.
  *

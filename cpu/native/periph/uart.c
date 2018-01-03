@@ -8,12 +8,15 @@
 
 /**
  * @ingroup     native_cpu
+ * @ingroup     drivers_periph_uart
  * @{
  *
  * @file
  * @brief       UART implementation based on /dev/tty devices on host
  *
  * @author      Takuo Yonezawa <Yonezawa-T2@mail.dnp.co.jp>
+ *
+ * @}
  */
 
 #include <errno.h>
@@ -174,15 +177,3 @@ void uart_write(uart_t uart, const uint8_t *data, size_t len)
 
     _native_write(tty_fds[uart], data, len);
 }
-
-void uart_cleanup(void) {
-    native_async_read_cleanup();
-
-    for (uart_t uart = 0; uart < UART_NUMOF; uart++) {
-        if (uart_config[uart].rx_cb != NULL) {
-            real_close(tty_fds[uart]);
-        }
-    }
-}
-
-/** @} */

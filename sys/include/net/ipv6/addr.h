@@ -24,8 +24,8 @@
  */
 
 
-#ifndef IPV6_ADDR_H_
-#define IPV6_ADDR_H_
+#ifndef NET_IPV6_ADDR_H
+#define NET_IPV6_ADDR_H
 
 #include <stdbool.h>
 #include <string.h>
@@ -102,7 +102,7 @@ typedef union {
                                                0x00, 0x00, 0x00, 0x00, \
                                                0x00, 0x00, 0x00, 0x01 }}
 /**
- * @brief   Static initalizer for the link-local prefix (fe80::/64)
+ * @brief   Static initializer for the link-local prefix (fe80::/64)
  *
  * @see <a href="http://tools.ietf.org/html/rfc4291#section-2.5.6">
  *          RFC 4291, section 2.5.6
@@ -780,7 +780,7 @@ void ipv6_addr_print(const ipv6_addr_t *addr);
 }
 #endif
 
-#endif /* IPV6_ADDR_H_ */
+#endif /* NET_IPV6_ADDR_H */
 /**
  * @}
  */

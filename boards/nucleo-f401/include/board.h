@@ -8,7 +8,7 @@
 
 /**
  * @defgroup    boards_nucleo-f401 Nucleo-F401
- * @ingroup     boards
+ * @ingroup     boards_nucleo
  * @brief       Board specific files for the nucleo-f401 board
  * @{
  *
@@ -18,8 +18,8 @@
  * @author      Lari Lehtomäki <lari@lehtomaki.fi>
  */
 
-#ifndef BOARD_H_
-#define BOARD_H_
+#ifndef BOARD_H
+#define BOARD_H
 
 #include "board_common.h"
 
@@ -31,8 +31,6 @@ extern "C" {
  * @name xtimer configuration
  * @{
  */
-#define XTIMER_DEV          TIMER_DEV(0)
-#define XTIMER_CHAN         (0)
 #define XTIMER_OVERHEAD     (6)
 #define XTIMER_BACKOFF      (5)
 /** @} */
@@ -41,5 +39,5 @@ extern "C" {
 }
 #endif
 
-#endif /* BOARD_H_ */
+#endif /* BOARD_H */
 /** @} */

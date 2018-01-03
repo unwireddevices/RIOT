@@ -20,8 +20,8 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef BOARD_H_
-#define BOARD_H_
+#ifndef BOARD_H
+#define BOARD_H
 
 #include <stdint.h>
 
@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 /**
- * @brief   LED pin definitions and handlers
+ * @name    LED pin definitions and handlers
  * @{
  */
 #define LED0_PIN            GPIO_PIN(1, 18)
@@ -62,7 +62,7 @@ extern "C" {
 /** @} */
 
 /**
- * @brief Initialize board specific hardware, include clocks, LEDs and stdio
+ * @brief   Initialize board specific hardware, include clocks, LEDs and stdio
  */
 void board_init(void);
 
@@ -70,5 +70,5 @@ void board_init(void);
 }
 #endif
 
-#endif /* BOARD_H_ */
+#endif /* BOARD_H */
 /** @} */

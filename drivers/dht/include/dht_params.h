@@ -28,7 +28,7 @@ extern "C" {
 #endif
 
 /**
- * @brief   Set default configuration parameters for the DHT devices
+ * @name    Set default configuration parameters for the DHT devices
  * @{
  */
 #ifndef DHT_PARAM_PIN
@@ -67,18 +67,9 @@ static const dht_params_t dht_params[] =
 /**
  * @brief   Allocate and configure entries to the SAUL registry
  */
-saul_reg_t dht_saul_reg[][2] =
+static const saul_reg_info_t dht_saul_reg_info[] =
 {
-    {
-        {
-            .name = "dht-temp",
-            .driver = &dht_temp_saul_driver
-        },
-        {
-            .name = "dht-hum",
-            .driver = &dht_hum_saul_driver
-        }
-    }
+    { .name = "dht" }
 };
 #endif
 

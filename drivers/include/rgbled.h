@@ -7,7 +7,7 @@
  */
 
 /**
- * @defgroup    driver_rgbled RGB-LED driver
+ * @defgroup    drivers_rgbled RGB-LED driver
  * @ingroup     drivers_actuators
  * @brief       High-level driver for RGB-LEDs
  * @{
@@ -29,18 +29,18 @@ extern "C" {
 #endif
 
 /**
- * @brief Descriptor struct for rgbleds
+ * @brief   Descriptor struct for rgbleds
  */
 typedef struct {
-    pwm_t device;
-    int channel_r;
-    int channel_g;
-    int channel_b;
+    pwm_t device;       /**< PWM device to use to control rgbleds */
+    int channel_r;      /**< set the R value in RGB */
+    int channel_g;      /**< set the G value in RGB */
+    int channel_b;      /**< set the B value in RGB */
 } rgbled_t;
 
 
 /**
- * @brief Initialize the RGB LED by assigning PWM channels to colors
+ * @brief   Initialize the RGB LED by assigning PWM channels to colors
  *
  * @param[in] led           Struct identifying the LED
  * @param[in] pwm           PWM device to drive the LED
@@ -51,12 +51,12 @@ typedef struct {
 void rgbled_init(rgbled_t *led, pwm_t pwm, int channel_r, int channel_g, int channel_b);
 
 /**
- * @brief Set the RGB-LED to the given color value
+ * @brief   Set the RGB-LED to the given color value
  *
  * @param[in] led           Struct identifying the LED to set
  * @param[in] color         Color to set the led to
  */
-void rgbled_set(rgbled_t *led, color_rgb_t *color);
+void rgbled_set(const rgbled_t *led, color_rgb_t *color);
 
 #ifdef __cplusplus
 }

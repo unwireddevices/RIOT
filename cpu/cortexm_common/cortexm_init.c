@@ -27,18 +27,24 @@
  */
 #define FULL_FPU_ACCESS         (0x00f00000)
 
+/**
+ * Interrupt vector base address, defined by the linker
+ */
+extern const void *_isr_vectors;
+
 void cortexm_init(void)
 {
     /* initialize the FPU on Cortex-M4F CPUs */
-#ifdef CPU_ARCH_CORTEX_M4F
+#if defined(CPU_ARCH_CORTEX_M4F) || defined(CPU_ARCH_CORTEX_M7)
     /* give full access to the FPU */
     SCB->CPACR |= (uint32_t)FULL_FPU_ACCESS;
 #endif
 
     /* configure the vector table location to internal flash */
 #if defined(CPU_ARCH_CORTEX_M3) || defined(CPU_ARCH_CORTEX_M4) || \
-    defined(CPU_ARCH_CORTEX_M4F)
-    SCB->VTOR = CPU_FLASH_BASE;
+    defined(CPU_ARCH_CORTEX_M4F) || defined(CPU_ARCH_CORTEX_M7) || \
+    (defined(CPU_ARCH_CORTEX_M0PLUS) && (__VTOR_PRESENT == 1))
+    SCB->VTOR = (uint32_t)&_isr_vectors;
 #endif
 
     /* initialize the interrupt priorities */
@@ -47,7 +53,7 @@ void cortexm_init(void)
     /* set SVC interrupt to same priority as the rest */
     NVIC_SetPriority(SVCall_IRQn, CPU_DEFAULT_IRQ_PRIO);
     /* initialize all vendor specific interrupts with the same value */
-    for (int i = 0; i < CPU_IRQ_NUMOF; i++) {
+    for (unsigned i = 0; i < CPU_IRQ_NUMOF; i++) {
         NVIC_SetPriority((IRQn_Type) i, CPU_DEFAULT_IRQ_PRIO);
     }
 

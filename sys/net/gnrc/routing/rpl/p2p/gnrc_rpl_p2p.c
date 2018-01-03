@@ -48,9 +48,8 @@ const uint8_t gnrc_rpl_p2p_lifetime_lookup[4] = { 1, 4, 16, 64 };
 
 void gnrc_rpl_p2p_update(void)
 {
-    gnrc_rpl_p2p_ext_t *p2p_ext;
     for (uint8_t i = 0; i < GNRC_RPL_P2P_EXTS_NUMOF; ++i) {
-        p2p_ext = &gnrc_rpl_p2p_exts[i];
+        gnrc_rpl_p2p_ext_t *p2p_ext = &gnrc_rpl_p2p_exts[i];
         if ((p2p_ext->state) && (p2p_ext->lifetime_sec > 0)) {
             p2p_ext->lifetime_sec -= GNRC_RPL_LIFETIME_UPDATE_STEP;
             if (p2p_ext->lifetime_sec <= 0) {
@@ -351,7 +350,7 @@ void gnrc_rpl_p2p_recv_DRO(gnrc_pktsnip_t *pkt, ipv6_addr_t *src)
                       sizeof(ipv6_addr_t), 0x0, src->u8,
                       sizeof(ipv6_addr_t), FIB_FLAG_RPL_ROUTE,
                       p2p_ext->dodag->default_lifetime *
-                      p2p_ext->dodag->lifetime_unit * SEC_IN_MS);
+                      p2p_ext->dodag->lifetime_unit * MS_PER_SEC);
 
         if (p2p_ext->dodag->node_status != GNRC_RPL_ROOT_NODE) {
             if ((rdo_snip = gnrc_pktbuf_start_write(rdo_snip)) == NULL) {

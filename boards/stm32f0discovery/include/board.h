@@ -16,10 +16,11 @@
  * @brief       Board specific definitions for the STM32F0Discovery evaluation board.
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
+ * @author      Sebastian Meiling <s@mlng.net>
  */
 
-#ifndef BOARD_H_
-#define BOARD_H_
+#ifndef BOARD_H
+#define BOARD_H
 
 #include "cpu.h"
 
@@ -91,8 +92,11 @@ extern "C" {
 
 /**
  * @brief User button
+ * @{
  */
-#define BTN_B1_PIN          GPIO_PIN(PORT_A, 0)
+#define BTN0_PIN            GPIO_PIN(PORT_A, 0)
+#define BTN0_MODE           GPIO_IN
+/** @} */
 
 /**
  * @brief Initialize board specific hardware, including clock, LEDs and std-IO
@@ -103,5 +107,5 @@ void board_init(void);
 }
 #endif
 
-#endif /* BOARD_H_ */
+#endif /* BOARD_H */
 /** @} */

@@ -20,11 +20,11 @@ docclean:
 
 clean:
 	@echo "Cleaning all build products for the current board"
-	@find ./pkg/ ./examples/ ./tests/ -maxdepth 2 -mindepth 2 -type f -name Makefile -execdir "${MAKE}" clean ';'
+	@find ./examples/ ./tests/ -maxdepth 2 -mindepth 2 -type f -name Makefile -execdir "${MAKE}" clean ';'
 
 distclean: docclean
 	@echo "Cleaning all build products"
-	@find ./pkg/ ./examples/ ./tests/ -maxdepth 2 -mindepth 2 -type f -name Makefile -execdir "${MAKE}" distclean ';'
+	@find ./examples/ ./tests/ -maxdepth 2 -mindepth 2 -type f -name Makefile -execdir "${MAKE}" distclean ';'
 
 welcome:
 	@echo "Welcome to RIOT - The friendly OS for IoT!"
@@ -33,8 +33,8 @@ welcome:
 	@echo "You should run 'make' in your application's directory instead."
 	@echo ""
 	@echo "Please see our Quick Start Guide at:"
-	@echo "    https://github.com/RIOT-OS/RIOT/wiki/Quick-Start-Guide"
+	@echo "    https://doc.riot-os.org/getting-started.html"
 	@echo "Or ask questions on our mailing list:"
 	@echo "    users@riot-os.org (http://lists.riot-os.org/mailman/listinfo/users)"
 
--include Makefile.tests
+-include makefiles/tests.inc.mk

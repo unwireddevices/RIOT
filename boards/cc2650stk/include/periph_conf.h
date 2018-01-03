@@ -16,8 +16,8 @@
  * @author      Leon M. George <leon@georgemail.eu>
  */
 
-#ifndef PERIPH_CONF_H_
-#define PERIPH_CONF_H_
+#ifndef PERIPH_CONF_H
+#define PERIPH_CONF_H
 
 #include "periph_cpu.h"
 
@@ -26,7 +26,7 @@ extern "C" {
 #endif
 
 /**
- * @brief   Clock configuration
+ * @name    Clock configuration
  * @{
  */
 /* the main clock is fixed to 48MHZ */
@@ -34,28 +34,37 @@ extern "C" {
 /** @} */
 
 /**
- * @brief   Timer configuration
+ * @name    Timer configuration
+ *
+ * General purpose timers (GPT[0-3]) are configured consecutively and in order
+ * (without gaps) starting from GPT0, i.e. if multiple timers are enabled.
+ *
  * @{
  */
 static const timer_conf_t timer_config[] = {
     {
-        .dev  = GPT0,
-        .num  = 0
+        .cfg = GPT_CFG_16T,
+        .chn = 2,
     },
     {
-        .dev  = GPT1,
-        .num  = 1
+        .cfg = GPT_CFG_32T,
+        .chn = 1,
+    },
+    {
+        .cfg = GPT_CFG_16T,
+        .chn = 2,
+    },
+    {
+        .cfg = GPT_CFG_32T,
+        .chn = 1,
     }
 };
-
-#define TIMER_0_ISR         isr_timer0_chan0
-#define TIMER_1_ISR         isr_timer1_chan0
 
 #define TIMER_NUMOF         (sizeof(timer_config) / sizeof(timer_config[0]))
 /** @} */
 
 /**
- * @brief   UART configuration
+ * @name    UART configuration
  *
  * The used CC26x0 CPU only supports a single UART device, so all we need to
  * configure are the RX and TX pins.
@@ -73,5 +82,5 @@ static const timer_conf_t timer_config[] = {
 }
 #endif
 
-#endif /* PERIPH_CONF_H_ */
+#endif /* PERIPH_CONF_H */
 /** @} */

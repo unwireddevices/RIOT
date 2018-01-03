@@ -18,12 +18,13 @@
  * @author      Shuguo Zhuo  <shuguo.zhuo@inria.fr>
  */
 
-#ifndef GNRC_MAC_INTERNAL_H_
-#define GNRC_MAC_INTERNAL_H_
+#ifndef NET_GNRC_MAC_INTERNAL_H
+#define NET_GNRC_MAC_INTERNAL_H
 
 #include <stdint.h>
-#include <net/ieee802154.h>
-#include <net/gnrc/mac/types.h>
+
+#include "net/ieee802154.h"
+#include "net/gnrc/mac/types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,15 +32,15 @@ extern "C" {
 
 #if (GNRC_MAC_TX_QUEUE_SIZE != 0) || defined(DOXYGEN)
 /**
- * @brief Queues the packet into the related transmission packet queue in netdev2_t::tx.
+ * @brief Queues the packet into the related transmission packet queue in netdev_t::tx.
  *        Note that, in case the `gnrc_mac_tx_neighbor_t` structure is in used (indicated
  *        by `GNRC_MAC_NEIGHBOR_COUNT != 0`), this function queues the packet to
  *        the queue associated to the pkt's destination neighbor, including a
- *        `broadcast-neighbor` (neighbor id is `0` in netdev2_t::tx::neighbors) which
+ *        `broadcast-neighbor` (neighbor id is `0` in netdev_t::tx::neighbors) which
  *        specifically stores broadcasting packets.
  *        On the other hand, if `gnrc_mac_tx_neighbor_t` structure is not in used (indicated
  *        by `GNRC_MAC_NEIGHBOR_COUNT == 0`), this function queues the packet into the single
- *        priority TX queue defined in in netdev2_t::tx.
+ *        priority TX queue defined in in netdev_t::tx.
  *
  * @param[in,out] tx        gnrc_mac transmission management object
  * @param[in]     priority  the priority of @p pkt
@@ -47,12 +48,12 @@ extern "C" {
  *
  * @return                  true if queued successfully, otherwise false.
  */
-bool gnrc_mac_queue_tx_packet(gnrc_mac_tx_t* tx, uint32_t priority, gnrc_pktsnip_t* pkt);
+bool gnrc_mac_queue_tx_packet(gnrc_mac_tx_t *tx, uint32_t priority, gnrc_pktsnip_t *pkt);
 #endif /* (GNRC_MAC_TX_QUEUE_SIZE != 0) || defined(DOXYGEN) */
 
 #if (GNRC_MAC_RX_QUEUE_SIZE != 0) || defined(DOXYGEN)
 /**
- * @brief Queues the packet into the reception packet queue in netdev2_t::rx.
+ * @brief Queues the packet into the reception packet queue in netdev_t::rx.
  *
  * @param[in,out] rx        gnrc_mac reception management object
  * @param[in]     priority  the priority of @p pkt
@@ -60,21 +61,21 @@ bool gnrc_mac_queue_tx_packet(gnrc_mac_tx_t* tx, uint32_t priority, gnrc_pktsnip
  *
  * @return                  true if queued successfully, otherwise false.
  */
-bool gnrc_mac_queue_rx_packet(gnrc_mac_rx_t* rx, uint32_t priority, gnrc_pktsnip_t* pkt);
+bool gnrc_mac_queue_rx_packet(gnrc_mac_rx_t *rx, uint32_t priority, gnrc_pktsnip_t *pkt);
 #endif /* (GNRC_MAC_RX_QUEUE_SIZE != 0) || defined(DOXYGEN) */
 
 #if (GNRC_MAC_DISPATCH_BUFFER_SIZE != 0) || defined(DOXYGEN)
 /**
- * @brief Dispatch all the packets stored in netdev2_t::rx:dispatch_buffer to upper layer.
+ * @brief Dispatch all the packets stored in netdev_t::rx:dispatch_buffer to upper layer.
  *
  * @param[in,out]  rx       gnrc_mac reception management object
  */
-void gnrc_mac_dispatch(gnrc_mac_rx_t* rx);
+void gnrc_mac_dispatch(gnrc_mac_rx_t *rx);
 #endif /* (GNRC_MAC_DISPATCH_BUFFER_SIZE != 0) || defined(DOXYGEN) */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* GNRC_MAC_INTERNAL_H_ */
+#endif /* NET_GNRC_MAC_INTERNAL_H */
 /** @} */

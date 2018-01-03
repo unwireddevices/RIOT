@@ -8,6 +8,7 @@
 
 /**
  * @ingroup     cpu_lpc1768
+ * @ingroup     drivers_periph_timer
  * @{
  *
  * @file
@@ -65,15 +66,6 @@ int timer_init(tim_t dev, unsigned long freq, timer_cb_t cb, void *arg)
     return -1;
 }
 
-int timer_set(tim_t dev, int channel, unsigned int timeout)
-{
-    if (dev == TIMER_0) {
-        unsigned int now = timer_read(dev);
-        return timer_set_absolute(dev, channel, now + timeout);
-    }
-    return -1;
-}
-
 int timer_set_absolute(tim_t dev, int channel, unsigned int value)
 {
     if (dev == TIMER_0) {
@@ -127,20 +119,6 @@ void timer_stop(tim_t dev)
 {
     if (dev == TIMER_0) {
         TIMER_0_DEV->TCR &= ~(1);
-    }
-}
-
-void timer_irq_enable(tim_t dev)
-{
-    if (dev == TIMER_0) {
-        NVIC_EnableIRQ(TIMER_0_IRQ);
-    }
-}
-
-void timer_irq_disable(tim_t dev)
-{
-    if (dev == TIMER_0) {
-        NVIC_DisableIRQ(TIMER_0_IRQ);
     }
 }
 

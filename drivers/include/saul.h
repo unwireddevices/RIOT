@@ -31,6 +31,8 @@
  *              operations. It probably needs to be extended to handling events,
  *              thresholds, and so on.
  *
+ * @see @ref sys_saul_reg
+ *
  * @{
  *
  * @file
@@ -43,6 +45,7 @@
 #define SAUL_H
 
 #include <stdint.h>
+#include <errno.h>
 
 #include "phydat.h"
 
@@ -87,6 +90,7 @@ enum {
     SAUL_SENSE_COLOR    = 0x88,     /**< sensor: (light) color */
     SAUL_SENSE_PRESS    = 0x89,     /**< sensor: pressure */
     SAUL_SENSE_ANALOG   = 0x8a,     /**< sensor: raw analog value */
+    SAUL_SENSE_UV       = 0x8b,     /**< sensor: UV index */
     SAUL_CLASS_ANY      = 0xff      /**< any device - wildcard */
     /* extend this list as needed... */
 };
@@ -108,7 +112,7 @@ enum {
  * @return  -ENOTSUP if the device does not support this operation
  * @return  -ECANCELED on other errors
  */
-typedef int(*saul_read_t)(void *dev, phydat_t *res);
+typedef int(*saul_read_t)(const void *dev, phydat_t *res);
 
 /**
  * @brief   Write a value (a set of values) to a device
@@ -128,7 +132,7 @@ typedef int(*saul_read_t)(void *dev, phydat_t *res);
  * @return  -ENOTSUP if the device does not support this operation
  * @return  -ECANCELED on other errors
  */
-typedef int(*saul_write_t)(void *dev, phydat_t *data);
+typedef int(*saul_write_t)(const void *dev, phydat_t *data);
 
 /**
  * @brief   Definition of the RIOT actuator/sensor interface
@@ -142,7 +146,7 @@ typedef struct {
 /**
  * @brief   Default not supported function
  */
-int saul_notsup(void *dev, phydat_t *dat);
+int saul_notsup(const void *dev, phydat_t *dat);
 
 /**
  * @brief   Helper function converts a class ID to a string
@@ -152,7 +156,7 @@ int saul_notsup(void *dev, phydat_t *dat);
  * @return      string representation of the device class
  * @return      NULL if class ID is not known
  */
-const char *saul_class_to_str(uint8_t class_id);
+const char *saul_class_to_str(const uint8_t class_id);
 
 #ifdef __cplusplus
 }

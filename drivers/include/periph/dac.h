@@ -49,53 +49,54 @@ extern "C" {
 #endif
 
 /**
- * @brief   Make sure the number of available DAC lines is defined
- * @{
- */
-#ifndef DAC_NUMOF
-#define "DAC_NUMOF undefined"
-#endif
-/** @} */
-
-/**
  * @brief   Define default DAC type identifier
- * @{
  */
 #ifndef HAVE_DAC_T
 typedef unsigned int dac_t;
 #endif
-/** @} */
+
+/**
+ * @brief   Return codes used by the DAC driver interface
+ */
+enum {
+    DAC_OK     = 0,
+    DAC_NOLINE = -1
+};
 
 /**
  * @brief   Default DAC undefined value
- * @{
  */
 #ifndef DAC_UNDEF
 #define DAC_UNDEF           (UINT_MAX)
 #endif
-/** @} */
 
 /**
  * @brief   Default DAC access macro
- * @{
  */
 #ifndef DAC_LINE
 #define DAC_LINE(x)         (x)
 #endif
-/** @} */
 
 /**
  * @brief   Initialize the given DAC line
  *
+ * After initialization, the corresponding DAC line is active and its output is
+ * set to 0.
+ *
  * @param[in] line         DAC line to initialize
  *
- * @return                 0 on success
- * @return                 -1 on invalid DAC line
+ * @return  DAC_OK on success
+ * @return  DAC_NOLINE on invalid DAC line
  */
 int8_t dac_init(dac_t line);
 
 /**
- * @brief Write a value onto DAC Device on a given Channel.
+ * @brief   Write a value onto DAC Device on a given Channel
+ *
+ * The value is always given as 16-bit value and is internally scaled to the
+ * actual resolution that the DAC unit provides (e.g. 12-bit). So to get the
+ * maximum output voltage, this function has to be called with @p value set to
+ * 65535 (UINT16_MAX).
  *
  * @param[in] line         DAC line to set
  * @param[in] value        value to set @p line to

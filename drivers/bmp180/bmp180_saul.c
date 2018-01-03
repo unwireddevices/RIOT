@@ -25,39 +25,20 @@
 #include "bmp180.h"
 #include "xtimer.h"
 
-static int32_t temperature, pressure;
-
-static int check_and_read_temperature(void *dev, phydat_t *res)
+static int read_temperature(const void *dev, phydat_t *res)
 {
-    bmp180_t *d = (bmp180_t *)dev;
-
-    bmp180_read_temperature(d, &temperature);
-    res->val[0] = temperature;
+    res->val[0] = bmp180_read_temperature((const bmp180_t *)dev);
     res->unit = UNIT_TEMP_C;
     res->scale = -1;
     return 1;
 }
 
-static int check_and_read_pressure(void *dev, phydat_t *res)
+static int read_pressure(const void *dev, phydat_t *res)
 {
-    bmp180_t *d = (bmp180_t *)dev;
-
-    bmp180_read_pressure(d, &pressure);
-
-    res->val[0] = pressure/10;
+    res->val[0] = bmp180_read_pressure((const bmp180_t *)dev) / 100;
     res->unit = UNIT_PA;
-    res->scale = 1;
+    res->scale = 2;
     return 1;
-}
-
-static int read_temperature(void *dev, phydat_t *res)
-{
-    return check_and_read_temperature(dev, res);
-}
-
-static int read_pressure(void *dev, phydat_t *res)
-{
-    return check_and_read_pressure(dev, res);
 }
 
 const saul_driver_t bmp180_temperature_saul_driver = {

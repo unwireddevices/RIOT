@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup     driver_lps331ap
+ * @ingroup     drivers_lps331ap
  * @{
  *
  * @file
@@ -75,7 +75,7 @@ int lps331ap_init(lps331ap_t *dev, i2c_t i2c, uint8_t address, lps331ap_rate_t r
     return 0;
 }
 
-int lps331ap_read_temp(lps331ap_t *dev)
+int lps331ap_read_temp(const lps331ap_t *dev)
 {
     uint8_t tmp;
     int16_t val = 0;
@@ -86,7 +86,7 @@ int lps331ap_read_temp(lps331ap_t *dev)
     val |= tmp;
     i2c_read_reg(dev->i2c, dev->address, LPS331AP_REG_TEMP_OUT_H, &tmp);
     i2c_release(dev->i2c);
-    val |= (tmp << 8);
+    val |= ((uint16_t)tmp << 8);
 
     /* compute actual temperature value in °C */
     res += (int)(((double)val) * 2.08333);
@@ -95,7 +95,7 @@ int lps331ap_read_temp(lps331ap_t *dev)
     return res;
 }
 
-int lps331ap_read_pres(lps331ap_t *dev)
+int lps331ap_read_pres(const lps331ap_t *dev)
 {
     uint8_t tmp;
     int32_t val = 0;
@@ -105,13 +105,13 @@ int lps331ap_read_pres(lps331ap_t *dev)
     i2c_read_reg(dev->i2c, dev->address, LPS331AP_REG_PRESS_OUT_XL, &tmp);
     val |= tmp;
     i2c_read_reg(dev->i2c, dev->address, LPS331AP_REG_PRESS_OUT_L, &tmp);
-    val |= (tmp << 8);
+    val |= ((uint32_t)tmp << 8);
     i2c_read_reg(dev->i2c, dev->address, LPS331AP_REG_PRESS_OUT_H, &tmp);
     i2c_release(dev->i2c);
-    val |= (tmp << 16);
+    val |= ((uint32_t)tmp << 16);
     /* see if value is negative */
     if (tmp & 0x80) {
-        val |= (0xff << 24);
+        val |= ((uint32_t)0xff << 24);
     }
 
     /* compute actual pressure value in mbar */
@@ -121,7 +121,7 @@ int lps331ap_read_pres(lps331ap_t *dev)
 }
 
 
-int lps331ap_enable(lps331ap_t *dev)
+int lps331ap_enable(const lps331ap_t *dev)
 {
     uint8_t tmp;
     int status;
@@ -138,7 +138,7 @@ int lps331ap_enable(lps331ap_t *dev)
     return status;
 }
 
-int lps331ap_disable(lps331ap_t *dev)
+int lps331ap_disable(const lps331ap_t *dev)
 {
     uint8_t tmp;
     int status;

@@ -5,9 +5,6 @@ SRC = shell_commands.c sc_sys.c
 ifneq (,$(filter mci,$(USEMODULE)))
   SRC += sc_disk.c
 endif
-ifneq (,$(filter ltc4150,$(USEMODULE)))
-  SRC += sc_ltc4150.c
-endif
 ifneq (,$(filter ps,$(USEMODULE)))
   SRC += sc_ps.c
 endif
@@ -29,11 +26,17 @@ endif
 ifneq (,$(filter gnrc_netif,$(USEMODULE)))
   SRC += sc_netif.c
 endif
+ifneq (,$(filter gnrc_netif2,$(USEMODULE)))
+  SRC += sc_gnrc_netif2.c
+endif
 ifneq (,$(filter fib,$(USEMODULE)))
   SRC += sc_fib.c
 endif
 ifneq (,$(filter gnrc_ipv6_nc,$(USEMODULE)))
   SRC += sc_ipv6_nc.c
+endif
+ifneq (,$(filter gnrc_ipv6_nib,$(USEMODULE)))
+  SRC += sc_gnrc_ipv6_nib.c
 endif
 ifneq (,$(filter gnrc_ipv6_whitelist,$(USEMODULE)))
   SRC += sc_whitelist.c
@@ -46,11 +49,6 @@ endif
 # already.
 ifneq (,$(filter gnrc_icmpv6_echo,$(USEMODULE)))
   SRC += sc_icmpv6_echo.c
-endif
-ifneq (,$(filter gnrc_zep,$(USEMODULE)))
-  ifneq (,$(filter ipv6_addr,$(USEMODULE)))
-    SRC += sc_zep.c
-  endif
 endif
 ifneq (,$(filter gnrc_rpl,$(USEMODULE)))
     SRC += sc_gnrc_rpl.c
@@ -69,12 +67,15 @@ endif
 ifneq (,$(filter sntp,$(USEMODULE)))
   SRC += sc_sntp.c
 endif
+ifneq (,$(filter vfs,$(USEMODULE)))
+  SRC += sc_vfs.c
+endif
+ifneq (,$(filter conn_can,$(USEMODULE)))
+  SRC += sc_can.c
+endif
 
-# TODO
-# Conditional building not possible at the moment due to
-# https://github.com/RIOT-OS/RIOT/issues/2058
-# The implementation is guarded in the source file instead, this
-# should be changed once the issue has been resolved
-SRC += sc_rtc.c
+ifneq (,$(filter periph_rtc,$(FEATURES_PROVIDED)))
+  SRC += sc_rtc.c
+endif
 
 include $(RIOTBASE)/Makefile.base

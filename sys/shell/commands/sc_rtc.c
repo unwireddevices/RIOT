@@ -20,8 +20,6 @@
  * @}
  */
 
-#ifdef FEATURE_PERIPH_RTC
-
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -173,33 +171,19 @@ int _rtc_handler(int argc, char **argv)
     else if (strncmp(argv[1], "getalarm", 8) == 0) {
         _rtc_getalarm();
     }
-    else if (strncmp(argv[1], "setalarm", 8) == 0) {
+    else if ((strncmp(argv[1], "setalarm", 8) == 0) && (argc == 4)) {
         _rtc_setalarm(argv + 2);
     }
     else if (strncmp(argv[1], "gettime", 7) == 0) {
         _rtc_gettime();
     }
-    else if (strncmp(argv[1], "settime", 7) == 0) {
+    else if ((strncmp(argv[1], "settime", 7) == 0)  && (argc == 4)) {
         _rtc_settime(argv + 2);
     }
     else {
-        printf("unknown command: %s\n", argv[1]);
+        printf("unknown command or missing parameters: %s\n\n", argv[1]);
+        _rtc_usage();
         return 1;
     }
     return 0;
 }
-
-#else
-
-#include <stdio.h>
-
-int _rtc_handler(int argc, char **argv)
-{
-    (void) argc;
-    (void) argv;
-
-    puts("not implemented");
-    return 1;
-}
-
-#endif /* FEATURE_RTC */

@@ -1,9 +1,17 @@
 MODULE = cpu
 
 DIRS += periph
+DIRS += vfs
 
-ifneq (,$(filter netdev2_tap,$(USEMODULE)))
-	DIRS += netdev2_tap
+ifneq (,$(filter netdev_tap,$(USEMODULE)))
+  DIRS += netdev_tap
+endif
+ifneq (,$(filter mtd_native,$(USEMODULE)))
+  DIRS += mtd
+endif
+
+ifneq (,$(filter can_linux,$(USEMODULE)))
+  DIRS += can
 endif
 
 include $(RIOTBASE)/Makefile.base

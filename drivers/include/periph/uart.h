@@ -10,7 +10,6 @@
  * @defgroup    drivers_periph_uart UART
  * @ingroup     drivers_periph
  * @brief       Low-level UART peripheral driver
- * @{
  *
  * This is a basic UART (Universal Asynchronous Receiver Transmitter) interface
  * to allow platform independent access to the MCU's serial communication abilities.
@@ -35,6 +34,8 @@
  * in RIOT which is used for standard input/output functions like `printf()` or
  * `puts()`.
  *
+ * @{
+ *
  * @file
  * @brief       Low-level UART peripheral driver interface definition
  *
@@ -58,40 +59,25 @@ extern "C" {
 #endif
 
 /**
- * @brief   Make sure the number of available UART devices is defined
- * @{
- */
-#ifndef UART_NUMOF
-#error "UART_NUMOF undefined for the target platform"
-#endif
-/** @} */
-
-/**
  * @brief   Define default UART type identifier
- * @{
  */
 #ifndef HAVE_UART_T
 typedef unsigned int uart_t;
 #endif
-/** @} */
 
 /**
  * @brief   Default UART undefined value
- * @{
  */
 #ifndef UART_UNDEF
 #define UART_UNDEF          (UINT_MAX)
 #endif
-/** @} */
 
 /**
  * @brief   Default UART device access macro
- * @{
  */
 #ifndef UART_DEV
 #define UART_DEV(x)         (x)
 #endif
-/** @} */
 
 /**
  * @brief   Signature for receive interrupt callback
@@ -103,7 +89,6 @@ typedef void(*uart_rx_cb_t)(void *arg, uint8_t data);
 
 /**
  * @brief   Interrupt context for a UART device
- * @{
  */
 #ifndef HAVE_UART_ISR_CTX_T
 typedef struct {
@@ -111,7 +96,6 @@ typedef struct {
     void *arg;              /**< argument to both callback routines */
 } uart_isr_ctx_t;
 #endif
-/** @} */
 
 /**
  * @brief   Possible UART return values
@@ -158,10 +142,14 @@ typedef struct {
  * - 1 stop bit
  * - baudrate as given
  *
+ * If no callback parameter is given (rx_cb := NULL), the UART will be
+ * initialized in TX only mode.
+ *
  * @param[in] uart          UART device to initialize
  * @param[in] baudrate      desired baudrate in baud/s
  * @param[in] rx_cb         receive callback, executed in interrupt context once
- *                          for every byte that is received (RX buffer filled)
+ *                          for every byte that is received (RX buffer filled),
+ *                          set to NULL for TX only mode
  * @param[in] arg           optional context passed to the callback functions
  *
  * @return                  UART_OK on success

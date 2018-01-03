@@ -16,29 +16,35 @@
  * @file
  * @brief           Implementation specific CPU configuration options
  *
- * @author          Hauke Petersen <hauke.peterse@fu-berlin.de>
+ * @author          Hauke Petersen <hauke.petersen@fu-berlin.de>
  * @author          Alexandre Abadie <alexandre.abadie@inria.fr>
 */
 
-#ifndef STM32F0_CPU_CONF_H
-#define STM32F0_CPU_CONF_H
+#ifndef CPU_CONF_H
+#define CPU_CONF_H
 
 #include "cpu_conf_common.h"
 
 #ifdef CPU_MODEL_STM32F051R8
-#include "stm32f051x8.h"
+#include "vendor/stm32f051x8.h"
 #endif
 #ifdef CPU_MODEL_STM32F091RC
-#include "stm32f091xc.h"
+#include "vendor/stm32f091xc.h"
 #endif
 #ifdef CPU_MODEL_STM32F072RB
-#include "stm32f072xb.h"
+#include "vendor/stm32f072xb.h"
 #endif
 #ifdef CPU_MODEL_STM32F070RB
-#include "stm32f070xb.h"
+#include "vendor/stm32f070xb.h"
 #endif
 #ifdef CPU_MODEL_STM32F030R8
-#include "stm32f030x8.h"
+#include "vendor/stm32f030x8.h"
+#endif
+#ifdef CPU_MODEL_STM32F042K6
+#include "vendor/stm32f042x6.h"
+#endif
+#ifdef CPU_MODEL_STM32F031K6
+#include "vendor/stm32f031x6.h"
 #endif
 #ifdef __cplusplus
 extern "C" {
@@ -49,12 +55,45 @@ extern "C" {
  * @{
  */
 #define CPU_DEFAULT_IRQ_PRIO            (1U)
+#if defined(CPU_MODEL_STM32F030R8)
+#define CPU_IRQ_NUMOF                   (29U)
+#elif defined(CPU_MODEL_STM32F031K6)
+#define CPU_IRQ_NUMOF                   (28U)
+#elif defined(CPU_MODEL_STM32F051R8) || defined(CPU_MODEL_STM32F091RC)
 #define CPU_IRQ_NUMOF                   (31U)
+#else /* CPU_MODEL_STM32F042K6, CPU_MODEL_STM32F070RB, CPU_MODEL_STM32F072RB */
+#define CPU_IRQ_NUMOF                   (32U)
+#endif
+/** @} */
+
+/**
+ * @brief   Flash page configuration
+ *
+ * STM32F03x, STM32F04x, STM32F05x: up to 64 pages of 1K
+ * STM32F07x, STM32F09x: up to 128 pages of 2K
+ *
+ * @{
+ */
+#if defined(CPU_MODEL_STM32F091RC) || defined(CPU_MODEL_STM32F072RB)
+#define FLASHPAGE_SIZE      (2048U)
+#elif defined(CPU_MODEL_STM32F051R8) || defined(CPU_MODEL_STM32F042K6) \
+   || defined(CPU_MODEL_STM32F070RB) || defined(CPU_MODEL_STM32F030R8)
+#define FLASHPAGE_SIZE      (1024U)
+#endif
+
+#if defined(CPU_MODEL_STM32F091RC)
+#define FLASHPAGE_NUMOF     (128U)
+#elif defined(CPU_MODEL_STM32F051R8) || defined(CPU_MODEL_STM32F072RB) \
+   || defined(CPU_MODEL_STM32F030R8) || defined(CPU_MODEL_STM32F070RB)
+#define FLASHPAGE_NUMOF     (64U)
+#elif defined(CPU_MODEL_STM32F042K6)
+#define FLASHPAGE_NUMOF     (32U)
+#endif
 /** @} */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* STM32F0_CPU_CONF_H */
+#endif /* CPU_CONF_H */
 /** @} */

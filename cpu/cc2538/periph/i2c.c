@@ -7,7 +7,8 @@
  */
 
 /**
- * @addtogroup  driver_periph
+ * @ingroup     cpu_cc2538
+ * @ingroup     drivers_periph
  * @{
  *
  * @file
@@ -30,7 +31,7 @@
 #ifdef MODULE_XTIMER
 #include "xtimer.h"
 #endif
-#include "timex.h" /* for SEC_IN_USEC */
+#include "timex.h" /* for US_PER_SEC */
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -160,7 +161,7 @@ static void recover_i2c_bus(void) {
 }
 
 #ifdef MODULE_XTIMER
-static void callback(void *arg)
+static void _timer_cb(void *arg)
 {
     mutex_unlock(&i2c_wait_mutex);
 }
@@ -169,7 +170,7 @@ static void callback(void *arg)
 static uint_fast8_t i2c_ctrl_blocking(uint_fast8_t flags)
 {
 #ifdef MODULE_XTIMER
-    const unsigned int xtimer_timeout = 3 * (DATA_BITS + ACK_BITS) * SEC_IN_USEC / speed_hz;
+    const unsigned int xtimer_timeout = 3 * (DATA_BITS + ACK_BITS) * US_PER_SEC / speed_hz;
 #endif
 
     mutex_trylock(&i2c_wait_mutex);
@@ -179,7 +180,7 @@ static uint_fast8_t i2c_ctrl_blocking(uint_fast8_t flags)
 
 #ifdef MODULE_XTIMER
     /* Set a timeout at double the expected time to transmit a byte: */
-    xtimer_t xtimer = {.callback = callback};
+    xtimer_t xtimer = { .callback = _timer_cb, .arg = NULL };
     xtimer_set(&xtimer, xtimer_timeout);
 #endif
 
@@ -302,7 +303,7 @@ int i2c_init_master(i2c_t dev, i2c_speed_t speed)
     cc2538_i2c_init_master(speed_hz);
 
     /* Pre-compute an SCL delay in microseconds */
-    scl_delay = SEC_IN_USEC;
+    scl_delay = US_PER_SEC;
     scl_delay += speed_hz;
     scl_delay /= 2 * speed_hz;
 

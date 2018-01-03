@@ -18,8 +18,8 @@
  * @author      Kees Bakker <kees@sodaq.com>
  */
 
-#ifndef BOARD_H_
-#define BOARD_H_
+#ifndef BOARD_H
+#define BOARD_H
 
 #include "cpu.h"
 #include "periph_conf.h"
@@ -30,7 +30,7 @@ extern "C" {
 #endif
 
 /**
- * @brief   xtimer configuration
+ * @name    xtimer configuration
  * @{
  */
 #define XTIMER              TIMER_1
@@ -38,7 +38,7 @@ extern "C" {
 /** @} */
 
 /**
- * @brief   LED pin definitions and handlers
+ * @name    LED pin definitions and handlers
  * @{
  */
 #define LED0_PIN            GPIO_PIN(PA, 18)
@@ -52,7 +52,7 @@ extern "C" {
 /** @} */
 
 /**
- * @brief Initialize board specific hardware, including clock, LEDs and std-IO
+ * @brief   Initialize board specific hardware, including clock, LEDs and std-IO
  */
 void board_init(void);
 
@@ -60,5 +60,5 @@ void board_init(void);
 }
 #endif
 
-#endif /* BOARD_H_ */
+#endif /* BOARD_H */
 /** @} */

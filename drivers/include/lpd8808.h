@@ -8,7 +8,7 @@
 
 /**
  * @defgroup    drivers_lpd8808 LPD8808 based LED Strip
- * @ingroup     drivers
+ * @ingroup     drivers_actuators
  * @brief       Driver for LPD8808 based LED strips
  *
  * LPD8808 based LED strips consist of a number of LEDs driven by LPD8808 chips.
@@ -73,7 +73,7 @@ int lpd8808_init(lpd8808_t *dev, const lpd8808_params_t *params);
  * @param[in] vals      array of color values, MUST be of same length as LEDs on
  *                      the strip
  */
-void lpd8808_load_rgb(lpd8808_t *dev, color_rgb_t vals[]);
+void lpd8808_load_rgb(const lpd8808_t *dev, color_rgb_t vals[]);
 
 #ifdef __cplusplus
 }

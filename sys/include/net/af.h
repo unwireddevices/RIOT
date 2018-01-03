@@ -17,8 +17,8 @@
  *
  * @author  Martine Lenders <mlenders@inf.fu-berlin.de>
  */
-#ifndef AF_H_
-#define AF_H_
+#ifndef NET_AF_H
+#define NET_AF_H
 
 
 
@@ -47,5 +47,5 @@ enum {
 }
 #endif
 
-#endif /* AF_H_ */
+#endif /* NET_AF_H */
 /** @} */

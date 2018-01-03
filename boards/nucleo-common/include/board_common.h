@@ -7,22 +7,30 @@
  */
 
 /**
- * @defgroup    boards_nucleo_common STM Nucleo Common
- * @ingroup     drivers_periph
- * @brief       Common files for STM Nucleo boards
+ * @defgroup    boards_nucleo STM Nucleo boards
+ * @ingroup     boards
+ * @brief       STM Nucleo boards
+ */
+
+/**
+ * @defgroup    boards_nucleo64_common STM Nucleo 64 boards common
+ * @ingroup     boards_nucleo
+ * @brief       Common files for STM Nucleo 64 boards
  * @{
  *
  * @file
  * @brief       Common pin definitions and board configuration options
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
+ * @author      Sebastian Meiling <s@mlng.net>
  */
 
-#ifndef BOARD_COMMON__H
-#define BOARD_COMMON__H
+#ifndef BOARD_COMMON_H
+#define BOARD_COMMON_H
 
 #include "cpu.h"
 #include "periph_conf.h"
+#include "arduino_pinmap.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,30 +40,28 @@ extern "C" {
  * @brief   LED pin definitions and handlers
  * @{
  */
+#ifdef CPU_MODEL_STM32F302R8
+#define LED0_PORT           GPIOB
+#define LED0_PIN            GPIO_PIN(PORT_B, 13)
+#define LED0_MASK           (1 << 13)
+#else
+#define LED0_PORT           GPIOA
 #define LED0_PIN            GPIO_PIN(PORT_A, 5)
-
 #define LED0_MASK           (1 << 5)
-
-#if defined(CPU_FAM_STM32F4)
-#define LED_CREG            BSRRH
-#else
-#define LED_CREG            BRR
-#endif
-#if defined(CPU_FAM_STM32F3) || defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32L1)
-#define LED_SREG            BSRRL
-#else
-#define LED_SREG            BSRR
 #endif
 
-#define LED0_ON             (GPIOA->LED_SREG = LED0_MASK)
-#define LED0_OFF            (GPIOA->LED_CREG = LED0_MASK)
-#define LED0_TOGGLE         (GPIOA->ODR     ^= LED0_MASK)
+#define LED0_ON             (LED0_PORT->BSRR = LED0_MASK)
+#define LED0_OFF            (LED0_PORT->BSRR = (LED0_MASK << 16))
+#define LED0_TOGGLE         (LED0_PORT->ODR  ^= LED0_MASK)
 /** @} */
 
 /**
  * @brief   User button
+ * @{
  */
-#define BTN_B1_PIN          GPIO_PIN(PORT_C, 13)
+#define BTN0_PIN            GPIO_PIN(PORT_C, 13)
+#define BTN0_MODE           GPIO_IN_PU
+/** @} */
 
 /**
  * @brief   Initialize board specific hardware, including clock, LEDs and std-IO
@@ -66,5 +72,5 @@ void board_init(void);
 }
 #endif
 
-#endif /* BOARD_COMMON__H */
+#endif /* BOARD_COMMON_H */
 /** @} */

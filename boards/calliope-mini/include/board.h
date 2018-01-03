@@ -7,7 +7,7 @@
  */
 
 /**
- * @defgroup    boards_mini Calliope mini
+ * @defgroup    boards_calliope-mini Calliope mini
  * @ingroup     boards
  * @brief       Board specific files for the Calliope mini
  * @{
@@ -16,6 +16,7 @@
  * @brief       Board specific configuration for the Calliope mini
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
+ * @author      Sebastian Meiling <s@mlng.net>
  */
 
 #ifndef BOARD_H
@@ -29,17 +30,15 @@ extern "C" {
 #endif
 
 /**
- * @brief   Xtimer configuration
+ * @name    Xtimer configuration
  * @{
  */
-#define XTIMER_DEV                  (0)
-#define XTIMER_CHAN                 (0)
 #define XTIMER_WIDTH                (24)
 #define XTIMER_BACKOFF              (40)
 /** @} */
 
 /**
- * @brief   LED matrix pin configuration
+ * @name    LED matrix pin configuration
  * @{
  */
 #define MINI_LED_COL1               GPIO_PIN(0,  4)
@@ -57,27 +56,13 @@ extern "C" {
 /** @} */
 
 /**
- * @brief   Button configuration
+ * @name    Button configuration
  * @{
  */
 #define BTN0_PIN                    GPIO_PIN(0, 17)
+#define BTN0_MODE                   GPIO_IN
 #define BTN1_PIN                    GPIO_PIN(0, 26)
-/** @} */
-
-/**
- * @brief   MMA8653 accelerometer configuration
- * @{
- */
-#define MMA8653_PARAM_I2C           I2C_0,
-#define MMA8653_PARAM_ADDR          0x1d
-/** @} */
-
-/**
- * @brief   MAG3110 magnetometer configuration
- * @{
- */
-#define MAG3110_PARAM_I2C           I2C_0,
-#define MAG3110_PARAM_ADDR          0x0e
+#define BTN1_MODE                   GPIO_IN
 /** @} */
 
 /**
@@ -89,5 +74,5 @@ void board_init(void);
 }
 #endif
 
-#endif /** BOARD_H */
+#endif /* BOARD_H */
 /** @} */

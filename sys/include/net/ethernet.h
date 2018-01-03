@@ -19,8 +19,8 @@
  */
 
 
-#ifndef ETHERNET_H_
-#define ETHERNET_H_
+#ifndef NET_ETHERNET_H
+#define NET_ETHERNET_H
 
 #include <stdint.h>
 
@@ -74,7 +74,7 @@ static inline void ethernet_get_iid(eui64_t *eui64, uint8_t *mac)
 }
 #endif
 
-#endif /* ETHERNET_H_ */
+#endif /* NET_ETHERNET_H */
 /**
  * @}
  */

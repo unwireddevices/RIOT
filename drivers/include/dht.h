@@ -1,7 +1,7 @@
 /*
  * Copyright 2015 Ludwig Knüpfer,
  *           2015 Christian Mehlis
- *           2016 Freie Universität Berlin
+ *           2016-2017 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -30,7 +30,6 @@
 
 #include <stdint.h>
 
-#include "saul.h"
 #include "periph/gpio.h"
 
 #ifdef __cplusplus
@@ -38,7 +37,16 @@ extern "C" {
 #endif
 
 /**
- * @brief data type for storing DHT sensor readings
+ * @brief   Possible return codes
+ */
+enum {
+    DHT_OK      =  0,       /**< all good */
+    DHT_NOCSUM  = -1,       /**< checksum error */
+    DHT_NODEV   = -2        /**< device type not defined */
+};
+
+/**
+ * @brief   Data type for storing DHT sensor readings
  */
 typedef struct {
     uint16_t humidity;      /**< relative deca-humidity */
@@ -46,7 +54,7 @@ typedef struct {
 } dht_data_t;
 
 /**
- * @brief device type of the DHT device
+ * @brief   Device type of the DHT device
  */
 typedef enum {
     DHT11,                  /**< DHT11 device identifier */
@@ -55,7 +63,7 @@ typedef enum {
 } dht_type_t;
 
 /**
- * @brief device descriptor for DHT sensor devices
+ * @brief   Device descriptor for DHT sensor devices
  */
 typedef struct {
     gpio_t pin;             /**< GPIO pin of the device's data pin */
@@ -65,25 +73,12 @@ typedef struct {
 } dht_t;
 
 /**
- * @brief configuration parameters for DHT devices
+ * @brief   Configuration parameters for DHT devices
  */
 typedef dht_t dht_params_t;
 
 /**
- * @brief export SAUL endpoints
- * @{
- */
-extern const saul_driver_t dht_temp_saul_driver;
-extern const saul_driver_t dht_hum_saul_driver;
-/** @} */
-
-/**
- * @brief auto-initialize all configured DHT devices
- */
-void dht_auto_init(void);
-
-/**
- * @brief initialize a new DHT device
+ * @brief   Initialize a new DHT device
  *
  * @param[out] dev      device descriptor of a DHT device
  * @param[in]  params   configuration parameters
@@ -107,7 +102,7 @@ int dht_init(dht_t *dev, const dht_params_t *params);
  * @return              -1 on checksum error
  * @return              -2 on parsing error
  */
-int dht_read(dht_t *dev, int16_t *temp, int16_t *hum);
+int dht_read(const dht_t *dev, int16_t *temp, int16_t *hum);
 
 #ifdef __cplusplus
 }

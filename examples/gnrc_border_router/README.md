@@ -101,7 +101,7 @@ has the following:
 ```make
 ifeq (,$(filter native,$(BOARD)))
 GNRC_NETIF_NUMOF := 2
-USEMODULE += ethos gnrc_netdev2
+USEMODULE += ethos gnrc_netdev
 CFLAGS += '-DETHOS_UART=UART_DEV(0)' -DETHOS_BAUDRATE=115200 -DUSE_ETHOS_FOR_STDIO
 FEATURES_REQUIRED += periph_uart
 endif
@@ -181,7 +181,7 @@ example on any RIOT supported platform that offers either more than one UART or
 be equipped with an IPv6 capable network device. In this case only the Makefile
 of this application has to be slightly modified, e.g. by replacing the line
 ```
-USEMODULE += gnrc_slip
+USEMODULE += ethos gnrc_netdev
 ```
 with something like
 ```
@@ -210,14 +210,14 @@ INCLUDES += -I$(CURDIR)
 CFLAGS += -DSLIP_UART=$(SLIP_UART)
 CFLAGS += -DSLIP_BAUDRATE=$(SLIP_BAUDRATE)
 # Include SLIP package for IP over Serial communication
-USEMODULE += gnrc_slip
+USEMODULE += slipdev
 ```
 
 
 ## Configuration
 
 In order to connect a RIOT 6LoWPAN border router over SLIP you run a small
-program called tunslip (imported from Contiki) [2] on the Linux host. The
+program called tunslip6 (imported from Contiki) [2] on the Linux host. The
 program can be found in the `dist/tools/tunslip` folder and has to be compiled
 before first use (simple calling `make` should be enough). Now, one can start
 the program by calling something like:

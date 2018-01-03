@@ -36,6 +36,11 @@ void sys_init(void)
     return;
 }
 
+u32_t sys_now(void)
+{
+    return (uint32_t)(xtimer_now_usec64() / US_PER_MS);
+}
+
 err_t sys_mutex_new(sys_mutex_t *mutex)
 {
     mutex_init((mutex_t *)mutex);
@@ -59,9 +64,7 @@ void sys_mutex_free(sys_mutex_t *mutex)
 
 err_t sys_sem_new(sys_sem_t *sem, u8_t count)
 {
-    if (sema_create((sema_t *)sem, (unsigned int)count) < 0) {
-        return ERR_VAL;
-    }
+    sema_create((sema_t *)sem, (unsigned int)count);
     return ERR_OK;
 }
 
@@ -82,15 +85,15 @@ u32_t sys_arch_sem_wait(sys_sem_t *sem, u32_t count)
     if (count != 0) {
         uint64_t stop, start;
         start = xtimer_now_usec64();
-        int res = sema_wait_timed((sema_t *)sem, count * MS_IN_USEC);
+        int res = sema_wait_timed((sema_t *)sem, count * US_PER_MS);
         stop = xtimer_now_usec64() - start;
         if (res == -ETIMEDOUT) {
             return SYS_ARCH_TIMEOUT;
         }
-        return (u32_t)(stop / MS_IN_USEC);
+        return (u32_t)(stop / US_PER_MS);
     }
     else {
-        sema_wait_timed((sema_t *)sem, 0);
+        sema_wait((sema_t *)sem);
         return 0;
     }
 }
@@ -142,7 +145,7 @@ u32_t sys_arch_mbox_fetch(sys_mbox_t *mbox, void **msg, u32_t timeout)
 
     start = xtimer_now_usec64();
     if (timeout > 0) {
-        uint64_t u_timeout = (timeout * MS_IN_USEC);
+        uint64_t u_timeout = (timeout * US_PER_MS);
         _xtimer_set64(&timer, (uint32_t)u_timeout, (uint32_t)(u_timeout >> 32));
     }
     mbox_get(&mbox->mbox, &m);
@@ -151,7 +154,7 @@ u32_t sys_arch_mbox_fetch(sys_mbox_t *mbox, void **msg, u32_t timeout)
     switch (m.type) {
         case _MSG_SUCCESS:
             *msg = m.content.ptr;
-            return (u32_t)((stop - start) / MS_IN_USEC);
+            return (u32_t)((stop - start) / US_PER_MS);
         case _MSG_TIMEOUT:
             break;
         default:    /* should not happen */

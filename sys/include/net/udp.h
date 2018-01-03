@@ -20,8 +20,8 @@
  *
  * @author  Martine Lenders <mlenders@inf.fu-berlin.de>
  */
-#ifndef UDP_H_
-#define UDP_H_
+#ifndef NET_UDP_H
+#define NET_UDP_H
 
 #include "byteorder.h"
 
@@ -50,5 +50,5 @@ void udp_hdr_print(udp_hdr_t *hdr);
 }
 #endif
 
-#endif /* UDP_H_ */
+#endif /* NET_UDP_H */
 /** @} */

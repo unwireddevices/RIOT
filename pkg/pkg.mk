@@ -2,9 +2,11 @@
 # Include this file if your Package needs to be checked out by git
 #
 PKG_DIR?=$(CURDIR)
-PKG_BUILDDIR?=$(BINDIRBASE)/pkg/$(BOARD)/$(PKG_NAME)
+PKG_BUILDDIR?=$(PKGDIRBASE)/$(PKG_NAME)
 
-.PHONY: git-download clean
+.PHONY: prepare git-download clean
+
+prepare: git-download
 
 ifneq (,$(wildcard $(PKG_DIR)/patches))
 git-download: $(PKG_BUILDDIR)/.git-patched

@@ -408,7 +408,7 @@ bool _parse_options(int msg_type, gnrc_rpl_instance_t *inst, gnrc_rpl_opt_t *opt
                               sizeof(ipv6_addr_t), fib_dst_flags, src->u8,
                               sizeof(ipv6_addr_t), FIB_FLAG_RPL_ROUTE,
                               (dodag->default_lifetime * dodag->lifetime_unit) *
-                              SEC_IN_MS);
+                              MS_PER_SEC);
                 break;
 
             case (GNRC_RPL_OPT_TRANSIT):
@@ -433,7 +433,7 @@ bool _parse_options(int msg_type, gnrc_rpl_instance_t *inst, gnrc_rpl_opt_t *opt
                                      ((transit->e_flags & GNRC_RPL_OPT_TRANSIT_E_FLAG) ?
                                       0x0 : FIB_FLAG_RPL_ROUTE),
                                      (transit->path_lifetime *
-                                      dodag->lifetime_unit * SEC_IN_MS));
+                                      dodag->lifetime_unit * MS_PER_SEC));
                     first_target = (gnrc_rpl_opt_target_t *) (((uint8_t *) (first_target)) +
                                    sizeof(gnrc_rpl_opt_t) + first_target->length);
                 }
@@ -551,9 +551,9 @@ void gnrc_rpl_recv_DIO(gnrc_rpl_dio_t *dio, kernel_pid_t iface, ipv6_addr_t *src
         }
 
         gnrc_rpl_delay_dao(dodag);
-        trickle_start(gnrc_rpl_pid, &dodag->trickle, GNRC_RPL_MSG_TYPE_TRICKLE_INTERVAL,
-                      GNRC_RPL_MSG_TYPE_TRICKLE_CALLBACK, (1 << dodag->dio_min),
-                      dodag->dio_interval_doubl, dodag->dio_redun);
+        trickle_start(gnrc_rpl_pid, &dodag->trickle, GNRC_RPL_MSG_TYPE_TRICKLE_MSG,
+                      (1 << dodag->dio_min), dodag->dio_interval_doubl,
+                      dodag->dio_redun);
 
         gnrc_rpl_parent_update(dodag, parent);
         return;
@@ -618,7 +618,6 @@ void gnrc_rpl_recv_DIO(gnrc_rpl_dio_t *dio, kernel_pid_t iface, ipv6_addr_t *src
         DEBUG("RPL: Could not allocate new parent.\n");
         return;
     }
-    /* cppcheck-suppress nullPointer */
     else if (parent != NULL) {
         trickle_increment_counter(&dodag->trickle);
     }
@@ -976,7 +975,7 @@ void gnrc_rpl_recv_DAO_ACK(gnrc_rpl_dao_ack_t *dao_ack, kernel_pid_t iface, ipv6
     (void)iface;
     (void)src;
     (void)dst;
-    (void) len;
+    (void)len;
 
     gnrc_rpl_instance_t *inst = NULL;
     gnrc_rpl_dodag_t *dodag = NULL;
@@ -986,7 +985,7 @@ void gnrc_rpl_recv_DAO_ACK(gnrc_rpl_dao_ack_t *dao_ack, kernel_pid_t iface, ipv6
 #endif
 
 #ifndef GNRC_RPL_WITHOUT_VALIDATION
-    if (!gnrc_rpl_validation_DAO_ACK(dao_ack, len)) {
+    if (!gnrc_rpl_validation_DAO_ACK(dao_ack, len, dst)) {
         return;
     }
 #endif

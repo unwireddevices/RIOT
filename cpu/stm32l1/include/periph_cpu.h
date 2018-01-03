@@ -14,7 +14,7 @@
  * @file
  * @brief           CPU specific definitions for internal peripheral handling
  *
- * @author          Hauke Petersen <hauke.peterse@fu-berlin.de>
+ * @author          Hauke Petersen <hauke.petersen@fu-berlin.de>
  * @author          Katja Kirstein <katja.kirstein@haw-hamburg.de>
  */
 
@@ -60,6 +60,15 @@ typedef enum {
 /** @} */
 #endif /* ndef DOXYGEN */
 
+/*
+ * @name    Starting address of the CPU ID
+ */
+#ifdef CPU_MODEL_STM32L151RBA
+#define CPUID_ADDR          (0x1ff80050)
+#else
+#define CPUID_ADDR          (0x1ff800d0)
+#endif
+
 /**
  * @brief   Available ports on the STM32L1 family
  */
@@ -75,40 +84,32 @@ enum {
 };
 
 /**
- * @brief   Override ADC resolution values
- * @{
+ * @brief   ADC channel configuration data
  */
-
- /* ADC channels 16 and 17 are not connected to any GPIO */
+ 
+/* ADC channels 16 and 17 are not connected to any GPIO */
 #define ADC_VREF_CHANNEL 17
 #define ADC_TEMPERATURE_CHANNEL 16
  
-#define HAVE_ADC_RES_T
-#ifdef HAVE_ADC_RES_T
-typedef enum {
-    ADC_RES_6BIT  = (ADC_CR1_RES_0 | ADC_CR1_RES_1),    /**< ADC resolution: 6 bit */
-    ADC_RES_8BIT  = (ADC_CR1_RES_1),     				/**< ADC resolution: 8 bit */
-    ADC_RES_10BIT = (ADC_CR1_RES_0),     				/**< ADC resolution: 10 bit */
-    ADC_RES_12BIT = (0x00000000),     					/**< ADC resolution: 12 bit */
-} adc_res_t;
-#endif
-/** @} */
-
-/**
- * @brief   ADC line configuration values
- */
 typedef struct {
-    gpio_t pin;             /**< pin to use */
-    uint8_t chan;           /**< internal channel the pin is connected to */
+    gpio_t pin;             /**< pin connected to the channel */
+    uint8_t chan;           /**< CPU ADC channel connected to the pin */
 } adc_conf_t;
 
 /**
- * @brief   DAC line configuration data
+ * @brief   Override the ADC resolution configuration
+ * @{
  */
-typedef struct {
-    gpio_t pin;             /**< pin connected to the line */
-    uint8_t chan;           /**< DAC device used for this line */
-} dac_conf_t;
+#define HAVE_ADC_RES_T
+typedef enum {
+    ADC_RES_6BIT  = (0x3 << 3),  /**< ADC resolution: 6 bit */
+    ADC_RES_8BIT  = (0x2 << 3),  /**< ADC resolution: 8 bit */
+    ADC_RES_10BIT = (0x1 << 3),  /**< ADC resolution: 10 bit */
+    ADC_RES_12BIT = (0x0 << 3),  /**< ADC resolution: 12 bit */
+    ADC_RES_14BIT = (0xfe),      /**< not applicable */
+    ADC_RES_16BIT = (0xff)       /**< not applicable */
+} adc_res_t;
+/** @} */
 
 /**
  * @brief   I2C configuration data structure

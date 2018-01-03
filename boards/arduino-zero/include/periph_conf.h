@@ -20,8 +20,8 @@
  * @author      Alexandre Abadie <alexandre.abadie@inria.fr>
  */
 
-#ifndef PERIPH_CONF_H_
-#define PERIPH_CONF_H_
+#ifndef PERIPH_CONF_H
+#define PERIPH_CONF_H
 
 #include <stdint.h>
 
@@ -107,20 +107,24 @@ extern "C" {
  */
 static const uart_conf_t uart_config[] = {
     {
-        .dev    = &SERCOM5->USART,
-        .rx_pin = GPIO_PIN(PB,23),
-        .tx_pin = GPIO_PIN(PB,22),
-        .mux    = GPIO_MUX_D,
-        .rx_pad = UART_PAD_RX_3,
-        .tx_pad = UART_PAD_TX_2
+        .dev      = &SERCOM5->USART,
+        .rx_pin   = GPIO_PIN(PB,23),
+        .tx_pin   = GPIO_PIN(PB,22),
+        .mux      = GPIO_MUX_D,
+        .rx_pad   = UART_PAD_RX_3,
+        .tx_pad   = UART_PAD_TX_2,
+        .flags    = UART_FLAG_NONE,
+        .gclk_src = GCLK_CLKCTRL_GEN_GCLK0
     },
     {
-        .dev    = &SERCOM0->USART,
-        .rx_pin = GPIO_PIN(PA,11),
-        .tx_pin = GPIO_PIN(PA,10),
-        .mux    = GPIO_MUX_C,
-        .rx_pad = UART_PAD_RX_3,
-        .tx_pad = UART_PAD_TX_2
+        .dev      = &SERCOM0->USART,
+        .rx_pin   = GPIO_PIN(PA,11),
+        .tx_pin   = GPIO_PIN(PA,10),
+        .mux      = GPIO_MUX_C,
+        .rx_pad   = UART_PAD_RX_3,
+        .tx_pad   = UART_PAD_TX_2,
+        .flags    = UART_FLAG_NONE,
+        .gclk_src = GCLK_CLKCTRL_GEN_GCLK0
     }
 };
 
@@ -168,38 +172,28 @@ static const pwm_conf_t pwm_config[] = {
  * @name ADC configuration
  * @{
  */
-#define ADC_CONFIG {            \
-    { GPIO_PIN(PA, 2), 0, 0  }, \
-    { GPIO_PIN(PB, 8), 0, 2  }, \
-    { GPIO_PIN(PB, 9), 0, 3  }, \
-    { GPIO_PIN(PA, 4), 0, 4  }, \
-    { GPIO_PIN(PA, 5), 0, 5  }, \
-    { GPIO_PIN(PB, 2), 0, 10 }}
-
-#define ADC_NUMOF           (6)
+#define ADC_NUMOF           (0)
 /** @} */
 
 /**
  * @name SPI configuration
  * @{
  */
-#define SPI_NUMOF          (1)
-#define SPI_0_EN           1
+static const spi_conf_t spi_config[] = {
+    {
+        .dev      = &SERCOM4->SPI,
+        .miso_pin = GPIO_PIN(PA, 12),
+        .mosi_pin = GPIO_PIN(PB, 10),
+        .clk_pin  = GPIO_PIN(PB, 11),
+        .miso_mux = GPIO_MUX_D,
+        .mosi_mux = GPIO_MUX_D,
+        .clk_mux  = GPIO_MUX_D,
+        .miso_pad = SPI_PAD_MISO_0,
+        .mosi_pad = SPI_PAD_MOSI_2_SCK_3
+    }
+};
 
-/*      SPI0             */
-#define SPI_0_DEV          SERCOM4->SPI
-#define SPI_IRQ_0          SERCOM4_IRQn
-#define SPI_0_GCLK_ID      SERCOM4_GCLK_ID_CORE
-/* SPI 0 pin configuration */
-#define SPI_0_SCLK         GPIO_PIN(PB, 11)
-#define SPI_0_SCLK_MUX     GPIO_MUX_D
-#define SPI_0_MISO         GPIO_PIN(PA, 12)
-#define SPI_0_MISO_MUX     GPIO_MUX_D
-#define SPI_0_MISO_PAD     SPI_PAD_MISO_0
-#define SPI_0_MOSI         GPIO_PIN(PB, 10)
-#define SPI_0_MOSI_MUX     GPIO_MUX_D
-#define SPI_0_MOSI_PAD     SPI_PAD_MOSI_2_SCK_3
-
+#define SPI_NUMOF           (sizeof(spi_config) / sizeof(spi_config[0]))
 /** @} */
 
 /**
@@ -250,5 +244,5 @@ static const pwm_conf_t pwm_config[] = {
 }
 #endif
 
-#endif /* PERIPH_CONF_H_ */
+#endif /* PERIPH_CONF_H */
 /** @} */

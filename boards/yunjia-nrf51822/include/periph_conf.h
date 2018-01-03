@@ -16,8 +16,8 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef PERIPH_CONF_H_
-#define PERIPH_CONF_H_
+#ifndef PERIPH_CONF_H
+#define PERIPH_CONF_H
 
 #include "periph_cpu.h"
 
@@ -26,16 +26,18 @@ extern "C" {
 #endif
 
 /**
- * @name Clock configuration
+ * @name    Clock configuration
  *
- * @note: the radio will not work with the internal RC oscillator!
+ * @note    The radio will not work with the internal RC oscillator!
  *
  * @{
  */
-#define CLOCK_CORECLOCK     (16000000U)     /* fixed for all NRF51822 */
-#define CLOCK_CRYSTAL       (16U)           /* set to  0: internal RC oscillator
+#define CLOCK_HFCLK         (16U)           /* set to  0: internal RC oscillator
                                                       16: 16MHz crystal
                                                       32: 32MHz crystal */
+#define CLOCK_LFCLK         (0)             /* set to  0: internal RC oscillator
+                                             *         1: 32.768 kHz crystal
+                                             *         2: derived from HFCLK */
 /** @} */
 
 /**
@@ -63,44 +65,55 @@ static const timer_conf_t timer_config[] = {
 /** @} */
 
 /**
- * @name Real time counter configuration
+ * @name    Real time counter configuration
  * @{
  */
 #define RTT_NUMOF           (1U)
-#define RTT_IRQ_PRIO        1
-
-#define RTT_DEV             NRF_RTC1
-#define RTT_IRQ             RTC1_IRQn
-#define RTT_ISR             isr_rtc1
-#define RTT_MAX_VALUE       (0xffffff)
-#define RTT_FREQUENCY       (10)            /* in Hz */
-#define RTT_PRESCALER       (3275U)         /* run with 10 Hz */
+#define RTT_DEV             (1)             /* NRF_RTC1 */
+#define RTT_MAX_VALUE       (0x00ffffff)
+#define RTT_FREQUENCY       (1024)
 /** @} */
 
 /**
  * @name SPI configuration
  * @{
  */
-#define SPI_NUMOF           (2U)
-#define SPI_0_EN            1
-#define SPI_1_EN            1
-#define SPI_IRQ_PRIO        1
+static const spi_conf_t spi_config[] = {
+    {
+        .dev  = NRF_SPI0,
+        .sclk = 19,
+        .mosi = 17,
+        .miso = 18
+    },
+    {
+        .dev  = NRF_SPI1,
+        .sclk = 22,
+        .mosi = 20,
+        .miso = 21
+    }
+};
 
-/* SPI_0 device configuration */
-#define SPI_0_DEV           NRF_SPI0
-#define SPI_0_PIN_MOSI      17
-#define SPI_0_PIN_MISO      18
-#define SPI_0_PIN_SCK       19
-
-/* SPI_1 device configuration */
-#define SPI_1_DEV           NRF_SPI1
-#define SPI_1_PIN_MOSI      20
-#define SPI_1_PIN_MISO      21
-#define SPI_1_PIN_SCK       22
+#define SPI_NUMOF           (sizeof(spi_config) / sizeof(spi_config[0]))
 /** @} */
 
 /**
- * @brief   ADC configuration
+ * @name   I2C (TWI) configuration
+ * @{
+ */
+static const i2c_conf_t i2c_config[] = {
+    {
+        .dev     = NRF_TWI0,
+        .pin_scl = 23,
+        .pin_sda = 24,
+        .ppi     = 0
+    }
+};
+
+#define I2C_NUMOF           (sizeof(i2c_config) / sizeof(i2c_config[0]))
+/** @} */
+
+/**
+ * @name   ADC configuration
  *
  * The configuration consists simply of a list of channels that should be used
  * @{
@@ -123,4 +136,4 @@ static const timer_conf_t timer_config[] = {
 }
 #endif
 
-#endif /* PERIPH_CONF_H_ */
+#endif /* PERIPH_CONF_H */

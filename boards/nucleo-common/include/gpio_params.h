@@ -14,6 +14,7 @@
  * @brief     Board specific configuration of direct mapped GPIOs
  *
  * @author    Alexandre Abadie <alexandre.abadie@inria.fr>
+ * @author    Sebastian Meiling <s@mlng.net>
  */
 
 #ifndef GPIO_PARAMS_H
@@ -31,15 +32,17 @@ extern "C" {
  */
 static const  saul_gpio_params_t saul_gpio_params[] =
 {
+#ifdef AUTO_INIT_LED0
     {
         .name = "LED(green)",
         .pin = LED0_PIN,
         .mode = GPIO_OUT
     },
+#endif
     {
         .name = "Button(B1 User)",
-        .pin = BTN_B1_PIN,
-        .mode = GPIO_IN_PU
+        .pin  = BTN0_PIN,
+        .mode = BTN0_MODE
     },
 };
 

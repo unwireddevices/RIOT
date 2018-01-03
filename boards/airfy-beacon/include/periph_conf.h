@@ -1,9 +1,9 @@
 /*
  * Copyright (C) 2014 Christian Mehlis <mehlis@inf.fu-berlin.de>
  *
- * This file is subject to the terms and conditions of the GNU Lesser General
- * Public License v2.1. See the file LICENSE in the top level directory for more
- * details.
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
  */
 
 /**
@@ -17,8 +17,8 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef PERIPH_CONF_H_
-#define PERIPH_CONF_H_
+#ifndef PERIPH_CONF_H
+#define PERIPH_CONF_H
 
 #include "periph_cpu.h"
 
@@ -27,20 +27,22 @@
 #endif
 
 /**
- * @name Clock configuration
+ * @name    Clock configuration
  *
- * @note: the radio will not work with the internal RC oscillator!
+ * @note    The radio will not work with the internal RC oscillator!
  *
  * @{
  */
-#define CLOCK_CORECLOCK     (16000000U)     /* fixed for all NRF51822 */
-#define CLOCK_CRYSTAL       (16U)           /* set to  0: internal RC oscillator
+#define CLOCK_HFCLK         (16U)           /* set to  0: internal RC oscillator
                                                       16: 16MHz crystal
                                                       32: 32MHz crystal */
+#define CLOCK_LFCLK         (1)             /* set to  0: internal RC oscillator
+                                             *         1: 32.768 kHz crystal
+                                             *         2: derived from HFCLK */
 /** @} */
 
 /**
- * @name Timer configuration
+ * @name    Timer configuration
  * @{
  */
 static const timer_conf_t timer_config[] = {
@@ -54,9 +56,9 @@ static const timer_conf_t timer_config[] = {
 /** @} */
 
 /**
- * @name UART configuration
+ * @name    UART configuration
  *
- * The CPU only supports one UART device, so we keep it simple
+ *          The CPU only supports one UART device, so we keep it simple
  * @{
  */
 #define UART_NUMOF          (1U)
@@ -65,37 +67,55 @@ static const timer_conf_t timer_config[] = {
 /** @} */
 
 /**
- * @name Real time counter configuration
+ * @name    Real time counter configuration
  * @{
  */
 #define RTT_NUMOF           (1U)
-#define RTT_IRQ_PRIO        1
-
-#define RTT_DEV             NRF_RTC1
-#define RTT_IRQ             RTC1_IRQn
-#define RTT_ISR             isr_rtc1
-#define RTT_MAX_VALUE       (0xffffff)
-#define RTT_FREQUENCY       (10)            /* in Hz */
-#define RTT_PRESCALER       (3275U)         /* run with 10 Hz */
+#define RTT_DEV             (1)             /* NRF_RTC1 */
+#define RTT_MAX_VALUE       (0x00ffffff)
+#define RTT_FREQUENCY       (1024)
 /** @} */
 
 /**
- * @name SPI configuration
+ * @name    SPI configuration
  * @{
  */
-#define SPI_NUMOF           (1U)
-#define SPI_0_EN            1
-#define SPI_IRQ_PRIO        1
+static const spi_conf_t spi_config[] = {
+    {
+        .dev  = NRF_SPI0,
+        .sclk = 15,
+        .mosi = 13,
+        .miso = 14
+    }
+};
 
-/* SPI_0 device configuration */
-#define SPI_0_DEV           NRF_SPI0
-#define SPI_0_PIN_MOSI      13
-#define SPI_0_PIN_MISO      14
-#define SPI_0_PIN_SCK       15
+#define SPI_NUMOF           (sizeof(spi_config) / sizeof(spi_config[0]))
 /** @} */
 
 /**
- * @brief   ADC configuration
+ * @name    I2C (TWI) configuration
+ * @{
+ */
+static const i2c_conf_t i2c_config[] = {
+    {
+        .dev     = NRF_TWI0,
+        .pin_scl = 7,
+        .pin_sda = 8,
+        .ppi     = 0
+    },
+    {
+        .dev     = NRF_TWI1,
+        .pin_scl = 9,
+        .pin_sda = 10,
+        .ppi     = 1
+    }
+};
+
+#define I2C_NUMOF           (sizeof(i2c_config) / sizeof(i2c_config[0]))
+/** @} */
+
+/**
+ * @name    ADC configuration
  *
  * The configuration consists simply of a list of channels that should be used
  * @{
@@ -105,7 +125,7 @@ static const timer_conf_t timer_config[] = {
 /** @} */
 
 /**
- * @name Radio device configuration
+ * @name    Radio device configuration
  *
  * The radio is not guarded by a NUMOF define, as the radio is selected by its
  * own module in the build system.
@@ -118,4 +138,4 @@ static const timer_conf_t timer_config[] = {
 } /* end extern "C" */
 #endif
 
-#endif /* PERIPH_CONF_H_ */
+#endif /* PERIPH_CONF_H */

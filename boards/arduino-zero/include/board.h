@@ -19,8 +19,8 @@
  * @author      Alexandre Abadie <alexandre.abadie@inria.fr>
  */
 
-#ifndef BOARD_H_
-#define BOARD_H_
+#ifndef BOARD_H
+#define BOARD_H
 
 #include "cpu.h"
 #include "periph_conf.h"
@@ -32,15 +32,15 @@ extern "C" {
 #endif
 
 /**
- * @brief   xtimer configuration
+ * @name    xtimer configuration
  * @{
  */
-#define XTIMER              TIMER_0
+#define XTIMER              TIMER_DEV(1)
 #define XTIMER_CHAN         (0)
 /** @} */
 
 /**
- * @brief   LED pin definitions and handlers
+ * @name    LED pin definitions and handlers
  * @{
  */
 #define LED0_PIN            GPIO_PIN(PA, 17)
@@ -54,7 +54,7 @@ extern "C" {
 /** @} */
 
 /**
- * @brief Initialize board specific hardware, including clock, LEDs and std-IO
+ * @brief   Initialize board specific hardware, including clock, LEDs and std-IO
  */
 void board_init(void);
 
@@ -62,5 +62,5 @@ void board_init(void);
 }
 #endif
 
-#endif /* BOARD_H_ */
+#endif /* BOARD_H */
 /** @} */

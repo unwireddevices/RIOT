@@ -18,8 +18,8 @@
  * @author      Peter Kietzmann <peter.kietzmann@haw-hamburg.de>
  */
 
-#ifndef PERIPH_CONF_H_
-#define PERIPH_CONF_H_
+#ifndef PERIPH_CONF_H
+#define PERIPH_CONF_H
 
 #include "periph_cpu.h"
 
@@ -28,30 +28,38 @@ extern "C" {
 #endif
 
 /**
- * @name Clock system configuration
+ * @name    Clock settings
+ *
+ * @note    This is auto-generated from
+ *          `cpu/stm32_common/dist/clk_conf/clk_conf.c`
  * @{
  */
-#define CLOCK_HSE           (16000000U)          /* external oscillator */
-#define CLOCK_CORECLOCK     (168000000U)        /* desired core clock frequency */
-
-/* the actual PLL values are automatically generated */
-#define CLOCK_PLL_M         (CLOCK_HSE / 1000000)
-#define CLOCK_PLL_N         ((CLOCK_CORECLOCK / 1000000) * 2)
-#define CLOCK_PLL_P         (2U)
-#define CLOCK_PLL_Q         (CLOCK_PLL_N / 48)
+/* give the target core clock (HCLK) frequency [in Hz],
+ * maximum: 168MHz */
+#define CLOCK_CORECLOCK     (168000000U)
+/* 0: no external high speed crystal available
+ * else: actual crystal frequency [in Hz] */
+#define CLOCK_HSE           (16000000U)
+/* 0: no external low speed crystal available,
+ * 1: external crystal available (always 32.768kHz) */
+#define CLOCK_LSE           (0)
+/* peripheral clock setup */
 #define CLOCK_AHB_DIV       RCC_CFGR_HPRE_DIV1
-#define CLOCK_APB2_DIV      RCC_CFGR_PPRE2_DIV2
-#define CLOCK_APB1_DIV      RCC_CFGR_PPRE1_DIV4
-#define CLOCK_FLASH_LATENCY FLASH_ACR_LATENCY_5WS
-
-/* bus clocks for simplified peripheral initialization, UPDATE MANUALLY! */
 #define CLOCK_AHB           (CLOCK_CORECLOCK / 1)
-#define CLOCK_APB2          (CLOCK_CORECLOCK / 2)
+#define CLOCK_APB1_DIV      RCC_CFGR_PPRE1_DIV4     /* max 42MHz */
 #define CLOCK_APB1          (CLOCK_CORECLOCK / 4)
+#define CLOCK_APB2_DIV      RCC_CFGR_PPRE2_DIV2     /* max 84MHz */
+#define CLOCK_APB2          (CLOCK_CORECLOCK / 2)
+
+/* Main PLL factors */
+#define CLOCK_PLL_M          (8)
+#define CLOCK_PLL_N          (168)
+#define CLOCK_PLL_P          (2)
+#define CLOCK_PLL_Q          (7)
 /** @} */
 
 /**
- * @brief   Timer configuration
+ * @name    Timer configuration
  * @{
  */
 static const timer_conf_t timer_config[] = {
@@ -78,7 +86,7 @@ static const timer_conf_t timer_config[] = {
 /** @} */
 
 /**
- * @brief   UART configuration
+ * @name    UART configuration
  * @{
  */
 static const uart_conf_t uart_config[] = {
@@ -105,22 +113,15 @@ static const uart_conf_t uart_config[] = {
 /** @} */
 
 /**
- * @brief   ADC configuration
+ * @name    ADC configuration
  * @{
  */
 #define ADC_NUMOF           (0)
-/** @} */
-
-/**
- * @brief   DAC configuration
- * @{
- */
-#define DAC_NUMOF           (0)
 /** @} */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* PERIPH_CONF_H_ */
+#endif /* PERIPH_CONF_H */
 /** @} */

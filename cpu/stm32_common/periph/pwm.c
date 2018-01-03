@@ -10,6 +10,7 @@
 
 /**
  * @ingroup     cpu_stm32_common
+ * @ingroup     drivers_periph_pwm
  * @{
  *
  * @file
@@ -49,7 +50,7 @@ uint32_t pwm_init(pwm_t pwm, pwm_mode_t mode, uint32_t freq, uint16_t res)
     assert((pwm < PWM_NUMOF) && ((freq * res) < bus_clk));
 
     /* power on the used timer */
-    pwm_poweron(pwm);
+    periph_clk_en(pwm_config[pwm].bus, pwm_config[pwm].rcc_mask);
     /* reset configuration and CC channels */
     dev(pwm)->CR1 = 0;
     dev(pwm)->CR2 = 0;
@@ -93,42 +94,39 @@ uint32_t pwm_init(pwm_t pwm, pwm_mode_t mode, uint32_t freq, uint16_t res)
 uint8_t pwm_channels(pwm_t pwm)
 {
     assert(pwm < PWM_NUMOF);
-    return pwm_config[pwm].chan;
+
+    unsigned i = 0;
+    while ((i < TIMER_CHAN) && (pwm_config[pwm].chan[i].pin != GPIO_UNDEF)) {
+        i++;
+    }
+    return (uint8_t)i;
 }
 
 void pwm_set(pwm_t pwm, uint8_t channel, uint16_t value)
 {
-    assert((pwm < PWM_NUMOF) && (channel < pwm_config[pwm].chan));
+    assert((pwm < PWM_NUMOF) &&
+           (channel < TIMER_CHAN) &&
+           (pwm_config[pwm].chan[channel].pin != GPIO_UNDEF));
 
     /* norm value to maximum possible value */
     if (value > dev(pwm)->ARR) {
         value = (uint16_t)dev(pwm)->ARR;
     }
     /* set new value */
-    dev(pwm)->CCR[channel] = value;
-}
-
-void pwm_start(pwm_t pwm)
-{
-    assert(pwm < PWM_NUMOF);
-    dev(pwm)->CR1 |= TIM_CR1_CEN;
-}
-
-void pwm_stop(pwm_t pwm)
-{
-    assert(pwm < PWM_NUMOF);
-    dev(pwm)->CR1 &= ~TIM_CR1_CEN;
+    dev(pwm)->CCR[pwm_config[pwm].chan[channel].cc_chan] = value;
 }
 
 void pwm_poweron(pwm_t pwm)
 {
     assert(pwm < PWM_NUMOF);
     periph_clk_en(pwm_config[pwm].bus, pwm_config[pwm].rcc_mask);
+    dev(pwm)->CR1 |= TIM_CR1_CEN;
 }
 
 void pwm_poweroff(pwm_t pwm)
 {
     assert(pwm < PWM_NUMOF);
+    dev(pwm)->CR1 &= ~TIM_CR1_CEN;
     periph_clk_dis(pwm_config[pwm].bus, pwm_config[pwm].rcc_mask);
 }
 

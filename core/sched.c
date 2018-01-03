@@ -57,6 +57,23 @@ volatile kernel_pid_t sched_active_pid = KERNEL_PID_UNDEF;
 clist_node_t sched_runqueues[SCHED_PRIO_LEVELS];
 static uint32_t runqueue_bitcache = 0;
 
+/* Needed by OpenOCD to read sched_threads */
+#if defined(__APPLE__) && defined(__MACH__)
+ #define FORCE_USED_SECTION __attribute__((used)) __attribute__((section ("__OPENOCD,__openocd")))
+#else
+ #define FORCE_USED_SECTION __attribute__((used)) __attribute__((section (".openocd")))
+#endif
+
+FORCE_USED_SECTION
+uint8_t max_threads = sizeof(sched_threads) / sizeof(thread_t*);
+
+#ifdef DEVELHELP
+/* OpenOCD can't determine struct offsets and additionally this member is only
+ * available if compiled with DEVELHELP */
+FORCE_USED_SECTION
+uint8_t _tcb_name_offset = offsetof(thread_t, name);
+#endif
+
 #ifdef MODULE_SCHEDSTATISTICS
 static void (*sched_cb) (uint32_t timestamp, uint32_t value) = NULL;
 schedstat sched_pidlist[KERNEL_PID_LAST + 1];
@@ -84,7 +101,7 @@ int __attribute__((used)) sched_run(void)
     }
 
 #ifdef MODULE_SCHEDSTATISTICS
-    unsigned long time = _xtimer_now();
+    uint32_t now = xtimer_now().ticks32;
 #endif
 
     if (active_thread) {
@@ -101,17 +118,17 @@ int __attribute__((used)) sched_run(void)
 #ifdef MODULE_SCHEDSTATISTICS
         schedstat *active_stat = &sched_pidlist[active_thread->pid];
         if (active_stat->laststart) {
-            active_stat->runtime_ticks += time - active_stat->laststart;
+            active_stat->runtime_ticks += now - active_stat->laststart;
         }
 #endif
     }
 
 #ifdef MODULE_SCHEDSTATISTICS
     schedstat *next_stat = &sched_pidlist[next_thread->pid];
-    next_stat->laststart = time;
+    next_stat->laststart = now;
     next_stat->schedules++;
     if (sched_cb) {
-        sched_cb(time, next_thread->pid);
+        sched_cb(now, next_thread->pid);
     }
 #endif
 

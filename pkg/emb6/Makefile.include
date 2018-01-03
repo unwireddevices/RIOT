@@ -1,4 +1,4 @@
-PKG_BUILDDIR ?= $(BINDIRBASE)/pkg/$(BOARD)/emb6
+PKG_BUILDDIR ?= $(PKGDIRBASE)/emb6
 EMB6_DIR := $(PKG_BUILDDIR)
 EMB6_CONTRIB := $(RIOTBASE)/pkg/emb6/contrib
 
@@ -22,10 +22,6 @@ ifneq (,$(filter emb6_contrib,$(USEMODULE)))
   DIRS += $(EMB6_CONTRIB)
 endif
 
-ifneq (,$(filter emb6_conn_udp,$(USEMODULE)))
-  DIRS += $(EMB6_CONTRIB)/conn/udp
-endif
-
 ifneq (,$(filter emb6_ipv6,$(USEMODULE)))
   DIRS += $(EMB6_DIR)/emb6/src/net/ipv6
   INCLUDES += -I$(EMB6_DIR)/emb6/inc/net/ipv6
@@ -46,8 +42,8 @@ ifneq (,$(filter emb6_mac,$(USEMODULE)))
   INCLUDES += -I$(EMB6_DIR)/emb6/inc/mac
 endif
 
-ifneq (,$(filter emb6_netdev2,$(USEMODULE)))
-  DIRS += $(EMB6_CONTRIB)/netdev2
+ifneq (,$(filter emb6_netdev,$(USEMODULE)))
+  DIRS += $(EMB6_CONTRIB)/netdev
 endif
 
 ifneq (,$(filter emb6_rpl,$(USEMODULE)))
@@ -63,6 +59,11 @@ endif
 ifneq (,$(filter emb6_sock,$(USEMODULE)))
   DIRS += $(EMB6_DIR)/emb6/src/tport
   INCLUDES += -I$(EMB6_DIR)/emb6/inc/tport
+endif
+
+ifneq (,$(filter emb6_sock_udp,$(USEMODULE)))
+  DIRS += $(EMB6_CONTRIB)/sock/udp
+  CFLAGS += -DSOCK_HAS_IPV6
 endif
 
 ifneq (,$(filter emb6_utils,$(USEMODULE)))

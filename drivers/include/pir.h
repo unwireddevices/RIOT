@@ -7,7 +7,7 @@
  */
 
 /**
- * @defgroup    driver_pir PIR Motion Sensor
+ * @defgroup    drivers_pir PIR Motion Sensor
  * @ingroup     drivers_sensors
  * @brief       Device driver interface for the PIR motion sensor
  * @{
@@ -29,24 +29,30 @@ extern "C" {
 #endif
 
 /**
- * @brief device descriptor for a PIR sensor
+ * @brief   device descriptor for a PIR sensor
  */
 typedef struct {
     gpio_t          gpio_dev;       /**< GPIO device which is used */
     kernel_pid_t    msg_thread_pid; /**< thread to msg on irq */
 } pir_t;
 
+/**
+ * @brief   value to configure sensitivity of sensore
+ */
 #ifndef PIR_MSG_T_STATUS_START
 #define PIR_MSG_T_STATUS_START 150
 #endif
 
+/**
+ * @brief   event type for a PIR sensor
+ */
 typedef enum {
     PIR_STATUS_HI = PIR_MSG_T_STATUS_START,     /**< motion was detected */
     PIR_STATUS_LO,                              /**< no motion is detected */
 } pir_event_t;
 
 /**
- * @brief               Initialize a PIR motion sensor
+ * @brief   Initialize a PIR motion sensor
  *
  * The PIR motion sensor is interfaced by a single GPIO pin, specified by
  * `gpio`.
@@ -64,13 +70,13 @@ typedef enum {
 int pir_init(pir_t *dev, gpio_t gpio);
 
 /**
- * @brief               Read the current status of the motion sensor
+ * @brief   Read the current status of the motion sensor
  *
  * @param[in] dev       device descriptor of the PIR motion sensor to read from
  *
  * @return              1 if motion is detected, 0 otherwise
  */
-pir_event_t pir_get_status(pir_t *dev);
+pir_event_t pir_get_status(const pir_t *dev);
 
 /**
  * @brief   Register a thread for notification whan state changes on the

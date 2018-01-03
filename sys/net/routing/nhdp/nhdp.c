@@ -18,8 +18,7 @@
  * @}
  */
 
-#include "net/gnrc/conn.h"
-#include "net/conn/udp.h"
+#include "net/sock/udp.h"
 #include "msg.h"
 #include "net/gnrc/netapi.h"
 #include "net/gnrc/netif.h"
@@ -38,10 +37,6 @@
 #include "nhdp_writer.h"
 #include "nhdp_reader.h"
 
-#ifndef MODULE_CONN_UDP
-#error "nhdp needs a conn_udp implementation to work"
-#endif
-
 #define HELLO_TIMER (12345)
 
 char nhdp_stack[NHDP_STACK_SIZE];
@@ -53,7 +48,7 @@ static kernel_pid_t nhdp_rcv_pid = KERNEL_PID_UNDEF;
 static kernel_pid_t helper_pid = KERNEL_PID_UNDEF;
 static nhdp_if_entry_t nhdp_if_table[GNRC_NETIF_NUMOF];
 static mutex_t send_rcv_mutex = MUTEX_INIT;
-static conn_udp_t conn;
+static sock_udp_t sock;
 
 #if (NHDP_METRIC_NEEDS_TIMER)
 static xtimer_t metric_timer;
@@ -102,7 +97,7 @@ kernel_pid_t nhdp_start(void)
 #if (NHDP_METRIC_NEEDS_TIMER)
         /* Configure periodic timer message to refresh metric values */
         if (nhdp_pid != KERNEL_PID_UNDEF) {
-            metric_interval = timex_from_uint64(DAT_REFRESH_INTERVAL * SEC_IN_USEC);
+            metric_interval = timex_from_uint64(DAT_REFRESH_INTERVAL * US_PER_SEC);
             metric_msg.type = NHDP_METRIC_TIMER;
             metric_msg.content.ptr = NULL;
             xtimer_set_msg64(&metric_timer, timex_uint64(metric_interval),
@@ -184,9 +179,9 @@ int nhdp_register_if(kernel_pid_t if_pid, uint8_t *addr, size_t addr_size, uint8
     if_entry->if_pid = if_pid;
     /* Set HELLO_INTERVAL and H_HOLD_TIME (validity time) */
     if_entry->hello_interval.seconds = 0;
-    if_entry->hello_interval.microseconds = MS_IN_USEC * hello_int_ms;
+    if_entry->hello_interval.microseconds = US_PER_MS * hello_int_ms;
     if_entry->validity_time.seconds = 0;
-    if_entry->validity_time.microseconds = MS_IN_USEC * val_time_ms;
+    if_entry->validity_time.microseconds = US_PER_MS * val_time_ms;
     timex_normalize(&if_entry->hello_interval);
     timex_normalize(&if_entry->validity_time);
     /* Reset sequence number */
@@ -295,27 +290,24 @@ static void *_nhdp_runner(void *arg)
  */
 static void *_nhdp_receiver(void *arg __attribute__((unused)))
 {
+    static const sock_udp_ep_t ep = { .family = AF_INET6,
+                                      .netif = SOCK_ADDR_ANY_NETIF,
+                                      .port = MANET_PORT };
     char nhdp_rcv_buf[NHDP_MAX_RFC5444_PACKET_SZ];
     msg_t msg_q[NHDP_MSG_QUEUE_SIZE];
 
     msg_init_queue(msg_q, NHDP_MSG_QUEUE_SIZE);
 
-    /* Configure socket address for the manet port 269 */
-    ipv6_addr_t unspec = IPV6_ADDR_UNSPECIFIED;
-
     /* Bind UDP socket to socket address */
-    if (conn_udp_create(&conn, &unspec, sizeof(unspec), AF_INET6, MANET_PORT) == -1) {
+    if (sock_udp_create(&sock, &ep, NULL, 0) < 0) {
         /* Failed creating the connection */
         return 0;
     }
 
     while (1) {
-        ipv6_addr_t rcv_addr;
-        uint16_t rcv_port;
-        size_t addr_len = sizeof(rcv_addr);
-        int32_t rcv_size = conn_udp_recvfrom(&conn, (void *)nhdp_rcv_buf,
-                                             NHDP_MAX_RFC5444_PACKET_SZ, &rcv_addr,
-                                             &addr_len, &rcv_port);
+        int32_t rcv_size = sock_udp_recv(&sock, (void *)nhdp_rcv_buf,
+                                         NHDP_MAX_RFC5444_PACKET_SZ,
+                                         SOCK_NO_TIMEOUT, NULL);
 
         if (rcv_size > 0) {
             /* Packet received, let the reader handle it */
@@ -325,7 +317,7 @@ static void *_nhdp_receiver(void *arg __attribute__((unused)))
         }
     }
 
-    conn_udp_close(&conn);
+    sock_udp_close(&sock);
     return 0;
 }
 
@@ -337,8 +329,8 @@ static void write_packet(struct rfc5444_writer *wr __attribute__((unused)),
                          struct rfc5444_writer_target *iface __attribute__((unused)),
                          void *buffer, size_t length)
 {
-    ipv6_addr_t src, dst = IPV6_ADDR_ALL_NODES_LINK_LOCAL;
-    uint16_t sport, dport = MANET_PORT;
-    conn_udp_getlocaladdr(&conn, &src, &sport);
-    conn_udp_sendto(buffer, length, &src, sizeof(src), &dst, sizeof(dst), AF_INET, sport, dport);
+    sock_udp_ep_t ep = { .family = AF_INET6, .netif = SOCK_ADDR_ANY_NETIF,
+                         .port = MANET_PORT };
+    memcpy(ep.addr.ipv6, &ipv6_addr_all_nodes_link_local, sizeof(ep.addr.ipv6));
+    sock_udp_send(&sock, buffer, length, &ep);
 }

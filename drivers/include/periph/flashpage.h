@@ -11,10 +11,6 @@
  * @ingroup     drivers_periph
  * @brief       Low-level flash page interface
  *
- * @{
- * @file
- * @brief       Low-level flash page peripheral driver interface
- *
  * This interface provides a very simple and straight forward way for writing
  * a MCU's internal flash. This interface is only capable of reading, verifying,
  * and writing complete flash pages, it has no support for partial flash access.
@@ -27,11 +23,15 @@
  *              around 10K times), so using this interface in some kind of loops
  *              can damage you MCU!
  *
+ * @{
+ * @file
+ * @brief       Low-level flash page peripheral driver interface
+ *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef FLASHPAGE_H
-#define FLASHPAGE_H
+#ifndef PERIPH_FLASHPAGE_H
+#define PERIPH_FLASHPAGE_H
 
 #include <stdint.h>
 
@@ -82,6 +82,22 @@ static inline void *flashpage_addr(int page)
 }
 
 /**
+ * @brief   Translate the given address into the corresponding page number
+ *
+ * The given address can be any address inside a page.
+ *
+ * @note    The given address MUST be a valid flash address!
+ *
+ * @param[in] addr      address inside the targeted page
+ *
+ * @return              page containing the given address
+ */
+static inline int flashpage_page(void *addr)
+{
+    return (int)(((int)addr - CPU_FLASH_BASE) / FLASHPAGE_SIZE);
+}
+
+/**
  * @brief   Write the given page with the given data
  *
  * @param[in] page      page to write
@@ -129,5 +145,5 @@ int flashpage_write_and_verify(int page, void *data);
 }
 #endif
 
-#endif /* FLASHPAGE_H */
+#endif /* PERIPH_FLASHPAGE_H */
 /** @} */

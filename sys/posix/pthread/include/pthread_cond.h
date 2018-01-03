@@ -14,8 +14,8 @@
  * @author      Martin Landsmann <martin.landsmann@haw-hamburg.de>
  */
 
-#ifndef SYS__POSIX__PTHREAD_COND__H
-#define SYS__POSIX__PTHREAD_COND__H
+#ifndef PTHREAD_COND_H
+#define PTHREAD_COND_H
 
 #include <time.h>
 #include "mutex.h"
@@ -25,7 +25,12 @@
 #   include "msp430_types.h"
 #endif
 
-#if defined(__MACH__)
+#ifdef __MACH__
+/* needed for AVAILABLE_MAC_OS_X_VERSION_10_12_AND_LATER */
+#include <AvailabilityMacros.h>
+#endif
+
+#if defined(__WITH_AVRLIBC__) || (defined(__MACH__) && !defined(AVAILABLE_MAC_OS_X_VERSION_10_12_AND_LATER))
 typedef int clockid_t;
 #endif
 
@@ -65,7 +70,7 @@ int pthread_cond_condattr_init(pthread_condattr_t *attr);
 int pthread_cond_condattr_destroy(pthread_condattr_t *attr);
 
 /**
- * @brief Get the process-shared attribute in an initialised attributes object referenced by attr
+ * @brief Get the process-shared attribute in an initialized attributes object referenced by attr
  * @note NOT USED since RIOT is a single process OS
  * @param[in] attr pre-allocated condition attribute variable structure.
  * @param[out] pshared the pre-allocated process-shared variable.
@@ -74,7 +79,7 @@ int pthread_cond_condattr_destroy(pthread_condattr_t *attr);
 int pthread_condattr_getpshared(const pthread_condattr_t *attr, int *pshared);
 
 /**
- * @brief Set the process-shared attribute in an initialised attributes object referenced by attr
+ * @brief Set the process-shared attribute in an initialized attributes object referenced by attr
  * @note NOT USED since RIOT is a single process OS
  * @param[in, out] attr pre-allocated condition attribute variable structure.
  * @param[in] pshared pshared the pre-allocated process-shared variable.
@@ -150,7 +155,7 @@ int pthread_cond_broadcast(pthread_cond_t *cond);
 }
 #endif
 
-#endif /* SYS__POSIX__PTHREAD_COND__H */
+#endif /* PTHREAD_COND_H */
 
 /**
  * @}

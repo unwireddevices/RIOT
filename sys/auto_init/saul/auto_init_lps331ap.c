@@ -21,12 +21,10 @@
 
 #ifdef MODULE_LPS331AP
 
+#include "log.h"
 #include "saul_reg.h"
 #include "lps331ap.h"
 #include "lps331ap_params.h"
-
-#define ENABLE_DEBUG (0)
-#include "debug.h"
 
 /**
  * @brief   Define the number of configured sensors
@@ -41,31 +39,36 @@ static lps331ap_t lps331ap_devs[LPS331AP_NUM];
 /**
  * @brief   Memory for the SAUL registry entries
  */
-static saul_reg_t saul_entries[LPS331AP_NUM];
+static saul_reg_t saul_entries[LPS331AP_NUM * 2];
 
 /**
  * @brief   Reference the driver struct
  */
-extern saul_driver_t lps331ap_saul_driver;
+extern saul_driver_t lps331ap_saul_pres_driver;
+extern saul_driver_t lps331ap_saul_temp_driver;
 
 
 void auto_init_lps331ap(void)
 {
-    for (int i = 0; i < LPS331AP_NUM; i++) {
+    for (unsigned int i = 0; i < LPS331AP_NUM; i++) {
         const lps331ap_params_t *p = &lps331ap_params[i];
 
-        DEBUG("[auto_init_saul] initializing lps331ap pressure sensor\n");
+        LOG_DEBUG("[auto_init_saul] initializing lps331ap #%u\n", i);
+
         int res = lps331ap_init(&lps331ap_devs[i], p->i2c, p->addr, p->rate);
-        DEBUG("not done\n");
         if (res < 0) {
-            DEBUG("[auto_init_saul] error during initialization\n");
+            LOG_ERROR("[auto_init_saul] error initializing lps331ap #%u\n", i);
+            continue;
         }
-        else {
-            saul_entries[i].dev = &(lps331ap_devs[i]);
-            saul_entries[i].name = lps331ap_saul_info[i].name;
-            saul_entries[i].driver = &lps331ap_saul_driver;
-            saul_reg_add(&(saul_entries[i]));
-        }
+
+        saul_entries[i].dev = &(lps331ap_devs[i]);
+        saul_entries[i].name = lps331ap_saul_info[i].name;
+        saul_entries[i].driver = &lps331ap_saul_pres_driver;
+        saul_reg_add(&(saul_entries[i]));
+        saul_entries[(i * 2) + 1].dev = &(lps331ap_devs[i]);
+        saul_entries[(i * 2) + 1].name = lps331ap_saul_info[i].name;
+        saul_entries[(i * 2) + 1].driver = &lps331ap_saul_temp_driver;
+        saul_reg_add(&(saul_entries[(i * 2) + 1]));
     }
 }
 

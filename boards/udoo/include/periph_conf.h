@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright (C) 2014-2015 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser
@@ -16,8 +16,8 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef PERIPH_CONF_H_
-#define PERIPH_CONF_H_
+#ifndef PERIPH_CONF_H
+#define PERIPH_CONF_H
 
 #include "periph_cpu.h"
 
@@ -26,7 +26,7 @@ extern "C" {
 #endif
 
 /**
- * @name Clock configuration
+ * @name    Clock configuration
  * @{
  */
 /* targeted system core clock */
@@ -46,7 +46,7 @@ extern "C" {
 /** @} */
 
 /**
- * @name Timer peripheral configuration
+ * @name    Timer peripheral configuration
  * @{
  */
 static const timer_conf_t timer_config[] = {
@@ -62,15 +62,42 @@ static const timer_conf_t timer_config[] = {
 /** @} */
 
 /**
- * @name UART configuration
+ * @name    UART configuration
  * @{
  */
 static const uart_conf_t uart_config[] = {
-    /* device, rx port, tx port, rx pin, tx pin, mux, PMC bit, IRGn line */
-    {(Uart *)UART,   PIOA, PIOA,  8,  9, GPIO_MUX_A, ID_UART,   UART_IRQn},
-    {(Uart *)USART0, PIOA, PIOA, 10, 11, GPIO_MUX_A, ID_USART0, USART0_IRQn},
-    {(Uart *)USART1, PIOA, PIOA, 12, 13, GPIO_MUX_A, ID_USART1, USART1_IRQn},
-    {(Uart *)USART3, PIOD, PIOD,  4,  5, GPIO_MUX_B, ID_USART3, USART3_IRQn}
+    {
+        .dev    = (Uart *)UART,
+        .rx_pin = GPIO_PIN(PA, 8),
+        .tx_pin = GPIO_PIN(PA, 9),
+        .mux    = GPIO_MUX_A,
+        .pmc_id = ID_UART,
+        .irqn   = UART_IRQn
+    },
+    {
+        .dev    = (Uart *)USART0,
+        .rx_pin = GPIO_PIN(PA, 10),
+        .tx_pin = GPIO_PIN(PA, 11),
+        .mux    = GPIO_MUX_A,
+        .pmc_id = ID_USART0,
+        .irqn   = USART0_IRQn
+    },
+    {
+        .dev    = (Uart *)USART1,
+        .rx_pin = GPIO_PIN(PA, 12),
+        .tx_pin = GPIO_PIN(PA, 13),
+        .mux    = GPIO_MUX_A,
+        .pmc_id = ID_USART1,
+        .irqn   = USART1_IRQn
+    },
+    {
+        .dev    = (Uart *)USART3,
+        .rx_pin = GPIO_PIN(PD, 5),
+        .tx_pin = GPIO_PIN(PD, 4),
+        .mux    = GPIO_MUX_B,
+        .pmc_id = ID_USART3,
+        .irqn   = USART3_IRQn
+    }
 };
 
 /* define interrupt vectors */
@@ -83,37 +110,26 @@ static const uart_conf_t uart_config[] = {
 /** @} */
 
 /**
-* @name SPI configuration
+* @name    SPI configuration
 * @{
 */
-#define SPI_NUMOF           (1U)
-#define SPI_0_EN            1
+static const spi_conf_t spi_config[] = {
+    {
+        .dev   = SPI0,
+        .id    = ID_SPI0,
+        .clk   = GPIO_PIN(PA, 25),
+        .mosi  = GPIO_PIN(PA, 26),
+        .miso  = GPIO_PIN(PA, 27),
+        .mux   = GPIO_MUX_A
+    }
+};
 
-/* SPI 0 device config */
-#define SPI_0_DEV           SPI0
-#define SPI_0_CLKEN()       (PMC->PMC_PCER0 |= (1 << ID_SPI0));
-#define SPI_0_CLKDIS()      (PMC->PMC_PCER0 &= ~(1 << ID_SPI0));
-#define SPI_0_IRQ           SPI0_IRQn
-#define SPI_0_IRQ_HANDLER   isr_spi0
-#define SPI_0_IRQ_PRIO      1
-
-/* SPI 0 pin configuration */
-#define SPI_0_MISO_PIN      PIO_PA25A_SPI0_MISO
-#define SPI_0_MOSI_PIN      PIO_PA26A_SPI0_MOSI
-#define SPI_0_SCK_PIN       PIO_PA27A_SPI0_SPCK
-
-#define SPI_0_MISO_PORT     PIOA
-#define SPI_0_MOSI_PORT     PIOA
-#define SPI_0_SCK_PORT      PIOA
-
-#define SPI_0_MISO_PORT_CLKEN()  (PMC->PMC_PCER0 |= (1 << ID_PIOA));
-#define SPI_0_MOSI_PORT_CLKEN()  (PMC->PMC_PCER0 |= (1 << ID_PIOA));
-#define SPI_0_SCK_PORT_CLKEN()   (PMC->PMC_PCER0 |= (1 << ID_PIOA));
+#define SPI_NUMOF           (sizeof(spi_config) / sizeof(spi_config[0]))
 /** @} */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* PERIPH_CONF_H_ */
+#endif /* PERIPH_CONF_H */
 /** @} */

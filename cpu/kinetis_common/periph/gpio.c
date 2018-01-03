@@ -9,7 +9,8 @@
  */
 
 /**
- * @ingroup     cpu_kinetis_common_gpio
+ * @ingroup     cpu_kinetis_common
+ * @ingroup     drivers_periph_gpio
  *
  * @{
  *
@@ -27,6 +28,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "cpu.h"
+#include "bit.h"
 #include "periph/gpio.h"
 
 /**
@@ -129,7 +131,7 @@ static inline int pin_num(gpio_t pin)
 
 static inline void clk_en(gpio_t pin)
 {
-    BITBAND_REG32(SIM->SCGC5, SIM_SCGC5_PORTA_SHIFT + port_num(pin)) = 1;
+    bit_set32(&SIM->SCGC5, SIM_SCGC5_PORTA_SHIFT + port_num(pin));
 }
 
 /**
@@ -145,7 +147,7 @@ static inline int get_ctx(int port, int pin)
  */
 static int get_free_ctx(void)
 {
-    for (int i = 0; i < CTX_NUMOF; i++) {
+    for (unsigned int i = 0; i < CTX_NUMOF; i++) {
         if (isr_ctx[i].cb == NULL) {
             return i;
         }
@@ -179,7 +181,6 @@ int gpio_init(gpio_t pin, gpio_mode_t mode)
     /* set pin direction */
     if (mode & MODE_OUT) {
         gpio(pin)->PDDR |=  (1 << pin_num(pin));
-        gpio(pin)->PCOR = (1 << pin_num(pin));
     }
     else {
         gpio(pin)->PDDR &= ~(1 << pin_num(pin));

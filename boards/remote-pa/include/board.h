@@ -8,7 +8,7 @@
  */
 
 /**
- * @defgroup    board_remote Re-Mote
+ * @defgroup    boards_remote-pa Re-Mote Prototype A
  * @ingroup     boards
  * @brief       Support for the Re-Mote board prototype A
  * @{
@@ -17,14 +17,14 @@
  * @brief       Board specific definitions for the Re-Mote board prototype A
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
- *              Antonio Lignan <alinan@zolertia.com>
+ * @author      Antonio Lignan <alinan@zolertia.com>
+ * @author      Sebastian Meiling <s@mlng.net>
  */
 
-#ifndef BOARD_H_
-#define BOARD_H_
+#ifndef BOARD_H
+#define BOARD_H
 
 #include "cpu.h"
-#include "periph/gpio.h"
 #include "board_common.h"
 
 #ifdef __cplusplus
@@ -32,7 +32,7 @@
 #endif
 
 /**
- * @brief   LED pin definitions and handlers
+ * @name    LED pin definitions and handlers
  * @{
  */
 #define LED0_PIN            GPIO_PIN(3, 2)
@@ -57,25 +57,32 @@
 /** @} */
 
 /**
- * @name User button pin definition
+ * @name    User button pin definition
  * @{
  */
-#define BUTTON_GPIO         GPIO_9_PIN
+#define BTN0_PIN            GPIO_PIN(0, 3)
+#define BTN0_MODE           GPIO_IN_PU
 /** @} */
 
 /**
- * @name 2.4GHz RF switch controlled by SW
+ * @name    Radio configuration
+ *
+ * 2.4GHz RF switch controlled by SW
  * @{
  */
-#define RF_SWITCH_PORT      GPIO_D
-#define RF_SWITCH_PIN       (4)
-#define RF_SWITCH_EXTERNAL  (RF_SWITCH_PORT->DATA |= (1 << RF_SWITCH_PIN))
-#define RF_SWITCH_INTERNAL  (RF_SWITCH_PORT->DATA &= ~(1 << RF_SWITCH_PIN))
-#define RF_SWITCH_TOGGLE    (RF_SWITCH_PORT->DATA ^= (1 << RF_SWITCH_PIN))
+ #define RF_SWITCH_GPIO      GPIO_PIN(3, 4)
+ #define RF_SWITCH_SUB_GHZ   gpio_set(RF_SWITCH_GPIO)
+ #define RF_SWITCH_2_4_GHZ   gpio_clear(RF_SWITCH_GPIO)
+ #define RF_SWITCH_TOGGLE    gpio_toggle(RF_SWITCH_GPIO)
 /** @} */
+
+/**
+ * @brief   Initialize board specific hardware, including clock, LEDs and std-IO
+ */
+void board_init(void);
 
 #ifdef __cplusplus
 } /* end extern "C" */
 #endif
-#endif /* BOARD_H_ */
+#endif /* BOARD_H */
 /** @} */

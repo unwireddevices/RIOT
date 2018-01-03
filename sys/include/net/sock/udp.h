@@ -63,7 +63,7 @@
  * implementation (e.g. `gnrc_ipv6_default` for @ref net_gnrc GNRC) and at least
  * one network device.
  *
- * After including the header file for @ref net_sock_udp "UDP sock", we create some 
+ * After including the header file for @ref net_sock_udp "UDP sock", we create some
  * buffer space `buf` to store the data received by the server:
  *
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ {.c}
@@ -168,7 +168,7 @@
  *             sock_udp_close(&sock);
  *             return 1;
  *         }
- *         if ((res = sock_udp_recv(&sock, buf, sizeof(buf), 1 * SEC_IN_USEC,
+ *         if ((res = sock_udp_recv(&sock, buf, sizeof(buf), 1 * US_PER_SEC,
  *                                 NULL)) < 0) {
  *             if (res == -ETIMEDOUT) {
  *                 puts("Timed out");
@@ -224,7 +224,7 @@
  *                                           IPV6_ADDR_MCAST_SCP_LINK_LOCAL);
  *         if (sock_udp_send(&sock, "Hello!", sizeof("Hello!"), &remote) < 0) {
  *             puts("Error sending message");
- *             sock_udp_close();
+ *             sock_udp_close(&sock);
  *             return 1;
  *         }
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -232,7 +232,7 @@
  * We then wait a second for a reply and print it when it is received.
  *
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ {.c}
- *         if ((res = sock_udp_recv(&sock, buf, sizeof(buf), 1 * SEC_IN_USEC,
+ *         if ((res = sock_udp_recv(&sock, buf, sizeof(buf), 1 * US_PER_SEC,
  *                                 NULL)) < 0) {
  *             if (res == -ETIMEDOUT) {
  *                 puts("Timed out");
@@ -265,8 +265,8 @@
  * @author  Martine Lenders <m.lenders@fu-berlin.de>
  * @author  Kaspar Schleiser <kaspar@schleiser.de>
  */
-#ifndef NET_SOCK_UDP_H_
-#define NET_SOCK_UDP_H_
+#ifndef NET_SOCK_UDP_H
+#define NET_SOCK_UDP_H
 
 #include <assert.h>
 #include <stdint.h>
@@ -313,7 +313,7 @@ typedef struct sock_udp sock_udp_t;
  *                      @ref SOCK_ADDR_ANY_NETIF or equal to sock_udp_ep_t::netif
  *                      of @p local if `local != NULL`.
  * @param[in] flags     Flags for the sock object. See also
- *                      [sock flags](net_sock_flags).
+ *                      [sock flags](@ref net_sock_flags).
  *                      May be 0.
  *
  * @return  0 on success.
@@ -439,5 +439,5 @@ ssize_t sock_udp_send(sock_udp_t *sock, const void *data, size_t len,
 }
 #endif
 
-#endif /* NET_SOCK_UDP_H_ */
+#endif /* NET_SOCK_UDP_H */
 /** @} */

@@ -20,8 +20,8 @@
  * @author      Joakim Nohlgård <joakim.nohlgard@eistec.se>
  */
 
-#ifndef DRIVERS_NVRAM_SPI_H_
-#define DRIVERS_NVRAM_SPI_H_
+#ifndef NVRAM_SPI_H
+#define NVRAM_SPI_H
 
 #include <stdint.h>
 #include "nvram.h"
@@ -33,19 +33,21 @@ extern "C" {
 #endif
 
 /**
- * @brief Bus parameters for SPI NVRAM.
+ * @brief   Bus parameters for SPI NVRAM.
  */
 typedef struct nvram_spi_params {
-    /** @brief RIOT SPI device */
+    /** @brief   RIOT SPI device */
     spi_t spi;
-    /** @brief Chip select pin */
+    /** @brief   SPI clock speed */
+    spi_clk_t clk;
+    /** @brief   Chip select pin */
     gpio_t cs;
-    /** @brief Number of address bytes following each read/write command. */
+    /** @brief   Number of address bytes following each read/write command. */
     uint8_t address_count;
 } nvram_spi_params_t;
 
 /**
- * @brief Initialize an nvram_t structure with SPI settings.
+ * @brief   Initialize an nvram_t structure with SPI settings.
  *
  * This will also initialize the CS pin as a GPIO output, without pull resistors.
  *
@@ -62,5 +64,5 @@ int nvram_spi_init(nvram_t *dev, nvram_spi_params_t *spi_params, size_t size);
 }
 #endif
 
-#endif /* DRIVERS_NVRAM_SPI_H_ */
+#endif /* NVRAM_SPI_H */
 /** @} */

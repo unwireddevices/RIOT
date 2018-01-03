@@ -16,8 +16,8 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef BH1750FVI_REGS_H
-#define BH1750FVI_REGS_H
+#ifndef BH1750FVI_INTERNAL_H
+#define BH1750FVI_INTERNAL_H
 
 
 #ifdef __cplusplus
@@ -34,7 +34,7 @@ extern "C" {
 #define RES_DIV                 (78642)
 
 /**
- * @brief   Opcodes
+ * @name    Opcodes
  * @{
  */
 #define OP_POWER_DOWN           (0x00)
@@ -51,7 +51,7 @@ extern "C" {
 /** @} */
 
 /**
- * @brief   Measurement delays (in us)
+ * @name    Measurement delays (in us)
  * @{
  */
 #define DELAY_HMODE             (120000)    /**< typ. 120ms in H-mode */
@@ -63,5 +63,5 @@ extern "C" {
 }
 #endif
 
-#endif /* BH1750FVI_REGS_H */
+#endif /* BH1750FVI_INTERNAL_H */
 /** @} */

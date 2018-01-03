@@ -32,14 +32,16 @@ extern "C" {
  *
  * @{
  */
-#define CLOCK_CORECLOCK     (16000000U)     /* fixed for all NRF51822 */
-#define CLOCK_CRYSTAL       (16U)           /* set to  0: internal RC oscillator
+#define CLOCK_HFCLK         (16U)           /* set to  0: internal RC oscillator
                                                       16: 16MHz crystal
                                                       32: 32MHz crystal */
+#define CLOCK_LFCLK         (0)             /* set to  0: internal RC oscillator
+                                             *         1: 32.768 kHz crystal
+                                             *         2: derived from HFCLK */
 /** @} */
 
 /**
- * @name Timer configuration
+ * @name    Timer configuration
  * @{
  */
 static const timer_conf_t timer_config[] = {
@@ -71,22 +73,17 @@ static const timer_conf_t timer_config[] = {
 /** @} */
 
 /**
- * @name Real time counter configuration
+ * @name    Real time counter configuration
  * @{
  */
 #define RTT_NUMOF           (1U)
-#define RTT_IRQ_PRIO        1
-
-#define RTT_DEV             NRF_RTC1
-#define RTT_IRQ             RTC1_IRQn
-#define RTT_ISR             isr_rtc1
-#define RTT_MAX_VALUE       (0xffffff)
-#define RTT_FREQUENCY       (10)            /* in Hz */
-#define RTT_PRESCALER       (3275U)         /* run with 10 Hz */
+#define RTT_DEV             (1)             /* NRF_RTC1 */
+#define RTT_MAX_VALUE       (0x00ffffff)
+#define RTT_FREQUENCY       (1024)
 /** @} */
 
 /**
- * @brief   UART configuration
+ * @name    UART configuration
  * @{
  */
 #define UART_NUMOF          (1U)
@@ -97,7 +94,23 @@ static const timer_conf_t timer_config[] = {
 /** @} */
 
 /**
- * @brief   ADC configuration
+ * @name    I2C (TWI) configuration
+ * @{
+ */
+static const i2c_conf_t i2c_config[] = {
+    {
+        .dev     = NRF_TWI0,
+        .pin_scl = 0,
+        .pin_sda = 30,
+        .ppi     = 0
+    }
+};
+
+#define I2C_NUMOF           (sizeof(i2c_config) / sizeof(i2c_config[0]))
+/** @} */
+
+/**
+ * @name    ADC configuration
  *
  * The configuration consists simply of a list of channels that should be used
  * @{
@@ -106,7 +119,7 @@ static const timer_conf_t timer_config[] = {
 /** @} */
 
 /**
- * @brief   Radio device configuration
+ * @name    Radio device configuration
  *
  * The radio is not guarded by a NUMOF define, as the radio is selected by its
  * own module in the build system.

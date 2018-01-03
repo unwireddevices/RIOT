@@ -23,7 +23,11 @@
 #include "kernel_types.h"
 #include "net/ipv6/hdr.h"
 #include "net/gnrc.h"
+#ifndef MODULE_GNRC_IPV6_NIB
 #include "net/gnrc/ndp.h"
+#else
+#include "net/gnrc/ipv6/nib.h"
+#endif
 #include "net/protnum.h"
 #include "od.h"
 #include "utlist.h"
@@ -94,6 +98,7 @@ void gnrc_icmpv6_demux(kernel_pid_t iface, gnrc_pktsnip_t *pkt)
             break;
 #endif
 
+#ifndef MODULE_GNRC_IPV6_NIB
 #if (defined(MODULE_GNRC_NDP_ROUTER) || defined(MODULE_GNRC_SIXLOWPAN_ND_ROUTER))
         case ICMPV6_RTR_SOL:
             DEBUG("icmpv6: router solicitation received\n");
@@ -126,9 +131,22 @@ void gnrc_icmpv6_demux(kernel_pid_t iface, gnrc_pktsnip_t *pkt)
             DEBUG("icmpv6: redirect message received\n");
             /* TODO */
             break;
+#else   /* MODULE_GNRC_IPV6_NIB */
+        case ICMPV6_RTR_SOL:
+        case ICMPV6_RTR_ADV:
+        case ICMPV6_NBR_SOL:
+        case ICMPV6_NBR_ADV:
+        case ICMPV6_REDIRECT:
+        case ICMPV6_DAR:
+        case ICMPV6_DAC:
+            DEBUG("icmpv6: NDP message received. Handle with gnrc_ipv6_nib\n");
+            gnrc_ipv6_nib_handle_pkt(iface, ipv6->data, hdr, icmpv6->size);
+            break;
+#endif  /* MODULE_GNRC_IPV6_NIB */
 
         default:
             DEBUG("icmpv6: unknown type field %u\n", hdr->type);
+            (void)iface;
             break;
     }
 
@@ -140,16 +158,14 @@ void gnrc_icmpv6_demux(kernel_pid_t iface, gnrc_pktsnip_t *pkt)
     }
 }
 
-gnrc_pktsnip_t *gnrc_icmpv6_build(gnrc_pktsnip_t *next, uint8_t type, uint8_t code,
-                                  size_t size)
+gnrc_pktsnip_t *gnrc_icmpv6_build(gnrc_pktsnip_t *next, uint8_t type,
+                                  uint8_t code, size_t size)
 {
     gnrc_pktsnip_t *pkt;
     icmpv6_hdr_t *icmpv6;
 
-    pkt = gnrc_pktbuf_add(next, NULL, size, GNRC_NETTYPE_ICMPV6);
-
-    if (pkt == NULL) {
-        DEBUG("icmpv6_echo: no space left in packet buffer\n");
+    if ((pkt = gnrc_pktbuf_add(next, NULL, size, GNRC_NETTYPE_ICMPV6)) == NULL) {
+        DEBUG("icmpv6: no space left in packet buffer\n");
         return NULL;
     }
 

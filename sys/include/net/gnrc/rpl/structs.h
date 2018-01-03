@@ -20,8 +20,8 @@
  * @author      Cenk Gündoğan <cnkgndgn@gmail.com>
  */
 
-#ifndef GNRC_RPL_STRUCTS_H_
-#define GNRC_RPL_STRUCTS_H_
+#ifndef NET_GNRC_RPL_STRUCTS_H
+#define NET_GNRC_RPL_STRUCTS_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -200,13 +200,23 @@ typedef struct __attribute__((packed)) {
     ipv6_addr_t prefix;         /**< prefix used for Stateless Address Autoconfiguration */
 } gnrc_rpl_opt_prefix_info_t;
 
+/**
+ * @brief DODAG representation
+ */
 typedef struct gnrc_rpl_dodag gnrc_rpl_dodag_t;
-typedef struct gnrc_rpl_parent gnrc_rpl_parent_t;
-typedef struct gnrc_rpl_instance gnrc_rpl_instance_t;
 
 /**
  * @brief Parent representation
  */
+typedef struct gnrc_rpl_parent gnrc_rpl_parent_t;
+
+/**
+ * @brief Instance representation
+ */
+typedef struct gnrc_rpl_instance gnrc_rpl_instance_t;
+
+/**
+ * @cond INTERNAL */
 struct gnrc_rpl_parent {
     gnrc_rpl_parent_t *next;        /**< pointer to the next parent */
     uint8_t state;                  /**< 0 for unsued, 1 for used */
@@ -218,6 +228,9 @@ struct gnrc_rpl_parent {
     double  link_metric;            /**< metric of the link */
     uint8_t link_metric_type;       /**< type of the metric */
 };
+/**
+ * @endcond
+ */
 
 /**
  * @brief Objective function representation
@@ -225,7 +238,24 @@ struct gnrc_rpl_parent {
 typedef struct {
     uint16_t ocp;   /**< objective code point */
     uint16_t (*calc_rank)(gnrc_rpl_parent_t *parent, uint16_t base_rank); /**< calculate the rank */
-    gnrc_rpl_parent_t *(*which_parent)(gnrc_rpl_parent_t *, gnrc_rpl_parent_t *); /**< compare for parents */
+    gnrc_rpl_parent_t *(*which_parent)(gnrc_rpl_parent_t *, gnrc_rpl_parent_t *); /**< retrieve the better parent */
+
+    /**
+     * @brief   Compare two @ref gnrc_rpl_parent_t.
+     *
+     * Compares two parents based on the rank calculated by the objective
+     * function. This function is used to determine the parent list order. The
+     * parents are ordered from the preferred parent to the least preferred
+     * parent.
+     *
+     * @param[in] parent1 First parent to compare.
+     * @param[in] parent2 Second parent to compare.
+     *
+     * @return      Zero if the parents are of equal preference.
+     * @return      Positive, if the second parent is preferred.
+     * @return      Negative, if the first parent is preferred.
+     */
+    int (*parent_cmp)(gnrc_rpl_parent_t *parent1, gnrc_rpl_parent_t *parent2);
     gnrc_rpl_dodag_t *(*which_dodag)(gnrc_rpl_dodag_t *, gnrc_rpl_dodag_t *); /**< compare for dodags */
     void (*reset)(gnrc_rpl_dodag_t *);    /**< resets the OF */
     void (*parent_state_callback)(gnrc_rpl_parent_t *, int, int); /**< retrieves the state of a parent*/
@@ -234,7 +264,7 @@ typedef struct {
 } gnrc_rpl_of_t;
 
 /**
- * @brief DODAG representation
+ * @cond INTERNAL
  */
 struct gnrc_rpl_dodag {
     ipv6_addr_t dodag_id;           /**< id of the DODAG */
@@ -262,9 +292,6 @@ struct gnrc_rpl_dodag {
     trickle_t trickle;              /**< trickle representation */
 };
 
-/**
- * @brief Instance representation
- */
 struct gnrc_rpl_instance {
     uint8_t id;                     /**< id of the instance */
     uint8_t state;                  /**< 0 for unused, 1 for used */
@@ -275,12 +302,15 @@ struct gnrc_rpl_instance {
     uint16_t max_rank_inc;          /**< max increase in the rank */
     int8_t cleanup;                 /**< cleanup time in seconds */
 };
+/**
+ * @endcond
+ */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* GNRC_RPL_STRUCTS_H_ */
+#endif /* NET_GNRC_RPL_STRUCTS_H */
 /**
  * @}
  */

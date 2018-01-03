@@ -8,7 +8,7 @@
 
 /**
  * @defgroup    boards_nucleo-f103 Nucleo-F103
- * @ingroup     boards
+ * @ingroup     boards_nucleo
  * @brief       Board specific files for the nucleo-f103 board
  * @{
  *
@@ -18,8 +18,8 @@
  * @author      Víctor Ariño <victor.arino@triagnosys.com>
  */
 
-#ifndef BOARD_H_
-#define BOARD_H_
+#ifndef BOARD_H
+#define BOARD_H
 
 #include "board_common.h"
 
@@ -28,7 +28,7 @@ extern "C" {
 #endif
 
 /**
- * @name xtimer configuration
+ * @name    xtimer configuration
  */
 #define XTIMER_WIDTH        (16)
 #define XTIMER_BACKOFF      5
@@ -38,5 +38,5 @@ extern "C" {
 }
 #endif
 
-#endif /* BOARD_H_ */
+#endif /* BOARD_H */
 /** @} */

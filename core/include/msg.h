@@ -81,7 +81,7 @@
  * mode or the message queue (see below) of the receiving thread is full
  * messages sent this way will be dropped.
  *
- * You can use the example on asynchronous IPC below — but without the queue —
+ * You can use the example on asynchronous IPC below - but without the queue -
  * to get an impression of how to use non-blocking IPC.
  *
  * Synchronous vs Asynchronous
@@ -162,8 +162,8 @@
  * @author      Kévin Roussel <Kevin.Roussel@inria.fr>
  */
 
-#ifndef MSG_H_
-#define MSG_H_
+#ifndef MSG_H
+#define MSG_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -383,5 +383,5 @@ void msg_queue_print(void);
 }
 #endif
 
-#endif /* MSG_H_ */
+#endif /* MSG_H */
 /** @} */

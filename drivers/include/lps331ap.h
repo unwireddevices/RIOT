@@ -31,12 +31,12 @@ extern "C" {
 #include "periph/i2c.h"
 
  /**
-  * @brief The sensors default I2C address
+  * @brief   The sensors default I2C address
   */
-#define LPS331AP_DEFAULT_ADDRESS        0x5c
+#define LPS331AP_DEFAULT_ADDRESS        (0x5c)
 
 /**
- * @brief Device descriptor for LPS331AP sensors
+ * @brief   Device descriptor for LPS331AP sensors
  */
 typedef struct {
     i2c_t i2c;                  /**< I2C device the sensor is connected to */
@@ -44,7 +44,7 @@ typedef struct {
 } lps331ap_t;
 
 /**
- * @brief Possible sampling rates for LPS331AP sensors
+ * @brief   Possible sampling rates for LPS331AP sensors
  */
 typedef enum {
     LPS331AP_RATE_1HZ = 1,      /**< sample with 1Hz */
@@ -63,7 +63,7 @@ typedef struct {
 } lps331ap_params_t;
 
 /**
- * @brief Initialize a given LPS331AP pressure sensor
+ * @brief   Initialize a given LPS331AP pressure sensor
  *
  * @param[out] dev      device descriptor of the sensor
  * @param[in]  i2c      I2C bus the sensor is connected to
@@ -76,42 +76,42 @@ typedef struct {
 int lps331ap_init(lps331ap_t *dev, i2c_t i2c, uint8_t address, lps331ap_rate_t rate);
 
 /**
- * @brief Read a temperature value from the given sensor, returned in m°C
+ * @brief   Read a temperature value from the given sensor, returned in m°C
  *
  * @param[in] dev       device descriptor of sensor to read from
  *
  * @return              temperature value in m°C
  */
-int lps331ap_read_temp(lps331ap_t *dev);
+int lps331ap_read_temp(const lps331ap_t *dev);
 
 /**
- * @brief Read a pressure value from the given sensor, returned in mbar
+ * @brief   Read a pressure value from the given sensor, returned in mbar
  *
  * @param[in] dev       device descriptor of sensor to read from
  *
  * @return              pressure value in mbar
  */
-int lps331ap_read_pres(lps331ap_t *dev);
+int lps331ap_read_pres(const lps331ap_t *dev);
 
 /**
- * @brief Enable the given sensor
+ * @brief   Enable the given sensor
  *
  * @param[in] dev       device descriptor of sensor to enable
  *
  * @return              0 on success
  * @return              -1 on error
  */
-int lps331ap_enable(lps331ap_t *dev);
+int lps331ap_enable(const lps331ap_t *dev);
 
 /**
- * @brief Disable the given sensor
+ * @brief   Disable the given sensor
  *
  * @param[in] dev       device descriptor of sensor to disable
  *
  * @return              0 on success
  * @return              -1 on error
  */
-int lps331ap_disable(lps331ap_t *dev);
+int lps331ap_disable(const lps331ap_t *dev);
 
 #ifdef __cplusplus
 }

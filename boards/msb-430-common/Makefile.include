@@ -6,14 +6,14 @@ export CPU_MODEL = msp430f1612
 PORT_LINUX ?= /dev/ttyUSB0
 PORT_DARWIN ?= $(firstword $(sort $(wildcard /dev/tty.SLAB_USBtoUART*)))
 # setup serial terminal
-include $(RIOTBOARD)/Makefile.include.serial
+include $(RIOTMAKE)/tools/serial.inc.mk
 
 # setup flash tool
 export OFLAGS = -O ihex
 export PROGRAMMER ?= olimex
 export MSPDEBUGFLAGS += -j $(PROGRAMMER)
 ifeq ($(strip $(PROGRAMMER)),uif)
-    export MSPDEBUGFLAGS += -d $(PORT)
+  export MSPDEBUGFLAGS += -d $(PORT)
 endif
 export FLASHER ?= mspdebug
 export FFLAGS = $(MSPDEBUGFLAGS) "prog $(HEXFILE)"

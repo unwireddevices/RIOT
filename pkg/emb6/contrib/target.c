@@ -92,7 +92,7 @@ void hal_ledOff(uint16_t ui_led)
 
 uint8_t hal_extIntInit(en_targetExtInt_t e_extInt, pfn_intCallb_t pfn_intCallback)
 {
-    /* RIOT does this in netdev2 initialization so nothing to do here. */
+    /* RIOT does this in netdev initialization so nothing to do here. */
     return 0;
 }
 
@@ -201,13 +201,13 @@ clock_time_t hal_getTick(void)
 
 clock_time_t hal_getSec(void)
 {
-    return (clock_time_t)xtimer_now_usec() / SEC_IN_USEC;
+    return (clock_time_t)xtimer_now_usec() / US_PER_SEC;
 }
 
 
 clock_time_t hal_getTRes(void)
 {
-    return SEC_IN_USEC;
+    return US_PER_SEC;
 }
 
 /** @} */

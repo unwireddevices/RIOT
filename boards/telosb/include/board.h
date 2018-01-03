@@ -25,8 +25,8 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef TELOSB_BOARD_H_
-#define TELOSB_BOARD_H_
+#ifndef BOARD_H
+#define BOARD_H
 
 #include "cpu.h"
 
@@ -42,7 +42,7 @@ extern "C" {
 #endif
 
 /**
- * @brief   Override default baudrate for STDIO
+ * @name    Override default baudrate for STDIO
  * @{
  */
 #ifndef UART_STDIO_BAUDRATE
@@ -51,21 +51,18 @@ extern "C" {
 /** @} */
 
 /**
- * @brief   Xtimer configuration
+ * @name    Xtimer configuration
  * @{
  */
-#define XTIMER_DEV                  (0)
-#define XTIMER_CHAN                 (0)
 #define XTIMER_WIDTH                (16)
 #define XTIMER_BACKOFF              (40)
 /** @} */
 
 /**
- * @brief   CPU core configuration
- *
- * @todo    Move this to the periph_conf.h
+ * @name    CPU core configuration
  * @{
  */
+/** @todo   Move this to the periph_conf.h */
 #define MSP430_INITIAL_CPU_SPEED    2457600uL
 #define F_CPU                       MSP430_INITIAL_CPU_SPEED
 #define F_RC_OSCILLATOR             32768
@@ -74,7 +71,7 @@ extern "C" {
 /** @} */
 
 /**
- * @brief   LED pin definitions and handlers
+ * @name    LED pin definitions and handlers
  * @{
  */
 #define LED0_PIN                    GPIO_PIN(4, 0)
@@ -102,8 +99,8 @@ extern "C" {
 /**
  * @brief   Definition of the interface to the CC2420 radio
  */
-#define CC2420_PARAMS_BOARD   {.spi        = SPI_0, \
-                               .spi_clk    = SPI_SPEED_1MHZ , \
+#define CC2420_PARAMS_BOARD   {.spi        = SPI_DEV(0), \
+                               .spi_clk    = SPI_CLK_1MHZ , \
                                .pin_cs     = GPIO_PIN(P4, 2), \
                                .pin_fifo   = GPIO_PIN(P1, 3), \
                                .pin_fifop  = GPIO_PIN(P1, 0), \
@@ -117,4 +114,4 @@ extern "C" {
 #endif
 
 /** @} */
-#endif /*  TELOSB_BOARD_H_ */
+#endif /* BOARD_H */

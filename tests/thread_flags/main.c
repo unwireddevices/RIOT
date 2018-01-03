@@ -20,8 +20,11 @@
 
 #include <stdio.h>
 #include "thread.h"
+#include "xtimer.h"
 
 static char stack[THREAD_STACKSIZE_MAIN];
+
+volatile unsigned done;
 
 static void *_thread(void *arg)
 {
@@ -29,26 +32,28 @@ static void *_thread(void *arg)
 
     thread_flags_t flags;
 
-    printf("thread(): waiting for 0x1...\n");
+    puts("thread(): waiting for 0x1...");
     flags = thread_flags_wait_any(0x1);
     printf("thread(): received flags: 0x%04x\n", (unsigned)flags & 0xFFFF);
 
-    printf("thread(): waiting for 0x1 || 0x64...\n");
+    puts("thread(): waiting for 0x1 || 0x64...");
     flags = thread_flags_wait_any(0x1 | 0x64);
     printf("thread(): received flags: 0x%04x\n", (unsigned)flags & 0xFFFF);
 
-    printf("thread(): waiting for 0x2 && 0x4...\n");
+    puts("thread(): waiting for 0x2 && 0x4...");
     flags = thread_flags_wait_all(0x2 | 0x4);
     printf("thread(): received flags: 0x%04x\n", (unsigned)flags & 0xFFFF);
 
 
-    printf("thread(): waiting for any flag, one by one\n");
+    puts("thread(): waiting for any flag, one by one");
     flags = thread_flags_wait_one(0xFFFF);
     printf("thread(): received flags: 0x%04x\n", (unsigned)flags & 0xFFFF);
 
-    printf("thread(): waiting for any flag, one by one\n");
+    puts("thread(): waiting for any flag, one by one");
     flags = thread_flags_wait_one(0xFFFF);
     printf("thread(): received flags: 0x%04x\n", (unsigned)flags & 0xFFFF);
+
+    done = 1;
 
     return NULL;
 }
@@ -61,7 +66,7 @@ static void _set(thread_t *thread, thread_flags_t flags)
 
 int main(void)
 {
-    printf("main starting\n");
+    puts("main starting");
 
     kernel_pid_t pid = thread_create(stack,
                   sizeof(stack),
@@ -79,6 +84,17 @@ int main(void)
     _set(thread, 0x2);
     _set(thread, 0x4);
 
-    while(1) {};
+    while(!done) {};
+
+    puts("main: setting 100ms timeout...");
+    xtimer_t t;
+    uint32_t before = xtimer_now_usec();
+    xtimer_set_timeout_flag(&t, 100000);
+    thread_flags_wait_any(THREAD_FLAG_TIMEOUT);
+    uint32_t diff = xtimer_now_usec() - before;
+    printf("main: timeout triggered. time passed: %uus\n", (unsigned)diff);
+
+    puts("test finished.");
+
     return 0;
 }

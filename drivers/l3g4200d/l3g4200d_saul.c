@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup     driver_l3g4200d
+ * @ingroup     drivers_l3g4200d
  * @{
  *
  * @file
@@ -23,22 +23,16 @@
 #include "saul.h"
 #include "l3g4200d.h"
 
-static int read(void *dev, phydat_t *res)
+static int read(const void *dev, phydat_t *res)
 {
-    l3g4200d_t *d = (l3g4200d_t *)dev;
-    l3g4200d_read(d, (l3g4200d_data_t *)res);
+    l3g4200d_read((const l3g4200d_t *)dev, (l3g4200d_data_t *)res);
     res->unit = UNIT_DPS;
     res->scale = 0;
     return 3;
 }
 
-static int write(void *dev, phydat_t *state)
-{
-    return -ENOTSUP;
-}
-
 const saul_driver_t l3g4200d_saul_driver = {
     .read = read,
-    .write = write,
+    .write = saul_notsup,
     .type = SAUL_SENSE_GYRO,
 };

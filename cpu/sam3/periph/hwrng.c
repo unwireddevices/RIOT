@@ -8,6 +8,7 @@
 
 /**
  * @ingroup     cpu_sam3
+ * @ingroup     drivers_periph_hwrng
  * @{
  *
  * @file
@@ -32,9 +33,10 @@ void hwrng_init(void)
     /* no need for initialization */
 }
 
-void hwrng_read(uint8_t *buf, unsigned int num)
+void hwrng_read(void *buf, unsigned int num)
 {
     unsigned count = 0;
+    uint8_t *b = (uint8_t *)buf;
 
     /* enable clock signal for TRNG module */
     PMC->PMC_PCER1 |= PMC_PCER1_PID41;
@@ -48,7 +50,7 @@ void hwrng_read(uint8_t *buf, unsigned int num)
         uint32_t tmp = TRNG->TRNG_ODATA;
         /* extract copy bytes to result */
         for (int i = 0; i < 4 && count < num; i++) {
-            buf[count++] = (uint8_t)tmp;
+            b[count++] = (uint8_t)tmp;
             tmp = tmp >> 8;
         }
     }

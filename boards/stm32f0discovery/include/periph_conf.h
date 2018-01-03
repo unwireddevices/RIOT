@@ -16,8 +16,8 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef PERIPH_CONF_H_
-#define PERIPH_CONF_H_
+#ifndef PERIPH_CONF_H
+#define PERIPH_CONF_H
 
 #include "periph_cpu.h"
 
@@ -26,23 +26,35 @@ extern "C" {
 #endif
 
 /**
- * @name Clock system configuration
+ * @name    Clock settings
+ *
+ * @note    This is auto-generated from
+ *          `cpu/stm32_common/dist/clk_conf/clk_conf.c`
  * @{
  */
-#define CLOCK_HSE           (8000000U)          /* external oscillator */
-#define CLOCK_CORECLOCK     (48000000U)         /* desired core clock frequency */
+/* give the target core clock (HCLK) frequency [in Hz],
+ * maximum: 48MHz */
+#define CLOCK_CORECLOCK      (48000000U)
+/* 0: no external high speed crystal available
+ * else: actual crystal frequency [in Hz] */
+#define CLOCK_HSE            (8000000U)
+/* 0: no external low speed crystal available,
+ * 1: external crystal available (always 32.768kHz) */
+#define CLOCK_LSE            (0)
+/* peripheral clock setup */
+#define CLOCK_AHB_DIV        RCC_CFGR_HPRE_DIV1
+#define CLOCK_AHB            (CLOCK_CORECLOCK / 1)
+#define CLOCK_APB1_DIV       RCC_CFGR_PPRE_DIV1      /* max 48MHz */
+#define CLOCK_APB1           (CLOCK_CORECLOCK / 1)
+#define CLOCK_APB2           (CLOCK_APB1)
 
-/* the actual PLL values are automatically generated */
-#define CLOCK_PLL_MUL       (CLOCK_CORECLOCK / CLOCK_HSE)
-
-/* bus clocks for simplified peripheral initialization, UPDATE MANUALLY! */
-#define CLOCK_AHB           (CLOCK_CORECLOCK / 1)
-#define CLOCK_APB2          (CLOCK_CORECLOCK / 1)
-#define CLOCK_APB1          (CLOCK_CORECLOCK / 1)
+/* PLL factors */
+#define CLOCK_PLL_PREDIV     (1)
+#define CLOCK_PLL_MUL        (6)
 /** @} */
 
 /**
- * @brief   Timer configuration
+ * @name   Timer configuration
  * @{
  */
 static const timer_conf_t timer_config[] = {
@@ -61,7 +73,7 @@ static const timer_conf_t timer_config[] = {
 /** @} */
 
 /**
- * @brief   UART configuration
+ * @name   UART configuration
  * @{
  */
 static const uart_conf_t uart_config[] = {
@@ -94,7 +106,7 @@ static const uart_conf_t uart_config[] = {
 /** @} */
 
 /**
- * @brief   ADC configuration
+ * @name   ADC configuration
  *
  * We need to configure the following values:
  * [ pin, channel ]
@@ -113,48 +125,50 @@ static const uart_conf_t uart_config[] = {
 /** @} */
 
 /**
- * @brief   DAC configuration
- * @{
- */
-#define DAC_NUMOF           (0)
-/** @} */
-
-/**
  * @name SPI configuration
  * @{
  */
-#define SPI_NUMOF           (2U)
-#define SPI_0_EN            1
-#define SPI_1_EN            1
-#define SPI_IRQ_PRIO        1
+static const uint8_t spi_divtable[2][5] = {
+    {       /* for APB1 @ 48000000Hz */
+        7,  /* -> 187500Hz */
+        6,  /* -> 375000Hz */
+        5,  /* -> 750000Hz */
+        2,  /* -> 6000000Hz */
+        1   /* -> 12000000Hz */
+    },
+    {       /* for APB2 @ 48000000Hz */
+        7,  /* -> 187500Hz */
+        6,  /* -> 375000Hz */
+        5,  /* -> 750000Hz */
+        2,  /* -> 6000000Hz */
+        1   /* -> 12000000Hz */
+    }
+};
 
-/* SPI 0 device config */
-#define SPI_0_DEV           SPI1
-#define SPI_0_CLKEN()       (periph_clk_en(APB2, RCC_APB2ENR_SPI1EN))
-#define SPI_0_CLKDIS()      (periph_clk_dis(APB2, RCC_APB2ENR_SPI1EN))
-#define SPI_0_IRQ           SPI1_IRQn
-#define SPI_0_ISR           isr_spi1
-/* SPI 1 pin configuration */
-#define SPI_0_PORT          GPIOA
-#define SPI_0_PORT_CLKEN()  (periph_clk_en(AHB, RCC_AHBENR_GPIOAEN))
-#define SPI_0_PIN_SCK       5
-#define SPI_0_PIN_MISO      6
-#define SPI_0_PIN_MOSI      7
-#define SPI_0_PIN_AF        0
+static const spi_conf_t spi_config[] = {
+    {
+        .dev      = SPI1,
+        .mosi_pin = GPIO_PIN(PORT_A, 7),
+        .miso_pin = GPIO_PIN(PORT_A, 6),
+        .sclk_pin = GPIO_PIN(PORT_A, 5),
+        .cs_pin   = GPIO_UNDEF,
+        .af       = GPIO_AF0,
+        .rccmask  = RCC_APB2ENR_SPI1EN,
+        .apbbus   = APB2
+    },
+    {
+        .dev      = SPI2,
+        .mosi_pin = GPIO_PIN(PORT_B, 15),
+        .miso_pin = GPIO_PIN(PORT_B, 14),
+        .sclk_pin = GPIO_PIN(PORT_B, 13),
+        .cs_pin   = GPIO_UNDEF,
+        .af       = GPIO_AF0,
+        .rccmask  = RCC_APB1ENR_SPI2EN,
+        .apbbus   = APB1
+    }
+};
 
-/* SPI 1 device config */
-#define SPI_1_DEV           SPI2
-#define SPI_1_CLKEN()       (periph_clk_en(APB1, RCC_APB1ENR_SPI2EN))
-#define SPI_1_CLKDIS()      (periph_clk_dis(APB1, RCC_APB1ENR_SPI2EN))
-#define SPI_1_IRQ           SPI2_IRQn
-#define SPI_1_ISR           isr_spi2
-/* SPI 1 pin configuration */
-#define SPI_1_PORT          GPIOB
-#define SPI_1_PORT_CLKEN()  (periph_clk_en(AHB, RCC_AHBENR_GPIOBEN))
-#define SPI_1_PIN_SCK       13
-#define SPI_1_PIN_MISO      14
-#define SPI_1_PIN_MOSI      15
-#define SPI_1_PIN_AF        0
+#define SPI_NUMOF           (sizeof(spi_config) / sizeof(spi_config[0]))
 /** @} */
 
 #define RTC_NUMOF           (1U)
@@ -163,4 +177,4 @@ static const uart_conf_t uart_config[] = {
 }
 #endif
 
-#endif /* PERIPH_CONF_H_ */
+#endif /* PERIPH_CONF_H */

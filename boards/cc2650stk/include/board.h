@@ -16,10 +16,11 @@
  * @brief       Board configuration for the CC2650STK
  *
  * @author      Leon M. George <leon@georgemail.eu>
+ * @author      Sebastian Meiling <s@mlng.net>
  */
 
-#ifndef BOARD_H_
-#define BOARD_H_
+#ifndef BOARD_H
+#define BOARD_H
 
 #include "periph/gpio.h"
 
@@ -28,22 +29,26 @@ extern "C" {
 #endif
 
 /**
- * @brief   Xtimer configuration
+ * @name    xtimer configuration
  * @{
  */
-#define XTIMER_WIDTH                (16)
+#define XTIMER_WIDTH        (16)
+#define XTIMER_BACKOFF      (50)
+#define XTIMER_ISR_BACKOFF  (40)
 /** @} */
 
 /**
- * @brief   On-board button configuration
+ * @name    On-board button configuration
  * @{
  */
-#define BUTTON1_DIO         GPIO_PIN(0, 4)
-#define BUTTON2_DIO         GPIO_PIN(0, 0)
+#define BTN0_PIN            GPIO_PIN(0, 4)
+#define BTN0_MODE           GPIO_IN_PU
+#define BTN1_PIN            GPIO_PIN(0, 0)
+#define BTN1_MODE           GPIO_IN_PU
 /** @} */
 
 /**
- * @brief   Macros for controlling the on-board LEDs
+ * @name    Macros for controlling the on-board LEDs
  * @{
  */
 #define LED0_PIN            GPIO_PIN(0, 10)
@@ -67,5 +72,5 @@ void board_init(void);
 }
 #endif
 
-#endif /* BOARD_H_ */
+#endif /* BOARD_H */
 /** @} */

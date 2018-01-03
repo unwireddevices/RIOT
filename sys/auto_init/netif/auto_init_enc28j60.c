@@ -21,13 +21,15 @@
 
 #ifdef MODULE_ENC28J60
 
+#include "log.h"
 #include "enc28j60.h"
 #include "enc28j60_params.h"
-#include "net/gnrc/netdev2.h"
-#include "net/gnrc/netdev2/eth.h"
-
-#define ENABLE_DEBUG    (0)
-#include "debug.h"
+#ifdef MODULE_GNRC_NETIF2
+#include "net/gnrc/netif2/ethernet.h"
+#else
+#include "net/gnrc/netdev.h"
+#include "net/gnrc/netdev/eth.h"
+#endif
 
 /**
  * @brief   Define stack parameters for the MAC layer thread
@@ -35,7 +37,11 @@
  */
 #define ENC28J60_MAC_STACKSIZE   (THREAD_STACKSIZE_DEFAULT)
 #ifndef ENC28J60_MAC_PRIO
-#define ENC28J60_MAC_PRIO        (GNRC_NETDEV2_MAC_PRIO)
+#ifdef MODULE_GNRC_NETIF2
+#define ENC28J60_MAC_PRIO        (GNRC_NETIF2_PRIO)
+#else
+#define ENC28J60_MAC_PRIO        (GNRC_NETDEV_MAC_PRIO)
+#endif
 #endif
 /*** @} */
 
@@ -49,26 +55,35 @@
  * @{
  */
 static enc28j60_t dev[ENC28J60_NUM];
-static gnrc_netdev2_t gnrc_adpt[ENC28J60_NUM];
+#ifndef MODULE_GNRC_NETIF2
+static gnrc_netdev_t gnrc_adpt[ENC28J60_NUM];
+#endif
 /** @} */
 
 /**
  * @brief   Stacks for the MAC layer threads
  */
-static char stack[ENC28J60_MAC_STACKSIZE][ENC28J60_NUM];
+static char stack[ENC28J60_NUM][ENC28J60_MAC_STACKSIZE];
 
 
 void auto_init_enc28j60(void)
 {
-    for (int i = 0; i < ENC28J60_NUM; i++) {
-        DEBUG("auto_init_enc28j60(): initializing device [%i]...\n", i);
-        /* setup netdev2 device */
+    for (unsigned i = 0; i < ENC28J60_NUM; i++) {
+        LOG_DEBUG("[auto_init_netif] initializing enc28j60 #%u\n", i);
+
+        /* setup netdev device */
         enc28j60_setup(&dev[i], &enc28j60_params[i]);
-        /* initialize netdev2 <-> gnrc adapter state */
-        gnrc_netdev2_eth_init(&gnrc_adpt[i], (netdev2_t *)&dev[i]);
-        /* start gnrc netdev2 thread */
-        gnrc_netdev2_init(stack[i], ENC28J60_MAC_STACKSIZE, ENC28J60_MAC_PRIO,
-                          "gnrc_enc28j60", &gnrc_adpt[i]);
+#ifdef MODULE_GNRC_NETIF2
+        gnrc_netif2_ethernet_create(stack[i], ENC28J60_MAC_STACKSIZE,
+                                    ENC28J60_MAC_PRIO, "enc28j60",
+                                    (netdev_t *)&dev[i]);
+#else
+        /* initialize netdev <-> gnrc adapter state */
+        gnrc_netdev_eth_init(&gnrc_adpt[i], (netdev_t *)&dev[i]);
+        /* start gnrc netdev thread */
+        gnrc_netdev_init(stack[i], ENC28J60_MAC_STACKSIZE, ENC28J60_MAC_PRIO,
+                         "gnrc_enc28j60", &gnrc_adpt[i]);
+#endif
     }
 }
 

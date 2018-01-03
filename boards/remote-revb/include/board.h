@@ -8,7 +8,8 @@
  */
 
 /**
- * @ingroup     boards_remote
+ * @defgroup    boards_remote-revb RE-Mote Revision B
+ * @ingroup     boards
  * @brief       Support for the RE-Mote board Revision B
  * @{
  *
@@ -16,15 +17,14 @@
  * @brief       Board specific definitions for the RE-Mote board Revision B
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
- *              Antonio Lignan <alinan@zolertia.com>
+ * @author      Antonio Lignan <alinan@zolertia.com>
+ * @author      Sebastian Meiling <s@mlng.net>
  */
 
-#ifndef BOARD_H_
-#define BOARD_H_
+#ifndef BOARD_H
+#define BOARD_H
 
 #include "cpu.h"
-#include "periph/gpio.h"
-#include "periph/spi.h"
 #include "board_common.h"
 
 #ifdef __cplusplus
@@ -35,9 +35,9 @@
  * @name LED pin definitions
  * @{
  */
-#define LED0_PIN        GPIO_PD4
-#define LED1_PIN        GPIO_PB7
-#define LED2_PIN        GPIO_PB6
+#define LED0_PIN        GPIO_PIN(3, 4)
+#define LED1_PIN        GPIO_PIN(1, 7)
+#define LED2_PIN        GPIO_PIN(1, 6)
 
 #define LED0_MASK       (1 << 4)
 #define LED1_MASK       (1 << 7)
@@ -60,7 +60,8 @@
  * @name User button pin definition
  * @{
  */
-#define BUTTON_GPIO     GPIO_3_PIN
+#define BTN0_PIN        GPIO_PIN(0, 3)
+#define BTN0_MODE       GPIO_IN_PU
 /** @} */
 
 /**
@@ -110,8 +111,26 @@
 #define CC1200_GPD2_GPIO    GPIO_PB0
 /** @} */
 
+/**
+ * @name Onboard micro-sd slot pin definitions
+ * @{
+ */
+#define SDCARD_SPI_PARAM_SPI       SPI_DEV(1)
+#define SDCARD_SPI_PARAM_CS        GPIO_PIN(0,7)
+#define SDCARD_SPI_PARAM_CLK       GPIO_PIN(2,4)
+#define SDCARD_SPI_PARAM_MOSI      GPIO_PIN(2,5)
+#define SDCARD_SPI_PARAM_MISO      GPIO_PIN(2,6)
+#define SDCARD_SPI_PARAM_POWER     GPIO_PIN(0,6)
+#define SDCARD_SPI_PARAM_POWER_AH  false
+/** @} */
+
+/**
+ * @brief Initialize board specific hardware, including clock, LEDs and std-IO
+ */
+void board_init(void);
+
 #ifdef __cplusplus
 } /* end extern "C" */
 #endif
-#endif /* BOARD_H_ */
+#endif /* BOARD_H */
 /** @} */

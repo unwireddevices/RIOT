@@ -19,6 +19,7 @@
  */
 
 #include <stdio.h>
+#include <stdint.h>
 
 #include "board.h"
 #include "periph_conf.h"
@@ -76,6 +77,8 @@ int main(void)
 #endif
 
     puts("On-board LED test\n");
+    /* cppcheck-suppress knownConditionTrueFalse
+     * rationale: board-dependent ifdefs */
     if (numof == 0) {
         puts("NO LEDs AVAILABLE");
     }

@@ -16,8 +16,8 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef TESTS_HASHES_H_
-#define TESTS_HASHES_H_
+#ifndef TESTS_HASHES_H
+#define TESTS_HASHES_H
 
 #include "embUnit.h"
 
@@ -32,6 +32,13 @@ void tests_hashes(void);
 
 /**
  * @brief   Generates tests for hashes/md5.h
+ *
+ * @return  embUnit tests if successful, NULL if not.
+ */
+Test *tests_hashes_cmac_tests(void);
+
+/**
+ * @brief   Generates tests for hashes/cmac.h
  *
  * @return  embUnit tests if successful, NULL if not.
  */
@@ -69,5 +76,5 @@ Test *tests_hashes_sha256_chain_tests(void);
 }
 #endif
 
-#endif /* TESTS_CRYPTO_H_ */
+#endif /* TESTS_HASHES_H */
 /** @} */

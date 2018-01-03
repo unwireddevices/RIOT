@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup     board_nrf6310
+ * @ingroup     boards_nrf6310
  * @{
  *
  * @file
@@ -29,20 +29,22 @@ extern "C" {
 #endif
 
 /**
- * @name Clock configuration
+ * @name    Clock configuration
  *
- * @note: the radio will not work with the internal RC oscillator!
+ * @note    The radio will not work with the internal RC oscillator!
  *
  * @{
  */
-#define CLOCK_CORECLOCK     (16000000U)     /* fixed for all NRF51822 */
-#define CLOCK_CRYSTAL       (16U)           /* set to  0: internal RC oscillator
+#define CLOCK_HFCLK         (16U)           /* set to  0: internal RC oscillator
                                                       16: 16MHz crystal
                                                       32: 32MHz crystal */
+#define CLOCK_LFCLK         (1)             /* set to  0: internal RC oscillator
+                                             *         1: 32.768 kHz crystal
+                                             *         2: derived from HFCLK */
 /** @} */
 
 /**
- * @name Timer configuration
+ * @name    Timer configuration
  * @{
  */
 static const timer_conf_t timer_config[] = {
@@ -56,22 +58,17 @@ static const timer_conf_t timer_config[] = {
 /** @} */
 
 /**
- * @name Real time counter configuration
+ * @name    Real time counter configuration
  * @{
  */
 #define RTT_NUMOF           (1U)
-#define RTT_IRQ_PRIO        1
-
-#define RTT_DEV             NRF_RTC1
-#define RTT_IRQ             RTC1_IRQn
-#define RTT_ISR             isr_rtc1
-#define RTT_MAX_VALUE       (0xffffff)
-#define RTT_FREQUENCY       (10)            /* in Hz */
-#define RTT_PRESCALER       (3275U)         /* run with 10 Hz */
+#define RTT_DEV             (1)             /* NRF_RTC1 */
+#define RTT_MAX_VALUE       (0x00ffffff)
+#define RTT_FREQUENCY       (1024)
 /** @} */
 
 /**
- * @name UART configuration
+ * @name    UART configuration
  * @{
  */
 #define UART_NUMOF          (1U)
@@ -87,7 +84,7 @@ static const timer_conf_t timer_config[] = {
 /** @} */
 
 /**
- * @name Radio device configuration
+ * @name    Radio device configuration
  *
  * The radio is not guarded by a NUMOF define, as the radio is selected by its
  * own module in the build system.
@@ -97,29 +94,29 @@ static const timer_conf_t timer_config[] = {
 /** @} */
 
 /**
- * @name SPI configuration
+ * @name    SPI configuration
  * @{
  */
-#define SPI_NUMOF           (2U)
-#define SPI_0_EN            1
-#define SPI_1_EN            1
-#define SPI_IRQ_PRIO        1
+static const spi_conf_t spi_config[] = {
+    {
+        .dev  = NRF_SPI0,
+        .sclk = 23,
+        .mosi = 22,
+        .miso = 20
+    },
+    {
+        .dev  = NRF_SPI1,
+        .sclk = 16,
+        .mosi = 17,
+        .miso = 18
+    }
+};
 
-/* SPI Master 0 pin configuration */
-#define SPI_0_DEV           NRF_SPI0
-#define SPI_0_PIN_SCK       23
-#define SPI_0_PIN_MISO      22
-#define SPI_0_PIN_MOSI      20
-
-/* SPI Master 1 pin configuration */
-#define SPI_1_DEV           NRF_SPI1
-#define SPI_1_PIN_SCK       16
-#define SPI_1_PIN_MISO      17
-#define SPI_1_PIN_MOSI      18
+#define SPI_NUMOF           (sizeof(spi_config) / sizeof(spi_config[0]))
 /** @} */
 
 /**
- * @brief   ADC configuration
+ * @name    ADC configuration
  *
  * The configuration consists simply of a list of channels that should be used
  * @{

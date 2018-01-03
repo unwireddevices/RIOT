@@ -8,6 +8,7 @@
 
 /**
  * @ingroup     cpu_lpc2387
+ * @ingroup     drivers_periph_timer
  * @{
  *
  * @file
@@ -133,12 +134,6 @@ int timer_init(tim_t tim, unsigned long freq, timer_cb_t cb, void *arg)
     return 0;
 }
 
-int timer_set(tim_t tim, int channel, unsigned int timeout)
-{
-    unsigned int now = timer_read(tim);
-    return timer_set_absolute(tim, channel, (timeout + now));
-}
-
 int timer_set_absolute(tim_t tim, int channel, unsigned int value)
 {
     if (((unsigned) tim >= TIMER_NUMOF) || ((unsigned) channel >= TIMER_CHAN_NUMOF)) {
@@ -173,18 +168,6 @@ void timer_start(tim_t tim)
 void timer_stop(tim_t tim)
 {
     get_dev(tim)->TCR = 0;
-}
-
-void timer_irq_enable(tim_t tim)
-{
-    (void) tim;
-    /* TODO */
-}
-
-void timer_irq_disable(tim_t tim)
-{
-    (void) tim;
-    /* TODO */
 }
 
 static inline void isr_handler(lpc23xx_timer_t *dev, int tim_num)

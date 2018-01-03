@@ -8,7 +8,7 @@
 
 /**
  * @defgroup    drivers_led Control on-board LEDs
- * @ingroup     drivers
+ * @ingroup     drivers_actuators
  * @brief       Access macros to control the on-board LEDs
  *
  * This header contains a set of macros for controlling the on-board LEDs of
@@ -29,8 +29,8 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef LED_H_
-#define LED_H_
+#ifndef LED_H
+#define LED_H
 
 #include "board.h"
 
@@ -39,70 +39,70 @@ extern "C" {
 #endif
 
 /**
- * @brief   LED fallback macros
+ * @name    LED fallback macros
  * @{
  */
 #ifndef LED0_ON
-#define LED0_ON             /* defined empty */
-#define LED0_OFF            /* defined empty */
-#define LED0_TOGGLE         /* defined empty */
+#define LED0_ON             /**< defined empty */
+#define LED0_OFF            /**< defined empty */
+#define LED0_TOGGLE         /**< defined empty */
 #endif
 
 #ifndef LED1_ON
-#define LED1_ON             /* defined empty */
-#define LED1_OFF            /* defined empty */
-#define LED1_TOGGLE         /* defined empty */
+#define LED1_ON             /**< defined empty */
+#define LED1_OFF            /**< defined empty */
+#define LED1_TOGGLE         /**< defined empty */
 #endif
 
 #ifndef LED2_ON
-#define LED2_ON             /* defined empty */
-#define LED2_OFF            /* defined empty */
-#define LED2_TOGGLE         /* defined empty */
+#define LED2_ON             /**< defined empty */
+#define LED2_OFF            /**< defined empty */
+#define LED2_TOGGLE         /**< defined empty */
 #endif
 
 #ifndef LED3_ON
-#define LED3_ON             /* defined empty */
-#define LED3_OFF            /* defined empty */
-#define LED3_TOGGLE         /* defined empty */
+#define LED3_ON             /**< defined empty */
+#define LED3_OFF            /**< defined empty */
+#define LED3_TOGGLE         /**< defined empty */
 #endif
 
 #ifndef LED4_ON
-#define LED4_ON             /* defined empty */
-#define LED4_OFF            /* defined empty */
-#define LED4_TOGGLE         /* defined empty */
+#define LED4_ON             /**< defined empty */
+#define LED4_OFF            /**< defined empty */
+#define LED4_TOGGLE         /**< defined empty */
 #endif
 
 #ifndef LED5_ON
-#define LED5_ON             /* defined empty */
-#define LED5_OFF            /* defined empty */
-#define LED5_TOGGLE         /* defined empty */
+#define LED5_ON             /**< defined empty */
+#define LED5_OFF            /**< defined empty */
+#define LED5_TOGGLE         /**< defined empty */
 #endif
 
 #ifndef LED6_ON
-#define LED6_ON             /* defined empty */
-#define LED6_OFF            /* defined empty */
-#define LED6_TOGGLE         /* defined empty */
+#define LED6_ON             /**< defined empty */
+#define LED6_OFF            /**< defined empty */
+#define LED6_TOGGLE         /**< defined empty */
 #endif
 
 #ifndef LED7_ON
-#define LED7_ON             /* defined empty */
-#define LED7_OFF            /* defined empty */
-#define LED7_TOGGLE         /* defined empty */
+#define LED7_ON             /**< defined empty */
+#define LED7_OFF            /**< defined empty */
+#define LED7_TOGGLE         /**< defined empty */
 #endif
 /** @} */
 
 /**
- * @brief   Convenience LED control macros
+ * @name    Convenience LED control macros
  * @{
  */
-#define LED_ON(x)           LED ## x ##_ON
-#define LED_OFF(x)          LED ## x ## _OFF
-#define LED_TOGGLE(x)       LED ## x ##_TOGGLE
+#define LED_ON(x)           LED ## x ##_ON      /**< Turn on led x */
+#define LED_OFF(x)          LED ## x ## _OFF    /**< Turn off led x */
+#define LED_TOGGLE(x)       LED ## x ##_TOGGLE  /**< Toggle led x */
 /** @} */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* LED_H_ */
+#endif /* LED_H */
 /** @} */

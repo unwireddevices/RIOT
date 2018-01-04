@@ -31,13 +31,14 @@ extern "C" {
 #include "periph/gpio.h"
 #include "rtctimers-millis.h"
 
+#include "rtctimers.h"
+
 void blink_led(gpio_t led)
 {
     int i;
-    gpio_set(led);
     for (i = 0; i < 4; i++) {
         gpio_toggle(led);
-        rtctimers_millis_sleep(50);        
+        rtctimers_millis_sleep(50);
     }
     gpio_clear(led);
 }

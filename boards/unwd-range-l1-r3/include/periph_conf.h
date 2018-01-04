@@ -30,6 +30,7 @@ extern "C" {
  * @name Clock system configuration
  * @{
  **/
+#define CLOCK_LSE           (32768)                 /* external low-speed crystal frequency  */
 #define CLOCK_HSE           (24000000U)             /* external high-speed crystal frequency */
 #define CLOCK_HSI           (16000000U)             /* internal high-speed crystal frequency */
 #define CLOCK_CORECLOCK     (32000000U)             /* targeted core clock frequency */

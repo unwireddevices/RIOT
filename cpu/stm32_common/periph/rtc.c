@@ -124,25 +124,31 @@
 #define RTC_ALRMAR_SU_Pos   (0U)
 #endif
 
-/* figure out sync and async prescaler */
-
+/* figure out sync and async prescalers
+ * NB: lower PRE_ASYNC values increase rtctimers_millis accuracy,
+ * but also increase power consumption
+ */
 #if CLOCK_LSE
-#define PRE_ASYNC           (0x7)  /**< prescaler for 32.768 kHz oscillator */
-#define PRE_SYNC            ((32768 / (PRE_ASYNC + 1)) - 1)  /**< prescaler for 32.768 kHz oscillator */
+#define PRE_ASYNC           (7)
+#define PRE_SYNC            ((CLOCK_LSE / (PRE_ASYNC + 1)) - 1)
 #elif (CLOCK_LSI == 40000)
-#define PRE_SYNC            (319)
 #define PRE_ASYNC           (124)
+#define PRE_SYNC            ((CLOCK_LSI / (PRE_ASYNC + 1)) - 1)
 #elif (CLOCK_LSI == 37000)
-#define PRE_SYNC            (295)
 #define PRE_ASYNC           (124)
+#define PRE_SYNC            ((CLOCK_LSI / (PRE_ASYNC + 1)) - 1)
 #elif (CLOCK_LSI == 32000)
-#define PRE_SYNC            (249)
 #define PRE_ASYNC           (127)
+#define PRE_SYNC            ((CLOCK_LSI / (PRE_ASYNC + 1)) - 1)
 #else
 #error "rtc: unable to determine RTC SYNC and ASYNC prescalers from LSI value"
 #endif
 
-#define RTC_SSR_TO_US               (((10000000 / PRE_SYNC) + 5)/10) /**< conversion from RTC_SSR to microseconds */
+#define RTC_SSR_TO_US                   (((10000000 / PRE_SYNC) + 5)/10) /**< conversion from RTC_SSR to microseconds */
+
+#define RTCTIMERS_MILLIS_OVERHEAD       (0)
+#define RTCTIMERS_MILLIS_BACKOFF        (((10000/RTC_SSR_TO_US) + 5)/10)
+#define RTCTIMERS_MILLIS_ISR_BACKOFF    (((10000/RTC_SSR_TO_US) + 5)/10)
 
 /* struct tm counts years since 1900 but RTC has only two-digit year hence the
  * offset of 100 years. */
@@ -178,25 +184,15 @@ static int bcd2val(uint32_t val, int shift, uint32_t mask)
 
 static inline void rtc_unlock(void)
 {
-    /* enable backup clock domain */
-    stmclk_dbp_unlock();
     /* unlock RTC */
     RTC->WPR = WPK1;
     RTC->WPR = WPK2;
-    /* enter RTC init mode */
-    RTC->ISR |= RTC_ISR_INIT;
-    while (!(RTC->ISR & RTC_ISR_INITF)) {}
 }
 
 static inline void rtc_lock(void)
 {
-    /* exit RTC init mode */
-    RTC->ISR &= ~RTC_ISR_INIT;
-    while (RTC->ISR & RTC_ISR_INITF) {}
     /* lock RTC device */
     RTC->WPR = 0xff;
-    /* disable backup clock domain */
-    stmclk_dbp_lock();
 }
 
 void rtc_init(void)
@@ -206,6 +202,7 @@ void rtc_init(void)
 
     /* select input clock and enable the RTC */
     stmclk_dbp_unlock();
+    
     EN_REG &= ~(CLKSEL_MASK);
 #if CLOCK_LSE
     EN_REG |= (CLKSEL_LSE | EN_BIT);
@@ -214,6 +211,9 @@ void rtc_init(void)
 #endif
 
     rtc_unlock();
+    /* enter RTC init mode */
+    RTC->ISR |= RTC_ISR_INIT;
+    while (!(RTC->ISR & RTC_ISR_INITF)) {}
     /* reset configuration */
     RTC->CR = 0;
     RTC->ISR = RTC_ISR_INIT;
@@ -223,6 +223,11 @@ void rtc_init(void)
     RTC->CR &= ~RTC_CR_FMT;
     /* Timestamps enabled */
     RTC->CR |= RTC_CR_TSE;
+    
+    /* exit RTC init mode */
+    RTC->ISR &= ~RTC_ISR_INIT;
+    while (RTC->ISR & RTC_ISR_INITF) {}
+    
     rtc_lock();
 
     /* configure the EXTI channel, as RTC interrupts are routed through it.
@@ -238,6 +243,10 @@ void rtc_init(void)
 int rtc_set_time(struct tm *time)
 {
     rtc_unlock();
+    /* enter RTC init mode */
+    RTC->ISR |= RTC_ISR_INIT;
+    while (!(RTC->ISR & RTC_ISR_INITF)) {}
+    
     RTC->DR = (val2bcd((time->tm_year % 100), RTC_DR_YU_Pos, DR_Y_MASK) |
                val2bcd(time->tm_mon,  RTC_DR_MU_Pos, DR_M_MASK) |
                val2bcd(time->tm_wday, RTC_DR_WDU_Pos, DR_WDU_MASK) |
@@ -245,7 +254,12 @@ int rtc_set_time(struct tm *time)
     RTC->TR = (val2bcd(time->tm_hour, RTC_TR_HU_Pos, TR_H_MASK) |
                val2bcd(time->tm_min,  RTC_TR_MNU_Pos, TR_M_MASK) |
                val2bcd(time->tm_sec,  RTC_TR_SU_Pos, TR_S_MASK));
+               
+    /* exit RTC init mode */
+    RTC->ISR &= ~RTC_ISR_INIT;
+    while (RTC->ISR & RTC_ISR_INITF) {}
     rtc_lock();
+    
     while (!(RTC->ISR & RTC_ISR_RSF)) {}
 
     return 0;
@@ -331,20 +345,20 @@ void rtc_clear_alarm(void)
 int rtc_millis_set_alarm(int milliseconds, rtc_alarm_cb_t cb, void *arg)
 {   
     rtc_unlock();
-    rtc_millis_clear_alarm();
+    
+    RTC->CR &= ~(RTC_CR_ALRBE | RTC_CR_ALRBIE);
+    while (!(RTC->ISR & RTC_ISR_ALRBWF)) {}
     
     /* setting seconds */
-    uint8_t seconds = milliseconds/1000;
-    
-    RTC->ALRMBR = val2bcd(seconds,  RTC_ALRMAR_SU_Pos, ALRM_S_MASK);
+    int seconds = milliseconds/1000;
+    RTC->ALRMBR = val2bcd(seconds, RTC_ALRMAR_SU_Pos, ALRM_S_MASK);
     
     /* minutes, hours and date doesn't matter */
     RTC->ALRMBR |= (RTC_ALRMBR_MSK2 | RTC_ALRMBR_MSK3 | RTC_ALRMBR_MSK4);
 
     uint32_t msec = milliseconds % 1000;
-      
     uint32_t alarm_millis_time = PRE_SYNC - (msec*1000)/RTC_SSR_TO_US;
-    
+       
     /* set up subseconds alarm */
     uint32_t regalarm = RTC->ALRMBSSR;
     regalarm |= (0x8 << 24); // compare 8 bits only
@@ -367,12 +381,14 @@ int rtc_millis_set_alarm(int milliseconds, rtc_alarm_cb_t cb, void *arg)
 
 void rtc_millis_clear_alarm(void)
 {
+    rtc_unlock();
     /* Disable Alarm B */
-    RTC->CR &= ~RTC_CR_ALRBE;
-    RTC->CR &= ~RTC_CR_ALRBIE;
+    RTC->CR &= ~(RTC_CR_ALRBE | RTC_CR_ALRBIE);
+    while (!(RTC->ISR & RTC_ISR_ALRBWF)) {}
     
     isr_ctx.cb_b = NULL;
     isr_ctx.arg_b = NULL;
+    rtc_lock();
 }
 
 int rtc_millis_get_time(uint32_t *millis)
@@ -409,8 +425,6 @@ int rtc_millis_get_time(uint32_t *millis)
         /* 3rd read if 1st and 2nd don't match */
         rtc_time_reg = RTC->TR;
     }
-    
-    RTC->DR;
     
     uint32_t seconds  = (((rtc_time_reg & RTC_TR_ST)  >>  4) * 10) + ((rtc_time_reg & RTC_TR_SU)  >>  0);
     
@@ -500,7 +514,7 @@ void rtc_poweron(void)
 {
     stmclk_dbp_unlock();
     EN_REG |= EN_BIT;
-    stmclk_dbp_lock();
+    /* stmclk_dbp_lock(); */
 }
 
 void rtc_poweroff(void)

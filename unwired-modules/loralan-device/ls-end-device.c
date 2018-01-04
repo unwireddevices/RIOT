@@ -50,7 +50,7 @@ static msg_t msg_rx2;
 static msg_t msg_join_timeout;
 static msg_t msg_ack_timeout;
 
-static void configure_sx127x(ls_ed_t *ls, bool tx)
+static void configure_sx127x(ls_ed_t *ls)
 {
     ls_datarate_t dr = (!ls->_internal.use_rx_window_2_settings) ? ls->settings.dr : LS_RX2_DR;
     ls_channel_t ch = (!ls->_internal.use_rx_window_2_settings) ? ls->settings.channel : LS_RX2_CH;
@@ -84,7 +84,7 @@ static void enter_rx(ls_ed_t *ls)
     ls->state = LS_ED_LISTENING;
 
     DEBUG("[LoRa] enter_rx: configure SX127X\n");
-    configure_sx127x(ls, false);
+    configure_sx127x(ls);
     uint8_t state = NETOPT_STATE_RX;
     ls->_internal.device->driver->set(ls->_internal.device, NETOPT_STATE, &state, sizeof(uint8_t));
     DEBUG("[LoRa] enter_rx: SX127X configured\n");
@@ -712,7 +712,7 @@ static void *uq_handler(void *arg)
         ls->_internal.device->driver->set(ls->_internal.device, NETOPT_STATE, &state, sizeof(uint8_t));
 
         /* Configure SX127X to TX */
-        configure_sx127x(ls, true);
+        configure_sx127x(ls);
 
         size_t header_size = sizeof(ls_header_t) + sizeof(ls_payload_len_t);
         size_t payload_size = 0;
@@ -772,7 +772,7 @@ static void *uq_handler(void *arg)
 			   ls_frame_fifo_size(&ls->_internal.uplink_queue));
 #endif
         /* Configure for TX */
-        configure_sx127x(ls, true);
+        configure_sx127x(ls);
         DEBUG("[LoRa] uq_handler: transceiver configured\n");
         /* Send frame into LoRa PHY */
         struct iovec data[1];

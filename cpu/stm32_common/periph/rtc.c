@@ -132,13 +132,13 @@
 #define PRE_ASYNC           (7)
 #define PRE_SYNC            ((CLOCK_LSE / (PRE_ASYNC + 1)) - 1)
 #elif (CLOCK_LSI == 40000)
-#define PRE_ASYNC           (124)
+#define PRE_ASYNC           (9)
 #define PRE_SYNC            ((CLOCK_LSI / (PRE_ASYNC + 1)) - 1)
 #elif (CLOCK_LSI == 37000)
-#define PRE_ASYNC           (124)
+#define PRE_ASYNC           (9)
 #define PRE_SYNC            ((CLOCK_LSI / (PRE_ASYNC + 1)) - 1)
 #elif (CLOCK_LSI == 32000)
-#define PRE_ASYNC           (127)
+#define PRE_ASYNC           (7)
 #define PRE_SYNC            ((CLOCK_LSI / (PRE_ASYNC + 1)) - 1)
 #else
 #error "rtc: unable to determine RTC SYNC and ASYNC prescalers from LSI value"

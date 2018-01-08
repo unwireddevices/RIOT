@@ -25,7 +25,11 @@
 #include "ls-gate-device-list.h"
 #include "ls-frame-fifo.h"
 
-#include "sx1276.h"
+#include "net/gnrc/netdev.h"
+#include "net/netdev.h"
+#include "sx127x_internal.h"
+#include "sx127x_params.h"
+#include "sx127x_netdev.h"
 
 /**
  * @brief Delay before sending frame from queue
@@ -112,7 +116,7 @@ typedef struct {
  * @brief Holds internal channel-related data such as transceiver handler, thread stack, etc.
  */
 typedef struct {
-	sx1276_t *sx1276;			/**< Transceiver instance for this channel */
+	netdev_t *device;			/**< Transceiver instance for this channel */
 	void *gate;					/**< Gate instance pointer */
 
 	ls_frame_t current_frame;	/**< Memory for current frame */

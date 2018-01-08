@@ -33,6 +33,12 @@ extern "C" {
 
 #include <stdint.h>
 
+#define SX127X_LORA_MSG_QUEUE   (16U)
+#define SX127X_STACKSIZE        (2*THREAD_STACKSIZE_DEFAULT)
+#define MSG_TYPE_ISR            (0x3456)
+static char isr_stack[SX127X_STACKSIZE];
+static kernel_pid_t isr_pid;
+
 #define ENABLE_DEBUG (1)
 #include "debug.h"
 
@@ -52,10 +58,11 @@ static void schedule_tx(ls_gate_channel_t *ch) {
 	msg_try_send(&msg, ((ls_gate_t *)ch->_internal.gate)->_internal.uq_thread_pid);
 }
 
-static void prepare_sx1276(ls_gate_channel_t *ch)
+static void prepare_sx127x(ls_gate_channel_t *ch)
 {
-    ls_setup_sx1276(ch->_internal.sx1276, ch->dr, ch->frequency);
-    DEBUG("ls-gate: SX1276 configured\n");
+    ls_setup_sx127x(ch->_internal.device, ch->dr, ch->frequency);
+    
+    DEBUG("ls-gate: SX127x configured\n");
 }
 
 static int send_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame)
@@ -116,10 +123,16 @@ static int send_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame)
     ch->state = LS_GATE_CHANNEL_STATE_TX;
 
     /* Prepare transceiver */
-    prepare_sx1276(ch);
-
+    prepare_sx127x(ch);
+    
     /* Send frame into LoRa PHY */
-    sx1276_send(ch->_internal.sx1276, (uint8_t *) frame, header_size + payload_size);
+    struct iovec data[1];
+    data[0].iov_base = (uint8_t *)frame;
+    data[0].iov_len = header_size + payload_size;
+    
+    if (ch->_internal.device->driver->send(ch->_internal.device, data, 1) == -ENOTSUP) {
+        puts("[LoRa] uq_handler: cannot send, device busy");
+    }
     
     DEBUG("ls-gate: frame sent\n");
 
@@ -162,8 +175,9 @@ static inline void open_rx_windows(ls_gate_channel_t *ch) {
 	xtimer_set_msg(&ch->_internal.rx_window1, LS_GATE_RX1_LENGTH, &msg_rx1_expired, ((ls_gate_t *)ch->_internal.gate)->_internal.tim_thread_pid);
 
 	/* Switch transceiver to RX mode */
-	prepare_sx1276(ch);
-	sx1276_set_rx(ch->_internal.sx1276, ch->_internal.sx1276->settings.lora.rx_timeout);
+	prepare_sx127x(ch);
+    uint8_t state = NETOPT_STATE_RX;
+    ch->_internal.device->driver->set(ch->_internal.device, NETOPT_STATE, &state, sizeof(uint8_t));
 
     /* Capture channel on RX */
     //mutex_lock(&ch->_internal.channel_mutex);
@@ -460,29 +474,45 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
     }
 }
 
-static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
+static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
 {
+    if (event == NETDEV_EVENT_ISR) {
+        msg_t msg;
+        msg.type = MSG_TYPE_ISR;
+        msg.content.ptr = dev;
+        if (msg_send(&msg, isr_pid) <= 0) {
+            puts("gnrc_netdev: possibly lost interrupt.");
+        }
+        return;
+    }
+    
     assert(arg != NULL);
+    ls_gate_channel_t *ch = (ls_gate_channel_t *)arg;
+    
+    switch (event) {
+        case NETDEV_EVENT_RX_COMPLETE: {
+            size_t len;
+            netdev_sx127x_lora_packet_info_t packet_info;
+            ls_gate_t *ls = (ls_gate_t *) ch->_internal.gate;
+            uint8_t message[LS_FRAME_SIZE];
+            
+            len = dev->driver->recv(dev, NULL, 0, 0);
+            dev->driver->recv(dev, message, len, &packet_info);
+            
+            printf("RX: %d bytes, | RSSI: %d dBm | SNR: %d dBm | TOA %d ms\n", (int)len,
+                    packet_info.rssi, (int)packet_info.snr,
+                    (int)packet_info.time_on_air);
 
-    sx1276_t *dev = (sx1276_t *) arg;
-    ls_gate_channel_t *ch = (ls_gate_channel_t *) dev->callback_arg;
-    ls_gate_t *ls = (ls_gate_t *) ch->_internal.gate;
-
-    sx1276_rx_packet_t *packet = (sx1276_rx_packet_t *) &dev->_internal.last_packet;
-
-    switch (event_type) {
-        case SX1276_RX_DONE: {
-            printf("RX: %u bytes, | RSSI: %d\n", packet->size, packet->rssi_value);
             DEBUG("ls-gate: state = IDLE\n");
             ch->state = LS_GATE_CHANNEL_STATE_IDLE;
             
-            ch->last_rssi = packet->rssi_value;
+            ch->last_rssi = packet_info.rssi;
 
             /* Copy packet's data as a frame to our stack */
-            ls_frame_t *frame = (ls_frame_t *) packet->content;
+            ls_frame_t *frame = (ls_frame_t *) message;
 
             /* Check frame format */
-            if (ls_validate_frame(packet->content, packet->size)) {
+            if (ls_validate_frame(message, len)) {
                 if (!frame_recv(ls, ch, frame)) {
                     DEBUG("ls-gate: ls-gate: well-formed frame discarded\n");
                 }
@@ -493,38 +523,58 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
         }
         break;
 
-        case SX1276_RX_ERROR_CRC:
+        case NETDEV_EVENT_CRC_ERROR:
             DEBUG("ls-gate: CRC error\n");
             DEBUG("ls-gate: state = IDLE\n");
             ch->state = LS_GATE_CHANNEL_STATE_IDLE;
             break;
 
-        case SX1276_TX_DONE:
+        case NETDEV_EVENT_TX_COMPLETE:
             DEBUG("ls-gate: TX done\n");
             open_rx_windows(ch);
 
             break;
 
-        case SX1276_RX_TIMEOUT:
+        case NETDEV_EVENT_RX_TIMEOUT:
             DEBUG("ls-gate: RX timeout\n");
             DEBUG("ls-gate: state = IDLE\n");
             ch->state = LS_GATE_CHANNEL_STATE_IDLE;
             break;
 
-        case SX1276_TX_TIMEOUT:
+        case NETDEV_EVENT_TX_TIMEOUT:
         	DEBUG("ls-gate: TX timeout");
-            prepare_sx1276(ch);
-            sx1276_set_rx(ch->_internal.sx1276, ch->_internal.sx1276->settings.lora.rx_timeout);
+            ch->_internal.device->driver->init(ch->_internal.device);
+            prepare_sx127x(ch);
+            uint8_t state = NETOPT_STATE_RX;
+            ch->_internal.device->driver->set(ch->_internal.device, NETOPT_STATE, &state, sizeof(uint8_t));
             break;
             
-        case SX1276_VALID_HEADER:
+        case NETDEV_EVENT_VALID_HEADER:
             puts("ls-gate: header received, switch to RX state");
             ch->state = LS_GATE_CHANNEL_STATE_RX;
             break;
 
         default:
-            DEBUG("ls-gate: received event #%d\n", (int) event_type);
+            DEBUG("ls-gate: received event #%d\n", (int) event);
             break;
+    }
+}
+
+void *isr_thread(void *arg)
+{
+    static msg_t _msg_q[SX127X_LORA_MSG_QUEUE];
+    msg_init_queue(_msg_q, SX127X_LORA_MSG_QUEUE);
+
+    while (1) {
+        msg_t msg;
+        msg_receive(&msg);
+        if (msg.type == MSG_TYPE_ISR) {
+            netdev_t *dev = msg.content.ptr;
+            dev->driver->isr(dev);
+        }
+        else {
+            puts("[LoRa] isr_thread: unexpected msg type");
+        }
     }
 }
 
@@ -669,6 +719,15 @@ static bool create_tim_handler_thread(ls_gate_t *ls)
         puts("ls-gate: creation of timer handler thread failed");
         return false;
     }
+    
+    isr_pid = thread_create(isr_stack, sizeof(isr_stack), THREAD_PRIORITY_MAIN - 1,
+                              THREAD_CREATE_STACKTEST, isr_thread, NULL,
+                              "SX127x handler thread");
+
+    if (isr_pid <= KERNEL_PID_UNDEF) {
+        puts("ls_init: creation of SX127X ISR thread failed");
+        return false;
+    }
 
     ls->_internal.tim_thread_pid = pid_tim;
 
@@ -705,24 +764,25 @@ static bool open_channel(ls_gate_channel_t *ch)
 
     /* Initialize uplink queue */
     ls_frame_fifo_init(&ch->_internal.ul_fifo);
-
-    sx1276_t *sx1276 = ch->_internal.sx1276;
+    
+    DEBUG("[LoRa] open_channel: init SX127X\n");
+    /* Initialize the transceiver */
+    ch->_internal.device->driver->init(ch->_internal.device);
 
     /* Setup callbacks */
-    sx1276->sx1276_event_cb = sx1276_handler;
-    sx1276->callback_arg = ch;
-   
-    /* Initialize the transceiver */
-    sx1276_init(ch->_internal.sx1276);
-
+    ch->_internal.device->event_callback = sx127x_handler;
+    ch->_internal.device->event_callback_arg = ch;
+    
+    DEBUG("[LoRa] ls_ed_init: init RNG\n");
     /* Initialize random number generator */
-    random_init(sx1276_random(ch->_internal.sx1276));
+    random_init(sx127x_random((sx127x_t *)ch->_internal.device));
     
     /* Initialize and configure the transceiver for this channel */
-    prepare_sx1276(ch);
+    prepare_sx127x(ch);
 
     /* Set channel to receive */
-    sx1276_set_rx(sx1276, sx1276->settings.lora.rx_timeout);
+    uint8_t state = NETOPT_STATE_RX;
+    ch->_internal.device->driver->set(ch->_internal.device, NETOPT_STATE, &state, sizeof(uint8_t));
     
     return true;
 }
@@ -731,7 +791,7 @@ static bool initialize_channels(ls_gate_t *ls)
 {
     for (int i = 0; i < ls->num_channels; i++) {
         ls_gate_channel_t *ch = &ls->channels[i];
-        assert(ch->_internal.sx1276 != NULL);
+        assert(ch->_internal.device != NULL);
 
         ch->_internal.gate = ls;
         mutex_init(&ch->_internal.channel_mutex);
@@ -810,7 +870,7 @@ int ls_gate_invite(ls_gate_t *ls, uint64_t nodeid) {
     DEBUG("ls-gate: iterate through all channels and send invitation\n");
     for (int i = 0; i < ls->num_channels; i++) {
         ls_gate_channel_t *ch = &ls->channels[i];
-        assert(ch->_internal.sx1276 != NULL);
+        assert(ch->_internal.device != NULL);
 
         ls_invite_t invite = { .dev_id = nodeid };
         enqueue_frame(ch, LS_ADDR_UNDEFINED, LS_DL_INVITE, (uint8_t *) &invite, sizeof(ls_invite_t));
@@ -828,7 +888,7 @@ int ls_gate_broadcast(ls_gate_t *ls, uint8_t *buf, size_t bufsize)
     DEBUG("ls-gate: Iterate through all channels and send broadcast message\n");
     for (int i = 0; i < ls->num_channels; i++) {
         ls_gate_channel_t *ch = &ls->channels[i];
-        assert(ch->_internal.sx1276 != NULL);
+        assert(ch->_internal.device != NULL);
 
         enqueue_frame(ch, LS_ADDR_UNDEFINED, LS_DL_BROADCAST, buf, bufsize);
     }
@@ -843,9 +903,10 @@ void ls_gate_sleep(ls_gate_t *ls)
 {
     /* Set all channel transceivers into sleep mode */
     DEBUG("ls-gate: put transceivers into sleep mode");
+    uint8_t state = NETOPT_STATE_SLEEP;
     for (int i = 0; i < ls->num_channels; i++) {
-        sx1276_t *sx1276 = ls->channels[i]._internal.sx1276;
-        sx1276_set_sleep(sx1276);
+        netdev_t *sx127x = ls->channels[i]._internal.device;
+        sx127x->driver->set(sx127x, NETOPT_STATE, &state, sizeof(uint8_t));
     }
 }
 

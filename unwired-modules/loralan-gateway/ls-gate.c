@@ -39,7 +39,7 @@ extern "C" {
 static char isr_stack[SX127X_STACKSIZE];
 static kernel_pid_t isr_pid;
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 static msg_t msg_ping;
@@ -550,7 +550,7 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
             break;
             
         case NETDEV_EVENT_VALID_HEADER:
-            puts("ls-gate: header received, switch to RX state");
+            DEBUG("ls-gate: header received, switch to RX state");
             ch->state = LS_GATE_CHANNEL_STATE_RX;
             break;
 

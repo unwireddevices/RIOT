@@ -524,6 +524,20 @@ static inline void _update_bandwidth(const sx127x_t *dev)
     sx127x_reg_write(dev, SX127X_REG_LR_MODEMCONFIG1, config1_reg);
 }
 
+static inline void _lna_agc_enable(const sx127x_t *dev) {
+    /* Enable LNA HF boost, as recommended in AN1200.23 */
+    sx127x_reg_write(dev, SX127X_REG_LR_LNA,
+                    (sx127x_reg_read(dev, SX127X_REG_LR_LNA) &
+                     SX127X_RF_LORA_LNA_BOOST_HF_MASK) |
+                     SX127X_RF_LORA_LNA_BOOST_HF_ON);
+    
+    /* Enable Automatic Gain Control */
+    sx127x_reg_write(dev, SX127X_REG_LR_MODEMCONFIG3,
+                     (sx127x_reg_read(dev, SX127X_REG_LR_MODEMCONFIG3) &
+                      SX127X_RF_LORA_MODEMCONFIG3_AGCAUTO_MASK) | 
+                      SX127X_RF_LORA_MODEMCONFIG3_AGCAUTO_ON);
+}
+
 void sx127x_set_bandwidth(sx127x_t *dev, uint8_t bandwidth)
 {
     DEBUG("[DEBUG] Set bandwidth: %d\n", bandwidth);
@@ -533,6 +547,8 @@ void sx127x_set_bandwidth(sx127x_t *dev, uint8_t bandwidth)
     _update_bandwidth((const sx127x_t *)dev);
 
     _low_datarate_optimize(dev);
+    
+    _lna_agc_enable((const sx127x_t *)dev);
 
     /* ERRATA sensitivity tweaks */
     if ((dev->settings.lora.bandwidth == SX127X_BW_500_KHZ) &&
@@ -550,18 +566,6 @@ void sx127x_set_bandwidth(sx127x_t *dev, uint8_t bandwidth)
         /* ERRATA 2.1 - Sensitivity Optimization with another Bandwidth */
         sx127x_reg_write(dev, SX127X_REG_LR_TEST36, 0x03);
     }
-    
-    /* Enable LNA HF boost, as recommended in AN1200.23 */
-    sx127x_reg_write(dev, SX127X_REG_LR_LNA,
-                    (sx127x_reg_read(dev, SX127X_REG_LR_LNA) &
-                     SX127X_RF_LORA_LNA_BOOST_HF_MASK) |
-                     SX127X_RF_LORA_LNA_BOOST_HF_ON);
-    
-    /* Enable Automatic Gain Control */
-    sx127x_reg_write(dev, SX127X_REG_LR_MODEMCONFIG3,
-                     (sx127x_reg_read(dev, SX127X_REG_LR_MODEMCONFIG3) &
-                      SX127X_RF_LORA_MODEMCONFIG3_AGCAUTO_MASK) | 
-                      SX127X_RF_LORA_MODEMCONFIG3_AGCAUTO_ON);
 }
 
 uint8_t sx127x_get_spreading_factor(const sx127x_t *dev)

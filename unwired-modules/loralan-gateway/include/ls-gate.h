@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Unwired Devices
+ * Copyright (C) 2016-2018 Unwired Devices
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -12,8 +12,9 @@
  * @brief       
  * @{
  * @file		ls-gate.h
- * @brief       LoRa-Star gateway device definitions
+ * @brief       LoRaLAN gateway device definitions
  * @author      Eugene Ponomarev
+ * @author      Oleg Artamonov
  */
 #ifndef UNWIRED_MODULES_LORA_STAR_INCLUDE_LS_H_
 #define UNWIRED_MODULES_LORA_STAR_INCLUDE_LS_H_

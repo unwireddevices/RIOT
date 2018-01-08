@@ -11,9 +11,9 @@
  * @ingroup
  * @brief
  * @{
- * @file
- * @brief
- * @author      Evgeniy Ponomarev
+ * @file        ls-init-device.c
+ * @brief       Common LoRaLAN device initialization functions
+ * @author      Oleg Artamonov
  */
 
 #ifdef __cplusplus

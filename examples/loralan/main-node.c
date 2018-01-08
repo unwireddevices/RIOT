@@ -11,9 +11,10 @@
  * @ingroup
  * @brief
  * @{
- * @file
- * @brief
+ * @file        main-node.c
+ * @brief       LoRaLAN node device
  * @author      Evgeniy Ponomarev
+ * @author      Oleg Artamonov
  */
 
 #ifdef __cplusplus

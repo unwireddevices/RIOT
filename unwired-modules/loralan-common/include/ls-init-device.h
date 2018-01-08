@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Unwired Devices
+ * Copyright (C) 2017-2018 Unwired Devices [info@unwds.com]
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level

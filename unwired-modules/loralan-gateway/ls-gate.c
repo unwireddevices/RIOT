@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Unwired Devices
+ * Copyright (C) 2016-2018 Unwired Devices [info@unwds.com]
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -11,9 +11,10 @@
  * @ingroup
  * @brief
  * @{
- * @file		ls_end_device.c
- * @brief       Implementation of LoRa-Star stack for end-device
+ * @file		ls-gate.c
+ * @brief       LoRaLAN network stack for the gateway device
  * @author      Eugene Ponomarev
+ * @author      Oleg Artamonov
  */
 
 #ifdef __cplusplus

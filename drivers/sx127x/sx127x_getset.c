@@ -550,6 +550,18 @@ void sx127x_set_bandwidth(sx127x_t *dev, uint8_t bandwidth)
         /* ERRATA 2.1 - Sensitivity Optimization with another Bandwidth */
         sx127x_reg_write(dev, SX127X_REG_LR_TEST36, 0x03);
     }
+    
+    /* Enable LNA HF boost, as recommended in AN1200.23 */
+    sx127x_reg_write(dev, SX127X_REG_LR_LNA,
+                    (sx127x_reg_read(dev, SX127X_REG_LR_LNA) &
+                     SX127X_RF_LORA_LNA_BOOST_HF_MASK) |
+                     SX127X_RF_LORA_LNA_BOOST_HF_ON);
+    
+    /* Enable Automatic Gain Control */
+    sx127x_reg_write(dev, SX127X_REG_LR_MODEMCONFIG3,
+                     (sx127x_reg_read(dev, SX127X_REG_LR_MODEMCONFIG3) &
+                      SX127X_RF_LORA_MODEMCONFIG3_AGCAUTO_MASK) | 
+                      SX127X_RF_LORA_MODEMCONFIG3_AGCAUTO_ON);
 }
 
 uint8_t sx127x_get_spreading_factor(const sx127x_t *dev)

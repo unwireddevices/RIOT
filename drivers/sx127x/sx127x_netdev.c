@@ -173,16 +173,16 @@ static int _recv(netdev_t *netdev, void *buf, size_t len, void *info)
                 
                 packet_info->rssi = rssi + (rssi >> 4);
 
-#if defined(MODULE_SX1272)
-                packet_info->rssi += SX127X_RSSI_OFFSET;
-#else
-                if (dev->settings.channel > SX127X_RF_MID_BAND_THRESH) {
-                    packet_info->rssi += SX127X_RSSI_OFFSET_HF;
-                }
-                else {
-                    packet_info->rssi += SX127X_RSSI_OFFSET_LF;
-                }
-#endif
+                if (dev->_internal.modem_chip == SX127X_MODEM_SX1272) {    
+                    packet_info->rssi += SX127X_RSSI_OFFSET;
+                } else {
+                    if (dev->settings.channel > SX127X_RF_MID_BAND_THRESH) {
+                        packet_info->rssi += SX127X_RSSI_OFFSET_HF;
+                    }
+                    else {
+                        packet_info->rssi += SX127X_RSSI_OFFSET_LF;
+                    }
+                } 
 
                 if (packet_info->snr < 0) {
                     packet_info->rssi += packet_info->snr;

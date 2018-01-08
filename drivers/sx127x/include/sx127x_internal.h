@@ -33,12 +33,11 @@ extern "C" {
  * @name   Constant values used to compute RSSI
  * @{
  */
-#if defined(MODULE_SX1272)
+/* SX1272 */
 #define SX127X_RSSI_OFFSET                                 (-139)
-#else /* MODULE_SX1276 */
+/* SX1276 */
 #define SX127X_RSSI_OFFSET_LF                              (-164)
 #define SX127X_RSSI_OFFSET_HF                              (-157)
-#endif
 /** @} */
 
 /**
@@ -47,7 +46,7 @@ extern "C" {
  * @param[in] dev                      The sx127x device descriptor
  * @return true if test passed, false otherwise
  */
-bool sx127x_test(const sx127x_t *dev);
+bool sx127x_test(sx127x_t *dev);
 
 /**
  * @brief   Writes the radio register at specified address.

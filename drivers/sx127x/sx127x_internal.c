@@ -32,35 +32,32 @@
 #include "sx127x_internal.h"
 #include "sx127x_params.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 
 #define SX127X_SPI_SPEED    (SPI_CLK_1MHZ)
 #define SX127X_SPI_MODE     (SPI_MODE_0)
 
-
-bool sx127x_test(const sx127x_t *dev)
+bool sx127x_test(sx127x_t *dev)
 {
     /* Read version number and compare with sx127x assigned revision */
     uint8_t version = sx127x_reg_read(dev, SX127X_REG_VERSION);
-
-#if defined(MODULE_SX1272)
-    if (version != VERSION_SX1272) {
-        DEBUG("[Error] sx1272 test failed, invalid version number: %d\n",
-              version);
-        return false;
+    
+    switch (version) {
+        case VERSION_SX1272:
+            dev->_internal.modem_chip = SX127X_MODEM_SX1272;
+            DEBUG("SX1272 transceiver detected.\n");
+            break;
+        case VERSION_SX1276:
+            dev->_internal.modem_chip = SX127X_MODEM_SX1276;
+            DEBUG("SX1276 transceiver detected.\n");
+            break;
+        default:
+            DEBUG("[Error] sx127x test failed, invalid version number: %d\n",
+                   version);
+            return false;
     }
-    DEBUG("SX1272 transceiver detected.\n");
-#else /* MODULE_SX1276) */
-    if (version != VERSION_SX1276) {
-        DEBUG("[Error] sx1276 test failed, invalid version number: %d\n",
-              version);
-        return false;
-    }
-    DEBUG("SX1276 transceiver detected.\n");
-#endif
-
     return true;
 }
 
@@ -172,16 +169,16 @@ int16_t sx127x_read_rssi(const sx127x_t *dev)
             rssi = -(sx127x_reg_read(dev, SX127X_REG_RSSIVALUE) >> 1);
             break;
         case SX127X_MODEM_LORA:
-#if defined(MODULE_SX1272)
-            rssi = SX127X_RSSI_OFFSET + sx127x_reg_read(dev, SX127X_REG_LR_RSSIVALUE);
-#else /* MODULE_SX1276 */
-            if (dev->settings.channel > SX127X_RF_MID_BAND_THRESH) {
-                rssi = SX127X_RSSI_OFFSET_HF + sx127x_reg_read(dev, SX127X_REG_LR_RSSIVALUE);
+            if (dev->_internal.modem_chip == SX127X_MODEM_SX1272) {
+                rssi = SX127X_RSSI_OFFSET + sx127x_reg_read(dev, SX127X_REG_LR_RSSIVALUE);
+            } else {                
+                if (dev->settings.channel > SX127X_RF_MID_BAND_THRESH) {
+                    rssi = SX127X_RSSI_OFFSET_HF + sx127x_reg_read(dev, SX127X_REG_LR_RSSIVALUE);
+                }
+                else {
+                    rssi = SX127X_RSSI_OFFSET_LF + sx127x_reg_read(dev, SX127X_REG_LR_RSSIVALUE);
+                }
             }
-            else {
-                rssi = SX127X_RSSI_OFFSET_LF + sx127x_reg_read(dev, SX127X_REG_LR_RSSIVALUE);
-            }
-#endif
             break;
         default:
             rssi = -1;

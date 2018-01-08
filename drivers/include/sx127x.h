@@ -237,15 +237,21 @@ typedef struct {
     sx127x_lora_settings_t lora;       /**< LoRa settings */
 } sx127x_radio_settings_t;
 
+typedef enum {
+    SX127X_MODEM_SX1272 = 0,
+    SX127X_MODEM_SX1276 = 1,
+} sx127x_modem_chip_t;
+
 /**
  * @brief   SX127X internal data.
  */
 typedef struct {
     /* Data that will be passed to events handler in application */
-    rtctimers_millis_t tx_timeout_timer;         /**< TX operation timeout timer */
-    rtctimers_millis_t rx_timeout_timer;         /**< RX operation timeout timer */
-    uint32_t last_channel;             /**< Last channel in frequency hopping sequence */
-//    bool is_last_cad_success;          /**< Sign of success of last CAD operation (activity detected) */
+    rtctimers_millis_t tx_timeout_timer;        /**< TX operation timeout timer */
+    rtctimers_millis_t rx_timeout_timer;        /**< RX operation timeout timer */
+    uint32_t last_channel;                      /**< Last channel in frequency hopping sequence */
+    sx127x_modem_chip_t modem_chip;             /**< Modem model */
+//    bool is_last_cad_success;                 /**< Sign of success of last CAD operation (activity detected) */
 } sx127x_internal_t;
 
 /**

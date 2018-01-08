@@ -64,8 +64,7 @@ USEMODULE += checksum
 USEMODULE += rtctimers
 USEMODULE += rtctimers-millis
 
-DRIVER ?= sx1276
-USEMODULE += ${DRIVER}
+USEMODULE += sx127x
 
 EXTERNAL_MODULE_DIRS += ../../unwired-modules/
 USEMODULE += loralan-mac
@@ -88,7 +87,6 @@ RIOTBASE ?= $(CURDIR)/../..
 
 FEATURES_REQUIRED = periph_spi periph_gpio
 
-DRIVER ?= sx1276
 QUIET ?= 1
 
 CFLAGS += -DDEVELHELP

@@ -1,12 +1,6 @@
 ifneq (,$(filter hd44780,$(USEMODULE)))
     USEMODULE_INCLUDES += $(RIOTBASE)/drivers/hd44780/include
 endif
-ifneq (,$(filter sx1276,$(USEMODULE)))
-    USEMODULE_INCLUDES += $(RIOTBASE)/drivers/sx1276/include
-endif
-ifneq (,$(filter sx1272,$(USEMODULE)))
-    USEMODULE_INCLUDES += $(RIOTBASE)/drivers/sx1272/include
-endif
 ifneq (,$(filter dht,$(USEMODULE)))
   USEMODULE_INCLUDES += $(RIOTBASE)/drivers/dht/include
 endif
@@ -157,7 +151,7 @@ endif
 ifneq (,$(filter adcxx1c,$(USEMODULE)))
   USEMODULE_INCLUDES += $(RIOTBASE)/drivers/adcxx1c/include
 endif
-ifneq (,$(filter sx127%,$(USEMODULE)))
+ifneq (,$(filter sx127x,$(USEMODULE)))
   USEMODULE_INCLUDES += $(RIOTBASE)/drivers/sx127x/include
 endif
 ifneq (,$(filter apa102,$(USEMODULE)))

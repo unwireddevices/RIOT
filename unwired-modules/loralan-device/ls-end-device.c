@@ -498,16 +498,16 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
     
     ls_ed_t *ls = (ls_ed_t *)arg;
     
-    size_t len;
-    netdev_sx127x_lora_packet_info_t packet_info;
-    uint8_t message[LS_FRAME_SIZE];
-    
     switch (event) {
-        case NETDEV_EVENT_RX_COMPLETE:
+        case NETDEV_EVENT_RX_COMPLETE: {
+            size_t len;
+            netdev_sx127x_lora_packet_info_t packet_info;
+            uint8_t message[LS_FRAME_SIZE];
+    
             len = dev->driver->recv(dev, NULL, 0, 0);
             dev->driver->recv(dev, message, len, &packet_info);
             
-            printf("RX: %d bytes, | RSSI: %d | SNR: %d | ToA %d\n", (int)len,
+            printf("RX: %d bytes, | RSSI: %d dBm | SNR: %d dBm | TOA %d ms\n", (int)len,
                     packet_info.rssi, (int)packet_info.snr,
                     (int)packet_info.time_on_air);
 
@@ -554,7 +554,7 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
             }
 
             break;
-
+        }
         case NETDEV_EVENT_CRC_ERROR:
             puts("sx127x: RX CRC failed");
             DEBUG("[LoRa] state = IDLE\n");
@@ -578,8 +578,9 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
             break;
 
         case NETDEV_EVENT_TX_TIMEOUT:
-        /* TODO: this should not happen, re-init SX127X here */
+            /* this should not happen, re-init SX127X here */
             puts("sx127x: TX timeout");
+            ls->_internal.device->driver->init(ls->_internal.device);
             ls_ed_sleep(ls);
 
             break;
@@ -810,7 +811,7 @@ static bool create_uq_handler_thread(ls_ed_t *ls)
     
     isr_pid = thread_create(isr_stack, sizeof(isr_stack), THREAD_PRIORITY_MAIN - 1,
                               THREAD_CREATE_STACKTEST, isr_thread, NULL,
-                              "sx127x ISR thread");
+                              "SX127x handler thread");
 
     if (isr_pid <= KERNEL_PID_UNDEF) {
         puts("ls_init: creation of SX127X ISR thread failed");

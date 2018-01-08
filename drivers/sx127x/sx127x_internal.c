@@ -47,11 +47,11 @@ bool sx127x_test(sx127x_t *dev)
     switch (version) {
         case VERSION_SX1272:
             dev->_internal.modem_chip = SX127X_MODEM_SX1272;
-            DEBUG("SX1272 transceiver detected.\n");
+            DEBUG("SX1272/73 transceiver detected.\n");
             break;
         case VERSION_SX1276:
             dev->_internal.modem_chip = SX127X_MODEM_SX1276;
-            DEBUG("SX1276 transceiver detected.\n");
+            DEBUG("SX1276/77/78/79 transceiver detected.\n");
             break;
         default:
             DEBUG("[Error] sx127x test failed, invalid version number: %d\n",

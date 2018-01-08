@@ -39,7 +39,7 @@ extern "C" {
 #include "debug.h"
 
 #define SX127X_LORA_MSG_QUEUE   (16U)
-#define SX127X_STACKSIZE        (THREAD_STACKSIZE_DEFAULT)
+#define SX127X_STACKSIZE        (2*THREAD_STACKSIZE_DEFAULT)
 #define MSG_TYPE_ISR            (0x3456)
 static char isr_stack[SX127X_STACKSIZE];
 static kernel_pid_t isr_pid;
@@ -386,7 +386,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             DEBUG("[LoRa] frame_recv: decrypting payload\n");
             ls_decrypt_frame_payload(ls->settings.crypto.join_key, &frame->payload);
 
-            ls_join_ack_t ack;
+            ls_join_ack_t ack = { 0 };
             memcpy(&ack, frame->payload.data, sizeof(ls_join_ack_t));
 
             /* This join ack is not for us */
@@ -429,6 +429,8 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
     			ls_ed_send_app_data(ls, e.data, e.size, e.is_confirmed, e.is_with_ack, true);
     		}
+            
+            DEBUG("[LoRa] frame_recv: done\n");
 
             return true;
         }
@@ -522,6 +524,7 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
                 DEBUG("[LoRa] sx127x_handler: data valid\n");
                 /* Process new frame */
                 if (frame_recv(ls, frame)) {
+                    DEBUG("[LoRa] sx127x_handler: frame received\n");
                     /* Class A devices closes RX window after each received packet */
                     if (ls->settings.class == LS_ED_CLASS_A) {
                         DEBUG("[LoRa] class A close RX window\n");

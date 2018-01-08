@@ -60,7 +60,7 @@
 #ifndef SX127X_H
 #define SX127X_H
 
-#include "xtimer.h"
+#include "rtctimers-millis.h"
 #include "net/netdev.h"
 #include "periph/gpio.h"
 #include "periph/spi.h"
@@ -79,7 +79,7 @@ extern "C" {
 #define SX127X_RF_MID_BAND_THRESH        (525000000UL)          /**< Mid-band threshold */
 #define SX127X_FREQUENCY_RESOLUTION      (61.03515625)          /**< Frequency resolution in Hz */
 #define SX127X_XTAL_FREQ                 (32000000UL)           /**< Internal oscillator frequency, 32MHz */
-#define SX127X_RADIO_WAKEUP_TIME         (1000U)                /**< In microseconds [us] */
+#define SX127X_RADIO_WAKEUP_TIME         (1U)                   /**< In milliseconds [us] */
 
 #define SX127X_PREAMBLE_LENGTH           (8U)                   /**< Preamble length, same for Tx and Rx */
 #define SX127X_SYMBOL_TIMEOUT            (10U)                  /**< Symbols timeout (s) */
@@ -222,8 +222,8 @@ typedef struct {
     uint8_t coderate;                  /**< Error coding rate */
     uint8_t freq_hop_period;           /**< Frequency hop period */
     uint8_t flags;                     /**< Boolean flags */
-    uint32_t rx_timeout;               /**< RX timeout in symbols */
-    uint32_t tx_timeout;               /**< TX timeout in symbols */
+    uint32_t rx_timeout;               /**< RX timeout in milliseconds */
+    uint32_t tx_timeout;               /**< TX timeout in milliseconds */
 } sx127x_lora_settings_t;
 
 /**
@@ -242,10 +242,10 @@ typedef struct {
  */
 typedef struct {
     /* Data that will be passed to events handler in application */
-    xtimer_t tx_timeout_timer;         /**< TX operation timeout timer */
-    xtimer_t rx_timeout_timer;         /**< RX operation timeout timer */
+    rtctimers_millis_t tx_timeout_timer;         /**< TX operation timeout timer */
+    rtctimers_millis_t rx_timeout_timer;         /**< RX operation timeout timer */
     uint32_t last_channel;             /**< Last channel in frequency hopping sequence */
-    bool is_last_cad_success;          /**< Sign of success of last CAD operation (activity detected) */
+//    bool is_last_cad_success;          /**< Sign of success of last CAD operation (activity detected) */
 } sx127x_internal_t;
 
 /**

@@ -76,13 +76,13 @@ void sx127x_reset(const sx127x_t *dev)
     gpio_clear(dev->params.reset_pin);
 
     /* Wait 1 ms */
-    xtimer_usleep(1000);
+    xtimer_spin(xtimer_ticks_from_usec(1000));
 
     /* Put reset pin in High-Z */
     gpio_init(dev->params.reset_pin, GPIO_IN);
 
     /* Wait 10 ms */
-    xtimer_usleep(1000 * 10);
+    rtctimers_millis_sleep(10);
 }
 
 int sx127x_init(sx127x_t *dev)
@@ -99,7 +99,7 @@ int sx127x_init(sx127x_t *dev)
     }
 
     _init_timers(dev);
-    xtimer_usleep(1000); /* wait 1 millisecond */
+    xtimer_spin(xtimer_ticks_from_usec(1000)); /* wait 1 millisecond */
 
     sx127x_reset(dev);
 
@@ -153,7 +153,7 @@ uint32_t sx127x_random(sx127x_t *dev)
     sx127x_set_op_mode(dev, SX127X_RF_OPMODE_RECEIVER);
 
     for (unsigned i = 0; i < 32; i++) {
-        xtimer_usleep(1000); /* wait for the chaos */
+        xtimer_spin(xtimer_ticks_from_usec(1000)); /* wait for the chaos */
 
         /* Non-filtered RSSI value reading. Only takes the LSB value */
         rnd |= ((uint32_t) sx127x_reg_read(dev, SX127X_REG_LR_RSSIWIDEBAND) & 0x01) << i;
@@ -182,21 +182,25 @@ static void sx127x_on_dio_isr(sx127x_t *dev, sx127x_flags_t flag)
 
 static void sx127x_on_dio0_isr(void *arg)
 {
+    DEBUG("DIO0 ISR\n");
     sx127x_on_dio_isr((sx127x_t*) arg, SX127X_IRQ_DIO0);
 }
 
 static void sx127x_on_dio1_isr(void *arg)
 {
+    DEBUG("DIO1 ISR\n");
     sx127x_on_dio_isr((sx127x_t*) arg, SX127X_IRQ_DIO1);
 }
 
 static void sx127x_on_dio2_isr(void *arg)
 {
+    DEBUG("DIO2 ISR\n");
     sx127x_on_dio_isr((sx127x_t*) arg, SX127X_IRQ_DIO2);
 }
 
 static void sx127x_on_dio3_isr(void *arg)
 {
+    DEBUG("DIO3 ISR\n");
     sx127x_on_dio_isr((sx127x_t*) arg, SX127X_IRQ_DIO3);
 }
 

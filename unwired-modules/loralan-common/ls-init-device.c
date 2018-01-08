@@ -73,6 +73,9 @@ const uint8_t datarate_table[7][3] = {
 };
 
 void ls_setup_sx127x(netdev_t *dev, ls_datarate_t dr, uint32_t frequency) {    
+    const netopt_enable_t enable = true;
+    const netopt_enable_t disable = false;
+
     /* Choose data rate */
     const uint8_t *datarate = datarate_table[dr];
     dev->driver->set(dev, NETOPT_SPREADING_FACTOR, &datarate[0], sizeof(uint8_t));
@@ -81,21 +84,22 @@ void ls_setup_sx127x(netdev_t *dev, ls_datarate_t dr, uint32_t frequency) {
     
     uint8_t hop_period = 0;
     dev->driver->set(dev, NETOPT_CHANNEL_HOP_PERIOD, &hop_period, sizeof(uint8_t));
-    dev->driver->set(dev, NETOPT_CHANNEL_HOP, false, sizeof(uint8_t));
-    dev->driver->set(dev, NETOPT_SINGLE_RECEIVE, false, sizeof(uint8_t));
-    dev->driver->set(dev, NETOPT_INTEGRITY_CHECK, (uint8_t *)true, sizeof(uint8_t));
-    dev->driver->set(dev, NETOPT_FIXED_HEADER, false, sizeof(uint8_t));
+    dev->driver->set(dev, NETOPT_CHANNEL_HOP, &disable, sizeof(disable));
+    dev->driver->set(dev, NETOPT_SINGLE_RECEIVE, &disable, sizeof(disable));
+    dev->driver->set(dev, NETOPT_INTEGRITY_CHECK, &enable, sizeof(enable));
+    dev->driver->set(dev, NETOPT_FIXED_HEADER, &disable, sizeof(disable));
+    dev->driver->set(dev, NETOPT_IQ_INVERT, &disable, sizeof(disable));
     
     uint8_t power = TX_OUTPUT_POWER;
     dev->driver->set(dev, NETOPT_TX_POWER, &power, sizeof(uint8_t));
     
-    uint8_t preamble_len = LORA_PREAMBLE_LENGTH;
+    uint16_t preamble_len = LORA_PREAMBLE_LENGTH;
     dev->driver->set(dev, NETOPT_PREAMBLE_LENGTH, &preamble_len, sizeof(uint8_t));
     
-    uint32_t tx_timeout = 30000000;
+    uint32_t tx_timeout = 30000;
     dev->driver->set(dev, NETOPT_TX_TIMEOUT, &tx_timeout, sizeof(uint8_t));
     
-    uint32_t rx_timeout = LORA_SYMBOL_TIMEOUT;
+    uint32_t rx_timeout = 0;
     dev->driver->set(dev, NETOPT_RX_TIMEOUT, &rx_timeout, sizeof(uint8_t));
 
     /* Setup channel */

@@ -73,7 +73,7 @@ void pm_unblock(unsigned mode);
  *
  * @param[in]   mode      Target power mode
  */
-void pm_set(unsigned mode);
+enum pm_mode pm_set(enum pm_mode target);
 
 #ifdef __cplusplus
 }

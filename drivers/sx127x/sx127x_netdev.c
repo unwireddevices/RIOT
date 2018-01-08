@@ -35,10 +35,10 @@
 static uint8_t _get_tx_len(const struct iovec *vector, unsigned count);
 static int _set_state(sx127x_t *dev, netopt_state_t state);
 static int _get_state(sx127x_t *dev, void *val);
-void _on_dio0_irq(void *arg);
-void _on_dio1_irq(void *arg);
-void _on_dio2_irq(void *arg);
-void _on_dio3_irq(void *arg);
+static void _on_dio0_irq(void *arg);
+static void _on_dio1_irq(void *arg);
+static void _on_dio2_irq(void *arg);
+static void _on_dio3_irq(void *arg);
 
 /* Netdev driver api functions */
 static int _send(netdev_t *netdev, const struct iovec *vector, unsigned count);
@@ -85,7 +85,7 @@ static int _send(netdev_t *netdev, const struct iovec *vector, unsigned count)
              * So wake up the chip */
             if (sx127x_get_op_mode(dev) == SX127X_RF_OPMODE_SLEEP) {
                 sx127x_set_standby(dev);
-                xtimer_usleep(SX127X_RADIO_WAKEUP_TIME); /* wait for chip wake up */
+                rtctimers_millis_sleep(SX127X_RADIO_WAKEUP_TIME); /* wait for chip wake up */
             }
 
             /* Write payload buffer */
@@ -116,7 +116,7 @@ static int _send(netdev_t *netdev, const struct iovec *vector, unsigned count)
                      SX127X_RF_LORA_DIOMAPPING1_DIO0_01);
 
     /* Start TX timeout timer */
-    xtimer_set(&dev->_internal.tx_timeout_timer, dev->settings.lora.tx_timeout);
+    rtctimers_millis_set(&dev->_internal.tx_timeout_timer, dev->settings.lora.tx_timeout);
 
     /* Put chip into transfer mode */
     sx127x_set_state(dev, SX127X_RF_TX_RUNNING);
@@ -149,7 +149,7 @@ static int _recv(netdev_t *netdev, void *buf, size_t len, void *info)
                     sx127x_set_state(dev, SX127X_RF_IDLE);
                 }
 
-                xtimer_remove(&dev->_internal.rx_timeout_timer);
+                rtctimers_millis_remove(&dev->_internal.rx_timeout_timer);
                 netdev->event_callback(netdev, NETDEV_EVENT_CRC_ERROR, netdev->event_callback_arg);
                 return -EBADMSG;
             }
@@ -161,7 +161,8 @@ static int _recv(netdev_t *netdev, void *buf, size_t len, void *info)
                 uint8_t snr_value = sx127x_reg_read(dev, SX127X_REG_LR_PKTSNRVALUE);
                 if (snr_value & 0x80) { /* The SNR is negative */
                     /* Invert and divide by 4 */
-                    packet_info->snr = -1 * ((~snr_value + 1) & 0xFF) >> 2;
+                    packet_info->snr = ((~snr_value + 1) & 0xFF) >> 2;
+                    packet_info->snr = -packet_info->snr;
                 }
                 else {
                     /* Divide by 4 */
@@ -169,30 +170,22 @@ static int _recv(netdev_t *netdev, void *buf, size_t len, void *info)
                 }
 
                 int16_t rssi = sx127x_reg_read(dev, SX127X_REG_LR_PKTRSSIVALUE);
+                
+                packet_info->rssi = rssi + (rssi >> 4);
 
-                if (packet_info->snr < 0) {
 #if defined(MODULE_SX1272)
-                    packet_info->rssi = SX127X_RSSI_OFFSET + rssi + (rssi >> 4) + packet_info->snr;
-#else /* MODULE_SX1276 */
-                    if (dev->settings.channel > SX127X_RF_MID_BAND_THRESH) {
-                        packet_info->rssi = SX127X_RSSI_OFFSET_HF + rssi + (rssi >> 4) + packet_info->snr;
-                    }
-                    else {
-                        packet_info->rssi = SX127X_RSSI_OFFSET_LF + rssi + (rssi >> 4) + packet_info->snr;
-                    }
-#endif
+                packet_info->rssi += SX127X_RSSI_OFFSET;
+#else
+                if (dev->settings.channel > SX127X_RF_MID_BAND_THRESH) {
+                    packet_info->rssi += SX127X_RSSI_OFFSET_HF;
                 }
                 else {
-#if defined(MODULE_SX1272)
-                    packet_info->rssi = SX127X_RSSI_OFFSET + rssi + (rssi >> 4);
-#else /* MODULE_SX1276 */
-                    if (dev->settings.channel > SX127X_RF_MID_BAND_THRESH) {
-                        packet_info->rssi = SX127X_RSSI_OFFSET_HF + rssi + (rssi >> 4);
-                    }
-                    else {
-                        packet_info->rssi = SX127X_RSSI_OFFSET_LF + rssi + (rssi >> 4);
-                    }
+                    packet_info->rssi += SX127X_RSSI_OFFSET_LF;
+                }
 #endif
+
+                if (packet_info->snr < 0) {
+                    packet_info->rssi += packet_info->snr;
                 }
                 packet_info->time_on_air = sx127x_get_time_on_air(dev, len);
             }
@@ -210,7 +203,7 @@ static int _recv(netdev_t *netdev, void *buf, size_t len, void *info)
                 sx127x_set_state(dev, SX127X_RF_IDLE);
             }
 
-            xtimer_remove(&dev->_internal.rx_timeout_timer);
+            rtctimers_millis_remove(&dev->_internal.rx_timeout_timer);
 
             /* Read the last packet from FIFO */
             uint8_t last_rx_addr = sx127x_reg_read(dev, SX127X_REG_LR_FIFORXCURRENTADDR);
@@ -547,7 +540,7 @@ static int _get_state(sx127x_t *dev, void *val)
     return sizeof(netopt_state_t);
 }
 
-void _on_dio0_irq(void *arg)
+static void inline _on_dio0_irq(void *arg)
 {
     sx127x_t *dev = (sx127x_t *) arg;
     netdev_t *netdev = (netdev_t*) &dev->netdev;
@@ -557,7 +550,7 @@ void _on_dio0_irq(void *arg)
             netdev->event_callback(netdev, NETDEV_EVENT_RX_COMPLETE, netdev->event_callback_arg);
             break;
         case SX127X_RF_TX_RUNNING:
-            xtimer_remove(&dev->_internal.tx_timeout_timer);
+            rtctimers_millis_remove(&dev->_internal.tx_timeout_timer);
             switch (dev->settings.modem) {
                 case SX127X_MODEM_LORA:
                     /* Clear IRQ */
@@ -572,15 +565,15 @@ void _on_dio0_irq(void *arg)
             }
             break;
         case SX127X_RF_IDLE:
-            printf("sx127x_on_dio0: IDLE state\n");
+            DEBUG("sx127x_on_dio0: IDLE state\n");
             break;
         default:
-            printf("sx127x_on_dio0: Unknown state [%d]\n", dev->settings.state);
+            DEBUG("sx127x_on_dio0: Unknown state [%d]\n", dev->settings.state);
             break;
     }
 }
 
-void _on_dio1_irq(void *arg)
+static void inline _on_dio1_irq(void *arg)
 {
     /* Get interrupt context */
     sx127x_t *dev = (sx127x_t *) arg;
@@ -593,7 +586,7 @@ void _on_dio1_irq(void *arg)
                     /* todo */
                     break;
                 case SX127X_MODEM_LORA:
-                    xtimer_remove(&dev->_internal.rx_timeout_timer);
+                    rtctimers_millis_remove(&dev->_internal.rx_timeout_timer);
                     /*  Clear Irq */
                     sx127x_reg_write(dev, SX127X_REG_LR_IRQFLAGS, SX127X_RF_LORA_IRQFLAGS_RXTIMEOUT);
                     sx127x_set_state(dev, SX127X_RF_IDLE);
@@ -615,12 +608,12 @@ void _on_dio1_irq(void *arg)
             }
             break;
         default:
-            puts("sx127x_on_dio1: Unknown state");
+            DEBUG("sx127x_on_dio1: Unknown state [%d]\n", dev->settings.state);
             break;
     }
 }
 
-void _on_dio2_irq(void *arg)
+static void inline _on_dio2_irq(void *arg)
 {
     /* Get interrupt context */
     sx127x_t *dev = (sx127x_t *) arg;
@@ -668,12 +661,12 @@ void _on_dio2_irq(void *arg)
             }
             break;
         default:
-            puts("sx127x_on_dio2: Unknown state");
+            DEBUG("sx127x_on_dio2: Unknown state [%d]\n", dev->settings.state);
             break;
     }
 }
 
-void _on_dio3_irq(void *arg)
+static void inline _on_dio3_irq(void *arg)
 {
     /* Get interrupt context */
     sx127x_t *dev = (sx127x_t *) arg;
@@ -690,10 +683,10 @@ void _on_dio3_irq(void *arg)
                 netdev->event_callback(netdev, NETDEV_EVENT_VALID_HEADER, netdev->event_callback_arg);
             } else {
                 /* CadDone event */
-                dev->_internal.is_last_cad_success = (sx127x_reg_read(dev, SX127X_REG_LR_IRQFLAGS) & SX127X_RF_LORA_IRQFLAGS_CADDETECTED) == SX127X_RF_LORA_IRQFLAGS_CADDETECTED;
+                bool cad_success = (sx127x_reg_read(dev, SX127X_REG_LR_IRQFLAGS) & SX127X_RF_LORA_IRQFLAGS_CADDETECTED) == SX127X_RF_LORA_IRQFLAGS_CADDETECTED;
                 sx127x_reg_write(dev, SX127X_REG_LR_IRQFLAGS, SX127X_RF_LORA_IRQFLAGS_CADDETECTED | SX127X_RF_LORA_IRQFLAGS_CADDONE);
                 
-                if (dev->_internal.is_last_cad_success) {
+                if (cad_success) {
                     netdev->event_callback(netdev, NETDEV_EVENT_CAD_DETECTED, netdev->event_callback_arg);
                 } else {
                     netdev->event_callback(netdev, NETDEV_EVENT_CAD_DONE, netdev->event_callback_arg);
@@ -701,7 +694,7 @@ void _on_dio3_irq(void *arg)
             }
             break;
         default:
-            puts("sx127x_on_dio3: Unknown modem");
+            DEBUG("sx127x_on_dio3: Unknown modem [%d]\n", dev->settings.state);
             break;
     }
 }

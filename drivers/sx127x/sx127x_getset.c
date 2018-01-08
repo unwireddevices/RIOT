@@ -52,6 +52,9 @@ void sx127x_set_state(sx127x_t *dev, uint8_t state)
     case SX127X_RF_TX_RUNNING:
         DEBUG("[DEBUG] Change state: TX\n");
         break;
+    case SX127X_RF_CAD:
+        DEBUG("[DEBUG] Change state: CAD\n");
+        break;
     default:
         DEBUG("[DEBUG] Change state: UNKNOWN\n");
         break;
@@ -199,8 +202,8 @@ void sx127x_set_sleep(sx127x_t *dev)
     DEBUG("[DEBUG] Set sleep\n");
 
     /* Disable running timers */
-    xtimer_remove(&dev->_internal.tx_timeout_timer);
-    xtimer_remove(&dev->_internal.rx_timeout_timer);
+    rtctimers_millis_remove(&dev->_internal.tx_timeout_timer);
+    rtctimers_millis_remove(&dev->_internal.rx_timeout_timer);
 
     /* Put chip into sleep */
     sx127x_set_op_mode(dev, SX127X_RF_OPMODE_SLEEP);
@@ -212,8 +215,8 @@ void sx127x_set_standby(sx127x_t *dev)
     DEBUG("[DEBUG] Set standby\n");
 
     /* Disable running timers */
-    xtimer_remove(&dev->_internal.tx_timeout_timer);
-    xtimer_remove(&dev->_internal.rx_timeout_timer);
+    rtctimers_millis_remove(&dev->_internal.tx_timeout_timer);
+    rtctimers_millis_remove(&dev->_internal.rx_timeout_timer);
 
     sx127x_set_op_mode(dev, SX127X_RF_OPMODE_STANDBY);
     sx127x_set_state(dev,  SX127X_RF_IDLE);
@@ -230,13 +233,15 @@ void sx127x_set_rx(sx127x_t *dev)
         case SX127X_MODEM_LORA:
         {
             sx127x_reg_write(dev, SX127X_REG_LR_INVERTIQ,
-                             ((sx127x_reg_read(dev, SX127X_REG_LR_INVERTIQ) &
-                               SX127X_RF_LORA_INVERTIQ_TX_MASK &
-                               SX127X_RF_LORA_INVERTIQ_RX_MASK) |
-                              SX127X_RF_LORA_INVERTIQ_RX_ON |
-                              SX127X_RF_LORA_INVERTIQ_TX_OFF));
+                           ((sx127x_reg_read(dev, SX127X_REG_LR_INVERTIQ) &
+                             SX127X_RF_LORA_INVERTIQ_TX_MASK &
+                             SX127X_RF_LORA_INVERTIQ_RX_MASK) |
+                           ((dev->settings.lora.flags & SX127X_IQ_INVERTED_FLAG) ?
+                             SX127X_RF_LORA_INVERTIQ_RX_ON :SX127X_RF_LORA_INVERTIQ_RX_OFF) |
+                             SX127X_RF_LORA_INVERTIQ_TX_OFF));
             sx127x_reg_write(dev, SX127X_REG_LR_INVERTIQ2,
-                             ((dev->settings.lora.flags & SX127X_IQ_INVERTED_FLAG) ? SX127X_RF_LORA_INVERTIQ2_ON : SX127X_RF_LORA_INVERTIQ2_OFF));
+                           ((dev->settings.lora.flags & SX127X_IQ_INVERTED_FLAG) ?
+                             SX127X_RF_LORA_INVERTIQ2_ON : SX127X_RF_LORA_INVERTIQ2_OFF));
 
 #if defined(MODULE_SX1276)
             /* ERRATA 2.3 - Receiver Spurious Reception of a LoRa Signal */
@@ -286,8 +291,8 @@ void sx127x_set_rx(sx127x_t *dev)
                 sx127x_reg_write(dev, SX127X_REG_LR_IRQFLAGSMASK,
                                  /* SX127X_RF_LORA_IRQFLAGS_RXTIMEOUT |
                                     SX127X_RF_LORA_IRQFLAGS_RXDONE |
-                                    SX127X_RF_LORA_IRQFLAGS_PAYLOADCRCERROR | */
-                                 SX127X_RF_LORA_IRQFLAGS_VALIDHEADER |
+                                    SX127X_RF_LORA_IRQFLAGS_PAYLOADCRCERROR |
+                                    SX127X_RF_LORA_IRQFLAGS_VALIDHEADER | */
                                  SX127X_RF_LORA_IRQFLAGS_TXDONE |
                                  SX127X_RF_LORA_IRQFLAGS_CADDONE |
                                  SX127X_RF_LORA_IRQFLAGS_FHSSCHANGEDCHANNEL |
@@ -297,7 +302,13 @@ void sx127x_set_rx(sx127x_t *dev)
                 sx127x_reg_write(dev, SX127X_REG_DIOMAPPING1,
                                  (sx127x_reg_read(dev, SX127X_REG_DIOMAPPING1) &
                                   SX127X_RF_LORA_DIOMAPPING1_DIO0_MASK) |
-                                 SX127X_RF_LORA_DIOMAPPING1_DIO0_00);
+                                  SX127X_RF_LORA_DIOMAPPING1_DIO0_00);
+                                 
+                /* DIO3=ValidHeader */
+                sx127x_reg_write(dev, SX127X_REG_DIOMAPPING1,
+                                 (sx127x_reg_read(dev, SX127X_REG_DIOMAPPING1) &
+                                  SX127X_RF_LORA_DIOMAPPING1_DIO3_MASK) |
+                                  SX127X_RF_LORA_DIOMAPPING1_DIO3_01);
             }
 
             sx127x_reg_write(dev, SX127X_REG_LR_FIFORXBASEADDR, 0);
@@ -308,7 +319,7 @@ void sx127x_set_rx(sx127x_t *dev)
 
     sx127x_set_state(dev, SX127X_RF_RX_RUNNING);
     if (dev->settings.window_timeout != 0) {
-        xtimer_set(&(dev->_internal.rx_timeout_timer),
+        rtctimers_millis_set(&(dev->_internal.rx_timeout_timer),
                    dev->settings.window_timeout);
     }
 
@@ -371,7 +382,7 @@ void sx127x_set_tx(sx127x_t *dev)
 
     sx127x_set_state(dev, SX127X_RF_RX_RUNNING);
     if (dev->settings.window_timeout != 0) {
-        xtimer_set(&(dev->_internal.tx_timeout_timer),
+        rtctimers_millis_set(&(dev->_internal.tx_timeout_timer),
                    dev->settings.window_timeout);
     }
     sx127x_set_op_mode(dev, SX127X_RF_OPMODE_TRANSMITTER );
@@ -429,6 +440,9 @@ void sx127x_set_op_mode(const sx127x_t *dev, uint8_t op_mode)
         break;
     case SX127X_RF_OPMODE_TRANSMITTER:
         DEBUG("[DEBUG] Set op mode: TRANSMITTER\n");
+        break;
+    case SX127X_RF_LORA_OPMODE_CAD:
+        DEBUG("[DEBUG] Set op mode: CAD\n");
         break;
     default:
         DEBUG("[DEBUG] Set op mode: UNKNOWN (%d)\n", op_mode);

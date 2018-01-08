@@ -222,6 +222,8 @@ static void _init_isrs(sx127x_t *dev)
     if (gpio_init_int(dev->params.dio3_pin, GPIO_IN, GPIO_RISING, sx127x_on_dio3_isr, dev) < 0) {
         DEBUG("Error: cannot initialize DIO3 pin\n");
     }
+    
+    gpio_init(dev->params.rfswitch_pin, GPIO_OUT);
 }
 
 static void _on_tx_timeout(void *arg)

@@ -450,6 +450,35 @@ void sx127x_set_op_mode(const sx127x_t *dev, uint8_t op_mode)
     }
 #endif
 
+	if (op_mode == SX127X_RF_OPMODE_SLEEP) {
+        gpio_irq_disable(dev->params.dio0_pin);
+        gpio_irq_disable(dev->params.dio1_pin);
+        gpio_irq_disable(dev->params.dio2_pin);
+        gpio_irq_disable(dev->params.dio3_pin);
+        
+        /* disable RF switch power */
+        if (dev->params.rfswitch_active_level == 0) {
+            gpio_set(dev->params.rfswitch_pin);
+        } else {
+            gpio_clear(dev->params.rfswitch_pin);
+        }
+        
+        /* switch CPU to low-power mode */
+        /* pm_set(LPM_IDLE); */
+	} else {
+        gpio_irq_enable(dev->params.dio0_pin);
+        gpio_irq_enable(dev->params.dio1_pin);
+        gpio_irq_enable(dev->params.dio2_pin);
+        gpio_irq_enable(dev->params.dio3_pin);
+        
+        /* enable RF switch power */
+        if (dev->params.rfswitch_active_level == 1) {
+            gpio_clear(dev->params.rfswitch_pin);
+        } else {
+            gpio_set(dev->params.rfswitch_pin);
+        }
+    }
+
     /* Replace previous mode value and setup new mode value */
     sx127x_reg_write(dev, SX127X_REG_OPMODE,
                      (sx127x_reg_read(dev, SX127X_REG_OPMODE) & SX127X_RF_OPMODE_MASK) | op_mode);

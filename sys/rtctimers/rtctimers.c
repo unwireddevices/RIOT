@@ -47,7 +47,7 @@ void rtctimers_sleep(uint32_t sleep_sec) {
         return;
     }
 
-    rtctimer_t timer;
+    rtctimers_t timer;
     mutex_t mutex = MUTEX_INIT;
 
     timer.callback = _callback_unlock_mutex;
@@ -59,7 +59,7 @@ void rtctimers_sleep(uint32_t sleep_sec) {
     mutex_lock(&mutex);
 }
 
-void rtctimers_set_msg(rtctimer_t *timer, uint32_t offset, msg_t *msg, kernel_pid_t target_pid) {
+void rtctimers_set_msg(rtctimers_t *timer, uint32_t offset, msg_t *msg, kernel_pid_t target_pid) {
 	timer->callback = _callback_msg;
 	timer->arg = (void *) msg;
 

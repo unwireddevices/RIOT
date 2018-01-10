@@ -28,23 +28,23 @@ typedef struct rtctimer {
 	struct rtctimer *next;
 
 	uint32_t target;
+    uint32_t long_target;
 
 	rtctimer_cb_t callback;
 	void *arg;
-} rtctimer_t;
+} rtctimers_t;
 
 #define RTCTIMERS_OVERHEAD 0
 #define RTCTIMERS_BACKOFF 0
-#define RTCTIMERS_ISR_BACKOFF 0
+#define RTCTIMERS_ISR_BACKOFF 1
 
 void rtctimers_init(void);
 
-uint32_t rtctimers_now(void);
-void rtctimers_set(rtctimer_t *timer, uint32_t offset);
-void rtctimers_remove(rtctimer_t *timer);
+void rtctimers_set(rtctimers_t *timer, uint32_t offset);
+void rtctimers_remove(rtctimers_t *timer);
 
 void rtctimers_sleep(uint32_t sleep_sec);
-void rtctimers_set_msg(rtctimer_t *timer, uint32_t offset, msg_t *msg, kernel_pid_t target_pid);
+void rtctimers_set_msg(rtctimers_t *timer, uint32_t offset, msg_t *msg, kernel_pid_t target_pid);
 
 
 #endif /* RTC_TIMERS_H_ */

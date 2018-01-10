@@ -36,7 +36,7 @@ extern "C" {
 
 static uint8_t mhz19_command;
 static msg_t mhz19_msg;
-static rtctimer_t timeout_timer;
+static rtctimers_t timeout_timer;
 static int num_bytes_received = 0;
 
 static void rx_cb(void *arg, uint8_t data)

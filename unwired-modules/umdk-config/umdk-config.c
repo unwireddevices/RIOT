@@ -42,7 +42,7 @@ extern "C" {
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-static rtctimer_t timer;
+static rtctimers_t timer;
 
 static void umdk_config_reset_system(void *arg) {
     NVIC_SystemReset();

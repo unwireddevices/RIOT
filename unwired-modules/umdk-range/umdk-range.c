@@ -52,7 +52,7 @@ static uwnds_cb_t *callback;
 static kernel_pid_t timer_pid;
 
 static msg_t timer_msg = {};
-static rtctimer_t timer;
+static rtctimers_t timer;
 
 static bool is_polled = false;
 

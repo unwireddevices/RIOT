@@ -145,7 +145,7 @@ typedef struct {
     msg_t sx1276_event_queue[16];
 
     /* Timers for first and second RX windows */
-    rtctimer_t rx_window1, rx_window2;
+    rtctimers_t rx_window1, rx_window2;
 
     /* In second RX window, use the default settings */
     bool use_rx_window_2_settings;
@@ -172,10 +172,10 @@ typedef struct {
 	bool is_joined;
 
 	/* Join request expiration timer */
-	rtctimer_t join_req_expired;
+	rtctimers_t join_req_expired;
 
 	/* Confirmation timeout */
-	rtctimer_t conf_ack_expired;
+	rtctimers_t conf_ack_expired;
 
 	/* Number of retransmitting tries */
 	uint8_t num_retr;

@@ -63,7 +63,7 @@ extern "C" {
 
 //static node_role_settings_t node_settings;
 
-static rtctimer_t iwdg_timer;
+static rtctimers_t iwdg_timer;
 
 static sx1276_t sx1276;
 static ls_gate_t ls;

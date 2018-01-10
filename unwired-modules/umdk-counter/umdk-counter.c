@@ -51,7 +51,7 @@ extern "C" {
 static kernel_pid_t handler_pid;
 
 static uwnds_cb_t *callback;
-static rtctimer_t publishing_timer;
+static rtctimers_t publishing_timer;
 static rtctimers_millis_t polling_timer;
 
 static uint8_t ignore_irq[UMDK_COUNTER_NUM_SENS] = { };

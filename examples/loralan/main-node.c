@@ -51,8 +51,8 @@ extern "C" {
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-static rtctimer_t iwdg_timer;
-static rtctimer_t lpm_enable_timer;
+static rtctimers_t iwdg_timer;
+static rtctimers_t lpm_enable_timer;
 
 static sx1276_t sx1276;
 static ls_ed_t ls;

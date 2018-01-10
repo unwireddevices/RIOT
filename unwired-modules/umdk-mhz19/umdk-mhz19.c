@@ -57,7 +57,7 @@ typedef struct {
 static umdk_mhz19_config_t umdk_mhz19_config = { .publish_period_sec = 5};
 
 static bool is_polled = false;
-static rtctimer_t timer;
+static rtctimers_t timer;
 static msg_t timer_msg = {};
 static kernel_pid_t timer_pid;
 

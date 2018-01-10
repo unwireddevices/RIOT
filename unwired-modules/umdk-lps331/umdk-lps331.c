@@ -55,7 +55,7 @@ static kernel_pid_t timer_pid;
 
 static msg_t timer_msg = {
 };
-static rtctimer_t timer;
+static rtctimers_t timer;
 
 static struct {
 	uint8_t publish_period_min;

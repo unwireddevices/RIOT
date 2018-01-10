@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2015 Lari Lehtomäki
  * Copyright (C) 2016 Laksh Bhatia
- * Copyright (C) 2017 Unwired Devices LLC [info@unwds.com]
+ * Copyright (C) 2017-2018 Unwired Devices LLC [info@unwds.com]
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -33,20 +33,21 @@
 #define RTC_WRITE_PROTECTION_KEY2   (0x53)
 #define RTC_ASYNC_PRESCALER         (0x7)  /**< prescaler for 32.768 kHz oscillator */
 #define RTC_SYNC_PRESCALER          ((32768 / (RTC_ASYNC_PRESCALER + 1)) - 1)  /**< prescaler for 32.768 kHz oscillator */
+
 #define RTC_SSR_TO_US               (((10000000 / RTC_SYNC_PRESCALER) + 5)/10) /**< conversion from RTC_SSR to microseconds */
 
-#define MCU_YEAR_OFFSET              (100)  /**< struct tm counts years since 1900
+#define MCU_YEAR_OFFSET             (100)  /**< struct tm counts years since 1900
                                                 but RTC has only two-digit year
                                                 hence the offset of 100 years. */
 
 typedef struct {
     rtc_alarm_cb_t cb;          /**< callback called from RTC interrupt */
     rtc_wkup_cb_t wkup_cb;      /**< Wake up timer callback */
-    rtc_alarm_cb_t millis_cb;       /**< Subseconds alarm callback */
+    rtc_alarm_cb_t millis_cb;   /**< Subseconds alarm callback */
 
     void *arg;                  /**< argument passed to the callback */
     void *wkup_arg;             /**< argument passed to wakeup callback */
-    void *millis_arg;               /**< argument passed to subseconds alarm callback */
+    void *millis_arg;           /**< argument passed to subseconds alarm callback */
 } rtc_state_t;
 
 static rtc_state_t rtc_callback;
@@ -143,8 +144,9 @@ int rtc_get_time(struct tm *time)
     time->tm_mon  = (((rtc_date_reg & RTC_DR_MT)  >> 12) * 10) + ((rtc_date_reg & RTC_DR_MU)  >>  8) - 1;
     time->tm_mday = (((rtc_date_reg & RTC_DR_DT)  >>  4) * 10) + ((rtc_date_reg & RTC_DR_DU)  >>  0);
     time->tm_wday = ((rtc_date_reg & RTC_DR_WDU)  >>  13);
+    
     /* tm_wday should be days since Sunday, so it's 0 if today is Sunday */
-    /* STM32 returns day of week instead, so Monday is 1 and Sunday is 7 */
+    /* STM32 uses day of week instead, so Monday is 1, Sunday is 7, and 0 is not allowed */
     if (time->tm_wday == 7) {
         time->tm_wday = 0;
     }
@@ -170,15 +172,20 @@ int rtc_set_alarm(struct tm *time, rtc_alarm_cb_t cb, void *arg)
     RTC->CR &= ~(RTC_CR_ALRAE);
     while ((RTC->ISR & RTC_ISR_ALRAWF) == 0) ;
     
-    /* seconds, minutes, hours and day must match */
-    RTC->ALRMAR &= ~(RTC_ALRMAR_MSK1 | RTC_ALRMAR_MSK2 | RTC_ALRMAR_MSK3 | RTC_ALRMAR_MSK4);
-    /* 24 hrs format and week day instead of day number */
-    RTC->ALRMAR |= RTC_ALRMAR_PM | RTC_ALRMAR_WDSEL;
+    /* tm_wday should be days since Sunday, so it's 0 if today is Sunday */
+    /* STM32 uses day of week instead, so Monday is 1, Sunday is 7, and 0 is not allowed */
+    if (time->tm_wday == 0) {
+        time->tm_wday = 7;
+    }
     
     RTC->ALRMAR = ((((uint32_t)byte2bcd(time->tm_wday) << 24) & (RTC_ALRMAR_DT | RTC_ALRMAR_DU)) |
                    (((uint32_t)byte2bcd(time->tm_hour) << 16) & (RTC_ALRMAR_HT | RTC_ALRMAR_HU)) |
                    (((uint32_t)byte2bcd(time->tm_min) <<  8) & (RTC_ALRMAR_MNT | RTC_ALRMAR_MNU)) |
                    (((uint32_t)byte2bcd(time->tm_sec) <<  0) & (RTC_ALRMAR_ST | RTC_ALRMAR_SU)));
+                   
+    /* week day instead of day number */
+    RTC->ALRMAR |= RTC_ALRMAR_WDSEL;
+    
     /* Enable Alarm A */
     RTC->CR |= RTC_CR_ALRAE;
     RTC->CR |= RTC_CR_ALRAIE;
@@ -210,6 +217,13 @@ int rtc_get_alarm(struct tm *time)
     }
     time->tm_min  = (((RTC->ALRMAR & RTC_ALRMAR_MNT) >> 12) * 10) + ((RTC->ALRMAR & RTC_ALRMAR_MNU) >>  8);
     time->tm_sec  = (((RTC->ALRMAR & RTC_ALRMAR_ST)  >>  4) * 10) + ((RTC->ALRMAR & RTC_ALRMAR_SU)  >>  0);
+    
+    /* tm_wday should be days since Sunday, so it's 0 if today is Sunday */
+    /* STM32 uses day of week instead, so Monday is 1, Sunday is 7, and 0 is not allowed */
+    if (time->tm_wday == 7) {
+        time->tm_wday = 0;
+    }
+    
     return 0;
 }
 

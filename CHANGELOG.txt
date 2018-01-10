@@ -1,3 +1,9 @@
+10.01.2017
+* rtctimers: fix overflow bug
+* rtctimers: proper overflow handling, virtually unlimited timer duration
+* rtctimers: rename rtctimer_t to rtctimers_t
+* AES-128 implemented in Cortex-M3 optimized assembler (disabled by default)
+
 18.12.2017
 * connection stability improvements
 * GPS fixes for Quectel L76 modules

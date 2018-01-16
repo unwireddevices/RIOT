@@ -675,9 +675,6 @@ static void *uq_handler(void *arg)
         msg_receive(&msg);
         DEBUG("[LoRa] uq_handler: message received\n");
         
-        ls->_internal.device->driver->init(ls->_internal.device);
-        ls_ed_sleep(ls);
-
         if (ls_frame_fifo_empty(&ls->_internal.uplink_queue)) {
             ls->state = LS_ED_IDLE;
             DEBUG("[LoRa] uq_handler: FIFO is empty\n");

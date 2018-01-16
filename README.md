@@ -61,6 +61,15 @@ but not limited to:
 * CoAP
 * CCN-Lite
 
+## SPECIFIC FEATURES BY UNWIRED DEVICES
+
+* LoRaLAN network stack for small-scale LoRa networks (up to 100 nodes with STM32L1 CPU)
+* set of modules providing support for various sensors and actuators for LoRaLAN endpoint device
+* power management support for STM32L1: STOP, STANDBY, SLEEP and frequency switching
+* watchdog, EEPROM, backup registers support for STM32L1
+* RTC-based timers, including subseconds timer (rtctimers and rtctimers-millis)
+* additional peripheral device drivers
+* support for Unwired Range LoRa modems
 
 ## GETTING STARTED
 * You want to start the RIOT? Just follow our [quickstart guide](http://doc.riot-os.org/index.html#the-quickest-start) or the [getting started documentation](http://doc.riot-os.org/getting-started.html).

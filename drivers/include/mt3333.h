@@ -49,7 +49,7 @@
 /**
  * @brief Reader&Parser thread stack size in bytes
  */
-#define MT3333_READER_THREAD_STACK_SIZE_BYTES (2048)
+#define MT3333_READER_THREAD_STACK_SIZE_BYTES (2560)
 
 typedef struct tm mt3333_tm_t;
 
@@ -77,11 +77,9 @@ typedef struct {
  */
 typedef struct {
 	mt3333_param_t params;					/**< Holds driver parameters */
-
-	char rxbuf[MT3333_RXBUF_SIZE_BYTES];	/**< Memory buffer for the ring buffer data */
-	ringbuffer_t rxrb;						/**< Holds incoming data ring buffer */
-
-	uint8_t *reader_stack;	                /**< Reader thread stack, has to be allocated by the application */
+    ringbuffer_t rxrb;						/**< Holds incoming data ring buffer */
+	char *rxbuf;	                        /**< Memory buffer for the ring buffer data */
+	char *reader_stack;	                /**< Reader thread stack, has to be allocated by the application */
 	kernel_pid_t reader_pid;				/**< Reader thread PID */
 } mt3333_t;
 

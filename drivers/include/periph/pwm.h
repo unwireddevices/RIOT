@@ -148,6 +148,20 @@ uint8_t pwm_channels(pwm_t dev);
 void pwm_set(pwm_t dev, uint8_t channel, uint16_t value);
 
 /**
+ * @brief   Start PWM generation on the given device
+ *
+ * @param[in] dev           device to start
+ */
+void pwm_start(pwm_t dev);
+
+/**
+ * @brief   Stop PWM generation on the given device
+ *
+ * @param[in] dev           device to stop
+ */
+void pwm_stop(pwm_t dev);
+
+/**
  * @brief   Resume PWM generation on the given device
  *
  * When this function is called, the given PWM device is powered on and

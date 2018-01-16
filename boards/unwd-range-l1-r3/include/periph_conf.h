@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Unwired Devices <info@unwds.com>
+ * Copyright (C) 2016-2018 Unwired Devices <info@unwds.com>
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
@@ -7,11 +7,11 @@
  */
 
 /**
- * @ingroup     boards_unwd-range-l1-r2
+ * @ingroup     boards_unwd-range-l1-r3
  * @{
  *
  * @file
- * @brief       Peripheral MCU configuration for the Unwired Range (R160829) board
+ * @brief       Peripheral MCU configuration for the Unwired Range R170115 board
  *
  * @author      Mikhail Churikov
  * @author      Oleg Artamonov <oleg@unwds.com>
@@ -294,20 +294,18 @@ static const pwm_conf_t pwm_config[] = {
     {
         .dev      = TIM2,
         .rcc_mask = RCC_APB1ENR_TIM2EN,
-        /* FIXME */
-        .chan     = { { .pin = GPIO_PIN(PORT_A, 5), .cc_chan = 1 },
-                      { .pin = GPIO_PIN(PORT_A, 1), .cc_chan = 2 },
-                      { .pin = GPIO_PIN(PORT_A, 2), .cc_chan = 1 },
-                      { .pin = GPIO_PIN(PORT_A, 3), .cc_chan = 1 } },
+        .chan     = { { .pin = GPIO_PIN(PORT_A, 5), .cc_chan = 0 },
+                      { .pin = GPIO_PIN(PORT_A, 1), .cc_chan = 1 },
+                      { .pin = GPIO_PIN(PORT_A, 2), .cc_chan = 2 },
+                      { .pin = GPIO_PIN(PORT_A, 3), .cc_chan = 3 } },
         .af       = GPIO_AF1,
         .bus      = APB1
     },
     {
         .dev      = TIM3,
         .rcc_mask = RCC_APB1ENR_TIM3EN,
-        /* FIXME */
-        .chan     = { { .pin = GPIO_PIN(PORT_A, 6), .cc_chan = 1 },
-                      { .pin = GPIO_PIN(PORT_A, 7), .cc_chan = 2 },
+        .chan     = { { .pin = GPIO_PIN(PORT_A, 6), .cc_chan = 0 },
+                      { .pin = GPIO_PIN(PORT_A, 7), .cc_chan = 1 },
                       { .pin = GPIO_UNDEF,          .cc_chan = 0 },
                       { .pin = GPIO_UNDEF,          .cc_chan = 0 } },
         .af       = GPIO_AF2,
@@ -316,9 +314,8 @@ static const pwm_conf_t pwm_config[] = {
         {
         .dev      = TIM4,
         .rcc_mask = RCC_APB1ENR_TIM4EN,
-        /* FIXME */
-        .chan     = { { .pin = GPIO_PIN(PORT_B, 8), .cc_chan = 1 },
-                      { .pin = GPIO_PIN(PORT_B, 9), .cc_chan = 2 },
+        .chan     = { { .pin = GPIO_PIN(PORT_B, 8), .cc_chan = 2 },
+                      { .pin = GPIO_PIN(PORT_B, 9), .cc_chan = 3 },
                       { .pin = GPIO_UNDEF,          .cc_chan = 0 },
                       { .pin = GPIO_UNDEF,          .cc_chan = 0 } },
         .af       = GPIO_AF2,

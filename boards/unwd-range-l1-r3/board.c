@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Unwired Devices
+ * Copyright (C) 2016-2018 Unwired Devices
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
@@ -7,11 +7,11 @@
  */
 
 /**
- * @ingroup     boards_unwd-range-l1
+ * @ingroup     boards_unwd-range-l1-r3
  * @{
  *
  * @file
- * @brief       Board specific implementations for the unwd-range-l1 R160829 board
+ * @brief       Board specific implementations for the Unwired Range boards
  *
  * @author      Mihail Churikov
  *

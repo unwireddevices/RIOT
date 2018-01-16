@@ -116,6 +116,18 @@ void pwm_set(pwm_t pwm, uint8_t channel, uint16_t value)
     dev(pwm)->CCR[pwm_config[pwm].chan[channel].cc_chan] = value;
 }
 
+void pwm_start(pwm_t pwm)
+{
+    assert(pwm < PWM_NUMOF);
+    dev(pwm)->CR1 |= TIM_CR1_CEN;
+}
+
+void pwm_stop(pwm_t pwm)
+{
+    assert(pwm < PWM_NUMOF);
+    dev(pwm)->CR1 &= ~TIM_CR1_CEN;
+}
+
 void pwm_poweron(pwm_t pwm)
 {
     assert(pwm < PWM_NUMOF);

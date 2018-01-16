@@ -675,6 +675,9 @@ static void *uq_handler(void *arg)
     while (1) {
         msg_receive(&msg);
         DEBUG("[LoRa] uq_handler: message received\n");
+        
+        ls->_internal.device->driver->init(ls->_internal.device);
+        ls_ed_sleep(ls);
 
         if (ls_frame_fifo_empty(&ls->_internal.uplink_queue)) {
             ls->state = LS_ED_IDLE;
@@ -783,7 +786,7 @@ static void *uq_handler(void *arg)
         struct iovec data[1];
         data[0].iov_base = f;
         data[0].iov_len = header_size + payload_size;
-        
+               
         if (ls->_internal.device->driver->send(ls->_internal.device, data, 1) == -ENOTSUP) {
             puts("[LoRa] uq_handler: cannot send, device busy");
         }

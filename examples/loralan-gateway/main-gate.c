@@ -224,7 +224,7 @@ static void node_kicked_cb(ls_gate_node_t *node)
 
 static uint32_t node_joined_cb(ls_gate_node_t *node)
 {
-    printf("gate: node with ID 0x%08X%08X joined to the network with address 0x%08X\n",
+    printf("gate: node 0x%08X%08X joined to the network, local address is 0x%08X\n",
            (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF),
            (unsigned int) node->addr);
 
@@ -258,7 +258,7 @@ void app_data_received_cb(ls_gate_node_t *node, ls_gate_channel_t *ch, uint8_t *
     bytes_to_hex(&status, 1, buf_status, true);
 
     bytes_to_hex(buf, bufsize, hex, false);
-    printf("[recv] %d bytes: %s | rssi: %d\n", bufsize, hex, rssi);
+    printf("Data: %d bytes, 0x%s\n", bufsize, hex);
 
     char str[GC_MAX_REPLY_LEN] = { };
     sprintf(str, "%c%08X%08X%s%s%s\n", REPLY_IND,

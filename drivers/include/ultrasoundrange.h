@@ -11,7 +11,7 @@
  * @ingroup
  * @brief
  * @{
- * @file		ultrasoundrange.h
+ * @file        ultrasoundrange.h
  * @brief       driver for ultrasound rangefinder
  * @author      Dmitry Golik [info@unwds.com]
  */
@@ -60,11 +60,12 @@
  * @brief Structure that holds the USOUNDRANGE driver internal state and parameters
  */
 typedef struct {
-	// gpio_t threshold_pin;					/**< Sensor "enable" pin */
-	gpio_t silencing_pin;					/**< Silencing pin when used with 1 transceiver */
-	gpio_t sens_pin;				/**< GPIO pin on which sensor is attached */
-	gpio_t t1_pin;				/**< GPIO pin on which sensor is attached */
-	gpio_t t2_pin;				/**< GPIO pin on which sensor is attached */
+    // gpio_t threshold_pin;                /**< Sensor "enable" pin */
+    gpio_t silencing_pin;                   /**< Silencing pin when used with 1 transceiver */
+    gpio_t sens_pin;                        /**< GPIO pin on which sensor is attached */
+    gpio_t t1_pin;                          /**< GPIO pin on which sensor is attached */
+    gpio_t t2_pin;                          /**< GPIO pin on which sensor is attached */
+    int *times;                             /**< Memory to work with */
     int transmit_pulses;
     int silencing_pulses;
     int period_us;

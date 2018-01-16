@@ -15,7 +15,8 @@
  * @authoh      Dmitry Golik [info@unwds.com]
  */
 
-
+/* TO BE CLEANED UP */
+ 
 #include "ultrasoundrange.h"
 #include "periph/gpio.h"
 
@@ -23,7 +24,7 @@
 #include "periph/timer.h"
 #include "periph/pwm.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 #ifdef __cplusplus
@@ -52,6 +53,9 @@ extern "C" {
 #define M_PI 3.14159265358979323846
 #endif
 
+static int *times;
+static int pulse_count = 0;
+
 // Средства преобразования чисел: float_to_fix16, fix16_to_float.
 
 // Преобразование из обычного формата представления чисел
@@ -70,7 +74,7 @@ extern "C" {
 typedef int fix16;
 
 // Функция быстрого вычисления sin, |x|<=M_PI/4.
-fix16 _fast_sin(fix16 x)
+static fix16 _fast_sin(fix16 x)
 {
     // Вычисляется x*x: предкоррекция, целочисленное умножение, посткоррекция.
     fix16 x2=(x>>1)*x>>15; // x2=x**2.
@@ -95,7 +99,7 @@ fix16 _fast_sin(fix16 x)
 }
 
 // Функция быстрого вычисления cos, |x|<=M_PI/4.
-fix16 _fast_cos(fix16 x)
+static fix16 _fast_cos(fix16 x)
 {
     // Вычисляется x*x: предкоррекция, целочисленное умножение, посткоррекция.
     fix16 x2 = x * (x>>1) >> 15; // x2=x**2.
@@ -183,7 +187,7 @@ fix16 fast_cos(unsigned int k) {return fast_sin(k + (1 << 30));}
 // atan(d) ~ d - d**3 / 3. + d**5 / 5. - d**7 / 7. - taylor series - accurate if d < 0.4
 // fix16 _atan2_t7(int y, int x) {
 //     fix16 d = (y << 16) / x; // y / x in fix16 notation
-fix16 _atan_t7(fix16 d) {
+static fix16 _atan_t7(fix16 d) {
     fix16 d2 = d * (d >> 1) >> 15; // d2=d**2.
     fix16 dn = d2 * (d >> 1) >> 15;     // dn=x**3.
     fix16 r = d - (dn * float_to_fix16(1/3.) >> 16);
@@ -197,7 +201,7 @@ fix16 _atan_t7(fix16 d) {
 // atan(d) ~ -0.02458677 + 1.16334442 * x - 0.39347984 * x**2 + 0.04000809 * x**3 - least squares polynomial fit for [0.4 .. 1)
 // fix16 _atan2_p4(int y, int x) {
 //     fix16 d = (y << 16) / x; // y / x in fix16 notation
-fix16 _atan_p4(fix16 d) {
+static fix16 _atan_p4(fix16 d) {
     fix16 dn = (d >> 1) * (d >> 1) >> 14; // dn=d**2.
     fix16 r = float_to_fix16(-0.02458677) + ((d * float_to_fix16(1.16334442 / 4)) >> 14) - ((dn * float_to_fix16(0.39347984 / 2)) >> 15);
     dn = (dn >> 1) * (d >> 1) >> 14;     // dn=d**3.
@@ -206,7 +210,7 @@ fix16 _atan_p4(fix16 d) {
 }
 
 // |y| must be less than 32768 (or 0.5 in fix16), x must be > 0, y must be less than y but more than 0
-fix16 _atan2(int y, int x) {
+static fix16 _atan2(int y, int x) {
     fix16 d = ((y << 15) / x) << 1; // y / x in fix16 notation
     if (d < float_to_fix16(0.4235)) // magic number at which accuracies and results of both approximations are equal
         return _atan_t7(d);
@@ -236,8 +240,6 @@ fix16 fast_atan2(int y, int x){
 
 // арктангенсы оканчиваются
 
-
-
 static inline TIM_TypeDef *tim_dev(pwm_t pwm)
 {
     return pwm_config[pwm].dev;
@@ -261,6 +263,8 @@ int ultrasoundrange_init(ultrasoundrange_t *dev)
     dev->t1_pin = UNWD_GPIO_28;              //< GPIO pin on which sensor is attached  - hi-z (GPIO_AIN) while measuring! 
     dev->t2_pin = UNWD_GPIO_27;              //< GPIO pin on which sensor is attached  -  ground while measuring! 
 */
+
+    times = dev->times;
     
     // dev->silencing_pin = UNWD_GPIO_29;                   // Silencing pin - after R10
     dev->silencing_pin = UNWD_GPIO_29;                   // disrupting pin!
@@ -291,8 +295,8 @@ int ultrasoundrange_init(ultrasoundrange_t *dev)
 
 
     // like in pwm.c
-    // gpio_init(pwm_config[UMDK_PWM_0].pins[UMDK_PWM_CH_3], GPIO_OUT);
-    // gpio_init_af(pwm_config[UMDK_PWM_0].pins[UMDK_PWM_CH_3], pwm_config[UMDK_PWM_0].af);
+    // gpio_init(pwm_config[UMDK_PWM_0].chan[UMDK_PWM_CH_3].pin, GPIO_OUT);
+    // gpio_init_af(pwm_config[UMDK_PWM_0].chan[UMDK_PWM_CH_3].pin, pwm_config[UMDK_PWM_0].af);
     // pwm_init
     pwm_t pwm = UMDK_PWM_0;
     // uint32_t bus_clk = periph_apb_clk(pwm_config[pwm].bus); // pwm_config is in periph_conf.h
@@ -354,15 +358,7 @@ int ultrasoundrange_init(ultrasoundrange_t *dev)
     return 0;
 }
 
-
-int pulse_count = 0;
-int times[UZ_MAX_PULSES] = {};
-
 static int ultrasoundrange_transmit(ultrasoundrange_t *dev) {
-    // puts ("test0");
-
-    int T = dev->period_us; // period in sub-microseconds
-    int F = 1000000 / T; // frequency in hz
     uint16_t period_ticks = dev->period_us; // ARR
     // uint16_t period_ticks = bus_clk * (dev->period_us * UZ_SUBUS_DIVISOR + dev->period_subus) / (1000000 * UZ_SUBUS_DIVISOR ); // overflow
     // uint16_t high_ticks = dev->duty; // CCR at ringing - left
@@ -371,8 +367,14 @@ static int ultrasoundrange_transmit(ultrasoundrange_t *dev) {
     uint16_t high2_ticks = period_ticks - dev->duty2; // CCR at silencing - right
     uint16_t idle_ticks = dev->idle_period_us;
     uint16_t chirp = dev->chirp;
-    if (dev->verbose)
+    
+#if ENABLE_DEBUG
+    int T = dev->period_us; // period in sub-microseconds
+    int F = 1000000 / T; // frequency in hz
+    if (dev->verbose) {
         DEBUG("[ultrasoundrange] Period : %d, frequency: %d, ticks: %d, high: %d, idle: %d, number2: %d\n", T, F, period_ticks, high_ticks, idle_ticks, dev->silencing_pulses);
+    }
+#endif
 
     gpio_init(dev->silencing_pin, GPIO_OUT);
     gpio_clear(dev->silencing_pin); // disrupting current to op amp
@@ -383,8 +385,8 @@ static int ultrasoundrange_transmit(ultrasoundrange_t *dev) {
     TIM2->SR = ~TIM_SR_UIF;
     TIM2->CR1 |= TIM_CR1_CEN;
 
-    gpio_init(pwm_config[UMDK_PWM_0].pins[UMDK_PWM_CH_3], GPIO_OUT); // #define UNWD_GPIO_5 GPIO_PIN(PORT_A, 5)
-    gpio_init_af(pwm_config[UMDK_PWM_0].pins[UMDK_PWM_CH_3], pwm_config[UMDK_PWM_0].af);
+    gpio_init(pwm_config[UMDK_PWM_0].chan[UMDK_PWM_CH_3].pin, GPIO_OUT); // #define UNWD_GPIO_5 GPIO_PIN(PORT_A, 5)
+    gpio_init_af(pwm_config[UMDK_PWM_0].chan[UMDK_PWM_CH_3].pin, pwm_config[UMDK_PWM_0].af);
     // generation
     for (int i = 0; i < dev->transmit_pulses;){
         /*if  (TIM2->SR & TIM_SR_CC4IF) { // left
@@ -507,8 +509,8 @@ static int ultrasoundrange_transmit(ultrasoundrange_t *dev) {
     // TIM2->CCR[UMDK_PWM_CH_3] = 0; // end of generation, but not the end of the timer - left
     TIM2->CCR[UMDK_PWM_CH_3] = 65535; // end of generation, but not the end of the timer - right
     TIM2->ARR = 65535; // end of generation, but not the end of the timer
-    // gpio_init(pwm_config[UMDK_PWM_0].pins[UMDK_PWM_CH_3], GPIO_AIN); // end of generation, but not the end of the timer
-    gpio_init_af(pwm_config[UMDK_PWM_0].pins[UMDK_PWM_CH_3], 0); // end of generation, but not the end of the timer
+    // gpio_init(pwm_config[UMDK_PWM_0].chan[UMDK_PWM_CH_3].pin, GPIO_AIN); // end of generation, but not the end of the timer
+    gpio_init_af(pwm_config[UMDK_PWM_0].chan[UMDK_PWM_CH_3].pin, 0); // end of generation, but not the end of the timer
     // TIM2->CR1 &= ~TIM_CR1_CEN;
     gpio_init(dev->silencing_pin, GPIO_AIN); // for filtering noise from processor
     // end
@@ -599,11 +601,13 @@ static uint32_t ultrasoundrange_count_pulses(ultrasoundrange_t *dev, int begin_t
         }
         printf("\n");
         */
+#if ENABLE_DEBUG
         DEBUG("[ultrasoundrange] Pulse number : %d\n[umdk-opt3001-uz] Pulse times:", pulse_count);
         for (int i = 0; i < pulse_count; i++){
             DEBUG(" %d", times[i]);
         }
         DEBUG("\n");
+#endif
     }
     // printf("clock: %d\n", (int)periph_apb_clk(pwm_config[UMDK_PWM_0].bus)); // 32000000
     return pulse_count;
@@ -612,16 +616,14 @@ static uint32_t ultrasoundrange_count_pulses(ultrasoundrange_t *dev, int begin_t
 
 
 static int32_t ultrasoundrange_first_echo(ultrasoundrange_t *dev, int listening_time) {
-
     int max_pulses = 10;
     int min_time = 32000 * 3; // 3 ms
     int max_ticks = dev->period_us * max_pulses * 3 / 4;
-    for (int i = 0; i < max_pulses; i++)
+    for (int i = 0; i < max_pulses; i++) {
         times[i] = -max_ticks * 2; 
+    }
     
     pulse_count = 0;
-    // int pulse_count = 0;
-    // static int times[UZ_MAX_PULSES] = {};
     int timeout_us = 0;
 
     // TIM2->ARR = 65535; // отчего-то не считает в первый период!!1

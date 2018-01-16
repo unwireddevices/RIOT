@@ -302,12 +302,30 @@ int rtc_set_alarm(struct tm *time, rtc_alarm_cb_t cb, void *arg)
     /* save callback and argument */
     isr_ctx.cb_a = cb;
     isr_ctx.arg_a = arg;
+    
+    if (time->tm_mday == 0) {
+        /* set wakeup time using day of week */
+        /* tm_wday should be days since Sunday, so it's 0 if today is Sunday */
+        /* STM32 uses day of week instead, so Monday is 1 and Sunday is 7 */
+        int wday = time->tm_wday;
+        if (wday == 0) {
+            wday = 7;
+        }
 
-    /* set wakeup time */
-    RTC->ALRMAR = (val2bcd(time->tm_wday, RTC_ALRMAR_DU_Pos, ALRM_D_MASK) |
-                   val2bcd(time->tm_hour, RTC_ALRMAR_HU_Pos, ALRM_H_MASK) |
-                   val2bcd(time->tm_min, RTC_ALRMAR_MNU_Pos, ALRM_M_MASK) |
-                   val2bcd(time->tm_sec,  RTC_ALRMAR_SU_Pos, ALRM_S_MASK));
+        RTC->ALRMAR = (val2bcd(wday, RTC_ALRMAR_DU_Pos, ALRM_D_MASK) |
+                       val2bcd(time->tm_hour, RTC_ALRMAR_HU_Pos, ALRM_H_MASK) |
+                       val2bcd(time->tm_min, RTC_ALRMAR_MNU_Pos, ALRM_M_MASK) |
+                       val2bcd(time->tm_sec,  RTC_ALRMAR_SU_Pos, ALRM_S_MASK));
+                       
+        /* day of week instead of day of month */
+        RTC->ALRMAR |= RTC_ALRMAR_WDSEL;
+    } else {
+        /* set wakeup time using day of month */
+        RTC->ALRMAR = (val2bcd(time->tm_mday, RTC_ALRMAR_DU_Pos, ALRM_D_MASK) |
+                       val2bcd(time->tm_hour, RTC_ALRMAR_HU_Pos, ALRM_H_MASK) |
+                       val2bcd(time->tm_min, RTC_ALRMAR_MNU_Pos, ALRM_M_MASK) |
+                       val2bcd(time->tm_sec,  RTC_ALRMAR_SU_Pos, ALRM_S_MASK));
+    }
 
     /* Enable Alarm A */
     RTC->ISR &= ~(RTC_ISR_ALRAF);
@@ -325,7 +343,24 @@ int rtc_get_alarm(struct tm *time)
 
     time->tm_year = bcd2val(dr, RTC_DR_YU_Pos, DR_Y_MASK) + YEAR_OFFSET;
     time->tm_mon  = bcd2val(dr, RTC_DR_MU_Pos, DR_M_MASK);
-    time->tm_mday = bcd2val(alrm, RTC_ALRMAR_DU_Pos, ALRM_D_MASK);
+    
+    if ((alrm & RTC_ALRMAR_WDSEL) == RTC_ALRMAR_WDSEL) {
+        time->tm_wday = bcd2val(alrm, RTC_DR_WDU_Pos, DR_WDU_MASK);
+        /* tm_wday should be days since Sunday, so it's 0 if today is Sunday */
+        /* STM32 returns day of week instead, so Monday is 1 and Sunday is 7 */
+        if (time->tm_wday == 7) {
+            time->tm_wday = 0;
+        }
+        
+        /* invalid value to be checked by application if needed */
+        time->tm_mday = 0;
+    } else {
+        time->tm_mday = bcd2val(alrm, RTC_ALRMAR_DU_Pos, ALRM_D_MASK);
+        
+        /* invalid value to be checked by application if needed */
+        time->tm_wday = 7;
+    }
+    
     time->tm_hour = bcd2val(alrm, RTC_ALRMAR_HU_Pos, ALRM_H_MASK);
     time->tm_min  = bcd2val(alrm, RTC_ALRMAR_MNU_Pos, ALRM_M_MASK);
     time->tm_sec  = bcd2val(alrm, RTC_ALRMAR_SU_Pos, ALRM_S_MASK);

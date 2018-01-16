@@ -1,3 +1,8 @@
+17.01.2017
+* synced with RIOT OS Release 2017.10
+* truly universal SX1272/SX1276 driver
+* umdk-range renamed to umdk-usound
+
 16.01.2017
 * RX timeouts and low RSSI readings at DR0 fixed
 * LoRaLAN network stack now uses subseconds timer only

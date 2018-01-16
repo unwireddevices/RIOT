@@ -79,7 +79,7 @@ void rtctimers_init(void)
 {
     /* initialize low-level timer */
     rtc_init();
-
+    
     /* register initial overflow 1-week tick */
     _lltimer_set(RTCTIMERS_OVERFLOW_VALUE);
 }
@@ -142,6 +142,7 @@ static void _lltimer_set(uint32_t target)
 	int mins = sec / 60;
 	sec -= mins * 60;
 
+    time.tm_mday = 0;
 	time.tm_wday = days;
 	time.tm_hour = hours;
 	time.tm_min = mins;

@@ -30,13 +30,15 @@ extern "C" {
 #endif
 
 /**
- * @brief The sensors default I2C address
+ * @name    The sensors default I2C address
+ * @{
  */
 #define LSM303DLHC_ACC_DEFAULT_ADDRESS        (0x19)
 #define LSM303DLHC_MAG_DEFAULT_ADDRESS        (0x1e)
+/** @} */
 
 /**
- * @brief Possible accelerometer sample rates
+ * @brief   Possible accelerometer sample rates
  */
 typedef enum {
     LSM303DLHC_ACC_SAMPLE_RATE_1HZ              = 0x10, /**< 1Hz sample rate       */
@@ -52,7 +54,7 @@ typedef enum {
 } lsm303dlhc_acc_sample_rate_t;
 
 /**
- * @brief Possible accelerometer scales
+ * @brief   Possible accelerometer scales
  */
 typedef enum {
     LSM303DLHC_ACC_SCALE_2G     = 0x00, /**< +- 2g range */
@@ -62,7 +64,7 @@ typedef enum {
 } lsm303dlhc_acc_scale_t;
 
 /**
- * @brief Possible magnetometer sample rates
+ * @brief   Possible magnetometer sample rates
  */
 typedef enum {
     LSM303DLHC_MAG_SAMPLE_RATE_0_75HZ   = 0x00, /**< 0.75Hz sample rate */
@@ -76,7 +78,7 @@ typedef enum {
 } lsm303dlhc_mag_sample_rate_t;
 
 /**
- * @brief Possible magnetometer gain values
+ * @brief   Possible magnetometer gain values
  */
  typedef enum {
     LSM303DLHC_MAG_GAIN_1100_980_GAUSS = 0x20, /**< 1100Gauss XYZ 980Gauss Z */
@@ -89,16 +91,16 @@ typedef enum {
  } lsm303dlhc_mag_gain_t;
 
 /**
- * @brief 3d data container
+ * @brief   3d data container
  */
 typedef struct {
-    int16_t x_axis;
-    int16_t y_axis;
-    int16_t z_axis;
+    int16_t x_axis;     /**< holds the x axis value. WOW! */
+    int16_t y_axis;     /**< holds the y axis value. Not kidding. */
+    int16_t z_axis;     /**< surprise, holds the z axis value */
 } lsm303dlhc_3d_data_t;
 
 /**
- * @brief Device descriptor for LSM303DLHC sensors
+ * @brief   Device descriptor for LSM303DLHC sensors
  */
 typedef struct {
     i2c_t i2c;                          /**< I2C device                  */
@@ -111,7 +113,7 @@ typedef struct {
 } lsm303dlhc_t;
 
 /**
- * @brief Data structure holding all the information needed for initialization
+ * @brief   Data structure holding all the information needed for initialization
  */
 typedef struct {
     i2c_t i2c;                              /**< I2C bus used */
@@ -126,7 +128,7 @@ typedef struct {
 } lsm303dlhc_params_t;
 
 /**
- * @brief Initialize a new LSM303DLHC device
+ * @brief   Initialize a new LSM303DLHC device
  *
  * @param[in] dev               device descriptor of an LSM303DLHC device
  * @param[in] i2c               I2C device the sensor is connected to
@@ -151,7 +153,7 @@ int lsm303dlhc_init(lsm303dlhc_t *dev, i2c_t i2c, gpio_t acc_pin, gpio_t mag_pin
                     lsm303dlhc_mag_gain_t mag_gain);
 
 /**
- * @brief Read a accelerometer value from the sensor.
+ * @brief   Read a accelerometer value from the sensor.
  *
  * @details This function provides raw acceleration data. To get the
  *          corresponding values in g please refer to the following
@@ -169,10 +171,10 @@ int lsm303dlhc_init(lsm303dlhc_t *dev, i2c_t i2c, gpio_t acc_pin, gpio_t mag_pin
  * @return              0 on success
  * @return              -1 on error
  */
-int lsm303dlhc_read_acc(lsm303dlhc_t *dev, lsm303dlhc_3d_data_t *data);
+int lsm303dlhc_read_acc(const lsm303dlhc_t *dev, lsm303dlhc_3d_data_t *data);
 
 /**
- * @brief Read a magnetometer value from the sensor.
+ * @brief   Read a magnetometer value from the sensor.
  *
  * @details This function returns raw magnetic data. To get the
  *          corresponding values in gauss please refer to the following
@@ -193,10 +195,10 @@ int lsm303dlhc_read_acc(lsm303dlhc_t *dev, lsm303dlhc_3d_data_t *data);
  * @return              0 on success
  * @return              -1 on error
  */
-int lsm303dlhc_read_mag(lsm303dlhc_t *dev, lsm303dlhc_3d_data_t *data);
+int lsm303dlhc_read_mag(const lsm303dlhc_t *dev, lsm303dlhc_3d_data_t *data);
 
 /**
- * @brief Read a temperature value from the sensor.
+ * @brief   Read a temperature value from the sensor.
  *
  * @param[in]  dev      device descriptor of an LSM303DLHC device
  * @param[out] value    the measured temperature
@@ -204,27 +206,27 @@ int lsm303dlhc_read_mag(lsm303dlhc_t *dev, lsm303dlhc_3d_data_t *data);
  * @return              0 on success
  * @return              -1 on error
  */
-int lsm303dlhc_read_temp(lsm303dlhc_t *dev, int16_t *value);
+int lsm303dlhc_read_temp(const lsm303dlhc_t *dev, int16_t *value);
 
 /**
- * @brief Enable the given sensor
+ * @brief   Enable the given sensor
  *
  * @param[in] dev       device descriptor of an LSM303DLHC device
  *
  * @return              0 on success
  * @return              -1 on error
  */
-int lsm303dlhc_enable(lsm303dlhc_t *dev);
+int lsm303dlhc_enable(const lsm303dlhc_t *dev);
 
 /**
- * @brief Disable the given sensor
+ * @brief   Disable the given sensor
  *
  * @param[in] dev       device descriptor of an LSM303DLHC device
  *
  * @return              0 on success
  * @return              -1 on error
  */
-int lsm303dlhc_disable(lsm303dlhc_t *dev);
+int lsm303dlhc_disable(const lsm303dlhc_t *dev);
 
 #ifdef __cplusplus
 }

@@ -11,6 +11,6 @@ USEMODULE += rtctimers
 USEMODULE += rtctimers-millis
 USEMODULE += xtimer
 
-CFLAGS += -DDEVELHELP
+#CFLAGS += -DDEVELHELP
 
 include $(RIOTBASE)/Makefile.include

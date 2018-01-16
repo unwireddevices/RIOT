@@ -7,7 +7,8 @@
  */
 
 /**
- * @ingroup     cpu_cc430
+ * @ingroup     cc430
+ * @ingroup     drivers_periph_timer
  * @{
  *
  * @file
@@ -67,12 +68,6 @@ int timer_init(tim_t dev, unsigned long freq, timer_cb_t cb, void *arg)
     return 0;
 }
 
-int timer_set(tim_t dev, int channel, unsigned int timeout)
-{
-    uint16_t target = TIMER_BASE->R + (uint16_t)timeout;
-    return timer_set_absolute(dev, channel, (unsigned int)target);
-}
-
 int timer_set_absolute(tim_t dev, int channel, unsigned int value)
 {
     if (dev != 0 || channel > TIMER_CHAN) {
@@ -106,23 +101,6 @@ void timer_start(tim_t dev)
 void timer_stop(tim_t dev)
 {
     TIMER_BASE->CTL &= ~(CTL_MC_MASK);
-}
-
-void timer_irq_enable(tim_t dev)
-{
-
-    /* TODO: not supported, yet
-     *
-     * Problem here: there is no means, of globally disabling timer interrupts.
-     * We could just enable the interrupts for all CC channels, but this would
-     * mean, that we might enable interrupts for channels, that are not active.
-     * I guess we need to remember the interrupt state of all channels before
-     * disabling and then restore this state when enabling again?! */
-}
-
-void timer_irq_disable(tim_t dev)
-{
-    /* TODO: not supported, yet */
 }
 
 ISR(TIMER_ISR_CC0, isr_timer_a_cc0)

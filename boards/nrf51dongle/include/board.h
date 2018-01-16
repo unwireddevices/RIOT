@@ -32,8 +32,6 @@ extern "C" {
  * @brief   Xtimer configuration
  * @{
  */
-#define XTIMER_DEV                  (0)
-#define XTIMER_CHAN                 (0)
 #define XTIMER_WIDTH                (24)
 #define XTIMER_BACKOFF              (40)
 /** @} */
@@ -72,5 +70,5 @@ void board_init(void);
 }
 #endif
 
-#endif /** BOARD_H */
+#endif /* BOARD_H */
 /** @} */

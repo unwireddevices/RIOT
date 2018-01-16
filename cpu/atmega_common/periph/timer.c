@@ -7,7 +7,8 @@
  */
 
 /**
- * @ingroup     driver_periph
+ * @ingroup     cpu_atmega_common
+ * @ingroup     drivers_periph_timer
  * @{
  *
  * @file
@@ -126,11 +127,6 @@ int timer_init(tim_t tim, unsigned long freq, timer_cb_t cb, void *arg)
     return 0;
 }
 
-int timer_set(tim_t tim, int channel, unsigned int timeout)
-{
-    return timer_set_absolute(tim, channel, timer_read(tim) + timeout);
-}
-
 int timer_set_absolute(tim_t tim, int channel, unsigned int value)
 {
     if (channel >= CHANNELS) {
@@ -168,17 +164,6 @@ void timer_stop(tim_t tim)
 void timer_start(tim_t tim)
 {
     ctx[tim].dev->CRB = ctx[tim].mode;
-}
-
-void timer_irq_enable(tim_t tim)
-{
-    *ctx[tim].mask = ctx[tim].isrs;
-}
-
-void timer_irq_disable(tim_t tim)
-{
-    ctx[tim].isrs = *(ctx[tim].mask);
-    *ctx[tim].mask = 0;
 }
 
 #ifdef TIMER_NUMOF

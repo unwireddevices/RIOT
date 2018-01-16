@@ -22,9 +22,8 @@
 
 #include "log.h"
 #include "saul_reg.h"
-
-#include "si70xx_params.h"
 #include "si70xx.h"
+#include "si70xx_params.h"
 
 /**
  * @brief   Define the number of configured sensors
@@ -51,28 +50,30 @@ extern const saul_driver_t si70xx_relative_humidity_saul_driver;
 
 void auto_init_si70xx(void)
 {
-    for (int i = 0; i < SI70XX_NUMOF; i++) {
+    for (unsigned i = 0; i < SI70XX_NUMOF; i++) {
+        LOG_DEBUG("[auto_init_saul] initializing SI70xx #%u\n", i);
+
         int res = si70xx_init(&si70xx_devs[i],
                               si70xx_params[i].i2c_dev,
                               si70xx_params[i].address);
         if (res < 0) {
-            LOG_ERROR("Unable to initialize BMP180 sensor #%i\n", i);
+            LOG_ERROR("[auto_init_saul] error initializing SI70xx #%i\n", i);
+            continue;
         }
-        else {
-            /* temperature */
-            saul_entries[i * 2].dev = &si70xx_devs[i];
-            saul_entries[i * 2].name = si70xx_saul_reg_info[i].name;
-            saul_entries[i * 2].driver = &si70xx_temperature_saul_driver;
 
-            /* relative humidity */
-            saul_entries[(i * 2) + 1].dev = &si70xx_devs[i];
-            saul_entries[(i * 2) + 1].name = si70xx_saul_reg_info[i +1].name;
-            saul_entries[(i * 2) + 1].driver = \
+        /* temperature */
+        saul_entries[i * 2].dev = &si70xx_devs[i];
+        saul_entries[i * 2].name = si70xx_saul_reg_info[i].name;
+        saul_entries[i * 2].driver = &si70xx_temperature_saul_driver;
+
+        /* relative humidity */
+        saul_entries[(i * 2) + 1].dev = &si70xx_devs[i];
+        saul_entries[(i * 2) + 1].name = si70xx_saul_reg_info[i].name;
+        saul_entries[(i * 2) + 1].driver = \
                 &si70xx_relative_humidity_saul_driver;
 
-            saul_reg_add(&saul_entries[i * 2]);
-            saul_reg_add(&saul_entries[(i * 2) + 1]);
-        }
+        saul_reg_add(&saul_entries[i * 2]);
+        saul_reg_add(&saul_entries[(i * 2) + 1]);
     }
 }
 

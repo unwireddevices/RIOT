@@ -25,7 +25,7 @@ umdk-dali	   = 1
 umdk-bme280    = 1
 umdk-config    = 1
 umdk-mhz19     = 1
-umdk-range     = 0
+umdk-usound    = 1
 umdk-hd44780   = 1
 umdk-ibutton   = 1
 umdk-irblaster = 1
@@ -61,10 +61,10 @@ USEMODULE += cipher_modes
 USEMODULE += random
 USEMODULE += hashes
 USEMODULE += checksum
-
-USEMODULE += sx1276
 USEMODULE += rtctimers
 USEMODULE += rtctimers-millis
+
+USEMODULE += sx127x
 
 EXTERNAL_MODULE_DIRS += ../../unwired-modules/
 USEMODULE += loralan-mac
@@ -87,7 +87,6 @@ RIOTBASE ?= $(CURDIR)/../..
 
 FEATURES_REQUIRED = periph_spi periph_gpio
 
-DRIVER ?= sx1276
 QUIET ?= 1
 
 CFLAGS += -DDEVELHELP

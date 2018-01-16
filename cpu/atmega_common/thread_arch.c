@@ -29,7 +29,7 @@
 
 
 /**
- * @brief AVR_CONTEXT_SWAP_INIT intialize the context swap trigger
+ * @brief AVR_CONTEXT_SWAP_INIT initialize the context swap trigger
  * Called when threading is first started.
  */
 #ifndef AVR_CONTEXT_SWAP_INIT
@@ -221,25 +221,6 @@ void thread_arch_stack_print(void)
     while (found_marker == 1);
 
     printf("stack size: %u bytes\n", size);
-}
-
-/* This function calculates the ISR_usage */
-int thread_arch_isr_stack_usage(void)
-{
-    /* TODO */
-    return -1;
-}
-
-void *thread_arch_isr_stack_pointer(void)
-{
-    /* TODO */
-    return (void *)-1;
-}
-
-void *thread_arch_isr_stack_start(void)
-{
-    /* TODO */
-    return (void *)-1;
 }
 
 void thread_arch_start_threading(void) __attribute__((naked));

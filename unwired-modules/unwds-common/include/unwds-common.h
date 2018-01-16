@@ -18,7 +18,7 @@
 #ifndef UNWDS_COMMON_H_
 #define UNWDS_COMMON_H_
 
-#define FIRMWARE_VERSION "1.73"
+#define FIRMWARE_VERSION "1.80"
 
 #include <stdint.h>
 

@@ -8,7 +8,7 @@
  */
 
 /**
- * @defgroup    driver_srf02 SRF02
+ * @defgroup    drivers_srf02 SRF02 ultrasonic range sensor
  * @ingroup     drivers_sensors
  * @brief       Driver for the SRF02 ultrasonic range sensor
  * @{
@@ -21,8 +21,8 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef SRF02_H_
-#define SRF02_H_
+#ifndef SRF02_H
+#define SRF02_H
 
 #include <stdint.h>
 #include "periph/i2c.h"
@@ -88,7 +88,7 @@ int srf02_init(srf02_t *dev, i2c_t i2c, uint8_t addr);
  *                          Another set of three fake ranging modes do the same
  *                          but without transmitting the burst
  */
-void srf02_trigger(srf02_t *dev, srf02_mode_t mode);
+void srf02_trigger(const srf02_t *dev, srf02_mode_t mode);
 
 /**
  * @brief    Read the results of the last ranging operation
@@ -98,7 +98,7 @@ void srf02_trigger(srf02_t *dev, srf02_mode_t mode);
  * @return  result of the last ranging operation, meaning depends on the mode
  *          parameter given to the srf02_trigger function
  */
-uint16_t srf02_read(srf02_t *dev);
+uint16_t srf02_read(const srf02_t *dev);
 
 /**
  * @brief   Get the distance measured from the SRF02 ultrasonic sensor
@@ -115,7 +115,7 @@ uint16_t srf02_read(srf02_t *dev);
  * @return  the ranging result in inches, centimeters or microseconds
  *
  */
-uint16_t srf02_get_distance(srf02_t *dev, srf02_mode_t mode);
+uint16_t srf02_get_distance(const srf02_t *dev, srf02_mode_t mode);
 
 /**
  * @brief   Program the given device with a new bus address
@@ -129,5 +129,5 @@ void srf02_set_addr(srf02_t *dev, uint8_t new_addr);
 }
 #endif
 
-#endif /* SRF02_H_ */
+#endif /* SRF02_H */
 /** @} */

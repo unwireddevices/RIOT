@@ -53,44 +53,28 @@ extern "C" {
 #endif
 
 /**
- * @brief   Make sure the number of available ADC lines is defined
- * @{
- */
-#ifndef ADC_NUMOF
-#error "ADC_NUMOF undefined"
-#endif
-/** @} */
-
-/**
  * @brief   Define default ADC type identifier
- * @{
  */
 #ifndef HAVE_ADC_T
 typedef unsigned int adc_t;
 #endif
-/** @} */
 
 /**
  * @brief   Default ADC undefined value
- * @{
  */
 #ifndef ADC_UNDEF
 #define ADC_UNDEF           (UINT_MAX)
 #endif
-/** @} */
 
 /**
  * @brief   Default ADC line access macro
- * @{
  */
 #ifndef ADC_LINE
 #define ADC_LINE(x)          (x)
 #endif
-/** @} */
 
 /**
  * @brief   Possible ADC resolution settings
- * @{
  */
 #ifndef HAVE_ADC_RES_T
 typedef enum {
@@ -102,7 +86,6 @@ typedef enum {
     ADC_RES_16BIT,          /**< ADC resolution: 16 bit */
 } adc_res_t;
 #endif
-/** @} */
 
 /**
  * @brief   Initialize the given ADC line
@@ -125,7 +108,7 @@ int adc_init(adc_t line);
  * for the first to finish before its conversion starts.
  *
  * @param[in] line          line to sample
- * @param[in] resolution    resolution to use for conversion
+ * @param[in] res           resolution to use for conversion
  *
  * @return                  the sampled value on success
  * @return                  -1 if resolution is not applicable

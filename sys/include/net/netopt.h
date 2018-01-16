@@ -22,8 +22,8 @@
  * @author      Kaspar Schleiser <kaspar@schleiser.de>
  */
 
-#ifndef NETOPT_H_
-#define NETOPT_H_
+#ifndef NET_NETOPT_H
+#define NET_NETOPT_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,6 +59,11 @@ typedef enum {
     NETOPT_NID,
 
     /**
+     * @brief   get/set hop limit as uint8_t
+     */
+    NETOPT_HOP_LIMIT,
+
+    /**
      * @brief   get the IPv6 interface identifier of a network interface as
      *          eui64_t.
      *
@@ -73,6 +78,58 @@ typedef enum {
      * <a href="https://tools.ietf.org/html/rfc4944">RFC 4944</a>).
      */
     NETOPT_IPV6_IID,
+
+    /**
+     * @brief   get IPv6 addresses of an interface as array of @ref ipv6_addr_t
+     *          or add an IPv6 address as @ref ipv6_addr_t to an  interface
+     *
+     * When adding an IPv6 address to a GNRC interface using
+     * @ref GNRC_NETAPI_MSG_TYPE_SET, the gnrc_netapi_opt_t::context field can
+     * be used to pass the prefix length (8 MSB) and some flags (8 LSB)
+     * according to @ref net_gnrc_netif2_ipv6_addrs_flags. The address is however always
+     * considered to be manually added.
+     * When getting the option you can pass an array of @ref ipv6_addr_t of any
+     * length greater than 0 to the getter. The array will be filled up to to
+     * its maximum and the remaining addresses on the interface will be ignored
+     */
+    NETOPT_IPV6_ADDR,
+    /**
+     * @brief   Removes an IPv6 address as @ref ipv6_addr_t from an interface
+     */
+    NETOPT_IPV6_ADDR_REMOVE,
+    /**
+     * @brief   get the flags to the addresses returned by @ref NETOPT_IPV6_ADDR
+     *          as array of uint8_t
+     *
+     * The information contained in the array is very specific to the
+     * interface's API. For GNRC e.g. the values are according to
+     * @ref net_gnrc_netif2_ipv6_addrs_flags.
+     */
+    NETOPT_IPV6_ADDR_FLAGS,
+    /**
+     * @brief   get IPv6 multicast groups of an interface as array of
+     *          @ref ipv6_addr_t or join an IPv6 multicast group as
+     *          @ref ipv6_addr_t on an interface
+     *
+     * When adding an IPv6 address to a GNRC interface using
+     * @ref GNRC_NETAPI_MSG_TYPE_SET, the gnrc_netapi_opt_t::context field can
+     * be used to pass the prefix length (8 MSB) and some flags (8 LSB)
+     * according to @ref net_gnrc_netif2_ipv6_addrs_flags. The address is however always
+     * considered to be manually added.
+     * When getting the option you can pass an array of @ref ipv6_addr_t of any
+     * length greater than 0 to the getter. The array will be filled up to to
+     * its maximum and the remaining addresses on the interface will be ignored
+     */
+    NETOPT_IPV6_GROUP,
+    /**
+     * @brief   Leaves an IPv6 multicast group as @ref ipv6_addr_t on an
+     *          interface
+     */
+    NETOPT_IPV6_GROUP_LEAVE,
+    NETOPT_IPV6_FORWARDING,     /**< en/disable IPv6 forwarding or read the
+                                 *   current state */
+    NETOPT_IPV6_SND_RTR_ADV,    /**< en/disable sending of IPv6 router
+                                 *   advertisements or read the current state */
     NETOPT_TX_POWER,            /**< get/set the output power for radio
                                  *   devices in dBm as int16_t in host byte
                                  *   order */
@@ -148,7 +205,7 @@ typedef enum {
      * option will enable CSMA with a certain set of parameters to emulate the
      * desired behaviour.
      *
-     * @note Be sure not to set NETCONF_OPT_CSMA simultaneously.
+     * @note Be sure not to set NETOPT_CSMA simultaneously.
      *
      * TODO: How to get feedback?
      */
@@ -159,11 +216,50 @@ typedef enum {
      *
      * If the device supports CSMA in hardware, this option enables it with
      * default parameters. For further configuration refer to the other
-     * NETCONF_OPT_CSMA_* options.
+     * NETOPT_CSMA_* options.
      */
     NETOPT_CSMA,
-    NETOPT_CSMA_RETRIES,            /**< get/set the number of retries when
-                                         when channel is busy */
+
+    /**
+     * @brief get/set the maximum number of CSMA retries
+     *
+     * (uint8_t)
+     * The maximum number of backoffs the CSMA-CA algorithm will attempt before
+     * declaring a channel access failure. Named macMaxCsmaBackoffs in
+     * IEEE Std 802.15.4-2015.
+     *
+     * 802.15.4 default: 4
+     */
+    NETOPT_CSMA_RETRIES,
+
+    /**
+     * @brief get/set the maximum backoff exponent for the CSMA-CA algorithm
+     *
+     * (uint8_t) Named macMaxBE in IEEE Std 802.15.4-2015.
+     *
+     * 802.15.4 default: 5
+     */
+    NETOPT_CSMA_MAXBE,
+
+    /**
+     * @brief get/set the minimum backoff exponent for the CSMA-CA algorithm
+     *
+     * (uint8_t) Named macMinBE in IEEE Std 802.15.4-2015.
+     *
+     * 802.15.4 default: 3
+     */
+    NETOPT_CSMA_MINBE,
+
+    /**
+     * @brief en/disable blocking of radio sleep when running a duty cycling MAC layer
+     *
+     * (netopt_enable_t) Enabling this option tells the MAC layer to never put
+     * the radio to sleep. Useful in gateways and routers not running on
+     * batteries to improve responsiveness and allow battery powered nodes on
+     * the same network to sleep more often.
+     */
+    NETOPT_MAC_NO_SLEEP,
+
     /**
      * @brief read-only check for a wired interface.
      *
@@ -206,7 +302,7 @@ typedef enum {
      *
      * Get/set the CCA mode as uint8_t
      * corresponding to the respective PHY standard.
-     * - IEEE 802.15.4: @ref netdev2_ieee802154_cca_mode_t
+     * - IEEE 802.15.4: @ref netdev_ieee802154_cca_mode_t
      */
     NETOPT_CCA_MODE,
 
@@ -240,10 +336,123 @@ typedef enum {
      */
     NETOPT_RF_TESTMODE,
 
+    /**
+     * @brief   add an address to a link layer filter list
+     *
+     * 'Getting' this option from a device will return a pointer of type
+     * @ref l2filter_t to the first entry of a filter list.
+     * When 'Setting' this option a pointer to an link layer address as well as
+     * the length of the address are expected as parameters.
+     */
+    NETOPT_L2FILTER,
+
+    /**
+     * @brief   remove an address from a link layer filter list
+     *
+     * 'Getting' this value always returns -ENOTSUP.
+     * When 'Setting' this option a pointer to an link layer address as well as
+     * the length of the address are expected as parameters. 'Setting' this
+     * option will lead to the given address being removed from the filer list.
+     */
+    NETOPT_L2FILTER_RM,
+
+    /**
+     * @brief   Energy level during the last performed CCA or RX frame
+     *
+     * Get the last ED level available as an int8_t. The source of the
+     * measurement is unspecified and may come from the latest CCA
+     * measurement (CCA mode 1), or from the last received frame.
+     */
+    NETOPT_LAST_ED_LEVEL,
+
+    /**
+     * @brief   Get/Set preamble length as uint16_t in host byte order.
+     */
+    NETOPT_PREAMBLE_LENGTH,
+
+    /**
+     * @brief   Enable/disable integrity check (e.g CRC).
+     */
+    NETOPT_INTEGRITY_CHECK,
+
+    /**
+     * @brief   Enable/disable channel hopping.
+     */
+    NETOPT_CHANNEL_HOP,
+
+    /**
+     * @brief   Get/Set channel hopping period as uint8_t.
+     */
+    NETOPT_CHANNEL_HOP_PERIOD,
+
+    /**
+      * @brief   Enable/disable single packet reception.
+      *
+      * If enabled, RX is turned off upon reception of a packet
+      */
+    NETOPT_SINGLE_RECEIVE,
+
+    /**
+     * @brief   Get/Set the reception timeout of a packet.
+     *
+     * Values are retrieved/passed as uint32_t in host byte order.
+     */
+    NETOPT_RX_TIMEOUT,
+
+    /**
+     * @brief   Get/Set the transmission timeout of a packet.
+     *
+     * Values are retrieved/passed as uint32_t in host byte order.
+     */
+    NETOPT_TX_TIMEOUT,
+
+    /**
+     * @brief   Get/Set the radio modem type as uint8_t.
+     */
+    NETOPT_DEVICE_MODE,
+
+    /**
+     * @brief   Get/Set the radio modulation bandwidth as uint8_t.
+     */
+    NETOPT_BANDWIDTH,
+
+    /**
+     * @brief   Get/Set the radio spreading factor as uint8_t.
+     */
+    NETOPT_SPREADING_FACTOR,
+
+    /**
+     * @brief   Get/Set the radio coding rate as uint8_t.
+     */
+    NETOPT_CODING_RATE,
+
+    /**
+     * @brief   Enable/disable fixed header mode.
+     */
+    NETOPT_FIXED_HEADER,
+
+    /**
+     * @brief   Enable/disable IQ inverted.
+     */
+    NETOPT_IQ_INVERT,
+
+    NETOPT_6LO_IPHC,            /**< en/disable header compression according to
+                                 *   [RFC 6282](https://tools.ietf.org/html/rfc6282)
+                                 *   or read the current state */
+
+    /**
+     * @brief   Get retry amount from missing ACKs of the last transmission
+     *
+     * This retrieves the number of retries needed for the last transmissions.
+     * Only retransmissions due to missing ACK packets are considered.
+     * Retries due to CCA failures are not counted.
+     */
+    NETOPT_TX_RETRIES_NEEDED,
+
     /* add more options if needed */
 
     /**
-     * @brief   maximum number of options defined here
+     * @brief   maximum number of options defined here.
      *
      * @note    Interfaces are not meant to respond to that.
      */
@@ -277,6 +486,9 @@ typedef enum {
                                  *   transmitting a packet */
     NETOPT_STATE_RESET,         /**< triggers a hardware reset. The resulting
                                  *   state of the network device is @ref NETOPT_STATE_IDLE */
+    NETOPT_STATE_STANDBY,       /**< standby mode. The devices is awake but
+                                 *   not listening to packets. */
+    NETOPT_STATE_CAD,           /**< device is performing channel activity detection */
     /* add other states if needed */
 } netopt_state_t;
 
@@ -303,5 +515,5 @@ const char *netopt2str(netopt_t opt);
 }
 #endif
 
-#endif /* NETOPT_H_ */
+#endif /* NET_NETOPT_H */
 /** @} */

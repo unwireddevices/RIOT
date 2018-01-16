@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup     driver_ina220
+ * @ingroup     drivers_ina220
  * @{
  *
  * @file
@@ -31,7 +31,7 @@
 #include "debug.h"
 
 /** @brief Read one 16 bit register from a INA220 device and swap byte order, if necessary. */
-static int ina220_read_reg(ina220_t *dev, uint8_t reg, uint16_t *out)
+static int ina220_read_reg(const ina220_t *dev, uint8_t reg, uint16_t *out)
 {
     union {
         uint8_t c[2];
@@ -45,12 +45,12 @@ static int ina220_read_reg(ina220_t *dev, uint8_t reg, uint16_t *out)
         return -1;
     }
 
-    *out = NTOHS(tmp.u16);
+    *out = ntohs(tmp.u16);
     return 0;
 }
 
 /** @brief Write one 16 bit register to a INA220 device and swap byte order, if necessary. */
-static int ina220_write_reg(ina220_t *dev, uint8_t reg, uint16_t in)
+static int ina220_write_reg(const ina220_t *dev, uint8_t reg, uint16_t in)
 {
     union {
         uint8_t c[2];
@@ -58,7 +58,7 @@ static int ina220_write_reg(ina220_t *dev, uint8_t reg, uint16_t in)
     } tmp = { .u16 = 0 };
     int status = 0;
 
-    tmp.u16 = HTONS(in);
+    tmp.u16 = htons(in);
 
     status = i2c_write_regs(dev->i2c, dev->addr, reg, &tmp.c[0], 2);
 
@@ -78,32 +78,32 @@ int ina220_init(ina220_t *dev, i2c_t i2c, uint8_t address)
     return 0;
 }
 
-int ina220_set_calibration(ina220_t *dev, uint16_t calibration)
+int ina220_set_calibration(const ina220_t *dev, uint16_t calibration)
 {
     return ina220_write_reg(dev, INA220_REG_CALIBRATION, calibration);
 }
 
-int ina220_set_config(ina220_t *dev, uint16_t config)
+int ina220_set_config(const ina220_t *dev, uint16_t config)
 {
     return ina220_write_reg(dev, INA220_REG_CONFIGURATION, config);
 }
 
-int ina220_read_shunt(ina220_t *dev, int16_t *voltage)
+int ina220_read_shunt(const ina220_t *dev, int16_t *voltage)
 {
     return ina220_read_reg(dev, INA220_REG_SHUNT_VOLTAGE, (uint16_t *)voltage);
 }
 
-int ina220_read_bus(ina220_t *dev, int16_t *voltage)
+int ina220_read_bus(const ina220_t *dev, int16_t *voltage)
 {
     return ina220_read_reg(dev, INA220_REG_BUS_VOLTAGE, (uint16_t *)voltage);
 }
 
-int ina220_read_current(ina220_t *dev, int16_t *current)
+int ina220_read_current(const ina220_t *dev, int16_t *current)
 {
     return ina220_read_reg(dev, INA220_REG_CURRENT, (uint16_t *)current);
 }
 
-int ina220_read_power(ina220_t *dev, int16_t *power)
+int ina220_read_power(const ina220_t *dev, int16_t *power)
 {
     return ina220_read_reg(dev, INA220_REG_POWER, (uint16_t *)power);
 }

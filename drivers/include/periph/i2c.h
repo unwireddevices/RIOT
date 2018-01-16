@@ -11,12 +11,20 @@
  * @ingroup     drivers_periph
  * @brief       Low-level I2C peripheral driver
  *
- * @{
- * @file
- * @brief       Low-level I2C peripheral driver interface definition
+ * This is a simple I2C interface to allow platform independent access to a
+ * MCU's I2C bus and peripherals. This interface is intentionally designed as
+ * simple as possible, to allow for easy implementation and maximal portability.
+ *
+ * @note        The current version of this interface only supports the
+ *              7-bit addressing mode.
+ *
+ * @note        This interface is due for remodeling, hence API changes are to
+ *              be expected for upcoming releases.
+ *
+ * ## A note on pull-up resistors for SDA/SCL
  *
  * The I2C signal lines SDA/SCL need external pull-up resistors which connect
- * the lines to the positive voltage supply Vcc. The I2C driver implementation
+ * the lines to the positive voltage supply VCC. The I2C driver implementation
  * should enable the pin's internal pull-up resistors. There are however some
  * use cases for which the internal pull resistors are not strong enough and the
  * I2C bus will show faulty behavior. This can for example happen when
@@ -44,15 +52,16 @@
  * For more details refer to section 7.1 in:<br>
  * http://www.nxp.com/documents/user_manual/UM10204.pdf
  *
- * @note        The current version of this interface only supports the
-                7-bit addressing mode.
+ * @{
+ * @file
+ * @brief       Low-level I2C peripheral driver interface definition
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  * @author      Thomas Eichinger <thomas.eichinger@fu-berlin.de>
  */
 
-#ifndef I2C_H
-#define I2C_H
+#ifndef PERIPH_I2C_H
+#define PERIPH_I2C_H
 
 #include <stdint.h>
 #include <limits.h>
@@ -80,34 +89,27 @@ extern "C" {
 
 /**
  * @brief   Default I2C device access macro
- * @{
  */
 #ifndef I2C_DEV
 #define I2C_DEV(x)          (x)
 #endif
-/** @} */
 
 /**
  * @brief   Default I2C undefined value
- * @{
  */
 #ifndef I2C_UNDEF
 #define I2C_UNDEF           (UINT_MAX)
 #endif
-/** @} */
 
 /**
  * @brief   Default i2c_t type definition
- * @{
  */
 #ifndef HAVE_I2C_T
 typedef unsigned int i2c_t;
 #endif
-/**  @} */
 
 /**
  * @brief   Default mapping of I2C bus speed values
- * @{
  */
 #ifndef HAVE_I2C_SPEED_T
 typedef enum {
@@ -118,7 +120,6 @@ typedef enum {
     I2C_SPEED_HIGH,         /**< high speed mode:   ~3.4Mbit/s */
 } i2c_speed_t;
 #endif
-/** @} */
 
 /**
  * @brief   Initialize an I2C device to run as bus master
@@ -283,5 +284,5 @@ void i2c_poweroff(i2c_t dev);
 }
 #endif
 
-#endif /* I2C_H */
+#endif /* PERIPH_I2C_H */
 /** @} */

@@ -36,7 +36,6 @@ extern "C" {
 
 #include "periph/gpio.h"
 #include "periph/rtc.h"
-#include "lpm.h"
 
 #include "board.h"
 

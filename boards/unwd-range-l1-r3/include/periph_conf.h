@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Unwired Devices <info@unwds.com>
+ * Copyright (C) 2016-2018 Unwired Devices <info@unwds.com>
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
@@ -7,11 +7,11 @@
  */
 
 /**
- * @ingroup     boards_unwd-range-l1-r2
+ * @ingroup     boards_unwd-range-l1-r3
  * @{
  *
  * @file
- * @brief       Peripheral MCU configuration for the Unwired Range (R160829) board
+ * @brief       Peripheral MCU configuration for the Unwired Range R170115 board
  *
  * @author      Mikhail Churikov
  * @author      Oleg Artamonov <oleg@unwds.com>
@@ -30,6 +30,7 @@ extern "C" {
  * @name Clock system configuration
  * @{
  **/
+#define CLOCK_LSE           (32768)                 /* external low-speed crystal frequency  */
 #define CLOCK_HSE           (24000000U)             /* external high-speed crystal frequency */
 #define CLOCK_HSI           (16000000U)             /* internal high-speed crystal frequency */
 #define CLOCK_CORECLOCK     (32000000U)             /* targeted core clock frequency */
@@ -60,10 +61,15 @@ extern "C" {
 /** @} */
 
 /**
- * @brief   DAC configuration
+ * @name   DAC configuration
  * @{
  */
-#define DAC_NUMOF           (0)
+static const dac_conf_t dac_config[] = {
+    { .pin = GPIO_PIN(PORT_A,  4), .chan = 0 },
+    { .pin = GPIO_PIN(PORT_A,  5), .chan = 1 }
+};
+
+#define DAC_NUMOF           (sizeof(dac_config) / sizeof(dac_config[0]))
 /** @} */
 
 /**
@@ -288,26 +294,31 @@ static const pwm_conf_t pwm_config[] = {
     {
         .dev      = TIM2,
         .rcc_mask = RCC_APB1ENR_TIM2EN,
-        .pins     = { GPIO_PIN(PORT_A, 5), GPIO_PIN(PORT_A, 1),
-                      GPIO_PIN(PORT_A, 2), GPIO_PIN(PORT_A, 3) },
+        .chan     = { { .pin = GPIO_PIN(PORT_A, 5), .cc_chan = 0 },
+                      { .pin = GPIO_PIN(PORT_A, 1), .cc_chan = 1 },
+                      { .pin = GPIO_PIN(PORT_A, 2), .cc_chan = 2 },
+                      { .pin = GPIO_PIN(PORT_A, 3), .cc_chan = 3 } },
         .af       = GPIO_AF1,
-        .chan     = 4,
         .bus      = APB1
     },
     {
         .dev      = TIM3,
         .rcc_mask = RCC_APB1ENR_TIM3EN,
-        .pins     = { GPIO_PIN(PORT_A, 6), GPIO_PIN(PORT_A, 7) },
+        .chan     = { { .pin = GPIO_PIN(PORT_A, 6), .cc_chan = 0 },
+                      { .pin = GPIO_PIN(PORT_A, 7), .cc_chan = 1 },
+                      { .pin = GPIO_UNDEF,          .cc_chan = 0 },
+                      { .pin = GPIO_UNDEF,          .cc_chan = 0 } },
         .af       = GPIO_AF2,
-        .chan     = 2,
         .bus      = APB1
     },
         {
         .dev      = TIM4,
         .rcc_mask = RCC_APB1ENR_TIM4EN,
-        .pins     = { 0, 0, GPIO_PIN(PORT_B, 8), GPIO_PIN(PORT_B, 9) },
+        .chan     = { { .pin = GPIO_PIN(PORT_B, 8), .cc_chan = 2 },
+                      { .pin = GPIO_PIN(PORT_B, 9), .cc_chan = 3 },
+                      { .pin = GPIO_UNDEF,          .cc_chan = 0 },
+                      { .pin = GPIO_UNDEF,          .cc_chan = 0 } },
         .af       = GPIO_AF2,
-        .chan     = 4,
         .bus      = APB1
     }
 };
@@ -316,46 +327,53 @@ static const pwm_conf_t pwm_config[] = {
 /** @} */
 
 /**
- * @brief SPI configuration
+ * @name   SPI configuration
+ *
+ * @note    The spi_divtable is auto-generated from
+ *          `cpu/stm32_common/dist/spi_divtable/spi_divtable.c`
  * @{
  */
-#define SPI_NUMOF           (2U)
-#define SPI_0_EN            1
-#define SPI_1_EN			1
+static const uint8_t spi_divtable[2][5] = {
+    {       /* for APB1 @ 32000000Hz */
+        7,  /* -> 125000Hz */
+        5,  /* -> 500000Hz */
+        4,  /* -> 1000000Hz */
+        2,  /* -> 4000000Hz */
+        1   /* -> 8000000Hz */
+    },
+    {       /* for APB2 @ 32000000Hz */
+        7,  /* -> 125000Hz */
+        5,  /* -> 500000Hz */
+        4,  /* -> 1000000Hz */
+        2,  /* -> 4000000Hz */
+        1   /* -> 8000000Hz */
+    }
+};
 
-/* SPI 0 device configuration */
-#define SPI_0_DEV           SPI1
-#define SPI_0_CLKEN()       (periph_clk_en(APB2, RCC_APB2ENR_SPI1EN))
-#define SPI_0_CLKDIS()      (periph_clk_dis(APB2, RCC_APB2ENR_SPI1EN))
-#define SPI_0_ISON()		(RCC->APB2ENR & RCC_APB2ENR_SPI1EN)
-#define SPI_0_IRQ           SPI1_IRQn
-#define SPI_0_ISR           isr_spi1
-/* SPI 0 pin configuration */
-#define SPI_0_PORT_CLKEN()  (periph_clk_en(AHB, RCC_AHBENR_GPIOAEN))
-#define SPI_0_PORT          GPIOA
-#define SPI_0_PIN_NSS       4
-#define SPI_0_PIN_SCK       5
-#define SPI_0_PIN_MISO      6
-#define SPI_0_PIN_MOSI      7
+static const spi_conf_t spi_config[] = {
+    {
+        .dev      = SPI1,
+        .mosi_pin = GPIO_PIN(PORT_A, 7),
+        .miso_pin = GPIO_PIN(PORT_A, 6),
+        .sclk_pin = GPIO_PIN(PORT_A, 5),
+        .cs_pin   = GPIO_UNDEF,
+        .af       = GPIO_AF5,
+        .rccmask  = RCC_APB2ENR_SPI1EN,
+        .apbbus   = APB2
+    },
+    {
+        .dev      = SPI2,
+        .mosi_pin = GPIO_PIN(PORT_B, 15),
+        .miso_pin = GPIO_PIN(PORT_B, 14),
+        .sclk_pin = GPIO_PIN(PORT_B, 13),
+        .cs_pin   = GPIO_UNDEF,
+        .af       = GPIO_AF5,
+        .rccmask  = RCC_APB1ENR_SPI2EN,
+        .apbbus   = APB1
+    }
+};
 
-#define SPI_0_PIN_AF        5
-
-/* SPI 1 device configuration */
-#define SPI_1_DEV           SPI2
-#define SPI_1_CLKEN()       (periph_clk_en(APB1, RCC_APB1ENR_SPI2EN))
-#define SPI_1_CLKDIS()      (periph_clk_dis(APB1, RCC_APB1ENR_SPI2EN))
-#define SPI_1_ISON()		(RCC->APB1ENR & RCC_APB1ENR_SPI2EN)
-#define SPI_1_IRQ           SPI2_IRQn
-#define SPI_1_ISR           isr_spi2
-/* SPI 1 pin configuration */
-#define SPI_1_PORT_CLKEN()  (periph_clk_en(AHB, RCC_AHBENR_GPIOBEN))
-#define SPI_1_PORT          GPIOB
-#define SPI_1_PIN_NSS       12
-#define SPI_1_PIN_SCK       13
-#define SPI_1_PIN_MISO      14
-#define SPI_1_PIN_MOSI      15 // swapped?
-
-#define SPI_1_PIN_AF        5
+#define SPI_NUMOF           (sizeof(spi_config) / sizeof(spi_config[0]))
 /** @} */
 
 /**

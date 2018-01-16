@@ -22,8 +22,8 @@
  * @author      Daniel Krebs <github@daniel-krebs.net>
  */
 
-#ifndef AT30TSE75X_H_
-#define AT30TSE75X_H_
+#ifndef AT30TSE75X_H
+#define AT30TSE75X_H
 
 #include <stdint.h>
 #include "periph/i2c.h"
@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 /**
- * @name AT30TSE75x I2C addresses
+ * @name    AT30TSE75x I2C addresses
  * @{
  */
 #define AT30TSE75X_TEMP_ADDR            (0x48)
@@ -41,7 +41,7 @@ extern "C" {
 /** @} */
 
 /**
- * @name AT30TSE75x register addresses
+ * @name    AT30TSE75x register addresses
  * @{
  */
 #define AT30TSE75X_REG__TEMPERATURE     (0x00)
@@ -54,7 +54,7 @@ extern "C" {
 /** @} */
 
 /**
- * @name AT30TSE75x number formatting
+ * @name    AT30TSE75x number formatting
  * @{
  */
 #define AT30TSE75X_INTEGER_MASK         (0x00ff)
@@ -66,7 +66,7 @@ extern "C" {
 
 
 /**
- * @name AT30TSE75x configuration register
+ * @name    AT30TSE75x configuration register
  *
  * Only upper byte can be read/written, so treat as 8-bit register.
  * @{
@@ -82,7 +82,7 @@ extern "C" {
 /** @} */
 
 /**
- * @name AT30TSE75x commands
+ * @name    AT30TSE75x commands
  *
  * @{
  */
@@ -93,7 +93,7 @@ extern "C" {
 /** @} */
 
 /**
- * @name AT30TSE75x constants
+ * @name    AT30TSE75x constants
  *
  * @{
  */
@@ -102,10 +102,11 @@ extern "C" {
 
 /**
   * @name AT30TSE75x configuration types
-  *
-  * @brief   Temperature resolution
-  *
   * @{
+  */
+
+/**
+  * @brief   Temperature resolution
   */
 typedef enum {
     AT30TSE75X_RESOLUTION_9BIT = 0,
@@ -113,7 +114,6 @@ typedef enum {
     AT30TSE75X_RESOLUTION_11BIT = 2,
     AT30TSE75X_RESOLUTION_12BIT = 3
 } at30tse75x_resolution_t;
-/** @} */
 
 /**
   * @brief   Operation mode
@@ -122,18 +122,15 @@ typedef enum {
   * is effectively shutdown and only wakes up to perform a single measurement.
   * When in comparator or interrupt mode, the device samples contiously the
   * temperature and sets the ALERT pin according to the chosen mode.
-  * @{
   */
 typedef enum {
     AT30TSE75X_MODE_COMPARATOR,
     AT30TSE75X_MODE_INTERRUPT,
     AT30TSE75X_MODE_ONE_SHOT
 } at30tse75x_mode_t;
-/** @} */
 
 /**
   * @brief   After how many limit exceeding measurements the ALERT pin is set
-  * @{
   */
 typedef enum {
     AT30TSE75X_ALARM_AFTER_1 = 0,
@@ -141,27 +138,24 @@ typedef enum {
     AT30TSE75X_ALARM_AFTER_4 = 2,
     AT30TSE75X_ALARM_AFTER_6 = 3
 } at30tse75x_fault_tolerance_t;
-/** @} */
 
 /**
   * @brief   Polarity of the ALERT pin
-  * @{
   */
 typedef enum {
     AT30TSE75X_ALARM_ACTIVE_LOW,
     AT30TSE75X_ALARM_ACTIVE_HIGH
 } at30tse75x_alarm_polatity_t;
-/** @} */
+
+/** @} */ /* AT30TSE75x configuration types */
 
 /**
   * @brief   Device descriptor for a AT30TSE75x device
-  * @{
   */
 typedef struct {
     i2c_t i2c;          /**< I2C device that sensor is connected to */
     uint8_t addr;       /**< I2C address of this particular sensor */
 } at30tse75x_t;
-/** @} */
 
 /**
  * @brief   Initialize a AT30TSE75x device
@@ -188,7 +182,7 @@ int at30tse75x_init(at30tse75x_t* dev, i2c_t i2c, i2c_speed_t speed, uint8_t add
  * @return                   0 on success
  * @return                  -1 on error
  */
-int at30tse75x_save_config(at30tse75x_t* dev);
+int at30tse75x_save_config(const at30tse75x_t* dev);
 
 /**
  * @brief   Restore configuration register from non-volatile backup register
@@ -198,7 +192,7 @@ int at30tse75x_save_config(at30tse75x_t* dev);
  * @return                   0 on success
  * @return                  -1 on error
  */
-int at30tse75x_restore_config(at30tse75x_t* dev);
+int at30tse75x_restore_config(const at30tse75x_t* dev);
 
 /**
  * @brief   Get content of configuration register
@@ -209,7 +203,7 @@ int at30tse75x_restore_config(at30tse75x_t* dev);
  * @return                   0 on success
  * @return                  -1 on error
  */
-int at30tse75x_get_config(at30tse75x_t* dev, uint8_t* data);
+int at30tse75x_get_config(const at30tse75x_t* dev, uint8_t* data);
 
 /**
  * @brief   Set content of configuration register
@@ -220,7 +214,7 @@ int at30tse75x_get_config(at30tse75x_t* dev, uint8_t* data);
  * @return                   0 on success
  * @return                  -1 on error
  */
-int at30tse75x_set_config(at30tse75x_t* dev, uint8_t data);
+int at30tse75x_set_config(const at30tse75x_t* dev, uint8_t data);
 
 /**
  * @brief   Set temperature resolution
@@ -232,7 +226,7 @@ int at30tse75x_set_config(at30tse75x_t* dev, uint8_t data);
  * @return                  -1 on error
  * @return                  -2 on bad user input
  */
-int at30tse75x_set_resolution(at30tse75x_t* dev, at30tse75x_resolution_t resolution);
+int at30tse75x_set_resolution(const at30tse75x_t* dev, at30tse75x_resolution_t resolution);
 
 /**
  * @brief   Set operation mode
@@ -244,7 +238,7 @@ int at30tse75x_set_resolution(at30tse75x_t* dev, at30tse75x_resolution_t resolut
  * @return                  -1 on device error
  * @return                  -2 on bad user input
  */
-int at30tse75x_set_mode(at30tse75x_t* dev, at30tse75x_mode_t mode);
+int at30tse75x_set_mode(const at30tse75x_t* dev, at30tse75x_mode_t mode);
 
 /**
  * @brief   Set polarity of ALERT pin
@@ -256,7 +250,7 @@ int at30tse75x_set_mode(at30tse75x_t* dev, at30tse75x_mode_t mode);
  * @return                  -1 on device error
  * @return                  -2 on bad user input
  */
-int at30tse75x_set_alarm_polarity(at30tse75x_t* dev, at30tse75x_alarm_polatity_t polarity);
+int at30tse75x_set_alarm_polarity(const at30tse75x_t* dev, at30tse75x_alarm_polatity_t polarity);
 
 /**
  * @brief   Set tolerance to outlying measurements
@@ -268,7 +262,7 @@ int at30tse75x_set_alarm_polarity(at30tse75x_t* dev, at30tse75x_alarm_polatity_t
  * @return                  -1 on device error
  * @return                  -2 on bad user input
  */
-int at30tse75x_set_fault_tolerance(at30tse75x_t* dev, at30tse75x_fault_tolerance_t tolerance);
+int at30tse75x_set_fault_tolerance(const at30tse75x_t* dev, at30tse75x_fault_tolerance_t tolerance);
 
 /**
  * @brief   Set T_Low limit
@@ -280,7 +274,7 @@ int at30tse75x_set_fault_tolerance(at30tse75x_t* dev, at30tse75x_fault_tolerance
  * @return                  -1 on device error
  * @return                  -2 on bad user input
  */
-int at30tse75x_set_limit_low(at30tse75x_t* dev, int8_t t_low);
+int at30tse75x_set_limit_low(const at30tse75x_t* dev, int8_t t_low);
 
 /**
  * @brief   Set T_High limit
@@ -291,7 +285,7 @@ int at30tse75x_set_limit_low(at30tse75x_t* dev, int8_t t_low);
  * @return                   0 on success
  * @return                  -1 on error
  */
-int at30tse75x_set_limit_high(at30tse75x_t* dev, int8_t t_high);
+int at30tse75x_set_limit_high(const at30tse75x_t* dev, int8_t t_high);
 
 /**
  * @brief   Get measured temperature
@@ -302,11 +296,11 @@ int at30tse75x_set_limit_high(at30tse75x_t* dev, int8_t t_high);
  * @return                   0 on success
  * @return                  -1 on error
  */
-int at30tse75x_get_temperature(at30tse75x_t* dev, float* temperature);
+int at30tse75x_get_temperature(const at30tse75x_t* dev, float* temperature);
 
 #ifdef __cplusplus
 }
 #endif
 
+#endif /* AT30TSE75X_H */
 /** @} */
-#endif /* AT30TSE75X_H_ */

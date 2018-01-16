@@ -8,7 +8,7 @@
  */
 
 /**
- * @ingroup     board_frdm-k64f
+ * @ingroup     boards_frdm-k64f
  * @{
  *
  * @file
@@ -24,6 +24,10 @@
 
 void board_init(void)
 {
+    /* RMII RXCLK pin configuration */
+    SIM->SCGC5 |= SIM_SCGC5_PORTA_MASK;
+    PORTA->PCR[18] &= ~(PORT_PCR_ISF_MASK | PORT_PCR_MUX(0x07));
+
     /* initialize the CPU core */
     cpu_init();
 

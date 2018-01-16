@@ -18,15 +18,15 @@
  * @author      René Kijewski <rene.kijewski@fu-berlin.de>
  */
 
-#ifndef QEMU_I386_BOARD_H_
-#define QEMU_I386_BOARD_H_
+#ifndef BOARD_H
+#define BOARD_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @brief   Serial port configuration
+ * @name    Serial port configuration
  * @{
  */
 #define UART_PORT (COM1_PORT) /* IO port to use for UART */
@@ -37,7 +37,7 @@ extern "C" {
 }
 #endif
 
-#endif
+#endif /* BOARD_H */
 
 /**
  * @}

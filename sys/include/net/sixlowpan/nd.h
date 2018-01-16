@@ -11,9 +11,7 @@
  * @ingroup     net_sixlowpan
  * @brief       Message types and helper functions for Neighbor Discovery Optimization for 6LoWPAN
  *              (6LoWPAN-ND)
- * @see <a href="https://tools.ietf.org/html/rfc6775#section-4">
- *          RFC 6775, section 4
- *      </a>
+ * @see         [RFC 6775, section 4](https://tools.ietf.org/html/rfc6775#section-4)
  * @{
  *
  * @file
@@ -21,8 +19,8 @@
  *
  * @author  Martine Lenders <mlenders@inf.fu-berlin.de>
  */
-#ifndef SIXLOWPAN_ND_H_
-#define SIXLOWPAN_ND_H_
+#ifndef NET_SIXLOWPAN_ND_H
+#define NET_SIXLOWPAN_ND_H
 
 #include <stdint.h>
 
@@ -37,7 +35,7 @@ extern "C" {
 /**
  * @{
  * @name    Lengths for fixed length options
- * @brief   Options don't use bytes as their length unit, but 8 bytes.
+ * @note    Options don't use bytes as their length unit, but 8 bytes.
  */
 #define SIXLOWPAN_ND_OPT_AR_LEN                 (2U)
 #define SIXLOWPAN_ND_OPT_ABR_LEN                (3U)
@@ -47,11 +45,20 @@ extern "C" {
 
 /**
  * @{
+ * @name    Authoritative border router option constants
+ * @see     [RFC 6775, section 4.3](https://tools.ietf.org/html/rfc6775#section-4.3)
+ */
+/**
+ * @brief   Valid lifetime (in minutes) assumed if sixlowpan_nd_opt_abr_t::ltime
+ *          is 0.
+ */
+#define SIXLOWPAN_ND_OPT_ABR_LTIME_DEFAULT      (10000U)
+
+/**
+ * @{
  * @name    Status values for address registration option and DARs
  *
- * @see <a href="https://tools.ietf.org/html/rfc6775#section-4.1">
- *          RFC 6775, section 4.1
- *      </a>
+ * @see     [RFC 6775, section 4.1](https://tools.ietf.org/html/rfc6775#section-4.1)
  */
 #define SIXLOWPAN_ND_STATUS_SUCCESS             (0) /**< success */
 #define SIXLOWPAN_ND_STATUS_DUP                 (1) /**< duplicate address */
@@ -72,12 +79,53 @@ extern "C" {
  */
 
 /**
+ * @name    6LoWPAN border router constants
+ * @see     [RFC 6775, section 9](https://tools.ietf.org/html/rfc6775#section-9)
+ * @{
+ */
+#define SIXLOWPAN_ND_MIN_CTX_CHANGE_SEC_DELAY   (300U)  /**< MIN_CONTEXT_CHANGE_DELAY (in sec) */
+/** @} */
+
+/**
+ * @name    6LoWPAN router constants
+ * @see     [RFC 6775, section 9](https://tools.ietf.org/html/rfc6775#section-9)
+ * @{
+ */
+#define SIXLOWPAN_ND_MAX_RA_NUMOF               (3U)        /**< MAX_RTR_ADVERTISEMENTS */
+#define SIXLOWPAN_ND_MIN_MS_DELAY_BETWEEN_RAS   (10000U)    /**< MIN_DELAY_BETWEEN_RAS (in ms) */
+#define SIXLOWPAN_ND_MAX_RA_MS_DELAY            (2000U)     /**< MAX_RA_DELAY_TIME (in ms) */
+#define SIXLOWPAN_ND_TENTATIVE_NCE_SEC_LTIME    (20U)       /**< TENTATIVE_NCE_LIFETIME (in sec) */
+/** @} */
+
+/**
+ * @name    Router constants
+ * @see     [RFC 6775, section 9](https://tools.ietf.org/html/rfc6775#section-9)
+ * @{
+ */
+#define SIXLOWPAN_ND_MULTIHOP_HL                (64U)       /**< MULTIHOP_HOPLIMIT */
+/** @} */
+
+/**
+ * @name    Host constants
+ * @see     [RFC 6775, section 9](https://tools.ietf.org/html/rfc6775#section-9)
+ * @{
+ */
+/**
+ * @brief   RTR_SOLICITATION_INTERVAL (in msec)
+ */
+#define SIXLOWPAN_ND_RS_MSEC_INTERVAL           (10000U)
+#define SIXLOWPAN_ND_MAX_RS_NUMOF               (3U)        /**< MAX_RTR_SOLICITATIONS */
+/**
+ * @brief   MAX_RTR_SOLICITATIONS_INTERVAL (in seconds)
+ */
+#define SIXLOWPAN_ND_MAX_RS_SEC_INTERVAL        (60U)
+/** @} */
+
+/**
  * @brief   Duplicate address request and confirmation message format.
  * @extends icmpv6_hdr_t
  *
- * @see <a href="https://tools.ietf.org/html/rfc6775#section-4.4">
- *          RFC 6775, section 4.4
- *      </a>
+ * @see     [RFC 6775, section 4.4](https://tools.ietf.org/html/rfc6775#section-4.4)
  */
 typedef struct __attribute__((packed)) {
     uint8_t type;           /**< message type */
@@ -94,9 +142,7 @@ typedef struct __attribute__((packed)) {
  * @brief   Address registration option format
  * @extends ndp_opt_t
  *
- * @see <a href="https://tools.ietf.org/html/rfc6775#section-4.1">
- *          RFC 6775, section 4.1
- *      </a>
+ * @see     [RFC 6775, section 4.1](https://tools.ietf.org/html/rfc6775#section-4.1)
  */
 typedef struct __attribute__((packed)) {
     uint8_t type;           /**< option type */
@@ -112,9 +158,7 @@ typedef struct __attribute__((packed)) {
  * @brief   6LoWPAN context option format
  * @extends ndp_opt_t
  *
- * @see <a href="https://tools.ietf.org/html/rfc6775#section-4.2">
- *          RFC 6775, section 4.2
- *      </a>
+ * @see     [RFC 6775, section 4.2](https://tools.ietf.org/html/rfc6775#section-4.2)
  */
 typedef struct __attribute__((packed)) {
     uint8_t type;           /**< option type */
@@ -129,9 +173,7 @@ typedef struct __attribute__((packed)) {
  * @brief   Authoritative border router option format
  * @extends ndp_opt_t
  *
- * @see <a href="https://tools.ietf.org/html/rfc6775#section-4.3">
- *          RFC 6775, section 4.3
- *      </a>
+ * @see     [RFC 6775, section 4.3](https://tools.ietf.org/html/rfc6775#section-4.3)
  */
 typedef struct __attribute__((packed)) {
     uint8_t type;           /**< option type */
@@ -180,10 +222,36 @@ static inline void sixlowpan_nd_opt_6ctx_set_cid(sixlowpan_nd_opt_6ctx_t *ctx_op
     ctx_opt->resv_c_cid |= (SIXLOWPAN_ND_OPT_6CTX_FLAGS_CID_MASK & cid);
 }
 
+/**
+ * @brief   Gets the version in correct order from an Authoritative Border
+ *          Router option
+ *
+ * @param[in] abr_opt   An Authoritative Border Router option (ABRO).
+ *
+ * @return  The version of the ABRO
+ */
+static inline uint32_t sixlowpan_nd_opt_abr_get_version(const sixlowpan_nd_opt_abr_t *abr_opt)
+{
+    return ((uint32_t)byteorder_ntohs(abr_opt->vlow)) |
+           (((uint32_t)byteorder_ntohs(abr_opt->vhigh)) << 16);
+}
+
+/**
+ * @brief   Sets the version of an Authoritative Border Router option
+ *
+ * @param[in] abr_opt   An Authoritative Border Router option (ABRO).
+ * @param[in] version   Version for the ABRO.
+ */
+static inline void sixlowpan_nd_opt_abr_set_version(sixlowpan_nd_opt_abr_t *abr_opt,
+                                                    uint32_t version)
+{
+    abr_opt->vlow = byteorder_htons((uint16_t)(version & 0xffff));
+    abr_opt->vhigh = byteorder_htons((uint16_t)(version >> 16));
+}
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* SIXLOWPAN_ND_H_ */
+#endif /* NET_SIXLOWPAN_ND_H */
 /** @} */

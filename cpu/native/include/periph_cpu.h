@@ -13,11 +13,11 @@
  * @file
  * @brief           CPU specific definitions for internal peripheral handling
  *
- * @author          Hauke Petersen <hauke.peterse@fu-berlin.de>
+ * @author          Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef PERIPH_CPU_H_
-#define PERIPH_CPU_H_
+#ifndef PERIPH_CPU_H
+#define PERIPH_CPU_H
 
 #include "periph/dev_enums.h"
 
@@ -32,9 +32,21 @@ extern "C" {
 #define CPUID_LEN           (4U)
 #endif
 
+/**
+ * @brief   Prevent shared timer functions from being used
+ */
+#define PERIPH_TIMER_PROVIDES_SET
+
+/**
+ * @name    Power management configuration
+ * @{
+ */
+#define PROVIDES_PM_OFF
+/** @} */
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* PERIPH_CPU_H_ */
+#endif /* PERIPH_CPU_H */
 /** @} */

@@ -25,23 +25,22 @@
 #include "kernel_types.h"
 #include "periph/spi.h"
 #include "periph/gpio.h"
-#include "net/netdev2.h"
+#include "net/netdev.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @brief encx24j600 netdev2 device
- * @extends netdev2_t
+ * @brief   encx24j600 netdev device
+ * @extends netdev_t
  */
 typedef struct {
-    netdev2_t netdev;       /**< extended netdev2 structure */
+    netdev_t netdev;        /**< extended netdev structure */
     spi_t spi;              /**< SPI device the enc is connected to*/
     gpio_t cs;              /**< SPI chip select pin */
     gpio_t int_pin;         /**< SPI interrupt pin */
     uint16_t rx_next_ptr;   /**< ptr to next packet whithin devices memory */
-    mutex_t mutex;          /**< mutex used to lock device access */
 } encx24j600_t;
 
 /**
@@ -54,7 +53,7 @@ typedef struct {
 } encx24j600_params_t;
 
 /**
- * @brief Setup an encx24j600 based device state.
+ * @brief   Setup an encx24j600 based device state.
  *
  * This function sets SPI pins, initializes the device state structure.
  * It does not initialize the device itself.

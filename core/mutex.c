@@ -25,11 +25,8 @@
 
 #include "mutex.h"
 #include "thread.h"
-#include "atomic.h"
 #include "sched.h"
-#include "thread.h"
 #include "irq.h"
-#include "thread.h"
 #include "list.h"
 
 #define ENABLE_DEBUG    (0)

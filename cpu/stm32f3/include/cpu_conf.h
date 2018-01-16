@@ -19,21 +19,22 @@
  * @author          Katja Kirstein <katja.kirstein@haw-hamburg.de>
  */
 
-#ifndef STM32F3_CPU_CONF_H
-#define STM32F3_CPU_CONF_H
+#ifndef CPU_CONF_H
+#define CPU_CONF_H
 
 #include "cpu_conf_common.h"
 
-#ifdef CPU_MODEL_STM32F303VC
-#include "stm32f303xc.h"
+#if defined(CPU_MODEL_STM32F303VC)
+#include "vendor/stm32f303xc.h"
+#elif defined(CPU_MODEL_STM32F334R8)
+#include "vendor/stm32f334x8.h"
+#elif defined(CPU_MODEL_STM32F303RE) || defined(CPU_MODEL_STM32F303ZE)
+#include "vendor/stm32f303xe.h"
+#elif defined(CPU_MODEL_STM32F303K8)
+#include "vendor/stm32f303x8.h"
+#elif defined(CPU_MODEL_STM32F302R8)
+#include "vendor/stm32f302x8.h"
 #endif
-#ifdef CPU_MODEL_STM32F334R8
-#include "stm32f334x8.h"
-#endif
-#ifdef CPU_MODEL_STM32F303RE
-#include "stm32f303xe.h"
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -43,7 +44,11 @@ extern "C" {
  * @{
  */
 #define CPU_DEFAULT_IRQ_PRIO            (1U)
+#if defined(CPU_MODEL_STM32F303RE) || defined (CPU_MODEL_STM32F303ZE)
+#define CPU_IRQ_NUMOF                   (85U)
+#else
 #define CPU_IRQ_NUMOF                   (82U)
+#endif
 #define CPU_FLASH_BASE                  FLASH_BASE
 /** @} */
 
@@ -52,5 +57,5 @@ extern "C" {
 }
 #endif
 
-#endif /* STM32F3_CPU_CONF_H */
+#endif /* CPU_CONF_H */
 /** @} */

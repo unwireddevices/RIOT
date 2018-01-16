@@ -7,7 +7,7 @@
  */
 
 /**
- * @defgroup    driver_si70xx Si70xx
+ * @defgroup    drivers_si70xx Si7006/13/20/21 temperature and humidity sensors
  * @ingroup     drivers_sensors
  * @brief       Driver for the Si7006/13/20/21 temperature and humidity sensor.
  * @{
@@ -18,8 +18,8 @@
  * @author      Bas Stottelaar <basstottelaar@gmail.com>
  */
 
-#ifndef SI70XX_H_
-#define SI70XX_H_
+#ifndef SI70XX_H
+#define SI70XX_H
 
 #include "periph/i2c.h"
 
@@ -28,16 +28,18 @@ extern "C" {
 #endif
 
 /**
- * @name Si70xx chip addresses.
+ * @name    Si70xx chip addresses.
+ * @{
  */
 #define SI70XX_ADDRESS_SI7006       (0x80)
 #define SI70XX_ADDRESS_SI7013       (0x80)
 #define SI70XX_ADDRESS_SI7013_ALT   (0x81)
 #define SI70XX_ADDRESS_SI7020       (0x80)
 #define SI70XX_ADDRESS_SI7021       (0x80)
+/** @} */
 
 /**
- * @name Si70xx device commands.
+ * @name    Si70xx device commands.
  * @{
  */
 #define SI70XX_MEASURE_RH_HOLD      (0xE5)
@@ -59,7 +61,7 @@ extern "C" {
 /** @} */
 
 /**
- * @name Si70xx register values.
+ * @name    Si70xx register values.
  * @{
  */
 #define SI70XX_ID_SI7006            (0x06)
@@ -72,7 +74,7 @@ extern "C" {
 /** @} */
 
 /**
- * @brief Si70xx device descriptor.
+ * @brief   Si70xx device descriptor.
  */
 typedef struct {
     i2c_t i2c_dev;              /**< I2C bus the sensors is connected to */
@@ -80,7 +82,7 @@ typedef struct {
 } si70xx_t;
 
 /**
- * @brief Device initialization parameters.
+ * @brief   Device initialization parameters.
  */
 typedef struct {
     i2c_t i2c_dev;              /**< I2C bus the sensor is connected to */
@@ -94,7 +96,7 @@ typedef struct {
  * @return                  zero on succesful test
  * @return                  non-zero on unsuccesfull test.
  */
-int si70xx_test(si70xx_t *dev);
+int si70xx_test(const si70xx_t *dev);
 
 /**
  * @brief   Initialize and reset the sensor.
@@ -113,7 +115,7 @@ int si70xx_init(si70xx_t *dev, i2c_t i2c_dev, uint8_t address);
  * @param[in] dev           device descriptor
  * @return                  relative humidity in centi-percent (times 100)
  */
-uint16_t si70xx_get_relative_humidity(si70xx_t *dev);
+uint16_t si70xx_get_relative_humidity(const si70xx_t *dev);
 
 /**
  * @brief   Read the current temperature from the sensor. Uses clock streching.
@@ -122,7 +124,7 @@ uint16_t si70xx_get_relative_humidity(si70xx_t *dev);
  * @return                  current temperature in centi-degrees Celsius
  *                          (times 100)
  */
-int16_t si70xx_get_temperature(si70xx_t *dev);
+int16_t si70xx_get_temperature(const si70xx_t *dev);
 
 /**
  * @brief   Read the relative humidity and temperature from the sensor. Uses
@@ -132,7 +134,7 @@ int16_t si70xx_get_temperature(si70xx_t *dev);
  * @param[out] humidity     pointer to relative humidity (in centi-percent)
  * @param[out] temperature  pointer to temperature (in centi-degrees Celsius)
  */
-void si70xx_get_both(si70xx_t *dev, uint16_t *humidity, int16_t *temperature);
+void si70xx_get_both(const si70xx_t *dev, uint16_t *humidity, int16_t *temperature);
 
 /**
  * @brief   Read the sensor serial number.
@@ -140,7 +142,7 @@ void si70xx_get_both(si70xx_t *dev, uint16_t *humidity, int16_t *temperature);
  * @param[in] dev           device descriptor
  * @return                  sensor serial number
  */
-uint64_t si70xx_get_serial(si70xx_t *dev);
+uint64_t si70xx_get_serial(const si70xx_t *dev);
 
 /**
  * @brief   Read the sensor id, to identifier the sensor variant.
@@ -148,7 +150,7 @@ uint64_t si70xx_get_serial(si70xx_t *dev);
  * @param[in] dev           device descriptor
  * @return                  device id
  */
-uint8_t si70xx_get_id(si70xx_t *dev);
+uint8_t si70xx_get_id(const si70xx_t *dev);
 
 /**
  * @brief   Read the firmware revision of the sensor.
@@ -156,11 +158,11 @@ uint8_t si70xx_get_id(si70xx_t *dev);
  * @param[in] dev           device descriptor
  * @return                  sensor firmware revision number
  */
-uint8_t si70xx_get_revision(si70xx_t *dev);
+uint8_t si70xx_get_revision(const si70xx_t *dev);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* SI70XX_H_ */
+#endif /* SI70XX_H */
 /** @} */

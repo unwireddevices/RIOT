@@ -67,7 +67,6 @@ typedef void (*timer_cb_t)(void *arg, int channel);
 
 /**
  * @brief   Default interrupt context entry holding callback and argument
- * @{
  */
 #ifndef HAVE_TIMER_ISR_CTX_T
 typedef struct {
@@ -75,7 +74,6 @@ typedef struct {
     void *arg;              /**< optional argument given to that callback */
 } timer_isr_ctx_t;
 #endif
-/** @} */
 
 /**
  * @brief Initialize the given timer
@@ -90,7 +88,7 @@ typedef struct {
  *
  * @param[in] dev           the timer to initialize
  * @param[in] freq          requested number of ticks per second
- * @param[in] callback      this callback is called in interrupt context, the
+ * @param[in] cb            this callback is called in interrupt context, the
  *                          emitting channel is passed as argument
  * @param[in] arg           argument to the callback
  *
@@ -177,20 +175,6 @@ void timer_start(tim_t dev);
  * @param[in] dev           the timer to stop
  */
 void timer_stop(tim_t dev);
-
-/**
- * @brief Enable the interrupts for the given timer
- *
- * @param[in] dev           timer to enable interrupts for
- */
-void timer_irq_enable(tim_t dev);
-
-/**
- * @brief Disable interrupts for the given timer
- *
- * @param[in] dev           the timer to disable interrupts for
- */
-void timer_irq_disable(tim_t dev);
 
 #ifdef __cplusplus
 }

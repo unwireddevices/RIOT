@@ -228,6 +228,16 @@ int mt3333_init(mt3333_t *dev, mt3333_param_t *param) {
 	dev->params = *param;
     
     _dev = dev;
+    
+    /* Create reader thread */
+	dev->reader_pid = thread_create(dev->reader_stack + 100 + MT3333_RXBUF_SIZE_BYTES,
+                                    MT3333_READER_THREAD_STACK_SIZE_BYTES - 100 - MT3333_RXBUF_SIZE_BYTES,
+                                    THREAD_PRIORITY_MAIN - 1, 0, reader, dev, "MT3333 reader");
+	if (dev->reader_pid <= KERNEL_PID_UNDEF) {
+		return -2;
+	}
+    
+    dev->rxbuf = dev->reader_stack + 100;
 
 	/* Initialize the input ring buffer */
 	ringbuffer_init(&dev->rxrb, dev->rxbuf, MT3333_RXBUF_SIZE_BYTES);
@@ -235,12 +245,6 @@ int mt3333_init(mt3333_t *dev, mt3333_param_t *param) {
 	/* Initialize the UART */
 	if (uart_init(dev->params.uart, dev->params.baudrate, rx_cb, dev)) {
 		return -1;
-	}
-
-	/* Create reader thread */
-	dev->reader_pid = thread_create((char *) dev->reader_stack + 100, MT3333_READER_THREAD_STACK_SIZE_BYTES - 100, THREAD_PRIORITY_MAIN - 1, 0, reader, dev, "MT3333 reader");
-	if (dev->reader_pid <= KERNEL_PID_UNDEF) {
-		return -2;
 	}
 
 	return 0;

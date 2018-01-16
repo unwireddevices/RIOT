@@ -28,7 +28,7 @@ extern "C" {
 #endif
 
 /**
- * @brief   Possible I2C bus addresses of the device
+ * @name    Possible I2C bus addresses of the device
  *
  * The actual address of the device depends on the state of the ADDR pin.
  * @{
@@ -36,7 +36,6 @@ extern "C" {
 #define BH1750FVI_ADDR_PIN_LOW          (0x5c)      /**< ADDR pin := 0 */
 #define BH1750FVI_ADDR_PIN_HIGH         (0x23)      /**< ADDR pin := 1 */
 /** @} */
-
 
 /**
  * @brief   Default address of BH1750FVI sensors
@@ -95,7 +94,7 @@ int bh1750fvi_init(bh1750fvi_t *dev, bh1750fvi_params_t *params);
  *
  * @return      ambient light intensity in LUX
  */
-uint16_t bh1750fvi_sample(bh1750fvi_t *dev);
+uint16_t bh1750fvi_sample(const bh1750fvi_t *dev);
 
 #ifdef __cplusplus
 }

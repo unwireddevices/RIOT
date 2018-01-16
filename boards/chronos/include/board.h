@@ -15,11 +15,11 @@
  * @file
  * @brief       Header for the chronos board
  *
- * @author      unknwon
+ * @author      unknown
  */
 
-#ifndef CHRONOS_BOARD_H_
-#define CHRONOS_BOARD_H_
+#ifndef BOARD_H
+#define BOARD_H
 
 #include <stdint.h>
 
@@ -28,25 +28,24 @@ extern "C" {
 #endif
 
 /**
- * @brief   Define the CPU model for the <msp430.h>
+ * @name    Define the CPU model for the <msp430.h>
  */
 #ifndef __CC430F6137__
 #define __CC430F6137__
 #endif
 
 /**
- * @brief   Xtimer configuration
+ * @name    Xtimer configuration
  * @{
  */
-#define XTIMER_DEV                  (0)
-#define XTIMER_CHAN                 (0)
 #define XTIMER_WIDTH                (16)
 /** @} */
 
 /**
- * @brief   MSP430 core configuration
+ * @name    MSP430 core configuration
  * @{
  */
+/** @todo Move this to the periph_conf.h */
 #define MSP430_INITIAL_CPU_SPEED    7372800uL
 #define F_CPU                       MSP430_INITIAL_CPU_SPEED
 #define F_RC_OSCILLATOR             32768
@@ -58,5 +57,5 @@ extern "C" {
 }
 #endif
 
-#endif /* _CHRONOS_BOARD_H_ */
+#endif /* BOARD_H */
 /** @} */

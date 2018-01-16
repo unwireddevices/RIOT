@@ -3,5 +3,11 @@ ifneq (,$(filter netdev_default gnrc_netdev_default,$(USEMODULE)))
 endif
 
 ifneq (,$(filter saul_default,$(USEMODULE)))
-  USEMODULE += mma8652
+  USEMODULE += saul_gpio
+  USEMODULE += hdc1000
+  USEMODULE += mag3110
+  USEMODULE += mma8x5x
+  USEMODULE += mpl3115a2
+  USEMODULE += tcs37727
+  USEMODULE += tmp006
 endif

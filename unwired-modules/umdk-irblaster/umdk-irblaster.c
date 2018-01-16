@@ -93,18 +93,18 @@ static umdk_irblaster_dev_t pwm_devs[UMDK_IR_NUM_DEVS] = {
 };
 
 static void send_start(void) {
-    gpio_init_af(pwm_config[dev_id].pins[ch->ch], pwm_config[dev_id].af);
+    gpio_init_af(pwm_config[dev_id].chan[ch->ch].pin, pwm_config[dev_id].af);
     xtimer_spin(xtimer_ticks_from_usec(3700));
-    gpio_init_af(pwm_config[dev_id].pins[ch->ch], 0);
+    gpio_init_af(pwm_config[dev_id].chan[ch->ch].pin, 0);
     xtimer_spin(xtimer_ticks_from_usec(1800));
 }
 
 static void send_byte(uint8_t data) {
     int bit;
     for (bit = 7; bit >= 0; bit --) {
-        gpio_init_af(pwm_config[dev_id].pins[ch->ch], pwm_config[dev_id].af);
+        gpio_init_af(pwm_config[dev_id].chan[ch->ch].pin, pwm_config[dev_id].af);
         xtimer_spin(xtimer_ticks_from_usec(350));
-        gpio_init_af(pwm_config[dev_id].pins[ch->ch], 0);
+        gpio_init_af(pwm_config[dev_id].chan[ch->ch].pin, 0);
         if (data & (1 << bit)) {
             xtimer_spin(xtimer_ticks_from_usec(1400));
         } else {
@@ -276,15 +276,15 @@ void umdk_irblaster_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     pwm_init(dev->dev, dev->mode, dev->freq, dev->res);
     pwm_stop(dev->dev);
     
-    gpio_init(pwm_config[dev_id].pins[ch->ch], GPIO_OUT);
-    gpio_init_af(pwm_config[dev_id].pins[ch->ch], pwm_config[dev_id].af);
+    gpio_init(pwm_config[dev_id].chan[ch->ch].pin, GPIO_OUT);
+    gpio_init_af(pwm_config[dev_id].chan[ch->ch].pin, pwm_config[dev_id].af);
     ch->status = UMDK_IR_CH_TURN_ON;
     printf("[umdk-" _UMDK_NAME_ "] IR device #%d channel %d turned on\n", dev_id, ch_num);
     update_pwm_freq(dev, freq);
     set_pwm_value(dev, ch, duty_value);
 
     /* disable PWM for now */
-    gpio_init_af(pwm_config[dev_id].pins[ch->ch], 0);
+    gpio_init_af(pwm_config[dev_id].chan[ch->ch].pin, 0);
     
     unwds_add_shell_command( _UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_irblaster_shell_cmd);
 }

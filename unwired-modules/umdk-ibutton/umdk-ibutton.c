@@ -34,6 +34,7 @@ extern "C" {
 #include <limits.h>
 
 #include "periph/gpio.h"
+#include "periph/pm.h"
 
 #include "unwds-common.h"
 
@@ -41,7 +42,6 @@ extern "C" {
 #include "onewire.h"
 #include "umdk-ibutton.h"
 
-#include "lpm.h"
 #include "thread.h"
 #include "rtctimers.h"
 #include "rtctimers-millis.h"
@@ -148,7 +148,7 @@ static void detect_handler(void *arg)
 void umdk_ibutton_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 {
     (void) non_gpio_pin_map;
-    lpm_prevent_switch = 1;
+    pm_prevent_switch = 1;
 
     callback = event_callback;
     
@@ -157,7 +157,7 @@ void umdk_ibutton_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     
     gpio_init(UMDK_IBUTTON_LED_GPIO, GPIO_OUT);
     gpio_clear(UMDK_IBUTTON_LED_GPIO);
-    lpm_arch_add_gpio_exclusion(UMDK_IBUTTON_LED_GPIO);
+    pm_add_gpio_exclusion(UMDK_IBUTTON_LED_GPIO);
     
     /* Create handler thread */
     char *stack = (char *) allocate_stack(UMDK_IBUTTON_STACK_SIZE);

@@ -8,7 +8,7 @@
 
 /**
  * @defgroup    drivers_at86rf2xx AT86RF2xx based drivers
- * @ingroup     drivers_netdev_netdev2
+ * @ingroup     drivers_netdev
  *
  * This module contains drivers for radio devices in Atmel's AT86RF2xx series.
  * The driver is aimed to work with all devices of this series.
@@ -26,8 +26,8 @@
  * @author      Joakim Nohlgård <joakim.nohlgard@eistec.se>
  */
 
-#ifndef AT86RF2XX_H_
-#define AT86RF2XX_H_
+#ifndef AT86RF2XX_H
+#define AT86RF2XX_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -35,8 +35,8 @@
 #include "board.h"
 #include "periph/spi.h"
 #include "periph/gpio.h"
-#include "net/netdev2.h"
-#include "net/netdev2/ieee802154.h"
+#include "net/netdev.h"
+#include "net/netdev/ieee802154.h"
 #include "net/gnrc/nettype.h"
 
 #ifdef __cplusplus
@@ -49,15 +49,7 @@ extern "C" {
 #define AT86RF2XX_MAX_PKT_LENGTH        (IEEE802154_FRAME_LEN_MAX)
 
 /**
- * @brief   Default addresses used if the CPUID module is not present
- * @{
- */
-#define AT86RF2XX_DEFAULT_ADDR_SHORT    (0x0230)
-#define AT86RF2XX_DEFAULT_ADDR_LONG     (0x1222334455667788)
-/** @} */
-
-/**
- * @brief   Channel configuration
+ * @name    Channel configuration
  * @{
  */
 #ifdef MODULE_AT86RF212B
@@ -87,33 +79,62 @@ extern "C" {
 /**
  * @brief   Base (minimal) RSSI value in dBm
  */
-#define RSSI_BASE_VAL                   (-91)
+#if MODULE_AT86RF233
+#   define RSSI_BASE_VAL                   (-94)
+#elif MODULE_AT86RF212B
+/**
+ * @note for the default settings in RIOT for the at86rf212b,
+ *       for other seetings this value may change.
+ */
+#   define RSSI_BASE_VAL                   (-98)
+#else
+#   define RSSI_BASE_VAL                   (-91)
+#endif
+
+#if defined(DOXYGEN) || defined(MODULE_AT86RF232) || defined(MODULE_AT86RF233)
+/**
+ * @brief   Frame retry counter reporting
+ *
+ * The AT86RF2XX_HAVE_RETRIES flag enables support for NETOPT_TX_RETRIES NEEDED
+ * operation. Required for this functionality is the XAH_CTRL_2 register which
+ * contains the frame retry counter. Only the at86rf232 and the at86rf233
+ * support this register.
+ */
+#define AT86RF2XX_HAVE_RETRIES             (1)
+#else
+#define AT86RF2XX_HAVE_RETRIES             (0)
+#endif
 
 /**
- * @brief   Flags for device internal states (see datasheet)
+ * @name    Flags for device internal states (see datasheet)
  * @{
  */
-#define AT86RF2XX_STATE_TRX_OFF      (0x08)     /**< idle */
-#define AT86RF2XX_STATE_PLL_ON       (0x09)     /**< ready to transmit */
-#define AT86RF2XX_STATE_SLEEP        (0x0f)     /**< sleep mode */
-#define AT86RF2XX_STATE_BUSY_RX_AACK (0x11)     /**< busy receiving data */
-#define AT86RF2XX_STATE_BUSY_TX_ARET (0x12)     /**< busy transmitting data */
-#define AT86RF2XX_STATE_RX_AACK_ON   (0x16)     /**< wait for incoming data */
-#define AT86RF2XX_STATE_TX_ARET_ON   (0x19)     /**< ready for sending data */
-#define AT86RF2XX_STATE_IN_PROGRESS  (0x1f)     /**< ongoing state conversion */
+#define AT86RF2XX_STATE_P_ON           (0x00)     /**< initial power on */
+#define AT86RF2XX_STATE_BUSY_RX        (0x01)     /**< busy receiving data (basic mode) */
+#define AT86RF2XX_STATE_BUSY_TX        (0x02)     /**< busy transmitting data (basic mode) */
+#define AT86RF2XX_STATE_FORCE_TRX_OFF  (0x03)     /**< force transition to idle */
+#define AT86RF2XX_STATE_RX_ON          (0x06)     /**< listen mode (basic mode) */
+#define AT86RF2XX_STATE_TRX_OFF        (0x08)     /**< idle */
+#define AT86RF2XX_STATE_PLL_ON         (0x09)     /**< ready to transmit */
+#define AT86RF2XX_STATE_SLEEP          (0x0f)     /**< sleep mode */
+#define AT86RF2XX_STATE_BUSY_RX_AACK   (0x11)     /**< busy receiving data (extended mode) */
+#define AT86RF2XX_STATE_BUSY_TX_ARET   (0x12)     /**< busy transmitting data (extended mode) */
+#define AT86RF2XX_STATE_RX_AACK_ON     (0x16)     /**< wait for incoming data */
+#define AT86RF2XX_STATE_TX_ARET_ON     (0x19)     /**< ready for sending data */
+#define AT86RF2XX_STATE_IN_PROGRESS    (0x1f)     /**< ongoing state conversion */
 /** @} */
 
 /**
- * @brief   Internal device option flags
+ * @name    Internal device option flags
  *
  * `0x00ff` is reserved for general IEEE 802.15.4 flags
- * (see @ref netdev2_ieee802154_t)
+ * (see @ref netdev_ieee802154_t)
  *
  * @{
  */
-#define AT86RF2XX_OPT_SRC_ADDR_LONG  (NETDEV2_IEEE802154_SRC_MODE_LONG) /**< legacy define */
-#define AT86RF2XX_OPT_RAWDUMP        (NETDEV2_IEEE802154_RAW)           /**< legacy define */
-#define AT86RF2XX_OPT_AUTOACK        (NETDEV2_IEEE802154_ACK_REQ)       /**< legacy define */
+#define AT86RF2XX_OPT_SRC_ADDR_LONG  (NETDEV_IEEE802154_SRC_MODE_LONG)  /**< legacy define */
+#define AT86RF2XX_OPT_RAWDUMP        (NETDEV_IEEE802154_RAW)            /**< legacy define */
+#define AT86RF2XX_OPT_AUTOACK        (NETDEV_IEEE802154_ACK_REQ)        /**< legacy define */
 
 #define AT86RF2XX_OPT_CSMA           (0x0100)       /**< CSMA active */
 #define AT86RF2XX_OPT_PROMISCUOUS    (0x0200)       /**< promiscuous mode
@@ -130,12 +151,12 @@ extern "C" {
 /** @} */
 
 /**
- * @brief struct holding all params needed for device initialization
+ * @brief   struct holding all params needed for device initialization
  */
 typedef struct at86rf2xx_params {
     spi_t spi;              /**< SPI bus the device is connected to */
-    spi_speed_t spi_speed;  /**< SPI speed to use */
-    gpio_t cs_pin;          /**< GPIO pin connected to chip select */
+    spi_clk_t spi_clk;      /**< SPI clock speed to use */
+    spi_cs_t cs_pin;        /**< GPIO pin connected to chip select */
     gpio_t int_pin;         /**< GPIO pin connected to the interrupt pin */
     gpio_t sleep_pin;       /**< GPIO pin connected to the sleep pin */
     gpio_t reset_pin;       /**< GPIO pin connected to the reset pin */
@@ -144,14 +165,11 @@ typedef struct at86rf2xx_params {
 /**
  * @brief   Device descriptor for AT86RF2XX radio devices
  *
- * @extends netdev2_ieee802154_t
+ * @extends netdev_ieee802154_t
  */
 typedef struct {
-    netdev2_ieee802154_t netdev;            /**< netdev2 parent struct */
-    /**
-     * @brief   device specific fields
-     * @{
-     */
+    netdev_ieee802154_t netdev;             /**< netdev parent struct */
+    /* device specific fields */
     at86rf2xx_params_t params;              /**< parameters for initialization */
     uint8_t state;                          /**< current state of the radio */
     uint8_t tx_frame_len;                   /**< length of the current TX frame */
@@ -163,6 +181,10 @@ typedef struct {
     uint8_t pending_tx;                 /**< keep track of pending TX calls
                                              this is required to know when to
                                              return to @ref at86rf2xx_t::idle_state */
+#if AT86RF2XX_HAVE_RETRIES
+    /* Only radios with the XAH_CTRL_2 register support frame retry reporting */
+    uint8_t tx_retries;                 /**< Number of NOACK retransmissions */
+#endif
     /** @} */
 } at86rf2xx_t;
 
@@ -180,16 +202,6 @@ void at86rf2xx_setup(at86rf2xx_t *dev, const at86rf2xx_params_t *params);
  * @param[in] dev           device to reset
  */
 void at86rf2xx_reset(at86rf2xx_t *dev);
-
-/**
- * @brief   Trigger a clear channel assessment
- *
- * @param[in] dev           device to use
- *
- * @return                  true if channel is clear
- * @return                  false if channel is busy
- */
-bool at86rf2xx_cca(at86rf2xx_t *dev);
 
 /**
  * @brief   Get the short address of the given device
@@ -379,6 +391,15 @@ int8_t at86rf2xx_get_cca_threshold(at86rf2xx_t *dev);
 void at86rf2xx_set_cca_threshold(at86rf2xx_t *dev, int8_t value);
 
 /**
+ * @brief   Get the latest ED level measurement
+ *
+ * @param[in] dev           device to read value from
+ *
+ * @return                  the last ED level
+ */
+int8_t at86rf2xx_get_ed_level(at86rf2xx_t *dev);
+
+/**
  * @brief   Enable or disable driver specific options
  *
  * @param[in] dev           device to set/clear option flag for
@@ -392,19 +413,10 @@ void at86rf2xx_set_option(at86rf2xx_t *dev, uint16_t option, bool state);
  *
  * @param[in] dev           device to change state of
  * @param[in] state         the targeted new state
- */
-void at86rf2xx_set_state(at86rf2xx_t *dev, uint8_t state);
-
-/**
- * @brief   Reset the internal state machine to TRX_OFF mode.
  *
- * This will force a transition to TRX_OFF regardless of whether the transceiver
- * is currently busy sending or receiving. This function is used to get back to
- * a known state during driver initialization.
- *
- * @param[in] dev           device to operate on
+ * @return                  the previous state before the new state was set
  */
-void at86rf2xx_reset_state_machine(at86rf2xx_t *dev);
+uint8_t at86rf2xx_set_state(at86rf2xx_t *dev, uint8_t state);
 
 /**
  * @brief   Convenience function for simply sending data
@@ -450,9 +462,21 @@ size_t at86rf2xx_tx_load(at86rf2xx_t *dev, uint8_t *data, size_t len,
  */
 void at86rf2xx_tx_exec(at86rf2xx_t *dev);
 
+/**
+ * @brief   Perform one manual channel clear assessment (CCA)
+ *
+ * The CCA mode and threshold level depends on the current transceiver settings.
+ *
+ * @param[in]  dev          device to use
+ *
+ * @return                  true if channel is determined clear
+ * @return                  false if channel is determined busy
+ */
+bool at86rf2xx_cca(at86rf2xx_t *dev);
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* AT86RF2XX_H_ */
+#endif /* AT86RF2XX_H */
 /** @} */

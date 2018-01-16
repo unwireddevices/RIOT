@@ -146,7 +146,7 @@ static void set_pwm_value(umdk_pwm_dev_t *dev, umdk_pwm_ch_t *ch, uint8_t value)
     else {
 	  /* Start or continue work current PWM device */
 	  if (need_to_start) {
-		pwm_start(dev->dev);
+		pwm_poweron(dev->dev);
 		dev->is_started = true;
 		printf("[umdk-" _UMDK_NAME_ "] PWM device #%d is started\n", dev->dev);
 	  }
@@ -248,15 +248,15 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
 			/* Check necessity Turning on/off channel */
 			if(status == UMDK_PWM_CH_TURN_OFF) {
                 printf("[umdk-" _UMDK_NAME_ "] PWM device #%d channel %d turned off\n", dev_id, ch_num);
-                umdk_pwm_turn_off_pin(pwm_config[dev_id].pins[ch->ch]);
+                umdk_pwm_turn_off_pin(pwm_config[dev_id].chan[ch->ch].pin);
                 ch->status = UMDK_PWM_CH_TURN_OFF;
 			}
 			else {
 
 				if(status == UMDK_PWM_CH_TURN_ON) {
 					if(ch->status == UMDK_PWM_CH_TURN_OFF) {
-						gpio_init(pwm_config[dev_id].pins[ch->ch], GPIO_OUT);
-						gpio_init_af(pwm_config[dev_id].pins[ch->ch], pwm_config[dev_id].af);
+						gpio_init(pwm_config[dev_id].chan[ch->ch].pin, GPIO_OUT);
+						gpio_init_af(pwm_config[dev_id].chan[ch->ch].pin, pwm_config[dev_id].af);
 
 						printf("[umdk-" _UMDK_NAME_ "] PWM device #%d channel %d turned on\n", dev_id, ch_num);
 						ch->status = UMDK_PWM_CH_TURN_ON;

@@ -9,15 +9,17 @@
 /**
  * @defgroup unittests Unittests
  * @ingroup  sys
+ * @brief RIOT Unittests based on the EmbUnit Framework
  *
- * @note
- * Please refer to https://github.com/RIOT-OS/RIOT/wiki/Testing-RIOT
+ * @see http://embunit.sourceforge.net/embunit/
+ *
+ * @note Please refer to https://github.com/RIOT-OS/RIOT/wiki/Testing-RIOT
  *
  * @author Martine Lenders <mlenders@inf.fu-berlin.de>
  */
 
-#ifndef SYS_EMB_UNIT_H
-#define SYS_EMB_UNIT_H
+#ifndef EMBUNIT_H
+#define EMBUNIT_H
 
 #include "embUnit/embUnit.h"
 
@@ -64,4 +66,4 @@ extern "C" {
 }
 #endif
 
-#endif /* SYS_EMB_UNIT_H */
+#endif /* EMBUNIT_H */

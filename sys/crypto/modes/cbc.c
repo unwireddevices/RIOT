@@ -23,7 +23,7 @@
 #include "crypto/modes/cbc.h"
 
 int cipher_encrypt_cbc(cipher_t* cipher, uint8_t iv[16],
-                       uint8_t* input, size_t length, uint8_t* output)
+                       const uint8_t* input, size_t length, uint8_t* output)
 {
     size_t offset = 0;
     uint8_t block_size, input_block[CIPHER_MAX_BLOCK_SIZE] = {0},
@@ -55,10 +55,11 @@ int cipher_encrypt_cbc(cipher_t* cipher, uint8_t iv[16],
 
 
 int cipher_decrypt_cbc(cipher_t* cipher, uint8_t iv[16],
-                       uint8_t* input, size_t length, uint8_t* output)
+                       const uint8_t* input, size_t length, uint8_t* output)
 {
     size_t offset = 0;
-    uint8_t* input_block, *output_block, *input_block_last, block_size;
+    const uint8_t *input_block, *input_block_last;
+    uint8_t block_size;
 
 
     block_size = cipher_get_block_size(cipher);
@@ -69,7 +70,7 @@ int cipher_decrypt_cbc(cipher_t* cipher, uint8_t iv[16],
     input_block_last = iv;
     do {
         input_block = input + offset;
-        output_block = output + offset;
+        uint8_t *output_block = output + offset;
 
         if (cipher_decrypt(cipher, input_block, output_block) != 1) {
             return CIPHER_ERR_DEC_FAILED;

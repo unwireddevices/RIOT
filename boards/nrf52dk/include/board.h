@@ -9,13 +9,14 @@
 /**
  * @defgroup    boards_nrf52dk nRF52 DK
  * @ingroup     boards
+ * @brief       Board specific configuration for the nRF52 DK
  * @{
  *
  * @file
- * @brief       Board specific configuaration for the nRF52 DK
+ * @brief       Board specific configuration for the nRF52 DK
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
- *
+ * @author      Sebastian Meiling <s@mlng.net>
  */
 
 #ifndef BOARD_H
@@ -28,7 +29,7 @@ extern "C" {
 #endif
 
 /**
- * @brief   LED pin configuration
+ * @name    LED pin configuration
  * @{
  */
 #define LED0_PIN            GPIO_PIN(0, 17)
@@ -59,17 +60,21 @@ extern "C" {
 /** @} */
 
 /**
- * @brief   Button pin configuration
+ * @name    Button pin configuration
  * @{
  */
-#define BUTTON1_PIN         (GPIO_PIN(0, 13))
-#define BUTTON2_PIN         (GPIO_PIN(0, 14))
-#define BUTTON3_PIN         (GPIO_PIN(0, 15))
-#define BUTTON4_PIN         (GPIO_PIN(0, 16))
+#define BTN0_PIN            GPIO_PIN(0, 13)
+#define BTN0_MODE           GPIO_IN_PU
+#define BTN1_PIN            GPIO_PIN(0, 14)
+#define BTN1_MODE           GPIO_IN_PU
+#define BTN2_PIN            GPIO_PIN(0, 15)
+#define BTN2_MODE           GPIO_IN_PU
+#define BTN3_PIN            GPIO_PIN(0, 16)
+#define BTN3_MODE           GPIO_IN_PU
 /** @} */
 
 /**
- * @brief Initialize board specific hardware, including clock, LEDs and std-IO
+ * @brief   Initialize board specific hardware, including clock, LEDs and std-IO
  */
 void board_init(void);
 
@@ -77,5 +82,5 @@ void board_init(void);
 }
 #endif
 
-#endif /** BOARD_H */
+#endif /* BOARD_H */
 /** @} */

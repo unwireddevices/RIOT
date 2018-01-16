@@ -20,7 +20,7 @@
 
 #include "assert.h"
 
-#include "stm32l1xx.h"
+#include "cpu.h"
 #include "periph/wdg.h"
 
 #ifdef __cplusplus

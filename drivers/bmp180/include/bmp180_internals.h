@@ -7,8 +7,7 @@
  */
 
 /**
- * @defgroup    drivers_bmp180 BMP180
- * @ingroup     drivers_sensors
+ * @ingroup     drivers_bmp180
  * @brief       Internal addresses, registers, constants for the BMP180 sensor.
  * @{
  *
@@ -18,22 +17,22 @@
  * @author      Alexandre Abadie <alexandre.abadie@inria.fr>
  */
 
-#ifndef BMP180_REGS_H_
-#define BMP180_REGS_H_
+#ifndef BMP180_INTERNALS_H
+#define BMP180_INTERNALS_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @name BMP180 I2C address
+ * @name    BMP180 I2C address
  * @{
  */
 #define BMP180_ADDR                   (0x77) /* 7 bit address */
 /** @} */
 
 /**
- * @name BMP180 registers
+ * @name    BMP180 registers
  * @{
  */
 #define BMP180_REGISTER_ID            (0xD0)
@@ -45,7 +44,7 @@ extern "C" {
 /** @} */
 
 /**
- * @name Oversampling modes delays (micros)
+ * @name    Oversampling modes delays (micros)
  * @{
  */
 #define BMP180_ULTRALOWPOWER_DELAY    (5000UL)
@@ -58,5 +57,5 @@ extern "C" {
 }
 #endif
 
-#endif /* BMP180_REGS_H_ */
+#endif /* BMP180_INTERNALS_H */
 /** @} */

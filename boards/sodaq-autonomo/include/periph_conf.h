@@ -16,8 +16,8 @@
  * @author      Kees Bakker <kees@sodaq.com>
  */
 
-#ifndef PERIPH_CONF_H_
-#define PERIPH_CONF_H_
+#ifndef PERIPH_CONF_H
+#define PERIPH_CONF_H
 
 #include <stdint.h>
 
@@ -29,7 +29,7 @@ extern "C" {
 #endif
 
 /**
- * @brief   External oscillator and clock configuration
+ * @name    External oscillator and clock configuration
  *
  * For selection of the used CORECLOCK, we have implemented two choices:
  *
@@ -76,7 +76,7 @@ extern "C" {
 /** @} */
 
 /**
- * @name Timer peripheral configuration
+ * @name    Timer peripheral configuration
  * @{
  */
 #define TIMER_NUMOF         (2U)
@@ -97,42 +97,50 @@ extern "C" {
 /** @} */
 
 /**
- * @name UART configuration
+ * @name    UART configuration
  * @{
  * See Table 6.1 of the SAM D21 Datasheet
  */
 static const uart_conf_t uart_config[] = {
     {
-        .dev    = &SERCOM0->USART,
-        .rx_pin = GPIO_PIN(PA,9),
-        .tx_pin = GPIO_PIN(PA,10),
-        .mux    = GPIO_MUX_C,
-        .rx_pad = UART_PAD_RX_1,
-        .tx_pad = UART_PAD_TX_2,
+        .dev      = &SERCOM0->USART,
+        .rx_pin   = GPIO_PIN(PA,9),
+        .tx_pin   = GPIO_PIN(PA,10),
+        .mux      = GPIO_MUX_C,
+        .rx_pad   = UART_PAD_RX_1,
+        .tx_pad   = UART_PAD_TX_2,
+        .flags    = UART_FLAG_NONE,
+        .gclk_src = GCLK_CLKCTRL_GEN_GCLK0
     },
     {
-        .dev    = &SERCOM5->USART,
-        .rx_pin = GPIO_PIN(PB,31),
-        .tx_pin = GPIO_PIN(PB,30),
-        .mux    = GPIO_MUX_D,
-        .rx_pad = UART_PAD_RX_1,
-        .tx_pad = UART_PAD_TX_0_RTS_2_CTS_3,
+        .dev      = &SERCOM5->USART,
+        .rx_pin   = GPIO_PIN(PB,31),
+        .tx_pin   = GPIO_PIN(PB,30),
+        .mux      = GPIO_MUX_D,
+        .rx_pad   = UART_PAD_RX_1,
+        .tx_pad   = UART_PAD_TX_0_RTS_2_CTS_3,
+        .flags    = UART_FLAG_NONE,
+        .gclk_src = GCLK_CLKCTRL_GEN_GCLK0
     },
     {
-        .dev    = &SERCOM4->USART,
-        .rx_pin = GPIO_PIN(PB,13),
-        .tx_pin = GPIO_PIN(PA,14),
-        .mux    = GPIO_MUX_C,
-        .rx_pad = UART_PAD_RX_1,
-        .tx_pad = UART_PAD_TX_2,
+        .dev      = &SERCOM4->USART,
+        .rx_pin   = GPIO_PIN(PB,13),
+        .tx_pin   = GPIO_PIN(PB,14),
+        .mux      = GPIO_MUX_C,
+        .rx_pad   = UART_PAD_RX_1,
+        .tx_pad   = UART_PAD_TX_2,
+        .flags    = UART_FLAG_NONE,
+        .gclk_src = GCLK_CLKCTRL_GEN_GCLK0
     },
     {
-        .dev    = &SERCOM1->USART,
-        .rx_pin = GPIO_PIN(PA,17),
-        .tx_pin = GPIO_PIN(PA,18),
-        .mux    = GPIO_MUX_C,
-        .rx_pad = UART_PAD_RX_1,
-        .tx_pad = UART_PAD_TX_2,
+        .dev      = &SERCOM1->USART,
+        .rx_pin   = GPIO_PIN(PA,17),
+        .tx_pin   = GPIO_PIN(PA,18),
+        .mux      = GPIO_MUX_C,
+        .rx_pad   = UART_PAD_RX_1,
+        .tx_pad   = UART_PAD_TX_2,
+        .flags    = UART_FLAG_NONE,
+        .gclk_src = GCLK_CLKCTRL_GEN_GCLK0
     },
 };
 
@@ -146,7 +154,7 @@ static const uart_conf_t uart_config[] = {
 /** @} */
 
 /**
- * @name PWM configuration
+ * @name    PWM configuration
  * @{
  */
 #define PWM_0_EN            1
@@ -181,34 +189,28 @@ static const pwm_conf_t pwm_config[] = {
 /** @} */
 
 /**
- * @name SPI configuration
+ * @name    SPI configuration
  * @{
  */
-#define SPI_NUMOF           (1)
-#define SPI_0_EN            1
-#define SPI_1_EN            0
+static const spi_conf_t spi_config[] = {
+    {
+        .dev      = &SERCOM3->SPI,
+        .miso_pin = GPIO_PIN(PA, 22),
+        .mosi_pin = GPIO_PIN(PA, 20),
+        .clk_pin  = GPIO_PIN(PA, 21),
+        .miso_mux = GPIO_MUX_C,
+        .mosi_mux = GPIO_MUX_D,
+        .clk_mux  = GPIO_MUX_D,
+        .miso_pad = SPI_PAD_MISO_0,
+        .mosi_pad = SPI_PAD_MOSI_2_SCK_3,
+    },
+};
 
-/*      SPI0             */
-#define SPI_0_DEV           SERCOM3->SPI
-#define SPI_IRQ_0           SERCOM3_IRQn
-#define SPI_0_GCLK_ID       SERCOM3_GCLK_ID_CORE
-/* SPI 0 pin configuration */
-#define SPI_0_SCLK          GPIO_PIN(PA, 21)
-#define SPI_0_SCLK_MUX      GPIO_MUX_D
-#define SPI_0_MISO          GPIO_PIN(PA, 22)
-#define SPI_0_MISO_MUX      GPIO_MUX_C
-#define SPI_0_MISO_PAD      SPI_PAD_MISO_0
-#define SPI_0_MOSI          GPIO_PIN(PA, 20)
-#define SPI_0_MOSI_MUX      GPIO_MUX_D
-#define SPI_0_MOSI_PAD      SPI_PAD_MOSI_2_SCK_3
-
-// How/where do we define SS?
-#define SPI_0_SS            GPIO_PIN(PA, 23)
-
+#define SPI_NUMOF           (sizeof(spi_config) / sizeof(spi_config[0]))
 /** @} */
 
 /**
- * @name I2C configuration
+ * @name    I2C configuration
  * @{
  */
 #define I2C_NUMOF           (1U)
@@ -230,7 +232,7 @@ static const pwm_conf_t pwm_config[] = {
 #define I2C_0_MUX           GPIO_MUX_C
 
 /**
- * @name RTC configuration
+ * @name    RTC configuration
  * @{
  */
 #define RTC_NUMOF          (1U)
@@ -238,7 +240,7 @@ static const pwm_conf_t pwm_config[] = {
 /** @} */
 
 /**
- * @name RTT configuration
+ * @name    RTT configuration
  * @{
  */
 #define RTT_NUMOF          (1U)
@@ -255,5 +257,5 @@ static const pwm_conf_t pwm_config[] = {
 }
 #endif
 
-#endif /* PERIPH_CONF_H_ */
+#endif /* PERIPH_CONF_H */
 /** @} */

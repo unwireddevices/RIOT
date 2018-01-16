@@ -32,6 +32,7 @@
 #include <stdint.h>
 #include "timex.h"
 #include "msg.h"
+#include "mutex.h"
 
 #include "board.h"
 #include "periph_conf.h"
@@ -46,7 +47,7 @@ extern "C" {
  * @note This is a struct in order to make the xtimer API type strict
  */
 typedef struct {
-    uint64_t ticks64;
+    uint64_t ticks64;       /**< Tick count */
 } xtimer_ticks64_t;
 
 /**
@@ -55,7 +56,7 @@ typedef struct {
  * @note This is a struct in order to make the xtimer API type strict
  */
 typedef struct {
-    uint32_t ticks32;
+    uint32_t ticks32;       /**< Tick count */
 } xtimer_ticks32_t;
 
 /**
@@ -67,12 +68,12 @@ typedef void (*xtimer_callback_t)(void*);
  * @brief xtimer timer structure
  */
 typedef struct xtimer {
-    struct xtimer *next;        /**< reference to next timer in timer lists */
-    uint32_t target;            /**< lower 32bit absolute target time */
-    uint32_t long_target;       /**< upper 32bit absolute target time */
+    struct xtimer *next;         /**< reference to next timer in timer lists */
+    uint32_t target;             /**< lower 32bit absolute target time */
+    uint32_t long_target;        /**< upper 32bit absolute target time */
     xtimer_callback_t callback;  /**< callback function to call when timer
                                      expires */
-    void *arg;                  /**< argument to pass to callback function */
+    void *arg;                   /**< argument to pass to callback function */
 } xtimer_t;
 
 /**
@@ -426,6 +427,30 @@ static inline bool xtimer_less(xtimer_ticks32_t a, xtimer_ticks32_t b);
 static inline bool xtimer_less64(xtimer_ticks64_t a, xtimer_ticks64_t b);
 
 /**
+ * @brief lock a mutex but with timeout
+ *
+ * @note this requires core_thread_flags to be enabled
+ *
+ * @param[in]    mutex  mutex to lock
+ * @param[in]    us     timeout in microseconds relative
+ *
+ * @return       0, when returned after mutex was locked
+ * @return       -1, when the timeout occcured
+ */
+int xtimer_mutex_lock_timeout(mutex_t *mutex, uint64_t us);
+
+/**
+ * @brief    Set timeout thread flag after @p timeout
+ *
+ * This function will set THREAD_FLAG_TIMEOUT on the current thread after @p
+ * timeout usec have passed.
+ *
+ * @param[in]   t       timer struct to use
+ * @param[in]   timeout timeout in usec
+ */
+void xtimer_set_timeout_flag(xtimer_t *t, uint32_t timeout);
+
+/**
  * @brief xtimer backoff value
  *
  * All timers that are less than XTIMER_BACKOFF microseconds in the future will
@@ -495,24 +520,6 @@ static inline bool xtimer_less64(xtimer_ticks64_t a, xtimer_ticks64_t b);
 #define XTIMER_PERIODIC_RELATIVE (512)
 #endif
 
-#ifndef XTIMER_SHIFT
-/**
- * @brief   xtimer prescaler value
- *
- * If the underlying hardware timer is running at a power of two multiple of
- * 15625, XTIMER_SHIFT can be used to adjust the difference.
- *
- * For a 1 MHz hardware timer, set XTIMER_SHIFT to 0.
- *
- * For a 4 MHz hardware timer, set XTIMER_SHIFT to 2.
- * For a 16 MHz hardware timer, set XTIMER_SHIFT to 4.
- * For a 250 kHz hardware timer, set XTIMER_SHIFT to 2.
- *
- * The direction of the shift is handled by the macros in tick_conversion.h
- */
-#define XTIMER_SHIFT (0)
-#endif
-
 /*
  * Default xtimer configuration
  */
@@ -559,11 +566,55 @@ static inline bool xtimer_less64(xtimer_ticks64_t a, xtimer_ticks64_t b);
 #define XTIMER_MASK (0)
 #endif
 
+/**
+ * @brief  Base frequency of xtimer is 1 MHz
+ */
+#define XTIMER_HZ_BASE (1000000ul)
+
 #ifndef XTIMER_HZ
 /**
  * @brief  Frequency of the underlying hardware timer
  */
-#define XTIMER_HZ 1000000ul
+#define XTIMER_HZ XTIMER_HZ_BASE
+#endif
+
+#ifndef XTIMER_SHIFT
+#if (XTIMER_HZ == 32768ul)
+/* No shift necessary, the conversion is not a power of two and is handled by
+ * functions in tick_conversion.h */
+#define XTIMER_SHIFT (0)
+#elif (XTIMER_HZ == XTIMER_HZ_BASE)
+/**
+ * @brief   xtimer prescaler value
+ *
+ * If the underlying hardware timer is running at a power of two multiple of
+ * 15625, XTIMER_SHIFT can be used to adjust the difference.
+ *
+ * For a 1 MHz hardware timer, set XTIMER_SHIFT to 0.
+ * For a 2 MHz or 500 kHz, set XTIMER_SHIFT to 1.
+ * For a 4 MHz or 250 kHz, set XTIMER_SHIFT to 2.
+ * For a 8 MHz or 125 kHz, set XTIMER_SHIFT to 3.
+ * For a 16 MHz or 62.5 kHz, set XTIMER_SHIFT to 4.
+ * and for 32 MHz, set XTIMER_SHIFT to 5.
+ *
+ * The direction of the shift is handled by the macros in tick_conversion.h
+ */
+#define XTIMER_SHIFT (0)
+#elif (XTIMER_HZ >> 1 == XTIMER_HZ_BASE) || (XTIMER_HZ << 1 == XTIMER_HZ_BASE)
+#define XTIMER_SHIFT (1)
+#elif (XTIMER_HZ >> 2 == XTIMER_HZ_BASE) || (XTIMER_HZ << 2 == XTIMER_HZ_BASE)
+#define XTIMER_SHIFT (2)
+#elif (XTIMER_HZ >> 3 == XTIMER_HZ_BASE) || (XTIMER_HZ << 3 == XTIMER_HZ_BASE)
+#define XTIMER_SHIFT (3)
+#elif (XTIMER_HZ >> 4 == XTIMER_HZ_BASE) || (XTIMER_HZ << 4 == XTIMER_HZ_BASE)
+#define XTIMER_SHIFT (4)
+#elif (XTIMER_HZ >> 5 == XTIMER_HZ_BASE) || (XTIMER_HZ << 5 == XTIMER_HZ_BASE)
+#define XTIMER_SHIFT (5)
+#else
+#error "XTIMER_SHIFT cannot be derived for given XTIMER_HZ, verify settings!"
+#endif
+#else
+#error "XTIMER_SHIFT is set relative to XTIMER_HZ, no manual define required!"
 #endif
 
 #include "xtimer/tick_conversion.h"

@@ -19,8 +19,8 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef AT86RF2XX_INTERNAL_H_
-#define AT86RF2XX_INTERNAL_H_
+#ifndef AT86RF2XX_INTERNAL_H
+#define AT86RF2XX_INTERNAL_H
 
 #include <stdint.h>
 
@@ -35,18 +35,21 @@ extern "C" {
  * @brief   Transition time from SLEEP to TRX_OFF in us, refer figure 7-4, p.42.
  *          For different environments refer figure 13-13, p.201
  */
-#define AT86RF2XX_WAKEUP_DELAY          (300U)
+#define AT86RF2XX_WAKEUP_DELAY          (306U)
 
 /**
- * @brief   Minimum reset pulse width, refer p.190
+ * @brief   Minimum reset pulse width, refer p.190. We use 62us so
+ *          that it is at least one tick on platforms with coarse xtimers
  */
-#define AT86RF2XX_RESET_PULSE_WIDTH     (1U)
+#define AT86RF2XX_RESET_PULSE_WIDTH     (62U)
 
 /**
- * @brief   Transition time to TRX_OFF after reset pulse in us, refer
- *          figure 7-8, p. 44.
+ * @brief   The typical transition time to TRX_OFF after reset pulse is 26 us,
+ *          refer to figure 7-8, p. 44. We use 62 us so that it is at least one
+ *          tick on platforms that use a 16384 Hz oscillator or have slow start
+ *          up times due to parasitic capacitance on the oscillator
  */
-#define AT86RF2XX_RESET_DELAY           (26U)
+#define AT86RF2XX_RESET_DELAY           (62U)
 
 /**
  * @brief   Read from a register at address `addr` from device `dev`.
@@ -126,13 +129,6 @@ void at86rf2xx_fb_read(const at86rf2xx_t *dev,
 void at86rf2xx_fb_stop(const at86rf2xx_t *dev);
 
 /**
- * @brief   Cancel ongoing transactions and switch to TRX_OFF state
- *
- * @param[in] dev       device to manipulate
- */
-void at86rf2xx_force_trx_off(const at86rf2xx_t *dev);
-
-/**
  * @brief   Convenience function for reading the status of the given device
  *
  * @param[in] dev       device to read the status from
@@ -186,5 +182,5 @@ void at86rf2xx_get_random(at86rf2xx_t *dev, uint8_t *data, const size_t len);
 }
 #endif
 
-#endif /* AT86RF2XX_INTERNAL_H_ */
+#endif /* AT86RF2XX_INTERNAL_H */
 /** @} */

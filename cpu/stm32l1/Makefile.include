@@ -1,5 +1,7 @@
 export CPU_ARCH = cortex-m3
 export CPU_FAM  = stm32l1
 
+CFLAGS += -DPROVIDES_PM_SET_LOWEST_CORTEXM
+
 include $(RIOTCPU)/stm32_common/Makefile.include
-include $(RIOTCPU)/Makefile.include.cortexm_common
+include $(RIOTMAKE)/arch/cortexm.inc.mk

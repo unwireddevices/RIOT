@@ -26,6 +26,7 @@
 #include "periph_conf.h"
 #include "periph/timer.h"
 #include "periph/rtc.h"
+#include "periph/init.h"
 #include <string.h>
 
 /* See if we want to use the PLL */
@@ -125,7 +126,7 @@ void cpu_init(void)
     
     /* initialize system clocks */
     clk_init();
-    
+
     /* determine available ports */
     cpu_ports_number = 0;
     for (uint32_t i = GPIOA_BASE; i<=GPIOG_BASE; i += (GPIOB_BASE - GPIOA_BASE)) {
@@ -143,6 +144,9 @@ void cpu_init(void)
         port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
         port->MODER = 0xffffffff;
     }
+
+    /* trigger static peripheral initialization */
+    periph_init();
 }
 
 /**

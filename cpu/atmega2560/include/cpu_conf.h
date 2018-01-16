@@ -30,7 +30,7 @@ extern "C" {
  * @name Kernel configuration
  *
  * Since printf seems to get memory allocated by the linker/avr-libc the stack
- * size tested sucessfully even with pretty small stacks.k
+ * size tested successfully even with pretty small stacks.k
  * @{
  */
 #define THREAD_EXTRA_STACKSIZE_PRINTF    (128)
@@ -40,7 +40,6 @@ extern "C" {
 #endif
 
 #define THREAD_STACKSIZE_IDLE      (128)
-#define ISR_STACKSIZE              (0)
 /** @} */
 
 #ifdef __cplusplus

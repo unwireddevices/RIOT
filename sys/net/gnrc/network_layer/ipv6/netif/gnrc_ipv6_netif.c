@@ -25,6 +25,9 @@
 
 #include "net/eui64.h"
 #include "net/ipv6/addr.h"
+#ifdef MODULE_GNRC_IPV6_NIB
+#include "net/gnrc/ipv6/nib.h"
+#endif
 #include "net/gnrc/ndp.h"
 #include "net/gnrc/netapi.h"
 #include "net/gnrc/netif.h"
@@ -173,9 +176,11 @@ static void _ipv6_netif_remove(gnrc_ipv6_netif_t *entry)
         return;
     }
 
+#ifndef MODULE_GNRC_IPV6_NIB
 #ifdef MODULE_GNRC_NDP
     gnrc_ndp_netif_remove(entry);
 #endif
+#endif  /* MODULE_GNRC_IPV6_NIB */
 
     mutex_lock(&entry->mutex);
     xtimer_remove(&entry->rtr_sol_timer);
@@ -235,9 +240,13 @@ void gnrc_ipv6_netif_add(kernel_pid_t pid)
 
     mutex_unlock(&free_entry->mutex);
 
+#ifndef MODULE_GNRC_IPV6_NIB
 #ifdef MODULE_GNRC_NDP
     gnrc_ndp_netif_add(free_entry);
 #endif
+#else   /* MODULE_GNRC_IPV6_NIB */
+    gnrc_ipv6_nib_init_iface(pid);
+#endif  /* MODULE_GNRC_IPV6_NIB */
 
     DEBUG(" * pid = %" PRIkernel_pid "  ", free_entry->pid);
     DEBUG("cur_hl = %d  ", free_entry->cur_hl);
@@ -792,6 +801,8 @@ void gnrc_ipv6_netif_init_by_dev(void)
     kernel_pid_t ifs[GNRC_NETIF_NUMOF];
     size_t ifnum = gnrc_netif_get(ifs);
 #ifdef MODULE_GNRC_SIXLOWPAN_ND_BORDER_ROUTER
+    /* cppcheck-suppress unreadVariable
+     * (reason: cppcheck bug. abr_init is read in if below) */
     bool abr_init = false;
 #endif
 
@@ -852,7 +863,19 @@ void gnrc_ipv6_netif_init_by_dev(void)
             _add_addr_to_entry(ipv6_if, &addr, 64, 0);
 
         }
-
+#ifdef GNRC_IPV6_STATIC_LLADDR
+        /* parse addr from string and explicitely set a link lokal prefix
+         * if ifnum > 1 each interface will get its own link local address
+         * with GNRC_IPV6_STATIC_LLADDR + i
+         */
+        char lladdr_str[] = GNRC_IPV6_STATIC_LLADDR;
+        ipv6_addr_t lladdr;
+        if(ipv6_addr_from_str(&lladdr, lladdr_str) != NULL) {
+            lladdr.u8[15] += i;
+            assert(ipv6_addr_is_link_local(&lladdr));
+            _add_addr_to_entry(ipv6_if, &lladdr, 64, 0);
+        }
+#endif
         /* set link MTU */
         if ((gnrc_netapi_get(ifs[i], NETOPT_MAX_PACKET_SIZE, 0, &tmp,
                              sizeof(uint16_t)) >= 0)) {

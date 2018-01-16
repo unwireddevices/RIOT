@@ -12,6 +12,7 @@
 /**
  * @defgroup    pkg_ccnlite CCN-Lite stack
  * @ingroup     pkg
+ * @ingroup     net
  * @brief       Provides a NDN implementation
  *
  * This package provides the CCN-Lite stack as a port of NDN for RIOT.
@@ -108,6 +109,9 @@ extern "C" {
 #define free_3ptr_list(a,b,c)   ccnl_free(a), ccnl_free(b), ccnl_free(c)
 #define free_4ptr_list(a,b,c,d) ccnl_free(a), ccnl_free(b), ccnl_free(c), ccnl_free(d);
 #define free_5ptr_list(a,b,c,d,e) ccnl_free(a), ccnl_free(b), ccnl_free(c), ccnl_free(d), ccnl_free(e);
+/**
+ * @}
+ */
 
 /**
  * Frees all memory directly and indirectly allocated for prefix information
@@ -131,10 +135,13 @@ extern "C" {
  */
 #define CCNL_QUEUE_SIZE     (8)
 
+/**
+ * @brief Data structure for interest packet
+ */
 typedef struct {
-    struct ccnl_prefix_s *prefix;
-    unsigned char *buf;
-    size_t buflen;
+    struct ccnl_prefix_s *prefix;   /**< requested prefix */
+    unsigned char *buf;             /**< buffer to store the interest packet */
+    size_t buflen;                  /**< size of the buffer */
 } ccnl_interest_t;
 
 
@@ -207,18 +214,20 @@ int ccnl_open_netif(kernel_pid_t if_pid, gnrc_nettype_t netreg_type);
  * @param[out] buf      Buffer to write the content chunk to
  * @param[in] buf_len   Size of @p buf
  *
- * @return pointer to the successfully sent Interest
- * @return NULL if Interest couldn't be sent
+ * @return 0 on success
+ * @return -1 on failure
  */
-struct ccnl_interest_s *ccnl_send_interest(struct ccnl_prefix_s *prefix,
-                                           unsigned char *buf, size_t buf_len);
+int ccnl_send_interest(struct ccnl_prefix_s *prefix,
+                       unsigned char *buf, size_t buf_len);
 
 /**
  * @brief Wait for incoming content chunk
  *
- * @pre The thread has to register for CCNL_CONT_CHUNK in @ref netreg first
+ * @pre The thread has to register for CCNL_CONT_CHUNK in @ref net_gnrc_netreg
+ *      first
  *
- * @post The thread should unregister from @ref netreg after this function returns
+ * @post The thread should unregister from @ref net_gnrc_netreg after this
+ *       function returns
  *
  * @param[out] buf      Buffer to stores the received content
  * @param[in]  buf_len  Size of @p buf
@@ -242,6 +251,16 @@ int ccnl_wait_for_chunk(void *buf, size_t buf_len, uint64_t timeout);
 int ccnl_fib_add_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx,
                        struct ccnl_face_s *face);
 
+/**
+ * @brief Remove entry from the CCN-Lite FIB
+ *
+ * @par[in] relay   Local relay struct
+ * @par[in] pfx     Prefix of the FIB entry, may be NULL
+ * @par[in] face    Face for the FIB entry, may be NULL
+ *
+ * @return 0    on success
+ * @return -1   on error
+ */
 int ccnl_fib_rem_entry(struct ccnl_relay_s *relay, struct ccnl_prefix_s *pfx, struct ccnl_face_s *face);
 
 /**

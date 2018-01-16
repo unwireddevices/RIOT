@@ -16,8 +16,8 @@
  * @author          Leon M. George <leon@georgemail.de>
  */
 
-#ifndef PERIPH_CPU_H_
-#define PERIPH_CPU_H_
+#ifndef PERIPH_CPU_H
+#define PERIPH_CPU_H
 
 #include "cpu.h"
 
@@ -26,9 +26,20 @@ extern "C" {
 #endif
 
 /**
+ * @brief   Starting offset of CPU_ID
+ */
+#define CPUID_ADDR          (&FCFG->MAC_BLE_0)
+/**
  * @brief   Length of the CPU_ID in octets
  */
 #define CPUID_LEN           (16U)
+
+/**
+ * @name    Power management configuration
+ * @{
+ */
+#define PROVIDES_PM_SET_LOWEST_CORTEXM
+/** @} */
 
 #ifndef DOXYGEN
 /**
@@ -53,20 +64,23 @@ typedef enum {
     GPIO_RISING = IOCFG_EDGEDET_RISING,
     GPIO_BOTH = IOCFG_EDGEDET_BOTH
 } gpio_flank_t;
-#endif /* ndef DOXYGEN */
 
 /**
- * @brief   Timer configuration options
+ * @brief   Configuration of low-level general purpose timers
+ *
+ * General purpose timers (GPT[0-3]) are configured consecutively and in order
+ * (without gaps) starting from GPT0, i.e. if multiple timers are enabled.
  */
 typedef struct {
-    gpt_reg_t *dev; /**< the GPT base address */
-    uint8_t num; /**< number of the timer */
-    uint8_t irqn; /**< interrupt number */
+    uint8_t     cfg;    /**< timer config [16,32 Bit] */
+    uint8_t     chn;    /**< number of channels [1,2] */
 } timer_conf_t;
+
+#endif /* ifndef DOXYGEN */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* PERIPH_CPU_H_ */
+#endif /* PERIPH_CPU_H */
 /** @} */

@@ -7,7 +7,7 @@
  */
 
 /**
- * @defgroup    net_ppptypes PPP types
+ * @defgroup    net_ppp Point-to-Point Protocol (PPP) Data Link Layer
  * @ingroup     net
  * @brief       PPP types
 
@@ -24,8 +24,8 @@
  */
 
 
-#ifndef PPPTYPE_H_
-#define PPPTYPE_H_
+#ifndef NET_PPPTYPE_H
+#define NET_PPPTYPE_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,7 +44,7 @@ extern "C" {
 }
 #endif
 
-#endif /* PPPTYPE_H_ */
+#endif /* NET_PPPTYPE_H */
 /**
  * @}
  */

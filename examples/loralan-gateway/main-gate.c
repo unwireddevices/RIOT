@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Unwired Devices [info@unwds.com]
+ * Copyright (C) 2016-2018 Unwired Devices [info@unwds.com]
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -11,9 +11,10 @@
  * @ingroup
  * @brief
  * @{
- * @file
- * @brief
+ * @file        main-gate.c
+ * @brief       LoRaLAN gateway device
  * @author      Evgeniy Ponomarev
+ * @author      Oleg Artamonov
  */
 
 #ifdef __cplusplus
@@ -26,12 +27,8 @@ extern "C" {
 
 #include "main.h"
 
-#include "lpm.h"
-#include "arch/lpm_arch.h"
 #include "thread.h"
 #include "random.h"
-#include "sx1276.h"
-#include "xtimer.h"
 #include "periph/rtc.h"
 #include "periph/wdg.h"
 #include "periph/gpio.h"
@@ -41,6 +38,12 @@ extern "C" {
 #include "utils.h"
 #include "shell.h"
 #include "shell_commands.h"
+
+#include "net/gnrc/netdev.h"
+#include "net/netdev.h"
+#include "sx127x_internal.h"
+#include "sx127x_params.h"
+#include "sx127x_netdev.h"
 
 #include "board.h"
 
@@ -61,15 +64,23 @@ extern "C" {
 #define IWDG_RELOAD     (0x0FFF)
 #define IWDG_TIMEOUT    ((((IWDG_RELOAD) * (1 << (IWDG_PRESCALER + 2))) / 56000) - 3)
 
-//static node_role_settings_t node_settings;
-
 static rtctimers_t iwdg_timer;
 
-static sx1276_t sx1276;
+static sx127x_t sx127x;
+static netdev_t netdev;
 static ls_gate_t ls;
 
 static ls_gate_channel_t channels[1] = {
-    { LS_DR6, 0, 0, LS_GATE_CHANNEL_STATE_IDLE, { &sx1276, &ls } },        /* DR, frequency, rssi, state, sx1276 & LS instance */
+    { 
+        .dr = LS_DR6,
+        .frequency = 0,
+        .last_rssi = 0,
+        .state = LS_GATE_CHANNEL_STATE_IDLE,
+        ._internal = {
+                .device = &netdev,
+                .gate = &ls
+        }
+    },        /* DR, frequency, rssi, state, sx127x & LS instance */
 };
 
 /* UART interaction */
@@ -168,26 +179,34 @@ static void uart_gate_init(void)
 
 static void radio_init(void)
 {
-    sx1276.nss_pin = SX1276_SPI_NSS;
-    sx1276.spi = SX1276_SPI;
+    sx127x_params_t sx127x_params;
+    
+    sx127x_params.nss_pin = SX127X_SPI_NSS;
+    sx127x_params.spi = SX127X_SPI;
 
-    sx1276.dio0_pin = SX1276_DIO0;
-    sx1276.dio1_pin = SX1276_DIO1;
-    sx1276.dio2_pin = SX1276_DIO2;
-    sx1276.dio3_pin = SX1276_DIO3;
+    sx127x_params.dio0_pin = SX127X_DIO0;
+    sx127x_params.dio1_pin = SX127X_DIO1;
+    sx127x_params.dio2_pin = SX127X_DIO2;
+    sx127x_params.dio3_pin = SX127X_DIO3;
+    sx127x_params.dio4_pin = SX127X_DIO4;
+    sx127x_params.dio5_pin = SX127X_DIO5;
+    sx127x_params.reset_pin = SX127X_RESET;
+   
+    sx127x_params.rfswitch_pin = SX127X_RFSWITCH;
+    sx127x_params.rfswitch_active_level = 0;
 
-    sx1276.dio4_pin = (gpio_t) NULL;
-    sx1276.dio5_pin = (gpio_t) NULL;
-    sx1276.reset_pin = (gpio_t) SX1276_RESET;
-
-    sx1276_settings_t settings;
+    sx127x_radio_settings_t settings;
     settings.channel = RF_FREQUENCY;
-    settings.modem = SX1276_MODEM_LORA;
-    settings.state = SX1276_RF_IDLE;
+    settings.modem = SX127X_MODEM_LORA;
+    settings.state = SX127X_RF_IDLE;
 
-    sx1276.settings = settings;
+    sx127x.settings = settings;
+    memcpy(&sx127x.params, &sx127x_params, sizeof(sx127x_params));
+    
+    memcpy((void *)&netdev, (void *)&sx127x, sizeof(sx127x));
+    netdev.driver = &sx127x_driver;
 
-    puts("init_radio: sx1276 initialization done");
+    puts("init_radio: sx127x initialization done");
 }
 
 static int ls_list_cmd(int argc, char **argv);
@@ -205,7 +224,7 @@ static void node_kicked_cb(ls_gate_node_t *node)
 
 static uint32_t node_joined_cb(ls_gate_node_t *node)
 {
-    printf("gate: node with ID 0x%08X%08X joined to the network with address 0x%08X\n",
+    printf("gate: node 0x%08X%08X joined to the network, local address is 0x%08X\n",
            (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF),
            (unsigned int) node->addr);
 
@@ -216,7 +235,7 @@ static uint32_t node_joined_cb(ls_gate_node_t *node)
     gc_pending_fifo_push(&fifo, str);
 
     /* Return random app nonce */
-    return sx1276_random(&sx1276);
+    return sx127x_random(&sx127x);
 }
 
 static bool accept_node_join_cb(uint64_t dev_id, uint64_t app_id)
@@ -239,7 +258,7 @@ void app_data_received_cb(ls_gate_node_t *node, ls_gate_channel_t *ch, uint8_t *
     bytes_to_hex(&status, 1, buf_status, true);
 
     bytes_to_hex(buf, bufsize, hex, false);
-    printf("[recv] %d bytes: %s | rssi: %d\n", bufsize, hex, rssi);
+    printf("Data: %d bytes, 0x%s\n", bufsize, hex);
 
     char str[GC_MAX_REPLY_LEN] = { };
     sprintf(str, "%c%08X%08X%s%s%s\n", REPLY_IND,

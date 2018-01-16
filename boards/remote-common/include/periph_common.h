@@ -18,10 +18,9 @@
  *              Antonio Lignan <alinan@zolertia.com>
  */
 
-#ifndef PERIPH_COMMON_H_
-#define PERIPH_COMMON_H_
+#ifndef PERIPH_COMMON_H
+#define PERIPH_COMMON_H
 
-#include "cc2538_gpio.h"
 #include "periph_cpu.h"
 
 #ifdef __cplusplus
@@ -37,28 +36,28 @@
 
 /**
  * @name Timer configuration
+ *
+ * General purpose timers (GPT[0-3]) are configured consecutively and in order
+ * (without gaps) starting from GPT0, i.e. if multiple timers are enabled.
+ *
  * @{
  */
 static const timer_conf_t timer_config[] = {
     {
-        .dev      = GPTIMER0,
-        .channels = 2,
-        .cfg      = GPTMCFG_16_BIT_TIMER, /* required for XTIMER */
+        .chn = 2,
+        .cfg = GPTMCFG_16_BIT_TIMER, /* required for XTIMER */
     },
     {
-        .dev      = GPTIMER1,
-        .channels = 1,
-        .cfg      = GPTMCFG_32_BIT_TIMER,
+        .chn = 1,
+        .cfg = GPTMCFG_32_BIT_TIMER,
     },
     {
-        .dev      = GPTIMER2,
-        .channels = 1,
-        .cfg      = GPTMCFG_32_BIT_TIMER,
+        .chn = 2,
+        .cfg = GPTMCFG_16_BIT_TIMER,
     },
     {
-        .dev      = GPTIMER3,
-        .channels = 1,
-        .cfg      = GPTMCFG_32_BIT_TIMER,
+        .chn = 1,
+        .cfg = GPTMCFG_32_BIT_TIMER,
     },
 };
 
@@ -78,5 +77,5 @@ static const timer_conf_t timer_config[] = {
 } /* end extern "C" */
 #endif
 
-#endif /* PERIPH_COMMON_H_ */
+#endif /* PERIPH_COMMON_H */
 /** @} */

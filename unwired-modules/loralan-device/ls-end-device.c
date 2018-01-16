@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Unwired Devices
+ * Copyright (C) 2016-2018 Unwired Devices [info@unwds.com]
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -11,9 +11,10 @@
  * @ingroup
  * @brief
  * @{
- * @file		ls_end_device.c
- * @brief       Implementation of LoRaLAN stack for end-device
+ * @file		ls-end-device.c
+ * @brief       LoRaLAN stack implementation for the node device
  * @author      Eugene Ponomarev
+ * @author      Oleg Artamonov
  */
 
 #ifdef __cplusplus
@@ -25,8 +26,6 @@ extern "C" {
 #include "thread.h"
 #include "mutex.h"
 
-#include "lpm.h"
-#include "periph/rtc.h"
 #include "periph/adc.h"
 
 #include "ls-init-device.h"
@@ -39,20 +38,26 @@ extern "C" {
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
 
+#define SX127X_LORA_MSG_QUEUE   (16U)
+#define SX127X_STACKSIZE        (2*THREAD_STACKSIZE_DEFAULT)
+#define MSG_TYPE_ISR            (0x3456)
+static char isr_stack[SX127X_STACKSIZE];
+static kernel_pid_t isr_pid;
+
 static msg_t msg_rx1;
 static msg_t msg_rx2;
 
 static msg_t msg_join_timeout;
 static msg_t msg_ack_timeout;
 
-static void configure_sx1276(ls_ed_t *ls, bool tx)
+static void configure_sx127x(ls_ed_t *ls)
 {
     ls_datarate_t dr = (!ls->_internal.use_rx_window_2_settings) ? ls->settings.dr : LS_RX2_DR;
     ls_channel_t ch = (!ls->_internal.use_rx_window_2_settings) ? ls->settings.channel : LS_RX2_CH;
     
-    ls_setup_sx1276(ls->_internal.sx1276, dr, ls->settings.channels_table[ch]);
+    ls_setup_sx127x(ls->_internal.device, dr, ls->settings.channels_table[ch]);
     
-    DEBUG("[LoRa] configure_sx1276: SX1276 configured\n");
+    DEBUG("[LoRa] configure_sx127x: SX127X configured\n");
 }
 
 static void anticollision_delay(void) {
@@ -68,7 +73,7 @@ static void anticollision_delay(void) {
 static void enter_rx(ls_ed_t *ls)
 {
     assert(ls != NULL);
-    assert(ls->_internal.sx1276 != NULL);
+    assert(ls->_internal.device != NULL);
 
     /* Don't touch anything if we're already in reception mode */
     if (ls->state == LS_ED_LISTENING) {
@@ -78,10 +83,11 @@ static void enter_rx(ls_ed_t *ls)
 
     ls->state = LS_ED_LISTENING;
 
-    DEBUG("[LoRa] enter_rx: configure SX1276\n");
-    configure_sx1276(ls, false);
-    sx1276_set_rx(ls->_internal.sx1276, ls->_internal.sx1276->settings.lora.rx_timeout);
-    DEBUG("[LoRa] enter_rx: SX1276 configured\n");
+    DEBUG("[LoRa] enter_rx: configure SX127X\n");
+    configure_sx127x(ls);
+    uint8_t state = NETOPT_STATE_RX;
+    ls->_internal.device->driver->set(ls->_internal.device, NETOPT_STATE, &state, sizeof(uint8_t));
+    DEBUG("[LoRa] enter_rx: SX127X configured\n");
 }
 
 static inline void schedule_tx(ls_ed_t *ls)
@@ -200,7 +206,7 @@ static void close_rx_windows(ls_ed_t *ls)
     rtctimers_millis_remove(&ls->_internal.rx_window1);
     rtctimers_millis_remove(&ls->_internal.rx_window2);
 
-    /* Put SX1276 into sleep */
+    /* Put SX127X into sleep */
     ls_ed_sleep(ls);
 
     /* Schedule next transmission */
@@ -380,7 +386,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             DEBUG("[LoRa] frame_recv: decrypting payload\n");
             ls_decrypt_frame_payload(ls->settings.crypto.join_key, &frame->payload);
 
-            ls_join_ack_t ack;
+            ls_join_ack_t ack = { 0 };
             memcpy(&ack, frame->payload.data, sizeof(ls_join_ack_t));
 
             /* This join ack is not for us */
@@ -423,6 +429,8 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
     			ls_ed_send_app_data(ls, e.data, e.size, e.is_confirmed, e.is_with_ack, true);
     		}
+            
+            DEBUG("[LoRa] frame_recv: done\n");
 
             return true;
         }
@@ -476,33 +484,49 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
     }
 }
 
-static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
+static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
 {
-    assert(arg != NULL);
+    if (event == NETDEV_EVENT_ISR) {
+        msg_t msg;
+        msg.type = MSG_TYPE_ISR;
+        msg.content.ptr = dev;
+        if (msg_send(&msg, isr_pid) <= 0) {
+            puts("gnrc_netdev: possibly lost interrupt.");
+        }
+        return;
+    }
+    
+    ls_ed_t *ls = (ls_ed_t *)arg;
+    
+    switch (event) {
+        case NETDEV_EVENT_RX_COMPLETE: {
+            size_t len;
+            netdev_sx127x_lora_packet_info_t packet_info;
+            uint8_t message[LS_FRAME_SIZE];
+    
+            len = dev->driver->recv(dev, NULL, 0, 0);
+            dev->driver->recv(dev, message, len, &packet_info);
+            
+            printf("RX: %d bytes, | RSSI: %d dBm | SNR: %d dBm | TOA %d ms\n", (int)len,
+                    packet_info.rssi, (int)packet_info.snr,
+                    (int)packet_info.time_on_air);
 
-    sx1276_t *dev = (sx1276_t *) arg;
-    ls_ed_t *ls = (ls_ed_t *) dev->callback_arg;
-
-	sx1276_rx_packet_t *packet = (sx1276_rx_packet_t *) &dev->_internal.last_packet;
-
-	switch (event_type) {
-		case SX1276_RX_DONE:
-			printf("RX: %u bytes, | RSSI: %d\n", packet->size, packet->rssi_value);
             DEBUG("[LoRa] state = IDLE\n");
             ls->state = LS_ED_IDLE;
 
-			/* Save RSSI value of received frame */
-			ls->_internal.last_rssi = packet->rssi_value;
+            /* Save RSSI value of received frame */
+            ls->_internal.last_rssi = packet_info.rssi;
 
-			ls_frame_t *frame = (ls_frame_t *) packet->content;
+            ls_frame_t *frame = (ls_frame_t *) message;
 
-			/* Check frame format */
-			if (ls_validate_frame(packet->content, packet->size)) {
-                DEBUG("[LoRa] sx1276_handler: data valid\n");
-				/* Process new frame */
-				if (frame_recv(ls, frame)) {
-					/* Class A devices closes RX window after each received packet */
-					if (ls->settings.class == LS_ED_CLASS_A) {
+            /* Check frame format */
+            if (ls_validate_frame(message, len)) {
+                DEBUG("[LoRa] sx127x_handler: data valid\n");
+                /* Process new frame */
+                if (frame_recv(ls, frame)) {
+                    DEBUG("[LoRa] sx127x_handler: frame received\n");
+                    /* Class A devices closes RX window after each received packet */
+                    if (ls->settings.class == LS_ED_CLASS_A) {
                         DEBUG("[LoRa] class A close RX window\n");
 						close_rx_windows(ls);
 					}
@@ -510,77 +534,97 @@ static void sx1276_handler(void *arg, sx1276_event_type_t event_type)
                     rtctimers_millis_remove(&ls->_internal.rx_window1);
                     rtctimers_millis_remove(&ls->_internal.rx_window2);
                     
-					if (ls->_internal.num_reopened++ < LS_ED_RX_NUM_REOPEN) {
-						DEBUG("[LoRa] first RX window reopened\n");
+                    if (ls->_internal.num_reopened++ < LS_ED_RX_NUM_REOPEN) {
+                        DEBUG("[LoRa] first RX window reopened\n");
 
-						/* Reopen RX window */
-						open_rx_windows(ls);
-					} else {
-						DEBUG("[LoRa] forcing RX window expiring\n");
+                        /* Reopen RX window */
+                        open_rx_windows(ls);
+                    } else {
+                        DEBUG("[LoRa] forcing RX window expiring\n");
 
-						ls->_internal.num_reopened = 0;
+                        ls->_internal.num_reopened = 0;
 
-						/* Notify timeouts thread about RX window expiration */
-						msg_send(&msg_rx1, ls->_internal.tim_thread_pid);
-					}
-				}
-			}
-			else {
-				DEBUG("[LoRa] sx1276_handler: malformed data discarded\n");
-			}
+                        /* Notify timeouts thread about RX window expiration */
+                        msg_send(&msg_rx1, ls->_internal.tim_thread_pid);
+                    }
+                }
+            }
+            else {
+                DEBUG("[LoRa] sx127x_handler: malformed data discarded\n");
+            }
 
-			break;
-
-		case SX1276_RX_ERROR_CRC:
-			puts("sx1276: RX CRC failed");
+            break;
+        }
+        case NETDEV_EVENT_CRC_ERROR:
+            puts("sx127x: RX CRC failed");
             DEBUG("[LoRa] state = IDLE\n");
             ls->state = LS_ED_IDLE;
-			break;
+            break;
 
-		case SX1276_TX_DONE:
-			puts("sx1276: transmission done.");
+        case NETDEV_EVENT_TX_COMPLETE:
+            puts("sx127x: transmission done.");
 
-			/* Open RX windows after each transmitted packet */
-			open_rx_windows(ls);
+            /* Open RX windows after each transmitted packet */
+            open_rx_windows(ls);
 
-			break;
+            break;
 
-		case SX1276_RX_TIMEOUT:
-			puts("sx1276: RX timeout");
+        case NETDEV_EVENT_RX_TIMEOUT:
+            puts("sx127x: RX timeout");
             DEBUG("[LoRa] state = IDLE\n");
             ls->state = LS_ED_IDLE;
-			close_rx_windows(ls);
-			ls_ed_sleep(ls);
-			break;
+            close_rx_windows(ls);
+            ls_ed_sleep(ls);
+            break;
 
-		case SX1276_TX_TIMEOUT:
-			puts("sx1276: TX timeout");
-			ls_ed_sleep(ls);
+        case NETDEV_EVENT_TX_TIMEOUT:
+            /* this should not happen, re-init SX127X here */
+            puts("sx127x: TX timeout");
+            ls->_internal.device->driver->init(ls->_internal.device);
+            ls_ed_sleep(ls);
 
-			break;
+            break;
             
-        case SX1276_CAD_DONE:
-            DEBUG("sx1276: CAD done\n");
-            ls->_internal.last_cad_success = dev->_internal.is_last_cad_success;
+        case NETDEV_EVENT_CAD_DONE:
+            DEBUG("sx127x: CAD done\n");
+            ls->_internal.last_cad_success = false;
             ls_ed_sleep(ls);
             break;
             
-        case SX1276_CAD_DETECTED:
-            DEBUG("sx1276: CAD detected\n");
-            ls->_internal.last_cad_success = dev->_internal.is_last_cad_success;
+        case NETDEV_EVENT_CAD_DETECTED:
+            DEBUG("sx127x: CAD detected\n");
+            ls->_internal.last_cad_success = true;
             ls_ed_sleep(ls);
             break;
             
-        case SX1276_VALID_HEADER:
+        case NETDEV_EVENT_VALID_HEADER:
             puts("[LoRa] header received, switch to RX state");
             ls->state = LS_ED_LISTENING;
             break;
 
-		default:
-			printf("sx1276: received event #%d\n", (int) event_type);
-			ls_ed_sleep(ls);
-			break;
-	}
+        default:
+            printf("sx127x: received event #%d\n", (int) event);
+            ls_ed_sleep(ls);
+            break;
+    }
+}
+
+void *isr_thread(void *arg)
+{
+    static msg_t _msg_q[SX127X_LORA_MSG_QUEUE];
+    msg_init_queue(_msg_q, SX127X_LORA_MSG_QUEUE);
+
+    while (1) {
+        msg_t msg;
+        msg_receive(&msg);
+        if (msg.type == MSG_TYPE_ISR) {
+            netdev_t *dev = msg.content.ptr;
+            dev->driver->isr(dev);
+        }
+        else {
+            puts("[LoRa] isr_thread: unexpected msg type");
+        }
+    }
 }
 
 #if ENABLE_DEBUG
@@ -630,6 +674,9 @@ static void *uq_handler(void *arg)
     while (1) {
         msg_receive(&msg);
         DEBUG("[LoRa] uq_handler: message received\n");
+        
+        ls->_internal.device->driver->init(ls->_internal.device);
+        ls_ed_sleep(ls);
 
         if (ls_frame_fifo_empty(&ls->_internal.uplink_queue)) {
             ls->state = LS_ED_IDLE;
@@ -668,10 +715,11 @@ static void *uq_handler(void *arg)
 
         DEBUG("[LoRa] uq_handler: reconfigure transceiver\n");
         /* Configure to sleep */
-        sx1276_set_sleep(ls->_internal.sx1276);
+        uint8_t state = NETOPT_STATE_SLEEP;
+        ls->_internal.device->driver->set(ls->_internal.device, NETOPT_STATE, &state, sizeof(uint8_t));
 
-        /* Configure SX1276 to TX */
-        configure_sx1276(ls, true);
+        /* Configure SX127X to TX */
+        configure_sx127x(ls);
 
         size_t header_size = sizeof(ls_header_t) + sizeof(ls_payload_len_t);
         size_t payload_size = 0;
@@ -694,7 +742,10 @@ static void *uq_handler(void *arg)
         int cad_tries = 0;
         for (int k = 0; k < 10; k++) {
             ls->_internal.last_cad_success = 0;
-            sx1276_start_cad(ls->_internal.sx1276, SX1276_MODE_CADDETECT);
+
+            uint8_t state = NETOPT_STATE_CAD;
+            ls->_internal.device->driver->set(ls->_internal.device, NETOPT_STATE, &state, sizeof(uint8_t));
+
             //xtimer_spin(xtimer_ticks_from_usec(delay_ms * 1000));
             rtctimers_millis_sleep(delay_ms);
             if (ls->_internal.last_cad_success) {
@@ -728,10 +779,17 @@ static void *uq_handler(void *arg)
 			   ls_frame_fifo_size(&ls->_internal.uplink_queue));
 #endif
         /* Configure for TX */
-        configure_sx1276(ls, true);
+        configure_sx127x(ls);
         DEBUG("[LoRa] uq_handler: transceiver configured\n");
         /* Send frame into LoRa PHY */
-        sx1276_send(ls->_internal.sx1276, (uint8_t *) f, header_size + payload_size);
+        struct iovec data[1];
+        data[0].iov_base = f;
+        data[0].iov_len = header_size + payload_size;
+               
+        if (ls->_internal.device->driver->send(ls->_internal.device, data, 1) == -ENOTSUP) {
+            puts("[LoRa] uq_handler: cannot send, device busy");
+        }
+        
         DEBUG("[LoRa] uq_handler: data sent\n");
     }
 
@@ -751,6 +809,15 @@ static bool create_uq_handler_thread(ls_ed_t *ls)
 
     if (pid_fq <= KERNEL_PID_UNDEF) {
         puts("ls_init: creation of uplink frame queue handler thread failed");
+        return false;
+    }
+    
+    isr_pid = thread_create(isr_stack, sizeof(isr_stack), THREAD_PRIORITY_MAIN - 1,
+                              THREAD_CREATE_STACKTEST, isr_thread, NULL,
+                              "SX127x handler thread");
+
+    if (isr_pid <= KERNEL_PID_UNDEF) {
+        puts("ls_init: creation of SX127X ISR thread failed");
         return false;
     }
 
@@ -898,14 +965,15 @@ static bool create_tim_handler_thread(ls_ed_t *ls)
 int ls_ed_init(ls_ed_t *ls)
 {
     assert(ls != NULL);
-    assert(ls->_internal.sx1276 != NULL);
+    assert(ls->_internal.device != NULL);
 
     ls->_internal.last_fid = 0;
     ls->_internal.num_retr = 0;
     ls->_internal.is_joined = false;
 
-    if (!ls->settings.no_join)
+    if (!ls->settings.no_join) {
     	ls->_internal.dev_addr = LS_ADDR_UNDEFINED;
+    }
 
     mutex_init(&ls->_internal.curr_frame_mutex);
     memset(&ls->status, 0, sizeof(ls_device_status_t));
@@ -919,7 +987,7 @@ int ls_ed_init(ls_ed_t *ls)
     /* Start threads */
     if (!create_uq_handler_thread(ls)) {
         ls->state = LS_ED_FAULT;
-        return -LS_INIT_E_SX1276_THREAD;
+        return -LS_INIT_E_SX127X_THREAD;
     }
 
     if (!create_tim_handler_thread(ls)) {
@@ -932,17 +1000,17 @@ int ls_ed_init(ls_ed_t *ls)
     msg_join_timeout.content.value = LS_ED_JOIN_REQ_EXPIRED;
     msg_ack_timeout.content.value = LS_ED_APPDATA_ACK_EXPIRED;
 
-    /* Setup event callback and stack state as it's argument */
-    ls->_internal.sx1276->sx1276_event_cb = sx1276_handler;
-    ls->_internal.sx1276->callback_arg = ls;
-
-    DEBUG("[LoRa] ls_ed_init: init SX1276\n");
+    DEBUG("[LoRa] ls_ed_init: init SX127X\n");
     /* Initialize the transceiver */
-    sx1276_init(ls->_internal.sx1276);
+    ls->_internal.device->driver->init(ls->_internal.device);
+    
+    /* Setup event callback and stack state as it's argument */
+    ls->_internal.device->event_callback = sx127x_handler;
+    ls->_internal.device->event_callback_arg = ls;
 
     DEBUG("[LoRa] ls_ed_init: init RNG\n");
     /* Initialize random number generator */
-    random_init(sx1276_random(ls->_internal.sx1276));
+    random_init(sx127x_random((sx127x_t *)ls->_internal.device));
 
     ls_ed_sleep(ls);
 
@@ -951,7 +1019,8 @@ int ls_ed_init(ls_ed_t *ls)
 
 void ls_ed_poweroff(ls_ed_t *ls) {
     DEBUG("[LoRa] ls_ed_poweroff: set transceiver to sleep\n");
-    sx1276_set_sleep(ls->_internal.sx1276);
+    uint8_t state = NETOPT_STATE_SLEEP;
+    ls->_internal.device->driver->set(ls->_internal.device, NETOPT_STATE, &state, sizeof(uint8_t));
 }
 
 int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed, bool with_ack, bool delayed)
@@ -1064,7 +1133,7 @@ int ls_ed_join(ls_ed_t *ls)
     
     /* nonce must not be 0 */
     do {
-        req.dev_nonce = sx1276_random(ls->_internal.sx1276);
+        req.dev_nonce = sx127x_random((sx127x_t *)ls->_internal.device);
     } while (req.dev_nonce == 0);
 
     ls->_internal.last_nonce = req.dev_nonce;
@@ -1091,7 +1160,8 @@ void ls_ed_sleep(ls_ed_t *ls)
 
     if (ls->settings.class == LS_ED_CLASS_A) {
         ls->state = LS_ED_SLEEP;
-        sx1276_set_sleep(ls->_internal.sx1276);
+        uint8_t state = NETOPT_STATE_SLEEP;
+        ls->_internal.device->driver->set(ls->_internal.device, NETOPT_STATE, &state, sizeof(uint8_t));
     } else {
         DEBUG("[LoRa] ls_ed_sleep: ignore sleep, not a Class A\n");
     }

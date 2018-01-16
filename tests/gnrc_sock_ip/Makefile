@@ -1,8 +1,7 @@
 APPLICATION = gnrc_sock_ip
+include ../Makefile.tests_common
 
-BOARD ?= native
-
-RIOTBASE ?= $(CURDIR)/../..
+BOARD_INSUFFICIENT_MEMORY := nucleo32-f031
 
 USEMODULE += gnrc_sock_ip
 USEMODULE += gnrc_ipv6
@@ -11,8 +10,6 @@ USEMODULE += ps
 CFLAGS += -DDEVELHELP
 CFLAGS += -DGNRC_PKTBUF_SIZE=200
 CFLAGS += -DTEST_SUITES
-
-QUIET ?= 1
 
 include $(RIOTBASE)/Makefile.include
 

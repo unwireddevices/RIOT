@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup     driver_lsm303dlhc
+ * @ingroup     drivers_lsm303dlhc
  * @{
  *
  * @file
@@ -23,9 +23,9 @@
 #include "saul.h"
 #include "lsm303dlhc.h"
 
-static int read_acc(void *dev, phydat_t *res)
+static int read_acc(const void *dev, phydat_t *res)
 {
-    lsm303dlhc_t *d = (lsm303dlhc_t *)dev;
+    const lsm303dlhc_t *d = (const lsm303dlhc_t *)dev;
     lsm303dlhc_read_acc(d, (lsm303dlhc_3d_data_t *)res);
 
     /* normalize result */
@@ -39,9 +39,10 @@ static int read_acc(void *dev, phydat_t *res)
     return 3;
 }
 
-static int read_mag(void *dev, phydat_t *res)
+static int read_mag(const void *dev, phydat_t *res)
 {
-    lsm303dlhc_t *d = (lsm303dlhc_t *)dev;
+    const lsm303dlhc_t *d = (const lsm303dlhc_t *)dev;
+
     lsm303dlhc_read_mag(d, (lsm303dlhc_3d_data_t *)res);
 
     /* normalize results */
@@ -67,19 +68,14 @@ static int read_mag(void *dev, phydat_t *res)
     return 3;
 }
 
-static int write(void *dev, phydat_t *state)
-{
-    return -ENOTSUP;
-}
-
 const saul_driver_t lsm303dlhc_saul_acc_driver = {
     .read = read_acc,
-    .write = write,
+    .write = saul_notsup,
     .type = SAUL_SENSE_ACCEL,
 };
 
 const saul_driver_t lsm303dlhc_saul_mag_driver = {
     .read = read_mag,
-    .write = write,
+    .write = saul_notsup,
     .type = SAUL_SENSE_MAG,
 };

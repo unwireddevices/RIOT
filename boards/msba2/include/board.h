@@ -18,8 +18,8 @@
  * @author      unknown
  */
 
-#ifndef BOARD_H_
-#define BOARD_H_
+#ifndef BOARD_H
+#define BOARD_H
 
 #include "msba2_common.h"
 #include "bitarithm.h"
@@ -29,7 +29,7 @@ extern "C" {
 #endif
 
 /**
- * @brief   LED pin definitions and handlers
+ * @name    LED pin definitions and handlers
  * @{
  */
 #define LED0_PIN            GPIO_PIN(2, 25)
@@ -48,7 +48,7 @@ extern "C" {
 /** @} */
 
 /**
- * @name xtimer tuning values
+ * @name    xtimer tuning values
  * @{
  */
 #define XTIMER_OVERHEAD     7
@@ -56,7 +56,7 @@ extern "C" {
 /** @} */
 
 /**
- * @brief initialize the board's clock system
+ * @brief   initialize the board's clock system
  */
 void init_clks1(void);
 
@@ -64,5 +64,5 @@ void init_clks1(void);
 }
 #endif
 
-#endif /* BOARD_H_ */
+#endif /* BOARD_H */
 /** @} */

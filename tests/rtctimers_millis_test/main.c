@@ -20,9 +20,8 @@
 
 #include <stdio.h>
 
-#include "lpm.h"
+#include "periph/pm.h"
 #include "periph/rtc.h"
-#include "arch/lpm_arch.h"
 #include "thread.h"
 #include "xtimer.h"
 #include "board.h"
@@ -31,22 +30,11 @@
 #include "rtctimers-millis.h"
 
 static msg_t timer1_msg;
-static msg_t timer2_msg;
-
 static kernel_pid_t timer1_pid;
-static kernel_pid_t timer2_pid;
-
 static rtctimers_millis_t timer1;
-static rtctimers_millis_t timer2;
-
 static volatile uint32_t timer1_prev;
-static volatile uint32_t timer2_prev;
-
-#define TIMER1_PERIOD 300
-#define TIMER2_PERIOD 800
-
 char stack1[2048];
-char stack2[2048];
+#define TIMER1_PERIOD 1000
 
 static void *timer1_thread(void *arg) {
     msg_t msg;
@@ -66,7 +54,13 @@ static void *timer1_thread(void *arg) {
     }
     return NULL;
 }
-
+/*
+static msg_t timer2_msg;
+static kernel_pid_t timer2_pid;
+static rtctimers_millis_t timer2;
+static volatile uint32_t timer2_prev;
+char stack2[2048];
+#define TIMER2_PERIOD 800
 static void *timer2_thread(void *arg) {
     msg_t msg;
     msg_t msg_queue[4];
@@ -85,35 +79,35 @@ static void *timer2_thread(void *arg) {
     }
     return NULL;
 }
-
+*/
 int main(void)
 {
     puts("rtctimers-millis test");
     
-    lpm_prevent_sleep = 0;
-    lpm_prevent_switch = 1;
+    pm_prevent_sleep = 1;
+    pm_prevent_switch = 1;
     
 	rtctimers_millis_init();
 	xtimer_init();
     
+    uint32_t now = xtimer_now_usec()/1000;
+    
+    timer1_prev = now;
     puts("Creating timer1 thread");
     timer1_pid = thread_create(stack1, 2048, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer1_thread, NULL, "Timer 1");
-    
+    rtctimers_millis_set_msg(&timer1, TIMER1_PERIOD, &timer1_msg, timer1_pid);
+
+/*    
+    timer2_prev = now;
     puts("Creating timer2 thread");
     timer2_pid = thread_create(stack2, 2048, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer2_thread, NULL, "Timer 2");
-    
-    uint32_t now = xtimer_now_usec()/1000;
-    timer1_prev = now;
-    timer2_prev = now;
-    
-    rtctimers_millis_set_msg(&timer1, TIMER1_PERIOD, &timer1_msg, timer1_pid);
     rtctimers_millis_set_msg(&timer2, TIMER2_PERIOD, &timer2_msg, timer2_pid);
-    
-    while (1) {
-        
-    };
+*/
+    /* rtctimers_millis_sleep(300); */
     
     puts("Done.");
+    
+    while (1) {};
 
     return 0;
 }

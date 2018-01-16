@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Unwired Devices
+ * Copyright (C) 2016-2018 Unwired Devices
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
@@ -7,13 +7,13 @@
  */
 
 /**
- * @defgroup    boards_unwd-range-l1 Unwired Range-l1
+ * @defgroup    boards_unwd-range-l1-r3
  * @ingroup     boards
- * @brief       Board specific files for the unwd-range-l1 board.
+ * @brief       Board specific files for the Unwired Range R170115 board.
  * @{
  *
  * @file
- * @brief       Board specific definitions for the unwd-range-l1 R160829 board.
+ * @brief       Board specific definitions for the Unwired Range R170115 board.
  *
  * @author      Mikhail Churikov
  */
@@ -48,36 +48,21 @@ extern "C" {
 #define LORA_FIX_LENGTH_PAYLOAD_ON                  true
 #define LORA_IQ_INVERSION							false
 
-#define SX1276_DIO0 GPIO_PIN(PORT_A, 12)
-#define SX1276_DIO1 GPIO_PIN(PORT_C, 13)
-#define SX1276_DIO2 GPIO_PIN(PORT_A, 0)
-#define SX1276_DIO3 GPIO_PIN(PORT_B, 6) /* CadDone */
-#define SX1276_DIO4 GPIO_PIN(PORT_B, 7) /* CadDetect */
-#define SX1276_DIO5 GPIO_UNDEF
+#define SX127X_DIO0 GPIO_PIN(PORT_A, 12)
+#define SX127X_DIO1 GPIO_PIN(PORT_C, 13)
+#define SX127X_DIO2 GPIO_PIN(PORT_A, 0)
+#define SX127X_DIO3 GPIO_PIN(PORT_B, 6) /* CadDone */
+#define SX127X_DIO4 GPIO_PIN(PORT_B, 7) /* CadDetect */
+#define SX127X_DIO5 GPIO_UNDEF
 
-#define SX1276_RESET GPIO_PIN(PORT_A, 8)
+#define SX127X_RESET GPIO_PIN(PORT_A, 8)
 
 /** RF on/off switching pin */
-#define SX1276_RFSWITCH GPIO_PIN(PORT_A, 11)
+#define SX127X_RFSWITCH GPIO_PIN(PORT_A, 11)
 
-
-/** SX1276 SPI */
-
-#define USE_SPI_1
-
-#ifdef USE_SPI_1
-#define SX1276_SPI SPI_1
-#define SX1276_SPI_NSS GPIO_PIN(PORT_B, SPI_1_PIN_NSS)
-#define SX1276_SPI_MODE SPI_CONF_FIRST_RISING
-#define SX1276_SPI_SPEED SPI_SPEED_1MHZ
-#endif
-
-#ifdef USE_SPI_0
-#define SX1276_SPI SPI_0
-#define SX1276_SPI_NSS GPIO_PIN(PORT_A, SPI_0_PIN_NSS)
-#define SX1276_SPI_MODE SPI_CONF_FIRST_RISING
-#define SX1276_SPI_SPEED SPI_SPEED_1MHZ
-#endif
+/** SX127x SPI */
+#define SX127X_SPI 1
+#define SX127X_SPI_NSS  GPIO_PIN(PORT_B, 12)
 
 /** "Connect" Button */
 #define UNWD_USE_CONNECT_BTN	1

@@ -11,9 +11,9 @@
  * @ingroup
  * @brief
  * @{
- * @file
- * @brief
- * @author      Evgeniy Ponomarev
+ * @file        ls-init-device.c
+ * @brief       Common LoRaLAN device initialization functions
+ * @author      Oleg Artamonov
  */
 
 #ifdef __cplusplus
@@ -30,8 +30,9 @@ extern "C" {
 #include "utils.h"
 #include "ls-config.h"
 
-#include "lpm.h"
-#include "arch/lpm_arch.h"
+#include "sx127x.h"
+
+#include "periph/pm.h"
 #include "periph/rtc.h"
 #include "random.h"
 #include "cpu.h"
@@ -62,51 +63,55 @@ static uint32_t devnonce = 0;
  * Data rates table.
  */
 const uint8_t datarate_table[7][3] = {
-    { SX1276_SF12, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR0 */
-    { SX1276_SF11, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR1 */
-    { SX1276_SF10, SX1276_BW_125_KHZ, SX1276_CR_4_5 },       /* DR2 */
-    { SX1276_SF9, SX1276_BW_125_KHZ, SX1276_CR_4_5 },        /* DR3 */
-    { SX1276_SF8, SX1276_BW_125_KHZ, SX1276_CR_4_5 },        /* DR4 */
-    { SX1276_SF7, SX1276_BW_125_KHZ, SX1276_CR_4_5 },        /* DR5 */
-    { SX1276_SF7, SX1276_BW_250_KHZ, SX1276_CR_4_5 },        /* DR6 */
+    { SX127X_SF12, SX127X_BW_125_KHZ, SX127X_CR_4_5 },       /* DR0 */
+    { SX127X_SF11, SX127X_BW_125_KHZ, SX127X_CR_4_5 },       /* DR1 */
+    { SX127X_SF10, SX127X_BW_125_KHZ, SX127X_CR_4_5 },       /* DR2 */
+    { SX127X_SF9, SX127X_BW_125_KHZ, SX127X_CR_4_5 },        /* DR3 */
+    { SX127X_SF8, SX127X_BW_125_KHZ, SX127X_CR_4_5 },        /* DR4 */
+    { SX127X_SF7, SX127X_BW_125_KHZ, SX127X_CR_4_5 },        /* DR5 */
+    { SX127X_SF7, SX127X_BW_250_KHZ, SX127X_CR_4_5 },        /* DR6 */
 };
 
-void ls_setup_sx1276(sx1276_t *dev, ls_datarate_t dr, uint32_t frequency) {
+void ls_setup_sx127x(netdev_t *dev, ls_datarate_t dr, uint32_t frequency) {    
+    const netopt_enable_t enable = true;
+    const netopt_enable_t disable = false;
+
     /* Choose data rate */
     const uint8_t *datarate = datarate_table[dr];
+    dev->driver->set(dev, NETOPT_SPREADING_FACTOR, &datarate[0], sizeof(uint8_t));
+    dev->driver->set(dev, NETOPT_BANDWIDTH, &datarate[1], sizeof(uint8_t));
+    dev->driver->set(dev, NETOPT_CODING_RATE, &datarate[2], sizeof(uint8_t));
     
-    /* Setup transceiver settings according to datarate */
-    sx1276_lora_settings_t settings;
-
-    settings.datarate = datarate[0];
-    settings.bandwidth = datarate[1];
-    settings.coderate = datarate[2];
-
-    settings.crc_on = true;
-    settings.freq_hop_on = false;
-    settings.hop_period = 0;
-    settings.implicit_header = false;
-    settings.iq_inverted = false;
-    settings.low_datarate_optimize = false;
-    settings.payload_len = 0;
-    settings.power = TX_OUTPUT_POWER;
-    settings.preamble_len = LORA_PREAMBLE_LENGTH;
-    settings.rx_continuous = true;
-    settings.tx_timeout = 1e6 * 30; // 30 sec
-    settings.rx_timeout = LORA_SYMBOL_TIMEOUT;
-
-    sx1276_configure_lora(dev, &settings);
+    uint8_t hop_period = 0;
+    dev->driver->set(dev, NETOPT_CHANNEL_HOP_PERIOD, &hop_period, sizeof(uint8_t));
+    dev->driver->set(dev, NETOPT_CHANNEL_HOP, &disable, sizeof(disable));
+    dev->driver->set(dev, NETOPT_SINGLE_RECEIVE, &disable, sizeof(disable));
+    dev->driver->set(dev, NETOPT_INTEGRITY_CHECK, &enable, sizeof(enable));
+    dev->driver->set(dev, NETOPT_FIXED_HEADER, &disable, sizeof(disable));
+    dev->driver->set(dev, NETOPT_IQ_INVERT, &disable, sizeof(disable));
+    
+    uint8_t power = TX_OUTPUT_POWER;
+    dev->driver->set(dev, NETOPT_TX_POWER, &power, sizeof(uint8_t));
+    
+    uint16_t preamble_len = LORA_PREAMBLE_LENGTH;
+    dev->driver->set(dev, NETOPT_PREAMBLE_LENGTH, &preamble_len, sizeof(uint8_t));
+    
+    uint32_t tx_timeout = 30000;
+    dev->driver->set(dev, NETOPT_TX_TIMEOUT, &tx_timeout, sizeof(uint8_t));
+    
+    uint32_t rx_timeout = 0;
+    dev->driver->set(dev, NETOPT_RX_TIMEOUT, &rx_timeout, sizeof(uint8_t));
 
     /* Setup channel */
-    sx1276_set_channel(dev, frequency);
+    dev->driver->set(dev, NETOPT_CHANNEL, &frequency, sizeof(uint32_t));
 }
 
 void init_role(shell_command_t *commands) {
-    lpm_arch_init();
+    pm_init();
 	
     /* disable sleep and frequency switching for now */
-	lpm_prevent_sleep = 1;
-    lpm_prevent_switch = 1;
+	pm_prevent_sleep = 1;
+    pm_prevent_switch = 1;
     
     print_logo();
     xtimer_init();

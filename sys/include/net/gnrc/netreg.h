@@ -18,8 +18,8 @@
  *
  * @author  Martine Lenders <mlenders@inf.fu-berlin.de>
  */
-#ifndef NETREG_H_
-#define NETREG_H_
+#ifndef NET_GNRC_NETREG_H
+#define NET_GNRC_NETREG_H
 
 #include <inttypes.h>
 
@@ -37,12 +37,36 @@ extern "C" {
 
 #if defined(MODULE_GNRC_NETAPI_MBOX) || defined(MODULE_GNRC_NETAPI_CALLBACKS) || \
     defined(DOXYGEN)
+/**
+ *  @brief  The type of the netreg entry.
+ *
+ *          Different types are availalbe dependent on the used modules.
+ */
 typedef enum {
+    /**
+     * @brief   Use [default IPC](@ref core_msg) for
+     *          [netapi](@ref net_gnrc_netapi) operations.
+     *
+     * @note    Implicitly chosen without `gnrc_netapi_mbox` and
+     *          `gnrc_netapi_callbacks` modules.
+     */
     GNRC_NETREG_TYPE_DEFAULT = 0,
 #if defined(MODULE_GNRC_NETAPI_MBOX) || defined(DOXYGEN)
+    /**
+     * @brief   Use [centralized IPC](@ref core_mbox) for
+     *          [netapi](@ref net_gnrc_netapi) operations.
+     *
+     * @note    Only available with `gnrc_netapi_mbox` module.
+     */
     GNRC_NETREG_TYPE_MBOX,
 #endif
 #if defined(MODULE_GNRC_NETAPI_CALLBACKS) || defined(DOXYGEN)
+    /**
+     * @brief   Use function callbacks for [netapi](@ref net_gnrc_netapi)
+     *          operations.
+     *
+     * @note    Only available with `gnrc_netapi_callbacks` module.
+     */
     GNRC_NETREG_TYPE_CB,
 #endif
 } gnrc_netreg_type_t;
@@ -55,6 +79,11 @@ typedef enum {
  */
 #define GNRC_NETREG_DEMUX_CTX_ALL   (0xffff0000)
 
+/**
+ * @name    Static entry initialization macros
+ * @anchor  net_gnrc_netreg_init_static
+ * @{
+ */
 /**
  * @brief   Initializes a netreg entry statically with PID
  *
@@ -95,7 +124,7 @@ typedef enum {
  *
  * @param[in] demux_ctx The @ref gnrc_netreg_entry_t::demux_ctx "demux context"
  *                      for the netreg entry
- * @param[in] cb        Target callback for the registry entry
+ * @param[in] cbd       Target callback for the registry entry
  *
  * @note    Only available with @ref net_gnrc_netapi_callbacks.
  *
@@ -104,11 +133,12 @@ typedef enum {
 #define GNRC_NETREG_ENTRY_INIT_CB(demux_ctx, cbd)   { NULL, demux_ctx, \
                                                       GNRC_NETREG_TYPE_CB, \
                                                       { .cbd = cbd } }
+/** @} */
 
 /**
  * @brief   Packet handler callback for netreg entries with callback.
  *
- * @pre `cmd` $\in$ { @ref GNRC_NETAPI_MSG_TYPE_RCV, @ref GNRC_NETAPI_MSG_TYPE_SND }
+ * @pre `cmd` &isin; { @ref GNRC_NETAPI_MSG_TYPE_RCV, @ref GNRC_NETAPI_MSG_TYPE_SND }
  *
  * @note    Only available with @ref net_gnrc_netapi_callbacks.
  *
@@ -188,6 +218,11 @@ typedef struct gnrc_netreg_entry {
 void gnrc_netreg_init(void);
 
 /**
+ * @name    Dynamic entry initialization functions
+ * @anchor  net_gnrc_netreg_init_dyn
+ * @{
+ */
+/**
  * @brief   Initializes a netreg entry dynamically with PID
  *
  * @param[out] entry    A netreg entry
@@ -237,7 +272,7 @@ static inline void gnrc_netreg_entry_init_mbox(gnrc_netreg_entry_t *entry,
  * @param[out] entry    A netreg entry
  * @param[in] demux_ctx The @ref gnrc_netreg_entry_t::demux_ctx "demux context"
  *                      for the netreg entry
- * @param[in] mbox      Target callback for the registry entry
+ * @param[in] cbd       Target callback for the registry entry
  *
  * @note    Only available with @ref net_gnrc_netapi_callbacks.
  */
@@ -251,6 +286,7 @@ static inline void gnrc_netreg_entry_init_cb(gnrc_netreg_entry_t *entry,
     entry->target.cbd = cbd;
 }
 #endif
+/** @} */
 
 /**
  * @brief   Registers a thread to the registry.
@@ -260,8 +296,11 @@ static inline void gnrc_netreg_entry_init_cb(gnrc_netreg_entry_t *entry,
  *
  * @param[in] type      Type of the protocol. Must not be < GNRC_NETTYPE_UNDEF or
  *                      >= GNRC_NETTYPE_NUMOF.
- * @param[in] entry     An entry you want to add to the registry with
- *                      gnrc_netreg_entry_t::pid and gnrc_netreg_entry_t::demux_ctx set.
+ * @param[in] entry     An entry you want to add to the registry. This needs to
+ *                      be initialized before hand using the @ref
+ *                      net_gnrc_netreg_init_static "static" or @ref
+ *                      net_gnrc_netreg_init_dyn "dynamic" initialization
+ *                      helpers.
  *
  * @warning Call gnrc_netreg_unregister() *before* you leave the context you
  *          allocated @p entry in. Otherwise it might get overwritten.
@@ -340,5 +379,5 @@ int gnrc_netreg_calc_csum(gnrc_pktsnip_t *hdr, gnrc_pktsnip_t *pseudo_hdr);
 }
 #endif
 
-#endif /* NETREG_H_ */
+#endif /* NET_GNRC_NETREG_H */
 /** @} */

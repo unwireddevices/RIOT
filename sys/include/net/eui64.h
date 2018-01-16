@@ -21,8 +21,8 @@
  * @author  Martine Lenders <mlenders@inf.fu-berlin.de>
  * @author  Oliver Hahm <oliver.hahm@inria.fr>
  */
-#ifndef EUI64_H_
-#define EUI64_H_
+#ifndef NET_EUI64_H
+#define NET_EUI64_H
 
 #include <stdint.h>
 #include "byteorder.h"
@@ -44,5 +44,5 @@ typedef union {
 }
 #endif
 
-#endif /* EUI64_H_ */
+#endif /* NET_EUI64_H */
 /** @} */

@@ -9,7 +9,8 @@
  */
 
 /**
- * @ingroup     cpu_kinetis_common_adc
+ * @ingroup     cpu_kinetis_common
+ * @ingroup     drivers_periph_adc
  * @{
  *
  * @file
@@ -25,6 +26,7 @@
 #include <stdio.h>
 
 #include "cpu.h"
+#include "bit.h"
 #include "mutex.h"
 #include "periph/adc.h"
 
@@ -65,26 +67,36 @@ static inline int dev_num(adc_t line)
 static inline void prep(adc_t line)
 {
     if (dev(line) == ADC0) {
-        BITBAND_REG32(SIM->SCGC6, SIM_SCGC6_ADC0_SHIFT) = 1;
+        bit_set32(&SIM->SCGC6, SIM_SCGC6_ADC0_SHIFT);
     }
 #ifdef ADC1
-    else {
-        BITBAND_REG32(SIM->SCGC3, SIM_SCGC3_ADC1_SHIFT) = 1;
-    }
+    else if (dev(line) == ADC1) {
+#if defined(SIM_SCGC3_ADC1_SHIFT)
+        bit_set32(&SIM->SCGC3, SIM_SCGC3_ADC1_SHIFT);
+#elif defined(SIM_SCGC6_ADC1_SHIFT)
+        bit_set32(&SIM->SCGC6, SIM_SCGC6_ADC1_SHIFT);
+#else
+#error ADC1 clock gate is not known!
 #endif
+    }
+#endif /* ADC1 */
     mutex_lock(&locks[dev_num(line)]);
 }
 
 static inline void done(adc_t line)
 {
     if (dev(line) == ADC0) {
-        BITBAND_REG32(SIM->SCGC6, SIM_SCGC6_ADC0_SHIFT) = 0;
+        bit_clear32(&SIM->SCGC6, SIM_SCGC6_ADC0_SHIFT);
     }
 #ifdef ADC1
-    else {
-        BITBAND_REG32(SIM->SCGC3, SIM_SCGC3_ADC1_SHIFT) = 0;
-    }
+    else if (dev(line) == ADC1) {
+#if defined(SIM_SCGC3_ADC1_SHIFT)
+        bit_clear32(&SIM->SCGC3, SIM_SCGC3_ADC1_SHIFT);
+#elif defined(SIM_SCGC6_ADC1_SHIFT)
+        bit_clear32(&SIM->SCGC6, SIM_SCGC6_ADC1_SHIFT);
 #endif
+    }
+#endif /* ADC1 */
     mutex_unlock(&locks[dev_num(line)]);
 }
 
@@ -159,7 +171,16 @@ int adc_init(adc_t line)
     /* For the calibration it is important that the ADC clock is <= 4 MHz */
     uint32_t adiv;
     if (CLOCK_BUSCLOCK > (ADC_MAX_CLK << 3)) {
+#if KINETIS_HAVE_ADICLK_BUS_DIV_2
+        /* Some CPUs, e.g. MK60D10, MKW22D5, provide an additional divide by two
+         * divider for the bus clock as CFG1[ADICLK] = 0b01
+         */
         adiv = ADC_CFG1_ADIV(3) | ADC_CFG1_ADICLK(1);
+#else
+        /* Newer CPUs seem to have replaced this with various alternate clock
+         * sources instead */
+        adiv = ADC_CFG1_ADIV(3);
+#endif
     }
     else {
         unsigned int i = 0;

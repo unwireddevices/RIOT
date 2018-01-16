@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup     driver_si70xx
+ * @ingroup     drivers_si70xx
  * @{
  *
  * @file
@@ -26,7 +26,7 @@
 /**
  * @brief   Utility method to perform and reconstruct a measurement.
  */
-static uint32_t si70xx_measure(si70xx_t *dev, uint8_t command)
+static uint32_t si70xx_measure(const si70xx_t *dev, uint8_t command)
 {
     uint8_t result[2];
 
@@ -39,7 +39,7 @@ static uint32_t si70xx_measure(si70xx_t *dev, uint8_t command)
     return ((uint32_t)result[0] << 8) + (result[1] & 0xfc);
 }
 
-int si70xx_test(si70xx_t *dev)
+int si70xx_test(const si70xx_t *dev)
 {
     uint8_t revision = si70xx_get_revision(dev);
 
@@ -65,23 +65,29 @@ int si70xx_init(si70xx_t *dev, i2c_t i2c_dev, uint8_t address)
     /* setup the i2c bus */
     i2c_acquire(dev->i2c_dev);
     int result = i2c_init_master(dev->i2c_dev, I2C_SPEED_NORMAL);
+    i2c_release(dev->i2c_dev);
 
     if (result != 0) {
-        i2c_release(dev->i2c_dev);
+        return result;
+    }
+
+    result = si70xx_test(dev);
+    if (result < 0) {
         return result;
     }
 
     /* initialize the peripheral */
+    i2c_acquire(dev->i2c_dev);
     i2c_write_byte(dev->i2c_dev, dev->address, SI70XX_RESET);
+    i2c_release(dev->i2c_dev);
 
     /* sensor is ready after at most 25 ms */
-    xtimer_usleep(25 * MS_IN_USEC);
-    i2c_release(dev->i2c_dev);
+    xtimer_usleep(25 * US_PER_MS);
 
     return 0;
 }
 
-uint16_t si70xx_get_relative_humidity(si70xx_t *dev)
+uint16_t si70xx_get_relative_humidity(const si70xx_t *dev)
 {
     uint32_t raw;
     int32_t humidity;
@@ -103,7 +109,7 @@ uint16_t si70xx_get_relative_humidity(si70xx_t *dev)
     }
 }
 
-int16_t si70xx_get_temperature(si70xx_t *dev)
+int16_t si70xx_get_temperature(const si70xx_t *dev)
 {
     uint32_t raw;
 
@@ -113,7 +119,7 @@ int16_t si70xx_get_temperature(si70xx_t *dev)
     return ((17572 * raw) / 65536) - 4685;
 }
 
-void si70xx_get_both(si70xx_t *dev, uint16_t *humidity, int16_t *temperature)
+void si70xx_get_both(const si70xx_t *dev, uint16_t *humidity, int16_t *temperature)
 {
     uint32_t raw;
 
@@ -126,7 +132,7 @@ void si70xx_get_both(si70xx_t *dev, uint16_t *humidity, int16_t *temperature)
     *temperature = ((17572 * raw) / 65536) - 4685;
 }
 
-uint64_t si70xx_get_serial(si70xx_t *dev)
+uint64_t si70xx_get_serial(const si70xx_t *dev)
 {
     uint8_t out[2];
     uint8_t in_first[8] = { 0 };
@@ -157,12 +163,12 @@ uint64_t si70xx_get_serial(si70xx_t *dev)
     return (((uint64_t) id_first) << 32) + id_second;
 }
 
-uint8_t si70xx_get_id(si70xx_t *dev)
+uint8_t si70xx_get_id(const si70xx_t *dev)
 {
     return (si70xx_get_serial(dev) >> 24) & 0xff;
 }
 
-uint8_t si70xx_get_revision(si70xx_t *dev)
+uint8_t si70xx_get_revision(const si70xx_t *dev)
 {
     uint8_t out[2];
     uint8_t in = 0;

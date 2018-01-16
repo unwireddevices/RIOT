@@ -44,7 +44,7 @@ extern "C" {
 #include "xtimer.h"
 
 static uwnds_cb_t *callback;
-static uint8_t rxbuf[UMDK_UART_RXBUF_SIZE] = {};
+static uint8_t *rxbuf;
 
 static volatile uint8_t num_bytes_received;
 
@@ -296,6 +296,13 @@ void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     uart_params.stopbits = umdk_uart_config.stopbits;
     uart_params.databits = umdk_uart_config.databits;
     
+    rxbuf = (uint8_t *) allocate_stack(UMDK_UART_RXBUF_SIZE);
+    if (!rxbuf) {
+    	puts("umdk-" _UMDK_NAME_ ": unable to allocate buffer. Are too many modules enabled?");
+    	return;
+    }
+    memset(rxbuf, 0, UMDK_UART_RXBUF_SIZE);
+    
     /* Initialize UART */
     if (uart_init_ext(UART_DEV(umdk_uart_config.uart_dev), &uart_params, rx_cb, NULL)) {
         return;
@@ -313,7 +320,7 @@ void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 
     char *stack = (char *) allocate_stack(UMDK_UART_STACK_SIZE);
     if (!stack) {
-    	puts("umdk-" _UMDK_NAME_ ": unable to allocate memory. Is too many modules enabled?");
+    	puts("umdk-" _UMDK_NAME_ ": unable to allocate memory. Are too many modules enabled?");
     	return;
     }
 

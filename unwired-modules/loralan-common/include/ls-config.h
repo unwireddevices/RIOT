@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Unwired Devices [info@unwds.com]
+ * Copyright (C) 2016-2018 Unwired Devices [info@unwds.com]
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -11,9 +11,10 @@
  * @ingroup     
  * @brief       
  * @{
- * @file
- * @brief       
+ * @file        ls-config.h
+ * @brief       Common LoRaLAN device runtime configuration functions
  * @author      Evgeniy Ponomarev
+ * @author      Oleg Artamonov
  */
 #ifndef LORA_STAR_UNI_CONFIG_H_
 #define LORA_STAR_UNI_CONFIG_H_

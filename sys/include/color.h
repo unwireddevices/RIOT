@@ -39,6 +39,14 @@ typedef struct {
 } color_rgb_t;
 
 /**
+ * @brief RGBA color value
+ */
+typedef struct {
+    color_rgb_t color;  /**< RGB value */
+    uint8_t alpha;      /**< alpha value [0 - 255] */
+} color_rgba_t;
+
+/**
  * @brief Data-structure for holding HSV colors
  */
 typedef struct {
@@ -46,7 +54,6 @@ typedef struct {
     float s;            /**< saturation value [0.0 - 1.0] */
     float v;            /**< value            [0.0 - 1.0] */
 } color_hsv_t;
-
 
 /**
  * @brief Convert RGB color to HSV color
@@ -91,7 +98,7 @@ void color_rgb2hex(const color_rgb_t *rgb, uint32_t *hex);
  *                      Expect unexpected behaviour, otherwise.
  *
  * @param[in] str       Input color encoded as string of the form 'RRGGBB'
- * @param[out] rgb      Output color encoded in RGB space
+ * @param[out] color    Output color encoded in RGB space
  */
 void color_str2rgb(const char *str, color_rgb_t *color);
 

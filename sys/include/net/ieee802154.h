@@ -13,13 +13,13 @@
  * @{
  *
  * @file
- * @brief       IEEE 802.14.4 header definitions
+ * @brief       IEEE 802.15.4 header definitions
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef IEEE802154_H_
-#define IEEE802154_H_
+#ifndef NET_IEEE802154_H
+#define NET_IEEE802154_H
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -81,10 +81,7 @@ extern "C" {
  * @brief   Channel ranges
  * @{
  */
-/**
- * @brief   Minimum channel for sub-GHz band
- */
-#define IEEE802154_CHANNEL_MIN_SUBGHZ   (0U)
+#define IEEE802154_CHANNEL_MIN_SUBGHZ   (0U)    /**< Minimum channel for sub-GHz band */
 #define IEEE802154_CHANNEL_MAX_SUBGHZ   (10U)   /**< Maximum channel for sub-GHz band */
 #define IEEE802154_CHANNEL_MIN          (11U)   /**< Minimum channel for 2.4 GHz band */
 #define IEEE802154_CHANNEL_MAX          (26U)   /**< Maximum channel for 2.4 GHz band */
@@ -144,7 +141,7 @@ extern const uint8_t ieee802154_addr_bcast[IEEE802154_ADDR_BCAST_LEN];
  * If @p dst is NULL the IEEE802154_FCF_ACK_REQ will be unset to prevent
  * flooding the network.
  *
- * @param[out] buf  Target memory for frame header.
+ * @param[out] buf      Target memory for frame header.
  * @param[in] src       Source address for frame in network byteorder.
  *                      May be NULL if @ref IEEE802154_FCF_SRC_ADDR_VOID is set
  *                      in @p flags.
@@ -278,6 +275,7 @@ static inline eui64_t *ieee802154_get_iid(eui64_t *eui64, const uint8_t *addr,
             eui64->uint8[0] = addr[i++] ^ 0x02;
             eui64->uint8[1] = addr[i++];
 
+            /* Falls through. */
         case 2:
             eui64->uint8[2] = 0;
             eui64->uint8[3] = 0xff;
@@ -298,5 +296,5 @@ static inline eui64_t *ieee802154_get_iid(eui64_t *eui64, const uint8_t *addr,
 }
 #endif
 
-#endif /* IEEE802154_H_ */
+#endif /* NET_IEEE802154_H */
 /** @} */

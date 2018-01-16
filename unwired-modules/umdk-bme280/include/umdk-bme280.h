@@ -30,12 +30,12 @@
     {                                      \
         .i2c_dev = UMDK_BME280_I2C,   \
         .i2c_addr = UMDK_BME280_I2C_ADDR, \
-        .t_sb = BME280_SB_0_5,             \
-        .filter = BME280_FILTER_OFF,       \
-        .run_mode = BME280_MODE_FORCED,     \
-        .temp_oversample = BME280_OSRS_X1,  \
-        .press_oversample = BME280_OSRS_X1, \
-        .humid_oversample = BME280_OSRS_X1, \
+        .t_sb = BMX280_SB_0_5,             \
+        .filter = BMX280_FILTER_OFF,       \
+        .run_mode = BMX280_MODE_FORCED,     \
+        .temp_oversample = BMX280_OSRS_X1,  \
+        .press_oversample = BMX280_OSRS_X1, \
+        .humid_oversample = BMX280_OSRS_X1, \
     }
 
 typedef enum {

@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup     boards_arduino-zero
+ * @ingroup     boards_nucleo-common
  * @{
  *
  * @file
@@ -44,16 +44,24 @@ extern "C" {
 #define ARDUINO_PIN_8           GPIO_PIN(PORT_A, 9)
 #define ARDUINO_PIN_9           GPIO_PIN(PORT_C, 7)
 #define ARDUINO_PIN_10          GPIO_PIN(PORT_B, 6)
+#ifdef CPU_MODEL_STM32F302R8
+#define ARDUINO_PIN_11          GPIO_PIN(PORT_B, 15)
+#define ARDUINO_PIN_12          GPIO_PIN(PORT_B, 14)
+#define ARDUINO_PIN_13          GPIO_PIN(PORT_B, 13) /* on-board LED */
+#else
 #define ARDUINO_PIN_11          GPIO_PIN(PORT_A, 7)
 #define ARDUINO_PIN_12          GPIO_PIN(PORT_A, 6)
 #define ARDUINO_PIN_13          GPIO_PIN(PORT_A, 5) /* on-board LED */
+#endif
+#define ARDUINO_PIN_14          GPIO_PIN(PORT_B, 9)
+#define ARDUINO_PIN_15          GPIO_PIN(PORT_B, 8)
 
-#define ARDUINO_PIN_A0          GPIO_PIN(PORT_C, 0)
-#define ARDUINO_PIN_A1          GPIO_PIN(PORT_C, 1)
-#define ARDUINO_PIN_A2          GPIO_PIN(PORT_B, 0)
-#define ARDUINO_PIN_A3          GPIO_PIN(PORT_A, 4)
-#define ARDUINO_PIN_A4          GPIO_PIN(PORT_A, 1)
-#define ARDUINO_PIN_A5          GPIO_PIN(PORT_A, 0)
+#define ARDUINO_PIN_A0          GPIO_PIN(PORT_A, 0)
+#define ARDUINO_PIN_A1          GPIO_PIN(PORT_A, 1)
+#define ARDUINO_PIN_A2          GPIO_PIN(PORT_A, 4)
+#define ARDUINO_PIN_A3          GPIO_PIN(PORT_B, 0)
+#define ARDUINO_PIN_A4          GPIO_PIN(PORT_C, 1)
+#define ARDUINO_PIN_A5          GPIO_PIN(PORT_C, 0)
 /** @ */
 
 #ifdef __cplusplus

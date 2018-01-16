@@ -27,8 +27,8 @@
  * @todo        remove include irq.h once core was adjusted
  */
 
-#ifndef CPU_H_
-#define CPU_H_
+#ifndef CPU_H
+#define CPU_H
 
 #include <stdio.h>
 
@@ -42,15 +42,6 @@ extern "C" {
 #endif
 
 /**
- * @brief   Some members of the Cortex-M family have architecture specific
- *          atomic operations in atomic_arch.c
- */
-#if defined(CPU_ARCH_CORTEX_M3) || defined(CPU_ARCH_CORTEX_M4) || \
-    defined(CPU_ARCH_CORTEX_M4F)
-#define ARCH_HAS_ATOMIC_COMPARE_AND_SWAP 1
-#endif
-
-/**
  * @brief Interrupt stack canary value
  *
  * @note 0xe7fe is the ARM Thumb machine code equivalent of asm("bl #-2\n") or
@@ -58,6 +49,14 @@ extern "C" {
  * @internal
  */
 #define STACK_CANARY_WORD   (0xE7FEE7FEu)
+
+/**
+ * @brief   All Cortex-m-based CPUs provide pm_set_lowest
+ *
+ * The pm_set_lowest is provided either by the pm_layered module if used, or
+ * alternatively as fallback by the cortexm's own implementation.
+ */
+#define PROVIDES_PM_SET_LOWEST
 
 /**
  * @brief   Initialization of the CPU
@@ -85,9 +84,28 @@ static inline void cpu_print_last_instruction(void)
  * This function is meant to be used for short periods of time, where it is not
  * feasible to switch to the idle thread and back.
  */
-static inline void cpu_sleep_until_event(void)
+static inline void cortexm_sleep_until_event(void)
 {
     __WFE();
+}
+
+/**
+ * @brief   Put the CPU into (deep) sleep mode, using the `WFI` instruction
+ *
+ * @param[in] deep      !=0 for deep sleep, 0 for light sleep
+ */
+static inline void cortexm_sleep(int deep)
+{
+    if (deep) {
+        SCB->SCR |=  (SCB_SCR_SLEEPDEEP_Msk);
+    }
+    else {
+        SCB->SCR &= ~(SCB_SCR_SLEEPDEEP_Msk);
+    }
+
+    /* ensure that all memory accesses have completed and trigger sleeping */
+    __DSB();
+    __WFI();
 }
 
 /**
@@ -130,5 +148,5 @@ extern volatile uint32_t cpu_ports_number;
 }
 #endif
 
-#endif /* CPU_H_ */
+#endif /* CPU_H */
 /** @} */

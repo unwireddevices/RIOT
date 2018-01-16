@@ -8,7 +8,8 @@
  */
 
 /**
- * @ingroup     cpu_kinetis_common_rtt
+ * @ingroup     cpu_kinetis_common
+ * @ingroup     drivers_periph_rtt
  *
  * @{
  *
@@ -57,6 +58,8 @@ void rtt_init(void)
     RTT_UNLOCK();
     /* Reset RTC */
     rtt->CR = RTC_CR_SWR_MASK;
+    /* cppcheck-suppress redundantAssignment
+     * reset routine */
     rtt->CR = 0;
 
     if (rtt->SR & RTC_SR_TIF_MASK) {
@@ -123,12 +126,15 @@ void rtt_set_counter(uint32_t counter)
 
 void rtt_set_alarm(uint32_t alarm, rtt_cb_t cb, void *arg)
 {
+    /* The alarm is triggered when TSR matches TAR, and TSR increments. This
+     * seem counterintuitive as most users expect the alarm to trigger
+     * immediately when the counter becomes equal to the alarm time. */
     RTC_Type *rtt = RTT_DEV;
 
     /* Disable Timer Alarm Interrupt */
     rtt->IER &= ~(RTC_IER_TAIE_MASK);
 
-    rtt->TAR = alarm;
+    rtt->TAR = alarm - 1;
 
     rtt_callback.alarm_cb = cb;
     rtt_callback.alarm_arg = arg;
@@ -144,7 +150,7 @@ void rtt_set_alarm(uint32_t alarm, rtt_cb_t cb, void *arg)
 uint32_t rtt_get_alarm(void)
 {
     RTC_Type *rtt = RTT_DEV;
-    return rtt->TAR;
+    return rtt->TAR + 1;
 }
 
 void rtt_clear_alarm(void)

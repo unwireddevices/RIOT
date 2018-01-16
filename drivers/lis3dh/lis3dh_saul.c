@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup   driver_lis3dh
+ * @ingroup   drivers_lis3dh
  * @{
  *
  * @file
@@ -24,12 +24,11 @@
 #include "saul.h"
 #include "lis3dh.h"
 
-static int read_acc(void *dev, phydat_t *res)
+static int read_acc(const void *dev, phydat_t *res)
 {
     lis3dh_data_t xyz;
 
-    lis3dh_t *d = (lis3dh_t *)dev;
-    int err = lis3dh_read_xyz(d, &xyz);
+    int err = lis3dh_read_xyz((const lis3dh_t *)dev, &xyz);
     if (err != 0) {
         /* Something went wrong in the LIS3DH driver */
         return -ECANCELED;
@@ -45,15 +44,8 @@ static int read_acc(void *dev, phydat_t *res)
     return 3;
 }
 
-static int write(void *dev, phydat_t *state)
-{
-    (void) dev;
-    (void) state;
-    return -ENOTSUP;
-}
-
 const saul_driver_t lis3dh_saul_driver = {
     .read = read_acc,
-    .write = write,
+    .write = saul_notsup,
     .type = SAUL_SENSE_ACCEL,
 };

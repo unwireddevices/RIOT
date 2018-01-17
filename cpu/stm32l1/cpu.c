@@ -99,6 +99,7 @@
 #endif
 
 static uint32_t tmpreg;
+static volatile uint32_t clock_source_rdy = 0;
 volatile uint32_t cpu_clock_global;
 volatile uint32_t cpu_ports_number;
 char cpu_clock_source[10] = { 0 };
@@ -111,9 +112,9 @@ void cpu_init(void)
     /* Switching to bootloader if there's a magic number in RTC registers */
     /* Should be done before initializing anything but RTC */
     rtc_poweron();
-    if (rtc_restore_backup(0) == 0xB00710AD) {
+    if (rtc_restore_backup(RTC_REGBACKUP_BOOTLOADER) == RTC_REGBACKUP_BOOTLOADER_VALUE) {
         /* clear RTC register */
-        rtc_save_backup(0, 0);
+        rtc_save_backup(0, RTC_REGBACKUP_BOOTLOADER);
         rtc_poweroff();
         
         /* System Memory on STM32L1 is at 0x1FF0 0000*/
@@ -169,14 +170,11 @@ void clk_init(void)
     RCC->CIR = 0x0;
 
     /* SYSCLK, HCLK, PCLK2 and PCLK1 configuration */
-#if defined(CLOCK_HS_MULTI)
-    uint32_t clock_source_rdy;
-    
+#if defined(CLOCK_HS_MULTI)   
     RCC->CR |= (RCC_CR_HSION | RCC_CR_HSEON);
     
-    if (rtc_restore_backup(CLOCK_STATUS_BACKUP_REG) == RCC_CR_HSIRDY) {
-        clock_source_rdy = RCC_CR_HSIRDY;
-    } else {
+    /* MCU after reboot or poweron */
+    if (clock_source_rdy == 0) {
         clock_source_rdy = RCC_CR_HSERDY;
     }
         
@@ -185,7 +183,6 @@ void clk_init(void)
         timeout++;
         if (timeout > 10000) {
             clock_source_rdy = RCC_CR_HSIRDY;
-            rtc_save_backup(RCC_CR_HSIRDY, CLOCK_STATUS_BACKUP_REG);
             timeout = 0;
         }
     }

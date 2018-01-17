@@ -101,6 +101,14 @@ static const timer_conf_t timer_config[] = {
 
 #define RTC_IRQ_PRIO        CPU_DEFAULT_IRQ_PRIO
 
+/* STM32 backup registers in use */
+
+#define RTC_REGBACKUP_BOOTLOADER        (0)
+#define RTC_REGBACKUP_BOOTMODE          (0)
+#define RTC_REGBACKUP_UNWDSMODULE       (1)
+
+#define RTC_REGBACKUP_BOOTLOADER_VALUE  (0xB00710AD)
+
 /**
  * @brief UART configuration
  */

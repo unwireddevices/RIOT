@@ -423,7 +423,7 @@ static int init_update_cmd(int argc, char **argv) {
     (void) argv;
     
     puts("[*] Rebooting to UART bootloader...");
-    rtc_save_backup(0xB00710AD, 0);
+    rtc_save_backup(RTC_REGBACKUP_BOOTLOADER_VALUE, RTC_REGBACKUP_BOOTLOADER);
     
     NVIC_SystemReset();
     

@@ -45,7 +45,6 @@ extern "C" {
 #define CLOCK_PLL_DIV_HSE   RCC_CFGR_PLLDIV3
 #define CLOCK_PLL_MUL_HSE   RCC_CFGR_PLLMUL4
 
-#define CLOCK_STATUS_BACKUP_REG 1
 /* configuration of peripheral bus clock prescalers */
 #define CLOCK_AHB_DIV       RCC_CFGR_HPRE_DIV1      /* AHB clock -> 32MHz */
 #define CLOCK_APB2_DIV      RCC_CFGR_PPRE2_DIV1     /* APB2 clock -> 32MHz */
@@ -100,6 +99,14 @@ static const timer_conf_t timer_config[] = {
 #define RTC_NUMOF           (1U)
 
 #define RTC_IRQ_PRIO        CPU_DEFAULT_IRQ_PRIO
+
+/* STM32 backup registers in use */
+
+#define RTC_REGBACKUP_BOOTLOADER        (0)
+#define RTC_REGBACKUP_BOOTMODE          (0)
+#define RTC_REGBACKUP_UNWDSMODULE       (1)
+
+#define RTC_REGBACKUP_BOOTLOADER_VALUE  (0xB00710AD)
 
 /**
  * @brief UART configuration

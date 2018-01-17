@@ -553,7 +553,7 @@ static int print_regions_cmd(int argc, char **argv)
 
 static int ls_safe_cmd(int argc, char **argv) {
     uint32_t bootmode = UNWDS_BOOT_SAFE_MODE;
-    rtc_save_backup(bootmode, 0);
+    rtc_save_backup(bootmode, RTC_REGBACKUP_BOOTMODE);
     puts("Rebooting in safe mode");
     NVIC_SystemReset();
     return 0;
@@ -659,11 +659,11 @@ void init_normal(shell_command_t *commands)
 
         unwds_setup_nvram_config(config_get_nvram(), UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
 
-        uint32_t bootmode = rtc_restore_backup(0);
+        uint32_t bootmode = rtc_restore_backup(RTC_REGBACKUP_BOOTLOADER);
         
         if (is_connect_button_pressed() || (bootmode == UNWDS_BOOT_SAFE_MODE)) {
             uint32_t bootmode = UNWDS_BOOT_NORMAL_MODE;
-            rtc_save_backup(bootmode, 0);
+            rtc_save_backup(bootmode, RTC_REGBACKUP_BOOTLOADER);
             
             puts("[!] Entering Safe Mode, all modules disabled, class C.");
             blink_led(LED_GREEN);

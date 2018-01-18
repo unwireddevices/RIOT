@@ -1,3 +1,7 @@
+18.01.2017
+* umdk-pulse autorestart if the board was rebooted (watchdog, etc.)
+* backup registers numbers defined in boards' periph_conf.h
+
 17.01.2017
 * synced with RIOT OS Release 2017.10
 * truly universal SX1272/SX1276 driver

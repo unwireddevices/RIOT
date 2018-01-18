@@ -348,7 +348,7 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
         break;
     }
     case CMD_FW_UPDATE: {
-        rtc_save_backup(0xB00710AD, 0);
+        rtc_save_backup(RTC_REGBACKUP_BOOTLOADER_VALUE, RTC_REGBACKUP_BOOTLOADER);
         NVIC_SystemReset();
         break;
     }

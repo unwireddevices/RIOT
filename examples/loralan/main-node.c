@@ -663,7 +663,7 @@ void init_normal(shell_command_t *commands)
         
         if (is_connect_button_pressed() || (bootmode == UNWDS_BOOT_SAFE_MODE)) {
             uint32_t bootmode = UNWDS_BOOT_NORMAL_MODE;
-            rtc_save_backup(bootmode, RTC_REGBACKUP_BOOTLOADER);
+            rtc_save_backup(bootmode, RTC_REGBACKUP_BOOTMODE);
             
             puts("[!] Entering Safe Mode, all modules disabled, class C.");
             blink_led(LED_GREEN);

@@ -1,4 +1,6 @@
 18.01.2017
+* version 1.81
+* gateway firmware overflow fixed
 * umdk-pulse autorestart if the board was rebooted (watchdog, etc.)
 * backup registers numbers defined in boards' periph_conf.h
 

@@ -90,7 +90,7 @@ static ls_gate_channel_t channels[1] = {
 static char rx_mem[UART_BUFSIZE];
 static ringbuffer_t rx_buf;
 
-static kernel_pid_t reader_pid;
+static kernel_pid_t gate_reader_pid;
 static char reader_stack[1024 + 2 * 1024];
 
 static kernel_pid_t writer_pid;
@@ -106,7 +106,7 @@ static void rx_cb(void *arg, uint8_t data)
 
     if (data == EOL) {
         msg_t msg;
-        msg_send(&msg, reader_pid);
+        msg_send(&msg, gate_reader_pid);
     }
 }
 
@@ -167,7 +167,7 @@ static void uart_gate_init(void)
     gc_pending_fifo_init(&fifo);
 
     /* start the reader thread */
-    reader_pid = thread_create(reader_stack, sizeof(reader_stack), THREAD_PRIORITY_MAIN - 1, 0, reader, NULL, "uart reader");
+    gate_reader_pid = thread_create(reader_stack, sizeof(reader_stack), THREAD_PRIORITY_MAIN - 1, 0, reader, NULL, "uart reader");
 
     /* start the writer thread */
     writer_pid = thread_create(writer_stack, sizeof(writer_stack), THREAD_PRIORITY_MAIN - 1, 0, writer, NULL, "uart writer");

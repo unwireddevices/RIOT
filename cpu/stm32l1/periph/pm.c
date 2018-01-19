@@ -99,43 +99,19 @@ static void pm_before_i_go_to_sleep (void) {
 
     /* specifically set GPIOs used for external SPI devices */
     /* NSS = 1, MOSI = 0, SCK = 0, MISO doesn't matter */
-    /* NSS = 1, MOSI = 0, SCK = 0, MISO doesn't matter */
-#if SPI_0_EN
-    if (SPI_0_ISON()) {
-        pin_set(SPI_0_PORT, SPI_0_PIN_NSS, 1);
-        pin_set(SPI_0_PORT, SPI_0_PIN_SCK, 0);
-        pin_set(SPI_0_PORT, SPI_0_PIN_MOSI, 0);
-    } else {
-		p = ((uint32_t)SPI_0_PORT >> 10) & 0x0f;
-		pm_portmask_system[p] &= ~(1 << SPI_0_PIN_NSS);
-		pm_portmask_system[p] &= ~(1 << SPI_0_PIN_SCK);
-		pm_portmask_system[p] &= ~(1 << SPI_0_PIN_MOSI);
-	}
-#endif
-#if SPI_1_EN
-    if (SPI_1_ISON()) {
-        pin_set(SPI_1_PORT, SPI_1_PIN_NSS, 1);
-        pin_set(SPI_1_PORT, SPI_1_PIN_SCK, 0);
-        pin_set(SPI_1_PORT, SPI_1_PIN_MOSI, 0);
-    } else {
-		p = ((uint32_t)SPI_1_PORT >> 10) & 0x0f;
-		pm_portmask_system[p] &= ~(1 << SPI_1_PIN_NSS);
-		pm_portmask_system[p] &= ~(1 << SPI_1_PIN_SCK);
-		pm_portmask_system[p] &= ~(1 << SPI_1_PIN_MOSI);
-	}
-#endif
-#if SPI_2_EN
-    if (SPI_2_ISON()) {
-        pin_set(SPI_2_PORT, SPI_2_PIN_NSS, 1);
-        pin_set(SPI_2_PORT, SPI_2_PIN_SCK, 0);
-        pin_set(SPI_2_PORT, SPI_2_PIN_MOSI, 0);
-    } else {
-		p = ((uint32_t)SPI_2_PORT >> 10) & 0x0f;
-		pm_portmask_system[p] &= ~(1 << SPI_2_PIN_NSS);
-		pm_portmask_system[p] &= ~(1 << SPI_2_PIN_SCK);
-		pm_portmask_system[p] &= ~(1 << SPI_2_PIN_MOSI);
-	}
-#endif
+    for (i = 0; i < SPI_NUMOF; i++) {
+        /* port and pin numbers */
+        port = (GPIO_TypeDef *)(spi_config[i].sclk_pin & ~(0x0f));
+        p = spi_config[i].sclk_pin & 0x0f;
+        
+        if (((port->AFR[(p > 7) ? 1 : 0] >> (p * 4)) & 0x0f)  == spi_config[i].af) {
+            if (spi_config[i].cs_pin != GPIO_UNDEF) {
+                pin_set((GPIO_TypeDef *)(spi_config[i].cs_pin & ~(0x0f)), spi_config[i].cs_pin & 0x0f, 1);
+            }
+            pin_set((GPIO_TypeDef *)(spi_config[i].mosi_pin & ~(0x0f)), spi_config[i].mosi_pin & 0x0f, 0);
+            pin_set((GPIO_TypeDef *)(spi_config[i].sclk_pin & ~(0x0f)), spi_config[i].sclk_pin & 0x0f, 0);
+        }
+    }
 
     /* save GPIO clock configuration */
     ahb_gpio_clocks = RCC->AHBENR & 0xFF;

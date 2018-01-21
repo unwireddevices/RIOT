@@ -40,7 +40,7 @@ extern "C" {
 static char isr_stack[SX127X_STACKSIZE];
 static kernel_pid_t isr_pid;
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 static msg_t msg_ping;
@@ -503,6 +503,14 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
             printf("RX: %d bytes, | RSSI: %d dBm | SNR: %d dBm | TOA %d ms\n", (int)len,
                     packet_info.rssi, (int)packet_info.snr,
                     (int)packet_info.time_on_air);
+                    
+#if ENABLE_DEBUG
+            printf("RX:");
+            for (int k=0; k<len; k++) {
+                printf(" %02x", message[k]);
+            }
+            printf("\n");
+#endif
 
             DEBUG("ls-gate: state = IDLE\n");
             ch->state = LS_GATE_CHANNEL_STATE_IDLE;

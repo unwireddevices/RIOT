@@ -34,6 +34,7 @@ typedef struct {
     ls_node_class_t nodeclass;
     uint8_t max_retr;
     bool no_join;			/**< Statically personalized device, no join required to send data */    
+    bool req_time;
     
     ls_addr_t dev_addr;		/**< Predefined device's network address */
 

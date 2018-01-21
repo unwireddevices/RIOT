@@ -483,7 +483,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
         }
         
         case LS_DL_TIME_ACK: {
-            ls_decrypt_frame_payload(ls->settings.crypto.aes_key, &frame->payload);
+            ls_decrypt_frame_payload(ls->settings.crypto.aes_key, frame);
 
             ls_time_req_ack_t ack;
             memcpy(&ack, frame->payload.data, sizeof(ls_time_req_ack_t));

@@ -159,7 +159,7 @@ static void time_req_ack_cb(time_t time) {
 			t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
 
 	/* Setup new time as system time for all the timers */
-	rtctimers_set_timebase(t);
+	rtctimers_millis_set_timebase(t);
 }
 
 void appdata_send_failed_cb(void)

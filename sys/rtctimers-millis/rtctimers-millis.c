@@ -71,7 +71,7 @@ void rtctimers_millis_set_msg(rtctimers_millis_t *timer, uint32_t offset, msg_t 
 	rtctimers_millis_set(timer, offset);
 }
 
-void rtctimers_millis_set_msg_absolute(rtctimer_millis_t *timer, msg_t *msg, kernel_pid_t target_pid,
+void rtctimers_millis_set_msg_absolute(rtctimers_millis_t *timer, msg_t *msg, kernel_pid_t target_pid,
                                        uint8_t wday, uint8_t hour, uint8_t min, uint8_t sec) {
 	timer->callback = _callback_msg;
 	timer->arg = (void *) msg;

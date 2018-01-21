@@ -21,6 +21,7 @@
 #include <stdint.h>
 
 #include "thread.h"
+#include "time.h"
 
 #ifndef RTCTIMERS_MILLIS_OVERHEAD
     #define RTCTIMERS_MILLIS_OVERHEAD 0
@@ -55,8 +56,8 @@ void rtctimers_millis_set_msg(rtctimers_millis_t *timer, uint32_t offset, msg_t 
  *
  * @note Days of week starting from Sunday (0), thus, Monday is (1), ..., and Saturday is (6)
  */
-void rtctimers_millis_set_absolute(rtctimer_t *timer, uint8_t wday, uint8_t hour, uint8_t min, uint8_t sec);
-void rtctimers_millis_set_msg_absolute(rtctimer_t *timer, msg_t *msg, kernel_pid_t target_pid, uint8_t wday, uint8_t hour, uint8_t min, uint8_t sec);
+void rtctimers_millis_set_absolute(rtctimers_millis_t *timer, uint8_t wday, uint8_t hour, uint8_t min, uint8_t sec);
+void rtctimers_millis_set_msg_absolute(rtctimers_millis_t *timer, msg_t *msg, kernel_pid_t target_pid, uint8_t wday, uint8_t hour, uint8_t min, uint8_t sec);
 
 /**
  * @brief Changes current time without affecting currently running timers (shifts them accordingly)

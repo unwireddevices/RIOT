@@ -473,7 +473,7 @@ overflow:
 #define SFM(hour, min, sec) (3600 * hour + 60 * min + sec)
 #define SECONDS_IN_DAY 86400
 
-void rtctimers_millis_set_absolute(rtctimer_t *timer, uint8_t wday, uint8_t hour, uint8_t min, uint8_t sec) {
+void rtctimers_millis_set_absolute(rtctimers_millis_t *timer, uint8_t wday, uint8_t hour, uint8_t min, uint8_t sec) {
 	assert(wday < 7);
 	assert(hour < 24);
 	assert(min < 60);
@@ -535,7 +535,7 @@ void rtctimers_millis_set_timebase(struct tm *new_time) {
 
 		/* Shift currently running timers to the new time base */
 		DEBUG("[RTC] Shifting timers to the new time base\n");
-		rtctimer_millis_t *timer = timer_list_head;
+		rtctimers_millis_t *timer = timer_list_head;
 		while (timer) {
 			/* Change timer's absolute target time stamp to the new one in according to the time remaining before shot */
 			int diff = timer->target - prev_ts;

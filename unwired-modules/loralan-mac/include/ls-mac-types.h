@@ -81,11 +81,14 @@ typedef enum {
 
 	LS_DL_BROADCAST,	/**< Unconfirmed downlink broadcasted message */
 
-	LS_UL_JOIN_REQ,	/**< Join request */
-	LS_DL_JOIN_ACK,	/**< Join acknowledge */
+	LS_UL_JOIN_REQ,	    /**< Join request */
+	LS_DL_JOIN_ACK,	    /**< Join acknowledge */
 
 	RFU4,
 	LS_DL_INVITE,		/**< Individual join invitation for the class C (always listening) devices */
+    
+    LS_UL_TIME_REQ,     /**< Time synchronization request */
+    LS_DL_TIME_ACK,     /**< Time synchronization reply */
 
 	/* Reserved for future use */
 	LS_RFU5,

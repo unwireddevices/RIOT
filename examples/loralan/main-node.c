@@ -144,6 +144,22 @@ void joined_cb(void)
 
     puts("[LoRa] successfully joined to the network");
     blink_led(LED_GREEN);
+    
+    /* Synchronize time if necessary */
+    if (unwds_get_node_settings().req_time) {
+    	ls_ed_req_time(&ls);
+    }
+}
+
+static void time_req_ack_cb(time_t time) {
+	struct tm *t;
+	t = localtime(&time);
+
+	printf("ls: received new time from the gate: %04d-%02d-%02d %02d:%02d:%02d\n", t->tm_year + 1900, t->tm_mon + 1,
+			t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
+
+	/* Setup new time as system time for all the timers */
+	rtctimers_set_timebase(t);
 }
 
 void appdata_send_failed_cb(void)
@@ -261,6 +277,8 @@ static void ls_setup(ls_ed_t *ls)
 
     ls->appdata_received_cb = appdata_received_cb;
     ls->broadcast_appdata_received_cb = broadcast_appdata_received_cb;
+    
+    ls->time_req_ack_cb = time_req_ack_cb;
 
     ls->_internal.device = netdev;
 }

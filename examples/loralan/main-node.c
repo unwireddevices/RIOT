@@ -51,13 +51,13 @@ extern "C" {
 
 #include "ls-regions.h"
 #include "periph/wdg.h"
-#include "rtctimers.h"
+#include "rtctimers-millis.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-static rtctimers_t iwdg_timer;
-static rtctimers_t pm_enable_timer;
+static rtctimers_millis_t iwdg_timer;
+static rtctimers_millis_t pm_enable_timer;
 
 static sx127x_t sx127x;
 static netdev_t *netdev;
@@ -118,10 +118,10 @@ void joined_timeout_cb(void)
         puts("ls: join request timed out, resending");
         
         /* Pseudorandom delay for collision avoidance */
-        unsigned int delay = random_uint32_range(5 + (current_join_retries - 1)*30, 30 + (current_join_retries - 1)*30);
-        printf("[LoRa] random delay %d s\n", (unsigned int) (delay));
+        unsigned int delay = random_uint32_range(5000 + (current_join_retries - 1)*30000, 30000 + (current_join_retries - 1)*30000);
+        printf("[LoRa] random delay %d ms\n", (unsigned int) (delay));
         
-        rtctimers_sleep(delay);
+        rtctimers_millis_sleep(delay);
         
         /* limit max delay between attempts to 1 hour */
         if (current_join_retries < 120) {
@@ -623,7 +623,7 @@ static bool is_connect_button_pressed(void)
 
 static void iwdg_reset (void *arg) {
     wdg_reload();
-    rtctimers_set(&iwdg_timer, 15);
+    rtctimers_millis_set(&iwdg_timer, 15000);
     DEBUG("Watchdog reset\n");
     return;
 }
@@ -677,7 +677,7 @@ void init_normal(shell_command_t *commands)
             /* NB: unwired-module MUST NOT need more than 3 seconds to finish its job */
             
             iwdg_timer.callback = iwdg_reset;
-            rtctimers_set(&iwdg_timer, 15);
+            rtctimers_millis_set(&iwdg_timer, 15000);
             
             /* IWDG period is 18 seconds minimum, 28 seconds typical */
             wdg_set_prescaler(6);
@@ -688,7 +688,7 @@ void init_normal(shell_command_t *commands)
             /* enable sleep for Class A devices only */        
             if (ls.settings.class == LS_ED_CLASS_A) {
                 pm_enable_timer.callback = ls_enable_sleep;
-                rtctimers_set(&pm_enable_timer, 15);
+                rtctimers_millis_set(&pm_enable_timer, 15000);
             }
             
             blink_led(LED_GREEN);

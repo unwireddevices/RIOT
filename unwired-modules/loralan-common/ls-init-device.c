@@ -37,7 +37,6 @@ extern "C" {
 #include "random.h"
 #include "cpu.h"
 #include "xtimer.h"
-#include "rtctimers.h"
 #include "rtctimers-millis.h"
 #include "unwds-common.h"
 
@@ -115,7 +114,6 @@ void init_role(shell_command_t *commands) {
     
     print_logo();
     xtimer_init();
-    rtctimers_init();
     rtctimers_millis_init();
 
     nvram_eeprom_init(&nvram);

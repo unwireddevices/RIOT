@@ -43,7 +43,7 @@ extern "C" {
 #include "unwds-gpio.h"
 
 #include "thread.h"
-#include "rtctimers.h"
+#include "rtctimers-millis.h"
 
 static ultrasoundrange_t dev;
 
@@ -52,7 +52,7 @@ static uwnds_cb_t *callback;
 static kernel_pid_t timer_pid;
 
 static msg_t timer_msg = {};
-static rtctimers_t timer;
+static rtctimers_millis_t timer;
 
 static bool is_polled = false;
 
@@ -119,7 +119,7 @@ static void *timer_thread(void *arg) {
     while (1) {
         msg_receive(&msg);
 
-        rtctimers_remove(&timer);
+        rtctimers_millis_remove(&timer);
 
         module_data_t data = {};
         data.as_ack = is_polled;
@@ -131,7 +131,7 @@ static void *timer_thread(void *arg) {
         // callback(&data); 
 
         /* Restart after delay */
-        rtctimers_set_msg(&timer, /* 60 * */ ultrasoundrange_config.publish_period_min, &timer_msg, timer_pid);
+        rtctimers_millis_set_msg(&timer, /* 60 * */ 1000*ultrasoundrange_config.publish_period_min, &timer_msg, timer_pid);
     }
 
     return NULL;
@@ -164,14 +164,14 @@ static inline void save_config(void) {
 }
 
 static void set_period (int period) {
-    rtctimers_remove(&timer);
+    rtctimers_millis_remove(&timer);
 
     ultrasoundrange_config.publish_period_min = period;
 	save_config();
 
 	/* Don't restart timer if new period is zero */
 	if (ultrasoundrange_config.publish_period_min) {
-        rtctimers_set_msg(&timer, /* 60 * */ ultrasoundrange_config.publish_period_min, &timer_msg, timer_pid);
+        rtctimers_millis_set_msg(&timer, /* 60 * */ 1000*ultrasoundrange_config.publish_period_min, &timer_msg, timer_pid);
 		printf("[umdk-" _UMDK_NAME_ "] Period set to %d minute (s)\n", ultrasoundrange_config.publish_period_min);
     } else {
         printf("[umdk-" _UMDK_NAME_ "] Timer stopped");
@@ -379,7 +379,7 @@ void umdk_usound_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	timer_pid = thread_create(stack, UMDK_USOUND_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "range thread");
 
     /* Start publishing timer */
-	rtctimers_set_msg(&timer, /* 60 * */ ultrasoundrange_config.publish_period_min, &timer_msg, timer_pid);
+	rtctimers_millis_set_msg(&timer, /* 60 * */ 1000*ultrasoundrange_config.publish_period_min, &timer_msg, timer_pid);
 }
 
 static void reply_fail(module_data_t *reply) {

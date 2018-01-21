@@ -35,14 +35,14 @@ extern "C" {
 #include "board.h"
 #include "unwds-common.h"
 #include "ls-settings.h"
-#include "rtctimers.h"
+#include "rtctimers-millis.h"
 
 #include "umdk-config.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-static rtctimers_t timer;
+static rtctimers_millis_t timer;
 
 static void umdk_config_reset_system(void *arg) {
     NVIC_SystemReset();
@@ -102,7 +102,7 @@ static bool config_cmd(module_data_t *cmd, module_data_t *reply, bool with_reply
             do_reply(reply, UMDK_CONFIG_REPLY_OK);
             /* reboot in 30 seconds */
             timer.callback = umdk_config_reset_system;
-            rtctimers_set(&timer, 30);
+            rtctimers_millis_set(&timer, 30000);
             break;
         }
         case UMDK_SET_CLASS: {

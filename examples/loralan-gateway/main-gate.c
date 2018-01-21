@@ -34,7 +34,7 @@ extern "C" {
 #include "periph/gpio.h"
 #include "periph/uart.h"
 #include "ringbuffer.h"
-#include "rtctimers.h"
+#include "rtctimers-millis.h"
 #include "utils.h"
 #include "shell.h"
 #include "shell_commands.h"
@@ -62,9 +62,9 @@ extern "C" {
 
 #define IWDG_PRESCALER  (5)
 #define IWDG_RELOAD     (0x0FFF)
-#define IWDG_TIMEOUT    ((((IWDG_RELOAD) * (1 << (IWDG_PRESCALER + 2))) / 56000) - 3)
+#define IWDG_TIMEOUT    (1000*((((IWDG_RELOAD) * (1 << (IWDG_PRESCALER + 2))) / 56000) - 3))
 
-static rtctimers_t iwdg_timer;
+static rtctimers_millis_t iwdg_timer;
 
 static sx127x_t sx127x;
 static netdev_t netdev;
@@ -500,7 +500,7 @@ static int kick_cmd(int argc, char **argv) {
 
 static void iwdg_reset (void *arg) {
     wdg_reload();
-    rtctimers_set(&iwdg_timer, IWDG_TIMEOUT);
+    rtctimers_millis_set(&iwdg_timer, IWDG_TIMEOUT);
     DEBUG("Watchdog reset\n");
     return;
 }
@@ -516,7 +516,7 @@ shell_command_t shell_commands[] = {
 
 static void watchdog_start(void) {
     iwdg_timer.callback = iwdg_reset;
-    rtctimers_set(&iwdg_timer, IWDG_TIMEOUT);
+    rtctimers_millis_set(&iwdg_timer, IWDG_TIMEOUT);
     
 	wdg_set_prescaler(IWDG_PRESCALER);
     wdg_set_reload(IWDG_RELOAD);

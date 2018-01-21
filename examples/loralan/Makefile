@@ -61,7 +61,6 @@ USEMODULE += cipher_modes
 USEMODULE += random
 USEMODULE += hashes
 USEMODULE += checksum
-USEMODULE += rtctimers
 USEMODULE += rtctimers-millis
 
 USEMODULE += sx127x

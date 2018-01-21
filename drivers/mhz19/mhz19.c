@@ -23,7 +23,7 @@
 
 #include "thread.h"
 #include "assert.h"
-#include "rtctimers.h"
+#include "rtctimers-millis.h"
 #include "periph/uart.h"
 
 #include "mhz19.h"
@@ -36,7 +36,7 @@ extern "C" {
 
 static uint8_t mhz19_command;
 static msg_t mhz19_msg;
-static rtctimers_t timeout_timer;
+static rtctimers_millis_t timeout_timer;
 static int num_bytes_received = 0;
 
 static void rx_cb(void *arg, uint8_t data)
@@ -102,7 +102,7 @@ static void *reader(void *arg) {
     
     while (1) {
         msg_receive(&msg);
-        rtctimers_remove(&timeout_timer);        
+        rtctimers_millis_remove(&timeout_timer);        
         memset(&data, 0, sizeof(data));
 
         if ((!msg.content.value) && (!parse(dev, &data))) {
@@ -122,7 +122,7 @@ void mhz19_get(mhz19_t *dev) {
     
     /* if MH-Z19 wouldn't respond in MHZ19_TIMEOUT_SECONDS seconds, send empty data to application */
     mhz19_msg.content.value = 1;
-    rtctimers_set_msg(&timeout_timer, MHZ19_TIMEOUT_SECONDS, &mhz19_msg, dev->reader_pid);
+    rtctimers_millis_set_msg(&timeout_timer, 1000*MHZ19_TIMEOUT_SECONDS, &mhz19_msg, dev->reader_pid);
 }
 
 int mhz19_init(mhz19_t *dev, mhz19_param_t *param) {

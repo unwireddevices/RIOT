@@ -43,7 +43,7 @@ extern "C" {
 #include "umdk-opt3001.h"
 
 #include "thread.h"
-#include "rtctimers.h"
+#include "rtctimers-millis.h"
 
 static opt3001_t dev;
 
@@ -52,7 +52,7 @@ static uwnds_cb_t *callback;
 static kernel_pid_t timer_pid;
 
 static msg_t timer_msg = {};
-static rtctimers_t timer;
+static rtctimers_millis_t timer;
 
 static bool is_polled = false;
 
@@ -114,7 +114,7 @@ static void *timer_thread(void *arg) {
         callback(&data);
 
         /* Restart after delay */
-        rtctimers_set_msg(&timer, 60 * opt3001_config.publish_period_min, &timer_msg, timer_pid);
+        rtctimers_millis_set_msg(&timer, 60000 * opt3001_config.publish_period_min, &timer_msg, timer_pid);
     }
 
     return NULL;
@@ -142,14 +142,14 @@ static inline void save_config(void) {
 }
 
 static void set_period (int period) {
-    rtctimers_remove(&timer);
+    rtctimers_millis_remove(&timer);
 
     opt3001_config.publish_period_min = period;
 	save_config();
 
 	/* Don't restart timer if new period is zero */
 	if (opt3001_config.publish_period_min) {
-        rtctimers_set_msg(&timer, 60 * opt3001_config.publish_period_min, &timer_msg, timer_pid);
+        rtctimers_millis_set_msg(&timer, 60000 * opt3001_config.publish_period_min, &timer_msg, timer_pid);
 		printf("[umdk-" _UMDK_NAME_ "] Period set to %d minute (s)\n", opt3001_config.publish_period_min);
     } else {
         puts("[umdk-" _UMDK_NAME_ "] Timer stopped");
@@ -225,7 +225,7 @@ void umdk_opt3001_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	timer_pid = thread_create(stack, UMDK_OPT3001_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "opt3001 thread");
 
     /* Start publishing timer */
-	rtctimers_set_msg(&timer, 60 * opt3001_config.publish_period_min, &timer_msg, timer_pid);
+	rtctimers_millis_set_msg(&timer, 60000 * opt3001_config.publish_period_min, &timer_msg, timer_pid);
 }
 
 static void reply_fail(module_data_t *reply) {

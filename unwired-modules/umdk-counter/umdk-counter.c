@@ -44,13 +44,12 @@ extern "C" {
 
 #include "thread.h"
 #include "xtimer.h"
-#include "rtctimers.h"
 #include "rtctimers-millis.h"
 
 static kernel_pid_t handler_pid;
 
 static uwnds_cb_t *callback;
-static rtctimers_t publishing_timer;
+static rtctimers_millis_t publishing_timer;
 static rtctimers_millis_t polling_timer;
 
 static uint8_t ignore_irq[UMDK_COUNTER_NUM_SENS] = { };
@@ -151,8 +150,8 @@ static void *handler(void *arg)
 
         /* Restart timer */
         if (conf_counter.publish_period) {
-            rtctimers_set_msg(&publishing_timer, \
-                              UMDK_COUNTER_VALUE_PERIOD_PER_SEC * conf_counter.publish_period, \
+            rtctimers_millis_set_msg(&publishing_timer, \
+                              1000*UMDK_COUNTER_VALUE_PERIOD_PER_SEC * conf_counter.publish_period, \
                               &publishing_msg, handler_pid);
         }
         gpio_irq_enable(UMDK_COUNTER_BTN);
@@ -163,7 +162,7 @@ static void *handler(void *arg)
 static void btn_connect(void* arg) {
     /* connect button pressed — publish to LoRa in 1 second */
     gpio_irq_disable(UMDK_COUNTER_BTN);
-    rtctimers_set_msg(&publishing_timer, 1, &publishing_msg, handler_pid);
+    rtctimers_millis_set_msg(&publishing_timer, 1000, &publishing_msg, handler_pid);
 }
 
 static void reset_config(void) {
@@ -179,8 +178,8 @@ static int set_period(int period) {
     conf_counter.publish_period = period;
     save_config();
 
-    rtctimers_set_msg(&publishing_timer,
-                      UMDK_COUNTER_VALUE_PERIOD_PER_SEC * conf_counter.publish_period,
+    rtctimers_millis_set_msg(&publishing_timer,
+                      1000*UMDK_COUNTER_VALUE_PERIOD_PER_SEC * conf_counter.publish_period,
                       &publishing_msg, handler_pid);
     printf("[umdk-" _UMDK_NAME_ "] Period set to %d hour (s)\n", conf_counter.publish_period);
     
@@ -257,8 +256,8 @@ void umdk_counter_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
                                 THREAD_CREATE_STACKTEST, handler, NULL, _UMDK_NAME_ " thread");
 
     /* Start publishing timer */
-    rtctimers_set_msg(&publishing_timer, \
-                      UMDK_COUNTER_VALUE_PERIOD_PER_SEC * conf_counter.publish_period, \
+    rtctimers_millis_set_msg(&publishing_timer, \
+                      1000*UMDK_COUNTER_VALUE_PERIOD_PER_SEC * conf_counter.publish_period, \
                       &publishing_msg, handler_pid);
                       
     /* Configure periodic timer  */

@@ -45,7 +45,6 @@ static void _add_timer_to_long_list(rtctimers_millis_t **list_head, rtctimers_mi
 static uint32_t _rtctimers_millis_lltimer_maximum(uint32_t target);
 static void _shoot(rtctimers_millis_t *timer);
 static void _remove(rtctimers_millis_t *timer);
-static uint32_t rtctimers_millis_now(void);
 static inline void _lltimer_set(uint32_t target);
 static uint32_t _time_left(uint32_t target, uint32_t reference);
 
@@ -54,7 +53,7 @@ static void _periph_timer_callback(void *arg);
 
 static inline int _this_high_period(uint32_t target);
 
-static uint32_t rtctimers_millis_now(void) {
+uint32_t rtctimers_millis_now(void) {
     uint32_t millis;
     rtc_millis_get_time(&millis);
     return millis;

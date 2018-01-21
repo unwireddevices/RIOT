@@ -15,8 +15,8 @@
  * @brief       LoRa Star MAC types
  * @author      Eugene Ponomarev
  */
-#ifndef UNWIRED_MODULES_LORA_STAR_INCLUDE_LS_MAC_TYPES_H_
-#define UNWIRED_MODULES_LORA_STAR_INCLUDE_LS_MAC_TYPES_H_
+#ifndef UNWIRED_MODULES_LORALAN_MAC_TYPES_H_
+#define UNWIRED_MODULES_LORALAN_MAC_TYPES_H_
 
 #include "crypto/aes.h"
 
@@ -188,4 +188,12 @@ typedef struct {
 	uint64_t dev_id;
 } ls_invite_t;
 
-#endif /* UNWIRED_MODULES_LORA_STAR_INCLUDE_LS_MAC_TYPES_H_ */
+/**
+ * @brief Current time value
+ */
+typedef struct {
+	time_t gate_time;    /**< Current time on a gateway on a moment of request */
+	uint64_t rfu1;      /**< Reserved */
+} ls_time_req_ack_t;
+
+#endif /* UNWIRED_MODULES_LORALAN_MAC_TYPES_H_ */

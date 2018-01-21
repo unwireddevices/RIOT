@@ -52,6 +52,11 @@ void rtctimers_millis_sleep(uint32_t sleep_millis);
 void rtctimers_millis_set_msg(rtctimers_millis_t *timer, uint32_t offset, msg_t *msg, kernel_pid_t target_pid);
 
 /**
+ * @brief Returns time in milliseconds since 00:00:00 Sunday
+ */
+uint32_t rtctimers_millis_now(void);
+
+/**
  * @brief Sets timers to an absolute time defined by day of week, h:m:s just like a regular alarm clock
  *
  * @note Days of week starting from Sunday (0), thus, Monday is (1), ..., and Saturday is (6)

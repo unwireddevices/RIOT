@@ -225,6 +225,8 @@ typedef struct {
 	void (*appdata_send_failed_cb)(void);
 
 	bool (*broadcast_appdata_received_cb)(uint8_t *buf, size_t buflen);
+    
+    void (*time_req_ack_cb)(time_t time);
 
 	ls_ed_internal_t _internal;	/**< Internal data for the LS stack*/
 } ls_ed_t;
@@ -240,5 +242,10 @@ int ls_ed_join(ls_ed_t *ls);
 void ls_ed_unjoin(ls_ed_t *ls);
 
 void ls_ed_sleep(ls_ed_t *ls);
+
+/**
+ * @brief Request current time from the gateway.
+ */
+int ls_ed_req_time(ls_ed_t *ls);
 
 #endif /* UNWIRED_MODULES_LORA_STAR_INCLUDE_LS_H_ */

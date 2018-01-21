@@ -284,6 +284,9 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
         case LS_DL_INVITE:
             snprintf(debug_frame_type, 20, "LS_DL_INVITE");
             break;
+        case LS_DL_TIME_ACK:
+            snprintf(debug_frame_type, 20, "LS_DL_TIME_ACK");
+            break;
         default:
             snprintf(debug_frame_type, 20, "UNKNOWN");
             break;
@@ -293,7 +296,8 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
     if ((frame->header.type == LS_DL_ACK_W_DATA) ||
         (frame->header.type == LS_DL_ACK) ||
-        (frame->header.type == LS_DL)) {
+        (frame->header.type == LS_DL) || 
+        (frame->header.type == LS_DL_TIME_ACK)) {
         if (!ls->settings.no_join && !ls->_internal.is_joined) {
             DEBUG("[LoRa] frame_recv: not joined\n");
             return false;
@@ -476,6 +480,19 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             DEBUG("[LoRa] frame_recv: join\n");
             ls_ed_join(ls);
         	return false;
+        }
+        
+        case LS_DL_TIME_ACK: {
+            ls_decrypt_frame_payload(ls->settings.crypto.aes_key, &frame->payload);
+
+            ls_time_req_ack_t ack;
+            memcpy(&ack, frame->payload.data, sizeof(ls_time_req_ack_t));
+
+            if (ls->time_req_ack_cb != NULL) {
+                ls->time_req_ack_cb(ack.gate_time);
+            }
+
+            return true;
         }
 
         default:
@@ -1162,6 +1179,24 @@ void ls_ed_sleep(ls_ed_t *ls)
     } else {
         DEBUG("[LoRa] ls_ed_sleep: ignore sleep, not a Class A\n");
     }
+}
+
+int ls_ed_req_time(ls_ed_t *ls)
+{
+    assert(ls != NULL);
+
+    /* Must be joined or statically activated */
+    if (!ls->settings.no_join && !ls->_internal.is_joined) {
+    	return LS_SEND_E_NOT_JOINED;
+    }
+
+    /* Send time request */
+    int res = send_frame(ls, LS_UL_TIME_REQ, NULL, 0);
+    if (res < 0) {
+        return res;
+    }
+
+    return LS_OK;
 }
 
 #ifdef __cplusplus

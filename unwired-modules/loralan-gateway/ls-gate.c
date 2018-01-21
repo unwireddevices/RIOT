@@ -262,7 +262,7 @@ static void app_data_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_gate_node_t *
 
     /* Decrypt frame payload */
     DEBUG("ls-gate: decrypt frame payload\n");
-    ls_decrypt_frame_payload(aes_key, &frame->payload);
+    ls_decrypt_frame_payload(aes_key, frame);
 
     /* Call handler callback */
     DEBUG("ls-gate: call handler callback\n");
@@ -450,7 +450,7 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
                 return false;
             }
 
-            ls_decrypt_frame_payload(ls->settings.join_key, &frame->payload);
+            ls_decrypt_frame_payload(ls->settings.join_key, frame);
             
             DEBUG("ls-gate: frame payload decrypted\n");
 

@@ -320,7 +320,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
     		/* Validate and decipher incoming broadcast message */
             DEBUG("[LoRa] frame_recv: broadcast message\n");
             
-            ls_decrypt_frame_payload(ls->settings.crypto.join_key, &frame->payload);
+            ls_decrypt_frame_payload(ls->settings.crypto.join_key, frame);
 
             /* Notify application code about incoming data */
             if (ls->broadcast_appdata_received_cb != NULL) {
@@ -342,7 +342,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             }
 
             DEBUG("[LoRa] frame_recv: decrypting payload\n");
-            ls_decrypt_frame_payload(ls->settings.crypto.aes_key, &frame->payload);
+            ls_decrypt_frame_payload(ls->settings.crypto.aes_key, frame);
 
             bool close_rx_window = ack_recv(ls, frame);
             data_recv(ls, frame);
@@ -365,7 +365,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
         case LS_DL:         /* Downlink frame */
             DEBUG("[LoRa] frame_recv: donwlink frame received\n");
             DEBUG("[LoRa] frame_recv: decrypting payload\n");
-            ls_decrypt_frame_payload(ls->settings.crypto.aes_key, &frame->payload);
+            ls_decrypt_frame_payload(ls->settings.crypto.aes_key, frame);
 
             data_recv(ls, frame);
             return true;
@@ -384,7 +384,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             }
 
             DEBUG("[LoRa] frame_recv: decrypting payload\n");
-            ls_decrypt_frame_payload(ls->settings.crypto.join_key, &frame->payload);
+            ls_decrypt_frame_payload(ls->settings.crypto.join_key, frame);
 
             ls_join_ack_t ack = { 0 };
             memcpy(&ack, frame->payload.data, sizeof(ls_join_ack_t));
@@ -452,7 +452,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             }
 
             DEBUG("[LoRa] frame_recv: decrypting payload\n");
-            ls_decrypt_frame_payload(ls->settings.crypto.join_key, &frame->payload);
+            ls_decrypt_frame_payload(ls->settings.crypto.join_key, frame);
 
             /* Check device ID */
             ls_invite_t ack;

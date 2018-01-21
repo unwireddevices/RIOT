@@ -182,11 +182,11 @@ typedef struct {
 	/* Confirmation timeout */
 	rtctimers_millis_t conf_ack_expired;
 
-	/* Number of retransmitting tries */
-	uint8_t num_retr;
-
 	/* Last frame ID */
 	ls_frame_id_t last_fid;
+    
+	/* Number of retransmitting tries */
+	uint8_t num_retr;
 
 	/* Last frame needs to be confirmed
      * Blocking sending of other frames from queue until current frame is confirmed */

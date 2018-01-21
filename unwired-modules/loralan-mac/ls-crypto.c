@@ -118,12 +118,6 @@ int ls_encrypt_frame_payload(uint8_t *key, ls_payload_t *payload)
 	memset(bufout, 0, LS_PAYLOAD_SIZE_MAX);
 	
 	if (payload->len <= LS_ECB_ENCRYPTION_MAX_SIZE) {
-		/* Add some salt */
-		uint32_t i;
-		for (i = payload->len; i < AES_BLOCK_SIZE; i++) {
-			ptr[i] = random_uint32_range(0, 255);
-		}
-				
 		/* Encrypt payload */
 		cipher_context_t context;
 		aes_init(&context, key, AES_KEY_SIZE);

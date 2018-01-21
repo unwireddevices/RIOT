@@ -377,19 +377,41 @@ void rtc_clear_alarm(void)
     isr_ctx.arg_a = NULL;
 }
 
-int rtc_millis_set_alarm(int milliseconds, rtc_alarm_cb_t cb, void *arg)
+int rtc_millis_set_alarm(uint32_t milliseconds, rtc_alarm_cb_t cb, void *arg)
 {   
     rtc_unlock();
     
     RTC->CR &= ~(RTC_CR_ALRBE | RTC_CR_ALRBIE);
     while (!(RTC->ISR & RTC_ISR_ALRBWF)) {}
     
-    /* setting seconds */
-    int seconds = milliseconds/1000;
-    RTC->ALRMBR = val2bcd(seconds, RTC_ALRMAR_SU_Pos, ALRM_S_MASK);
+    /* setting calendar alarm */
+    uint32_t seconds = milliseconds/1000;
+    
+    uint32_t minutes = seconds/60;
+    seconds -= 60*minutes;
+    
+    uint32_t hours = minutes/60;
+    minutes -= 60*hours;
+    
+    uint32_t days = hours/24;
+    hours -= 24*days;
+    
+    /* Monday is 1 on STM32 and Sunday is 7, there's no day 0 */
+    if (days == 0) {
+        days = 7;
+    }
+
+    RTC->ALRMBR = (val2bcd(days, RTC_ALRMAR_DU_Pos, ALRM_D_MASK) |
+                   val2bcd(hours, RTC_ALRMAR_HU_Pos, ALRM_H_MASK) |
+                   val2bcd(minutes, RTC_ALRMAR_MNU_Pos, ALRM_M_MASK) |
+                   val2bcd(seconds,  RTC_ALRMAR_SU_Pos, ALRM_S_MASK));
+                   
+    /* day of week instead of day of month */
+    RTC->ALRMBR |= RTC_ALRMAR_WDSEL;
+    
     
     /* minutes, hours and date doesn't matter */
-    RTC->ALRMBR |= (RTC_ALRMBR_MSK2 | RTC_ALRMBR_MSK3 | RTC_ALRMBR_MSK4);
+    /* RTC->ALRMBR |= (RTC_ALRMBR_MSK2 | RTC_ALRMBR_MSK3 | RTC_ALRMBR_MSK4); */
 
     uint32_t msec = milliseconds % 1000;
     uint32_t alarm_millis_time = PRE_SYNC - (msec*1000)/RTC_SSR_TO_US;
@@ -453,20 +475,30 @@ int rtc_millis_get_time(uint32_t *millis)
     
     /* RTC registers need to be read at least twice when running at f < 32768*7 = 229376 Hz APB1 clock */
     /* reading TR locks registers so it must be read first, DR must be read last */
-    uint32_t rtc_time_reg = RTC->TR;
+    uint32_t tr = RTC->TR;
 
     /* second read */
-    if (RTC->TR != rtc_time_reg) {
+    if (RTC->TR != tr) {
         /* 3rd read if 1st and 2nd don't match */
-        rtc_time_reg = RTC->TR;
+        tr = RTC->TR;
     }
     
-    uint32_t seconds  = (((rtc_time_reg & RTC_TR_ST)  >>  4) * 10) + ((rtc_time_reg & RTC_TR_SU)  >>  0);
+    uint32_t dr = RTC->DR;
+    
+    uint32_t days = bcd2val(dr, RTC_DR_WDU_Pos, DR_WDU_MASK);
+    
+    /* Monday is 1 on STM32 and Sunday is 7, there's no Day 0 */
+    if (days == 7) {
+        days = 0;
+    }
+    
+    uint32_t hours = bcd2val(tr, RTC_TR_HU_Pos, TR_H_MASK);
+    uint32_t minutes  = bcd2val(tr, RTC_TR_MNU_Pos, TR_M_MASK);
+    uint32_t seconds  = bcd2val(tr, RTC_TR_SU_Pos, TR_S_MASK);
+    
+    seconds += minutes*60 + hours*60*60 + days*24*60*60;
     
     *millis = milliseconds + 1000*seconds;
-
-    /* unlock RTC registers by reading DR */
-    rtc_ssr_counter = RTC->DR;
     
     return 0;
 }

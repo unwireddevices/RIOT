@@ -98,7 +98,7 @@ int rtc_set_alarm(struct tm *time, rtc_alarm_cb_t cb, void *arg);
  * @return -2 invalid `time` parameter
  * @return -1 other errors
  */
-int rtc_millis_set_alarm(int milliseconds, rtc_alarm_cb_t cb, void *arg);
+int rtc_millis_set_alarm(uint32_t milliseconds, rtc_alarm_cb_t cb, void *arg);
 
 /**
  * @brief Get current milliseconds

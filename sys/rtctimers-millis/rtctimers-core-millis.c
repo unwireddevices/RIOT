@@ -29,13 +29,11 @@
 #define ENABLE_DEBUG 0
 #include "debug.h"
 
-#define RTCTIMERS_MILLIS_OVERFLOW_VALUE 60000
+#define RTCTIMERS_MILLIS_OVERFLOW_VALUE 604800000 // a week
 
 static volatile int _in_handler = 0;
 
 static volatile uint32_t _long_cnt = 0;
-
-// static inline void rtctimers_millis_spin_until(uint32_t value);
 
 static rtctimers_millis_t *timer_list_head = NULL;
 static rtctimers_millis_t *overflow_list_head = NULL;
@@ -70,13 +68,6 @@ static inline int _is_set(rtctimers_millis_t *timer)
 {
     return (timer->target || timer->long_target);
 }
-
-/*
-static inline void rtctimers_millis_spin_until(uint32_t target) {
-    while (rtctimers_millis_now() > target);
-    while (rtctimers_millis_now() < target);
-}
-*/
 
 void rtctimers_millis_init(void)
 {
@@ -139,8 +130,6 @@ int _rtctimers_millis_set_absolute(rtctimers_millis_t *timer, uint32_t target)
 
     timer->next = NULL;
     if ((target >= now) && ((target - RTCTIMERS_MILLIS_BACKOFF) < now)) {
-        /* backoff */
-        // rtctimers_millis_spin_until(target + RTCTIMERS_MILLIS_BACKOFF);
         _shoot(timer);
         return 0;
     }
@@ -465,8 +454,6 @@ overflow:
         else {
             /* check if the end of this period is very soon */
             if (_rtctimers_millis_lltimer_maximum(now + RTCTIMERS_MILLIS_ISR_BACKOFF) < now) {
-                /* spin until next period, then advance */
-                // while (rtctimers_millis_now() >= now);
                 _next_period();
                 reference = 0;
                 goto overflow;

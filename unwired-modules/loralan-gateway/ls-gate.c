@@ -40,7 +40,7 @@ extern "C" {
 static char isr_stack[SX127X_STACKSIZE];
 static kernel_pid_t isr_pid;
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 static msg_t msg_ping;

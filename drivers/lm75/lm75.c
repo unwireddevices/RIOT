@@ -11,7 +11,7 @@
  * @ingroup
  * @brief
  * @{
- * @file		lm75a.h
+ * @file		lm75.h
  * @brief       LM75a temperature sensor driver implementation
  * @author      EP
  */
@@ -22,13 +22,13 @@
 #include "assert.h"
 #include "periph/i2c.h"
 
-#include "lm75a.h"
+#include "lm75.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int lm75a_init(lm75a_t *dev)
+int lm75_init(lm75_t *dev)
 {
     assert(dev != NULL);
 	
@@ -41,7 +41,7 @@ int lm75a_init(lm75a_t *dev)
     }
 
     /* Modify the actual I2C address with respect to A1-A3 pins state */
-    dev->address = LM75A_ADDRESS;
+    dev->address = LM75_ADDRESS;
     if (dev->params.a1) {
         dev->address += 1;
     }
@@ -57,7 +57,7 @@ int lm75a_init(lm75a_t *dev)
     return 0;
 }
 
-int lm75a_get_shutdown_temp(lm75a_t *dev)
+int lm75_get_shutdown_temp(lm75_t *dev)
 {
     assert(dev != NULL);
 
@@ -66,7 +66,7 @@ int lm75a_get_shutdown_temp(lm75a_t *dev)
     
     /* Read two bytes from the sensor: MSB & LSB of temperature value */
     int16_t temp = 0;
-    i2c_read_regs(dev->params.i2c, LM75A_ADDRESS, LM75A_REG_ADDR_TOS, (uint8_t *)&temp, 2);
+    i2c_read_regs(dev->params.i2c, LM75_ADDRESS, LM75_REG_ADDR_TOS, (uint8_t *)&temp, 2);
 
     /* Release the I2C bus */
     i2c_release(dev->params.i2c);
@@ -81,24 +81,24 @@ int lm75a_get_shutdown_temp(lm75a_t *dev)
     return (int)temp / 2;
 }
 
-void lm75a_set_shutdown_temp(lm75a_t *dev, int8_t temp)
+void lm75_set_shutdown_temp(lm75_t *dev, int8_t temp)
 {
     assert(dev != NULL);
     
     int16_t temp16 = (temp << 8) & 0xff00;
     
     i2c_acquire(dev->params.i2c);
-    i2c_write_regs(dev->params.i2c, LM75A_ADDRESS, LM75A_REG_ADDR_TOS, (uint8_t *)&temp16, 2);
+    i2c_write_regs(dev->params.i2c, LM75_ADDRESS, LM75_REG_ADDR_TOS, (uint8_t *)&temp16, 2);
     i2c_release(dev->params.i2c);
 }
 
-int lm75a_get_hysteresis_temp(lm75a_t *dev)
+int lm75_get_hysteresis_temp(lm75_t *dev)
 {
     assert(dev != NULL);
 
     i2c_acquire(dev->params.i2c);
     int16_t temp = 0;
-    i2c_read_regs(dev->params.i2c, LM75A_ADDRESS, LM75A_REG_ADDR_THYST, (uint8_t *)&temp, 2);
+    i2c_read_regs(dev->params.i2c, LM75_ADDRESS, LM75_REG_ADDR_THYST, (uint8_t *)&temp, 2);
     i2c_release(dev->params.i2c);
 
     temp = ((temp >> 8) & 0xff) | ((temp & 0xff) << 8);
@@ -107,18 +107,18 @@ int lm75a_get_hysteresis_temp(lm75a_t *dev)
     return (int)temp / 2;
 }
 
-void lm75a_set_hysteresis_temp(lm75a_t *dev, int8_t temp)
+void lm75_set_hysteresis_temp(lm75_t *dev, int8_t temp)
 {
     assert(dev != NULL);
     
     int16_t temp16 = (temp << 8) & 0xff00;
     
     i2c_acquire(dev->params.i2c);
-    i2c_write_regs(dev->params.i2c, LM75A_ADDRESS, LM75A_REG_ADDR_THYST, (uint8_t *)&temp16, 2);
+    i2c_write_regs(dev->params.i2c, LM75_ADDRESS, LM75_REG_ADDR_THYST, (uint8_t *)&temp16, 2);
     i2c_release(dev->params.i2c);
 }
 
-int lm75a_get_ambient_temperature(lm75a_t *dev)
+int lm75_get_ambient_temperature(lm75_t *dev)
 {
     assert(dev != NULL);
 
@@ -127,7 +127,7 @@ int lm75a_get_ambient_temperature(lm75a_t *dev)
     
     /* Read two bytes from the sensor: MSB & LSB of temperature value */
     int16_t temp = 0;
-    i2c_read_regs(dev->params.i2c, LM75A_ADDRESS, LM75A_REG_ADDR_TEMP, (uint8_t *)&temp, 2);
+    i2c_read_regs(dev->params.i2c, LM75_ADDRESS, LM75_REG_ADDR_TEMP, (uint8_t *)&temp, 2);
 
     /* Release the I2C bus */
     i2c_release(dev->params.i2c);

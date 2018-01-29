@@ -49,6 +49,7 @@ void rtctimers_millis_set(rtctimers_millis_t *timer, uint32_t offset);
 void rtctimers_millis_remove(rtctimers_millis_t *timer);
 void rtctimers_millis_sleep(uint32_t sleep_millis);
 void rtctimers_millis_set_msg(rtctimers_millis_t *timer, uint32_t offset, msg_t *msg, kernel_pid_t target_pid);
+uint32_t rtctimers_millis_now(void);
 
 
 #endif /* RTC_TIMERS_MILLIS_H_ */

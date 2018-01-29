@@ -29,6 +29,7 @@ umdk-usound    = 1
 umdk-hd44780   = 1
 umdk-ibutton   = 1
 umdk-irblaster = 1
+umdk-hx711     = 1
 
 ####### UMDK MODULES defines and Makefile.include inclusion ############
 

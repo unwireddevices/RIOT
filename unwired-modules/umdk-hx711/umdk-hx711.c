@@ -139,7 +139,7 @@ static void prepare_result(module_data_t *data) {
 static volatile uint32_t btn_last_press = 0;
 
 static void btn_connect(void* arg) {
-    if (rtctimers_millis_now() > btn_last_press + 5) {
+    if (rtctimers_millis_now() > btn_last_press + 500) {
         is_polled = false;
         msg_send(&timer_msg, timer_pid);
         

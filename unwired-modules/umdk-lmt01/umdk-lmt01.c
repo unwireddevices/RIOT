@@ -120,7 +120,7 @@ static void prepare_result(module_data_t *data) {
     }
 }
 
-void *timer_thread(void *arg) {
+static void *timer_thread(void *arg) {
     msg_t msg;
     msg_t msg_queue[4];
     msg_init_queue(msg_queue, 4);
@@ -142,6 +142,8 @@ void *timer_thread(void *arg) {
         /* Restart after delay */
         rtctimers_millis_set_msg(&timer, 60000 * lmt01_config.publish_period_min, &timer_msg, timer_pid);
     }
+    
+    return NULL;
 }
 
 static void reset_config(void) {

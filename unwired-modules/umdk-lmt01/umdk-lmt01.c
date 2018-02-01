@@ -121,6 +121,8 @@ static void prepare_result(module_data_t *data) {
 }
 
 void *timer_thread(void *arg) {
+    (void)arg;
+    
     msg_t msg;
     msg_t msg_queue[4];
     msg_init_queue(msg_queue, 4);
@@ -208,6 +210,8 @@ int umdk_lmt01_shell_cmd(int argc, char **argv) {
 }
 
 static void btn_connect(void* arg) {
+    (void)arg;
+    
     is_polled = false;
     msg_send(&timer_msg, timer_pid);
 }

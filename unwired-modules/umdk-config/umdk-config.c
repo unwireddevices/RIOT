@@ -45,6 +45,7 @@ extern "C" {
 static rtctimers_millis_t timer;
 
 static void umdk_config_reset_system(void *arg) {
+    (void)arg;
     NVIC_SystemReset();
 }
 
@@ -71,7 +72,7 @@ static inline void do_reply(module_data_t *reply, umdk_config_reply_t reply_code
     reply->data[1] = reply_code;
 }
 
-static bool config_cmd(module_data_t *cmd, module_data_t *reply, bool with_reply)
+static bool config_cmd(module_data_t *cmd, module_data_t *reply)
 {
     uint8_t command = cmd->data[0];
 
@@ -138,7 +139,7 @@ static bool config_cmd(module_data_t *cmd, module_data_t *reply, bool with_reply
 
 bool umdk_config_cmd(module_data_t *cmd, module_data_t *reply)
 {
-    return config_cmd(cmd, reply, true);
+    return config_cmd(cmd, reply);
 }
 
 #ifdef __cplusplus

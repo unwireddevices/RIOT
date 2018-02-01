@@ -139,7 +139,7 @@ int umdk_irblaster_shell_cmd(int argc, char **argv) {
         }
         
         send_start();
-        int byte;
+        uint32_t byte;
         for (byte = 0; byte < strlen(hex)/2; byte++) {
             send_byte(data[byte]);
         }

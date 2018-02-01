@@ -83,7 +83,7 @@ static int get_csv_field(char *buf, int fieldno, char *field, int maxlen) {
 /**
  * @brief Parses GPS data in NMEA format
  */
-static bool parse(mt3333_t *dev, char *buf, mt3333_gps_data_t *data) {
+static bool parse(char *buf, mt3333_gps_data_t *data) {
 	/* We're interested in G/NRMC packets */
 	if (strstr(buf, "RMC") == NULL) {
 		return false;
@@ -150,7 +150,7 @@ static void *reader(void *arg) {
         buf[i] = '\0';
 
         /* Parse received string */
-        if (parse(dev, buf, &data)) {
+        if (parse(buf, &data)) {
         	if (dev->params.gps_cb != NULL)
         		dev->params.gps_cb(data);
         }
@@ -161,7 +161,7 @@ static void *reader(void *arg) {
 
 static void mt3333_send_at_command(char *command) {
     uint8_t checksum = 0;
-    int i;
+    uint32_t i;
     for (i = 0; i < strlen(command); i++) {
         checksum ^= (uint8_t)command[i];
     }

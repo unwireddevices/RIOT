@@ -524,9 +524,8 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
             len = dev->driver->recv(dev, NULL, 0, 0);
             dev->driver->recv(dev, message, len, &packet_info);
             
-            printf("RX: %d bytes, | RSSI: %d dBm | SNR: %d dBm | TOA %d ms\n", (int)len,
-                    packet_info.rssi, (int)packet_info.snr,
-                    (int)packet_info.time_on_air);
+            printf("RX: %d bytes, | RSSI: %d dBm | SNR: %d dBm\n", (int)len,
+                    packet_info.rssi, (int)packet_info.snr);
 
             DEBUG("[LoRa] state = IDLE\n");
             ls->state = LS_ED_IDLE;
@@ -628,6 +627,8 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
 
 void *isr_thread(void *arg)
 {
+    (void)arg;
+    
     static msg_t _msg_q[SX127X_LORA_MSG_QUEUE];
     msg_init_queue(_msg_q, SX127X_LORA_MSG_QUEUE);
 
@@ -800,7 +801,7 @@ static void *uq_handler(void *arg)
         data[0].iov_base = f;
         data[0].iov_len = header_size + payload_size;
                
-        if (ls->_internal.device->driver->send(ls->_internal.device, data, 1) == -ENOTSUP) {
+        if (ls->_internal.device->driver->send(ls->_internal.device, data, 1) < 0) {
             puts("[LoRa] uq_handler: cannot send, device busy");
         }
         

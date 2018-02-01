@@ -29,7 +29,6 @@
 #include "sx127x_params.h"
 #include "sx127x_netdev.h"
 
-#include "net/gnrc/netdev.h"
 #include "net/netdev.h"
 
 #define LS_RX2_DR LS_DR3

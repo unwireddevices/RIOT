@@ -51,6 +51,8 @@ static gpio_t buttons[UMDK_4BTN_NUM_BUTTONS] = {UMDK_4BTN_1, UMDK_4BTN_2, UMDK_4
 static uwnds_cb_t *callback;
 
 static void *handler(void *arg) {
+    (void)arg;
+    
     msg_t msg;
     msg_t msg_queue[4];
     msg_init_queue(msg_queue, 4);
@@ -138,6 +140,8 @@ void umdk_4btn_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 }
 
 bool umdk_4btn_cmd(module_data_t *data, module_data_t *reply) {
+    (void)data;
+    (void)reply;
 	return false;
 }
 

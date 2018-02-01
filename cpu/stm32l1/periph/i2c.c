@@ -38,9 +38,6 @@
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
 
-/* guard file in case no I2C device is defined */
-#if I2C_NUMOF
-
 /* static function definitions */
 static void _i2c_init(I2C_TypeDef *i2c, int ccr);
 static int _start(I2C_TypeDef *i2c, uint8_t address, uint8_t rw_flag);
@@ -522,5 +519,3 @@ void I2C_1_ERR_ISR(void)
 	_i2c_irq(i2c);
 }
 #endif /* I2C_1_EN */
-
-#endif /* I2C_NUMOF */

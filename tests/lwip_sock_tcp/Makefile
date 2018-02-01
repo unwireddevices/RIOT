@@ -1,5 +1,3 @@
-APPLICATION = lwip_sock_tcp
-
 include ../Makefile.tests_common
 
 # lwIP's memory management doesn't seem to work on non 32-bit platforms at the
@@ -36,7 +34,6 @@ USEMODULE += ps
 
 DISABLE_MODULE += auto_init
 
-CFLAGS += -DDEVELHELP
 CFLAGS += -DSO_REUSE
 CFLAGS += -DLWIP_SO_RCVTIMEO
 CFLAGS += -DLWIP_SOCK_TCP_ACCEPT_TIMEOUT=500

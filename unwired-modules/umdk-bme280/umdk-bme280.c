@@ -94,6 +94,8 @@ static void prepare_result(module_data_t *data) {
 }
 
 static void *timer_thread(void *arg) {
+    (void)arg;
+    
     msg_t msg;
     
     puts("[umdk-" _UMDK_NAME_ "] Periodic publisher thread started");
@@ -181,6 +183,8 @@ int umdk_bme280_shell_cmd(int argc, char **argv) {
 }
 
 static void btn_connect(void* arg) {
+    (void)arg;
+    
     is_polled = false;
     msg_send(&timer_msg, timer_pid);
 }

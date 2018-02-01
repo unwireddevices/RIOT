@@ -31,7 +31,7 @@ extern "C" {
 #include "ls-config.h"
 
 #include "sx127x.h"
-
+#include "net/lora.h"
 #include "periph/pm.h"
 #include "periph/rtc.h"
 #include "random.h"
@@ -62,13 +62,13 @@ static uint32_t devnonce = 0;
  * Data rates table.
  */
 const uint8_t datarate_table[7][3] = {
-    { SX127X_SF12, SX127X_BW_125_KHZ, SX127X_CR_4_5 },       /* DR0 */
-    { SX127X_SF11, SX127X_BW_125_KHZ, SX127X_CR_4_5 },       /* DR1 */
-    { SX127X_SF10, SX127X_BW_125_KHZ, SX127X_CR_4_5 },       /* DR2 */
-    { SX127X_SF9, SX127X_BW_125_KHZ, SX127X_CR_4_5 },        /* DR3 */
-    { SX127X_SF8, SX127X_BW_125_KHZ, SX127X_CR_4_5 },        /* DR4 */
-    { SX127X_SF7, SX127X_BW_125_KHZ, SX127X_CR_4_5 },        /* DR5 */
-    { SX127X_SF7, SX127X_BW_250_KHZ, SX127X_CR_4_5 },        /* DR6 */
+    { LORA_SF12, LORA_BW_125_KHZ, LORA_CR_4_5 },       /* DR0 */
+    { LORA_SF11, LORA_BW_125_KHZ, LORA_CR_4_5 },       /* DR1 */
+    { LORA_SF10, LORA_BW_125_KHZ, LORA_CR_4_5 },       /* DR2 */
+    { LORA_SF9, LORA_BW_125_KHZ, LORA_CR_4_5 },        /* DR3 */
+    { LORA_SF8, LORA_BW_125_KHZ, LORA_CR_4_5 },        /* DR4 */
+    { LORA_SF7, LORA_BW_125_KHZ, LORA_CR_4_5 },        /* DR5 */
+    { LORA_SF7, LORA_BW_250_KHZ, LORA_CR_4_5 },        /* DR6 */
 };
 
 void ls_setup_sx127x(netdev_t *dev, ls_datarate_t dr, uint32_t frequency) {    
@@ -279,6 +279,9 @@ static int set_cmd(int argc, char **argv)
 
 static int get_cmd(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
+    
     print_config();
     
     return 0;
@@ -286,6 +289,9 @@ static int get_cmd(int argc, char **argv)
 
 static int save_cmd(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
+    
 	if (argc == 1) {
 		puts("Current configuration:");
 		print_config();

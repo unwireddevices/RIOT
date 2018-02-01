@@ -29,8 +29,8 @@
 #include "stmclk.h"
 #include "periph/rtc.h"
 
-/* guard file in case no RTC device was specified */
-#if defined(RTC) && !defined(CPU_FAM_STM32F1)
+/* this implementation does not work for the stm32f1 */
+#if !defined(CPU_FAM_STM32F1)
 
 /* map some CPU specific register names */
 #if defined (CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L1)
@@ -598,6 +598,7 @@ void ISR_NAME(void)
             isr_ctx.cb_a(isr_ctx.arg_a);
         }
         RTC->ISR &= ~RTC_ISR_ALRAF;
+        EXTI->PR |= EXTI_PR_BIT;
     }
     
     if (RTC->ISR & RTC_ISR_ALRBF) {
@@ -605,22 +606,17 @@ void ISR_NAME(void)
             isr_ctx.cb_b(isr_ctx.arg_b);
         }
         RTC->ISR &= ~RTC_ISR_ALRBF;
+        EXTI->PR |= EXTI_PR_BIT;
     }
     
-    EXTI->PR |= EXTI_PR_BIT;
-    cortexm_isr_end();
-}
-
-void isr_rtc_wkup(void)
-{
     if (RTC->ISR & RTC_ISR_WUTF) {
         RTC->ISR &= ~RTC_ISR_WUTF;
         if (isr_ctx.cb_wkup != NULL) {
             isr_ctx.cb_wkup(isr_ctx.arg_wkup);
         }
+        
+        EXTI->PR |= EXTI_PR_PR20;
     }
-    
-    EXTI->PR |= EXTI_PR_PR20;
     
     cortexm_isr_end();
 }

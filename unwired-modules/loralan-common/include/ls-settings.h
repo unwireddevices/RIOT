@@ -42,7 +42,7 @@ typedef struct {
 } node_role_settings_t;
 
 node_role_settings_t unwds_get_node_settings(void);
-void unwds_set_region(int region, bool is_empty);
+void unwds_set_region(int region);
 void unwds_set_nojoin(bool nojoin);
 void unwds_set_addr(ls_addr_t dev_addr);
 void unwds_set_channel(ls_channel_t channel);

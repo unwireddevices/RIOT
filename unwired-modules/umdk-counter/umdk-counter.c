@@ -67,6 +67,8 @@ static gpio_t pins_sens[UMDK_COUNTER_NUM_SENS] = { UMDK_COUNTER_1, UMDK_COUNTER_
 
 static void counter_poll(void *arg)
 {
+    (void)arg;
+    
     int i = 0;
     
     for (i = 0; i < UMDK_COUNTER_NUM_SENS; i++) {
@@ -118,6 +120,8 @@ static inline void save_config(void)
 
 static void *handler(void *arg)
 {
+    (void)arg;
+    
     msg_t msg;
     msg_t msg_queue[4];
     msg_init_queue(msg_queue, 4);
@@ -160,6 +164,8 @@ static void *handler(void *arg)
 }
 
 static void btn_connect(void* arg) {
+    (void)arg;
+    
     /* connect button pressed — publish to LoRa in 1 second */
     gpio_irq_disable(UMDK_COUNTER_BTN);
     rtctimers_millis_set_msg(&publishing_timer, 1000, &publishing_msg, handler_pid);

@@ -66,6 +66,8 @@ enum pm_mode pm_set(enum pm_mode target)
             deep = 1;
             break;
     }
+#else
+    (void) mode;
 #endif
 
     cortexm_sleep(deep);

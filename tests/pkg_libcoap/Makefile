@@ -1,4 +1,3 @@
-APPLICATION = pkg_libcoap
 include ../Makefile.tests_common
 
 # msp430 and avr have problems with int width and libcoaps usage of :x notation in structs
@@ -14,3 +13,6 @@ USEMODULE += gnrc_sock_udp
 USEPKG += libcoap
 
 include $(RIOTBASE)/Makefile.include
+
+test:
+	tests/01-run.py

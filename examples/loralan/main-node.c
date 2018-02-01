@@ -31,7 +31,7 @@ extern "C" {
 #include "periph/gpio.h"
 #include "random.h"
 
-#include "net/gnrc/netdev.h"
+#include "net/lora.h"
 #include "net/netdev.h"
 #include "sx127x_internal.h"
 #include "sx127x_params.h"
@@ -329,7 +329,7 @@ int ls_set_cmd(int argc, char **argv)
             printf("set region: region value must be from 0 to %d\n", LS_UNI_NUM_REGIONS - 1);
             return 1;
         }
-        unwds_set_region(v, false);
+        unwds_set_region(v);
     }
     else if (strcmp(key, "maxretr") == 0) {
         uint8_t v = strtol(value, NULL, 10);
@@ -455,6 +455,9 @@ static void print_config(void)
 
 static int ls_printc_cmd(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
+    
     print_config();
 
     return 0;
@@ -509,6 +512,9 @@ int ls_cmd_cmd(int argc, char **argv)
 
 static int ls_listmodules_cmd(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
+    
     puts("[ available modules ]");
     unwds_list_modules(unwds_get_node_settings().enabled_mods, false);
 
@@ -522,7 +528,7 @@ static int ls_module_cmd(int argc, char **argv)
         return 1;
     }
 
-    uint8_t modid = 0;
+    int modid = 0;
     
     if (is_number(argv[1])) {
         modid = atoi(argv[1]);
@@ -570,6 +576,9 @@ static int print_regions_cmd(int argc, char **argv)
 }
 
 static int ls_safe_cmd(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
+
     uint32_t bootmode = UNWDS_BOOT_SAFE_MODE;
     rtc_save_backup(bootmode, RTC_REGBACKUP_BOOTMODE);
     puts("Rebooting in safe mode");
@@ -578,6 +587,9 @@ static int ls_safe_cmd(int argc, char **argv) {
 }
 
 static int ls_join_cmd(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
+    
     node_join(&ls);
     return 0;
 }
@@ -640,6 +652,8 @@ static bool is_connect_button_pressed(void)
 }
 
 static void iwdg_reset (void *arg) {
+    (void)arg;
+    
     wdg_reload();
     rtctimers_millis_set(&iwdg_timer, 15000);
     DEBUG("Watchdog reset\n");
@@ -647,6 +661,8 @@ static void iwdg_reset (void *arg) {
 }
 
 static void ls_enable_sleep (void *arg) {
+    (void)arg;
+    
     pm_prevent_sleep = 0;
 #ifdef LPM_ENABLE_IDLE_MODE
     /* allow CPU frequency switching */

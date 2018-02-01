@@ -30,7 +30,7 @@ create_headers:
 	sed -i "s/#define _UMDK_MID_.*/#define _UMDK_MID_ UNWDS_$${name_up}_MODULE_ID/" umdk-$${name}/*.c; \
     sed -i "s/#define _UMDK_NAME_.*/#define _UMDK_NAME_ \"$${name}\"/" umdk-$${name}/*.c; \
 	done; \
-	printf "{ 0, \"\", NULL, NULL } };\n" >> unwds-common/include/umdk-modules.h; \
+	printf "{ 0, \"\", NULL, NULL, NULL } };\n" >> unwds-common/include/umdk-modules.h; \
 	echo -e "\n#endif" >> unwds-common/include/umdk-modules.h;
 
 include $(RIOTBASE)/Makefile.base

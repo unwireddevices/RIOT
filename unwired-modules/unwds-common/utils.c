@@ -129,7 +129,7 @@ bool hex_to_bytesn(char *hexstr, int len, uint8_t *bytes, bool reverse_order) {
 }
 
 void bytes_to_hex(uint8_t *bytes, size_t num_bytes, char *str, bool reverse_order) {
-	int i;
+	uint32_t i;
 	for (i = 0; i < num_bytes; i++) {
 		char buf[2];
 		sprintf(buf, "%02x", bytes[(reverse_order) ? num_bytes - 1 - i : i]);

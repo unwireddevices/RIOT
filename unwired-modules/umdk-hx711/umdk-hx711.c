@@ -113,7 +113,9 @@ static uint32_t hx711_get_data(void) {
 }
 
 static void prepare_result(module_data_t *data) {
-    uint32_t weight = hx711_get_data();
+    uint32_t raw = hx711_get_data();
+    
+    uint32_t weight = raw;
         
     if (weight > hx711_config.zero) {
         weight -= hx711_config.zero;
@@ -129,10 +131,11 @@ static void prepare_result(module_data_t *data) {
     printf("[umdk-" _UMDK_NAME_ "] Weight: %lu g\n", weight);
 
     if (data) {
-        data->length = 2 + sizeof(weight);
+        data->length = 2 + sizeof(weight) + sizeof(raw);
         data->data[0] = _UMDK_MID_;
         data->data[1] = UMDK_HX711_DATA_DATA;
         memcpy(data->data + 2, &weight, sizeof(weight));
+        memcpy(data->data + 2, &raw, sizeof(raw));
     }
 }
 

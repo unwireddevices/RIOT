@@ -135,7 +135,7 @@ static void prepare_result(module_data_t *data) {
         data->data[0] = _UMDK_MID_;
         data->data[1] = UMDK_HX711_DATA_DATA;
         memcpy(data->data + 2, &weight, sizeof(weight));
-        memcpy(data->data + 2, &raw, sizeof(raw));
+        memcpy(data->data + 2 + sizeof(weight), &raw, sizeof(raw));
     }
 }
 

@@ -30,6 +30,7 @@ umdk-hd44780   = 1
 umdk-ibutton   = 1
 umdk-irblaster = 1
 umdk-hx711     = 1
+umdk-fdc1004   = 1
 
 ####### UMDK MODULES defines and Makefile.include inclusion ############
 

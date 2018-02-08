@@ -50,7 +50,7 @@ int fdc1004_init(fdc1004_t *dev)
     }
     
     if (chipid != FDC1004_VENDOR_ID) {
-        puts("[fdc1004] Error: vendor ID mismatch");
+        printf("[fdc1004] Error: vendor ID mismatch, got %04x\n", chipid);
         i2c_release(dev->i2c);
         return -1;
     }
@@ -62,7 +62,7 @@ int fdc1004_init(fdc1004_t *dev)
     }
     
     if (chipid != FDC1004_DEVICE_ID) {
-        puts("[fdc1004] Error: device ID mismatch");
+        printf("[fdc1004] Error: device ID mismatch, got %04x\n", chipid);
         i2c_release(dev->i2c);
         return -1;
     }

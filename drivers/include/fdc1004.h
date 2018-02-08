@@ -54,8 +54,8 @@
 #define FDC1004_REG_VENDOR_ID       0xFE
 #define FDC1004_REG_DEVICE_ID       0xFF
 
-#define FDC1004_VENDOR_ID           0x5449
-#define FDC1004_DEVICE_ID           0x1004
+#define FDC1004_VENDOR_ID           0x4954
+#define FDC1004_DEVICE_ID           0x0410
 
 /**
  * @brief Structure that holds the FDC1004 driver internal state and parameters

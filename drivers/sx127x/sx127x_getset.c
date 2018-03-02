@@ -457,10 +457,10 @@ void sx127x_set_op_mode(const sx127x_t *dev, uint8_t op_mode)
         gpio_irq_disable(dev->params.dio3_pin);
         
         /* disable RF switch power */
-        if (dev->params.rfswitch_active_level == 0) {
-            gpio_set(dev->params.rfswitch_pin);
-        } else {
+        if (dev->params.rfswitch_active_level) {
             gpio_clear(dev->params.rfswitch_pin);
+        } else {
+            gpio_set(dev->params.rfswitch_pin);
         }
         
         /* switch CPU to low-power mode */
@@ -472,10 +472,10 @@ void sx127x_set_op_mode(const sx127x_t *dev, uint8_t op_mode)
         gpio_irq_enable(dev->params.dio3_pin);
         
         /* enable RF switch power */
-        if (dev->params.rfswitch_active_level == 1) {
-            gpio_clear(dev->params.rfswitch_pin);
-        } else {
+        if (dev->params.rfswitch_active_level) {
             gpio_set(dev->params.rfswitch_pin);
+        } else {
+            gpio_clear(dev->params.rfswitch_pin);
         }
     }
 

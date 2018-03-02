@@ -70,7 +70,7 @@ static struct {
 static bool init_sensor(void) {
 	printf("[umdk-" _UMDK_NAME_ "] Initializing ADXL345\n");
     
-    dev.i2c = I2C_DEV(0);
+    dev.i2c = I2C_DEV(UMDK_ADXL345_I2C);
     dev.addr = ADXL345_PARAM_ADDR;
 	return adxl345_init(&dev, (adxl345_params_t*)adxl345_params) == ADXL345_OK;
 }

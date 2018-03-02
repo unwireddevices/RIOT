@@ -20,6 +20,10 @@
 
 #include "unwds-common.h"
 
+#ifndef UMDK_ADXL345_I2C
+    #define UMDK_ADXL345_I2C 1
+#endif
+
 #define UMDK_ADXL345_MEASURE_PERIOD_SEC 1
 
 #define UMDK_ADXL345_STACK_SIZE 2048

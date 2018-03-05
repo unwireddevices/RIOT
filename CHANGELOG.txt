@@ -1,3 +1,10 @@
+05.03.2017
+* version 1.82
+* RF switch logic fixed
+* umdk-adxl345 initial implementation
+* umdk-hx711 module
+* umdk-range ultrasound rangefinder module renamed to umdk-usound
+
 18.01.2017
 * version 1.81
 * gateway firmware overflow fixed

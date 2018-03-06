@@ -221,8 +221,8 @@ void rtc_init(void)
     RTC->PRER = (PRE_SYNC | (PRE_ASYNC << 16));
     /* Set 24-h clock */
     RTC->CR &= ~RTC_CR_FMT;
-    /* Timestamps enabled */
-    RTC->CR |= RTC_CR_TSE;
+    /* Timestamps disabled */
+    RTC->CR &= ~RTC_CR_TSE;
     
     /* exit RTC init mode */
     RTC->ISR &= ~RTC_ISR_INIT;

@@ -167,3 +167,63 @@ void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider) {
     
     cpu_clock_global = 65536 * (1 << (msi_range >> 13));
 }
+
+uint32_t get_cpu_ram_size(void) {
+    switch (ST_DEV_ID) {
+        case STM32L0_DEV_ID_CAT3:
+            return 8*1024;
+            break;
+        case STM32L0_DEV_ID_CAT5:
+            return 20*1024;
+            break;
+    }
+    return 0;
+}
+
+uint32_t get_cpu_flash_size(void) {
+    switch (ST_DEV_ID) {
+        case STM32L0_DEV_ID_CAT3:
+            return 64*1024;
+            break;
+        case STM32L0_DEV_ID_CAT5:
+            return 128*1024;
+            break;
+    }
+    return 0;
+}
+
+uint32_t get_cpu_eeprom_size(void) {
+    switch (ST_DEV_ID) {
+        case STM32L0_DEV_ID_CAT3:
+            return 2*1024;
+            break;
+        case STM32L0_DEV_ID_CAT5:
+            return 6*1024;
+            break;
+    }
+    return 0;
+}
+
+uint32_t get_cpu_category(void) {
+    switch (ST_DEV_ID) {
+        case STM32L0_DEV_ID_CAT3:
+            return 3;
+            break;
+        case STM32L0_DEV_ID_CAT5:
+            return 5;
+            break;
+    }
+    return 0;
+}
+
+uint32_t get_cpu_name(char *name) {
+    switch (ST_DEV_ID) {
+        case STM32L0_DEV_ID_CAT3:
+            sprintf(name, "STM32L052xx");
+            break;
+        case STM32L0_DEV_ID_CAT5:
+            sprintf(name, "STM32L072xx");
+            break;
+    }
+    return 0;
+}

@@ -51,9 +51,11 @@
 /* interrupt line name mapping */
 #if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32L0)
 #define IRQN                (RTC_IRQn)
+#define IRQNWU              (RTC_IRQn)
 #define ISR_NAME            isr_rtc
 #else
 #define IRQN                (RTC_Alarm_IRQn)
+#define IRQNWU              (RTC_WKUP_IRQn)
 #define ISR_NAME            isr_rtc_alarm
 #endif
 
@@ -66,8 +68,10 @@
 #else
 #if defined(CPU_FAM_STM32L0)
 #define EXTI_IMR_BIT        (EXTI_IMR_IM17)
+#define EXTI_IMRWU_BIT      (EXTI_IMR_IM20)
 #else
 #define EXTI_IMR_BIT        (EXTI_IMR_MR17)
+#define EXTI_IMRWU_BIT      (EXTI_IMR_MR20)
 #endif
 #define EXTI_FTSR_BIT       (EXTI_FTSR_TR17)
 #define EXTI_RTSR_BIT       (EXTI_RTSR_TR17)
@@ -529,10 +533,11 @@ int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg)
     /* Enable RTC write protection */
     rtc_lock();
 
-    EXTI->IMR  |= EXTI_IMR_MR20;
+
+    EXTI->IMR  |= EXTI_IMRWU_BIT;
     EXTI->RTSR |= EXTI_RTSR_TR20;
-    NVIC_SetPriority(RTC_WKUP_IRQn, RTC_IRQ_PRIO);
-    NVIC_EnableIRQ(RTC_WKUP_IRQn);
+    NVIC_SetPriority(IRQNWU, RTC_IRQ_PRIO);
+    NVIC_EnableIRQ(IRQNWU);
 
     isr_ctx.cb_wkup = cb;
     isr_ctx.arg_wkup = arg;

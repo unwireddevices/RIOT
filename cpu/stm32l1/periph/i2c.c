@@ -27,7 +27,6 @@
 
 #include <stdint.h>
 
-
 #include "cpu.h"
 #include "mutex.h"
 #include "periph/i2c.h"

@@ -40,7 +40,10 @@
 #error "Please provide CLOCK_HSI or CLOCK_HSE in boards/NAME/includes/perhip_cpu.h"
 #endif
 
-static void clk_init(void);
+static volatile uint32_t clock_source_rdy = 0;
+volatile uint32_t cpu_clock_global;
+volatile uint32_t cpu_ports_number = 3;
+char cpu_clock_source[10] = { 0 };
 
 /**
  * @brief Initialize the CPU, set IRQ priorities
@@ -72,7 +75,7 @@ void cpu_init(void)
  * NOTE: currently there is not timeout for initialization of PLL and other locks
  *       -> when wrong values are chosen, the initialization could stall
  */
-static void clk_init(void)
+void clk_init(void)
 {
     /* Reset the RCC clock configuration to the default reset state(for debug purpose) */
     /* Set MSION bit */
@@ -118,4 +121,49 @@ static void clk_init(void)
     RCC->CFGR |= (uint32_t)RCC_CFGR_SW_PLL;
     /* Wait till PLL is used as system clock source */
     while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL) {}
+    
+    cpu_clock_global = CLOCK_CORECLOCK;
+}
+
+void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider) {
+    uint32_t tmpreg;
+    
+    RCC->CR |= RCC_CR_MSION;
+    while (!(RCC->CR & RCC_CR_MSIRDY)) {}
+    
+    tmpreg = RCC->ICSCR;
+    tmpreg &= ~RCC_ICSCR_MSIRANGE;
+    tmpreg |= msi_range;
+    RCC->ICSCR = tmpreg;
+
+    tmpreg = RCC->CFGR;
+    tmpreg &= ~RCC_CFGR_HPRE;
+    tmpreg |= ahb_divider;
+    tmpreg &= ~RCC_CFGR_SW;
+    tmpreg |= RCC_CFGR_SW_MSI;
+    RCC->CFGR = tmpreg;
+    
+    while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS) != RCC_CFGR_SWS_MSI) {}
+
+    if ((msi_range == RCC_ICSCR_MSIRANGE_1) || (msi_range == RCC_ICSCR_MSIRANGE_0)) {
+        /* Low-power run is only allowed at MSI Range 0 and 1 */
+        PWR->CR |= PWR_CR_LPSDSR | PWR_CR_LPRUN;
+    } else {
+        /* set Voltage Range 3 (1.2V) */
+        PWR->CR |= (PWR_CR_VOS_1 | PWR_CR_VOS_0);
+        while((PWR->CSR & PWR_CSR_VOSF) != 0) {}
+    }
+
+    /* Set latency = 0, disable prefetch and 64-bit access */
+    FLASH->ACR &= ~FLASH_ACR_LATENCY;
+    FLASH->ACR &= ~FLASH_ACR_PRFTEN;
+    while (!(FLASH->SR & FLASH_SR_READY)) {}
+    
+    /* Disable high speed clock sources and PLL */
+    tmpreg = RCC->CR;
+    tmpreg &= ~(RCC_CR_HSION | RCC_CR_HSEON);
+    tmpreg &= ~(RCC_CR_HSEBYP | RCC_CR_CSSON | RCC_CR_PLLON);
+    RCC->CR = tmpreg;
+    
+    cpu_clock_global = 65536 * (1 << (msi_range >> 13));
 }

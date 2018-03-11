@@ -87,7 +87,18 @@ APPLICATION = loralan-public
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../..
 
-FEATURES_REQUIRED = periph_spi periph_gpio
+FEATURES_REQUIRED += periph_adc
+FEATURES_REQUIRED += periph_dac
+FEATURES_REQUIRED += periph_gpio
+FEATURES_REQUIRED += periph_i2c
+FEATURES_REQUIRED += periph_pwm
+FEATURES_REQUIRED += periph_rtc
+FEATURES_REQUIRED += periph_spi
+FEATURES_REQUIRED += periph_eeprom
+FEATURES_REQUIRED += periph_uart
+FEATURES_REQUIRED += periph_pm
+FEATURES_REQUIRED += periph_iwdg
+FEATURES_REQUIRED += periph_cpuid
 
 QUIET ?= 1
 

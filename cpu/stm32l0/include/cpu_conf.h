@@ -54,6 +54,18 @@ extern "C" {
 #endif
 /** @} */
 
+/**
+ * @brief Switch to MSI clock
+ * @param[in] msi_range MSI frequency range
+ * @param[in] ahb_divider AHB bus divider
+ */
+void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider);
+
+/**
+ * @brief   Initizliaze clocks (switch to default clock)
+ */
+void clk_init(void);
+
 #ifdef __cplusplus
 }
 #endif

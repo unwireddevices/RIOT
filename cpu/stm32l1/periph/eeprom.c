@@ -44,8 +44,7 @@ typedef enum {
  * @param  None
  * @return None
  */
-static void eeprom_unlock(void)
-{
+static void eeprom_unlock(void) {
     if ((FLASH->PECR & FLASH_PECR_PELOCK) != RESET) {
         /* Unlocking the Data memory and FLASH_PECR register access*/
         FLASH->PEKEYR = FLASH_PEKEY1;
@@ -69,8 +68,7 @@ static void eeprom_lock(void)
 /**
  * @brief Returns the current FLASH device status
  */
-static l1_flash_status_t get_status(void)
-{
+static l1_flash_status_t get_status(void) {
     l1_flash_status_t status = FLASH_COMPLETE;
 
     if ((FLASH->SR & FLASH_FLAG_BSY) == FLASH_FLAG_BSY) {
@@ -100,8 +98,7 @@ static l1_flash_status_t get_status(void)
  * @param[in] timeout timeout value in cycles
  * @return current status of FLASH device
  */
-static l1_flash_status_t flash_wait_for_last_operation(uint32_t timeout)
-{
+static l1_flash_status_t flash_wait_for_last_operation(uint32_t timeout) {
     l1_flash_status_t status = FLASH_COMPLETE;
 
     /* Check for the FLASH Status */
@@ -134,8 +131,7 @@ static l1_flash_status_t flash_wait_for_last_operation(uint32_t timeout)
   * @retval FLASH Status: The returned value can be: 
   *   FLASH_ERROR_PROGRAM, FLASH_ERROR_WRP, FLASH_COMPLETE or FLASH_TIMEOUT.
   */
-static l1_flash_status_t flash_data_eeprom_eraseword(uint32_t address)
-{
+static l1_flash_status_t flash_data_eeprom_eraseword(uint32_t address) {
     l1_flash_status_t status = FLASH_COMPLETE;
 
     /* Check the parameters */
@@ -172,8 +168,7 @@ static l1_flash_status_t flash_data_eeprom_eraseword(uint32_t address)
   * @retval FLASH Status: The returned value can be: 
   *         FLASH_ERROR_PROGRAM, FLASH_ERROR_WRP, FLASH_COMPLETE or FLASH_TIMEOUT. 
   */
-static l1_flash_status_t flash_data_eeprom_fastprogramword(uint32_t address, uint32_t data)
-{
+static l1_flash_status_t flash_data_eeprom_fastprogramword(uint32_t address, uint32_t data) {
     l1_flash_status_t status = FLASH_COMPLETE;
 
     /* Check the parameters */
@@ -208,8 +203,7 @@ static l1_flash_status_t flash_data_eeprom_fastprogramword(uint32_t address, uin
  * @retval FLASH Status: The returned value can be:
  *   FLASH_ERROR_PROGRAM, FLASH_ERROR_WRP, FLASH_COMPLETE or FLASH_TIMEOUT.
  */
-static l1_flash_status_t program_byte(uint32_t address, uint8_t data)
-{
+static l1_flash_status_t program_byte(uint32_t address, uint8_t data) {
     l1_flash_status_t status = FLASH_COMPLETE;
 
     uint32_t tmp = 0, tmpaddr = 0;
@@ -299,8 +293,7 @@ static int nvram_clear(nvram_t *dev);
  */
 static int nvram_clear_bytes(nvram_t *dev, uint32_t start, size_t size);
 
-int nvram_eeprom_init(nvram_t *dev)
-{
+int nvram_eeprom_init(nvram_t *dev) {
     dev->write = nvram_write;
     dev->read = nvram_read;
     dev->clear = nvram_clear;
@@ -309,8 +302,8 @@ int nvram_eeprom_init(nvram_t *dev)
     return 0;
 }
 
-static int nvram_read(nvram_t *dev, uint8_t *dst, uint32_t src, size_t len)
-{
+static int nvram_read(nvram_t *dev, uint8_t *dst, uint32_t src, size_t len) {
+    (void) dev;
     uint32_t eeprom_addr = EEPROM_BASE + src;
     uint32_t i = 0;
 
@@ -325,8 +318,8 @@ static int nvram_read(nvram_t *dev, uint8_t *dst, uint32_t src, size_t len)
     return i;
 }
 
-static int nvram_write(nvram_t *dev, const uint8_t *src, uint32_t dst, size_t len)
-{
+static int nvram_write(nvram_t *dev, const uint8_t *src, uint32_t dst, size_t len) {
+    (void) dev;
     eeprom_unlock();
 
     uint32_t eeprom_addr = EEPROM_BASE + dst;
@@ -345,8 +338,8 @@ static int nvram_write(nvram_t *dev, const uint8_t *src, uint32_t dst, size_t le
     return i;
 }
 
-static int nvram_clear(nvram_t *dev)
-{
+static int nvram_clear(nvram_t *dev) {
+    (void) dev;
     eeprom_unlock();
 
     uint32_t i = 0;
@@ -361,8 +354,8 @@ static int nvram_clear(nvram_t *dev)
     return i;
 }
 
-static int nvram_clear_bytes(nvram_t *dev, uint32_t start, size_t size)
-{
+static int nvram_clear_bytes(nvram_t *dev, uint32_t start, size_t size) {
+    (void) dev;
     eeprom_unlock();
 
     uint32_t i = 0;

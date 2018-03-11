@@ -2441,21 +2441,29 @@ typedef struct
 #define FLASH_PDKEYR_PDKEYR_Pos      (0U)
 #define FLASH_PDKEYR_PDKEYR_Msk      (0xFFFFFFFFU << FLASH_PDKEYR_PDKEYR_Pos)  /*!< 0xFFFFFFFF */
 #define FLASH_PDKEYR_PDKEYR          FLASH_PDKEYR_PDKEYR_Msk                   /*!< FLASH_PEC and data matrix Key */
+#define FLASH_PDKEY1                 (0x04152637U)                             /*!< Flash powerdown unlock key 1 */
+#define FLASH_PDKEY2                 (0xFAFBFCFDU)                             /*!< Flash powerdown unlock key 2 */
 
 /******************  Bit definition for FLASH_PEKEYR register  ******************/
 #define FLASH_PEKEYR_PEKEYR_Pos      (0U)
 #define FLASH_PEKEYR_PEKEYR_Msk      (0xFFFFFFFFU << FLASH_PEKEYR_PEKEYR_Pos)  /*!< 0xFFFFFFFF */
 #define FLASH_PEKEYR_PEKEYR          FLASH_PEKEYR_PEKEYR_Msk                   /*!< FLASH_PEC and data matrix Key */
+#define FLASH_PEKEY1                 (0x89ABCDEFU)                             /*!< EEPROM unlock key 1 */
+#define FLASH_PEKEY2                 (0x02030405U)                             /*!< EEPROM unlock key 2 */
 
 /******************  Bit definition for FLASH_PRGKEYR register  ******************/
 #define FLASH_PRGKEYR_PRGKEYR_Pos    (0U)
 #define FLASH_PRGKEYR_PRGKEYR_Msk    (0xFFFFFFFFU << FLASH_PRGKEYR_PRGKEYR_Pos) /*!< 0xFFFFFFFF */
-#define FLASH_PRGKEYR_PRGKEYR        FLASH_PRGKEYR_PRGKEYR_Msk                 /*!< Program matrix Key */
+#define FLASH_PRGKEYR_PRGKEYR        FLASH_PRGKEYR_PRGKEYR_Msk                  /*!< Program matrix Key */
+#define FLASH_PRGKEY1                (0x8C9DAEBFU)                              /*!< Flash unlock key 1 */
+#define FLASH_PRGKEY2                (0x13141516U)                              /*!< Flash unlock key 2 */
 
 /******************  Bit definition for FLASH_OPTKEYR register  ******************/
 #define FLASH_OPTKEYR_OPTKEYR_Pos    (0U)
 #define FLASH_OPTKEYR_OPTKEYR_Msk    (0xFFFFFFFFU << FLASH_OPTKEYR_OPTKEYR_Pos) /*!< 0xFFFFFFFF */
 #define FLASH_OPTKEYR_OPTKEYR        FLASH_OPTKEYR_OPTKEYR_Msk                 /*!< Option bytes matrix Key */
+#define FLASH_OPTKEY1                (0xFBEAD9C8U)                              /*!< Option bytes unlock key 1 */
+#define FLASH_OPTKEY2                (0x24252627U)                              /*!< Option bytes unlock key 2 */
 
 /******************  Bit definition for FLASH_SR register  *******************/
 #define FLASH_SR_BSY_Pos             (0U)

@@ -25,6 +25,8 @@
 #include "assert.h"
 #include "periph/dac.h"
 
+#if defined(DAC_NUMOF)
+
 /* DAC channel enable bits */
 #ifdef DAC_CR_EN2
 #define EN_MASK             (DAC_CR_EN1 | DAC_CR_EN2)
@@ -121,3 +123,5 @@ void dac_poweroff(dac_t line)
 #endif
     }
 }
+
+#endif /* #if defined(DAC_NUMOF) */

@@ -173,7 +173,7 @@ void clk_init(void)
 #if defined(CLOCK_HS_MULTI)   
     /* MCU after reboot or poweron */
     if (clock_source_rdy == 0) {
-        RCC->CR | = RCC_CR_HSEON;
+        RCC->CR |= RCC_CR_HSEON;
         clock_source_rdy = RCC_CR_HSERDY;
     }
         

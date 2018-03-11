@@ -1,1 +1,1 @@
-USEMODULE += lm75a_new
+USEMODULE += lm75

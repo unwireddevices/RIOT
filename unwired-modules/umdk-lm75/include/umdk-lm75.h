@@ -12,15 +12,13 @@
  * @brief       
  * @{
  * @file		umdk-lm75.h
- * @brief       umdk-lm75 LM75erature sensor module
+ * @brief       umdk-lm75 temperature sensor module
  * @author      Eugene Ponomarev
  */
 #ifndef UMDK_LM75_H
 #define UMDK_LM75_H
 
 #include "unwds-common.h"
-
-#include "lm75a.h"
 
 #define UMDK_LM75_I2C 1
 

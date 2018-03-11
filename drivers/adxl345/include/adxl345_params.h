@@ -32,7 +32,7 @@ extern "C" {
  * @{
  */
 #ifndef ADXL345_PARAM_I2C
-#define ADXL345_PARAM_I2C           (I2C_DEV(0))
+#define ADXL345_PARAM_I2C           (I2C_DEV(1))
 #endif
 #ifndef ADXL345_PARAM_ADDR
 #define ADXL345_PARAM_ADDR          (ADXL345_ADDR_53)
@@ -48,7 +48,7 @@ extern "C" {
                                      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F}
 #endif
 #ifndef ADXL345_PARAM_FULL_RES
-#define ADXL345_PARAM_FULL_RES      (1)
+#define ADXL345_PARAM_FULL_RES      (0x08)
 #endif
 #ifndef ADXL345_PARAM_OFFSET
 #define ADXL345_PARAM_OFFSET        { 0, 0, 0 }
@@ -58,7 +58,7 @@ extern "C" {
 #endif
 #ifndef ADXL345_PARAMS
 #define ADXL345_PARAMS              { .offset = ADXL345_PARAM_OFFSET,    \
-                                      .range  = ADXL345_PARAM_RANGE,     \
+                                      .range  = ADXL345_RANGE_16G,     \
                                       .rate   = ADXL345_PARAM_RATE,      \
                                       .full_res = ADXL345_PARAM_FULL_RES }
 #endif

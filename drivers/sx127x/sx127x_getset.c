@@ -459,10 +459,10 @@ void sx127x_set_op_mode(const sx127x_t *dev, uint8_t op_mode)
         gpio_irq_disable(dev->params.dio3_pin);
         
         /* disable RF switch power */
-        if (dev->params.rfswitch_active_level == 0) {
-            gpio_set(dev->params.rfswitch_pin);
-        } else {
+        if (dev->params.rfswitch_active_level) {
             gpio_clear(dev->params.rfswitch_pin);
+        } else {
+            gpio_set(dev->params.rfswitch_pin);
         }
         
         /* switch CPU to low-power mode */
@@ -474,10 +474,10 @@ void sx127x_set_op_mode(const sx127x_t *dev, uint8_t op_mode)
         gpio_irq_enable(dev->params.dio3_pin);
         
         /* enable RF switch power */
-        if (dev->params.rfswitch_active_level == 1) {
-            gpio_clear(dev->params.rfswitch_pin);
-        } else {
+        if (dev->params.rfswitch_active_level) {
             gpio_set(dev->params.rfswitch_pin);
+        } else {
+            gpio_clear(dev->params.rfswitch_pin);
         }
     }
 
@@ -559,14 +559,22 @@ static inline void _lna_agc_enable(const sx127x_t *dev) {
     /* Enable LNA HF boost, as recommended in AN1200.23 */
     sx127x_reg_write(dev, SX127X_REG_LR_LNA,
                     (sx127x_reg_read(dev, SX127X_REG_LR_LNA) &
-                     SX127X_RF_LORA_LNA_BOOST_HF_MASK) |
-                     SX127X_RF_LORA_LNA_BOOST_HF_ON);
+                    SX127X_RF_LORA_LNA_BOOST_HF_MASK) |
+                    SX127X_RF_LORA_LNA_BOOST_HF_ON);
     
     /* Enable Automatic Gain Control */
-    sx127x_reg_write(dev, SX127X_REG_LR_MODEMCONFIG3,
-                     (sx127x_reg_read(dev, SX127X_REG_LR_MODEMCONFIG3) &
-                      SX127X_RF_LORA_MODEMCONFIG3_AGCAUTO_MASK) | 
-                      SX127X_RF_LORA_MODEMCONFIG3_AGCAUTO_ON);
+    if (dev->_internal.modem_chip == SX127X_MODEM_SX1272) {
+        sx127x_reg_write(dev, SX127X_REG_LR_MODEMCONFIG2,
+                        (sx127x_reg_read(dev, SX127X_REG_LR_MODEMCONFIG2) &
+                         SX127X_RF_LORA_MODEMCONFIG3_AGCAUTO_MASK) | 
+                         SX127X_RF_LORA_MODEMCONFIG3_AGCAUTO_ON);
+    } else {
+        /* SX1276 */
+        sx127x_reg_write(dev, SX127X_REG_LR_MODEMCONFIG3,
+                        (sx127x_reg_read(dev, SX127X_REG_LR_MODEMCONFIG3) &
+                         SX127X_RF_LORA_MODEMCONFIG3_AGCAUTO_MASK) | 
+                         SX127X_RF_LORA_MODEMCONFIG3_AGCAUTO_ON);
+    }
 }
 
 void sx127x_set_bandwidth(sx127x_t *dev, uint8_t bandwidth)

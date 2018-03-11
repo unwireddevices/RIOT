@@ -29,8 +29,7 @@
 #define ENABLE_DEBUG        (0)
 #include "debug.h"
 
-#define I2C_SPEED           I2C_SPEED_NORMAL
-
+#define I2C_SPEED           (I2C_SPEED_NORMAL)
 #define BUS                 (dev->i2c)
 #define ADDR                (dev->addr)
 
@@ -44,7 +43,7 @@ int adxl345_init(adxl345_t *dev, const adxl345_params_t* params)
     dev->params = (adxl345_params_t*)params;
 
     /* get scale_factor from full_res and range parameters */
-    dev->scale_factor = (dev->params->full_res ? 3.9 : (dev->params->range * 3.9));
+    dev->scale_factor = (dev->params->full_res ? 4 : (dev->params->range * 4));
 
     /* Acquire exclusive access */
     i2c_acquire(BUS);
@@ -55,6 +54,8 @@ int adxl345_init(adxl345_t *dev, const adxl345_params_t* params)
         DEBUG("[adxl345] init - error: unable to initialize I2C bus\n");
         return ADXL345_NOI2C;
     }
+    
+    DEBUG("[adxl345] I2C bus %d initialized\n", BUS);
 
     /* test if the target device responds */
     i2c_read_reg(BUS, ADDR, ACCEL_ADXL345_CHIP_ID_REG, &reg);
@@ -66,7 +67,8 @@ int adxl345_init(adxl345_t *dev, const adxl345_params_t* params)
     /* configure the user offset */
     i2c_write_regs(BUS, ADDR, ACCEL_ADXL345_OFFSET_X, dev->params->offset, 3);
     /* Basic device setup */
-    reg = (dev->params->full_res | dev->params->range);
+    reg = dev->params->full_res | dev->params->range;
+    
     i2c_write_reg(BUS, ADDR, ACCEL_ADXL345_DATA_FORMAT, reg);
     i2c_write_reg(BUS, ADDR, ACCEL_ADXL345_BW_RATE, dev->params->rate);
     /* Put device in measure mode */
@@ -82,7 +84,7 @@ int adxl345_init(adxl345_t *dev, const adxl345_params_t* params)
 
 void adxl345_read(const adxl345_t *dev, adxl345_data_t *data)
 {
-    int8_t result[6];
+    uint8_t result[6] = {};
 
     assert(dev && data);
 
@@ -90,9 +92,9 @@ void adxl345_read(const adxl345_t *dev, adxl345_data_t *data)
     i2c_read_regs(BUS, ADDR, ACCEL_ADXL345_DATA_X0, result, 6);
     i2c_release(BUS);
 
-    data->x = (((result[1] << 8)+result[0]) * dev->scale_factor);
-    data->y = (((result[3] << 8)+result[2]) * dev->scale_factor);
-    data->z = (((result[5] << 8)+result[4]) * dev->scale_factor);
+    data->x = (((result[1] << 8) | result[0]) * dev->scale_factor);
+    data->y = (((result[3] << 8) | result[2]) * dev->scale_factor);
+    data->z = (((result[5] << 8) | result[4]) * dev->scale_factor);
 }
 
 void adxl345_set_interrupt(const adxl345_t *dev)

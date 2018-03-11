@@ -42,11 +42,11 @@ extern "C" {
 #include "thread.h"
 #include "xtimer.h"
 
-#include "lm75a.h"
+#include "lm75.h"
 
 static uwnds_cb_t *callback;
 
-static lm75a_t lm75a;
+static lm75_t lm75;
 
 int umdk_lm75_shell_cmd(int argc, char **argv) {
     if (argc == 1) {
@@ -57,7 +57,7 @@ int umdk_lm75_shell_cmd(int argc, char **argv) {
     char *cmd = argv[1];
 	
     if (strcmp(cmd, "get") == 0) {
-        int temp = lm75a_get_ambient_temperature(&lm75a);
+        int temp = lm75_get_ambient_temperature(&lm75);
         
         char buf[10];
         int_to_float_str(buf, temp, 3);
@@ -73,13 +73,13 @@ void umdk_lm75_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 
     callback = event_callback;
 
-    lm75a.params.i2c = UMDK_LM75_I2C;
-    lm75a.params.a1 = 0;
-    lm75a.params.a2 = 0;
-    lm75a.params.a3 = 0;
+    lm75.params.i2c = UMDK_LM75_I2C;
+    lm75.params.a1 = 0;
+    lm75.params.a2 = 0;
+    lm75.params.a3 = 0;
 
-    if (lm75a_init(&lm75a)) {
-        puts("[umdk-" _UMDK_NAME_ "] Error initializing LM75A sensor");
+    if (lm75_init(&lm75)) {
+        puts("[umdk-" _UMDK_NAME_ "] Error initializing LM75 sensor");
         return;
     }
     
@@ -96,7 +96,7 @@ bool umdk_lm75_cmd(module_data_t *data, module_data_t *reply)
 	switch (c) {
 	case UMDK_LM75_CMD_POLL:
 	{
-		int temp = lm75a_get_ambient_temperature(&lm75a);
+		int temp = lm75_get_ambient_temperature(&lm75);
 		int16_t data = (temp/100);
 		
 		reply->length = 1 + sizeof(data);

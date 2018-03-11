@@ -58,7 +58,8 @@ extern "C" {
 #define SX127X_RESET GPIO_PIN(PORT_A, 8)
 
 /** RF on/off switching pin */
-#define SX127X_RFSWITCH GPIO_PIN(PORT_A, 11)
+#define SX127X_RFSWITCH                 GPIO_PIN(PORT_A, 11)
+#define SX127X_RFSWITCH_ACTIVE_LEVEL    0
 
 /** SX127x SPI */
 #define SX127X_SPI 1

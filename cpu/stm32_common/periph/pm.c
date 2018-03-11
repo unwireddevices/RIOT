@@ -41,7 +41,7 @@
 #define PM_STOP_CONFIG (PWR_CR_LPDS | PWR_CR_FPDS)
 #endif
 
-enum pm_mode pm_set(enum pm_mode target)
+enum pm_mode pm_set(enum pm_mode mode)
 {
     int deep = 0;
 

@@ -94,7 +94,6 @@ typedef struct {
     gpio_af_t af;           /**< I2C alternate function value */
     uint8_t er_irqn;        /**< error IRQ */
     uint8_t ev_irqn;        /**< event IRQ */
-    uint8_t apb_bit;		/**< No. of CLKEN bit on APB bus */
 } i2c_conf_t;
 
 #ifdef __cplusplus

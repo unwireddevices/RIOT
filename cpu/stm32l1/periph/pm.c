@@ -22,7 +22,6 @@
 #include "cpu.h"
 #include "periph/pm.h"
 
-#include "vendor/stm32l1xx.h"
 #include "cpu.h"
 #include "board.h"
 #include "periph_conf.h"
@@ -204,7 +203,7 @@ void pm_del_gpio_exclusion(gpio_t gpio) {
 
 /* Select CPU clocking between default (PM_ON) and medium-speed (PM_IDLE) */
 static void pm_select_run_mode(uint8_t pm_mode) {
-	switch(pm_run_mode) {
+	switch(pm_mode) {
 		case PM_ON:
             DEBUG("Switching to PM_ON");
 			clk_init();
@@ -222,12 +221,16 @@ static void pm_select_run_mode(uint8_t pm_mode) {
 		break;
 	}
     
+#if defined(XTIMER_PRESENT)
     /* Recalculate xtimer frequency */
     /* NB: default XTIMER_HZ clock is 1 MHz, so CPU clock must be at least 1 MHz for xtimer to work properly */
     xtimer_init();
+#endif
     
+#if defined(UART_STDIO_DEV)
     /* Recalculate stdio UART baudrate */
     uart_set_baudrate(UART_STDIO_DEV, UART_STDIO_BAUDRATE);
+#endif
 }
 
 void pm_set_lowest(void)

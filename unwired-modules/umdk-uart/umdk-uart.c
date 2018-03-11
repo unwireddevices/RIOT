@@ -68,50 +68,54 @@ static umdk_uart_config_t umdk_uart_config = { UMDK_UART_DEV, 115200U, \
                                                UART_STOPBITS_10 };
 
 void *writer(void *arg) {
-  msg_t msg;
-  msg_t msg_queue[128];
-  msg_init_queue(msg_queue, 128);
-
-  while (1) {
-    msg_receive(&msg);
-
-    module_data_t data;
-    data.data[0] = _UMDK_MID_;
-    data.length = 2;
-
-    /* Received payload, send it */
-    if (msg.content.value == send_msg.content.value) {
-      data.length += num_bytes_received;
-      data.data[1] = UMDK_UART_REPLY_RECEIVED;
-
-      memcpy(data.data + 2, rxbuf, num_bytes_received);
-
-      num_bytes_received = 0;
-    } else if (msg.content.value == send_msg_ovf.content.value) { /* RX buffer overflowed, send error message */
-      data.length = 2;
-      data.data[1] = UMDK_UART_REPLY_ERR_OVF;
-
-      num_bytes_received = 0;
-    }
+    (void)arg;
     
-    char buf[200];
-    char *pos = buf;
-    int k = 0;
-    for (k = 2; k < data.length; k++) {
-        snprintf(pos, 3, "%02x", data.data[k]);
-        pos += 2;
+    msg_t msg;
+    msg_t msg_queue[128];
+    msg_init_queue(msg_queue, 128);
+
+    while (1) {
+        msg_receive(&msg);
+
+        module_data_t data;
+        data.data[0] = _UMDK_MID_;
+        data.length = 2;
+
+        /* Received payload, send it */
+        if (msg.content.value == send_msg.content.value) {
+            data.length += num_bytes_received;
+            data.data[1] = UMDK_UART_REPLY_RECEIVED;
+
+            memcpy(data.data + 2, rxbuf, num_bytes_received);
+
+            num_bytes_received = 0;
+        } else if (msg.content.value == send_msg_ovf.content.value) { /* RX buffer overflowed, send error message */
+            data.length = 2;
+            data.data[1] = UMDK_UART_REPLY_ERR_OVF;
+
+            num_bytes_received = 0;
+        }
+        
+        char buf[200];
+        char *pos = buf;
+        int k = 0;
+        for (k = 2; k < data.length; k++) {
+            snprintf(pos, 3, "%02x", data.data[k]);
+            pos += 2;
+        }
+        
+        printf("[umdk-" _UMDK_NAME_ "] received 0x%s\n", buf);
+
+        callback(&data);
     }
-    
-    printf("[umdk-" _UMDK_NAME_ "] received 0x%s\n", buf);
 
-    callback(&data);
-  }
-
-  return NULL;
+    return NULL;
 }
 
 void rx_cb(void *arg, uint8_t data)
 {
+    (void)arg;
+    
 	/* Buffer overflow */
 	if (num_bytes_received == UMDK_UART_RXBUF_SIZE) {
 		num_bytes_received = 0;

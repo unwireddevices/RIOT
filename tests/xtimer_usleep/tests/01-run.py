@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # vim:fenc=utf-8
 
@@ -13,15 +13,13 @@ import os
 import sys
 import time
 
-sys.path.append(os.path.join(os.environ['RIOTBASE'], 'dist/tools/testrunner'))
-import testrunner
-
 US_PER_SEC = 1000000
 INTERNAL_JITTER = 0.05
 EXTERNAL_JITTER = 0.15
 
 class InvalidTimeout(Exception):
     pass
+
 
 def testfunc(child):
     child.expect(u"Running test (\\d+) times with (\\d+) distinct sleep times")
@@ -39,18 +37,21 @@ def testfunc(child):
                 lower_bound = exp - (exp * INTERNAL_JITTER)
                 upper_bound = exp + (exp * INTERNAL_JITTER)
                 if not (lower_bound < sleep_time < upper_bound):
-                    raise InvalidTimeout("Invalid timeout %d (expected %d)" % (sleep_time, exp));
+                    raise InvalidTimeout("Invalid timeout %d (expected %d)" % (sleep_time, exp))
         testtime = (time.time() - start_test) * US_PER_SEC
         child.expect(u"Test ran for (\\d+) us")
         exp = int(child.match.group(1))
         lower_bound = exp - (exp * EXTERNAL_JITTER)
         upper_bound = exp + (exp * EXTERNAL_JITTER)
         if not (lower_bound < testtime < upper_bound):
-            raise InvalidTimeout("Host timer measured %d us (client measured %d us)" % \
-                                 (testtime, exp));
+            raise InvalidTimeout("Host timer measured %d us (client measured %d us)" %
+                                 (testtime, exp))
     except InvalidTimeout as e:
         print(e)
         sys.exit(1)
 
+
 if __name__ == "__main__":
-    sys.exit(testrunner.run(testfunc, echo=True))
+    sys.path.append(os.path.join(os.environ['RIOTBASE'], 'dist/tools/testrunner'))
+    from testrunner import run
+    sys.exit(run(testfunc))

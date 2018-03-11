@@ -62,6 +62,8 @@ static msg_t timer_msg = {};
 static kernel_pid_t timer_pid;
 
 static void *timer_thread(void *arg) {
+    (void)arg;
+    
     msg_t msg;
     msg_t msg_queue[4];
     msg_init_queue(msg_queue, 4);

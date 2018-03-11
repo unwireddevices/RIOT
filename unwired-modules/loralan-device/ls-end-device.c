@@ -284,6 +284,9 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
         case LS_DL_INVITE:
             snprintf(debug_frame_type, 20, "LS_DL_INVITE");
             break;
+        case LS_DL_TIME_ACK:
+            snprintf(debug_frame_type, 20, "LS_DL_TIME_ACK");
+            break;
         default:
             snprintf(debug_frame_type, 20, "UNKNOWN");
             break;
@@ -293,7 +296,8 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
     if ((frame->header.type == LS_DL_ACK_W_DATA) ||
         (frame->header.type == LS_DL_ACK) ||
-        (frame->header.type == LS_DL)) {
+        (frame->header.type == LS_DL) || 
+        (frame->header.type == LS_DL_TIME_ACK)) {
         if (!ls->settings.no_join && !ls->_internal.is_joined) {
             DEBUG("[LoRa] frame_recv: not joined\n");
             return false;
@@ -320,7 +324,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
     		/* Validate and decipher incoming broadcast message */
             DEBUG("[LoRa] frame_recv: broadcast message\n");
             
-            ls_decrypt_frame_payload(ls->settings.crypto.join_key, &frame->payload);
+            ls_decrypt_frame_payload(ls->settings.crypto.join_key, frame);
 
             /* Notify application code about incoming data */
             if (ls->broadcast_appdata_received_cb != NULL) {
@@ -342,7 +346,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             }
 
             DEBUG("[LoRa] frame_recv: decrypting payload\n");
-            ls_decrypt_frame_payload(ls->settings.crypto.aes_key, &frame->payload);
+            ls_decrypt_frame_payload(ls->settings.crypto.aes_key, frame);
 
             bool close_rx_window = ack_recv(ls, frame);
             data_recv(ls, frame);
@@ -365,7 +369,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
         case LS_DL:         /* Downlink frame */
             DEBUG("[LoRa] frame_recv: donwlink frame received\n");
             DEBUG("[LoRa] frame_recv: decrypting payload\n");
-            ls_decrypt_frame_payload(ls->settings.crypto.aes_key, &frame->payload);
+            ls_decrypt_frame_payload(ls->settings.crypto.aes_key, frame);
 
             data_recv(ls, frame);
             return true;
@@ -384,7 +388,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             }
 
             DEBUG("[LoRa] frame_recv: decrypting payload\n");
-            ls_decrypt_frame_payload(ls->settings.crypto.join_key, &frame->payload);
+            ls_decrypt_frame_payload(ls->settings.crypto.join_key, frame);
 
             ls_join_ack_t ack = { 0 };
             memcpy(&ack, frame->payload.data, sizeof(ls_join_ack_t));
@@ -452,7 +456,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             }
 
             DEBUG("[LoRa] frame_recv: decrypting payload\n");
-            ls_decrypt_frame_payload(ls->settings.crypto.join_key, &frame->payload);
+            ls_decrypt_frame_payload(ls->settings.crypto.join_key, frame);
 
             /* Check device ID */
             ls_invite_t ack;
@@ -476,6 +480,19 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             DEBUG("[LoRa] frame_recv: join\n");
             ls_ed_join(ls);
         	return false;
+        }
+        
+        case LS_DL_TIME_ACK: {
+            ls_decrypt_frame_payload(ls->settings.crypto.aes_key, frame);
+
+            ls_time_req_ack_t ack;
+            memcpy(&ack, frame->payload.data, sizeof(ls_time_req_ack_t));
+
+            if (ls->time_req_ack_cb != NULL) {
+                ls->time_req_ack_cb(ack.gate_time);
+            }
+
+            return true;
         }
 
         default:
@@ -507,9 +524,8 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
             len = dev->driver->recv(dev, NULL, 0, 0);
             dev->driver->recv(dev, message, len, &packet_info);
             
-            printf("RX: %d bytes, | RSSI: %d dBm | SNR: %d dBm | TOA %d ms\n", (int)len,
-                    packet_info.rssi, (int)packet_info.snr,
-                    (int)packet_info.time_on_air);
+            printf("RX: %d bytes, | RSSI: %d dBm | SNR: %d dBm\n", (int)len,
+                    packet_info.rssi, (int)packet_info.snr);
 
             DEBUG("[LoRa] state = IDLE\n");
             ls->state = LS_ED_IDLE;
@@ -611,6 +627,8 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
 
 void *isr_thread(void *arg)
 {
+    (void)arg;
+    
     static msg_t _msg_q[SX127X_LORA_MSG_QUEUE];
     msg_init_queue(_msg_q, SX127X_LORA_MSG_QUEUE);
 
@@ -783,7 +801,7 @@ static void *uq_handler(void *arg)
         data[0].iov_base = f;
         data[0].iov_len = header_size + payload_size;
                
-        if (ls->_internal.device->driver->send(ls->_internal.device, data, 1) == -ENOTSUP) {
+        if (ls->_internal.device->driver->send(ls->_internal.device, data, 1) < 0) {
             puts("[LoRa] uq_handler: cannot send, device busy");
         }
         
@@ -1162,6 +1180,24 @@ void ls_ed_sleep(ls_ed_t *ls)
     } else {
         DEBUG("[LoRa] ls_ed_sleep: ignore sleep, not a Class A\n");
     }
+}
+
+int ls_ed_req_time(ls_ed_t *ls)
+{
+    assert(ls != NULL);
+
+    /* Must be joined or statically activated */
+    if (!ls->settings.no_join && !ls->_internal.is_joined) {
+    	return LS_SEND_E_NOT_JOINED;
+    }
+
+    /* Send time request */
+    int res = send_frame(ls, LS_UL_TIME_REQ, NULL, 0);
+    if (res < 0) {
+        return res;
+    }
+
+    return LS_OK;
 }
 
 #ifdef __cplusplus

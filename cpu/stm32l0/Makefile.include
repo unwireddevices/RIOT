@@ -1,5 +1,11 @@
 export CPU_ARCH = cortex-m0
 export CPU_FAM  = stm32l0
 
+CFLAGS += -DPROVIDES_PM_SET_LOWEST_CORTEXM
+
 include $(RIOTCPU)/stm32_common/Makefile.include
 include $(RIOTMAKE)/arch/cortexm.inc.mk
+
+ifneq (,$(findstring xtimer,$(USEMODULE)))
+    CFLAGS += -DXTIMER_PRESENT
+endif

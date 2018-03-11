@@ -2463,6 +2463,8 @@ typedef struct
 #define FLASH_PDKEYR_PDKEYR_Pos      (0U)
 #define FLASH_PDKEYR_PDKEYR_Msk      (0xFFFFFFFFU << FLASH_PDKEYR_PDKEYR_Pos)  /*!< 0xFFFFFFFF */
 #define FLASH_PDKEYR_PDKEYR          FLASH_PDKEYR_PDKEYR_Msk                   /*!< FLASH_PEC and data matrix Key */
+#define FLASH_PDKEY1                 (0x89ABCDEFU)                             /*!< Flash unlock key 1 */
+#define FLASH_PDKEY2                 (0x02030405U)                             /*!< Flash unlock key 2 */
 
 /******************  Bit definition for FLASH_PEKEYR register  ******************/
 #define FLASH_PEKEYR_PEKEYR_Pos      (0U)

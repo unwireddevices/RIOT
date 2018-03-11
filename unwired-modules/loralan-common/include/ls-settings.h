@@ -34,6 +34,7 @@ typedef struct {
     ls_node_class_t nodeclass;
     uint8_t max_retr;
     bool no_join;			/**< Statically personalized device, no join required to send data */    
+    bool req_time;
     
     ls_addr_t dev_addr;		/**< Predefined device's network address */
 
@@ -41,7 +42,7 @@ typedef struct {
 } node_role_settings_t;
 
 node_role_settings_t unwds_get_node_settings(void);
-void unwds_set_region(int region, bool is_empty);
+void unwds_set_region(int region);
 void unwds_set_nojoin(bool nojoin);
 void unwds_set_addr(ls_addr_t dev_addr);
 void unwds_set_channel(ls_channel_t channel);

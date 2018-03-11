@@ -465,3 +465,85 @@ overflow:
     /* set low level timer */
     _lltimer_set(next_target);
 }
+
+/*
+ * Seconds from midnight, need to perform comparison within a day
+ */
+#define SFM(hour, min, sec) (3600 * hour + 60 * min + sec)
+#define SECONDS_IN_DAY 86400
+
+void rtctimers_millis_set_absolute(rtctimers_millis_t *timer, uint8_t wday, uint8_t hour, uint8_t min, uint8_t sec) {
+	assert(wday < 7);
+	assert(hour < 24);
+	assert(min < 60);
+	assert(sec < 60);
+
+	/* Get current time */
+	time_t t = rtctimers_millis_now();
+	struct tm *now = localtime(&t);
+
+	uint32_t sfm_today = SFM(now->tm_hour, now->tm_min, now->tm_sec);
+	uint32_t sfm_target = SFM(hour, min, sec);
+
+	/*
+	 * Shift target time stamp to the next week if target day of week is before current
+	 * or in case they're same but target time of day is before current
+	 */
+	int days_to_shift = 0;
+	if (wday < now->tm_wday || (wday == now->tm_wday && sfm_target <= sfm_today)) {
+		days_to_shift = 7 - (now->tm_wday - wday);
+		DEBUG("[rtctimers_set_absolute()] Shifting by %d days further\n", days_to_shift);
+	} else if (wday > now->tm_wday) { /* Next days within a week */
+		days_to_shift = wday - now->tm_wday;
+		DEBUG("[rtctimers_set_absolute()] Shifting by %d days further\n", days_to_shift);
+	}
+
+	time_t offset = SECONDS_IN_DAY * days_to_shift;
+
+	/*
+	 * Shift target time stamp by the time of day difference
+	 */
+	offset += 3600 * (hour - now->tm_hour);
+	offset += 60 * (min - now->tm_min);
+	offset += (sec - now->tm_sec);
+
+	assert(t <= t + offset); /* Offset cannot end up in past */
+
+#if DEBUG_ENABLED
+	time_t temp = t + offset;
+    struct tm *time = localtime(&temp);
+	DEBUG("[rtctimers_millis_set_absolute()] Setting timer for %04d.%02d.%02d [%d] %d:%d:%d\n",
+			time->tm_year + 1900, time->tm_mon + 1, time->tm_mday, time->tm_wday, time->tm_hour, time->tm_min, time->tm_sec);
+#endif
+
+	rtctimers_millis_set(timer, offset);
+}
+
+void rtctimers_millis_set_timebase(struct tm *new_time) {
+	/* Previous and current time stamps to calculate time differences */
+	time_t prev_ts = rtctimers_millis_now();
+	time_t new_ts = mktime(new_time);
+
+	rtc_set_time(new_time);
+
+	if (timer_list_head) {
+		/* Shift hardware alarm to new time base */
+		int diff = timer_list_head->target - prev_ts;
+		DEBUG("[RTC] Head timer is %d seconds far\n", diff);
+		_lltimer_set(new_ts + diff);
+
+		/* Shift currently running timers to the new time base */
+		DEBUG("[RTC] Shifting timers to the new time base\n");
+		rtctimers_millis_t *timer = timer_list_head;
+		while (timer) {
+			/* Change timer's absolute target time stamp to the new one in according to the time remaining before shot */
+			int diff = timer->target - prev_ts;
+			DEBUG("[RTC] This timer is %d seconds far\n", diff);
+
+			timer->target = new_ts + diff;
+
+			/* Advance in list */
+			timer = timer->next;
+		}
+	}
+}

@@ -39,7 +39,7 @@ extern "C" {
 #include "shell.h"
 #include "shell_commands.h"
 
-#include "net/gnrc/netdev.h"
+#include "net/lora.h"
 #include "net/netdev.h"
 #include "sx127x_internal.h"
 #include "sx127x_params.h"

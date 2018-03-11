@@ -101,6 +101,8 @@ static int prepare_result(module_data_t *data) {
 }
 
 static void *timer_thread(void *arg) {
+    (void)arg;
+    
     msg_t msg;
     msg_t msg_queue[4];
     msg_init_queue(msg_queue, 4);

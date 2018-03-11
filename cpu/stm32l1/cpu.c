@@ -98,7 +98,6 @@
     #define CORE_VOLTAGE (PWR_CR_VOS_1 | PWR_CR_VOS_0)
 #endif
 
-static uint32_t tmpreg;
 static volatile uint32_t clock_source_rdy = 0;
 volatile uint32_t cpu_clock_global;
 volatile uint32_t cpu_ports_number;
@@ -109,8 +108,10 @@ void cpu_init(void)
     /* initialize the Cortex-M core */
     cortexm_init();
     
+#if defined(RTC_REGBACKUP_BOOTLOADER) && defined(RTC_REGBACKUP_BOOTLOADER_VALUE)
     /* Switching to bootloader if there's a magic number in RTC registers */
     /* Should be done before initializing anything but RTC */
+
     rtc_poweron();
     if (rtc_restore_backup(RTC_REGBACKUP_BOOTLOADER) == RTC_REGBACKUP_BOOTLOADER_VALUE) {
         /* clear RTC register */
@@ -124,6 +125,7 @@ void cpu_init(void)
         jump_to_bootloader = (ptr_func)(0x1ff00004);
         jump_to_bootloader();
     }
+#endif
     
     /* initialize system clocks */
     clk_init();
@@ -214,6 +216,8 @@ void clk_init(void)
     /* Wait for flash to become ready */
     while (!(FLASH->SR & FLASH_SR_READY)) {}
 #endif
+
+    uint32_t tmpreg;
 
     /* Power domain enable */
     periph_clk_en(APB1, RCC_APB1ENR_PWREN);
@@ -335,6 +339,8 @@ void clk_init(void)
 
 void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider)
 {
+    uint32_t tmpreg;
+    
     RCC->CR |= RCC_CR_MSION;
     while (!(RCC->CR & RCC_CR_MSIRDY)) {}
     

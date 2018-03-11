@@ -262,7 +262,7 @@ static void app_data_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_gate_node_t *
 
     /* Decrypt frame payload */
     DEBUG("ls-gate: decrypt frame payload\n");
-    ls_decrypt_frame_payload(aes_key, &frame->payload);
+    ls_decrypt_frame_payload(aes_key, frame);
 
     /* Call handler callback */
     DEBUG("ls-gate: call handler callback\n");
@@ -450,7 +450,7 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
                 return false;
             }
 
-            ls_decrypt_frame_payload(ls->settings.join_key, &frame->payload);
+            ls_decrypt_frame_payload(ls->settings.join_key, frame);
             
             DEBUG("ls-gate: frame payload decrypted\n");
 
@@ -467,6 +467,21 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
             DEBUG("ls-gate: join request processed\n");
 
             return true;
+            
+        case LS_UL_TIME_REQ:
+            /* Node must be defined */
+            if (!node) {
+            	DEBUG("ls-gate: node undefined\n");
+            	return false;
+            }
+
+            DEBUG("ls-gate: time request received\n");
+
+            ls_time_req_ack_t ack = { .gate_time = rtctimers_millis_now() };
+
+            enqueue_frame(ch, frame->header.dev_addr, LS_DL_TIME_ACK, (uint8_t *) &ack, sizeof(ls_time_req_ack_t));
+
+        	return true;
 
         default:
             /* Not interested in somehow received downlink frames */

@@ -5,3 +5,7 @@ CFLAGS += -DPROVIDES_PM_SET_LOWEST_CORTEXM
 
 include $(RIOTCPU)/stm32_common/Makefile.include
 include $(RIOTMAKE)/arch/cortexm.inc.mk
+
+ifneq (,$(findstring xtimer,$(USEMODULE)))
+    CFLAGS += -DXTIMER_PRESENT
+endif

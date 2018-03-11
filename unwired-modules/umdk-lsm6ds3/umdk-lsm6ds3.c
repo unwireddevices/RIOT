@@ -58,6 +58,8 @@ int acq_ths = 500;
 lsm6ds3_data_t acc_max_value;
 
 static void *acq_thread(void *arg) {
+    (void)arg;
+    
     msg_t msg;
     msg_t msg_queue[4];
     msg_init_queue(msg_queue, 4);

@@ -99,6 +99,7 @@ static inline void _gpio_set(const hd44780_t *dev, gpio_t pin) {
 
 static inline void _gpio_init(const hd44780_t *dev, gpio_t pin, gpio_mode_t mode) {
 #ifdef HD44780_PCF8574
+    (void)mode;
     _gpio_clear(dev, pin);
 #else
     gpio_init(pin, mode);

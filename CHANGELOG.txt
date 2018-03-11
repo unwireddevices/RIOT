@@ -1,4 +1,10 @@
-05.03.2017
+12.03.2018
+* version 1.99 (beta)
+* synced with RIOT OS Release 2018.01
+* full STM32L0 support
+* initial LoRaWAN support
+
+05.03.2018
 * version 1.82
 * RF switch logic fixed
 * umdk-adxl345 initial implementation
@@ -6,22 +12,22 @@
 * umdk-range ultrasound rangefinder module renamed to umdk-usound
 * SX1272 incorrect AGC settings fixed
 
-18.01.2017
+18.01.2018
 * version 1.81
 * gateway firmware overflow fixed
 * umdk-pulse autorestart if the board was rebooted (watchdog, etc.)
 * backup registers numbers defined in boards' periph_conf.h
 
-17.01.2017
+17.01.2018
 * synced with RIOT OS Release 2017.10
 * truly universal SX1272/SX1276 driver
 * umdk-range renamed to umdk-usound
 
-16.01.2017
+16.01.2018
 * RX timeouts and low RSSI readings at DR0 fixed
 * LoRaLAN network stack now uses subseconds timer only
 
-10.01.2017
+10.01.2018
 * rtctimers: fix overflow bug
 * rtctimers: proper overflow handling, virtually unlimited timer duration
 * rtctimers: rename rtctimer_t to rtctimers_t

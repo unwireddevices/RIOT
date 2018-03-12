@@ -536,7 +536,6 @@ int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg)
 
     EXTI->IMR  |= EXTI_IMRWU_BIT;
     EXTI->RTSR |= EXTI_RTSR_TR20;
-    NVIC_SetPriority(IRQNWU, RTC_IRQ_PRIO);
     NVIC_EnableIRQ(IRQNWU);
 
     isr_ctx.cb_wkup = cb;

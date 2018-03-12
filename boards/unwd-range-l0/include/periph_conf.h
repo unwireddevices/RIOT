@@ -79,8 +79,6 @@ static const timer_conf_t timer_config[] = {
  */
 #define RTC_NUMOF           (1U)
 
-#define RTC_IRQ_PRIO        CPU_DEFAULT_IRQ_PRIO
-
 /* STM32 backup registers in use */
 
 #define RTC_REGBACKUP_BOOTLOADER        (0)

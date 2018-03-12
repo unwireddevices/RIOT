@@ -423,8 +423,9 @@ static void _semtech_loramac_call(semtech_loramac_func_t func, void *arg)
     msg_send(&msg, semtech_loramac_pid);
 }
 
-static void _semtech_loramac_event_cb(netdev_t *dev, netdev_event_t event)
+static void _semtech_loramac_event_cb(netdev_t *dev, netdev_event_t event, void *arg)
 {
+    (void) arg;
     netdev_sx127x_lora_packet_info_t packet_info;
 
     msg_t msg;

@@ -203,7 +203,7 @@ typedef struct {
     rtctimers_millis_t rx_timeout_timer;        /**< RX operation timeout timer */
     uint32_t last_channel;                      /**< Last channel in frequency hopping sequence */
     sx127x_modem_chip_t modem_chip;             /**< Modem model */
-//    bool is_last_cad_success;                 /**< Sign of success of last CAD operation (activity detected) */
+    bool is_last_cad_success;                 /**< Sign of success of last CAD operation (activity detected) */
 } sx127x_internal_t;
 
 /**

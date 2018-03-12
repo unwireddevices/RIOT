@@ -301,6 +301,8 @@ endif
 ifneq (,$(filter sx127%,$(USEMODULE)))
   FEATURES_REQUIRED += periph_gpio
   FEATURES_REQUIRED += periph_spi
+  FEATURES_REQUIRED += periph_rtc
+  USEMODULE += rtctimers-millis
   USEMODULE += xtimer
   USEMODULE += sx127x
   USEMODULE += netif

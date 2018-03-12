@@ -708,6 +708,10 @@ static void _on_dio3_irq(void *arg)
                 bool cad_success = (sx127x_reg_read(dev, SX127X_REG_LR_IRQFLAGS) & SX127X_RF_LORA_IRQFLAGS_CADDETECTED) == SX127X_RF_LORA_IRQFLAGS_CADDETECTED;
                 sx127x_reg_write(dev, SX127X_REG_LR_IRQFLAGS, SX127X_RF_LORA_IRQFLAGS_CADDETECTED | SX127X_RF_LORA_IRQFLAGS_CADDONE);
                 
+                dev->_internal.is_last_cad_success = ((sx127x_reg_read(dev, SX127X_REG_LR_IRQFLAGS) &
+                                                       SX127X_RF_LORA_IRQFLAGS_CADDETECTED) ==
+                                                       SX127X_RF_LORA_IRQFLAGS_CADDETECTED);
+                
                 if (cad_success) {
                     netdev->event_callback(netdev, NETDEV_EVENT_CAD_DETECTED, netdev->event_callback_arg);
                 } else {

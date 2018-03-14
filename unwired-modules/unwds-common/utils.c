@@ -25,6 +25,7 @@ extern "C" {
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "fmt.h"
 #include "utils.h"
 #include "board.h"
 #include "unwds-common.h"
@@ -129,12 +130,11 @@ bool hex_to_bytesn(char *hexstr, int len, uint8_t *bytes, bool reverse_order) {
 }
 
 void bytes_to_hex(uint8_t *bytes, size_t num_bytes, char *str, bool reverse_order) {
-	uint32_t i;
-	for (i = 0; i < num_bytes; i++) {
-		char buf[2];
-		sprintf(buf, "%02x", bytes[(reverse_order) ? num_bytes - 1 - i : i]);
-		strcat(str, buf);
-	}
+    if (reverse_order) {
+        fmt_bytes_hex_reverse(str, bytes, num_bytes);
+    } else {
+        fmt_bytes_hex(str, bytes, num_bytes);
+    }
 }
 
 bool is_number(char* str) {

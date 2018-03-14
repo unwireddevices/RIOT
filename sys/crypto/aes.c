@@ -53,6 +53,24 @@ const cipher_id_t CIPHER_AES_128 = &aes_interface;
 
 #ifndef AES_ASM
 
+#if defined(AES_CALCULATE_TABLES)
+    #if defined(CPU_ARCH_CORTEX_M0) || defined(CPU_ARCH_CORTEX_M0PLUS) || \
+        defined(CPU_ARCH_CORTEX_M3) || defined(CPU_ARCH_CORTEX_M4) || \
+        defined(CPU_ARCH_CORTEX_M4F)
+        
+        #define AES_ARM_OPTIMIZE
+        
+        /* https://balau82.wordpress.com/2011/05/17/inline-assembly-instructions-in-gcc/ */
+        static inline __attribute__((always_inline))
+        uint32_t arm_ror(uint32_t value, uint32_t shift) {
+            /* shift operand must be constant */
+            uint32_t d;
+            __asm("ROR %[Rd], %[Rm], %[Is]" : [Rd] "=r" (d) : [Rm] "r" (value), [Is] "i" (shift));
+            return d;
+        }
+    #endif
+#endif
+
 static const u32 Te0[256] = {
     0xc66363a5U, 0xf87c7c84U, 0xee777799U, 0xf67b7b8dU,
     0xfff2f20dU, 0xd66b6bbdU, 0xde6f6fb1U, 0x91c5c554U,
@@ -121,12 +139,19 @@ static const u32 Te0[256] = {
 };
 
 #if defined(AES_CALCULATE_TABLES)
-    #define Te0(n)  (Te0[n])
-    #define Te1(n)  ((Te0[n] >>  8) | (Te0[n] << 24))
-    #define Te2(n)  ((Te0[n] >> 16) | (Te0[n] << 16))
-    #define Te3(n)  ((Te0[n] >> 24) | (Te0[n] <<  8))
-    #define Te4(n)  (((Te0[n] & 0x00FFFF00) >> 8) | ((Te0[n] & 0x00FFFF00) << 8))
-    
+    #if defined(AES_ARM_OPTIMIZE)
+        #define Te0(n)  (Te0[n])
+        #define Te1(n)  (arm_ror(Te0[n], 8))
+        #define Te2(n)  (arm_ror(Te0[n], 16))
+        #define Te3(n)  (arm_ror(Te0[n], 24))
+        #define Te4(n)  (((Te0[n] & 0x00FFFF00) >> 8) | ((Te0[n] & 0x00FFFF00) << 8))
+    #else
+        #define Te0(n)  (Te0[n])
+        #define Te1(n)  ((Te0[n] >>  8) | (Te0[n] << 24))
+        #define Te2(n)  ((Te0[n] >> 16) | (Te0[n] << 16))
+        #define Te3(n)  ((Te0[n] >> 24) | (Te0[n] <<  8))
+        #define Te4(n)  (((Te0[n] & 0x00FFFF00) >> 8) | ((Te0[n] & 0x00FFFF00) << 8))
+    #endif
 #else
     #define Te0(n)  (Te0[n])
     #define Te1(n)  (Te1[n])
@@ -470,11 +495,19 @@ static const u32 Td0[256] = {
 };
 
 #if defined(AES_CALCULATE_TABLES)
-    #define Td0(n)  (Td0[n])
-    #define Td1(n)  ((Td0[n] >>  8) | (Td0[n] << 24))
-    #define Td2(n)  ((Td0[n] >> 16) | (Td0[n] << 16))
-    #define Td3(n)  ((Td0[n] >> 24) | (Td0[n] <<  8))
-    #define Td4(n)  (Td4[n] | (Td4[n] << 8) | (Td4[n] << 16) | (Td4[n] << 24))
+    #if defined(AES_ARM_OPTIMIZE)
+        #define Td0(n)  (Td0[n])
+        #define Td1(n)  (arm_ror(Td0[n], 8))
+        #define Td2(n)  (arm_ror(Td0[n], 16))
+        #define Td3(n)  (arm_ror(Td0[n], 24))
+        #define Td4(n)  (Td4[n] | (Td4[n] << 8) | (Td4[n] << 16) | (Td4[n] << 24))
+    #else
+        #define Td0(n)  (Td0[n])
+        #define Td1(n)  ((Td0[n] >>  8) | (Td0[n] << 24))
+        #define Td2(n)  ((Td0[n] >> 16) | (Td0[n] << 16))
+        #define Td3(n)  ((Td0[n] >> 24) | (Td0[n] <<  8))
+        #define Td4(n)  (Td4[n] | (Td4[n] << 8) | (Td4[n] << 16) | (Td4[n] << 24))
+    #endif
                     
 static const u8 Td4[256] = {
     0x52U, 0x09U, 0x6aU, 0xd5U, 0x30U, 0x36U, 0xa5U, 0x38U,

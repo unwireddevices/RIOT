@@ -209,7 +209,6 @@ bool umdk_mhz19_cmd(module_data_t *data, module_data_t *reply)
         case UMDK_MHZ19_ASK:
             is_polled = true;
             msg_send(&timer_msg, timer_pid);
-            do_reply(reply, UMDK_MHZ19_REPLY_OK);
             break;
             
         case UMDK_MHZ19_SET_PERIOD:

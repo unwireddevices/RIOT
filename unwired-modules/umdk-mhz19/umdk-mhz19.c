@@ -208,14 +208,15 @@ bool umdk_mhz19_cmd(module_data_t *data, module_data_t *reply)
     switch (prefix) {
         case UMDK_MHZ19_ASK:
             is_polled = true;
-            // umdk_mhz19_ask();
             msg_send(&timer_msg, timer_pid);
+            do_reply(reply, UMDK_MHZ19_REPLY_OK);
+            break;
+            
         case UMDK_MHZ19_SET_PERIOD:
             if (data->length != 2) {
                 do_reply(reply, UMDK_MHZ19_REPLY_ERR_FMT);
                 break;
             }
-
             umdk_mhz19_config.publish_period_sec = 60*(data->data[1]);
             do_reply(reply, UMDK_MHZ19_REPLY_OK);
             break;

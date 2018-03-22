@@ -102,6 +102,8 @@ static gc_pending_fifo_t fifo;
 
 static void rx_cb(void *arg, uint8_t data)
 {
+    (void)arg;
+    
     ringbuffer_add_one(&rx_buf, data);
 
     if (data == EOL) {
@@ -112,6 +114,8 @@ static void rx_cb(void *arg, uint8_t data)
 
 static void *writer(void *arg)
 {
+    (void)arg;
+    
     msg_t msg;
     msg_t msg_queue[8];
 
@@ -240,6 +244,9 @@ static uint32_t node_joined_cb(ls_gate_node_t *node)
 
 static bool accept_node_join_cb(uint64_t dev_id, uint64_t app_id)
 {
+    (void)dev_id;
+    (void)app_id;
+    
     return true; /* Stub */
 }
 
@@ -272,6 +279,8 @@ void app_data_received_cb(ls_gate_node_t *node, ls_gate_channel_t *ch, uint8_t *
 
 void app_data_ack_cb(ls_gate_node_t *node, ls_gate_channel_t *ch)
 {
+    (void)ch;
+    
     printf("ls-gate: data acknowledged from 0x%08X%08X\n", (unsigned int) (node->node_id >> 32), (unsigned int) (node->node_id & 0xFFFFFFFF));
 
     char str[18] = {};
@@ -351,7 +360,7 @@ static int ls_set_cmd(int argc, char **argv)
             printf("ls-gate: region set to %u\n", v);
         }
 
-        unwds_set_region(v, false);
+        unwds_set_region(v);
     }
     else if (strcmp(key, "ch") == 0) {
         v = strtol(value, NULL, 10);
@@ -375,6 +384,9 @@ static int ls_set_cmd(int argc, char **argv)
 
 static int ls_list_cmd(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
+    
     ls_gate_devices_t *devs = &ls.devices;
 
     printf("Total devices: %d\n", (unsigned int) devs->num_nodes);
@@ -436,6 +448,9 @@ static void print_config(void)
 
 static int ls_printc_cmd(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
+    
     print_config();
 
     return 0;
@@ -495,10 +510,15 @@ static int add_cmd(int argc, char **argv) {
 }
 
 static int kick_cmd(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
+    
 	return -1;
 }
 
 static void iwdg_reset (void *arg) {
+    (void)arg;
+    
     wdg_reload();
     rtctimers_millis_set(&iwdg_timer, IWDG_TIMEOUT);
     DEBUG("Watchdog reset\n");

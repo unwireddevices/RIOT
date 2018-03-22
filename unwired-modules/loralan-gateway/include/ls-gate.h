@@ -26,7 +26,7 @@
 #include "ls-gate-device-list.h"
 #include "ls-frame-fifo.h"
 
-#include "net/gnrc/netdev.h"
+#include "xtimer.h"
 #include "net/netdev.h"
 #include "sx127x_internal.h"
 #include "sx127x_params.h"

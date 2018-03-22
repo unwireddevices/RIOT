@@ -131,7 +131,7 @@ static int send_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame)
     data[0].iov_base = (uint8_t *)frame;
     data[0].iov_len = header_size + payload_size;
     
-    if (ch->_internal.device->driver->send(ch->_internal.device, data, 1) == -ENOTSUP) {
+    if (ch->_internal.device->driver->send(ch->_internal.device, data, 1) < 0) {
         puts("[LoRa] uq_handler: cannot send, device busy");
     }
     
@@ -190,6 +190,8 @@ static inline void open_rx_windows(ls_gate_channel_t *ch) {
 
 static inline void send_join_ack(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t dev_id, ls_addr_t addr, uint32_t app_nonce)
 {
+    (void)ls;
+    
     ls_join_ack_t ack = { .addr = addr, .dev_id = dev_id, .app_nonce = app_nonce };
 
     enqueue_frame(ch, addr, LS_DL_JOIN_ACK, (uint8_t *) &ack, sizeof(ls_join_ack_t));
@@ -197,6 +199,8 @@ static inline void send_join_ack(ls_gate_t *ls, ls_gate_channel_t *ch, uint64_t 
 
 static inline void send_ack(ls_gate_t *ls, ls_gate_channel_t *ch, ls_addr_t addr)
 {
+    (void)ls;
+    
 	enqueue_frame(ch, addr, LS_DL_ACK, NULL, 0);
 }
 
@@ -515,9 +519,8 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
             len = dev->driver->recv(dev, NULL, 0, 0);
             dev->driver->recv(dev, message, len, &packet_info);
             
-            printf("RX: %d bytes, | RSSI: %d dBm | SNR: %d dBm | TOA %d ms\n", (int)len,
-                    packet_info.rssi, (int)packet_info.snr,
-                    (int)packet_info.time_on_air);
+            printf("RX: %d bytes, | RSSI: %d dBm | SNR: %d dBm\n", (int)len,
+                    packet_info.rssi, (int)packet_info.snr);
                     
 #if ENABLE_DEBUG
             printf("RX:");
@@ -586,6 +589,8 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
 
 void *isr_thread(void *arg)
 {
+    (void)arg;
+    
     static msg_t _msg_q[SX127X_LORA_MSG_QUEUE];
     msg_init_queue(_msg_q, SX127X_LORA_MSG_QUEUE);
 
@@ -813,7 +818,7 @@ static bool open_channel(ls_gate_channel_t *ch)
 
 static bool initialize_channels(ls_gate_t *ls)
 {
-    for (int i = 0; i < ls->num_channels; i++) {
+    for (uint8_t i = 0; i < ls->num_channels; i++) {
         ls_gate_channel_t *ch = &ls->channels[i];
         assert(ch->_internal.device != NULL);
 
@@ -892,7 +897,7 @@ int ls_gate_invite(ls_gate_t *ls, uint64_t nodeid) {
 
 	/* Iterate through all channels and send invitation */
     DEBUG("ls-gate: iterate through all channels and send invitation\n");
-    for (int i = 0; i < ls->num_channels; i++) {
+    for (uint8_t i = 0; i < ls->num_channels; i++) {
         ls_gate_channel_t *ch = &ls->channels[i];
         assert(ch->_internal.device != NULL);
 
@@ -910,7 +915,7 @@ int ls_gate_broadcast(ls_gate_t *ls, uint8_t *buf, size_t bufsize)
 {
 	/* Iterate through all channels and send broadcast message */
     DEBUG("ls-gate: Iterate through all channels and send broadcast message\n");
-    for (int i = 0; i < ls->num_channels; i++) {
+    for (uint8_t i = 0; i < ls->num_channels; i++) {
         ls_gate_channel_t *ch = &ls->channels[i];
         assert(ch->_internal.device != NULL);
 
@@ -928,7 +933,7 @@ void ls_gate_sleep(ls_gate_t *ls)
     /* Set all channel transceivers into sleep mode */
     DEBUG("ls-gate: put transceivers into sleep mode");
     uint8_t state = NETOPT_STATE_SLEEP;
-    for (int i = 0; i < ls->num_channels; i++) {
+    for (uint8_t i = 0; i < ls->num_channels; i++) {
         netdev_t *sx127x = ls->channels[i]._internal.device;
         sx127x->driver->set(sx127x, NETOPT_STATE, &state, sizeof(uint8_t));
     }

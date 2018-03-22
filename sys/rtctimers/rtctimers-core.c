@@ -94,10 +94,13 @@ void rtctimers_set(rtctimers_t *timer, uint32_t offset)
 
     rtctimers_remove(timer);
 
+#if (RTCTIMERS_BACKOFF > 0)
     if (offset < RTCTIMERS_BACKOFF) {
         _shoot(timer);
     }
-    else {
+    else 
+#endif
+    {
         uint32_t target = rtctimers_now() + offset;
         if (target >= RTCTIMERS_OVERFLOW_VALUE - RTCTIMERS_ISR_BACKOFF) {
             target -= (RTCTIMERS_OVERFLOW_VALUE - RTCTIMERS_ISR_BACKOFF);

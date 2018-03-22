@@ -294,7 +294,7 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 		}
         
         uint8_t region = atoi(payload);
-        unwds_set_region(region, false);
+        unwds_set_region(region);
         
         break;
     }

@@ -427,6 +427,7 @@ static const u32 Te4[256] = {
 };
 #endif /* AES_CALCULATE_TABLES */
 
+#if !defined (AES_NO_DECRYPTION)
 static const u32 Td0[256] = {
     0x51f4a750U, 0x7e416553U, 0x1a17a4c3U, 0x3a275e96U,
     0x3bab6bcbU, 0x1f9d45f1U, 0xacfa58abU, 0x4be30393U,
@@ -816,6 +817,7 @@ static const u32 Td4[256] = {
     0xe1e1e1e1U, 0x69696969U, 0x14141414U, 0x63636363U,
     0x55555555U, 0x21212121U, 0x0c0c0c0cU, 0x7d7d7d7dU,
 };
+#endif /* !AES_NO_DECRYPTION */
 #endif /* AES_CALCULATE_TABLES */
 
 /* for 128-bit blocks, Rijndael never uses more than 10 rcon values */
@@ -974,6 +976,7 @@ static int aes_set_encrypt_key(const unsigned char *userKey, const int bits,
     return 0;
 }
 
+#if !defined (AES_NO_DECRYPTION)
 /**
  * Expand the cipher key into the decryption key schedule.
  */
@@ -1057,6 +1060,7 @@ static int aes_set_decrypt_key(const unsigned char *userKey, const int bits,
 
     return 0;
 }
+#endif /* !AES_NO_DECRYPTION */
 
 /*
  * Encrypt a single block
@@ -1271,6 +1275,7 @@ int aes_encrypt(const cipher_context_t *context, const uint8_t *plainBlock,
     return 1;
 }
 
+#if !defined(AES_NO_DECRYPTION)
 /*
  * Decrypt a single block
  * in and out can overlap
@@ -1484,6 +1489,17 @@ int aes_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock,
     
     return 1;
 }
+#else /* AES_NO_DECRYPTION */
+int aes_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock,
+                uint8_t *plainBlock) {
+    (void)context;
+    (void)cipherBlock;
+    (void)plainBlock;
+    
+    return -1;
+    }
+#endif /* ?AES_NO_DECRYPTION */
+
 #else /* AES_ASM */
 extern void aes_128_asm_keyschedule(const uint8_t *, uint8_t *);
 extern void aes_128_asm_keyschedule_dec(const uint8_t *, uint8_t *);

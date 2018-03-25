@@ -107,6 +107,7 @@ CFLAGS += -DNO_RIOT_BANNER
 
 ####################################################
 
+CFLAGS += -DAES_NO_DECRYPTION
 CFLAGS += -DCRYPTO_AES
 
 FEATURES_OPTIONAL += config

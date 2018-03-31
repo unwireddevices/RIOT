@@ -13,6 +13,9 @@ RIOTBASE ?= $(CURDIR)/../..
 DEVELHELP ?= 1
 
 USEMODULE += rtctimers-millis
+USEMODULE += shell
+USEMODULE += shell_commands
+USEMODULE += ps
 
 FEATURES_REQUIRED += periph_rtc
 FEATURES_REQUIRED += periph_gpio

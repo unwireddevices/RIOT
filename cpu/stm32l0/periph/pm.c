@@ -30,8 +30,8 @@
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-volatile int pm_prevent_sleep = 0;
-volatile int pm_prevent_switch = 0;
+volatile int pm_prevent_sleep = 1;
+volatile int pm_prevent_switch = 1;
 
 volatile int pm_run_mode;
 
@@ -61,7 +61,7 @@ static void pm_select_run_mode(uint8_t pm_mode) {
 	switch(pm_mode) {
 		case PM_ON:
             DEBUG("Switching to PM_ON");
-			clk_init();
+			clk_init()
 			break;
 		case PM_IDLE:
             DEBUG("Switching to PM_IDLE");

@@ -31,8 +31,8 @@
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-volatile int pm_prevent_sleep = 0;
-volatile int pm_prevent_switch = 0;
+volatile int pm_prevent_sleep = 1;
+volatile int pm_prevent_switch = 1;
 
 /*
 static uint32_t pm_gpio_moder[8];

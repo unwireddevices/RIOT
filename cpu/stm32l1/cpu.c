@@ -171,10 +171,9 @@ void clk_init(void)
 
     /* SYSCLK, HCLK, PCLK2 and PCLK1 configuration */
 #if defined(CLOCK_HS_MULTI)   
-    RCC->CR |= (RCC_CR_HSION | RCC_CR_HSEON);
-    
     /* MCU after reboot or poweron */
     if (clock_source_rdy == 0) {
+        RCC->CR |= RCC_CR_HSEON;
         clock_source_rdy = RCC_CR_HSERDY;
     }
         
@@ -182,6 +181,8 @@ void clk_init(void)
     while (!(RCC->CR & clock_source_rdy)) {
         timeout++;
         if (timeout > 10000) {
+            RCC->CR |= RCC_CR_HSION;
+            RCC->CR &= ~RCC_CR_HSEON;
             clock_source_rdy = RCC_CR_HSIRDY;
             timeout = 0;
         }

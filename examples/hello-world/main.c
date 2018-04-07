@@ -26,8 +26,12 @@
 #include "shell_commands.h"
 #include "shell.h"
 #include "thread.h"
+#include "xtimer.h"
 
+#include "opt3001.h"
 
+static opt3001_measure_t opt3001_data;
+static opt3001_t opt3001;
 
 static kernel_pid_t process_pid;
 static msg_t process_msg;
@@ -47,6 +51,8 @@ static void *process_thread(void *arg) {
         msg_receive(&message);
         gpio_toggle(GPIO_PIN(PORT_B, 0));
         DEBUG("LED set to %d\n", gpio_read(GPIO_PIN(PORT_B, 0)));
+        opt3001_measure(&opt3001, &opt3001_data);
+        printf("Luminocity is %lu\n", opt3001_data.luminocity);
     }
     return NULL;
 }
@@ -69,18 +75,22 @@ int main(void)
     pm_prevent_sleep = 1;
     
     rtctimers_millis_init();
-
+    xtimer_init();
+    
+    opt3001.i2c = 1;
+    opt3001_init(&opt3001);
+    
     puts("Hello World!");
 
     printf("You are running RIOT on a(n) %s board.\n", RIOT_BOARD);
     printf("This board features a(n) %s MCU.\n", RIOT_MCU);
+    
+    opt3001_measure(&opt3001, &opt3001_data);
+    printf("Luminocity is %lu\n", opt3001_data.luminocity);
 
     gpio_init(GPIO_PIN(PORT_B, 0), GPIO_OUT);
     
     gpio_init_int(GPIO_PIN(PORT_B, 1), GPIO_IN_PU, GPIO_FALLING, btn_led_toggle, NULL);
-    
-    char str[10];
-    printf("%s\n", str);
 
     char stack[MY_PROCESS_STACK_SIZE];
     process_pid = thread_create(stack, MY_PROCESS_STACK_SIZE,

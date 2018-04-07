@@ -16,7 +16,10 @@ USEMODULE += rtctimers-millis
 USEMODULE += shell
 USEMODULE += shell_commands
 USEMODULE += ps
+USEMODULE += opt3001
+USEMODULE += xtimer
 
+FEATURES_REQUIRED += periph_i2c
 FEATURES_REQUIRED += periph_rtc
 FEATURES_REQUIRED += periph_gpio
 

@@ -231,7 +231,7 @@ void uart_poweron(uart_t uart)
 void uart_poweroff(uart_t uart)
 {
     assert(uart < UART_NUMOF);
-    periph_clk_en(uart_config[uart].bus, uart_config[uart].rcc_mask);
+    periph_clk_dis(uart_config[uart].bus, uart_config[uart].rcc_mask);
 }
 
 static inline void irq_handler(uart_t uart)

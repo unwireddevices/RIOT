@@ -112,6 +112,8 @@ void pwm_set(pwm_t pwm, uint8_t channel, uint16_t value)
     }
     /* set new value */
     dev(pwm)->CCR[pwm_config[pwm].chan[channel].cc_chan] = value;
+    
+    gpio_init_af(pwm_config[pwm].chan[channel].pin, pwm_config[pwm].af);
 }
 
 void pwm_start(pwm_t pwm)

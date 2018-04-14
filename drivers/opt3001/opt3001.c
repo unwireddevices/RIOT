@@ -12,7 +12,8 @@
  * @{
  * @file        opt3001.c
  * @brief       basic driver for OPT3001 sensor
- * @authoh      Oleg Artamonov [info@unwds.com]
+ * @author      Oleg Artamonov [info@unwds.com]
+ * @author      Dmitriy Faychuk [checordog@gmail.com]
  */
 
 
@@ -140,6 +141,89 @@ uint32_t opt3001_measure(opt3001_t *dev, opt3001_measure_t *measure)
     i2c_release(dev->i2c);
 
     measure->luminocity = lum;
+
+    return 0;
+}
+
+
+uint8_t get_exp(uint32_t lum)
+{
+    uint8_t exp = 0;
+    while(lum > 41) {
+        lum /= 2.0;
+        exp++;
+    }
+    return exp;
+}
+
+uint16_t convert(uint32_t lum)
+{
+    uint8_t exp = get_exp(lum);
+    uint16_t lsb_size_x100 = (1 << exp);
+    uint16_t binary_mantissa = (lum * 100) / lsb_size_x100;
+    uint16_t binary_exp = exp << 12;
+    uint16_t binary_limit = binary_exp | binary_mantissa;
+    return binary_limit;
+}
+
+
+/**
+ * @brief Init opt3001 Interrupt Reporting Mechanism
+ *
+ * @param[in] dev   pointer to the initialized OPT3001 device
+ * @param[in] cmp   comparison mode of the IRM
+ * @param[in] eoc   end of conversion mode of the IRM
+ * @param[in] pol   polarity of the INT pin
+ * @param[in] flt   fault counter threshold
+ * @param[in] high  HIGH limit value [0.01 - 83865.6], obviously should be higher than LOW 
+ * @param[in] low   LOW limit value [0.01 - 83865.6], obviously should be lower than HIGH
+ *
+ * @return 0 if succeeded
+ *
+ */
+int opt3001_init_int(opt3001_t *dev, opt3001_cmp_mode_t cmp, opt3001_eoc_mode_t eoc, 
+        opt3001_pol_t pol, opt3001_fault_counter_t flt, 
+        uint32_t high, uint32_t low)
+{
+    assert(dev != NULL);
+    i2c_acquire(dev->i2c);
+
+    uint16_t cfg = OPT3001_CFG_INT | cmp | pol | flt;
+    i2c_write_regs(dev->i2c, OPT3001_ADDRESS, OPT3001_REG_CONFIG, (char *)&cfg, 2);
+
+    uint16_t high_limit = convert(high);
+    /* swap bytes, as OPT3001 expects MSB first and I2C driver sends LSB first */
+    high_limit = ((high_limit >> 8) | (high_limit << 8));
+    i2c_write_regs(dev->i2c, OPT3001_ADDRESS, OPT3001_REG_HIGH, (char *)&high_limit, 2);
+
+    uint16_t low_limit = convert(low);
+    if(eoc == OPT3001_EOC)
+        low_limit = (low_limit & 0x3FFF) | 0xC000; // Clear two most significant bits and set them to 11b.
+    /* swap bytes, as OPT3001 expects MSB first and I2C driver sends LSB first */
+    low_limit = ((low_limit >> 8) | (low_limit << 8));
+    i2c_write_regs(dev->i2c, OPT3001_ADDRESS, OPT3001_REG_LOW, (char *)&low_limit, 2);
+
+    i2c_release(dev->i2c);
+    return 0;
+}
+
+
+/**
+ * @brief OPT3001 INTpin/FlagH/FlagL clearing routine
+ * @note Only works with Latched Window-style comparison mode
+ *
+ * @param[in] dev   pointer to the initialized OPT3001 device
+ *
+ * @return 0 if succeeded
+ *
+ */
+int opt3001_clear_int(opt3001_t *dev) 
+{
+    assert(dev != NULL);
+
+    i2c_acquire(dev->i2c);
+    uint16_t cfg = i2c_read_regs(dev->i2c, OPT3001_ADDRESS, OPT3001_REG_CONFIG, (char *)&cfg, 2);
+    i2c_release(dev->i2c);
 
     return 0;
 }

@@ -21,7 +21,6 @@ umdk-counter   = 1
 umdk-rssiecho  = 1
 umdk-pwm	   = 1
 umdk-opt3001   = 1
-umdk-dali	   = 1
 umdk-bme280    = 1
 umdk-config    = 1
 umdk-mhz19     = 1
@@ -32,6 +31,7 @@ umdk-irblaster = 1
 umdk-hx711     = 1
 umdk-fdc1004   = 1
 umdk-adxl345   = 1
+umdk-modbus	   = 1
 
 ####### UMDK MODULES defines and Makefile.include inclusion ############
 

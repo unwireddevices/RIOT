@@ -56,3 +56,6 @@ Makefile.local
 
 # scan-build artifacts
 scan-build/
+
+# Ignore changing CRLF to LF in doc/
+doc/doxygen/src/

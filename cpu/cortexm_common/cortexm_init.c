@@ -71,7 +71,7 @@ void cortexm_init(void)
 
 bool cpu_check_address(volatile const char *address)
 {
-#if defined(CPU_ARCH_CORTEX_M3) || defined(CPU_ARCH_CORTEX_M4) || defined(CPU_ARCH_CORTEX_M4F)
+#if defined(CPU_ARCH_CORTEX_M3)
     bool is_valid = true;
 
     /* Clear BFAR ADDRESS VALID flag */

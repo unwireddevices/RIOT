@@ -163,6 +163,8 @@
 #endif
 /** @} */
 
+volatile uint32_t cpu_clock_global;
+
 void stmclk_init_sysclk(void)
 {
     /* disable any interrupts. Global interrupts could be enabled if this is
@@ -241,6 +243,8 @@ void stmclk_init_sysclk(void)
     RCC->CR |= (RCC_CR_PLLSAION);
     while (!(RCC->CR & RCC_CR_PLLSAIRDY)) {}
 #endif
+
+    cpu_clock_global = CLOCK_CORECLOCK;
 
     irq_restore(is);
 }

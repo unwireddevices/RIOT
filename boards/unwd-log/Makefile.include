@@ -1,0 +1,5 @@
+## the cpu to build for
+export CPU = stm32f4
+export CPU_MODEL = stm32f415rg
+
+OFLAGS = -O ihex

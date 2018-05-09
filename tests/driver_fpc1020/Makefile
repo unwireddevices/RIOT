@@ -1,8 +1,9 @@
 APPLICATION = driver_fpc1020
-BOARD = nucleo-f411
+BOARD = unwd-log
 include ../Makefile.tests_common
 
 FEATURES_REQUIRED += periph_spi
+FEATURES_REQUIRED += periph_pm
 
 USEMODULE += fpc1020
 USEMODULE += xtimer

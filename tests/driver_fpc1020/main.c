@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Kees Bakker, SODAQ
+ * Copyright (C) 2018 Unwired Devices LLC
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -11,10 +11,9 @@
  * @{
  *
  * @file
- * @brief       Test application for the BME280 temperature, pressure
- *              and humidity sensor.
+ * @brief       Test application for the FPC1020A fingerprint sensor
  *
- * @author      Kees Bakker <kees@sodaq.com>
+ * @author      Oleg Artamonov <info@unwds.com>
  *
  * @}
  */

@@ -245,6 +245,12 @@ static int fpc1020_get_revision(fpc1020_t *dev) {
     return 0;
 }
 
+int fpc1020_get_fingerprint(fpc1020_t *dev) {
+    (void)dev;
+    
+    return 0;
+}
+
 int fpc1020_init(fpc1020_t *dev, spi_t spi, gpio_t cs, gpio_t reset, gpio_t irq) {
     xtimer_init();
     

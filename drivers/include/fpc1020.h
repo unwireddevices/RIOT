@@ -49,8 +49,6 @@ typedef struct {
 /**
  * @brief Initialize the FPC1020 sensor driver.
  *
- * @note The SPI bus is expected to have been initialized when adt7310_init is called.
- *
  * @param[in]  dev          pointer to sensor device descriptor
  * @param[in]  spi          SPI bus the sensor is connected to
  * @param[in]  cs           GPIO pin the chip SPI CS is connected to
@@ -61,6 +59,18 @@ typedef struct {
  * @return                  <0 on error
  */
 int fpc1020_init(fpc1020_t *dev, spi_t spi, gpio_t cs, gpio_t reset, gpio_t irq);
+
+/**
+ * @brief Gets fingerprint image.
+ *
+ * Image will be put to dev->image
+ *
+ * @param[in]  dev          pointer to sensor device descriptor
+ *
+ * @return                  image size on success
+ * @return                  <0 on error
+ */
+int fpc1020_get_fingerprint(fpc1020_t *dev);
 
 #ifdef __cplusplus
 }

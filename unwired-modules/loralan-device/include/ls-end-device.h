@@ -29,7 +29,6 @@
 #include "sx127x_params.h"
 #include "sx127x_netdev.h"
 
-#include "net/gnrc/netdev.h"
 #include "net/netdev.h"
 
 #define LS_RX2_DR LS_DR3
@@ -182,11 +181,11 @@ typedef struct {
 	/* Confirmation timeout */
 	rtctimers_millis_t conf_ack_expired;
 
-	/* Number of retransmitting tries */
-	uint8_t num_retr;
-
 	/* Last frame ID */
 	ls_frame_id_t last_fid;
+    
+	/* Number of retransmitting tries */
+	uint8_t num_retr;
 
 	/* Last frame needs to be confirmed
      * Blocking sending of other frames from queue until current frame is confirmed */
@@ -225,6 +224,8 @@ typedef struct {
 	void (*appdata_send_failed_cb)(void);
 
 	bool (*broadcast_appdata_received_cb)(uint8_t *buf, size_t buflen);
+    
+    void (*time_req_ack_cb)(time_t time);
 
 	ls_ed_internal_t _internal;	/**< Internal data for the LS stack*/
 } ls_ed_t;
@@ -240,5 +241,10 @@ int ls_ed_join(ls_ed_t *ls);
 void ls_ed_unjoin(ls_ed_t *ls);
 
 void ls_ed_sleep(ls_ed_t *ls);
+
+/**
+ * @brief Request current time from the gateway.
+ */
+int ls_ed_req_time(ls_ed_t *ls);
 
 #endif /* UNWIRED_MODULES_LORA_STAR_INCLUDE_LS_H_ */

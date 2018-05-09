@@ -31,8 +31,6 @@
 #include "periph/uart.h"
 #include "periph/gpio.h"
 
-#ifdef UART_NUMOF
-
 #define RXENABLE            (USART_CR1_RE | USART_CR1_RXNEIE)
 
 /**
@@ -231,7 +229,7 @@ void uart_poweron(uart_t uart)
 void uart_poweroff(uart_t uart)
 {
     assert(uart < UART_NUMOF);
-    periph_clk_en(uart_config[uart].bus, uart_config[uart].rcc_mask);
+    periph_clk_dis(uart_config[uart].bus, uart_config[uart].rcc_mask);
 }
 
 static inline void irq_handler(uart_t uart)
@@ -307,5 +305,3 @@ void UART_5_ISR(void)
     irq_handler(UART_DEV(5));
 }
 #endif
-
-#endif /* UART_NUMOF */

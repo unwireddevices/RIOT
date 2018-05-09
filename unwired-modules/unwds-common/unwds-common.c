@@ -66,8 +66,8 @@ static uint32_t enabled_bitmap[8];
  * NVRAM config.
  */
 static nvram_t *nvram = NULL;
-static int nvram_config_block_size = 0;
-static int nvram_config_base_addr = 0;
+static uint32_t nvram_config_block_size = 0;
+static uint32_t nvram_config_base_addr = 0;
 
 static uint8_t storage_used[UNWDS_STORAGE_BLOCKS_MAX] = { 0 };
 static uint8_t storage_blocks[UNWDS_STORAGE_BLOCKS_MAX];
@@ -158,7 +158,7 @@ static bool unwds_storage_cleanup(void) {
             for (k = 0; k < unwds_eeprom_layout.storage_blocks; k++) {
                 if (storage_blocks[i] == storage_used[k]) {
                     block_in_use = true;
-                    DEBUG("Block %d is in use by module %d\n", i, storage_used[k]);
+                    DEBUG("Block %lu is in use by module %d\n", i, storage_used[k]);
                     break;
                 }
             }
@@ -180,7 +180,7 @@ static bool unwds_storage_cleanup(void) {
         return true;
     }
     
-    DEBUG("Done, but only %d clean blocks\n", clean_blocks);
+    DEBUG("Done, but only %lu clean blocks\n", clean_blocks);
     DEBUG("Writing new storage config\n");
     unwds_write_nvram_config(UNWDS_CONFIG_MODULE_ID, storage_blocks, sizeof(storage_blocks));
     
@@ -446,7 +446,7 @@ int unwds_modid_by_name(char *name) {
 
 gpio_t unwds_gpio_pin(int pin)
 {
-    if (pin < 0 || pin >= (sizeof(unwds_gpio_map) / sizeof(gpio_t))) {
+    if (pin < 0 || (uint32_t)pin >= (sizeof(unwds_gpio_map) / sizeof(gpio_t))) {
         return 0;
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Unwired Devices
+ * Copyright (C) 2016-2018 Unwired Devices
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -12,7 +12,7 @@
  * @brief
  * @{
  * @file        ls_crypto.h
- * @brief       Definitions for cryptographic routines
+ * @brief       Cryptographic routines definitions
  * @author      Eugene Ponomarev
  */
 #ifndef LS_CRYPTO_H_
@@ -23,15 +23,12 @@
 
 #define LS_MIC_KEY_LEN AES_KEY_SIZE
 
-#define LS_ECB_ENCRYPTION_MAX_SIZE 14
-
 /**
  * @brief Cryptography settings for the device.
  */
 typedef struct {
 	uint8_t mic_key[LS_MIC_KEY_LEN];
 	uint8_t aes_key[AES_KEY_SIZE];
-
 	uint8_t join_key[AES_KEY_SIZE];
 } ls_crypto_t;
 
@@ -56,22 +53,22 @@ ls_mic_t ls_calculate_mic(uint8_t *key, ls_frame_t *frame, uint8_t payload_size)
 bool ls_validate_frame_mic(uint8_t *key, ls_frame_t *frame);
 
 /**
- * @brief Encrypts payload of the specified frame in respect to ls stack state.
+ * @brief Encrypts payload of the specified frame with specified key.
  *
- * @param	[IN]	ls		the ls stack state including cryptographic keys
- * @param	[IN]	payload	pointer to the payload that will be modified to the encrypted one
+ * @param	[IN]	*key		cryptographic key
+ * @param	[IN]	*frame		pointer to the frame to encrypt it's payload
  *
- * @return new size of the payload buffer
  */
-int ls_encrypt_frame_payload(uint8_t *key, ls_payload_t *payload);
+void ls_encrypt_frame_payload(uint8_t *key, ls_frame_t *frame);
 
 /**
- * @brief Decrypts the payload of the specified frame in respect to ls stack state.
+ * @brief Decrypts payload of the specified frame with specified key.
  *
- * @param	[IN]	ls		the ls stack state including cryptographic keys
- * @param	[IN]	payload	pointer to the payload that will be decrypted
+ * @param	[IN]	*key		cryptographic key
+ * @param	[IN]	*frame		pointer to the frame to decrypt it's payload
+ *
  */
-void ls_decrypt_frame_payload(uint8_t *key, ls_payload_t *payload);
+void ls_decrypt_frame_payload(uint8_t *key, ls_frame_t *frame);
 
 /**
  * @brief Encrypts frame payload and calculates frame's MIC

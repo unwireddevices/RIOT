@@ -22,7 +22,6 @@
 #include "cpu.h"
 #include "periph/pm.h"
 
-#include "vendor/stm32l1xx.h"
 #include "cpu.h"
 #include "board.h"
 #include "periph_conf.h"
@@ -32,9 +31,10 @@
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-volatile int pm_prevent_sleep = 0;
-volatile int pm_prevent_switch = 0;
+volatile int pm_prevent_sleep = 1;
+volatile int pm_prevent_switch = 1;
 
+/*
 static uint32_t pm_gpio_moder[8];
 static uint32_t pm_gpio_pupdr[8];
 static uint16_t pm_gpio_otyper[8];
@@ -45,11 +45,12 @@ static uint32_t tmpreg;
 
 static uint16_t pm_portmask_system[8] = { 0 };
 static uint16_t pm_portmask_user[8] = { 0 };
-
+*/
 volatile int pm_run_mode;
 
 /* We are not using gpio_init as it sets GPIO clock speed to maximum */
 /* We add GPIOs we touched to exclusion mask pm_portmask_system */
+/*
 static void pin_set(GPIO_TypeDef* port, uint8_t pin, uint8_t value) {
     tmpreg = port->MODER;
     tmpreg &= ~(3 << (2*pin));
@@ -66,145 +67,32 @@ static void pin_set(GPIO_TypeDef* port, uint8_t pin, uint8_t value) {
     
     pm_portmask_system[((uint32_t)port >> 10) & 0x0f] |= 1 << pin;
 }
+*/
 
 /* put GPIOs in low-power state */
 static void pm_before_i_go_to_sleep (void) {
-	uint32_t i;
-    uint32_t p;
-    uint32_t mask;
-    GPIO_TypeDef *port;
-	
-	for (i = 0; i < cpu_ports_number; i++) {
-        port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
-
-        /* save GPIO registers values */
-        pm_gpio_moder[i] = port->MODER;
-        pm_gpio_pupdr[i] = port->PUPDR;
-        pm_gpio_otyper[i] = (uint16_t)(port->OTYPER & 0xFFFF);
-        pm_gpio_odr[i] = (uint16_t)(port->ODR & 0xFFFF);
-	}
-	
-    /* Disable all USART interfaces in use */
-    /* without it, RX will receive some garbage when MODER is changed */
-
-    for (i = 0; i < UART_NUMOF; i++) {
-        if (uart_config[i].dev->CR1 & USART_CR1_UE) {
-            uart_config[i].dev->CR1 &= ~USART_CR1_UE;
-            pin_set((GPIO_TypeDef *)(uart_config[i].tx_pin & ~(0x0f)), uart_config[i].tx_pin & 0x0f, 1);
-            pm_usart[i] = 1;
-        } else {
-            pm_usart[i] = 0;
-        }
-    }
-
-    /* specifically set GPIOs used for external SPI devices */
-    /* NSS = 1, MOSI = 0, SCK = 0, MISO doesn't matter */
-    for (i = 0; i < SPI_NUMOF; i++) {
-        /* port and pin numbers */
-        port = (GPIO_TypeDef *)(spi_config[i].sclk_pin & ~(0x0f));
-        p = spi_config[i].sclk_pin & 0x0f;
-        
-        if (((port->AFR[(p > 7) ? 1 : 0] >> (p * 4)) & 0x0f)  == spi_config[i].af) {
-            if (spi_config[i].cs_pin != GPIO_UNDEF) {
-                pin_set((GPIO_TypeDef *)(spi_config[i].cs_pin & ~(0x0f)), spi_config[i].cs_pin & 0x0f, 1);
-            }
-            pin_set((GPIO_TypeDef *)(spi_config[i].mosi_pin & ~(0x0f)), spi_config[i].mosi_pin & 0x0f, 0);
-            pin_set((GPIO_TypeDef *)(spi_config[i].sclk_pin & ~(0x0f)), spi_config[i].sclk_pin & 0x0f, 0);
-        }
-    }
-
-    /* save GPIO clock configuration */
-    ahb_gpio_clocks = RCC->AHBENR & 0xFF;
-    /* enable all GPIO clocks */
-    periph_clk_en(AHB, 0xFF);
-    
-    for (i = 0; i < cpu_ports_number; i++) {
-        port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
-        mask = 0xFFFFFFFF;
-        if (EXTI->IMR) {
-            for (p = 0; p < 16; p++) {
-                /* exclude GPIOs we previously set with pin_set */
-                uint32_t _mask = ~(0x03 << (p*2));
-                if ((pm_portmask_system[i] | pm_portmask_user[i]) & (1 << p)) {
-                    mask &= _mask;
-                } else {
-                    if ((EXTI->IMR & (1 << p)) && ((((SYSCFG->EXTICR[p >> 2]) >> ((p & 0x03) * 4)) & 0xF) == i)) {
-                        mask &= _mask;
-                    }
-                }
-            }
-        }
-
-        /* disable pull-ups on GPIOs */
-        tmpreg = port->PUPDR;
-        tmpreg &= ~mask;
-        port->PUPDR = tmpreg;
-        
-        /* set GPIOs to AIN mode */
-        tmpreg = port->MODER;
-        tmpreg |= mask;
-        port->MODER = tmpreg;
-    }
-
-    /* restore GPIO clocks */
-    tmpreg = RCC->AHBENR;
-    tmpreg &= ~((uint32_t)0xFF);
-    tmpreg |= ahb_gpio_clocks;
-    periph_clk_en(AHB, tmpreg);
+    /* seems nothing is needed here */
 }
 
 
 /* restore GPIO settings */
 static void pm_when_i_wake_up (void) {
-    /* enable all GPIO clocks */
-    periph_clk_en(AHB, 0xFF);
-    
-    uint32_t i;
-    GPIO_TypeDef *port;
-      
-    /* restore GPIO settings */
-    for (i = 0; i < cpu_ports_number; i++) {
-        port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
-        
-        port->PUPDR = pm_gpio_pupdr[i];
-        port->OTYPER = pm_gpio_otyper[i];
-        port->ODR = pm_gpio_odr[i];
-        port->MODER = pm_gpio_moder[i];
-    }
-
-    /* restore GPIO clocks */
-    tmpreg = RCC->AHBENR;
-    tmpreg &= ~((uint32_t)0xFF);
-    tmpreg |= ahb_gpio_clocks;
-    periph_clk_en(AHB, tmpreg);
-    
-    /* restore USART clocks */
-    for (i = 0; i < UART_NUMOF; i++) {
-        if (pm_usart[i]) {
-            uart_config[i].dev->CR1 |= USART_CR1_UE;
-        }
-    }
+    /* seems nothing is needed here */
 }
 
 /* Do not change GPIO state in sleep mode */
 void pm_add_gpio_exclusion(gpio_t gpio) {
-	uint32_t port = ((uint32_t)gpio >> 10) & 0x0f;
-	uint32_t pin = ((uint32_t)gpio & 0x0f);
-	
-	pm_portmask_user[port] |= (1<<pin);
+	(void)gpio;
 }
 
 /* Change GPIO state to AIN in sleep mode */
 void pm_del_gpio_exclusion(gpio_t gpio) {
-	uint32_t port = ((uint32_t)gpio >> 10) & 0x0f;
-	uint32_t pin = ((uint32_t)gpio & 0x0f);
-	
-	pm_portmask_user[port] &= ~(1<<pin);
+	(void)gpio;
 }
 
 /* Select CPU clocking between default (PM_ON) and medium-speed (PM_IDLE) */
 static void pm_select_run_mode(uint8_t pm_mode) {
-	switch(pm_run_mode) {
+	switch(pm_mode) {
 		case PM_ON:
             DEBUG("Switching to PM_ON");
 			clk_init();
@@ -222,12 +110,16 @@ static void pm_select_run_mode(uint8_t pm_mode) {
 		break;
 	}
     
+#if defined(XTIMER_PRESENT)
     /* Recalculate xtimer frequency */
     /* NB: default XTIMER_HZ clock is 1 MHz, so CPU clock must be at least 1 MHz for xtimer to work properly */
     xtimer_init();
+#endif
     
+#if defined(UART_STDIO_DEV)
     /* Recalculate stdio UART baudrate */
     uart_set_baudrate(UART_STDIO_DEV, UART_STDIO_BAUDRATE);
+#endif
 }
 
 void pm_set_lowest(void)

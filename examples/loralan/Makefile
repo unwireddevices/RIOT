@@ -21,7 +21,6 @@ umdk-counter   = 1
 umdk-rssiecho  = 1
 umdk-pwm	   = 1
 umdk-opt3001   = 1
-umdk-dali	   = 1
 umdk-bme280    = 1
 umdk-config    = 1
 umdk-mhz19     = 1
@@ -32,6 +31,7 @@ umdk-irblaster = 1
 umdk-hx711     = 1
 umdk-fdc1004   = 1
 umdk-adxl345   = 1
+umdk-modbus	   = 1
 
 ####### UMDK MODULES defines and Makefile.include inclusion ############
 
@@ -87,7 +87,18 @@ APPLICATION = loralan-public
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../..
 
-FEATURES_REQUIRED = periph_spi periph_gpio
+FEATURES_REQUIRED += periph_adc
+FEATURES_REQUIRED += periph_dac
+FEATURES_REQUIRED += periph_gpio
+FEATURES_REQUIRED += periph_i2c
+FEATURES_REQUIRED += periph_pwm
+FEATURES_REQUIRED += periph_rtc
+FEATURES_REQUIRED += periph_spi
+FEATURES_REQUIRED += periph_eeprom
+FEATURES_REQUIRED += periph_uart
+FEATURES_REQUIRED += periph_pm
+FEATURES_REQUIRED += periph_iwdg
+FEATURES_REQUIRED += periph_cpuid
 
 QUIET ?= 1
 
@@ -96,6 +107,7 @@ CFLAGS += -DNO_RIOT_BANNER
 
 ####################################################
 
+CFLAGS += -DAES_NO_DECRYPTION
 CFLAGS += -DCRYPTO_AES
 
 FEATURES_OPTIONAL += config

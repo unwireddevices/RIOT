@@ -45,7 +45,7 @@ node_role_settings_t unwds_get_node_settings(void) {
     return node_settings;
 }
 
-void unwds_set_region(int region, bool is_empty) {
+void unwds_set_region(int region) {
     node_settings.region_index = region;
     return;
 }

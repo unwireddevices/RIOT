@@ -31,7 +31,7 @@ extern "C" {
 #include "periph/gpio.h"
 #include "random.h"
 
-#include "net/gnrc/netdev.h"
+#include "net/lora.h"
 #include "net/netdev.h"
 #include "sx127x_internal.h"
 #include "sx127x_params.h"
@@ -144,6 +144,22 @@ void joined_cb(void)
 
     puts("[LoRa] successfully joined to the network");
     blink_led(LED_GREEN);
+    
+    /* Synchronize time if necessary */
+    if (unwds_get_node_settings().req_time) {
+    	ls_ed_req_time(&ls);
+    }
+}
+
+static void time_req_ack_cb(time_t time) {
+	struct tm *t;
+	t = localtime(&time);
+
+	printf("ls: received new time from the gate: %04d-%02d-%02d %02d:%02d:%02d\n", t->tm_year + 1900, t->tm_mon + 1,
+			t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
+
+	/* Setup new time as system time for all the timers */
+	rtctimers_millis_set_timebase(t);
 }
 
 void appdata_send_failed_cb(void)
@@ -261,6 +277,8 @@ static void ls_setup(ls_ed_t *ls)
 
     ls->appdata_received_cb = appdata_received_cb;
     ls->broadcast_appdata_received_cb = broadcast_appdata_received_cb;
+    
+    ls->time_req_ack_cb = time_req_ack_cb;
 
     ls->_internal.device = netdev;
 }
@@ -311,7 +329,7 @@ int ls_set_cmd(int argc, char **argv)
             printf("set region: region value must be from 0 to %d\n", LS_UNI_NUM_REGIONS - 1);
             return 1;
         }
-        unwds_set_region(v, false);
+        unwds_set_region(v);
     }
     else if (strcmp(key, "maxretr") == 0) {
         uint8_t v = strtol(value, NULL, 10);
@@ -437,6 +455,9 @@ static void print_config(void)
 
 static int ls_printc_cmd(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
+    
     print_config();
 
     return 0;
@@ -491,6 +512,9 @@ int ls_cmd_cmd(int argc, char **argv)
 
 static int ls_listmodules_cmd(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
+    
     puts("[ available modules ]");
     unwds_list_modules(unwds_get_node_settings().enabled_mods, false);
 
@@ -504,7 +528,7 @@ static int ls_module_cmd(int argc, char **argv)
         return 1;
     }
 
-    uint8_t modid = 0;
+    int modid = 0;
     
     if (is_number(argv[1])) {
         modid = atoi(argv[1]);
@@ -552,6 +576,9 @@ static int print_regions_cmd(int argc, char **argv)
 }
 
 static int ls_safe_cmd(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
+
     uint32_t bootmode = UNWDS_BOOT_SAFE_MODE;
     rtc_save_backup(bootmode, RTC_REGBACKUP_BOOTMODE);
     puts("Rebooting in safe mode");
@@ -560,6 +587,9 @@ static int ls_safe_cmd(int argc, char **argv) {
 }
 
 static int ls_join_cmd(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
+    
     node_join(&ls);
     return 0;
 }
@@ -622,6 +652,8 @@ static bool is_connect_button_pressed(void)
 }
 
 static void iwdg_reset (void *arg) {
+    (void)arg;
+    
     wdg_reload();
     rtctimers_millis_set(&iwdg_timer, 15000);
     DEBUG("Watchdog reset\n");
@@ -629,6 +661,8 @@ static void iwdg_reset (void *arg) {
 }
 
 static void ls_enable_sleep (void *arg) {
+    (void)arg;
+    
     pm_prevent_sleep = 0;
 #ifdef LPM_ENABLE_IDLE_MODE
     /* allow CPU frequency switching */

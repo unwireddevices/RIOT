@@ -62,6 +62,8 @@ static msg_t timer_msg = {};
 static kernel_pid_t timer_pid;
 
 static void *timer_thread(void *arg) {
+    (void)arg;
+    
     msg_t msg;
     msg_t msg_queue[4];
     msg_init_queue(msg_queue, 4);
@@ -206,14 +208,14 @@ bool umdk_mhz19_cmd(module_data_t *data, module_data_t *reply)
     switch (prefix) {
         case UMDK_MHZ19_ASK:
             is_polled = true;
-            // umdk_mhz19_ask();
             msg_send(&timer_msg, timer_pid);
+            break;
+            
         case UMDK_MHZ19_SET_PERIOD:
             if (data->length != 2) {
                 do_reply(reply, UMDK_MHZ19_REPLY_ERR_FMT);
                 break;
             }
-
             umdk_mhz19_config.publish_period_sec = 60*(data->data[1]);
             do_reply(reply, UMDK_MHZ19_REPLY_OK);
             break;

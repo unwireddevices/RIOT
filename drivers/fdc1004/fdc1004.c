@@ -81,7 +81,39 @@ uint32_t fdc1004_get_capacitance(fdc1004_t *dev, uint8_t channel)
     /* Acquire the I2C bus */
     i2c_acquire(dev->i2c);
     
-    /* Read two bytes from the sensor: MSB & LSB of temperature value */
+    
+    uint16_t reg;
+    
+    i2c_read_regs(dev->i2c, FDC1004_ADDRESS, FDC1004_REG_CONF_MEAS1 + channel, (uint8_t *)&reg, 2);
+    
+    /* set positive channel */
+    reg &= ~(0b111 << 13);
+    reg |= (channel << 13);
+    
+    /* disable negative channel */
+    reg |= (0b111 << 10);
+    
+    i2c_write_regs(dev->i2c, FDC1004_ADDRESS, FDC1004_REG_CONF_MEAS1 + channel, (uint8_t *)&reg, 2);
+    
+    /* set sample rate to 100 S/s */
+    i2c_read_regs(dev->i2c, FDC1004_ADDRESS, FDC1004_REG_FDC_CONF, (uint8_t *)&reg, 2);
+    reg &= ~(0b11 << 10);
+    reg |= (0b01 << 10);
+    /* disable repeat */
+    reg &= ~(1 << 8);
+    i2c_write_regs(dev->i2c, FDC1004_ADDRESS, FDC1004_REG_FDC_CONF, (uint8_t *)&reg, 2);
+    
+    /* start measurement */
+    reg &= ~(0b1111 << 4);
+    reg |= (1 << (channel + 4));
+    i2c_write_regs(dev->i2c, FDC1004_ADDRESS, FDC1004_REG_FDC_CONF, (uint8_t *)&reg, 2);
+    
+    /* wait for result */
+    do {
+        i2c_read_regs(dev->i2c, FDC1004_ADDRESS, FDC1004_REG_FDC_CONF, (uint8_t *)&reg, 2);
+    } while (!(reg & (1 << (channel + 4))));
+    
+    /* Read capacitance data */
     uint32_t capacitance = 0;
     i2c_read_regs(dev->i2c, FDC1004_ADDRESS, FDC1004_REG_MEAS1_MSB + channel, (uint8_t *)&capacitance, 2);
     i2c_read_regs(dev->i2c, FDC1004_ADDRESS, FDC1004_REG_MEAS1_LSB + channel, ((uint8_t *)&capacitance) + 2, 2);

@@ -52,6 +52,8 @@ static int last_pressed[4] = { 0, };
 static uwnds_cb_t *callback;
 
 static void *handler(void *arg) {
+    (void)arg;
+    
     msg_t msg;
     msg_t msg_queue[4];
     msg_init_queue(msg_queue, 4);
@@ -107,6 +109,9 @@ void umdk_pir_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 }
 
 bool umdk_pir_cmd(module_data_t *data, module_data_t *reply) {
+    (void)data;
+    (void)reply;
+    
 	return false;
 }
 

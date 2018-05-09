@@ -59,6 +59,9 @@ typedef enum {
     ADC_RES_14BIT = (0xfe),         /**< not applicable */
     ADC_RES_16BIT = (0xff)          /**< not applicable */
 } adc_res_t;
+
+#define ADC_VREF_CHANNEL        17
+#define ADC_TEMPERATURE_CHANNEL 18
 /** @} */
 #endif /* ndef DOXYGEN */
 

@@ -21,6 +21,7 @@
 #include <stdint.h>
 
 #include "thread.h"
+#include "time.h"
 
 #ifndef RTCTIMERS_MILLIS_OVERHEAD
     #define RTCTIMERS_MILLIS_OVERHEAD 0
@@ -51,5 +52,22 @@ void rtctimers_millis_sleep(uint32_t sleep_millis);
 void rtctimers_millis_set_msg(rtctimers_millis_t *timer, uint32_t offset, msg_t *msg, kernel_pid_t target_pid);
 uint32_t rtctimers_millis_now(void);
 
+/**
+ * @brief Returns time in milliseconds since 00:00:00 Sunday
+ */
+uint32_t rtctimers_millis_now(void);
+
+/**
+ * @brief Sets timers to an absolute time defined by day of week, h:m:s just like a regular alarm clock
+ *
+ * @note Days of week starting from Sunday (0), thus, Monday is (1), ..., and Saturday is (6)
+ */
+void rtctimers_millis_set_absolute(rtctimers_millis_t *timer, uint8_t wday, uint8_t hour, uint8_t min, uint8_t sec);
+void rtctimers_millis_set_msg_absolute(rtctimers_millis_t *timer, msg_t *msg, kernel_pid_t target_pid, uint8_t wday, uint8_t hour, uint8_t min, uint8_t sec);
+
+/**
+ * @brief Changes current time without affecting currently running timers (shifts them accordingly)
+ */
+void rtctimers_millis_set_timebase(struct tm *new_time);
 
 #endif /* RTC_TIMERS_MILLIS_H_ */

@@ -15,8 +15,8 @@
  * @brief       LoRa Star MAC types
  * @author      Eugene Ponomarev
  */
-#ifndef UNWIRED_MODULES_LORA_STAR_INCLUDE_LS_MAC_TYPES_H_
-#define UNWIRED_MODULES_LORA_STAR_INCLUDE_LS_MAC_TYPES_H_
+#ifndef UNWIRED_MODULES_LORALAN_MAC_TYPES_H_
+#define UNWIRED_MODULES_LORALAN_MAC_TYPES_H_
 
 #include "crypto/aes.h"
 
@@ -30,7 +30,7 @@
  */
 typedef uint8_t ls_mhdr_t;			/**< 1 byte LoRaWAN MHDR */
 typedef uint32_t ls_addr_t;     	/**< 4 byte node address */
-typedef uint8_t ls_frame_id_t;		/**< 1 byte frame ID */
+typedef uint16_t ls_frame_id_t;		/**< 1 byte frame ID */
 typedef uint16_t ls_bc_frame_id_t;	/**< 2 byte broadcast frame ID */
 typedef uint32_t ls_mic_t;     		/**< 4 byte message integrity check value */
 typedef uint8_t ls_channel_t;		/**< 1 byte channel number */
@@ -81,11 +81,14 @@ typedef enum {
 
 	LS_DL_BROADCAST,	/**< Unconfirmed downlink broadcasted message */
 
-	LS_UL_JOIN_REQ,	/**< Join request */
-	LS_DL_JOIN_ACK,	/**< Join acknowledge */
+	LS_UL_JOIN_REQ,	    /**< Join request */
+	LS_DL_JOIN_ACK,	    /**< Join acknowledge */
 
 	RFU4,
 	LS_DL_INVITE,		/**< Individual join invitation for the class C (always listening) devices */
+    
+    LS_UL_TIME_REQ,     /**< Time synchronization request */
+    LS_DL_TIME_ACK,     /**< Time synchronization reply */
 
 	/* Reserved for future use */
 	LS_RFU5,
@@ -99,7 +102,16 @@ typedef struct {
     ls_mic_t mic : 24;				/**< Frame's Message Integrity Check value*/
     ls_addr_t dev_addr;				/**< Destination address */
     ls_type_t type;					/**< Type of a frame */
+    uint8_t fid;				/**< Frame serial number */
+    uint8_t status;                 /**< Node status */
+} ls_header_r1_t;
+
+typedef struct {
+    uint8_t mhdr;					/**< Reserved value of the MHDR for the LoRaWAN coexistence */
+    ls_mic_t mic : 24;				/**< Frame's Message Integrity Check value*/
+    ls_addr_t dev_addr;				/**< Destination address */
     ls_frame_id_t fid;				/**< Frame serial number */
+    ls_type_t type;					/**< Type of a frame */
     uint8_t status;                 /**< Node status */
 } ls_header_t;
 
@@ -140,6 +152,11 @@ typedef struct {
     ls_payload_t payload;          /**< LS frame payload */
 } ls_frame_t;
 
+typedef struct {
+    ls_header_r1_t header;         /**< LS frame header */
+    ls_payload_t payload;          /**< LS frame payload */
+} ls_frame_r1_t;
+
 /**
  * LS join request.
  */
@@ -171,4 +188,12 @@ typedef struct {
 	uint64_t dev_id;
 } ls_invite_t;
 
-#endif /* UNWIRED_MODULES_LORA_STAR_INCLUDE_LS_MAC_TYPES_H_ */
+/**
+ * @brief Current time value
+ */
+typedef struct {
+	time_t gate_time;    /**< Current time on a gateway on a moment of request */
+	uint64_t rfu1;      /**< Reserved */
+} ls_time_req_ack_t;
+
+#endif /* UNWIRED_MODULES_LORALAN_MAC_TYPES_H_ */

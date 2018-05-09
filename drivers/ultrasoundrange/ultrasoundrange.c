@@ -305,7 +305,7 @@ int ultrasoundrange_init(ultrasoundrange_t *dev)
     /* reset configuration and CC channels */
     tim_dev(pwm)->CR1 = 0;
     tim_dev(pwm)->CR2 = 0;
-    for (int i = 0; i < TIMER_CHAN; i++) {
+    for (uint32_t i = 0; i < TIMER_CHAN; i++) {
         tim_dev(pwm)->CCR[i] = 0;
     }
 
@@ -615,7 +615,7 @@ static uint32_t ultrasoundrange_count_pulses(ultrasoundrange_t *dev, int begin_t
 #endif
 
 
-static int32_t ultrasoundrange_first_echo(ultrasoundrange_t *dev, int listening_time) {
+static int32_t ultrasoundrange_first_echo(ultrasoundrange_t *dev) {
     int max_pulses = 10;
     int min_time = 32000 * 3; // 3 ms
     int max_ticks = dev->period_us * max_pulses * 3 / 4;
@@ -745,7 +745,7 @@ uint32_t ultrasoundrange_measure(ultrasoundrange_t *dev, ultrasoundrange_measure
 
     // count_pulses(dev, transmit(dev));
     // transmit(dev); simple_count_pulses(dev, 320000);
-    ultrasoundrange_transmit(dev); int t = ultrasoundrange_first_echo(dev, 640000); // distance_in_mm = time_in_ticks * 1000 ms / 32000000 Hz / 2 * 330 m/s
+    ultrasoundrange_transmit(dev); int t = ultrasoundrange_first_echo(dev); // distance_in_mm = time_in_ticks * 1000 ms / 32000000 Hz / 2 * 330 m/s
     if (t > 0)
         measure->range = t / 194;
     else

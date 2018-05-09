@@ -1,3 +1,6 @@
+ifneq (,$(filter fpc1020,$(USEMODULE)))
+    USEMODULE_INCLUDES += $(RIOTBASE)/drivers/fpc1020/include
+endif
 ifneq (,$(filter hd44780,$(USEMODULE)))
     USEMODULE_INCLUDES += $(RIOTBASE)/drivers/hd44780/include
 endif
@@ -15,6 +18,9 @@ ifneq (,$(filter cc110x,$(USEMODULE)))
 endif
 ifneq (,$(filter ds1307,$(USEMODULE)))
   USEMODULE_INCLUDES += $(RIOTBASE)/drivers/ds1307/include
+endif
+ifneq (,$(filter fpc1020,$(USEMODULE)))
+    USEMODULE_INCLUDES += $(RIOTBASE)/drivers/fpc1020/include
 endif
 ifneq (,$(filter grove_ledbar,$(USEMODULE)))
   USEMODULE_INCLUDES += $(RIOTBASE)/drivers/grove_ledbar/include

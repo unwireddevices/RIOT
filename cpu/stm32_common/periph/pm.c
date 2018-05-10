@@ -49,7 +49,7 @@ enum pm_mode pm_set(enum pm_mode mode)
  * others... /KS */
 #if defined(CPU_FAM_STM32F1) || defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4)
     switch (mode) {
-        case 0:
+        case PM_POWERDOWN:
             /* Set PDDS to enter standby mode on deepsleep and clear flags */
             PWR->CR |= (PWR_CR_PDDS | PWR_CR_CWUF | PWR_CR_CSBF);
             /* Enable WKUP pin to use for wakeup from standby mode */
@@ -57,13 +57,21 @@ enum pm_mode pm_set(enum pm_mode mode)
             /* Set SLEEPDEEP bit of system control block */
             deep = 1;
             break;
-        case 1:                 /* STM Stop mode */
+        case PM_SLEEP:                 /* STM Stop mode */
             /* Clear PDDS and LPDS bits to enter stop mode on */
             /* deepsleep with voltage regulator on */
             PWR->CR &= ~(PWR_CR_PDDS | PWR_CR_LPDS);
             PWR->CR |= PM_STOP_CONFIG;
             /* Set SLEEPDEEP bit of system control block */
             deep = 1;
+            break;
+        case PM_IDLE:
+            break;
+        case PM_ON:
+            break;
+        case PM_OFF:
+            break;
+        case PM_UNKNOWN:
             break;
     }
 #else

@@ -26,6 +26,13 @@
 extern "C" {
 #endif
 
+#define FPC1020_PIXEL_COLUMNS                   192
+#define FPC1020_PIXEL_ROWS                      192
+#define FPC1020_ADC_GROUP_SIZE                  8
+#define FPC1020_MAX_IMAGE_SIZE                  36864
+#define FPC1020_SPI_SPEED                       SPI_CLK_1MHZ
+#define FPC1020_EXT_HWID_CHECK_ID1020A_ROWS     5
+
 typedef enum {
     FPC102X_ERROR_NO_ERROR = 0,
     FPC102X_ERROR_IRQ_NOT_CLEARED,
@@ -43,7 +50,7 @@ typedef struct {
     gpio_t reset;                               /**< RESET pin */
     gpio_t irq;                                 /**< IRQ pin */
     uint8_t revision;                           /**< FPC1020A chip revision */
-    uint8_t image[FPC1020_MAX_IMAGE_SIZE];      /**< Image buffer, default size is 192*192 = 36864 bytes */
+    uint8_t *image;      /**< Image buffer, default size is 192*192 = 36864 bytes */
 } fpc1020_t;
 
 /**

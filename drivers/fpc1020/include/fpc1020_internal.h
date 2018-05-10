@@ -25,13 +25,6 @@
 extern "C" {
 #endif
 
-#define FPC1020_PIXEL_COLUMNS                   192
-#define FPC1020_PIXEL_ROWS                      192
-#define FPC1020_ADC_GROUP_SIZE                  8
-#define FPC1020_MAX_IMAGE_SIZE                  (FPC1020_PIXEL_COLUMNS*FPC1020_PIXEL_ROWS) /* 36864 */
-#define FPC1020_SPI_SPEED                       SPI_CLK_1MHZ
-#define FPC1020_EXT_HWID_CHECK_ID1020A_ROWS     5
-
 typedef enum {
 	/* --- Common registers --- */
 	FPC102X_REG_FPC_STATUS              = 20,	/* RO, 1 bytes  */

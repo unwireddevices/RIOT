@@ -62,9 +62,15 @@ static int fpc1020_reg_write(fpc1020_t *dev, uint8_t cmd, uint8_t *data_write, u
 }
 
 static int fpc1020_reset(fpc1020_t *dev) {
+    DEBUG("Resetting FPC1020\n");
     gpio_clear(dev->reset);
     xtimer_spin(xtimer_ticks_from_usec(10000));
     gpio_set(dev->reset);
+    
+    int res = fpc1020_wait_for_irq(dev);
+    if (res != 0xff) {
+        return res;
+    }
     
     return 0;
 }
@@ -77,6 +83,7 @@ static int fpc1020_wait_for_irq(fpc1020_t *dev) {
     while (gpio_read(dev->irq) == 0) {
         xtimer_spin(xtimer_ticks_from_usec(1000));
         if (++i > 100) {
+            DEBUG("Timeout waiting for IRQ\n");
             return -FPC102X_ERROR_IRQ_TIMEOUT;
         }
     }
@@ -120,7 +127,13 @@ static int fpc1020_check_hwid(fpc1020_t *dev) {
     uint16_t hwid;
     fpc1020_reg_write(dev, FPC102X_REG_HWID, NULL, (uint8_t *)&hwid, 2);
     
+    hwid = (hwid >> 8) | (hwid << 8);
     DEBUG("HWID: 0x%04X\n", hwid);
+    
+    if (hwid != 0x020a) {
+        DEBUG("HWID mismatch");
+        return -FPC102X_ERROR_HWID_MISMATCH;
+    }
     
     return 0;
 }
@@ -162,16 +175,16 @@ static int fpc1020_get_image(fpc1020_t *dev, uint8_t *data, int image_size) {
     
     /* now wait for image to be ready */
     if (fpc1020_wait_for_irq(dev) != FPC_1020_IRQ_REG_BIT_FIFO_NEW_DATA) {
-        DEBUG("Error geting an image\n");
+        DEBUG("Error getting an image\n");
         return -FPC102X_ERROR_IMAGE_CAPTURE;
     }
     
-    /* send command to fetch image */
+    /* send command to fetch image, plus dummy byte */
     uint8_t temp_u8 = 0;
     fpc1020_reg_write(dev, FPC102X_REG_READ_IMAGE, &temp_u8, NULL, 1);
     
-    /* get image data */
-    fpc1020_reg_write(dev, FPC102X_REG_READ_IMAGE, NULL, data, image_size);
+    /* get image data, no command needed */
+    fpc1020_reg_write(dev, 0, NULL, data, image_size);
     
 #if ENABLE_DEBUG
     DEBUG("Image data (%d bytes):", image_size);
@@ -252,19 +265,18 @@ int fpc1020_get_fingerprint(fpc1020_t *dev) {
 }
 
 int fpc1020_init(fpc1020_t *dev, spi_t spi, gpio_t cs, gpio_t reset, gpio_t irq) {
-    xtimer_init();
-    
     dev->spi = spi;
     dev->cs = cs;
     dev->reset = reset;
     dev->irq = irq;
     
     gpio_init(dev->reset, GPIO_OUT);
+    gpio_set(reset);
     
     gpio_init(dev->cs, GPIO_OUT);
     gpio_set(cs);
     
-    gpio_init(dev->irq, GPIO_IN_PU);
+    gpio_init(dev->irq, GPIO_IN);
     
     spi_init(dev->spi);
     
@@ -279,6 +291,8 @@ int fpc1020_init(fpc1020_t *dev, spi_t spi, gpio_t cs, gpio_t reset, gpio_t irq)
         DEBUG("HwID mismatch\n");
         return res;
     }
+    
+    xtimer_spin(xtimer_ticks_from_usec(1000000));
     
     res = fpc1020_get_revision(dev);
     if (res < 0) {

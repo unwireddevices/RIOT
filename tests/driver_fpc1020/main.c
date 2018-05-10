@@ -24,11 +24,19 @@
 #include "fpc1020.h"
 #include "xtimer.h"
 
+static uint8_t fpc1020_image_buffer[FPC1020_MAX_IMAGE_SIZE];
+
 int main(void)
 {
+    xtimer_init();
+    
     fpc1020_t fpc1020;
     
-    fpc1020_init(&fpc1020, 0, GPIO_PIN(PORT_B, 0), GPIO_PIN(PORT_B, 1), GPIO_PIN(PORT_B, 2));
+    /* buffer must be initialized before calling fpc1020_init */
+    fpc1020.image = fpc1020_image_buffer;
+    
+    /* device, SPI bus, CS, reset, IRQ */
+    fpc1020_init(&fpc1020, 0, UNWD_GPIO_29, UNWD_GPIO_24, UNWD_GPIO_25);
     
     return 0;
 }

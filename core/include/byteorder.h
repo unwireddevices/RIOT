@@ -120,6 +120,12 @@ typedef be_uint32_t network_uint32_t;
 typedef be_uint64_t network_uint64_t;
 
 /**
+ * @brief          Determines endianness
+ * @returns        true if LE, false if BE
+ */
+inline bool byteorder_is_little_endian(void);
+
+/**
  * @brief          Convert from little endian to big endian, 16 bit.
  * @param[in]      v   The integer in little endian.
  * @returns        `v` converted to big endian.
@@ -274,6 +280,15 @@ static inline uint64_t ntohll(uint64_t v);
 
 
 /* **************************** IMPLEMENTATION ***************************** */
+
+inline bool byteorder_is_little_endian(void)
+{
+    const union {
+		unsigned u;
+		unsigned char c[4]; 
+	} one = { 1 };
+    return (one.c[0] == 1);
+}
 
 #ifdef HAVE_NO_BUILTIN_BSWAP16
 static inline unsigned short __builtin_bswap16(unsigned short a)

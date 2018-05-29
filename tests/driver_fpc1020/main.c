@@ -24,7 +24,8 @@
 #include "fpc1020.h"
 #include "xtimer.h"
 
-static uint8_t fpc1020_image_buffer[FPC1020_MAX_IMAGE_SIZE];
+// static uint8_t fpc1020_image_buffer[FPC1020_MAX_IMAGE_SIZE];
+static uint8_t fpc1020_image_buffer[24000];
 
 int main(void)
 {

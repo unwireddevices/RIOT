@@ -517,6 +517,11 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
             uint8_t message[LS_FRAME_SIZE];
             
             len = dev->driver->recv(dev, NULL, 0, 0);
+            if (len < 0) {
+                printf("RX: bad message, aborting\n");
+                break;
+            }
+            
             dev->driver->recv(dev, message, len, &packet_info);
             
             printf("RX: %d bytes, | RSSI: %d dBm | SNR: %d dBm\n", (int)len,

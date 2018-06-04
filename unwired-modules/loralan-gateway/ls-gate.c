@@ -511,7 +511,7 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
     
     switch (event) {
         case NETDEV_EVENT_RX_COMPLETE: {
-            size_t len;
+            int len;
             netdev_sx127x_lora_packet_info_t packet_info;
             ls_gate_t *ls = (ls_gate_t *) ch->_internal.gate;
             uint8_t message[LS_FRAME_SIZE];

@@ -197,7 +197,7 @@ static void radio_init(void)
     sx127x_params.reset_pin = SX127X_RESET;
    
     sx127x_params.rfswitch_pin = SX127X_RFSWITCH;
-    sx127x_params.rfswitch_active_level = SX127X_RFSWITCH_ACTIVE_LEVEL;
+    sx127x_params.rfswitch_active_level = SX127X_GET_RFSWITCH_ACTIVE_LEVEL();
 
     sx127x_radio_settings_t settings;
     settings.channel = RF_FREQUENCY;

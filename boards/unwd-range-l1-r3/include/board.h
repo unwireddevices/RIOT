@@ -59,7 +59,17 @@ extern "C" {
 
 /** RF on/off switching pin */
 #define SX127X_RFSWITCH                 GPIO_PIN(PORT_A, 11)
-#define SX127X_RFSWITCH_ACTIVE_LEVEL    0
+
+/* pin PB4 tied to groud in R4 and left floating in R3 */
+#define UNWD_RANGE_REV34_PIN            GPIO_PIN(PORT_B, 4)
+
+#define SX127X_GET_RFSWITCH_ACTIVE_LEVEL() ({\
+        int active_level;\
+        gpio_init(UNWD_RANGE_REV34_PIN, GPIO_IN_PU);\
+        active_level = (gpio_read(UNWD_RANGE_REV34_PIN) == 1 ? 0 : 1);\
+        gpio_init(UNWD_RANGE_REV34_PIN, GPIO_AIN);\
+        active_level;\
+    })
 
 /** SX127x SPI */
 #define SX127X_SPI 1

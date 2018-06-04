@@ -57,7 +57,11 @@ extern "C" {
 #define SX127X_DIO5 GPIO_UNDEF
 #define SX127X_RESET GPIO_PIN(PORT_A, 0)
 #define SX127X_RFSWITCH GPIO_UNDEF
-#define SX127X_RFSWITCH_ACTIVE_LEVEL    0
+
+#define SX127X_GET_RFSWITCH_ACTIVE_LEVEL() ({\
+        int active_level = 0;\
+        active_level;\
+    })
 
 /** SX127x SPI */
 #define SX127X_SPI 1

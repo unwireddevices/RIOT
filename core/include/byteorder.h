@@ -20,6 +20,8 @@
 #define BYTEORDER_H
 
 #include <stdint.h>
+#include <stdbool.h>
+#include <assert.h>
 
 #if defined(__MACH__)
 #   include "clang_compat.h"
@@ -298,9 +300,6 @@ inline bool byteorder_is_little_endian(void)
 }
 
 static inline void byteorder_swap(void *v, int size) {
-    uint8_t tmp;
-    uint8_t *ptr;
-    
     assert(v);
     
     switch (size) {
@@ -315,14 +314,17 @@ static inline void byteorder_swap(void *v, int size) {
         case (sizeof(uint64_t)):  /* 8 bytes */
             *(uint64_t *)v = byteorder_swapll(*(uint64_t *)v);
             break;
-        default:
+        default: {
+            uint8_t *ptr;
+            uint8_t tmp;
             ptr = (uint8_t *)v;
             for (int k = 0; k < size/2; k++) {
                 tmp = ptr[k];
                 ptr[k] = ptr[size - k - 1];
-                ptr[size - k - 1] = ptr[k];
+                ptr[size - k - 1] = tmp;
             }
             break;
+        }
     }
 }
 

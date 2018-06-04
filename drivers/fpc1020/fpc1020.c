@@ -25,6 +25,7 @@
 #include "fpc1020_internal.h"
 #include "periph/spi.h"
 #include "xtimer.h"
+#include "byteorder.h"
 
 #define ENABLE_DEBUG        (1)
 #include "debug.h"
@@ -45,7 +46,7 @@ static int fpc1020_reg_write(fpc1020_t *dev, uint8_t cmd, uint8_t *data_write, u
     gpio_clear(dev->cs);
    
     /* send command */
-    if (cmd) {
+    if (cmd != 0) {
         spi_transfer_bytes(dev->spi, SPI_CS_UNDEF, false, (char *)&cmd, NULL, 1);
     }
    
@@ -94,7 +95,6 @@ static int fpc1020_wait_for_irq(fpc1020_t *dev) {
     
     if (!gpio_read(dev->irq)) {
 #if ENABLE_DEBUG
-        DEBUG("IRQ cleared: 0x%02x\n", irq_source);
         if (irq_source == 0xff) {
             DEBUG("IRQ: power-on interrupt\n");
         } else {
@@ -114,6 +114,7 @@ static int fpc1020_wait_for_irq(fpc1020_t *dev) {
                 DEBUG("IRQ: unknown interrupt\n");
             }
         }
+        DEBUG("IRQ cleared: 0x%02x\n", irq_source);
 #endif
         return irq_source;
     } else {
@@ -127,47 +128,55 @@ static int fpc1020_check_hwid(fpc1020_t *dev) {
     uint16_t hwid;
     fpc1020_reg_write(dev, FPC102X_REG_HWID, NULL, (uint8_t *)&hwid, 2);
     
-    hwid = (hwid >> 8) | (hwid << 8);
+    if (byteorder_is_little_endian()) {
+        hwid = byteorder_swaps(hwid);
+    }
+    
     DEBUG("HWID: 0x%04X\n", hwid);
     
     if (hwid != 0x020a) {
         DEBUG("HWID mismatch");
         return -FPC102X_ERROR_HWID_MISMATCH;
+    } else {
+        DEBUG("HWID OK\n");
     }
     
     return 0;
 }
 
 static int fpc1020_get_revision_setup(fpc1020_t *dev) {
-	uint8_t temp_u8;
-	uint16_t temp_u16;
+    uint8_t temp_u8;
+    uint16_t temp_u16;
+    
+    DEBUG("Setup chip revision check\n");
 
-	temp_u16 = 15 << 8; /* ADC Shift = 1111, Gain = 0000 */
+    temp_u16 = 15; /* ADC Shift = 1111, Gain = 0000, reverse byte order */
     fpc1020_reg_write(dev, FPC102X_REG_ADC_SHIFT_GAIN, (uint8_t *)&temp_u16, NULL, 2);
     
-	temp_u16 = 0xffff;
+    temp_u16 = 0xffff;
     fpc1020_reg_write(dev, FPC102X_REG_TST_COL_PATTERN_EN, (uint8_t *)&temp_u16, NULL, 2);
 
-	temp_u8 = 0x04; /* FngrDrvTst = 1 */
+    temp_u8 = 0x04; /* FngrDrvTst = 1 */
     fpc1020_reg_write(dev, FPC102X_REG_FINGER_DRIVE_CONF, &temp_u8, NULL, 1);
     
     return 0;
 }
 
 static int fpc1020_image_crop(fpc1020_t *dev, int first_column, int columns, int first_row, int rows) {
-	uint32_t temp_u32;
+    uint32_t temp_u32;
 
-	temp_u32 = first_row;
-	temp_u32 <<= 8;
-	temp_u32 |= rows;
-	temp_u32 <<= 8;
-	temp_u32 |= (first_column * FPC1020_ADC_GROUP_SIZE);
-	temp_u32 <<= 8;
-	temp_u32 |= (columns * FPC1020_ADC_GROUP_SIZE);
+    /* reverse bytes order */
+    temp_u32 = (columns * FPC1020_ADC_GROUP_SIZE);
+    temp_u32 <<= 8;
+    temp_u32 |= (first_column * FPC1020_ADC_GROUP_SIZE);
+    temp_u32 <<= 8;
+    temp_u32 |= rows;
+    temp_u32 <<= 8;
+    temp_u32 |= first_row;
     
     fpc1020_reg_write(dev, FPC102X_REG_IMG_CAPT_SIZE, (uint8_t *)&temp_u32, NULL, 4);
 
-	return 0;
+    return 0;
 }
 
 static int fpc1020_get_image(fpc1020_t *dev, uint8_t *data, int image_size) {
@@ -179,12 +188,16 @@ static int fpc1020_get_image(fpc1020_t *dev, uint8_t *data, int image_size) {
         return -FPC102X_ERROR_IMAGE_CAPTURE;
     }
     
-    /* send command to fetch image, plus dummy byte */
-    uint8_t temp_u8 = 0;
-    fpc1020_reg_write(dev, FPC102X_REG_READ_IMAGE, &temp_u8, NULL, 1);
-    
-    /* get image data, no command needed */
-    fpc1020_reg_write(dev, 0, NULL, data, image_size);
+    spi_acquire(dev->spi, SPI_CS_UNDEF, SPI_MODE_0, FPC1020_SPI_SPEED);
+    gpio_clear(dev->cs);
+   
+    /* send command */
+    uint16_t cmd = FPC102X_REG_READ_IMAGE;
+    spi_transfer_bytes(dev->spi, SPI_CS_UNDEF, false, (char *)&cmd, NULL, 2);
+    spi_transfer_bytes(dev->spi, SPI_CS_UNDEF, false, NULL, (char *)data, image_size);
+   
+    gpio_set(dev->cs);
+    spi_release(dev->spi);
     
 #if ENABLE_DEBUG
     DEBUG("Image data (%d bytes):", image_size);
@@ -199,59 +212,68 @@ static int fpc1020_get_image(fpc1020_t *dev, uint8_t *data, int image_size) {
 
 static bool fpc1020_check_range(int val, int min, int max)
 {
-	return (val >= min) && (val <= max);
+    return (val >= min) && (val <= max);
 }
 
 static int fpc1020_get_revision(fpc1020_t *dev) {
     int error = 0;
-	int xpos, ypos, m1, m2, count;
+    int xpos, ypos, m1, m2, count;
+    
+    DEBUG("Getting actual chip revision\n");
 
-	const int num_rows = FPC1020_EXT_HWID_CHECK_ID1020A_ROWS;
-	const int num_pixels = 32;
-	const uint32_t image_size = num_rows * FPC1020_PIXEL_COLUMNS;
+    const int num_rows = FPC1020_EXT_HWID_CHECK_ID1020A_ROWS;
+    const int num_pixels = 32;
+    const uint32_t image_size = num_rows * FPC1020_PIXEL_COLUMNS;
 
-	error = fpc1020_get_revision_setup(dev);
-	if (error) {
-		return error;
+    error = fpc1020_get_revision_setup(dev);
+    if (error) {
+        return error;
     }
 
-	error = fpc1020_image_crop(dev, 0,
+    DEBUG("Setting image crop: ");
+    error = fpc1020_image_crop(dev, 0,
                                FPC1020_PIXEL_COLUMNS / FPC1020_ADC_GROUP_SIZE,
                                0, num_rows);
-	if (error) {
-		return error;
+    if (error) {
+        DEBUG("failed\n");
+        return error;
+    } else {
+        DEBUG("ok\n");
     }
 
-	error = fpc1020_get_image(dev, dev->image, image_size);
-	if (error) {
-		return error;
+    DEBUG("Getting test image\n");
+    error = fpc1020_get_image(dev, dev->image, image_size);
+    if (error) {
+        return error;
     }
 
-	m1 = m2 = count = 0;
+    m1 = m2 = count = 0;
 
-	for (ypos = 1; ypos < num_rows; ypos++) {
-		for (xpos = 0; xpos < num_pixels; xpos++) {
-			m1 += dev->image[(ypos * FPC1020_PIXEL_COLUMNS) + xpos];
+    for (ypos = 1; ypos < num_rows; ypos++) {
+        for (xpos = 0; xpos < num_pixels; xpos++) {
+            m1 += dev->image[(ypos * FPC1020_PIXEL_COLUMNS) + xpos];
 
-			m2 += dev->image[(ypos * FPC1020_PIXEL_COLUMNS) + (FPC1020_PIXEL_COLUMNS - 1 - xpos)];
-			count++;
-		}
-	}
+            m2 += dev->image[(ypos * FPC1020_PIXEL_COLUMNS) + (FPC1020_PIXEL_COLUMNS - 1 - xpos)];
+            count++;
+        }
+    }
 
-	m1 /= count;
-	m2 /= count;
+    m1 /= count;
+    m2 /= count;
+    
+    DEBUG("m1: %d, m2: %d\n", m1, m2);
 
-	if (fpc1020_check_range(m1, 181, 219) && fpc1020_check_range(m2, 101, 179)) {
-		dev->revision = 1;
-	} else if (fpc1020_check_range(m1, 181, 219) && fpc1020_check_range(m2, 181, 219)) {
-		dev->revision = 2;
-	} else if (fpc1020_check_range(m1, 101, 179) && fpc1020_check_range(m2, 151, 179)) {
-		dev->revision = 3;
-	} else if (fpc1020_check_range(m1, 0, 99) && fpc1020_check_range(m2, 0, 99)) {
-		dev->revision = 4;
-	} else {
-		dev->revision = 0;
-	}
+    if (fpc1020_check_range(m1, 181, 219) && fpc1020_check_range(m2, 101, 179)) {
+        dev->revision = 1;
+    } else if (fpc1020_check_range(m1, 181, 219) && fpc1020_check_range(m2, 181, 219)) {
+        dev->revision = 2;
+    } else if (fpc1020_check_range(m1, 101, 179) && fpc1020_check_range(m2, 151, 179)) {
+        dev->revision = 3;
+    } else if (fpc1020_check_range(m1, 0, 99) && fpc1020_check_range(m2, 0, 99)) {
+        dev->revision = 4;
+    } else {
+        dev->revision = 0;
+    }
     
     DEBUG("FPC1020 HW revision %d\n", dev->revision);
     
@@ -285,7 +307,7 @@ int fpc1020_init(fpc1020_t *dev, spi_t spi, gpio_t cs, gpio_t reset, gpio_t irq)
         DEBUG("Error resetting FPC1020\n");
         return res;
     }
-    
+  
     res = fpc1020_check_hwid(dev);
     if (res < 0) {
         DEBUG("HwID mismatch\n");
@@ -293,7 +315,7 @@ int fpc1020_init(fpc1020_t *dev, spi_t spi, gpio_t cs, gpio_t reset, gpio_t irq)
     }
     
     xtimer_spin(xtimer_ticks_from_usec(1000000));
-    
+
     res = fpc1020_get_revision(dev);
     if (res < 0) {
         DEBUG("Error getting chip revision\n");

@@ -120,6 +120,12 @@ typedef be_uint32_t network_uint32_t;
 typedef be_uint64_t network_uint64_t;
 
 /**
+ * @brief          Determines endianness
+ * @returns        true if LE, false if BE
+ */
+inline bool byteorder_is_little_endian(void);
+
+/**
  * @brief          Convert from little endian to big endian, 16 bit.
  * @param[in]      v   The integer in little endian.
  * @returns        `v` converted to big endian.
@@ -204,6 +210,13 @@ static inline uint32_t byteorder_ntohl(network_uint32_t v);
 static inline uint64_t byteorder_ntohll(network_uint64_t v);
 
 /**
+ * @brief          Swap byte order
+ * @param[in]      v   The pointer to variable to swap.
+ * @param[in]      size   Variabe size, bytes.
+ */
+static inline void byteorder_swap(void *v, int size);
+
+/**
  * @brief          Swap byte order, 16 bit.
  * @param[in]      v   The integer to swap.
  * @returns        The swapped integer.
@@ -274,6 +287,44 @@ static inline uint64_t ntohll(uint64_t v);
 
 
 /* **************************** IMPLEMENTATION ***************************** */
+
+inline bool byteorder_is_little_endian(void)
+{
+    const union {
+        unsigned u;
+        unsigned char c[4]; 
+    } one = { 1 };
+    return (one.c[0] == 1);
+}
+
+static inline void byteorder_swap(void *v, int size) {
+    uint8_t tmp;
+    uint8_t *ptr;
+    
+    assert(v);
+    
+    switch (size) {
+        case 1:
+            break;
+        case (sizeof(uint16_t)):  /* 2 bytes */
+            *(uint16_t *)v = byteorder_swaps(*(uint16_t *)v);
+            break;
+        case (sizeof(uint32_t)):  /* 4 bytes */
+            *(uint32_t *)v = byteorder_swapl(*(uint32_t *)v);
+            break;
+        case (sizeof(uint64_t)):  /* 8 bytes */
+            *(uint64_t *)v = byteorder_swapll(*(uint64_t *)v);
+            break;
+        default:
+            ptr = (uint8_t *)v;
+            for (int k = 0; k < size/2; k++) {
+                tmp = ptr[k];
+                ptr[k] = ptr[size - k - 1];
+                ptr[size - k - 1] = ptr[k];
+            }
+            break;
+    }
+}
 
 #ifdef HAVE_NO_BUILTIN_BSWAP16
 static inline unsigned short __builtin_bswap16(unsigned short a)

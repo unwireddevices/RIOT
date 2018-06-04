@@ -1,5 +1,5 @@
 APPLICATION = driver_fpc1020
-BOARD = unwd-log
+BOARD = unwd-range-l1-r3
 include ../Makefile.tests_common
 
 FEATURES_REQUIRED += periph_spi

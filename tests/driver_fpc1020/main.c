@@ -24,8 +24,7 @@
 #include "fpc1020.h"
 #include "xtimer.h"
 
-// static uint8_t fpc1020_image_buffer[FPC1020_BUFFER_MAX_IMAGES * FPC1020_MAX_IMAGE_SIZE];
-static uint8_t fpc1020_image_buffer[24000];
+static uint8_t fpc1020_image_buffer[FPC1020_BUFFER_MAX_IMAGES * FPC1020_MAX_IMAGE_SIZE];
 
 int main(void)
 {
@@ -38,6 +37,14 @@ int main(void)
     
     /* device, SPI bus, CS, reset, IRQ */
     fpc1020_init(&fpc1020, 0, UNWD_GPIO_29, UNWD_GPIO_24, UNWD_GPIO_25);
+    
+    /* get fingerprint image */
+    int image_size = fpc1020_get_fingerprint(&fpc1020);
+    if (image_size > 0) {
+        /* fpc1020->image now should contain 3 images image_size bytes each */
+    } else {
+        puts("fpc1020 test: error acquiring fingerprint image");
+    }
     
     return 0;
 }

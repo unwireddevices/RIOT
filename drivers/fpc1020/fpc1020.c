@@ -39,6 +39,86 @@ static int fpc1020_image_crop(fpc1020_t *dev, int first_column, int columns, int
 static int fpc1020_get_image(fpc1020_t *dev, uint8_t *data, int image_size);
 static int fpc1020_reg_write(fpc1020_t *dev, uint8_t cmd, uint8_t *data_write, uint8_t *data_read, uint8_t bytes);
 static bool fpc1020_check_range(int val, int min, int max);
+static int fpc1020_setup_defaults(fpc1020_t *dev);
+static int fpc1020_write_sensor_setup(fpc1020_t *dev);
+static int fpc1020_write_sensor_a1a2_setup(fpc1020_t *dev);
+static int fpc1020_write_sensor_a3a4_setup(fpc1020_t *dev);
+
+const fpc1020_setup_t fpc1020_setup_default_CT_a1a2 = {
+	.adc_gain = {1, 0, 1},	/*Dry, Wet, Normal */
+	.adc_shift = {1, 5, 0},
+	.pxl_ctrl = {0x0f0b, 0x0f1b, 0x0f1b},
+	.capture_settings_mux = 0,
+	.capture_count = 3,
+	.capture_mode = FPC1020_MODE_WAIT_AND_CAPTURE,
+	.capture_row_start = 18,
+	.capture_row_count = 173,
+	.capture_col_start = 1,
+	.capture_col_groups = 20,
+	.capture_finger_up_threshold = 0,
+	.capture_finger_down_threshold = 6,
+	.finger_detect_threshold = 0x50,
+	.wakeup_detect_rows = {92, 92},
+	.wakeup_detect_cols = {8, 15},
+	.finger_auto_threshold = true,
+};
+
+const fpc1020_setup_t fpc1020_setup_default_CT_a3a4 = {
+	.adc_gain = {10, 2, 1},	/* Dry , Wet, Normal */
+	.adc_shift = {3, 8, 13},
+	.pxl_ctrl = {0x0f0a, 0x0f1b, 0x0f1b},
+	.capture_settings_mux = 0,
+	.capture_count = 3,
+	.capture_mode = FPC1020_MODE_WAIT_AND_CAPTURE,
+	.capture_row_start = 18,
+	.capture_row_count = 173,
+	.capture_col_start = 1,
+	.capture_col_groups = 20,
+	.capture_finger_up_threshold = 0,
+	.capture_finger_down_threshold = 6,
+	.finger_detect_threshold = 0x50,
+	.wakeup_detect_rows = {92, 92},
+	.wakeup_detect_cols = {8, 15},
+	.finger_auto_threshold = true,
+};
+
+const fpc1020_setup_t fpc1020_setup_default_LO_a1a2 = {
+	.adc_gain = {0, 1, 2},	/*Dry, Wet, Normal */
+	.adc_shift = {5, 1, 4},
+	.pxl_ctrl = {0x0f0b, 0x0f1f, 0x0f0b},
+	.capture_settings_mux = 0,
+	.capture_count = 3,
+	.capture_mode = FPC1020_MODE_WAIT_AND_CAPTURE,
+	.capture_row_start = 19,
+	.capture_row_count = 171,
+	.capture_col_start = 2,
+	.capture_col_groups = 21,
+	.capture_finger_up_threshold = 0,
+	.capture_finger_down_threshold = 6,
+	.finger_detect_threshold = 0x50,
+	.wakeup_detect_rows = {92, 92},
+	.wakeup_detect_cols = {8, 15},
+	.finger_auto_threshold = true,
+};
+
+const fpc1020_setup_t fpc1020_setup_default_LO_a3a4 = {
+	.adc_gain = {8, 0, 1},	/* Dry, Wet, Normal */
+	.adc_shift = {4, 6, 11},
+	.pxl_ctrl = {0x0f0a, 0x0f1f, 0x0f0B},
+	.capture_settings_mux = 0,
+	.capture_count = 3,
+	.capture_mode = FPC1020_MODE_WAIT_AND_CAPTURE,
+	.capture_row_start = 19,
+	.capture_row_count = 171,
+	.capture_col_start = 2,
+	.capture_col_groups = 21,
+	.capture_finger_up_threshold = 0,
+	.capture_finger_down_threshold = 6,
+	.finger_detect_threshold = 0x50,
+	.wakeup_detect_rows = {92, 92},
+	.wakeup_detect_cols = {8, 15},
+	.finger_auto_threshold = true,
+};
 
 static int fpc1020_reg_write(fpc1020_t *dev, uint8_t cmd, uint8_t *data_write, uint8_t *data_read, uint8_t bytes) {
     /* acquire SPI */
@@ -52,7 +132,15 @@ static int fpc1020_reg_write(fpc1020_t *dev, uint8_t cmd, uint8_t *data_write, u
    
     /* send data and/or receive reply */
     if (bytes) {
+        if (byteorder_is_little_endian()) {
+            byteorder_swap(data_write, bytes);
+        }
+        
         spi_transfer_bytes(dev->spi, SPI_CS_UNDEF, false, (char *)data_write, (char *)data_read, bytes);
+        
+        if (byteorder_is_little_endian()) {
+            byteorder_swap(data_read, bytes);
+        }
     }
     
     /* release SPI */
@@ -128,10 +216,6 @@ static int fpc1020_check_hwid(fpc1020_t *dev) {
     uint16_t hwid;
     fpc1020_reg_write(dev, FPC102X_REG_HWID, NULL, (uint8_t *)&hwid, 2);
     
-    if (byteorder_is_little_endian()) {
-        hwid = byteorder_swaps(hwid);
-    }
-    
     DEBUG("HWID: 0x%04X\n", hwid);
     
     if (hwid != 0x020a) {
@@ -150,7 +234,7 @@ static int fpc1020_get_revision_setup(fpc1020_t *dev) {
     
     DEBUG("Setup chip revision check\n");
 
-    temp_u16 = 15; /* ADC Shift = 1111, Gain = 0000, reverse byte order */
+    temp_u16 = 15 << 8; /* ADC Shift = 1111, Gain = 0000 */
     fpc1020_reg_write(dev, FPC102X_REG_ADC_SHIFT_GAIN, (uint8_t *)&temp_u16, NULL, 2);
     
     temp_u16 = 0xffff;
@@ -162,10 +246,36 @@ static int fpc1020_get_revision_setup(fpc1020_t *dev) {
     return 0;
 }
 
+static int fpc1020_setup_defaults(fpc1020_t *dev)
+{
+	const fpc1020_setup_t *ptr;
+
+    ptr =
+        (dev->revision ==
+         1) ? &fpc1020_setup_default_LO_a1a2
+        : (dev->revision ==
+           2) ? &fpc1020_setup_default_LO_a1a2 : (dev->
+                              revision
+                              ==
+                              3) ?
+        &fpc1020_setup_default_LO_a3a4 : (dev->
+                          revision ==
+                          4) ?
+        &fpc1020_setup_default_LO_a3a4 : NULL;
+    
+    memcpy((void *)&dev->setup, ptr, sizeof(fpc1020_setup_t));
+	dev->fp_threshold = dev->setup.finger_detect_threshold;
+    
+	printf("FPC1020 setup_defaults fp_threshold=%d \n", dev->fp_threshold);
+
+	return 0;
+}
+
 static int fpc1020_image_crop(fpc1020_t *dev, int first_column, int columns, int first_row, int rows) {
     uint32_t temp_u32;
 
     /* reverse bytes order */
+    /*
     temp_u32 = (columns * FPC1020_ADC_GROUP_SIZE);
     temp_u32 <<= 8;
     temp_u32 |= (first_column * FPC1020_ADC_GROUP_SIZE);
@@ -173,6 +283,15 @@ static int fpc1020_image_crop(fpc1020_t *dev, int first_column, int columns, int
     temp_u32 |= rows;
     temp_u32 <<= 8;
     temp_u32 |= first_row;
+    */
+    
+	temp_u32 = first_row;
+	temp_u32 <<= 8;
+	temp_u32 |= rows;
+	temp_u32 <<= 8;
+	temp_u32 |= (first_column * FPC1020_ADC_GROUP_SIZE);
+	temp_u32 <<= 8;
+	temp_u32 |= (columns * FPC1020_ADC_GROUP_SIZE);
     
     fpc1020_reg_write(dev, FPC102X_REG_IMG_CAPT_SIZE, (uint8_t *)&temp_u32, NULL, 4);
 
@@ -280,10 +399,156 @@ static int fpc1020_get_revision(fpc1020_t *dev) {
     return 0;
 }
 
-int fpc1020_get_fingerprint(fpc1020_t *dev) {
-    (void)dev;
+static int fpc1020_write_sensor_a1a2_setup(fpc1020_t *dev)
+{
+	uint8_t temp_u8;
+	uint16_t temp_u16;
+	uint32_t temp_u32;
+	uint64_t temp_u64;
+	const int mux = dev->fp_conditions;
+	const int rev = dev->revision;
+
+	if (rev == 0)
+		return -1;
+
+	temp_u64 = (rev == 1) ? 0x363636363f3f3f3f : 0x141414141e1e1e1e;
+    fpc1020_reg_write(dev, FPC102X_REG_SAMPLE_PX_DLY, (void *)&temp_u64, NULL, sizeof(temp_u64));
+
+	temp_u8 = (rev == 1) ? 0x33 : 0x0f;
+    fpc1020_reg_write(dev, FPC102X_REG_PXL_RST_DLY, (void *)&temp_u8, NULL, sizeof(temp_u8));
+
+	temp_u8 = (rev == 1) ? 0x37 : 0x15;
+    fpc1020_reg_write(dev, FPC102X_REG_FINGER_DRIVE_DLY, (void *)&temp_u8, NULL, sizeof(temp_u8));
+
+	if (rev < 3) {
+		temp_u64 = 0x5540003f24;
+        fpc1020_reg_write(dev, FPC102X_REG_ADC_SETUP, (void *)&temp_u64, NULL, sizeof(temp_u64));
+
+		temp_u32 = 0x00080000;
+        fpc1020_reg_write(dev, FPC102X_REG_ANA_TEST_MUX, (void *)&temp_u32, NULL, sizeof(temp_u32));
+
+		temp_u64 = 0x5540003f34;
+        fpc1020_reg_write(dev, FPC102X_REG_ADC_SETUP, (void *)&temp_u64, NULL, sizeof(temp_u64));
+	}
+
+	temp_u8 = 0x02;		//32内部3.3V  02是外部供电VDDTX
+    fpc1020_reg_write(dev, FPC102X_REG_FINGER_DRIVE_CONF, (void *)&temp_u8, NULL, sizeof(temp_u8));
+
+	temp_u16 = dev->setup.adc_shift[mux];
+	temp_u16 <<= 8;
+	temp_u16 |= dev->setup.adc_gain[mux];
+    fpc1020_reg_write(dev, FPC102X_REG_ADC_SHIFT_GAIN, (void *)&temp_u16, NULL, sizeof(temp_u16));
+
+	temp_u16 = dev->setup.pxl_ctrl[mux];
+    fpc1020_reg_write(dev, FPC102X_REG_PXL_CTRL, (void *)&temp_u16, NULL, sizeof(temp_u16));
+
+	temp_u8 = 0x03 | 0x08;
+    fpc1020_reg_write(dev, FPC102X_REG_IMAGE_SETUP, (void *)&temp_u8, NULL, sizeof(temp_u8));
+	
+	temp_u8 = dev->fp_threshold;
+    fpc1020_reg_write(dev, FPC1020_REG_FNGR_DET_THRES, (void *)&temp_u8, NULL, sizeof(temp_u8));
+	
+	temp_u16 = 0x0005;
+    fpc1020_reg_write(dev, FPC1020_REG_FNGR_DET_CNTR, (void *)&temp_u16, NULL, sizeof(temp_u16));
     
     return 0;
+}
+
+/* -------------------------------------------------------------------- */
+static int fpc1020_write_sensor_a3a4_setup(fpc1020_t *dev)
+{
+	uint8_t temp_u8;
+	uint16_t temp_u16;
+	uint64_t temp_u64;
+	const int mux = dev->fp_conditions;
+	const int rev = dev->revision;
+
+	if (rev == 4) {
+		temp_u8 = 0x09;
+        fpc1020_reg_write(dev, FPC102X_REG_FINGER_DRIVE_DLY, (void *)&temp_u8, NULL, sizeof(temp_u8));
+
+		temp_u64 = 0x0808080814141414;
+        fpc1020_reg_write(dev, FPC102X_REG_SAMPLE_PX_DLY, (void *)&temp_u64, NULL, sizeof(temp_u64));
+	} else if (rev == 3) {
+		temp_u64 = 0x1717171723232323;
+        fpc1020_reg_write(dev, FPC102X_REG_SAMPLE_PX_DLY, (void *)&temp_u64, NULL, sizeof(temp_u64));
+
+		temp_u8 = 0x0f;
+        fpc1020_reg_write(dev, FPC102X_REG_PXL_RST_DLY, (void *)&temp_u8, NULL, sizeof(temp_u8));
+
+		temp_u8 = 0x18;
+        fpc1020_reg_write(dev, FPC102X_REG_FINGER_DRIVE_DLY, (void *)&temp_u8, NULL, sizeof(temp_u8));
+	} else {
+		return -1;
+	}
+
+	temp_u8 = 0x02;		/* internal supply */
+    fpc1020_reg_write(dev, FPC102X_REG_FINGER_DRIVE_CONF, (void *)&temp_u8, NULL, sizeof(temp_u8));
+
+	temp_u16 = dev->setup.adc_shift[mux];
+	temp_u16 <<= 8;
+	temp_u16 |= dev->setup.adc_gain[mux];
+    fpc1020_reg_write(dev, FPC102X_REG_ADC_SHIFT_GAIN, (void *)&temp_u16, NULL, sizeof(temp_u16));
+
+	temp_u16 = dev->setup.pxl_ctrl[mux];
+    fpc1020_reg_write(dev, FPC102X_REG_PXL_CTRL, (void *)&temp_u16, NULL, sizeof(temp_u16));
+
+	temp_u8 = 0x03 | 0x08;
+    fpc1020_reg_write(dev, FPC102X_REG_IMAGE_SETUP, (void *)&temp_u8, NULL, sizeof(temp_u8));
+
+	temp_u8 = dev->fp_threshold;
+    fpc1020_reg_write(dev, FPC1020_REG_FNGR_DET_THRES, (void *)&temp_u8, NULL, sizeof(temp_u8));
+
+	temp_u16 = 0x0005;
+    fpc1020_reg_write(dev, FPC1020_REG_FNGR_DET_CNTR, (void *)&temp_u16, NULL, sizeof(temp_u16));
+    
+    return 0;
+}
+
+static int fpc1020_write_sensor_setup(fpc1020_t *dev)
+{
+	switch (dev->revision) {
+	case 1:
+	case 2:
+		return fpc1020_write_sensor_a1a2_setup(dev);
+
+	case 3:
+	case 4:
+		return fpc1020_write_sensor_a3a4_setup(dev);
+
+	default:
+		return fpc1020_write_sensor_a3a4_setup(dev);
+		break;
+	}
+
+	return 0;
+}
+
+int fpc1020_get_fingerprint(fpc1020_t *dev, uint8_t conditions) {
+    int error = 0;
+    
+    dev->fp_conditions = conditions;
+    
+    error = fpc1020_write_sensor_setup(dev);
+    if (error < 0) {
+        return error;
+    }
+    
+    error = fpc1020_image_crop(dev,
+                               dev->setup.capture_col_start,
+                               dev->setup.capture_col_groups,
+                               dev->setup.capture_row_start,
+                               dev->setup.capture_row_count);
+    
+    int image_size = dev->setup.capture_row_count * dev->setup.capture_col_groups * FPC1020_ADC_GROUP_SIZE;
+    
+    DEBUG("Getting fingerprint image\n");
+    error = fpc1020_get_image(dev, dev->image, image_size);
+    if (error) {
+        return error;
+    }
+    
+    return FPC102X_ERROR_NO_ERROR;
 }
 
 int fpc1020_init(fpc1020_t *dev, spi_t spi, gpio_t cs, gpio_t reset, gpio_t irq) {
@@ -291,6 +556,8 @@ int fpc1020_init(fpc1020_t *dev, spi_t spi, gpio_t cs, gpio_t reset, gpio_t irq)
     dev->cs = cs;
     dev->reset = reset;
     dev->irq = irq;
+    
+    dev->fp_conditions = FPC1020_CONDITIONS_DRY;
     
     gpio_init(dev->reset, GPIO_OUT);
     gpio_set(reset);
@@ -321,6 +588,20 @@ int fpc1020_init(fpc1020_t *dev, spi_t spi, gpio_t cs, gpio_t reset, gpio_t irq)
         DEBUG("Error getting chip revision\n");
         return res;
     }
+    
+    res = fpc1020_setup_defaults(dev);
+    if (res < 0) {
+        DEBUG("Error setting defaults\n");
+        return res;
+    }
+    
+    /*
+    error = fpc1020_test_deadpixels(fpc1020);
+    if (res < 0) {
+        DEBUG("Error testing for dead pixels\n");
+        return res;
+    }
+    */
     
     return 0;
 }

@@ -363,7 +363,7 @@ static int fpc1020_get_revision(fpc1020_t *dev) {
 
     DEBUG("Getting test image\n");
     error = fpc1020_get_image(dev, dev->image, image_size);
-    if (error) {
+    if (error < 0) {
         return error;
     }
 

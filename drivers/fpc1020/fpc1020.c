@@ -43,6 +43,7 @@ static int fpc1020_setup_defaults(fpc1020_t *dev);
 static int fpc1020_write_sensor_setup(fpc1020_t *dev);
 static int fpc1020_write_sensor_a1a2_setup(fpc1020_t *dev);
 static int fpc1020_write_sensor_a3a4_setup(fpc1020_t *dev);
+static int fpc1020_capture_settings(fpc1020_t *dev, int select);
 
 const fpc1020_setup_t fpc1020_setup_default_CT_a1a2 = {
 	.adc_gain = {1, 0, 1},	/*Dry, Wet, Normal */
@@ -524,10 +525,30 @@ static int fpc1020_write_sensor_setup(fpc1020_t *dev)
 	return 0;
 }
 
-int fpc1020_get_fingerprint(fpc1020_t *dev, uint8_t conditions) {
+int fpc1020_capture_settings(fpc1020_t *dev, int select)
+{
+	uint16_t pxlCtrl;
+	uint16_t adc_shift_gain;
+
+	if (select >= FPC1020_BUFFER_MAX_IMAGES) {
+		return -FPC102X_ERROR_OUT_OF_BUFFER;
+	}
+
+	pxlCtrl = dev->setup.pxl_ctrl[select];
+
+	adc_shift_gain = dev->setup.adc_shift[select];
+	adc_shift_gain <<= 8;
+	adc_shift_gain |= dev->setup.adc_gain[select];
+
+    fpc1020_reg_write(dev, FPC102X_REG_PXL_CTRL, (void *)&pxlCtrl, NULL, sizeof(pxlCtrl));
+
+    fpc1020_reg_write(dev, FPC102X_REG_ADC_SHIFT_GAIN, (void *)&adc_shift_gain, NULL, sizeof(adc_shift_gain));
+
+    return FPC102X_ERROR_NO_ERROR;
+}
+
+int fpc1020_get_fingerprint(fpc1020_t *dev) {
     int error = 0;
-    
-    dev->fp_conditions = conditions;
     
     error = fpc1020_write_sensor_setup(dev);
     if (error < 0) {
@@ -542,13 +563,20 @@ int fpc1020_get_fingerprint(fpc1020_t *dev, uint8_t conditions) {
     
     int image_size = dev->setup.capture_row_count * dev->setup.capture_col_groups * FPC1020_ADC_GROUP_SIZE;
     
-    DEBUG("Getting fingerprint image\n");
-    error = fpc1020_get_image(dev, dev->image, image_size);
-    if (error) {
-        return error;
+    for (int i = 0; i < FPC1020_BUFFER_MAX_IMAGES; i++) {
+        DEBUG("Getting fingerprint image %d of %d\n", i, FPC1020_BUFFER_MAX_IMAGES);
+        error = fpc1020_capture_settings(dev, i);
+        if (error) {
+            return error;
+        }
+        
+        error = fpc1020_get_image(dev, dev->image + (i*image_size), image_size);
+        if (error < 0) {
+            return error;
+        }
     }
     
-    return FPC102X_ERROR_NO_ERROR;
+    return image_size;
 }
 
 int fpc1020_init(fpc1020_t *dev, spi_t spi, gpio_t cs, gpio_t reset, gpio_t irq) {

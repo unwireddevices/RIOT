@@ -1,4 +1,4 @@
-/*
+   /*
  * Copyright (c) 2013,2014 Fingerprint Cards AB <tech@fingerprints.com>
  * Copyright (c) 2018 Unwired Devices LLC <info@unwds.com>
  *
@@ -41,6 +41,7 @@ typedef enum {
     FPC102X_ERROR_IRQ_TIMEOUT,
     FPC102X_ERROR_HWID_MISMATCH,
     FPC102X_ERROR_IMAGE_CAPTURE,
+    FPC102X_ERROR_OUT_OF_BUFFER,
 } fpc1020_errors_t;
 
 typedef struct fpc1020_setup {
@@ -80,7 +81,7 @@ typedef struct {
     uint8_t fp_threshold;                       /**< Finger detection threshold */
     uint8_t fp_conditions;                      /**< Ambient conditions */
     fpc1020_setup_t setup;                      /**< Default settings */
-    uint8_t *image;                             /**< Image buffer, default size is 192*192 = 36864 bytes */
+    uint8_t *image;                             /**< Image buffer */
 } fpc1020_t;
 
 /**
@@ -103,12 +104,11 @@ int fpc1020_init(fpc1020_t *dev, spi_t spi, gpio_t cs, gpio_t reset, gpio_t irq)
  * Image will be put to dev->image
  *
  * @param[in]  dev          pointer to sensor device descriptor
- * @param[in]  conditions   ambient conditions (fpc1020_conditions_t enum)
  *
  * @return                  image size on success
  * @return                  <0 on error
  */
-int fpc1020_get_fingerprint(fpc1020_t *dev, uint8_t conditions);
+int fpc1020_get_fingerprint(fpc1020_t *dev);
 
 #ifdef __cplusplus
 }

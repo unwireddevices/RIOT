@@ -218,7 +218,7 @@ static bool gpio_cmd(module_data_t *cmd, module_data_t *reply, bool with_reply)
                 if (with_reply) {
                     do_reply(reply, UMDK_GPIO_REPLY_OK);
                 }
-                else
+            } else {
                 if (with_reply) {
                     do_reply(reply, UMDK_GPIO_REPLY_ERR_PIN);
                 }
@@ -231,7 +231,7 @@ static bool gpio_cmd(module_data_t *cmd, module_data_t *reply, bool with_reply)
                 if (with_reply) {
                     do_reply(reply, UMDK_GPIO_REPLY_OK);
                 }
-                else
+            } else {
                 if (with_reply) {
                     do_reply(reply, UMDK_GPIO_REPLY_ERR_PIN);
                 }

@@ -203,7 +203,6 @@ bool umdk_ibutton_cmd(module_data_t *cmd, module_data_t *reply)
         default: {
             reply_error(reply);
             return true;
-            break;
         }
     }
     /* Don't reply by default */

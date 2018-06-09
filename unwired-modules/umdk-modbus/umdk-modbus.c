@@ -625,7 +625,7 @@ bool umdk_modbus_cmd(module_data_t *cmd, module_data_t *reply)
 		umdk_modbus_config.parity = modbus_params.parity;
 		umdk_modbus_config.stopbits = modbus_params.stopbits;
 			
-		printf("[umdk-" _UMDK_NAME_ "] Device: %02d Mode: %lu-%u%c%u\n", device, baudrate, databits, parity, stopbits);
+		printf("[umdk-" _UMDK_NAME_ "] Device: %02d Mode: %lu-%d%c%d\n", device, baudrate, databits, parity, stopbits);
 		save_config();
 		
 		if(baudrate > UMDK_MODBUS_BAUDRATE_DEF) {

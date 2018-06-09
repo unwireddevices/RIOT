@@ -103,7 +103,7 @@ int ad53xx_set_single(ad53xx_t *dev, uint8_t channel, uint16_t data)
 {
     assert(channel < 8);
     
-    uint8_t data_shift;
+    uint8_t data_shift = 0;
 #ifdef AD53XX_AD5308
     data_shift = 4;
 #endif
@@ -124,7 +124,7 @@ int ad53xx_set_single(ad53xx_t *dev, uint8_t channel, uint16_t data)
 
 int ad53xx_set_all(ad53xx_t *dev, uint16_t *data)
 {
-    uint8_t data_shift;
+    uint8_t data_shift = 0;
 #ifdef AD53XX_AD5308
     data_shift = 4;
 #endif

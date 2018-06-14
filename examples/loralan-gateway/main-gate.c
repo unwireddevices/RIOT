@@ -525,7 +525,7 @@ static void iwdg_reset (void *arg) {
     return;
 }
 
-shell_command_t shell_commands[] = {
+shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX] = {
     { "set", "<config> <value> -- sets up value for the config entry", ls_set_cmd },
     { "listconfig", "-- prints out current configuration", ls_printc_cmd },
     { "list", "-- prints list of connected devices", ls_list_cmd },
@@ -603,7 +603,6 @@ void init_normal(shell_command_t *commands)
     
     memcpy((void *)&commands[i], (void *)shell_commands, sizeof(shell_commands));
 }
-
 
 #ifdef __cplusplus
 }

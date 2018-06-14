@@ -600,8 +600,8 @@ void init_normal(shell_command_t *commands)
     } while (shell_commands[k].name);
     
     assert(i + k < UNWDS_SHELL_COMMANDS_MAX - 1);
-    
-    memcpy((void *)&commands[i], (void *)shell_commands, sizeof(shell_commands));
+
+    memcpy((void *)&commands[i], (void *)shell_commands, k*sizeof(shell_commands[i]));
 }
 
 #ifdef __cplusplus

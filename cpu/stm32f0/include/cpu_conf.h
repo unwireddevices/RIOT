@@ -91,6 +91,13 @@ extern "C" {
 #endif
 /** @} */
 
+
+
+/**
+ * @brief   Initizliaze clocks (switch to default clock)
+ */
+void clk_init(void);
+
 #ifdef __cplusplus
 }
 #endif

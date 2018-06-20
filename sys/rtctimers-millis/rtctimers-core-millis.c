@@ -26,7 +26,7 @@
 #include "irq.h"
 
 /* WARNING! enabling this will have side effects and can lead to timer underflows. */
-#define ENABLE_DEBUG 0
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 #define RTCTIMERS_MILLIS_OVERFLOW_VALUE 604800000 // a week

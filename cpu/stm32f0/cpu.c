@@ -33,3 +33,13 @@ void cpu_init(void)
     /* trigger static peripheral initialization */
     periph_init();
 }
+
+
+/**
+ * @brief Configure the clock system of the stm32l1
+ */
+void clk_init(void)
+{
+    /* initialize the clock system */
+    stmclk_init_sysclk();
+}

@@ -34,7 +34,7 @@
 extern "C" {
 #endif
 
-mt3333_t *_dev;
+static mt3333_t *_dev;
 
 static void rx_cb(void *arg, uint8_t data)
 {
@@ -83,7 +83,10 @@ static int get_csv_field(char *buf, int fieldno, char *field, int maxlen) {
 /**
  * @brief Parses GPS data in NMEA format
  */
-static bool parse(char *buf, mt3333_gps_data_t *data) {
+static bool parse(mt3333_t *dev, char *buf, mt3333_gps_data_t *data) {
+    
+    DEBUG("[gps] %s\n", buf);
+    
 	/* We're interested in G/NRMC packets */
 	if (strstr(buf, "RMC") == NULL) {
 		return false;
@@ -92,8 +95,11 @@ static bool parse(char *buf, mt3333_gps_data_t *data) {
 	/* Check validity sign */
 	char valid;
 	if (get_csv_field(buf, MT3333_VALID_FIELD_IDX, &valid, 1)) {
-		if (valid != 'A')
-			return false;
+		if (valid != 'A') {
+			data->valid = false;
+        } else {
+            data->valid = true;
+        }
 	}
 
 	char ns, ew;
@@ -150,7 +156,7 @@ static void *reader(void *arg) {
         buf[i] = '\0';
 
         /* Parse received string */
-        if (parse(buf, &data)) {
+        if (parse(dev, buf, &data)) {
         	if (dev->params.gps_cb != NULL)
         		dev->params.gps_cb(data);
         }
@@ -161,7 +167,7 @@ static void *reader(void *arg) {
 
 static void mt3333_send_at_command(char *command) {
     uint8_t checksum = 0;
-    uint32_t i;
+    int i;
     for (i = 0; i < strlen(command); i++) {
         checksum ^= (uint8_t)command[i];
     }
@@ -178,9 +184,14 @@ static void mt3333_send_at_command(char *command) {
     snprintf(cmd, 2, "$");
     strcat(cmd, command);
     strcat(cmd, "*");
-    snprintf(cmd, 5, "\r\n%02x", checksum);
+    
+    char buf[10];
+    snprintf(buf, 5, "%02x\r\n", checksum);
+    strcat(cmd, buf);
     
     uart_write(_dev->params.uart, (uint8_t *)cmd, strlen(cmd));
+    
+    DEBUG("GPS command: %s\n", cmd);
 }
 
 void mt3333_set_baudrate(int baudrate) {

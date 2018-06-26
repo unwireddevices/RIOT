@@ -25,7 +25,7 @@
 #include "ls-init-device.h"
 #include "main.h"
 
-static shell_command_t shell_commands_node[UNWDS_SHELL_COMMANDS_MAX] = {};
+static shell_command_t shell_commands_node[UNWDS_SHELL_COMMANDS_MAX] = { { NULL, NULL, NULL } };
 
 int main(void)
 {

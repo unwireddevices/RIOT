@@ -46,6 +46,15 @@ static const uint8_t apbmul[] = {
 #endif
 };
 
+
+#if !defined(RCC_CFGR_PPRE1_DIV1)
+    #define RCC_CFGR_PPRE1_DIV1     RCC_CFGR_PPRE_DIV1
+    #define RCC_CFGR_PPRE1_DIV2     RCC_CFGR_PPRE_DIV2
+    #define RCC_CFGR_PPRE1_DIV4     RCC_CFGR_PPRE_DIV4
+    #define RCC_CFGR_PPRE1_DIV8     RCC_CFGR_PPRE_DIV8
+    #define RCC_CFGR_PPRE1_DIV16    RCC_CFGR_PPRE_DIV16
+#endif
+
 uint32_t periph_apb_clk(uint8_t bus)
 {
     uint8_t divider;   
@@ -70,6 +79,7 @@ uint32_t periph_apb_clk(uint8_t bus)
         }
         /* return CLOCK_APB1; */
     }
+#if defined CLOCK_APB2_DIV
     else {
         switch (CLOCK_APB2_DIV) {
             case RCC_CFGR_PPRE2_DIV1: 
@@ -90,6 +100,7 @@ uint32_t periph_apb_clk(uint8_t bus)
         }
         /* return CLOCK_APB2; */
     }
+#endif
     return cpu_clock_global/divider;
 }
 

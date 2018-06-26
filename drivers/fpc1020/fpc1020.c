@@ -27,7 +27,7 @@
 #include "xtimer.h"
 #include "byteorder.h"
 
-#define ENABLE_DEBUG        (1)
+#define ENABLE_DEBUG        (0)
 #include "debug.h"
 
 static int fpc1020_reset(fpc1020_t *dev);

@@ -451,7 +451,7 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             umdk_uart_config.parity = parity;
             umdk_uart_config.stopbits = stopbits;
             
-            printf("[umdk-" _UMDK_NAME_ "] Mode: %lu-%u%c%u\n", baud, databits, parity, stopbits);
+            printf("[umdk-" _UMDK_NAME_ "] Mode: %lu-%d%c%d\n", baud, databits, parity, stopbits);
             save_config();
 
             gpio_set(RE_PIN);

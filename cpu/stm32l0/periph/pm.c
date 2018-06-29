@@ -48,11 +48,13 @@ static void pm_when_i_wake_up (void) {
 
 /* Do not change GPIO state in sleep mode */
 void pm_add_gpio_exclusion(gpio_t gpio) {
+    (void)gpio;
 	/* seems nothing to do here, to be removed */
 }
 
 /* Change GPIO state to AIN in sleep mode */
 void pm_del_gpio_exclusion(gpio_t gpio) {
+    (void)gpio;
 	/* seems nothing to do here, to be removed */
 }
 
@@ -61,7 +63,7 @@ static void pm_select_run_mode(uint8_t pm_mode) {
 	switch(pm_mode) {
 		case PM_ON:
             DEBUG("Switching to PM_ON");
-			clk_init()
+			clk_init();
 			break;
 		case PM_IDLE:
             DEBUG("Switching to PM_IDLE");

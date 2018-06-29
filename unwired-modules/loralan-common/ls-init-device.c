@@ -433,3 +433,7 @@ static int init_update_cmd(int argc, char **argv) {
     
     return 0;
 }
+
+#ifdef __cplusplus
+}
+#endif

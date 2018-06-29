@@ -288,14 +288,14 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
     	}
     }
 
-    /* Update node's last seen time */
-    node->last_seen = ls->_internal.ping_count;
-
     /* Derive cryptographic keys */
     uint8_t mic_key[AES_BLOCK_SIZE];
     uint8_t aes_key[AES_BLOCK_SIZE];
 
     if (node) {
+        /* Update node's last seen time */
+        node->last_seen = ls->_internal.ping_count;
+        
         ls_derive_keys(node->nonce[node->num_nonces - 1], node->app_nonce, node->addr, mic_key, aes_key);
 
         /* Validate frame MIC */
@@ -775,11 +775,10 @@ static bool create_uq_handler_thread(ls_gate_t *ls)
 {
     puts("ls-gate: creating uplink queue handler thread...");
 
-    kernel_pid_t pid_uq = KERNEL_PID_UNDEF;
-    
-    pid_uq = thread_create(ls->_internal.uq_thread_stack, sizeof(ls->_internal.uq_thread_stack), THREAD_PRIORITY_MAIN - 2,
-                                         THREAD_CREATE_STACKTEST, uq_handler, ls,
-                                         "uplink queue thread");
+    kernel_pid_t pid_uq = thread_create(ls->_internal.uq_thread_stack, sizeof(ls->_internal.uq_thread_stack),
+                                        THREAD_PRIORITY_MAIN - 2,
+                                        THREAD_CREATE_STACKTEST, uq_handler, ls,
+                                        "uplink queue thread");
     
     if (pid_uq <= KERNEL_PID_UNDEF) {
         puts("ls-gate: creation of uplink queue handler thread failed");

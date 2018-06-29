@@ -265,7 +265,7 @@ void app_data_received_cb(ls_gate_node_t *node, ls_gate_channel_t *ch, uint8_t *
     bytes_to_hex(&status, 1, buf_status, true);
 
     bytes_to_hex(buf, bufsize, hex, false);
-    printf("Data: %d bytes, 0x%s\n", bufsize, hex);
+    printf("Data: %u bytes, 0x%s\n", bufsize, hex);
 
     char str[GC_MAX_REPLY_LEN] = { };
     sprintf(str, "%c%08X%08X%s%s%s\n", REPLY_IND,
@@ -344,7 +344,7 @@ static int ls_set_cmd(int argc, char **argv)
             puts("ls-gate: datarate value must be from 0 to 6");
             return 1;
         } else {
-            printf("ls-gate: datarate set to %u\n", v);
+            printf("ls-gate: datarate set to %d\n", v);
         }
 
         ls.channels[0].dr = (ls_datarate_t) v;
@@ -357,7 +357,7 @@ static int ls_set_cmd(int argc, char **argv)
             printf("ls-gate: region value must be from 0 to %d\n", LS_UNI_NUM_REGIONS - 1);
             return 1;
         } else {
-            printf("ls-gate: region set to %u\n", v);
+            printf("ls-gate: region set to %d\n", v);
         }
 
         unwds_set_region(v);

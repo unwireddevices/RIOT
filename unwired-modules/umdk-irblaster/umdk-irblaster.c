@@ -253,7 +253,6 @@ bool umdk_irblaster_cmd(module_data_t *cmd, module_data_t *reply)
             reply_ok(reply);
         
 			return true;
-			break;
         }
 		default:
         break;

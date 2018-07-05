@@ -62,6 +62,12 @@ typedef enum {
 /** @} */
 #endif /* ndef DOXYGEN */
 
+
+/* ADC channels 0 and 17 are not connected to any GPIO */
+#define ADC_VREF_CHANNEL            0
+#define ADC_TEMPERATURE_CHANNEL     17
+#define ADC_VBAT_CHANNEL            18
+
 /**
  * @brief   ADC line configuration values
  */
@@ -69,6 +75,21 @@ typedef struct {
     gpio_t pin;             /**< pin to use */
     uint8_t chan;           /**< internal channel the pin is connected to */
 } adc_conf_t;
+
+
+
+/**
+ * @brief   I2C configuration data structure
+ */
+typedef struct {
+    I2C_TypeDef *dev;       /**< i2c device */
+    gpio_t scl;             /**< scl pin number */
+    gpio_t sda;             /**< sda pin number */
+    gpio_mode_t pin_mode;   /**< with or without pull resistor */
+    gpio_af_t af;           /**< I2C alternate function value */
+    uint8_t er_irqn;        /**< error IRQ */
+    uint8_t ev_irqn;        /**< event IRQ */
+} i2c_conf_t;
 
 #ifdef __cplusplus
 }

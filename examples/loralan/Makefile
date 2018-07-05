@@ -1,37 +1,37 @@
 # If no BOARD is found in the environment, use this default:
-BOARD ?= unwd-range-l1-r3
+BOARD ?= unwd-range-l1-r3#unwd-range-l4-r3
 
 ############ UMDK MODULES USED #####################
 # variable in the list below must match modules'
 # subdirectory name in ../../unwired-modules/
 # and no other variable should have umdk-% name
 
-umdk-gpio	   = 1
+umdk-gpio	   = 0
 umdk-4btn	   = 1
-umdk-gps	   = 1
-umdk-lm75	   = 1
-umdk-lsm6ds3   = 1
-umdk-lmt01	   = 1
-umdk-uart	   = 1
-umdk-sht21	   = 1
-umdk-pir	   = 1
-umdk-adc	   = 1
-umdk-lps331    = 1
-umdk-counter   = 1
-umdk-rssiecho  = 1
-umdk-pwm	   = 1
-umdk-opt3001   = 1
-umdk-bme280    = 1
-umdk-config    = 1
-umdk-mhz19     = 1
-umdk-usound    = 1
-umdk-hd44780   = 1
-umdk-ibutton   = 1
-umdk-irblaster = 1
-umdk-hx711     = 1
-umdk-fdc1004   = 1
-umdk-adxl345   = 1
-umdk-modbus	   = 1
+umdk-gps	   = 0
+umdk-lm75	   = 0
+umdk-lsm6ds3   = 0
+umdk-lmt01	   = 0
+umdk-uart	   = 0
+umdk-sht21	   = 0
+umdk-pir	   = 0
+umdk-adc	   = 0
+umdk-lps331    = 0
+umdk-counter   = 0
+umdk-rssiecho  = 0
+umdk-pwm	   = 0
+umdk-opt3001   = 0
+umdk-bme280    = 0
+umdk-config    = 0
+umdk-mhz19     = 0
+umdk-usound    = 0
+umdk-hd44780   = 0
+umdk-ibutton   = 0
+umdk-irblaster = 0
+umdk-hx711     = 0
+umdk-fdc1004   = 0
+umdk-adxl345   = 0
+umdk-modbus	   = 0
 
 ####### UMDK MODULES defines and Makefile.include inclusion ############
 

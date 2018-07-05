@@ -68,6 +68,7 @@
 #define EXTI_FTSR_BIT       (EXTI_FTSR1_FT18)
 #define EXTI_RTSR_BIT       (EXTI_RTSR1_RT18)
 #define EXTI_PR_BIT         (EXTI_PR1_PIF18)
+#define EXTI_IMRWU_BIT      (EXTI_IMR1_IM20)
 #else
 #if defined(CPU_FAM_STM32L0)
 #define EXTI_IMR_BIT        (EXTI_IMR_IM17)
@@ -674,7 +675,11 @@ int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg)
 
 
     EXTI->IMR  |= EXTI_IMRWU_BIT;
+#if defined(CPU_FAM_STM32L4)
+    EXTI->RTSR |= EXTI_RTSR1_RT20;
+#else
     EXTI->RTSR |= EXTI_RTSR_TR20;
+#endif
     NVIC_EnableIRQ(IRQNWU);
 
     isr_ctx.cb_wkup = cb;
@@ -758,8 +763,11 @@ void ISR_NAME(void)
         if (isr_ctx.cb_wkup != NULL) {
             isr_ctx.cb_wkup(isr_ctx.arg_wkup);
         }
-        
+#if defined(CPU_FAM_STM32L4)
+        EXTI->PR |= EXTI_PR1_PIF20;
+#else
         EXTI->PR |= EXTI_PR_PR20;
+#endif
     }
     
     cortexm_isr_end();

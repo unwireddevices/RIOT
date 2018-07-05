@@ -206,24 +206,32 @@ void periph_clk_dis(bus_t bus, uint32_t mask)
 int is_periph_clk(bus_t bus, uint32_t mask)
 {
     switch (bus) {
+#if defined(CPU_FAM_STM32L4)
+        case APB1:
+            if (RCC->APB1ENR1 & mask) {
+                   return 1;
+            }
+            break;
+#else
         case APB1:
             if (RCC->APB1ENR & mask) {
                    return 1;
             }
             break;
+#endif
         case APB2:
             if (RCC->APB2ENR & mask) {
                 return 1;
             }
             break;
 #if defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L1) || defined(CPU_FAM_STM32F1) \
-            || defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F3)
+            || defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F3) 
         case AHB:
             if (RCC->AHBENR & mask) {
                 return 1;
             }
             break;
-#elif defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4)
+#elif defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32L4)
         case AHB1:
             if (RCC->AHB1ENR & mask) {
                 return 1;

@@ -37,6 +37,8 @@
 /* get RCC bit */
 #ifdef RCC_APB1ENR_DAC1EN
 #define RCC_BIT             (RCC_APB1ENR_DAC1EN)
+#elif defined(RCC_APB1ENR1_DAC1EN)
+#define RCC_BIT             (RCC_APB1ENR1_DAC1EN) 
 #else
 #define RCC_BIT             (RCC_APB1ENR_DACEN)
 #endif

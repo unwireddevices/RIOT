@@ -1,10 +1,14 @@
 export CPU_ARCH = cortex-m0
 export CPU_FAM  = stm32f0
 
+<<<<<<< HEAD
 CFLAGS += -DPROVIDES_PM_SET_LOWEST_CORTEXM
 
 FEATURES_REQUIRED += periph_rtc
 FEATURES_REQUIRED += periph_pm
+=======
+USEMODULE += pm_layered
+>>>>>>> 260e6c5... cpu/stm32f0: add periph_pm support
 
 include $(RIOTCPU)/stm32_common/Makefile.include
 include $(RIOTMAKE)/arch/cortexm.inc.mk

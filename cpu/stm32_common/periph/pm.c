@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2016 Kaspar Schleiser <kaspar@schleiser.de>
+ * Copyright (C) 2018 OTA keys S.A.
+ *               2016 Kaspar Schleiser <kaspar@schleiser.de>
  *               2015 Freie Universität Berlin
  *               2015 Engineering-Spirit
  *
@@ -19,6 +20,7 @@
  * @author      Nick v. IJzendoorn <nijzndoorn@engineering-spirit.nl>
  * @author      Kaspar Schleiser <kaspar@schleiser.de>
  * @author      Fabian Nack <nack@inf.fu-berlin.de>
+ * @author      Vincent Dupont <vincent@otakeys.com>
  *
  * @}
  */
@@ -63,8 +65,13 @@
                          PWR_CSR_EWUP5 | PWR_CSR_EWUP4 | PWR_CSR_EWUP3 | \
                          PWR_CSR_EWUP2 | PWR_CSR_EWUP1)
 #elif defined(PWR_CSR_EWUP7)
+#if defined(PWR_CSR_EWUP3)
 #define PM_EWUP_CONFIG  (PWR_CSR_EWUP7 | PWR_CSR_EWUP6 | PWR_CSR_EWUP5 | \
                          PWR_CSR_EWUP4 | PWR_CSR_EWUP3 | PWR_CSR_EWUP2 | PWR_CSR_EWUP1)
+#else
+#define PM_EWUP_CONFIG  (PWR_CSR_EWUP7 | PWR_CSR_EWUP6 | PWR_CSR_EWUP5 | \
+                         PWR_CSR_EWUP4 | PWR_CSR_EWUP2 | PWR_CSR_EWUP1)
+#endif
 #elif defined(PWR_CSR_EWUP3)
 #define PM_EWUP_CONFIG  (PWR_CSR_EWUP3 | PWR_CSR_EWUP2 | PWR_CSR_EWUP1)
 #elif defined(PWR_CSR_EWUP2)

@@ -29,14 +29,17 @@
 #include "ls-frame-fifo.h"
 
 /**
- * Max devices number that gate can hold
+ * Max device number that gate can hold simultaneously and nonce counts per device to remember
+ * depend on available RAM
  */
-#define LS_GATE_MAX_NODES 100
 
-/**
- * Max nonce count to remember in order to prevent nonce reuse
- */
-#define LS_GATE_NONCES_PER_DEVICE 8
+#if (CPU == stm32l4)
+    #define LS_GATE_MAX_NODES 1000
+    #define LS_GATE_NONCES_PER_DEVICE 20
+#else
+    #define LS_GATE_MAX_NODES 100
+    #define LS_GATE_NONCES_PER_DEVICE 8
+#endif
 
 typedef struct __attribute__((__packed__)){
     uint64_t node_id;			/**< Node unique ID */

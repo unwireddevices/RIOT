@@ -84,6 +84,7 @@ static int get_csv_field(char *buf, int fieldno, char *field, int maxlen) {
  * @brief Parses GPS data in NMEA format
  */
 static bool parse(mt3333_t *dev, char *buf, mt3333_gps_data_t *data) {
+    (void)dev;
     
     DEBUG("[gps] %s\n", buf);
     
@@ -167,7 +168,7 @@ static void *reader(void *arg) {
 
 static void mt3333_send_at_command(char *command) {
     uint8_t checksum = 0;
-    int i;
+    uint32_t i;
     for (i = 0; i < strlen(command); i++) {
         checksum ^= (uint8_t)command[i];
     }

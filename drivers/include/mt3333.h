@@ -59,7 +59,7 @@ typedef struct {
 
 	char date[15];
 	char time[15];
-
+    bool valid;
 	bool n, e;
 } mt3333_gps_data_t;
 

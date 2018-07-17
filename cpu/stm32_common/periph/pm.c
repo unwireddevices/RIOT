@@ -51,33 +51,41 @@
 #endif
 #endif
 
-#ifndef PM_EWUP_CONFIG
-/**
- * @brief   Define EWUP config flags
- *
- * Available values can be found in reference manual, PWR section, register CSR.
- */
-#if defined(CPU_FAM_STM32F1) || defined(CPU_FAM_STM32F2) || \
-    defined(CPU_FAM_STM32F4)
-#define PM_EWUP_CONFIG  (PWR_CSR_EWUP)
-#elif defined(PWR_CSR_EWUP8)
-#define PM_EWUP_CONFIG  (PWR_CSR_EWUP8 | PWR_CSR_EWUP7 | PWR_CSR_EWUP6 | \
-                         PWR_CSR_EWUP5 | PWR_CSR_EWUP4 | PWR_CSR_EWUP3 | \
-                         PWR_CSR_EWUP2 | PWR_CSR_EWUP1)
-#elif defined(PWR_CSR_EWUP7)
-#if defined(PWR_CSR_EWUP3)
-#define PM_EWUP_CONFIG  (PWR_CSR_EWUP7 | PWR_CSR_EWUP6 | PWR_CSR_EWUP5 | \
-                         PWR_CSR_EWUP4 | PWR_CSR_EWUP3 | PWR_CSR_EWUP2 | PWR_CSR_EWUP1)
+static inline const uint32_t _ewup_config(void)
+{
+    uint32_t tmp = 0;
+#ifdef PM_EWUP_CONFIG
+    tmp |= PM_EWUP_CONFIG;
+#elif defined(PWR_CSR_EWUP)
+    tmp |= PWR_CSR_EWUP;
 #else
-#define PM_EWUP_CONFIG  (PWR_CSR_EWUP7 | PWR_CSR_EWUP6 | PWR_CSR_EWUP5 | \
-                         PWR_CSR_EWUP4 | PWR_CSR_EWUP2 | PWR_CSR_EWUP1)
+#if defined(PWR_CSR_EWUP8)
+    tmp |= PWR_CSR_EWUP8;
 #endif
-#elif defined(PWR_CSR_EWUP3)
-#define PM_EWUP_CONFIG  (PWR_CSR_EWUP3 | PWR_CSR_EWUP2 | PWR_CSR_EWUP1)
-#elif defined(PWR_CSR_EWUP2)
-#define PM_EWUP_CONFIG  (PWR_CSR_EWUP2 | PWR_CSR_EWUP1)
+#if defined(PWR_CSR_EWUP7)
+    tmp |= PWR_CSR_EWUP7;
+#endif
+#if defined(PWR_CSR_EWUP6)
+    tmp |= PWR_CSR_EWUP6;
+#endif
+#if defined(PWR_CSR_EWUP5)
+    tmp |= PWR_CSR_EWUP5;
+#endif
+#if defined(PWR_CSR_EWUP4)
+    tmp |= PWR_CSR_EWUP4;
+#endif
+#if defined(PWR_CSR_EWUP3)
+    tmp |= PWR_CSR_EWUP3;
+#endif
+#if defined(PWR_CSR_EWUP2)
+    tmp |= PWR_CSR_EWUP2;
+#endif
+#if defined(PWR_CSR_EWUP1)
+    tmp |= PWR_CSR_EWUP1;
 #endif
 #endif
+    return tmp;
+}
 
 static uint8_t powermode;
 
@@ -105,8 +113,12 @@ enum pm_mode pm_set(enum pm_mode mode)
 #endif
 
             /* Enable WKUP pin to use for wakeup from standby mode */
+<<<<<<< HEAD
             PWR->CSR |= PM_EWUP_CONFIG;
 
+=======
+            PWR->CSR |= _ewup_config();
+>>>>>>> 5ab8060... fixup! fixup! cpu/stm32f0: add periph_pm support
             /* Set SLEEPDEEP bit of system control block */
             deep = 1;
             

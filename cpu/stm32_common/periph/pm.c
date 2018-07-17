@@ -51,7 +51,7 @@
 #endif
 #endif
 
-static inline const uint32_t _ewup_config(void)
+static inline uint32_t _ewup_config(void)
 {
     uint32_t tmp = 0;
 #ifdef PM_EWUP_CONFIG

@@ -103,7 +103,6 @@ void SX127XSetRxConfig(RadioModems_t modem, uint32_t bandwidth,
     sx127x_set_iq_invert(&sx127x, iqInverted);
     sx127x_set_rx_timeout(&sx127x, LORAMAC_RX_WINDOW_DURATION);
     sx127x_set_rx_single(&sx127x, !rxContinuous);
-    sx127x_set_rx(&sx127x);
 }
 
 void SX127XSetTxConfig(RadioModems_t modem, int8_t power, uint32_t fdev,

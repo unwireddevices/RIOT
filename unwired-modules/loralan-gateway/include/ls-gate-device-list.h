@@ -33,7 +33,7 @@
  * depend on available RAM
  */
 
-#if (CPU == stm32l4)
+#if defined(CPU_FAM_STM32L4)
     #define LS_GATE_MAX_NODES 1000
     #define LS_GATE_NONCES_PER_DEVICE 20
 #else

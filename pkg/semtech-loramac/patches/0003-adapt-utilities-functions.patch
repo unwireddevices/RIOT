@@ -1,14 +1,14 @@
-From 1143af922083090a08761ab1a871c7922962218f Mon Sep 17 00:00:00 2001
+From 891d509824ffa55980e44d74bda6f500c8a35f4c Mon Sep 17 00:00:00 2001
 From: Alexandre Abadie <alexandre.abadie@inria.fr>
 Date: Tue, 16 Jan 2018 15:04:09 +0100
 Subject: [PATCH] patch utilities functions
 
 ---
- src/boards/mcu/stm32/utilities.c | 46 +++++++++-----------------------
+ src/boards/mcu/stm32/utilities.c | 46 +++++++++++-----------------------------
  1 file changed, 12 insertions(+), 34 deletions(-)
 
 diff --git a/src/boards/mcu/stm32/utilities.c b/src/boards/mcu/stm32/utilities.c
-index 8861235..e339ba5 100644
+index 8861235..6415111 100644
 --- a/src/boards/mcu/stm32/utilities.c
 +++ b/src/boards/mcu/stm32/utilities.c
 @@ -14,8 +14,10 @@ Maintainer: Miguel Luis and Gregory Cristian
@@ -37,7 +37,7 @@ index 8861235..e339ba5 100644
  {
 -    return ( int32_t )rand1( ) % ( max - min + 1 ) + min;
 -}
-+    return (int32_t)random_uint32() % (max - min + 1) + min;
++    return (int32_t) (random_uint32_range(0,max-min) + min);
 +};
  
  void memcpy1( uint8_t *dst, const uint8_t *src, uint16_t size )
@@ -86,5 +86,5 @@ index 8861235..e339ba5 100644
 +    memset(dst, value, size);
  }
 -- 
-2.17.1
+2.16.0
 

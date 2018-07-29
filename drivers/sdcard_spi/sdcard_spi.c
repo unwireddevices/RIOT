@@ -24,6 +24,7 @@
 #include "sdcard_spi_params.h"
 #include "periph/spi.h"
 #include "periph/gpio.h"
+#include "checksum/ucrc16.h"
 #include "xtimer.h"
 
 #include <stdio.h>
@@ -44,9 +45,6 @@ static sd_rw_response_t _write_data_packet(sdcard_spi_t *card, char token, const
 
 /* CRC-7 (polynomial: x^7 + x^3 + 1) LSB of CRC-7 in a 8-bit variable is always 1*/
 static char _crc_7(const char *data, int n);
-
-/* CRC-16 (CRC-CCITT) (polynomial: x^16 + x^12 + x^5 + x^1) */
-static uint16_t _crc_16(const char *data, size_t n);
 
 /* use this transfer method instead of _transfer_bytes to force the use of 0xFF as dummy bytes */
 static inline int _transfer_bytes(sdcard_spi_t *card, const char *out, char *in, unsigned int length);
@@ -251,9 +249,11 @@ static sd_init_fsm_state_t _init_sd_fsm_step(sdcard_spi_t *card, sd_init_fsm_sta
                     if ((ocr & SYSTEM_VOLTAGE) != 0) {
                         DEBUG("OCR: SYS VOLTAGE SUPPORTED\n");
 
-                        if ((ocr & OCR_POWER_UP_STATUS) != 0) { //if power up outine is finished
+                        /* if power up outine is finished */
+                        if ((ocr & OCR_POWER_UP_STATUS) != 0) {
                             DEBUG("OCR: POWER UP ROUTINE FINISHED\n");
-                            if ((ocr & OCR_CCS) != 0) {         //if sd card is sdhc
+                            /* if sd card is sdhc */
+                            if ((ocr & OCR_CCS) != 0) {
                                 DEBUG("OCR: CARD TYPE IS SDHC (SD_V2 with block adressing)\n");
                                 card->use_block_addr = true;
                                 _unselect_card_spi(card);
@@ -408,20 +408,6 @@ static char _crc_7(const char *data, int n)
         }
     }
     return (crc << 1) | 1;
-}
-
-static uint16_t _crc_16(const char *data, size_t n)
-{
-    uint16_t crc = 0;
-
-    for (size_t i = 0; i < n; i++) {
-        crc = (uint8_t)(crc >> 8) | (crc << 8);
-        crc ^= data[i];
-        crc ^= (uint8_t)(crc & 0xFF) >> 4;
-        crc ^= crc << 12;
-        crc ^= (crc & 0xFF) << 5;
-    }
-    return crc;
 }
 
 char sdcard_spi_send_cmd(sdcard_spi_t *card, char sd_cmd_idx, uint32_t argument, int32_t max_retry)
@@ -620,9 +606,9 @@ static sd_rw_response_t _read_data_packet(sdcard_spi_t *card, char token, char *
 
         char crc_bytes[2];
         if (_transfer_bytes(card, 0, crc_bytes, sizeof(crc_bytes)) == sizeof(crc_bytes)) {
-            uint16_t data__crc_16 = (crc_bytes[0] << 8) | crc_bytes[1];
+            uint16_t data_crc16 = (crc_bytes[0] << 8) | crc_bytes[1];
 
-            if (_crc_16(data, size) == data__crc_16) {
+            if (ucrc16_calc_be((uint8_t *)data, size, UCRC16_CCITT_POLY_BE, 0) == data_crc16) {
                 DEBUG("_read_data_packet: [OK]\n");
                 return SD_RW_OK;
             }
@@ -710,8 +696,8 @@ static sd_rw_response_t _write_data_packet(sdcard_spi_t *card, char token, const
 
     if (_transfer_bytes(card, data, 0, size) == size) {
 
-        uint16_t data__crc_16 = _crc_16(data, size);
-        char crc[sizeof(uint16_t)] = { data__crc_16 >> 8, data__crc_16 & 0xFF };
+        uint16_t data_crc16 = ucrc16_calc_be((uint8_t *)data, size, UCRC16_CCITT_POLY_BE, 0);
+        char crc[sizeof(uint16_t)] = { data_crc16 >> 8, data_crc16 & 0xFF };
 
         if (_transfer_bytes(card, crc, 0, sizeof(crc)) == sizeof(crc)) {
 
@@ -795,13 +781,16 @@ static inline int _write_blocks(sdcard_spi_t *card, char cmd_idx, int bladdr, co
             written++;
         }
 
-        /* if this is a multi-block write it is needed to issue a stop command*/
+        /* if this is a multi-block write it is needed to issue a stop
+           command */
         if (cmd_idx == SD_CMD_25) {
             spi_transfer_byte(card->params.spi_dev, GPIO_UNDEF, true,
                               SD_DATA_TOKEN_CMD_25_STOP);
             DEBUG("_write_blocks: write multi (%d) blocks: [OK]\n", nbl);
 
-            _send_dummy_byte(card); //sd card needs dummy byte before we can wait for not-busy state
+            /* sd card needs dummy byte before we can wait for not-busy
+               state */
+            _send_dummy_byte(card);
             if (!_wait_for_not_busy(card, SD_WAIT_FOR_NOT_BUSY_CNT)) {
                 _unselect_card_spi(card);
                 *state = SD_RW_TIMEOUT;

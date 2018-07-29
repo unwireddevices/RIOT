@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2014 Freie Universität Berlin
+ *               2048 OTA keys S.A.
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
@@ -16,6 +17,7 @@
  * @brief           Implementation specific CPU configuration options
  *
  * @author          Hauke Petersen <hauke.petersen@fu-berlin.de>
+ * @author          Vincent Dupont <vincent@otakeys.com>
  */
 
 #ifndef CPU_CONF_H
@@ -23,25 +25,7 @@
 
 #include "cpu_conf_common.h"
 
-#if defined(CPU_MODEL_STM32F401RE)
-#include "vendor/stm32f401xe.h"
-#elif defined(CPU_MODEL_STM32F407VG)
-#include "vendor/stm32f407xx.h"
-#elif defined(CPU_MODEL_STM32F410RB)
-#include "vendor/stm32f410rx.h"
-#elif defined(CPU_MODEL_STM32F411RE)
-#include "vendor/stm32f411xe.h"
-#elif defined(CPU_MODEL_STM32F412ZG)
-#include "vendor/stm32f412zx.h"
-#elif defined(CPU_MODEL_STM32F413ZH) || defined(CPU_MODEL_STM32F413VG)
-#include "vendor/stm32f413xx.h"
-#elif defined(CPU_MODEL_STM32F415RG)
-#include "vendor/stm32f415xx.h"
-#elif defined(CPU_MODEL_STM32F446RE) || defined(CPU_MODEL_STM32F446ZE)
-#include "vendor/stm32f446xx.h"
-#elif defined(CPU_MODEL_STM32F429ZI)
-#include "vendor/stm32f429xx.h"
-#endif
+#include "vendor/stm32f4xx.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -52,20 +36,20 @@ extern "C" {
  * @{
  */
 #define CPU_DEFAULT_IRQ_PRIO            (1U)
-#if defined(CPU_MODEL_STM32F401RE)
+#if defined(CPU_LINE_STM32F401xE)
 #define CPU_IRQ_NUMOF                   (85U)
-#elif defined(CPU_MODEL_STM32F407VG) || defined(CPU_MODEL_STM32F415RG)
+#elif defined(CPU_LINE_STM32F405xx) || defined(CPU_LINE_STM32F407xx) \
+    || defined(CPU_LINE_STM32F415xx)
 #define CPU_IRQ_NUMOF                   (82U)
-#elif defined(CPU_MODEL_STM32F410RB)
+#elif defined(CPU_LINE_STM32F410Rx)
 #define CPU_IRQ_NUMOF                   (98U)
-#elif defined(CPU_MODEL_STM32F411RE)
+#elif defined(CPU_LINE_STM32F411xE)
 #define CPU_IRQ_NUMOF                   (86U)
-#elif defined(CPU_MODEL_STM32F412ZG) || defined(CPU_MODEL_STM32F446RE) \
-    || defined(CPU_MODEL_STM32F446ZE)
+#elif defined(CPU_LINE_STM32F412Zx) || defined(CPU_LINE_STM32F446xx)
 #define CPU_IRQ_NUMOF                   (97U)
-#elif defined(CPU_MODEL_STM32F413ZH) || defined(CPU_MODEL_STM32F413VG)
+#elif defined(CPU_LINE_STM32F413xx) || defined(CPU_LINE_STM32F423xx)
 #define CPU_IRQ_NUMOF                   (102U)
-#elif defined(CPU_MODEL_STM32F429ZI)
+#elif defined(CPU_LINE_STM32F429xx) || defined(CPU_LINE_STM32F437xx)
 #define CPU_IRQ_NUMOF                   (91U)
 #endif
 #define CPU_FLASH_BASE                  FLASH_BASE

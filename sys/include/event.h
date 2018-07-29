@@ -73,7 +73,7 @@
  *     printf("triggered custom event with text: \"%s\"\n", custom_event->text);
  * }
  *
- * static custom_event_t custom_event = { .super.callback = custom_handler, .text = "CUSTOM EVENT" };
+ * static custom_event_t custom_event = { .super.handler = custom_handler, .text = "CUSTOM EVENT" };
  *
  * [...] event_post(&queue, &custom_event)
  * ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -148,6 +148,11 @@ void event_queue_init(event_queue_t *queue);
 
 /**
  * @brief   Queue an event
+ *
+ * The given event will be posted on the given @p queue. If the event is already
+ * queued when calling this function, the event will not be touched and remain
+ * in the previous position on the queue. So reposting an event while it is
+ * already on the queue will have no effect.
  *
  * @param[in]   queue   event queue to queue event in
  * @param[in]   event   event to queue in event queue

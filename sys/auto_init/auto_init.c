@@ -7,7 +7,7 @@
  * General Public License v2.1. See the file LICENSE in the top level
  * directory for more details.
  *
- * @ingroup auto_init
+ * @ingroup sys_auto_init
  * @{
  * @file
  * @brief   initializes any used module that has a trivial init function
@@ -19,10 +19,6 @@
 #include <stdio.h>
 
 #include "auto_init.h"
-
-#ifdef MODULE_SHT11
-#include "sht11.h"
-#endif
 
 #ifdef MODULE_MCI
 #include "diskio.h"
@@ -80,6 +76,17 @@
 #include "net/gnrc/ipv6/nib.h"
 #endif
 
+#ifdef MODULE_SKALD
+#include "net/skald.h"
+#endif
+
+#ifdef MODULE_NDN_RIOT
+#include "ndn-riot/ndn.h"
+#endif
+
+#ifdef MODULE_ASYMCUTE
+#include "net/asymcute.h"
+#endif
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -93,10 +100,6 @@ void auto_init(void)
 #ifdef MODULE_XTIMER
     DEBUG("Auto init xtimer module.\n");
     xtimer_init();
-#endif
-#ifdef MODULE_SHT11
-    DEBUG("Auto init SHT11 module.\n");
-    sht11_init();
 #endif
 #ifdef MODULE_MCI
     DEBUG("Auto init mci module.\n");
@@ -150,6 +153,24 @@ void auto_init(void)
 #ifdef MODULE_GNRC_IPV6_NIB
     DEBUG("Auto init gnrc_ipv6_nib module.\n");
     gnrc_ipv6_nib_init();
+#endif
+#ifdef MODULE_SKALD
+    DEBUG("Auto init Skald\n");
+    skald_init();
+#endif
+#ifdef MODULE_RDCLI_COMMON
+    DEBUG("Auto init rdcli_common module\n");
+    extern void rdcli_common_init(void);
+    rdcli_common_init();
+#endif
+#ifdef MODULE_RDCLI_SIMPLE_STANDALONE
+    DEBUG("Auto init rdcli_simple module\n");
+    extern void rdcli_simple_run(void);
+    rdcli_simple_run();
+#endif
+#ifdef MODULE_ASYMCUTE
+    DEBUG("Auto init Asymcute\n");
+    asymcute_handler_run();
 #endif
 
 /* initialize network devices */
@@ -247,7 +268,19 @@ void auto_init(void)
     auto_init_gnrc_uhcpc();
 #endif
 
+/* initialize NDN module after the network devices are initialized */
+#ifdef MODULE_NDN_RIOT
+    DEBUG("Auto init NDN module.\n");
+    ndn_init();
+#endif
+
 /* initialize sensors and actuators */
+#ifdef MODULE_SHT1X
+    DEBUG("Auto init SHT1X module (SHT10/SHT11/SHT15 sensor driver).\n");
+    extern void auto_init_sht1x(void);
+    auto_init_sht1x();
+#endif
+
 #ifdef MODULE_AUTO_INIT_SAUL
     DEBUG("auto_init SAUL\n");
 
@@ -303,6 +336,10 @@ auto_init_mpu9150();
     extern void auto_init_grove_ledbar(void);
     auto_init_grove_ledbar();
 #endif
+#ifdef MODULE_PIR
+    extern void auto_init_pir(void);
+    auto_init_pir();
+#endif
 #ifdef MODULE_SI70XX
     extern void auto_init_si70xx(void);
     auto_init_si70xx();
@@ -310,6 +347,10 @@ auto_init_mpu9150();
 #ifdef MODULE_BMP180
     extern void auto_init_bmp180(void);
     auto_init_bmp180();
+#endif
+#ifdef MODULE_BMX055
+    extern void auto_init_bmx055(void);
+    auto_init_bmx055();
 #endif
 #if defined(MODULE_BME280) || defined(MODULE_BMP280)
     extern void auto_init_bmx280(void);
@@ -323,9 +364,17 @@ auto_init_mpu9150();
     extern void auto_init_tsl2561(void);
     auto_init_tsl2561();
 #endif
+#ifdef MODULE_PULSE_COUNTER
+    extern void auto_init_pulse_counter(void);
+    auto_init_pulse_counter();
+#endif
 #ifdef MODULE_HDC1000
     extern void auto_init_hdc1000(void);
     auto_init_hdc1000();
+#endif
+#ifdef MODULE_FXOS8700
+    extern void auto_init_fxos8700(void);
+    auto_init_fxos8700();
 #endif
 #ifdef MODULE_HTS221
     extern void auto_init_hts221(void);
@@ -363,9 +412,17 @@ auto_init_mpu9150();
     extern void auto_init_adcxx1c(void);
     auto_init_adcxx1c();
 #endif
+#ifdef MODULE_ADS101X
+    extern void auto_init_ads101x(void);
+    auto_init_ads101x();
+#endif
 #ifdef MODULE_LIS2DH12
     extern void auto_init_lis2dh12(void);
     auto_init_lis2dh12();
+#endif
+#ifdef MODULE_SI114X
+    extern void auto_init_si114x(void);
+    auto_init_si114x();
 #endif
 
 #endif /* MODULE_AUTO_INIT_SAUL */

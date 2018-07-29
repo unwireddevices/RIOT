@@ -27,6 +27,7 @@
 #include "periph_conf.h"
 #include "periph/uart.h"
 #include "xtimer.h"
+#include "stmclk.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -95,7 +96,7 @@ static void pm_select_run_mode(uint8_t pm_mode) {
 	switch(pm_mode) {
 		case PM_ON:
             DEBUG("Switching to PM_ON");
-			clk_init();
+			stmclk_init_sysclk();
 			break;
 		case PM_IDLE:
             DEBUG("Switching to PM_IDLE");
@@ -106,7 +107,7 @@ static void pm_select_run_mode(uint8_t pm_mode) {
 			break;
 		default:
             DEBUG("Switching to PM_IDLE");
-			clk_init();
+			stmclk_init_sysclk();
 		break;
 	}
     

@@ -46,7 +46,6 @@ static int _init(mtd_dev_t *dev)
 {
     (void)dev;
 
-    memset(dummy_memory, 0xff, sizeof(dummy_memory));
     return 0;
 }
 
@@ -142,6 +141,31 @@ static void test_littlefs_teardown(void)
     vfs_unlink("/test-littlefs/a/test2.txt");
     vfs_rmdir("/test-littlefs/a");
     vfs_umount(&_test_littlefs_mount);
+}
+
+static void tests_littlefs_format(void)
+{
+    int res;
+    vfs_umount(&_test_littlefs_mount);
+    res = mtd_erase(_dev, 0, _dev->page_size * _dev->pages_per_sector * _dev->sector_count);
+    TEST_ASSERT_EQUAL_INT(0, res);
+
+    res = vfs_mount(&_test_littlefs_mount);
+    TEST_ASSERT(res < 0);
+
+    /* 1. format an invalid file system (failed mount) */
+    res = vfs_format(&_test_littlefs_mount);
+    TEST_ASSERT_EQUAL_INT(0, res);
+
+    res = vfs_mount(&_test_littlefs_mount);
+    TEST_ASSERT_EQUAL_INT(0, res);
+
+    res = vfs_umount(&_test_littlefs_mount);
+    TEST_ASSERT_EQUAL_INT(0, res);
+
+    /* 2. format a valid file system */
+    res = vfs_format(&_test_littlefs_mount);
+    TEST_ASSERT_EQUAL_INT(0, res);
 }
 
 static void tests_littlefs_mount_umount(void)
@@ -382,7 +406,12 @@ static void tests_littlefs_statvfs(void)
 
 Test *tests_littlefs_tests(void)
 {
+#ifndef MTD_0
+    memset(dummy_memory, 0xff, sizeof(dummy_memory));
+#endif
+
     EMB_UNIT_TESTFIXTURES(fixtures) {
+        new_TestFixture(tests_littlefs_format),
         new_TestFixture(tests_littlefs_mount_umount),
         new_TestFixture(tests_littlefs_open_close),
         new_TestFixture(tests_littlefs_write),

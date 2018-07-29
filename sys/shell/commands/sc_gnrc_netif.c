@@ -67,11 +67,13 @@ static const struct {
     { "iphc", NETOPT_6LO_IPHC },
     { "preload", NETOPT_PRELOADING },
     { "promisc", NETOPT_PROMISCUOUSMODE },
+    { "phy_busy", NETOPT_PHY_BUSY },
     { "raw", NETOPT_RAWMODE },
     { "rtr_adv", NETOPT_IPV6_SND_RTR_ADV },
     { "iq_invert", NETOPT_IQ_INVERT },
     { "rx_single", NETOPT_SINGLE_RECEIVE },
-    { "chan_hop", NETOPT_CHANNEL_HOP }
+    { "chan_hop", NETOPT_CHANNEL_HOP },
+    { "checksum", NETOPT_CHECKSUM },
 };
 
 /* utility functions */
@@ -136,7 +138,7 @@ static int _netif_stats(kernel_pid_t iface, unsigned module, bool reset)
     }
     return res;
 }
-#endif // MODULE_NETSTATS
+#endif /* MODULE_NETSTATS */
 
 static void _set_usage(char *cmd_name)
 {
@@ -150,6 +152,7 @@ static void _set_usage(char *cmd_name)
          "       * \"freq\" - sets the \"channel\" center frequency\n"
          "       * \"channel\" - sets the frequency channel\n"
          "       * \"chan\" - alias for \"channel\"\n"
+         "       * \"checksum\" - set checksumming on-off\n"
          "       * \"csma_retries\" - set max. number of channel access attempts\n"
          "       * \"encrypt\" - set the encryption on-off\n"
          "       * \"hop_limit\" - set hop limit\n"
@@ -160,6 +163,7 @@ static void _set_usage(char *cmd_name)
          "       * \"page\" - set the channel page (IEEE 802.15.4)\n"
          "       * \"pan\" - alias for \"nid\"\n"
          "       * \"pan_id\" - alias for \"nid\"\n"
+         "       * \"phy_busy\" - set busy mode on-off\n"
          "       * \"bw\" - alias for channel bandwidth\n"
          "       * \"sf\" - alias for spreading factor\n"
          "       * \"cr\" - alias for coding rate\n"
@@ -274,6 +278,14 @@ static void _print_netopt(netopt_t opt)
 
         case NETOPT_CODING_RATE:
             printf("coding rate");
+            break;
+
+        case NETOPT_CHECKSUM:
+            printf("checksum");
+            break;
+
+        case NETOPT_PHY_BUSY:
+            printf("PHY busy");
             break;
 
         default:
@@ -425,6 +437,10 @@ static void _netif_list(kernel_pid_t iface)
     res = gnrc_netapi_get(iface, NETOPT_CODING_RATE, 0, &u8, sizeof(u8));
     if (res >= 0) {
         printf(" CR: %s ", _netopt_coding_rate_str[u8]);
+    }
+    res = gnrc_netapi_get(iface, NETOPT_LINK_CONNECTED, 0, &u8, sizeof(u8));
+    if (res >= 0) {
+        printf(" Link: %s ", (netopt_enable_t)u8 ? "up" : "down" );
     }
     line_thresh = _newline(0U, line_thresh);
     res = gnrc_netapi_get(iface, NETOPT_ADDRESS_LONG, 0, hwaddr, sizeof(hwaddr));

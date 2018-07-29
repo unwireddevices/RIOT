@@ -19,28 +19,32 @@ BOARD_INSUFFICIENT_MEMORY := airfy-beacon \
                              chronos \
                              ek-lm4f120xl \
                              feather-m0 \
+                             ikea-tradfri \
                              limifrog-v1 maple-mini \
                              mbed_lpc1768 \
+                             mega-xplained \
                              microbit \
                              msb-430 \
                              msb-430h \
+                             msba2 \
                              nrf51dongle \
                              nrf6310 \
-                             nucleo32-f031 \
-                             nucleo32-f042 \
-                             nucleo32-f303 \
-                             nucleo32-l031 \
-                             nucleo32-l432 \
-                             nucleo-f030 \
-                             nucleo-f070 \
-                             nucleo-f072 \
-                             nucleo-f091 \
-                             nucleo-f103 \
-                             nucleo-f302 \
-                             nucleo-f334 \
-                             nucleo-f410 \
-                             nucleo-l053 \
-                             nucleo-l073 \
+                             nucleo-f031k6 \
+                             nucleo-f042k6 \
+                             nucleo-f303k8 \
+                             nucleo-l031k6 \
+                             nucleo-l432kc \
+                             nucleo-f030r8 \
+                             nucleo-f070rb \
+                             nucleo-f072rb \
+                             nucleo-f091rc \
+                             nucleo-f103rb \
+                             nucleo-f302r8 \
+                             nucleo-f334r8 \
+                             nucleo-f410rb \
+                             nucleo-l053r8 \
+                             nucleo-l073rz \
+                             nucleo-l433rc \
                              nz32-sc151 \
                              opencm904 \
                              openmote \
@@ -53,12 +57,16 @@ BOARD_INSUFFICIENT_MEMORY := airfy-beacon \
                              samd21-xpro \
                              samr21-xpro \
                              seeeduino_arch-pro \
+                             slstk3401a \
+                             sltb001a \
                              slwstk6220a \
                              sodaq-autonomo \
                              sodaq-explorer \
                              spark-core \
+                             stk3600 \
                              stm32f0discovery \
                              stm32f3discovery \
+                             stm32mindev \
                              teensy31 \
                              telosb \
                              waspmote-pro \
@@ -99,6 +107,8 @@ ARM_CORTEX_M_BOARDS := airfy-beacon \
                        fox \
                        frdm-k22f \
                        frdm-k64f \
+                       frdm-kw41z \
+                       ikea-tradfri \
                        iotlab-a8-m3 \
                        iotlab-m3 \
                        limifrog-v1 \
@@ -111,36 +121,38 @@ ARM_CORTEX_M_BOARDS := airfy-beacon \
                        nrf52840dk \
                        nrf52dk \
                        nrf6310 \
-                       nucleo144-f207 \
-                       nucleo144-f303 \
-                       nucleo144-f412 \
-                       nucleo144-f413 \
-                       nucleo144-f429 \
-                       nucleo144-f446 \
-                       nucleo144-f722 \
-                       nucleo144-f746 \
-                       nucleo144-f767 \
-                       nucleo32-f031 \
-                       nucleo32-f042 \
-                       nucleo32-f303 \
-                       nucleo32-l031 \
-                       nucleo32-l432 \
-                       nucleo-f030 \
-                       nucleo-f070 \
-                       nucleo-f072 \
-                       nucleo-f091 \
-                       nucleo-f103 \
-                       nucleo-f302 \
-                       nucleo-f303 \
-                       nucleo-f334 \
-                       nucleo-f401 \
-                       nucleo-f410 \
-                       nucleo-f411 \
-                       nucleo-f446 \
-                       nucleo-l053 \
-                       nucleo-l073 \
-                       nucleo-l152 \
-                       nucleo-l476 \
+                       nucleo-f207zg \
+                       nucleo-f303ze \
+                       nucleo-f412zg \
+                       nucleo-f413zh \
+                       nucleo-f429zi \
+                       nucleo-f446ze \
+                       nucleo-f722ze \
+                       nucleo-f746zg \
+                       nucleo-f767zi \
+                       nucleo-f031k6 \
+                       nucleo-f042k6 \
+                       nucleo-f303k8 \
+                       nucleo-l031k6 \
+                       nucleo-l432kc \
+                       nucleo-f030r8 \
+                       nucleo-f070rb \
+                       nucleo-f072rb \
+                       nucleo-f091rc \
+                       nucleo-f103rb \
+                       nucleo-f302r8 \
+                       nucleo-f303re \
+                       nucleo-f334r8 \
+                       nucleo-f401re \
+                       nucleo-f410rb \
+                       nucleo-f411re \
+                       nucleo-f446re \
+                       nucleo-l053r8 \
+                       nucleo-l073rz \
+                       nucleo-l152re \
+                       nucleo-l433rc \
+                       nucleo-l476rg \
+                       nucleo-l496zg \
                        nz32-sc151 \
                        opencm904 \
                        openmote-cc2538 \
@@ -152,15 +164,20 @@ ARM_CORTEX_M_BOARDS := airfy-beacon \
                        saml21-xpro \
                        samr21-xpro \
                        seeeduino_arch-pro \
+                       slstk3401a \
+                       slstk3402a \
                        sltb001a \
+                       slwstk6000b \
                        slwstk6220a \
                        sodaq-autonomo \
                        sodaq-explorer \
                        spark-core \
+                       stk3600 \
+                       stk3700 \
                        stm32f0discovery \
                        stm32f3discovery \
                        stm32f4discovery \
-                       stm32f7discovery \
+                       stm32f769i-disco \
                        udoo \
                        yunjia-nrf51822 \
                        #
@@ -205,6 +222,17 @@ ifneq (,$(filter tests-cpp_%, $(UNIT_TESTS)))
   export CPPMIX := 1
 endif
 
+ifneq (, $(filter $(AVR_BOARDS), $(BOARD)))
+  LARGE_STACK_TESTS += tests-qDSA
+endif
+
+LARGE_STACK_TESTS += tests-hacl
+LARGE_STACK_TESTS += tests-libcose
+LARGE_STACK_TESTS += tests-tweetnacl
+ifneq (,$(filter $(LARGE_STACK_TESTS), $(UNIT_TESTS)))
+  CFLAGS += -DTHREAD_STACKSIZE_MAIN=\(4*THREAD_STACKSIZE_DEFAULT+THREAD_EXTRA_STACKSIZE_PRINTF\)
+endif
+
 DISABLE_MODULE += auto_init
 
 # Pull in `Makefile.include`s from the test suites:
@@ -215,11 +243,17 @@ BASELIBS += $(UNIT_TESTS:%=$(BINDIR)/%.a)
 
 INCLUDES += -I$(RIOTBASE)/tests/unittests/common
 
+# list of boards to run CI tests on
+TEST_ON_CI_WHITELIST += all
+
 include $(RIOTBASE)/Makefile.include
 
 .PHONY: $(UNIT_TESTS)
 
 all:
+
+info-unittests:
+	@echo $(UNIT_TESTS)
 
 $(UNIT_TESTS): all
 

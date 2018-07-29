@@ -45,6 +45,7 @@ static const char *_netopt_strmap[] = {
     [NETOPT_PRELOADING]            = "NETOPT_PRELOADING",
     [NETOPT_PROMISCUOUSMODE]       = "NETOPT_PROMISCUOUSMODE",
     [NETOPT_AUTOACK]               = "NETOPT_AUTOACK",
+    [NETOPT_ACK_PENDING]           = "NETOPT_ACK_PENDING",
     [NETOPT_ACK_REQ]               = "NETOPT_ACK_REQ",
     [NETOPT_RETRANS]               = "NETOPT_RETRANS",
     [NETOPT_PROTO]                 = "NETOPT_PROTO",
@@ -61,6 +62,7 @@ static const char *_netopt_strmap[] = {
     [NETOPT_CSMA_MINBE]            = "NETOPT_CSMA_MINBE",
     [NETOPT_MAC_NO_SLEEP]          = "NETOPT_MAC_NO_SLEEP",
     [NETOPT_IS_WIRED]              = "NETOPT_IS_WIRED",
+    [NETOPT_LINK_CONNECTED]        = "NETOPT_LINK_CONNECTED",
     [NETOPT_DEVICE_TYPE]           = "NETOPT_DEVICE_TYPE",
     [NETOPT_CHANNEL_PAGE]          = "NETOPT_CHANNEL_PAGE",
     [NETOPT_CCA_THRESHOLD]         = "NETOPT_CCA_THRESHOLD",
@@ -87,6 +89,9 @@ static const char *_netopt_strmap[] = {
     [NETOPT_IQ_INVERT]             = "NETOPT_IQ_INVERT",
     [NETOPT_TX_RETRIES_NEEDED]     = "NETOPT_TX_RETRIES_NEEDED",
     [NETOPT_6LO_IPHC]              = "NETOPT_6LO_IPHC",
+    [NETOPT_BLE_CTX]               = "NETOPT_BLE_CTX",
+    [NETOPT_CHECKSUM]              = "NETOPT_CHECKSUM",
+    [NETOPT_PHY_BUSY]              = "NETOPT_PHY_BUSY",
     [NETOPT_NUMOF]                 = "NETOPT_NUMOF",
 };
 

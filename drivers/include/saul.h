@@ -92,6 +92,11 @@ enum {
     SAUL_SENSE_ANALOG   = 0x8a,     /**< sensor: raw analog value */
     SAUL_SENSE_UV       = 0x8b,     /**< sensor: UV index */
     SAUL_SENSE_OBJTEMP  = 0x8c,     /**< sensor: object temperature */
+    SAUL_SENSE_COUNT    = 0x8d,     /**< sensor: pulse counter */
+    SAUL_SENSE_DISTANCE = 0x8e,     /**< sensor: distance */
+    SAUL_SENSE_CO2      = 0x8f,     /**< sensor: CO2 Gas */
+    SAUL_SENSE_TVOC     = 0x90,     /**< sensor: TVOC Gas */
+    SAUL_SENSE_OCCUP    = 0x91,     /**< sensor: occupancy */
     SAUL_CLASS_ANY      = 0xff      /**< any device - wildcard */
     /* extend this list as needed... */
 };

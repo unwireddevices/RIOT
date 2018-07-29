@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup     native_cpu
+ * @ingroup     cpu_native
  * @ingroup     drivers_periph_uart
  * @{
  *
@@ -176,4 +176,16 @@ void uart_write(uart_t uart, const uint8_t *data, size_t len)
     DEBUG("\n");
 
     _native_write(tty_fds[uart], data, len);
+}
+
+void uart_poweron(uart_t uart)
+{
+    (void)uart;
+    /* not implemented (yet) */
+}
+
+void uart_poweroff(uart_t uart)
+{
+    (void)uart;
+    /* not implemented (yet) */
 }

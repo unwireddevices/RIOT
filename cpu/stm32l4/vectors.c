@@ -34,8 +34,13 @@ WEAK_DEFAULT void isr_can1_rx0(void);
 WEAK_DEFAULT void isr_can1_rx1(void);
 WEAK_DEFAULT void isr_can1_sce(void);
 WEAK_DEFAULT void isr_can1_tx(void);
+WEAK_DEFAULT void isr_can2_rx0(void);
+WEAK_DEFAULT void isr_can2_rx1(void);
+WEAK_DEFAULT void isr_can2_sce(void);
+WEAK_DEFAULT void isr_can2_tx(void);
 WEAK_DEFAULT void isr_comp(void);
 WEAK_DEFAULT void isr_crs(void);
+WEAK_DEFAULT void isr_dcmi(void);
 WEAK_DEFAULT void isr_dfsdm1_flt0(void);
 WEAK_DEFAULT void isr_dfsdm1_flt1(void);
 WEAK_DEFAULT void isr_dfsdm1_flt2(void);
@@ -54,6 +59,7 @@ WEAK_DEFAULT void isr_dma2_channel4(void);
 WEAK_DEFAULT void isr_dma2_channel5(void);
 WEAK_DEFAULT void isr_dma2_channel6(void);
 WEAK_DEFAULT void isr_dma2_channel7(void);
+WEAK_DEFAULT void isr_dma2d(void);
 WEAK_DEFAULT void isr_exti(void);
 WEAK_DEFAULT void isr_flash(void);
 WEAK_DEFAULT void isr_fmc(void);
@@ -64,8 +70,8 @@ WEAK_DEFAULT void isr_i2c2_er(void);
 WEAK_DEFAULT void isr_i2c2_ev(void);
 WEAK_DEFAULT void isr_i2c3_er(void);
 WEAK_DEFAULT void isr_i2c3_ev(void);
-WEAK_DEFAULT void isr_i2c4_er(void);
 WEAK_DEFAULT void isr_i2c4_ev(void);
+WEAK_DEFAULT void isr_i2c4_er(void);
 WEAK_DEFAULT void isr_lcd(void);
 WEAK_DEFAULT void isr_lptim1(void);
 WEAK_DEFAULT void isr_lptim2(void);
@@ -148,9 +154,6 @@ ISR_VECTOR(1) const isr_t vector_cpu[CPU_IRQ_NUMOF] = {
     [RTC_Alarm_IRQn          ] = isr_rtc_alarm,            /* [41] RTC Alarm (A and B) through EXTI Line Interrupt */
     [SPI3_IRQn               ] = isr_spi3,                 /* [51] SPI3 global Interrupt */
     [TIM6_DAC_IRQn           ] = isr_tim6_dac,             /* [54] TIM6 global and DAC1&2 underrun error  interrupts */
-#if !defined(CPU_MODEL_STM32L451CC)
-    [TIM7_IRQn               ] = isr_tim7,                 /* [55] TIM7 global interrupt */
-#endif    
     [DMA2_Channel1_IRQn      ] = isr_dma2_channel1,        /* [56] DMA2 Channel 1 global Interrupt */
     [DMA2_Channel2_IRQn      ] = isr_dma2_channel2,        /* [57] DMA2 Channel 2 global Interrupt */
     [DMA2_Channel3_IRQn      ] = isr_dma2_channel3,        /* [58] DMA2 Channel 3 global Interrupt */
@@ -166,27 +169,34 @@ ISR_VECTOR(1) const isr_t vector_cpu[CPU_IRQ_NUMOF] = {
     [I2C3_EV_IRQn            ] = isr_i2c3_ev,              /* [72] I2C3 event interrupt */
     [I2C3_ER_IRQn            ] = isr_i2c3_er,              /* [73] I2C3 error interrupt */
     [SAI1_IRQn               ] = isr_sai1,                 /* [74] Serial Audio Interface 1 global interrupt */
-#if !defined(CPU_MODEL_STM32L451CC)
-    [SWPMI1_IRQn             ] = isr_swpmi1,               /* [76] Serial Wire Interface 1 global interrupt */
-#endif
     [TSC_IRQn                ] = isr_tsc,                  /* [77] Touch Sense Controller global interrupt */
     [RNG_IRQn                ] = isr_rng,                  /* [80] RNG global interrupt */
     [FPU_IRQn                ] = isr_fpu,                  /* [81] FPU global interrupt */
 
-#if defined(CPU_MODEL_STM32L432KC)
+#if defined(CPU_MODEL_STM32L432KC) || defined(CPU_MODEL_STM32L433RC)
     [ADC1_IRQn               ] = isr_adc1,                 /* [18] ADC1 global Interrupt */
     [TIM1_TRG_COM_IRQn       ] = isr_tim1_trg_com,         /* [26] TIM1 Trigger and Commutation Interrupt */
     [USB_IRQn                ] = isr_usb,                  /* [67] USB event Interrupt */
     [CRS_IRQn                ] = isr_crs,                  /* [82] CRS global interrupt */
-#elif defined(CPU_MODEL_STM32L476RG) || defined(CPU_MODEL_STM32L475VG)
+#endif
+#if defined(CPU_MODEL_STM32L476RG) || defined(CPU_MODEL_STM32L476VG) || \
+    defined(CPU_MODEL_STM32L475VG) || defined(CPU_MODEL_STM32L452RE) || \
+    defined(CPU_MODEL_STM32L496ZG)
     [ADC1_2_IRQn             ] = isr_adc1_2,               /* [18] ADC1, ADC2 SAR global Interrupts */
     [TIM1_TRG_COM_TIM17_IRQn ] = isr_tim1_trg_com_tim17,   /* [26] TIM1 Trigger and Commutation Interrupt and TIM17 global interrupt */
     [TIM3_IRQn               ] = isr_tim3,                 /* [29] TIM3 global Interrupt */
-    [TIM4_IRQn               ] = isr_tim4,                 /* [30] TIM4 global Interrupt */
     [I2C2_EV_IRQn            ] = isr_i2c2_ev,              /* [33] I2C2 Event Interrupt */
     [I2C2_ER_IRQn            ] = isr_i2c2_er,              /* [34] I2C2 Error Interrupt */
     [SPI2_IRQn               ] = isr_spi2,                 /* [36] SPI2 global Interrupt */
     [USART3_IRQn             ] = isr_usart3,               /* [39] USART3 global Interrupt */
+    [SDMMC1_IRQn             ] = isr_sdmmc1,               /* [49] SDMMC1 global Interrupt */
+    [UART4_IRQn              ] = isr_uart4,                /* [52] UART4 global Interrupt */
+    [DFSDM1_FLT0_IRQn        ] = isr_dfsdm1_flt0,          /* [61] DFSDM1 Filter 0 global Interrupt */
+    [DFSDM1_FLT1_IRQn        ] = isr_dfsdm1_flt1,          /* [62] DFSDM1 Filter 1 global Interrupt */
+#endif
+#if defined(CPU_MODEL_STM32L476RG) || defined(CPU_MODEL_STM32L476VG) || \
+    defined(CPU_MODEL_STM32L475VG)
+    [TIM4_IRQn               ] = isr_tim4,                 /* [30] TIM4 global Interrupt */
     [DFSDM1_FLT3_IRQn        ] = isr_dfsdm1_flt3,          /* [42] DFSDM1 Filter 3 global Interrupt */
     [TIM8_BRK_IRQn           ] = isr_tim8_brk,             /* [43] TIM8 Break Interrupt */
     [TIM8_UP_IRQn            ] = isr_tim8_up,              /* [44] TIM8 Update Interrupt */
@@ -194,12 +204,8 @@ ISR_VECTOR(1) const isr_t vector_cpu[CPU_IRQ_NUMOF] = {
     [TIM8_CC_IRQn            ] = isr_tim8_cc,              /* [46] TIM8 Capture Compare Interrupt */
     [ADC3_IRQn               ] = isr_adc3,                 /* [47] ADC3 global  Interrupt */
     [FMC_IRQn                ] = isr_fmc,                  /* [48] FMC global Interrupt */
-    [SDMMC1_IRQn             ] = isr_sdmmc1,               /* [49] SDMMC1 global Interrupt */
     [TIM5_IRQn               ] = isr_tim5,                 /* [50] TIM5 global Interrupt */
-    [UART4_IRQn              ] = isr_uart4,                /* [52] UART4 global Interrupt */
     [UART5_IRQn              ] = isr_uart5,                /* [53] UART5 global Interrupt */
-    [DFSDM1_FLT0_IRQn        ] = isr_dfsdm1_flt0,          /* [61] DFSDM1 Filter 0 global Interrupt */
-    [DFSDM1_FLT1_IRQn        ] = isr_dfsdm1_flt1,          /* [62] DFSDM1 Filter 1 global Interrupt */
     [DFSDM1_FLT2_IRQn        ] = isr_dfsdm1_flt2,          /* [63] DFSDM1 Filter 2 global Interrupt */
     [OTG_FS_IRQn             ] = isr_otg_fs,               /* [67] USB OTG FS global Interrupt */
     [SAI2_IRQn               ] = isr_sai2,                 /* [75] Serial Audio Interface 2 global interrupt */
@@ -219,7 +225,31 @@ ISR_VECTOR(1) const isr_t vector_cpu[CPU_IRQ_NUMOF] = {
     [I2C4_EV_IRQn            ] = isr_i2c4_ev,              /* [83] I2C4 Event interrupt */
     [I2C4_ER_IRQn            ] = isr_i2c4_er,              /* [84] I2C4 Error interrupt */
 #endif
-#if defined(CPU_MODEL_STM32L476RG)
+#if defined(CPU_MODEL_STM32L432KC) || defined(CPU_MODEL_STM32L476RG) || \
+    defined(CPU_MODEL_STM32L476VG) || defined(CPU_MODEL_STM32L475VG) || \
+    defined(CPU_MODEL_STM32L496ZG)
+    [TIM7_IRQn               ] = isr_tim7,                 /* [55] TIM7 global interrupt */
+    [SWPMI1_IRQn             ] = isr_swpmi1,               /* [76] Serial Wire Interface 1 global interrupt */
+#endif
+#if defined(CPU_MODEL_STM32L476RG) || defined(CPU_MODEL_STM32L476VG)
     [LCD_IRQn                ] = isr_lcd,                  /* [78] LCD global interrupt */
+#endif
+#if defined(CPU_MODEL_STM32L496ZG)
+    [TIM4_IRQn               ] = isr_tim4,                 /* [30] TIM4 global Interrupt */
+    [TIM5_IRQn               ] = isr_tim5,                 /* [50] TIM5 global Interrupt */
+    [UART5_IRQn              ] = isr_uart5,                /* [53] UART5 global Interrupt */
+    [DFSDM1_FLT2_IRQn        ] = isr_dfsdm1_flt2,          /* [63] DFSDM1 Filter 2 global Interrupt */
+    [OTG_FS_IRQn             ] = isr_otg_fs,               /* [67] USB OTG FS global Interrupt */
+    [SAI2_IRQn               ] = isr_sai2,                 /* [75] Serial Audio Interface 2 global interrupt */
+    [LCD_IRQn                ] = isr_lcd,                  /* [78] LCD global interrupt */
+    [CRS_IRQn                ] = isr_crs,                  /* [82] CRS global interrupt */
+    [I2C4_EV_IRQn            ] = isr_i2c4_ev,              /* [83] I2C4 Event interrupt */
+    [I2C4_ER_IRQn            ] = isr_i2c4_er,              /* [84] I2C4 Error interrupt */
+    [DCMI_IRQn               ] = isr_dcmi,                 /* [85] DCMI global interrupt */
+    [CAN2_TX_IRQn            ] = isr_can2_tx,              /* [86] CAN2 TX interrupt */
+    [CAN2_RX0_IRQn           ] = isr_can2_rx0,             /* [87] CAN2 RX0 interrupt */
+    [CAN2_RX1_IRQn           ] = isr_can2_rx1,             /* [88] CAN2 RX1 interrupt */
+    [CAN2_SCE_IRQn           ] = isr_can2_sce,             /* [89] CAN2 SCE interrupt */
+    [DMA2D_IRQn              ] = isr_dma2d,                /* [90] DMA2D global interrupt */
 #endif
 };

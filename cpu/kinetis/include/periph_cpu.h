@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015-2016 Freie Universität Berlin
+ * Copyright (C) 2017-2018 Eistec AB
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -14,6 +15,7 @@
  * @brief           CPU specific definitions for internal peripheral handling
  *
  * @author          Hauke Petersen <hauke.petersen@fu-berlin.de>
+ * @author          Joakim Nohlgård <joakim.nohlgard@eistec.se>
  */
 
 #ifndef PERIPH_CPU_H
@@ -29,7 +31,7 @@ extern "C" {
 #endif
 
 /**
- * @brief   Overwrite the default gpio_t type definition
+ * @name    CPU specific gpio_t type definition
  * @{
  */
 #define HAVE_GPIO_T
@@ -46,14 +48,28 @@ typedef uint16_t gpio_t;
  */
 #define GPIO_PIN(x, y)      (((x + 1) << 12) | (x << 6) | y)
 
+#ifdef SIM_UIDH_UID_MASK
+/* Kinetis Cortex-M4 has a 128 bit SIM UID */
 /**
  * @brief   Starting offset of CPU_ID
  */
 #define CPUID_ADDR          (&SIM->UIDH)
+
 /**
  * @brief   Length of the CPU_ID in octets
  */
 #define CPUID_LEN           (16U)
+#else /* defined(SIM_UIDH_UID_MASK) */
+/* Kinetis Cortex-M0+ has a 96 bit SIM UID */
+/**
+ * @brief   Starting offset of CPU_ID
+ */
+#define CPUID_ADDR          (&SIM->UIDMH)
+/**
+ * @brief   Length of the CPU_ID in octets
+ */
+#define CPUID_LEN           (12U)
+#endif /* defined(SIM_UIDH_UID_MASK) */
 
 /**
  * @brief   Generate GPIO mode bitfields
@@ -65,11 +81,6 @@ typedef uint16_t gpio_t;
  * - bit 7: output or input mode
  */
 #define GPIO_MODE(pu, pe, od, out)   (pu | (pe << 1) | (od << 5) | (out << 7))
-
-/**
- * @brief   Define the maximum number of PWM channels that can be configured
- */
-#define PWM_CHAN_MAX        (4U)
 
 /**
  * @brief   Define a CPU specific SPI hardware chip select line macro
@@ -85,12 +96,12 @@ typedef uint16_t gpio_t;
 #define SPI_HWCS_NUMOF      (5)
 
 /**
- * @brief   This CPU makes use of the following shared SPI functions
+ * @name    This CPU makes use of the following shared SPI functions
  * @{
  */
-#define PERIPH_SPI_NEEDS_TRANSFER_BYTE
-#define PERIPH_SPI_NEEDS_TRANSFER_REG
-#define PERIPH_SPI_NEEDS_TRANSFER_REGS
+#define PERIPH_SPI_NEEDS_TRANSFER_BYTE  1
+#define PERIPH_SPI_NEEDS_TRANSFER_REG   1
+#define PERIPH_SPI_NEEDS_TRANSFER_REGS  1
 /** @} */
 
 /**
@@ -99,13 +110,27 @@ typedef uint16_t gpio_t;
 #define PERIPH_TIMER_PROVIDES_SET
 
 /**
- * @brief   define number of usable power modes
+ * @brief   number of usable power modes
  */
 #define PM_NUM_MODES    (1U)
 
+#ifdef RTC
+/* All Kinetis CPUs have exactly one RTC hardware module, except for the KL02
+ * family which don't have an RTC at all */
+/**
+ * @name RTT and RTC configuration
+ * @{
+ */
+#define RTT_NUMOF                    (1U)
+#define RTC_NUMOF                    (1U)
+#define RTT_FREQUENCY                (1)
+#define RTT_MAX_VALUE                (0xffffffff)
+/** @} */
+#endif
+
 #ifndef DOXYGEN
 /**
- * @brief   Override GPIO modes
+ * @name    GPIO pin modes
  * @{
  */
 #define HAVE_GPIO_MODE_T
@@ -121,7 +146,7 @@ typedef enum {
 #endif /* ndef DOXYGEN */
 
 /**
- * @brief   Define a condensed set of PORT PCR values
+ * @brief   PORT control register bitmasks
  *
  * To combine values just aggregate them using a logical OR.
  */
@@ -134,14 +159,16 @@ typedef enum {
     GPIO_AF_5      = PORT_PCR_MUX(5),       /**< use alternate function 5 */
     GPIO_AF_6      = PORT_PCR_MUX(6),       /**< use alternate function 6 */
     GPIO_AF_7      = PORT_PCR_MUX(7),       /**< use alternate function 7 */
+#ifdef PORT_PCR_ODE_MASK
     GPIO_PCR_OD    = (PORT_PCR_ODE_MASK),   /**< open-drain mode */
+#endif
     GPIO_PCR_PD    = (PORT_PCR_PE_MASK),    /**< enable pull-down */
     GPIO_PCR_PU    = (PORT_PCR_PE_MASK | PORT_PCR_PS_MASK)  /**< enable PU */
 } gpio_pcr_t;
 
 #ifndef DOXYGEN
 /**
- * @brief   Override flank configuration values
+ * @name    GPIO flank configuration values
  * @{
  */
 #define HAVE_GPIO_FLANK_T
@@ -156,7 +183,7 @@ typedef enum {
 /**
  * @brief   Available ports on the Kinetis family
  *
- * @todo    This is not equal for all members of the Kinetis family, right?
+ * Not all CPUs have the full number of ports, see your CPU data sheet for pinout.
  */
 enum {
     PORT_A = 0,             /**< port A */
@@ -171,7 +198,7 @@ enum {
 
 #ifndef DOXYGEN
 /**
- * @brief   Override default ADC resolution values
+ * @name   ADC resolution values
  * @{
  */
 #define HAVE_ADC_RES_T
@@ -185,8 +212,14 @@ typedef enum {
 } adc_res_t;
 /** @} */
 
+#if defined(FTM_CnSC_MSB_MASK)
 /**
- * @brief   Override default PWM mode configuration
+ * @brief   Define the maximum number of PWM channels that can be configured
+ */
+#define PWM_CHAN_MAX        (4U)
+
+/**
+ * @name   PWM mode configuration
  * @{
  */
 #define HAVE_PWM_MODE_T
@@ -195,17 +228,17 @@ typedef enum {
     PWM_RIGHT  = (FTM_CnSC_MSB_MASK | FTM_CnSC_ELSA_MASK),  /**< right aligned */
     PWM_CENTER = (FTM_CnSC_MSB_MASK)                        /**< center aligned */
 } pwm_mode_t;
-/** @} */
+#endif /* defined(FTM_CnSC_MSB_MASK) */
 #endif /* ndef DOXYGEN */
 
 /**
- * @brief    UART transmission modes
+ * @brief   UART transmission modes
  */
 typedef enum {
     /** @brief 8 data bits, no parity, 1 stop bit */
     UART_MODE_8N1 = 0,
     /** @brief 8 data bits, even parity, 1 stop bit */
-#if defined(UART_C1_M_MASK)
+#if defined(UART_C1_M_MASK) || DOXYGEN
     /* LPUART and UART mode bits coincide, so the same setting for UART works on
      * the LPUART as well */
     UART_MODE_8E1 = (UART_C1_M_MASK | UART_C1_PE_MASK),
@@ -214,7 +247,7 @@ typedef enum {
     UART_MODE_8E1 = (LPUART_CTRL_M_MASK | LPUART_CTRL_PE_MASK),
 #endif
     /** @brief 8 data bits, odd parity, 1 stop bit */
-#if defined(UART_C1_M_MASK)
+#if defined(UART_C1_M_MASK) || DOXYGEN
     UART_MODE_8O1 = (UART_C1_M_MASK | UART_C1_PE_MASK | UART_C1_PT_MASK),
 #elif defined(LPUART_CTRL_M_MASK)
     /* For CPUs which only have the LPUART */
@@ -224,7 +257,7 @@ typedef enum {
 
 #ifndef DOXYGEN
 /**
- * @brief   Override default ADC resolution values
+ * @name    SPI mode bitmasks
  * @{
  */
 #define HAVE_SPI_MODE_T
@@ -274,10 +307,15 @@ typedef struct {
 typedef struct {
     /** LPTMR device base pointer */
     LPTMR_Type *dev;
+    /** Input clock frequency */
+    uint32_t base_freq;
+    /** Clock source setting */
+    uint8_t src;
     /** IRQn interrupt number */
     uint8_t irqn;
 } lptmr_conf_t;
 
+#ifdef FTM_CnSC_MSB_MASK
 /**
  * @brief   PWM configuration structure
  */
@@ -291,6 +329,7 @@ typedef struct {
     uint8_t chan_numof;     /**< number of actually configured channels */
     uint8_t ftm_num;        /**< FTM number used */
 } pwm_conf_t;
+#endif
 
 /**
  * @brief   SPI module configuration options
@@ -314,10 +353,12 @@ enum {
 };
 
 /**
- * @brief   Hardware timer type-specific device macros
+ * @name    Hardware timer type-specific device macros
  * @{
  */
+/** @brief  Timers using PIT backend */
 #define TIMER_PIT_DEV(x)   (TIMER_DEV(0 + (x)))
+/** @brief  Timers using LPTMR backend */
 #define TIMER_LPTMR_DEV(x) (TIMER_DEV(PIT_NUMOF + (x)))
 /** @} */
 
@@ -406,50 +447,202 @@ typedef enum {
 } kinetis_mcg_erc_range_t;
 
 /**
+ * @brief   Clock generation configuration flags
+ *
+ * @see "Clock distribution -> High-Level device clocking diagram" in every
+ * Kinetis CPU reference manual
+ */
+typedef enum {
+    /**
+     * @brief   Turn on OSC0 oscillator
+     *
+     * - If this flag is set, the OSC0 oscillator expects a crystal between
+     * the pins XTAL0 and EXTAL0, and the OSCCLK internal signal will be
+     * provided by OSC0.
+     * - If not set, the EXTAL0 pin will be used directly as the OSCCLK signal.
+     */
+    KINETIS_CLOCK_OSC0_EN           = (1 <<  0),
+    /**
+     * @brief   Turn on RTC oscillator
+     *
+     * - If this flag is set, the RTC oscillator expects a crystal between
+     * the pins XTAL32 and EXTAL32.
+     * - If not set, the EXTAL32 pin can be used as an external clock signal on
+     * certain CPU models.
+     */
+    KINETIS_CLOCK_RTCOSC_EN         = (1 <<  1),
+    /**
+     * @brief   Use the fast internal reference clock as MCGIRCLK signal
+     *
+     * This flag corresponds to the IRCS bit in the MCG_C2 register.
+     *
+     * @note This flag affects the clock frequency of the CPU when using the MCG
+     * in FBI, or BLPI clocking modes.
+     *
+     * - If this flag is set, the fast internal reference clock (up to 4 MHz,
+     * depends on settings) will be routed to the MCGIRCLK internal clock signal.
+     * - If not set, the slow internal reference clock (32 kHz) will be routed to
+     * the MCGIRCLK internal clock signal. FBI and BLPI modes will clock the core
+     * at 32 kHz.
+     */
+    KINETIS_CLOCK_USE_FAST_IRC      = (1 <<  2),
+    /**
+     * @brief   Enable MCGIRCLK internal clock signal
+     *
+     * This flag corresponds to the IRCLKEN bit in the MCG_C1 register.
+     *
+     * - If this flag is set, the MCG will provide MCGIRCLK for use by other
+     * peripherals.
+     */
+    KINETIS_CLOCK_MCGIRCLK_EN       = (1 <<  3),
+    /**
+     * @brief   Enable MCGIRCLK signal during STOP modes
+     *
+     * This flag corresponds to the IREFSTEN bit in the MCG_SC register.
+     *
+     * - If this flag is set, MCGIRCLK internal clock signal will be available
+     *   for clocking peripherals during CPU STOP modes.
+     * - If not set, the MCGIRCLK internal clock signal will be stopped during
+     *   CPU STOP modes.
+     */
+    KINETIS_CLOCK_MCGIRCLK_STOP_EN  = (1 <<  4),
+} kinetis_clock_flags_t;
+
+/**
  * @brief Clock configuration for Kinetis CPUs
  */
 typedef struct {
-    /** Clock divider bitfield setting, see reference manual for SIM_CLKDIV1 */
+    /**
+     * @brief   Clock divider bitfield setting
+     *
+     * The value will be written to the SIM_CLKDIV1 hardware register without
+     * any transformation. Use the SIM_CLKDIV1_OUTDIVx() macros to ensure the
+     * proper bit shift for the chosen divider settings.
+     *
+     * @see CPU reference manual, SIM_CLKDIV1
+     */
     uint32_t clkdiv1;
-    /** MCG mode used after initialization, see kinetis_mcg_mode_t */
+    /**
+     * @brief   RTC oscillator Capacitor Load Configuration bits
+     *
+     * The bits will be passed directly to the RTC_CR register without any
+     * transformation, i.e. the SC16P bit is (unintuitively) at bit position 10,
+     * SC8P is at position 11, and so on (see details in the reference manual).
+     * Use the RTC_CR_SCxP_MASK macros to avoid accidentally reversing the bits
+     * here.
+     *
+     * @see CPU reference manual, RTC_CR[SCxP]
+     */
+    uint32_t rtc_clc;
+    /**
+     * @brief   ERCLK32K 32 kHz reference selection
+     *
+     * The bits will be passed directly to the SIM_SOPT1 register without any
+     * transformation, use the SIM_SOPT1_OSC32KSEL() macro to ensure the proper
+     * bit shift for the chosen setting.
+     *
+     * This signal is the input clock to the RTC module on some CPUs and an input
+     * option for the LPTMRx modules. On other CPUs the RTC is clocked directly
+     * by the RTC oscillator output without passing through this clock multiplexer.
+     *
+     * @see CPU reference manual, SIM_SOPT1[OSC32KSEL]
+     */
+    uint32_t osc32ksel;
+    /**
+     * @brief   Flags which will enable various clocking options at init
+     *
+     * @see @ref kinetis_clock_flags_t
+     */
+    unsigned int clock_flags;
+    /**
+     * @brief   MCG mode used after initialization
+     *
+     * @see @ref kinetis_mcg_mode_t
+     */
     kinetis_mcg_mode_t default_mode;
-    /** ERC range setting, see kinetis_mcg_erc_range_t */
+    /**
+     * @brief   ERC range setting
+     *
+     * @see @ref kinetis_mcg_erc_range_t
+     */
     kinetis_mcg_erc_range_t erc_range;
-    /** Fast internal reference clock divider, see reference manual for MCG_SC[FCRDIV] */
-    uint8_t fcrdiv;
-    /** Oscillator selection, see reference manual for MCG_C7[OSCSEL] */
+    /**
+     * @brief   OSC0 Capacitor Load Configuration bits
+     *
+     * The bits will be passed directly to the OSC_CR register without any
+     * transformation, i.e. the SC16P bit is (unintuitively) the LSB, SC8P is
+     * the next bit, and so on (see details in the reference manual). Use the
+     * OSC_CR_SCxP_MASK macros to avoid accidentally reversing the bits here.
+     *
+     * @see CPU reference manual, OSC_CR[SCxP]
+     */
+    uint8_t osc_clc;
+    /**
+     * @brief   MCG external reference oscillator selection
+     *
+     * The bits will be passed directly to the MCG_C7 register without any
+     * transformation, use the MCG_C7_OSCSEL() macro to ensure the proper bit
+     * shift for the chosen setting.
+     *
+     * @see CPU reference manual, MCG_C7[OSCSEL]
+     */
     uint8_t oscsel;
-    /** Capacitor Load configuration bits, see reference manual for OSC_CR */
-    uint8_t clc;
-    /** FLL ERC divider setting, see reference manual for MCG_C1[FRDIV] */
+    /**
+     * @brief   Fast internal reference clock divider
+     *
+     * The bits will be passed directly to the MCG_SC register without any
+     * transformation, use the MCG_SC_FCRDIV() macro to ensure the proper bit
+     * shift for the chosen setting.
+     *
+     * @see CPU reference manual, MCG_SC[FCRDIV]
+     */
+    uint8_t fcrdiv;
+    /**
+     * @brief   FLL ERC divider setting
+     *
+     * The bits will be passed directly to the MCG_C1 register without any
+     * transformation, use the MCG_C1_FRDIV() macro to ensure the proper bit
+     * shift for the chosen setting.
+     *
+     * @see CPU reference manual, MCG_C1[FRDIV]
+     */
     uint8_t fll_frdiv;
-    /** FLL multiplier when running in FEI mode */
+    /**
+     * @brief   FLL multiplier when running in FEI mode
+     *
+     * @see @ref kinetis_mcg_fll_t
+     * @see CPU reference manual, MCG_C4[DMX32, DRST_DRS]
+     */
     kinetis_mcg_fll_t fll_factor_fei;
-    /** FLL multiplier when running in FEE mode */
+    /**
+     * @brief   FLL multiplier when running in FEE mode
+     *
+     * @see @ref kinetis_mcg_fll_t
+     * @see CPU reference manual, MCG_C4[DMX32, DRST_DRS]
+     */
     kinetis_mcg_fll_t fll_factor_fee;
 #if KINETIS_HAVE_PLL
-    /** PLL ERC divider setting, see reference manual for MCG_C5[PRDIV] */
+    /**
+     * @brief   PLL ERC divider setting
+     *
+     * The bits will be passed directly to the MCG_C5 register without any
+     * transformation, use the MCG_C5_PRDIV0() macro to ensure the proper bit
+     * shift for the chosen setting.
+     *
+     * @see CPU reference manual, MCG_C5[PRDIV0]
+     */
     uint8_t pll_prdiv;
-    /** PLL VCO divider setting, see reference manual for MCG_C6[VDIV0] */
+    /**
+     * @brief   PLL VCO divider setting
+     *
+     * The bits will be passed directly to the MCG_C6 register without any
+     * transformation, use the MCG_C6_VDIV0() macro to ensure the proper bit
+     * shift for the chosen setting.
+     *
+     * @see CPU reference manual, MCG_C6[VDIV0]
+     */
     uint8_t pll_vdiv;
 #endif /* KINETIS_HAVE_PLL */
-    /**
-     * @brief External reference clock selection
-     *
-     * True: Use oscillator circuit with external crystal.
-     * False: Use external clock signal directly.
-     */
-    bool enable_oscillator;
-    /**
-     * @brief Use fast internal reference clock for MCGIRCLK
-     *
-     * See reference manual for MCG module and MCG_C2[IRCS]
-     */
-    bool select_fast_irc;
-    /**
-     * @brief Enable MCGIRCLK output from MCG for use as alternate clock in some modules
-     */
-    bool enable_mcgirclk;
 } clock_config_t;
 
 /**

@@ -7,13 +7,13 @@
  */
 
 /**
- * @defgroup    boards_iotlab-m3 IoT-LAB M3 open node
+ * @defgroup    boards_iotlab-a8-m3 IoT-LAB A8 M3 open node
  * @ingroup     boards
- * @brief       Support for the iotlab-m3 board
+ * @brief       Support for the iotlab-a8-m3 board
  * @{
  *
  * @file
- * @brief       Board specific definitions for the iotlab-m3 board
+ * @brief       Board specific definitions for the iotlab-a8-m3 board
  *
  */
 
@@ -34,22 +34,16 @@ extern "C" {
  * @name Define the interface for the L3G4200D gyroscope
  * @{
  */
-#define L3G4200D_I2C        I2C_0
-#define L3G4200D_ADDR       0x68
-#define L3G4200D_DRDY       GPIO_PIN(PORT_C,9)
-#define L3G4200D_INT        GPIO_PIN(PORT_C,6)
+#define L3G4200D_PARAM_INT2       GPIO_PIN(PORT_C, 9)
+#define L3G4200D_PARAM_INT1       GPIO_PIN(PORT_C, 6)
 /** @} */
 
 /**
  * @name Define the interface to the LSM303DLHC accelerometer and magnetometer
  * @{
  */
-#define LSM303DLHC_I2C      I2C_0
-#define LSM303DLHC_ACC_ADDR (0x19)
-#define LSM303DLHC_MAG_ADDR (0x1e)
-#define LSM303DLHC_INT1     GPIO_PIN(PORT_B,12)
-#define LSM303DLHC_INT2     GPIO_PIN(PORT_B,2)
-#define LSM303DLHC_DRDY     GPIO_PIN(PORT_A,11)
+#define LSM303DLHC_PARAM_ACC_PIN  GPIO_PIN(PORT_B, 12)
+#define LSM303DLHC_PARAM_MAG_PIN  GPIO_PIN(PORT_A, 11)
 /** @} */
 
 #ifdef __cplusplus

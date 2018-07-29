@@ -28,6 +28,7 @@
 #include "em_cmu.h"
 #include "em_device.h"
 #include "em_gpio.h"
+#include "em_timer.h"
 #include "em_usart.h"
 #ifdef _SILICON_LABS_32B_SERIES_0
 #include "em_dac.h"
@@ -55,7 +56,7 @@ extern "C" {
 /**
  * @brief   Internal define to note that resolution is not supported.
  */
-#define ADC_MODE_UNDEF      (0xff)
+#define ADC_MODE_UNDEF(x)   (ADC_MODE(x, 15))
 
 #ifndef DOXYGEN
 /**
@@ -64,12 +65,12 @@ extern "C" {
  */
 #define HAVE_ADC_RES_T
 typedef enum {
-    ADC_RES_6BIT = ADC_MODE(adcRes6Bit, 0),     /**< ADC resolution: 6 bit */
-    ADC_RES_8BIT = ADC_MODE(adcRes8Bit, 0),     /**< ADC resolution: 8 bit */
+    ADC_RES_6BIT  = ADC_MODE(adcRes6Bit, 0),    /**< ADC resolution: 6 bit */
+    ADC_RES_8BIT  = ADC_MODE(adcRes8Bit, 0),    /**< ADC resolution: 8 bit */
     ADC_RES_10BIT = ADC_MODE(adcRes12Bit, 2),   /**< ADC resolution: 10 bit (shifted from 12 bit) */
     ADC_RES_12BIT = ADC_MODE(adcRes12Bit, 0),   /**< ADC resolution: 12 bit */
-    ADC_RES_14BIT = ADC_MODE_UNDEF,             /**< ADC resolution: 14 bit (unsupported) */
-    ADC_RES_16BIT = ADC_MODE_UNDEF,             /**< ADC resolution: 16 bit (unsupported) */
+    ADC_RES_14BIT = ADC_MODE_UNDEF(0),          /**< ADC resolution: 14 bit (unsupported) */
+    ADC_RES_16BIT = ADC_MODE_UNDEF(1),          /**< ADC resolution: 16 bit (unsupported) */
 } adc_res_t;
 /** @} */
 #endif /* ndef DOXYGEN */
@@ -253,6 +254,20 @@ typedef struct {
     IRQn_Type irq;          /**< the devices base IRQ channel */
 } i2c_conf_t;
 
+#ifndef DOXYGEN
+/**
+ * @brief   Override PWM mode values.
+ * @{
+ */
+#define HAVE_PWM_MODE_T
+typedef enum {
+    PWM_LEFT = timerModeUp,           /*< use left aligned PWM */
+    PWM_RIGHT = timerModeDown,        /*< use right aligned PWM */
+    PWM_CENTER = timerModeUp          /*< not supported, use left aligned */
+} pwm_mode_t;
+/** @} */
+#endif /* ndef DOXYGEN */
+
 /**
  * @brief   PWM channel configuration.
  */
@@ -345,21 +360,43 @@ typedef struct {
 /** @} */
 
 /**
+ * @brief   Internal macro for combining UART modes data bits (x), stop bits
+ *          (y, in half bits) and parity (z).
+ */
+#define UART_MODE(x, y, z)      ((z << 8) | ((y * 2) << 4) | x)
+
+/**
+ * @brief   Internal, pre-defined UART modes.
+ * @{
+ */
+#define UART_MODE_8N1           UART_MODE(8, 1, 0)
+#define UART_MODE_8E1           UART_MODE(8, 1, 2)
+/** @} */
+
+/**
  * @brief   UART device configuration.
  */
 typedef struct {
     void *dev;              /**< UART, USART or LEUART device used */
     gpio_t rx_pin;          /**< pin used for RX */
     gpio_t tx_pin;          /**< pin used for TX */
-    uint32_t loc;           /**< location of USART pins */
+    uint32_t loc;           /**< location of UART pins */
+#if EFM32_UART_MODES
+    uint32_t mode;          /**< UART mode of operation */
+#endif
     CMU_Clock_TypeDef cmu;  /**< the device CMU channel */
     IRQn_Type irq;          /**< the devices base IRQ channel */
 } uart_conf_t;
 
 /**
+ * @brief   CPU provides own pm_off() function
+ */
+#define PROVIDES_PM_LAYERED_OFF
+
+/**
  * @brief   Number of usable power modes.
  */
-#define PM_NUM_MODES    (3U)
+#define PM_NUM_MODES    (2U)
 
 #ifdef __cplusplus
 }

@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup     driver_netdev_ieee802154
+ * @ingroup     drivers_netdev_ieee802154
  * @{
  *
  * @file
@@ -22,6 +22,7 @@
 #include "net/eui64.h"
 #include "net/ieee802154.h"
 #include "net/netdev.h"
+#include "random.h"
 
 #include "net/netdev/ieee802154.h"
 
@@ -48,6 +49,20 @@ static int _get_iid(netdev_ieee802154_t *dev, eui64_t *value, size_t max_len)
     ieee802154_get_iid(value, addr, addr_len);
 
     return sizeof(eui64_t);
+}
+
+void netdev_ieee802154_reset(netdev_ieee802154_t *dev)
+{
+    /* Only the least significant byte of the random value is used */
+    dev->seq = random_uint32();
+    dev->flags = 0;
+
+    /* set default protocol */
+#ifdef MODULE_GNRC_SIXLOWPAN
+    dev->proto = GNRC_NETTYPE_SIXLOWPAN;
+#elif MODULE_GNRC
+    dev->proto = GNRC_NETTYPE_UNDEF;
+#endif
 }
 
 int netdev_ieee802154_get(netdev_ieee802154_t *dev, netopt_t opt, void *value,

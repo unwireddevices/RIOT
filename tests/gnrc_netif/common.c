@@ -37,8 +37,7 @@ static msg_t _main_msg_queue[MSG_QUEUE_SIZE];
 static uint8_t tmp_buffer[ETHERNET_DATA_LEN];
 static size_t tmp_buffer_bytes = 0;
 
-static int _dump_send_packet(netdev_t *netdev, const struct iovec *vector,
-                             int count)
+static int _dump_send_packet(netdev_t *netdev, const iolist_t *iolist)
 {
     int res;
 
@@ -55,13 +54,13 @@ static int _dump_send_packet(netdev_t *netdev, const struct iovec *vector,
         printf("unknown ");
     }
     puts("device:");
-    for (int i = 0; i < count; i++) {
-        if ((tmp_buffer_bytes + vector[i].iov_len) > ETHERNET_DATA_LEN) {
+    for (const iolist_t *iol = iolist; iol; iol = iol->iol_next) {
+        size_t len = iol->iol_len;
+        if ((tmp_buffer_bytes + len) > ETHERNET_DATA_LEN) {
             return -ENOBUFS;
         }
-        memcpy(&tmp_buffer[tmp_buffer_bytes], vector[i].iov_base,
-               vector[i].iov_len);
-        tmp_buffer_bytes += vector[i].iov_len;
+        memcpy(&tmp_buffer[tmp_buffer_bytes], iol->iol_base, len);
+        tmp_buffer_bytes += len;
     }
     od_hex_dump(tmp_buffer, tmp_buffer_bytes, OD_WIDTH_DEFAULT);
     res = (int)tmp_buffer_bytes;
@@ -113,8 +112,11 @@ static void _netdev_isr(netdev_t *dev)
 
 static int _get_netdev_device_type(netdev_t *netdev, void *value, size_t max_len)
 {
-    netdev_test_t *dev = (netdev_test_t *)netdev;
     assert(max_len == sizeof(uint16_t));
+    (void)max_len;
+
+    netdev_test_t *dev = (netdev_test_t *)netdev;
+
     if (dev->state == 0x0) {
         *((uint16_t *)value) = NETDEV_TYPE_ETHERNET;
     }
@@ -129,8 +131,11 @@ static int _get_netdev_device_type(netdev_t *netdev, void *value, size_t max_len
 
 static int _get_netdev_max_packet_size(netdev_t *netdev, void *value, size_t max_len)
 {
-    netdev_test_t *dev = (netdev_test_t *)netdev;
     assert(max_len == sizeof(uint16_t));
+    (void)max_len;
+
+    netdev_test_t *dev = (netdev_test_t *)netdev;
+
     if (dev->state == 0x0) {
         *((uint16_t *)value) = ETHERNET_DATA_LEN;
     }

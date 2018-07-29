@@ -31,10 +31,10 @@ ifeq ($(PORT),)
   # try to find tty name by serial number, only works on Linux currently.
   ifeq ($(OS),Linux)
     ifneq ($(DEBUG_ADAPTER_ID),)
-      PORT := $(firstword $(shell $(RIOTBASE)/dist/tools/usb-serial/find-tty.sh '^$(DEBUG_ADAPTER_ID)$$'))
+      PORT := $(firstword $(shell $(RIOTTOOLS)/usb-serial/find-tty.sh '^$(DEBUG_ADAPTER_ID)$$'))
     else
       # find-tty.sh will return the first USB tty if no serial is given.
-      PORT := $(firstword $(shell $(RIOTBASE)/dist/tools/usb-serial/find-tty.sh))
+      PORT := $(firstword $(shell $(RIOTTOOLS)/usb-serial/find-tty.sh))
   endif
   else ifeq ($(OS),Darwin)
     ifneq ($(DEBUG_ADAPTER_ID),)
@@ -60,9 +60,6 @@ export PRE_FLASH_CHECK_SCRIPT = $(RIOTCPU)/$(CPU)/dist/check-fcfield-elf.sh
 
 .PHONY: flash
 flash: $(RIOTCPU)/$(CPU)/dist/wdog-disable.bin
-
-# Reset the default goal.
-.DEFAULT_GOAL :=
 
 # this board uses openocd
 include $(RIOTMAKE)/tools/openocd.inc.mk

@@ -7,7 +7,7 @@
  * General Public License v2.1. See the file LICENSE in the top level
  * directory for more details.
  *
- * @ingroup native_cpu
+ * @ingroup cpu_native
  * @{
  * @file
  * @author  Ludwig Knüpfer <ludwig.knuepfer@fu-berlin.de>
@@ -71,6 +71,13 @@
 #define UART_NUMOF (1U)
 #endif
 /** @} */
+
+/**
+ * @brief QDEC configuration
+ */
+#ifndef QDEC_NUMOF
+#define QDEC_NUMOF (8U)
+#endif
 
 #ifdef __cplusplus
 }

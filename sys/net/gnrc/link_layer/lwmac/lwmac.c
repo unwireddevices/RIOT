@@ -304,7 +304,8 @@ void lwmac_set_state(gnrc_netif_t *netif, gnrc_lwmac_state_t newstate)
                 alarm = random_uint32_range(RTT_US_TO_TICKS((3 * GNRC_LWMAC_WAKEUP_DURATION_US / 2)),
                                             RTT_US_TO_TICKS(GNRC_LWMAC_WAKEUP_INTERVAL_US -
                                                             (3 * GNRC_LWMAC_WAKEUP_DURATION_US / 2)));
-                LOG_WARNING("WARNING: [LWMAC] phase backoffed: %lu us\n", RTT_TICKS_TO_US(alarm));
+                LOG_WARNING("WARNING: [LWMAC] phase backoffed: %lu us\n",
+                            (unsigned long)RTT_TICKS_TO_US(alarm));
                 netif->mac.prot.lwmac.last_wakeup = netif->mac.prot.lwmac.last_wakeup + alarm;
                 alarm = _next_inphase_event(netif->mac.prot.lwmac.last_wakeup,
                                             RTT_US_TO_TICKS(GNRC_LWMAC_WAKEUP_INTERVAL_US));
@@ -572,26 +573,25 @@ static void _tx_management(gnrc_netif_t *netif)
     gnrc_lwmac_tx_state_t state_tx = netif->mac.tx.state;
 
     switch (state_tx) {
-        case GNRC_LWMAC_TX_STATE_STOPPED: {
+        case GNRC_LWMAC_TX_STATE_STOPPED:
             _tx_management_stopped(netif);
             break;
-        }
-        case GNRC_LWMAC_TX_STATE_FAILED: {
+
+        case GNRC_LWMAC_TX_STATE_FAILED:
             /* If transmission failure, do not try burst transmissions and quit other
              * transmission attempts in this cycle for collision avoidance */
             gnrc_lwmac_set_tx_continue(netif, false);
             gnrc_lwmac_set_quit_tx(netif, true);
-            /* falls through */
-            /* TX packet will therefore be dropped. No automatic resending here,
-             * we did our best.
-             */
-        }
-        case GNRC_LWMAC_TX_STATE_SUCCESSFUL: {
+            /* TX packet will be dropped, no automatic resending here. */
+            /* Intentionally falls through */
+
+        case GNRC_LWMAC_TX_STATE_SUCCESSFUL:
             _tx_management_success(netif);
             break;
-        }
+
         default:
             gnrc_lwmac_tx_update(netif);
+            break;
     }
 
     /* If state has changed, reschedule main state machine */

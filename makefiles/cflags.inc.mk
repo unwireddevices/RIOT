@@ -51,14 +51,17 @@ CXXUWFLAGS += -std=%
 ifeq ($(LTO),1)
   $(warning Building with Link-Time-Optimizations is currently an experimental feature. Expect broken binaries.)
   LTOFLAGS = -flto
-  LINKFLAGS += ${LTOFLAGS}
+  LINKFLAGS += $(LTOFLAGS)
 endif
 
 # Forbid common symbols to prevent accidental aliasing.
 CFLAGS += -fno-common
 
-# Enable all default warnings
-CFLAGS += -Wall
+# Enable all default warnings and all extra warnings
+CFLAGS += -Wall -Wextra
+
+# Warn if a user-supplied include directory does not exist.
+CFLAGS += -Wmissing-include-dirs
 
 ifeq (,$(filter -DDEVELHELP,$(CFLAGS)))
   ifneq (1,$(FORCE_ASSERTS))

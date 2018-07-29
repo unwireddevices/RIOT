@@ -23,7 +23,7 @@ def expect_unary(child):
 
 
 def expect_binary(child):
-    for _ in range(20):
+    for _ in range(1500):
         for op_name in ('add', 'sub', 'mul', 'div', 'mod', 'sadd', 'ssub',
                         'smul', 'sdiv', 'min', 'max'):
             child.expect('{}\(-?\d+.\d+\, -?\d+.\d+\) = -?\d+.\d+'
@@ -39,6 +39,6 @@ def testfunc(child):
 
 
 if __name__ == "__main__":
-    sys.path.append(os.path.join(os.environ['RIOTBASE'], 'dist/tools/testrunner'))
+    sys.path.append(os.path.join(os.environ['RIOTTOOLS'], 'testrunner'))
     from testrunner import run
     sys.exit(run(testfunc))

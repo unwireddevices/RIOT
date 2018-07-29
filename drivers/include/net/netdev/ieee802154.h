@@ -7,7 +7,8 @@
  */
 
 /**
- * @ingroup drivers_netdev_api
+ * @defgroup    drivers_netdev_ieee802154 802.15.4 radio drivers
+ * @ingroup     drivers_netdev_api
  * @brief
  * @{
  *
@@ -53,6 +54,11 @@ extern "C" {
  * @brief   request ACK from receiver
  */
 #define NETDEV_IEEE802154_ACK_REQ           (IEEE802154_FCF_ACK_REQ)
+
+/**
+ * @brief   set frame pending bit
+ */
+#define NETDEV_IEEE802154_FRAME_PEND        (IEEE802154_FCF_FRAME_PEND)
 /**
  * @}
  */
@@ -114,6 +120,17 @@ typedef struct {
  * @brief   Received packet status information for IEEE 802.15.4 radios
  */
 typedef struct netdev_radio_rx_info netdev_ieee802154_rx_info_t;
+
+/**
+ * @brief   Reset function for ieee802154 common fields
+ *
+ * Supposed to be used by netdev drivers to reset the ieee802154 fields when
+ * resetting the device
+ *
+ * @param[in]   dev     network device descriptor
+ */
+void netdev_ieee802154_reset(netdev_ieee802154_t *dev);
+
 
 /**
  * @brief   Fallback function for netdev IEEE 802.15.4 devices' _get function

@@ -689,6 +689,7 @@ static void gomach_t2k_wait_cp_txfeedback(gnrc_netif_t *netif)
                 if (!_cp_tx_busy(netif)) {
                     return;
                 }
+                /* Intentionally falls through */
             case TX_FEEDBACK_NOACK:
             default: {
                 _cp_tx_default(netif);
@@ -948,15 +949,6 @@ static void gomach_t2k_end(gnrc_netif_t *netif)
     netif->mac.rx.listen_state = GNRC_GOMACH_LISTEN_SLEEP;
     gnrc_gomach_set_enter_new_cycle(netif, false);
     gnrc_gomach_set_update(netif, true);
-
-#if (GNRC_GOMACH_ENABLE_DUTYCYLE_RECORD == 1)
-    /* Output duty-cycle ratio */
-    uint64_t duty;
-    duty = xtimer_now_usec64();
-    duty = (netif->mac.prot.gomach.awake_duration_sum_ticks) * 100 /
-           (duty - netif->mac.prot.gomach.system_start_time_ticks);
-    printf("[GoMacH]: achieved radio duty-cycle: %lu %% \n", (uint32_t)duty);
-#endif
 }
 
 static void gomach_t2k_update(gnrc_netif_t *netif)
@@ -1405,15 +1397,6 @@ static void gomach_t2u_end(gnrc_netif_t *netif)
     netif->mac.rx.listen_state = GNRC_GOMACH_LISTEN_SLEEP;
     gnrc_gomach_set_enter_new_cycle(netif, false);
     gnrc_gomach_set_update(netif, true);
-
-#if (GNRC_GOMACH_ENABLE_DUTYCYLE_RECORD == 1)
-    /* Output duty-cycle ratio */
-    uint64_t duty;
-    duty = xtimer_now_usec64();
-    duty = (netif->mac.prot.gomach.awake_duration_sum_ticks) * 100 /
-           (duty - netif->mac.prot.gomach.system_start_time_ticks);
-    printf("[GoMacH]: achieved radio duty-cycle: %lu %% \n", (uint32_t)duty);
-#endif
 }
 
 static void gomach_t2u_update(gnrc_netif_t *netif)
@@ -1473,7 +1456,7 @@ static void _gomach_phase_backoff(gnrc_netif_t *netif)
     gnrc_gomach_update_neighbor_phase(netif);
 
     LOG_INFO("INFO: [GOMACH] phase backoffed: %lu us.\n",
-             netif->mac.prot.gomach.backoff_phase_us);
+             (unsigned long)netif->mac.prot.gomach.backoff_phase_us);
 }
 
 static void gomach_listen_init(gnrc_netif_t *netif)
@@ -2003,6 +1986,18 @@ static void _gomach_msg_handler(gnrc_netif_t *netif, msg_t *msg)
             gnrc_gomach_set_update(netif, true);
             break;
         }
+#if (GNRC_MAC_ENABLE_DUTYCYCLE_RECORD == 1)
+        case GNRC_MAC_TYPE_GET_DUTYCYCLE: {
+            /* Output GoMacH's current radio duty-cycle. */
+            uint64_t duty;
+            duty = xtimer_now_usec64();
+            duty = (netif->mac.prot.gomach.awake_duration_sum_ticks) * 100 /
+                   (duty - netif->mac.prot.gomach.system_start_time_ticks);
+            printf("[GoMacH]: achieved radio duty-cycle: %lu %% \n",
+                   (unsigned long)duty);
+            break;
+        }
+#endif
         default: {
             DEBUG("[GoMacH]: Unknown command %" PRIu16 "\n", msg->type);
             break;
@@ -2193,7 +2188,7 @@ static void _gomach_init(gnrc_netif_t *netif)
 
     netif->mac.tx.t2u_fail_count = 0;
 
-#if (GNRC_GOMACH_ENABLE_DUTYCYLE_RECORD == 1)
+#if (GNRC_MAC_ENABLE_DUTYCYCLE_RECORD == 1)
     /* Start duty cycle recording */
     netif->mac.prot.gomach.system_start_time_ticks = xtimer_now_usec64();
     netif->mac.prot.gomach.last_radio_on_time_ticks =

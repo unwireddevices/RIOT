@@ -241,7 +241,6 @@ struct _thread {
 
 /**
  * @def THREAD_EXTRA_STACKSIZE_PRINTF
- * @ingroup conf
  * @brief Size of the task's printf stack in bytes
  *
  * @note This value must be defined by the CPU specific implementation, please
@@ -260,6 +259,34 @@ struct _thread {
  */
 #ifndef THREAD_STACKSIZE_MAIN
 #define THREAD_STACKSIZE_MAIN      (THREAD_STACKSIZE_DEFAULT + 2 * THREAD_EXTRA_STACKSIZE_PRINTF + 1024)
+#endif
+
+/**
+ * @brief Large stack size
+ */
+#ifndef THREAD_STACKSIZE_LARGE
+#define THREAD_STACKSIZE_LARGE (THREAD_STACKSIZE_MEDIUM * 2)
+#endif
+
+/**
+ * @brief Medium stack size
+ */
+#ifndef THREAD_STACKSIZE_MEDIUM
+#define THREAD_STACKSIZE_MEDIUM THREAD_STACKSIZE_DEFAULT
+#endif
+
+/**
+ * @brief Small stack size
+ */
+#ifndef THREAD_STACKSIZE_SMALL
+#define THREAD_STACKSIZE_SMALL (THREAD_STACKSIZE_MEDIUM / 2)
+#endif
+
+/**
+ * @brief Tiny stack size
+ */
+#ifndef THREAD_STACKSIZE_TINY
+#define THREAD_STACKSIZE_TINY (THREAD_STACKSIZE_MEDIUM / 4)
 #endif
 
 /**

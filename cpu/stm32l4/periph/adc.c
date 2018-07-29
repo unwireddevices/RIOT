@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2016 Fundacion Inria Chile
+ * Copyright (C) 2014-2016 Freie Universität Berlin
+ * Copyright (C) 2018 HAW-Hamburg
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
@@ -7,16 +8,15 @@
  */
 
 /**
- * @ingroup     cpu_stm32l1
+ * @ingroup     cpu_stm32l4
  * @ingroup     drivers_periph_adc
  * @{
  *
  * @file
  * @brief       Low-level ADC driver implementation
  *
- * @author      Francisco Molina <francisco.molina@inria.cl>
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
- * @author      Nick v. IJzendoorn <nijzendoorn@engineering-spirit.nl>
+ * @author      Michel Rottleuthner <michel.rottleuthner@haw-hamburg.de>
  *
  * @}
  */
@@ -24,272 +24,192 @@
 #include "cpu.h"
 #include "mutex.h"
 #include "periph/adc.h"
+#include "periph_conf.h"
+#include "xtimer.h"
 
 /**
- * @brief   ADC clock settings
- *
- * NB: with ADC_CLOCK_HIGH, Vdda should be 2.4V min
- *
- * @{
+ * @brief map CPU specific register/value names
  */
-#define ADC_CLOCK_HIGH      0x0
-#define ADC_CLOCK_MEDIUM    ADC_CCR_ADCPRE_0
-#define ADC_CLOCK_LOW       ADC_CCR_ADCPRE_1
+#if defined(CPU_MODEL_STM32L476RG)
+#define ADC_CR_REG      CR
+#define ADC_ISR_REG     ISR
+#define ADC_PERIPH_CLK  AHB2
+/* on stm32-l476rg all ADC clocks are are enabled by this bit
+   further clock config is possible over CKMODE[1:0] bits in ADC_CCR reg */
+#define ADC_CLK_EN_MASK   (RCC_AHB2ENR_ADCEN)
+/* refering to Datasheet Section 6.3.18 (ADC characteristics) the minimum
+   achievable sampling rate is 4.21 Msps (12 Bit resolution on slow channel)
+   we use that worst case for configuring the sampling time to be sure it
+   works on all channels.
+   TCONV = Sampling time + 12.5 ADC clock cycles.
+   At 80MHz this means we need to set SMP to 001 (6.5 ADC clock cycles) to
+   stay within specs. (80000000/(6.5+12.5)) = 4210526   */
+#define ADC_SMP_MIN_VAL      (0x1)
 
-/**
- * @brief   Load the ADC configuration
- * @{
- */
-#ifdef ADC_CONFIG
-// static const adc_conf_t adc_config[] = ADC_CONFIG;
-// #else
-// static const adc_conf_t adc_config[] = {};
+/* The sampling time can be specified for each channel over SMPR1 and SMPR2.
+   This specifies the first channel that goes to SMPR2 instead of SMPR1. */
+#define ADC_SMP_BIT_WIDTH    (3)
+
+/* The sampling time can be specified for each channel over SMPR1 and SMPR2.
+   This specifies the first channel that goes to SMPR2 instead of SMPR1. */
+#define ADC_SMPR2_FIRST_CHAN (10)
 #endif
 
 /**
- * @brief   Allocate locks for all three available ADC device
- *
- * All STM32l1 CPU's have single ADC device
+ * @brief   Load the ADC configuration
  */
-//static mutex_t lock = MUTEX_INIT;
+static const adc_conf_t adc_config[] = ADC_CONFIG;
 
-static inline void prep(void)
+/**
+ * @brief   Allocate locks for all three available ADC devices
+ */
+static mutex_t locks[ADC_DEVS];
+
+static inline ADC_TypeDef *dev(adc_t line)
 {
-//     mutex_lock(&lock);
-    
-//     /* "The ADC clock which is always the HSI clock" */
-//     if (!(RCC->CR & RCC_CR_HSION)) {
-//         RCC->CR |= RCC_CR_HSION;
-//         /* Wait for HSI to become ready */
-//         while (!(RCC->CR & RCC_CR_HSION)) {}
-//     }
-    
-//     periph_clk_en(APB2, RCC_APB2ENR_ADC1EN);
+    return (ADC_TypeDef *)(ADC1_BASE + (adc_config[line].dev << 8));
 }
 
-static inline void done(void)
+static inline void prep(adc_t line)
 {
-    // periph_clk_dis(APB2, RCC_APB2ENR_ADC1EN);
-
-    // mutex_unlock(&lock);
+    mutex_lock(&locks[adc_config[line].dev]);
+    periph_clk_en(ADC_PERIPH_CLK, ADC_CLK_EN_MASK);
 }
 
-void adc_set_sample_time_on_all_channels(uint8_t time)
+static inline void done(adc_t line)
 {
-    uint8_t i;
-    uint32_t reg32 = 0;
+/* on STM32L476RG (TODO: maybe true for other L4's? - haven't checked yet)
+   all adc devices are controlled by this one bit.
+   So don't disable the clock as other devices may still use it */
+#if !defined(CPU_MODEL_STM32L476RG)
+    periph_clk_dis(ADC_PERIPH_CLK, ADC_CLK_EN_MASK);
+#endif
+    mutex_unlock(&locks[adc_config[line].dev]);
+}
 
-    for (i = 0; i <= 9; i++) {
-        reg32 |= (time << (i * 3));
-    }
+/**
+ * @brief   Extract the port base address from the given pin identifier
+ */
+static inline GPIO_TypeDef *_port(gpio_t pin)
+{
+    return (GPIO_TypeDef *)(pin & ~(0x0f));
+}
 
-    // ADC1->SMPR0 = reg32;
-    // ADC1->SMPR1 = reg32;
-    // ADC1->SMPR2 = reg32;
-    // ADC1->SMPR3 = reg32;
+/**
+ * @brief   Extract the pin number from the last 4 bit of the pin identifier
+ */
+static inline int _pin_num(gpio_t pin)
+{
+    return (pin & 0x0f);
 }
 
 int adc_init(adc_t line)
 {
-    /* make sure the given line is valid */
+    /* check if the line is valid */
     if (line >= ADC_NUMOF) {
         return -1;
     }
 
- //    /* lock and power on the device */
- //    prep();
- //    /* configure the pin */
-	// /* no need to configure GPIO for ADC channels not connected to any GPIO */
-	// if ((adc_config[line].pin != GPIO_UNDEF)) {
-	// 	gpio_init_analog(adc_config[line].pin);
-	// }
-    
- //    /* set ADC clock */
+    /* lock device and enable its peripheral clock */
+    prep(line);
 
- //    ADC->CCR &= ~ADC_CCR_ADCPRE;
- //    ADC->CCR |= ADC_CLOCK_MEDIUM;
+    /* set prescaler to 0 to let the ADC run with maximum speed */
+    ADC123_COMMON->CCR &= ~(ADC_CCR_PRESC);
 
- //    /* Set sample time */
- //    /* Min 4us needed for temperature sensor measurements */
- //    switch (ADC->CCR & ADC_CCR_ADCPRE) {
- //        case ADC_CLOCK_LOW:
- //            /* 4 MHz ADC clock -> 16 cycles */
- //            adc_set_sample_time_on_all_channels(0b010);
- //            break;
- //        case ADC_CLOCK_MEDIUM:
- //            /* 8 MHz ADC clock -> 48 cycles */
- //            adc_set_sample_time_on_all_channels(0b100);
- //            break;
- //        default:
- //            /* 16 MHz ADC clock -> 92 cycles */
- //            adc_set_sample_time_on_all_channels(0b101);
- //    }
-    
- //    /* power off and release device for now */
- //    done();
+    /* Setting ADC clock to HCLK/1 is only allowed if AHB clock prescaler is 1*/
+    if (!(RCC->CFGR & RCC_CFGR_HPRE_3)) {
+        /* set ADC clock to HCLK/1 */
+        ADC123_COMMON->CCR |= (ADC_CCR_CKMODE_0);
+    }
+    else {
+        /* set ADC clock to HCLK/2 otherwise */
+        ADC123_COMMON->CCR |= (ADC_CCR_CKMODE_1);
+    }
 
+    /* configure the pin */
+    gpio_init_analog(adc_config[line].pin);
+
+#if defined(CPU_MODEL_STM32L476RG) || defined(CPU_MODEL_STM32L475VG)
+    /* On STM32L475xx/476xx/486xx devices, before any conversion of an input channel coming
+       from GPIO pads, it is necessary to configure the corresponding GPIOx_ASCR register in
+       the GPIO, in addition to the I/O configuration in analog mode. */
+    _port(adc_config[line].pin)->ASCR |= (1 << _pin_num(adc_config[line].pin));
+#endif
+
+    /* init ADC line only if it wasn't already initialized */
+    if (!(dev(line)->ADC_CR_REG & (ADC_CR_ADEN))) {
+        /* reset state of bit DEEPPWD is 1 -> so first leave deep-power down mode */
+        dev(line)->ADC_CR_REG &= ~(ADC_CR_DEEPPWD);
+
+        /* enable ADC internal voltage regulator and wait for startup period */
+        dev(line)->ADC_CR_REG |= (ADC_CR_ADVREGEN);
+        xtimer_usleep(ADC_T_ADCVREG_STUP_US);
+
+        /* configure calibration for single ended input */
+        dev(line)->ADC_CR_REG &= ~(ADC_CR_ADCALDIF);
+
+        /* ´start automatic calibration and wait for it to complete */
+        dev(line)->ADC_CR_REG |= ADC_CR_ADCAL;
+        while (dev(line)->ADC_CR_REG  & ADC_CR_ADCAL) {}
+
+        /* clear ADRDY by writing it*/
+        dev(line)->ADC_ISR_REG |= (ADC_ISR_ADRDY);
+
+        /* enable ADC and wait for it to be ready */
+        dev(line)->ADC_CR_REG |= (ADC_CR_ADEN);
+        while ((dev(line)->ADC_ISR_REG & ADC_ISR_ADRDY) == 0) {}
+
+        /* set sequence length to 1 conversion */
+        dev(line)->SQR1 |= (0 & ADC_SQR1_L);
+    }
+
+    /* configure sampling time for the given channel */
+    if (adc_config[line].chan < ADC_SMPR2_FIRST_CHAN) {
+        dev(line)->SMPR1 =  (ADC_SMP_MIN_VAL << (adc_config[line].chan *
+                                                 ADC_SMP_BIT_WIDTH));
+    }
+    else {
+        dev(line)->SMPR2 =  (ADC_SMP_MIN_VAL << ((adc_config[line].chan -
+                                                  ADC_SMPR2_FIRST_CHAN)
+                                                 * ADC_SMP_BIT_WIDTH));
+    }
+
+    /* free the device again */
+    done(line);
     return 0;
 }
 
-void adc_set_regular_sequence(uint8_t length, uint8_t channel[])
+int adc_sample(adc_t line, adc_res_t res)
 {
-    uint32_t fifth6 = 0;
-    uint32_t fourth6 = 0;
-    uint32_t third6 = 0;
-    uint32_t second6 = 0;
-    uint32_t first6 = 0;
-    uint8_t i = 0;
+    int sample;
 
-    if (length > 20) {
-        return;
+    /* check if resolution is applicable */
+    if (res & 0x3) {
+        return -1;
     }
 
-    for (i = 1; i <= length; i++) {
-        if (i <= 6) {
-            first6 |= (channel[i - 1] << ((i - 1) * 5));
-        }
-        if ((i > 6) & (i <= 12)) {
-            second6 |= (channel[i - 1] << ((i - 6 - 1) * 5));
-        }
-        if ((i > 12) & (i <= 18)) {
-            third6 |= (channel[i - 1] << ((i - 12 - 1) * 5));
-        }
-        if ((i > 18) & (i <= 24)) {
-            fourth6 |= (channel[i - 1] << ((i - 18 - 1) * 5));
-        }
-        if ((i > 24) & (i <= 28)) {
-            fifth6 |= (channel[i - 1] << ((i - 24 - 1) * 5));
-        }
-    }
+    /* lock and power on the ADC device  */
+    prep(line);
 
-    // ADC1->SQR1 = fifth6 | ((length - 1) << 20);
-    // ADC1->SQR2 = fourth6;
-    // ADC1->SQR3 = third6;
-    // ADC1->SQR4 = second6;
-    // ADC1->SQR5 = first6;
+    /* first clear resolution */
+    dev(line)->CFGR &= ~(ADC_CFGR_RES);
 
+    /* then set resolution to the required value*/
+    dev(line)->CFGR |= res;
+
+    /* specify channel for regular conversion */
+    dev(line)->SQR1 = (adc_config[line].chan << ADC_SQR1_SQ1_Pos);
+
+    /* start conversion and wait for it to complete */
+    dev(line)->ADC_CR_REG |= ADC_CR_ADSTART;
+    while (!(dev(line)->ISR & ADC_ISR_EOC)) {}
+
+    /* read the sample */
+    sample = (int)dev(line)->DR;
+
+    /* free the device again */
+    done(line);
+
+    return sample;
 }
 
-#define CR1_CLEAR_MASK            ((uint32_t)0xFCFFFEFF)
-#define CR2_CLEAR_MASK            ((uint32_t)0xC0FFF7FD)
-
-int adc_sample(adc_t line,  adc_res_t res)
-{
-    // int sample;
-/************************************************/
-//TODO
-    (void)line;
-    (void)res;
-/***********************************************/    
-
- //    /* lock and power on the ADC device  */
- //    prep();
-	
- //    /* ADC1 CR1 Configuration */
- //    uint32_t tmpreg1 = ADC1->CR1;
- //    tmpreg1 &= CR1_CLEAR_MASK;
- //    tmpreg1 |= res;
- //    ADC1->CR1 = tmpreg1;
-
- //    /* CR2 config */
- //    tmpreg1 = ADC1->CR2;
- //    tmpreg1 &= CR2_CLEAR_MASK;
-
- //    uint32_t align = 0x00000000; /* Left alignment of data */
- //    uint32_t edge = 0x00000000;
- //    uint32_t etrig = 0x03000000;
- //    uint32_t continuous_conv_mode = 0;
-
- //    tmpreg1 |= align | edge | etrig | (continuous_conv_mode << 1);
- //    ADC1->CR2 = tmpreg1;
-
- //    if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL) {
- //        uint8_t channels[2] = { ADC_TEMPERATURE_CHANNEL, ADC_VREF_CHANNEL };
- //        adc_set_regular_sequence(2, channels);
- //        ADC1->CR1 |= ADC_CR1_SCAN;
- //        ADC1->CR2 &= ~ADC_CR2_DELS;
- //        ADC1->CR2 |= ADC_CR2_DELS_0;
- //    } else {
- //        uint8_t channels[1] = { (uint8_t) adc_config[line].chan };
- //        adc_set_regular_sequence(1, channels);
- //    }
-
- //    /* Enable ADC */
- //    ADC1->CR2 |= (uint32_t)ADC_CR2_ADON;
-    
-	// /* Enable temperature and Vref conversion */
-	// if (adc_config[line].pin == GPIO_UNDEF) {
-	// 	ADC->CCR |= ADC_CCR_TSVREFE;
- //        while ((PWR->CSR & PWR_CSR_VREFINTRDYF) == 0);
-	// }
-	
-	// /* Wait for ADC to become ready */
-	// while ((ADC1->SR & ADC_SR_ADONS) == 0);
-	
-	// ADC1->CR2 |= ADC_CR2_EOCS;
-
- //    /* Start conversion on regular channels. */
- //    ADC1->CR2 |= (uint32_t)ADC_CR2_SWSTART;
-
- //    /* Wait until the end of ADC conversion */
- //    while ((ADC1->SR & ADC_SR_EOC) == 0);
-
- //    /* read result */
- //    sample = (int)ADC1->DR;
-    
- //    int sample_ts = 0;
- //    if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL) {
- //        sample_ts = sample;
- //        while ((ADC1->SR & ADC_SR_EOC) == 0);
- //        sample = (int)ADC1->DR;
- //    }
-    
-	// /* VDD calculation based on VREFINT */
-	// if ((adc_config[line].chan == ADC_VREF_CHANNEL) || (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL)) {
- //        uint16_t cal;
- //        if (get_cpu_category() < 3) {
- //            /* low-end devices doesn't provide calibration values, see errata */
- //            cal = 1672;
-            
- //        } else {
- //            cal = *(uint16_t *)ADC_VREFINT_CAL;
- //        }
- //        sample = 3000 * (cal) / sample;
-	// }
-
-	// /* Chip temperature calculation */
-	// if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL) {
-
- //        uint16_t cal1, cal2;
- //        if (get_cpu_category() < 3) {
- //        /* low-end devices doesn't provide calibration values, see errata */
- //                cal1 = 670;
- //                cal2 = 848;
- //        } else {
- //                cal1 = *(uint16_t *)ADC_TS_CAL1;
- //                cal2 = *(uint16_t *)ADC_TS_CAL2;
- //        }
- //        /* Correct temperature sensor data for actual Vdd */
- //        sample_ts = (sample_ts * sample)/3000;
-        
- //        /* Calculate chip temperature */
- //        /* sample = Vdd, sample_ts = temperature sensor data */
- //        /* 0.1 C resolution */
- //        sample_ts = 300 - (((int)cal1 - sample_ts)*80) / (int)(cal2 - cal1);
-        
- //        ADC1->CR1 &= ~ADC_CR1_SCAN;
- //        ADC1->CR2 &= ~ADC_CR2_DELS;
-	// }
-
-	// /* Disable temperature and Vref conversion */
-	// ADC->CCR &= ~ADC_CCR_TSVREFE;
-	
- //    /* unlock and power off device */
-	// ADC1->CR2 &= ~(ADC_CR2_ADON);
- //    done();
-
-    // return sample;
-
-    //TODO
-    return 0;
-}

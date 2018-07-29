@@ -83,16 +83,7 @@ extern "C" {
 #define SX127X_TX_TIMEOUT_DEFAULT        (1000U * 1000U * 30UL) /**< TX timeout, 30s */
 #define SX127X_RX_SINGLE                 (false)                /**< Single byte receive mode => continuous by default */
 #define SX127X_RX_BUFFER_SIZE            (256)                  /**< RX buffer size */
-
 #define SX127X_RADIO_TX_POWER            (14U)                  /**< Radio power in dBm */
-
-#ifndef SX1272_DEFAULT_PASELECT
-/** @brief   Default PA selection config (1: RFO, 0: PABOOST)
- *
- * This depends on the module configuration.
- */
-#define SX1272_DEFAULT_PASELECT          (1U)
-#endif
 
 #define SX127X_EVENT_HANDLER_STACK_SIZE  (2048U) /**< Stack size event handler */
 #define SX127X_IRQ_DIO0                  (1<<0)  /**< DIO0 IRQ */
@@ -109,8 +100,8 @@ extern "C" {
 enum {
     SX127X_INIT_OK = 0,                /**< Initialization was successful */
     SX127X_ERR_SPI,                    /**< Failed to initialize SPI bus or CS line */
-    SX127X_ERR_TEST_FAILED,            /**< SX127X testing failed during initialization (check chip) */
-    SX127X_ERR_THREAD                  /**< Unable to create DIO handling thread (check amount of free memory) */
+    SX127X_ERR_GPIOS,                  /**< Failed to initialize GPIOs */
+    SX127X_ERR_NODEV                   /**< No valid device version found */
 };
 
 /**
@@ -150,6 +141,18 @@ enum {
     SX127X_RX_ERROR_CRC,               /**< Receiving CRC error */
     SX127X_FHSS_CHANGE_CHANNEL,        /**< Channel change */
     SX127X_CAD_DONE,                   /**< Channel activity detection complete */
+};
+
+/**
+ * @brief Power amplifier modes
+ *
+ * Default value is SX127X_PA_RFO.
+ *
+ * The power amplifier mode depends on the module hardware configuration.
+ */
+enum {
+    SX127X_PA_RFO = 0,                 /**< RFO HF or RFO LF */
+    SX127X_PA_BOOST,                   /**< Power amplifier boost (high power) */
 };
 
 /**
@@ -221,6 +224,7 @@ typedef struct {
     gpio_t dio5_pin;                   /**< Interrupt line DIO5 (not used) */
     gpio_t rfswitch_pin;               /**< GPIO to switch PE4259 on/off */
     gpio_t rfswitch_active_level;      /**< PE4259 power switch active level */
+    uint8_t paselect;                  /**< Power amplifier mode (RFO or PABOOST) */
 } sx127x_params_t;
 
 /**

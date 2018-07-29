@@ -125,13 +125,14 @@ static int send_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame)
 
     /* Prepare transceiver */
     prepare_sx127x(ch);
-    
+
     /* Send frame into LoRa PHY */
-    struct iovec data[1];
-    data[0].iov_base = (uint8_t *)frame;
-    data[0].iov_len = header_size + payload_size;
+    iolist_t data = {
+        .iol_base = (uint8_t *)frame,
+        .iol_len = header_size + payload_size,
+    };
     
-    if (ch->_internal.device->driver->send(ch->_internal.device, data, 1) < 0) {
+    if (ch->_internal.device->driver->send(ch->_internal.device, &data) < 0) {
         puts("[LoRa] uq_handler: cannot send, device busy");
     }
     

@@ -30,11 +30,22 @@
  *
  * NB: with ADC_CLOCK_HIGH, Vdda should be 2.4V min
  *
- * @{
  */
-#define ADC_CLOCK_HIGH      0x0
-#define ADC_CLOCK_MEDIUM    ADC_CCR_ADCPRE_0
-#define ADC_CLOCK_LOW       ADC_CCR_ADCPRE_1
+#define ADC_CLOCK_HIGH      (0)
+#define ADC_CLOCK_MEDIUM    (ADC_CCR_ADCPRE_0)
+#define ADC_CLOCK_LOW       (ADC_CCR_ADCPRE_1)
+
+/**
+ * @brief   ADC sample time, cycles
+ */
+#define ADC_SAMPLE_TIME_4C    (0)
+#define ADC_SAMPLE_TIME_9C    (1)
+#define ADC_SAMPLE_TIME_16C   (2)
+#define ADC_SAMPLE_TIME_24C   (3)
+#define ADC_SAMPLE_TIME_48C   (4)
+#define ADC_SAMPLE_TIME_96C   (5)
+#define ADC_SAMPLE_TIME_192C  (6)
+#define ADC_SAMPLE_TIME_384C  (7)
 
 /**
  * @brief   Load the ADC configuration
@@ -56,14 +67,13 @@ static mutex_t lock = MUTEX_INIT;
 static inline void prep(void)
 {
     mutex_lock(&lock);
-    
-    /* "The ADC clock which is always the HSI clock" */
+    /* ADC clock is always HSI clock */
     if (!(RCC->CR & RCC_CR_HSION)) {
         RCC->CR |= RCC_CR_HSION;
         /* Wait for HSI to become ready */
         while (!(RCC->CR & RCC_CR_HSION)) {}
     }
-    
+
     periph_clk_en(APB2, RCC_APB2ENR_ADC1EN);
 }
 
@@ -74,7 +84,7 @@ static inline void done(void)
     mutex_unlock(&lock);
 }
 
-void adc_set_sample_time_on_all_channels(uint8_t time)
+static void adc_set_sample_time(uint8_t time)
 {
     uint8_t i;
     uint32_t reg32 = 0;
@@ -82,8 +92,9 @@ void adc_set_sample_time_on_all_channels(uint8_t time)
     for (i = 0; i <= 9; i++) {
         reg32 |= (time << (i * 3));
     }
-
+#if !defined STM32L1XX_MD
     ADC1->SMPR0 = reg32;
+#endif
     ADC1->SMPR1 = reg32;
     ADC1->SMPR2 = reg32;
     ADC1->SMPR3 = reg32;
@@ -91,21 +102,19 @@ void adc_set_sample_time_on_all_channels(uint8_t time)
 
 int adc_init(adc_t line)
 {
-    /* make sure the given line is valid */
+    /* check if the line is valid */
     if (line >= ADC_NUMOF) {
         return -1;
     }
 
-    /* lock and power on the device */
+    /* lock and power-on the device */
     prep();
-    /* configure the pin */
-	/* no need to configure GPIO for ADC channels not connected to any GPIO */
-	if ((adc_config[line].pin != GPIO_UNDEF)) {
-		gpio_init_analog(adc_config[line].pin);
-	}
-    
-    /* set ADC clock */
 
+    /* configure the pin */
+    if ((adc_config[line].pin != GPIO_UNDEF))
+        gpio_init_analog(adc_config[line].pin);
+
+    /* set ADC clock prescaler */
     ADC->CCR &= ~ADC_CCR_ADCPRE;
     ADC->CCR |= ADC_CLOCK_MEDIUM;
 
@@ -114,60 +123,32 @@ int adc_init(adc_t line)
     switch (ADC->CCR & ADC_CCR_ADCPRE) {
         case ADC_CLOCK_LOW:
             /* 4 MHz ADC clock -> 16 cycles */
-            adc_set_sample_time_on_all_channels(0b010);
+            adc_set_sample_time(ADC_SAMPLE_TIME_16C);
             break;
         case ADC_CLOCK_MEDIUM:
             /* 8 MHz ADC clock -> 48 cycles */
-            adc_set_sample_time_on_all_channels(0b100);
+            adc_set_sample_time(ADC_SAMPLE_TIME_48C);
             break;
         default:
-            /* 16 MHz ADC clock -> 92 cycles */
-            adc_set_sample_time_on_all_channels(0b101);
+            /* 16 MHz ADC clock -> 96 cycles */
+            adc_set_sample_time(ADC_SAMPLE_TIME_96C);
     }
-    
-    /* power off and release device for now */
+
+    /* check if this channel is an internal ADC channel, if so
+     * enable the internal temperature and Vref */
+    if (adc_config[line].chan == 16 || adc_config[line].chan == 17) {
+        ADC->CCR |= ADC_CCR_TSVREFE;
+    }
+
+    /* enable the ADC module */
+    ADC1->CR2 = ADC_CR2_ADON;
+    /* turn off during idle phase*/
+    ADC1->CR1 = ADC_CR1_PDI;
+
+    /* free the device again */
     done();
 
     return 0;
-}
-
-void adc_set_regular_sequence(uint8_t length, uint8_t channel[])
-{
-    uint32_t fifth6 = 0;
-    uint32_t fourth6 = 0;
-    uint32_t third6 = 0;
-    uint32_t second6 = 0;
-    uint32_t first6 = 0;
-    uint8_t i = 0;
-
-    if (length > 20) {
-        return;
-    }
-
-    for (i = 1; i <= length; i++) {
-        if (i <= 6) {
-            first6 |= (channel[i - 1] << ((i - 1) * 5));
-        }
-        if ((i > 6) & (i <= 12)) {
-            second6 |= (channel[i - 1] << ((i - 6 - 1) * 5));
-        }
-        if ((i > 12) & (i <= 18)) {
-            third6 |= (channel[i - 1] << ((i - 12 - 1) * 5));
-        }
-        if ((i > 18) & (i <= 24)) {
-            fourth6 |= (channel[i - 1] << ((i - 18 - 1) * 5));
-        }
-        if ((i > 24) & (i <= 28)) {
-            fifth6 |= (channel[i - 1] << ((i - 24 - 1) * 5));
-        }
-    }
-
-    ADC1->SQR1 = fifth6 | ((length - 1) << 20);
-    ADC1->SQR2 = fourth6;
-    ADC1->SQR3 = third6;
-    ADC1->SQR4 = second6;
-    ADC1->SQR5 = first6;
-
 }
 
 #define CR1_CLEAR_MASK            ((uint32_t)0xFCFFFEFF)
@@ -197,17 +178,6 @@ int adc_sample(adc_t line,  adc_res_t res)
 
     tmpreg1 |= align | edge | etrig | (continuous_conv_mode << 1);
     ADC1->CR2 = tmpreg1;
-
-    if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL) {
-        uint8_t channels[2] = { ADC_TEMPERATURE_CHANNEL, ADC_VREF_CHANNEL };
-        adc_set_regular_sequence(2, channels);
-        ADC1->CR1 |= ADC_CR1_SCAN;
-        ADC1->CR2 &= ~ADC_CR2_DELS;
-        ADC1->CR2 |= ADC_CR2_DELS_0;
-    } else {
-        uint8_t channels[1] = { (uint8_t) adc_config[line].chan };
-        adc_set_regular_sequence(1, channels);
-    }
 
     /* Enable ADC */
     ADC1->CR2 |= (uint32_t)ADC_CR2_ADON;

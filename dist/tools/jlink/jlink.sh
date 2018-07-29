@@ -32,6 +32,7 @@
 #               options:
 #               GDB_PORT:       port opened for GDB connections
 #               TELNET_PORT:    port opened for telnet connections
+#               DBG:            debugger client command, default: 'gdb -q'
 #               TUI:            if TUI!=null, the -tui option will be used
 #               ELFFILE:        path to the ELF file to debug
 #
@@ -58,7 +59,7 @@ _JLINK_SERVER=JLinkGDBServer
 _JLINK_IF=SWD
 _JLINK_SPEED=2000
 # default terminal frontend
-_JLINK_TERMPROG=${RIOTBASE}/dist/tools/pyterm/pyterm
+_JLINK_TERMPROG=${RIOTTOOLS}/pyterm/pyterm
 _JLINK_TERMFLAGS="-ts 19021"
 
 #
@@ -133,8 +134,7 @@ test_serial() {
 
 test_dbg() {
     if [ -z "${DBG}" ]; then
-        echo "Error: No debugger defined in DBG env var"
-        exit 1
+        DBG="${GDB}"
     fi
 }
 
@@ -164,7 +164,7 @@ do_flash() {
     if [ ! -z "${JLINK_POST_FLASH}" ]; then
         printf "${JLINK_POST_FLASH}\n" >> ${BINDIR}/burn.seg
     fi
-    cat ${RIOTBASE}/dist/tools/jlink/reset.seg >> ${BINDIR}/burn.seg
+    cat ${RIOTTOOLS}/jlink/reset.seg >> ${BINDIR}/burn.seg
     # flash device
     sh -c "${JLINK} ${JLINK_SERIAL} \
                     -device '${JLINK_DEVICE}' \
@@ -218,7 +218,7 @@ do_reset() {
                     -speed '${JLINK_SPEED}' \
                     -if '${JLINK_IF}' \
                     -jtagconf -1,-1 \
-                    -commandfile '${RIOTBASE}/dist/tools/jlink/reset.seg'"
+                    -commandfile '${RIOTTOOLS}/jlink/reset.seg'"
 }
 
 do_term() {
@@ -245,7 +245,7 @@ do_term() {
             -speed '${JLINK_SPEED}' \
             -if '${JLINK_IF}' \
             -jtagconf -1,-1 \
-            -commandfile '${RIOTBASE}/dist/tools/jlink/term.seg' & \
+            -commandfile '${RIOTTOOLS}/jlink/term.seg' & \
             echo  \$! > $JLINK_PIDFILE" &
 
     sh -c "${JLINK_TERMPROG} ${JLINK_TERMFLAGS}"

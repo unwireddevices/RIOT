@@ -65,13 +65,13 @@ void event_timeout_init(event_timeout_t *event_timeout, event_queue_t *queue,
  * @brief   Set a timeout
  *
  * This will make the event as configured in @p event_timeout be triggered
- * after @p timeout miliseconds.
+ * after @p timeout microseconds.
  *
  * @note: the used event_timeout struct must stay valid until after the timeout
  *        event has been processed!
  *
  * @param[in]   event_timeout   event_timout context object to use
- * @param[in]   timeout         timeout in miliseconds
+ * @param[in]   timeout         timeout in microseconds
  */
 void event_timeout_set(event_timeout_t *event_timeout, uint32_t timeout);
 

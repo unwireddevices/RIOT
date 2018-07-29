@@ -8,7 +8,7 @@
  * General Public License v2.1. See the file LICENSE in the top level
  * directory for more details.
  *
- * @ingroup arch
+ * @ingroup cpu_native
  * @{
  * @file
  * @author  Ludwig Knüpfer <ludwig.knuepfer@fu-berlin.de>
@@ -42,6 +42,8 @@
 #include "board_internal.h"
 #include "native_internal.h"
 #include "tty_uart.h"
+
+#include "periph/init.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -536,6 +538,7 @@ __attribute__((constructor)) static void startup(int argc, char **argv, char **e
     }
 #endif
 
+    periph_init();
     board_init();
 
     puts("RIOT native hardware initialization complete.\n");

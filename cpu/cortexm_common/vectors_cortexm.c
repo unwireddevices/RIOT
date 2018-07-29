@@ -31,6 +31,9 @@
 #include "mpu.h"
 #include "panic.h"
 #include "vectors_cortexm.h"
+#ifdef MODULE_PUF_SRAM
+#include "puf_sram.h"
+#endif
 
 #ifndef SRAM_BASE
 #define SRAM_BASE 0
@@ -76,6 +79,10 @@ void reset_handler_default(void)
 {
     uint32_t *dst;
     uint32_t *src = &_etext;
+
+#ifdef MODULE_PUF_SRAM
+    puf_sram_init((uint8_t *)&_srelocate, SEED_RAM_LEN);
+#endif
 
     pre_startup();
 
@@ -375,11 +382,11 @@ __attribute__((weak,alias("dummy_handler_default"))) void isr_pendsv(void);
 __attribute__((weak,alias("dummy_handler_default"))) void isr_systick(void);
 
 /* define Cortex-M base interrupt vectors */
-ISR_VECTOR(0) cortexm_base_t cortex_vector_base = {
+ISR_VECTOR(0) const cortexm_base_t cortex_vector_base = {
     &_estack,
     {
         /* entry point of the program */
-        [ 0]         = reset_handler_default,
+        [ 0] = reset_handler_default,
         /* [-14] non maskable interrupt handler */
         [ 1] = nmi_default,
         /* [-13] hard fault exception */

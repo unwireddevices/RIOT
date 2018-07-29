@@ -21,7 +21,7 @@
 #include <errno.h>
 #include "byteorder.h"
 #include "net/inet_csum.h"
-#include "net/gnrc/pktbuf.h"
+#include "net/gnrc.h"
 #include "internal/common.h"
 #include "internal/option.h"
 #include "internal/pkt.h"
@@ -109,6 +109,30 @@ int _pkt_build_reset_from_pkt(gnrc_pktsnip_t **out_pkt, gnrc_pktsnip_t *in_pkt)
         return -ENOMEM;
     }
     *out_pkt = ip6_snp;
+
+    /* Add netif header in case the receiver addr sent from a link local address */
+    if (ipv6_addr_is_link_local(&ip6_hdr->src)) {
+
+        /* Search for netif header in received packet */
+        gnrc_pktsnip_t *net_snp;
+        LL_SEARCH_SCALAR(in_pkt, net_snp, type, GNRC_NETTYPE_NETIF);
+        gnrc_netif_hdr_t *net_hdr = (gnrc_netif_hdr_t *)net_snp->data;
+
+        /* Allocate new header and set interface id */
+        net_snp = gnrc_netif_hdr_build(NULL, 0, NULL, 0);
+        if (net_snp == NULL) {
+            DEBUG("gnrc_tcp_pkt.c : _pkt_build_reset_from_pkt() :\
+                   Can't alloc buffer for netif Header.\n");
+            gnrc_pktbuf_release(ip6_snp);
+            *(out_pkt) = NULL;
+            return -ENOMEM;
+        }
+        else {
+            ((gnrc_netif_hdr_t *)net_snp->data)->if_pid = net_hdr->if_pid;
+            LL_PREPEND(ip6_snp, net_snp);
+            *(out_pkt) = net_snp;
+        }
+    }
 #else
     DEBUG("gnrc_tcp_pkt.c : _pkt_build_reset_from_pkt() : Network Layer Module Missing\n");
 #endif
@@ -181,7 +205,10 @@ int _pkt_build(gnrc_tcp_tcb_t *tcb, gnrc_pktsnip_t **out_pkt, uint16_t *seq_con,
 
     /* Build network layer header */
 #ifdef MODULE_GNRC_IPV6
-    gnrc_pktsnip_t *ip6_snp = gnrc_ipv6_hdr_build(tcp_snp, NULL, (ipv6_addr_t *) tcb->peer_addr);
+    ipv6_addr_t *src_addr = (ipv6_addr_t *) tcb->local_addr;
+    ipv6_addr_t *dst_addr = (ipv6_addr_t *) tcb->peer_addr;
+
+    gnrc_pktsnip_t *ip6_snp = gnrc_ipv6_hdr_build(tcp_snp, src_addr, dst_addr);
     if (ip6_snp == NULL) {
         DEBUG("gnrc_tcp_pkt.c : _pkt_build() : Can't allocate buffer for IPv6 Header.\n");
         gnrc_pktbuf_release(tcp_snp);
@@ -190,6 +217,22 @@ int _pkt_build(gnrc_tcp_tcb_t *tcb, gnrc_pktsnip_t **out_pkt, uint16_t *seq_con,
     }
     else {
         *(out_pkt) = ip6_snp;
+    }
+
+    /* Prepend network interface header if an interface id was specified */
+    if (tcb->ll_iface > 0) {
+        gnrc_pktsnip_t *net_snp = gnrc_netif_hdr_build(NULL, 0, NULL, 0);
+        if (net_snp == NULL) {
+            DEBUG("gnrc_tcp_pkt.c : _pkt_build() : Can't allocate buffer for netif header.\n");
+            gnrc_pktbuf_release(ip6_snp);
+            *(out_pkt) = NULL;
+            return -ENOMEM;
+        }
+        else {
+            ((gnrc_netif_hdr_t *)net_snp->data)->if_pid = (kernel_pid_t)tcb->ll_iface;
+            LL_PREPEND(ip6_snp, net_snp);
+            *(out_pkt) = net_snp;
+        }
     }
 #else
         DEBUG("gnrc_tcp_pkt.c : _pkt_build_reset_from_pkt() : Network Layer Module Missing\n");
@@ -441,6 +484,8 @@ uint16_t _pkt_calc_csum(const gnrc_pktsnip_t *hdr, const gnrc_pktsnip_t *pseudo_
             break;
 #endif
         default:
+            /* Suppress compiler warnings */
+            (void) len;
             return 0;
     }
     return ~csum;

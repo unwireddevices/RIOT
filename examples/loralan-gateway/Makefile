@@ -37,16 +37,16 @@ USEMODULE += checksum
 USEMODULE += sx127x
 USEMODULE += rtctimers-millis
 
-EXTERNAL_MODULE_DIRS += ../../unwired-modules/
+EXTERNAL_MODULE_DIRS += $(RIOTBASE)/unwired-modules/
 USEMODULE += loralan-mac
 USEMODULE += loralan-gateway
 USEMODULE += loralan-common
 USEMODULE += unwds-common
 
-INCLUDES += -I../../unwired-modules/loralan-mac/include/
-INCLUDES += -I../../unwired-modules/loralan-gateway/include/
-INCLUDES += -I../../unwired-modules/loralan-common/include/
-INCLUDES += -I../../unwired-modules/unwds-common/include/
+INCLUDES += -I$(RIOTBASE)/unwired-modules/loralan-mac/include/
+INCLUDES += -I$(RIOTBASE)/unwired-modules/loralan-gateway/include/
+INCLUDES += -I$(RIOTBASE)/unwired-modules/loralan-common/include/
+INCLUDES += -I$(RIOTBASE)/unwired-modules/unwds-common/include/
 
 FEATURES_OPTIONAL += config
 

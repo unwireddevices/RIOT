@@ -57,18 +57,11 @@ static const timer_conf_t timer_config[] = {
         .channels = 3,
         .bitmode  = TIMER_BITMODE_BITMODE_16Bit,
         .irqn     = TIMER1_IRQn
-    },
-    {
-        .dev      = NRF_TIMER2,
-        .channels = 3,
-        .bitmode  = TIMER_BITMODE_BITMODE_16Bit,
-        .irqn     = TIMER2_IRQn
     }
 };
 
 #define TIMER_0_ISR         isr_timer0
 #define TIMER_1_ISR         isr_timer1
-#define TIMER_2_ISR         isr_timer2
 
 #define TIMER_NUMOF         (sizeof(timer_config) / sizeof(timer_config[0]))
 /** @} */
@@ -120,13 +113,12 @@ static const i2c_conf_t i2c_config[] = {
 /** @} */
 
 /**
- * @name    Radio device configuration
- *
- * The radio is not guarded by a NUMOF define, as the radio is selected by its
- * own module in the build system.
+ * @name    PWM configuration
  * @{
  */
-#define RADIO_IRQ_PRIO      1
+#define PWM_NUMOF           (1U)
+#define PWM_TIMER           NRF_TIMER2
+#define PWM_PIN             (0U)
 /** @} */
 
 #ifdef __cplusplus

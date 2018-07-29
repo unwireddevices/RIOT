@@ -21,12 +21,14 @@
  *  - Mersenne Twister
  *  - Simple Park-Miller PRNG
  *  - Musl C PRNG
+ *  - Fortuna (CS)PRNG
  */
 
 #ifndef RANDOM_H
 #define RANDOM_H
 
 #include <inttypes.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -76,6 +78,11 @@ void random_init_by_array(uint32_t init_key[], int key_length);
 uint32_t random_uint32(void);
 
 /**
+ * @brief writes random bytes in the [0,0xff]-interval to memory
+ */
+void random_bytes(uint8_t *buf, size_t size);
+
+/**
  * @brief   generates a random number r with a <= r < b.
  *
  * @param[in] a minimum for random number
@@ -85,10 +92,7 @@ uint32_t random_uint32(void);
  *
  * @return  a random number on [a,b)-interval
  */
-static inline uint32_t random_uint32_range(uint32_t a, uint32_t b)
-{
-    return (random_uint32() % (b - a)) + a;
-}
+uint32_t random_uint32_range(uint32_t a, uint32_t b);
 
 #if PRNG_FLOAT
 /* These real versions are due to Isaku Wada, 2002/01/09 added */

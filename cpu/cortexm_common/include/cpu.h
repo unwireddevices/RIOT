@@ -104,8 +104,15 @@ static inline void cortexm_sleep(int deep)
     }
 
     /* ensure that all memory accesses have completed and trigger sleeping */
+    unsigned state = irq_disable();
     __DSB();
     __WFI();
+
+#if defined(CPU_MODEL_STM32L152RE)
+    /* STM32L152RE crashes without this __NOP(). See #8518. */
+    __NOP();
+#endif
+    irq_restore(state);
 }
 
 /**
@@ -115,7 +122,7 @@ static inline void cortexm_sleep(int deep)
  */
 static inline void cortexm_isr_end(void) {
     if (sched_context_switch_request) {
-        thread_yield();
+        thread_yield_higher();
     }
 }
 

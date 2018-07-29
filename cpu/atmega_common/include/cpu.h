@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2015 Kaspar Schleiser <kaspar@schleiser.de>
  *               2014 Freie Universität Berlin, Hinnerk van Bruinehsen
+ *               2018 RWTH Aachen, Josua Arndt <jarndt@ias.rwth-aachen.de>
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -22,6 +23,8 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  * @author      Hinnerk van Bruinehsen <h.v.bruinehsen@fu-berlin.de>
  * @author      Kaspar Schleiser <kaspar@schleiser.de>
+ * @author      Josua Arndt <jarndt@ias.rwth-aachen.de>
+ *
  */
 
 #ifndef CPU_H
@@ -32,7 +35,8 @@
 
 #include <avr/interrupt.h>
 #include "cpu_conf.h"
-
+#include "sched.h"
+#include "thread.h"
 /**
  * For downwards compatibility with old RIOT code.
  * TODO: remove once core was adjusted
@@ -40,7 +44,8 @@
 #include "irq.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /**
@@ -49,7 +54,7 @@ extern "C" {
 extern volatile uint8_t __in_isr;
 
 /**
- * @brief Flag entering of an ISR
+ * @brief Run this code on entering interrupt routines
  */
 static inline void __enter_isr(void)
 {
@@ -57,10 +62,22 @@ static inline void __enter_isr(void)
 }
 
 /**
- * @brief Flag exiting of an ISR
+ * @brief   Exit ISR mode and yield with a return from interrupt. Use at the
+ * end of ISRs in place of thread_yield_higher. If thread_yield is needed, use
+ * thread_yield followed by thread_yield_isr instead of thread_yield alone.
+ */
+void thread_yield_isr(void);
+
+/**
+ * @brief Run this code on exiting interrupt routines
  */
 static inline void __exit_isr(void)
 {
+    if (sched_context_switch_request) {
+        thread_yield();
+        __in_isr = 0;
+        thread_yield_isr();
+    }
     __in_isr = 0;
 }
 
@@ -71,13 +88,59 @@ void cpu_init(void);
 
 /**
  * @brief   Print the last instruction's address
- *
- * @todo:   Not supported
  */
-static inline void cpu_print_last_instruction(void)
+static inline void __attribute__((always_inline)) cpu_print_last_instruction(void)
 {
-    puts("n/a");
+    uint8_t hi;
+    uint8_t lo;
+    uint16_t ptr;
+
+    __asm__ volatile ("in __tmp_reg__, __SP_H__  \n\t"
+                      "mov %0, __tmp_reg__       \n\t"
+                      : "=g" (hi));
+
+    __asm__ volatile ("in __tmp_reg__, __SP_L__  \n\t"
+                      "mov %0, __tmp_reg__       \n\t"
+                      : "=g" (lo));
+    ptr = hi << 8 | lo;
+    printf("Stack Pointer: 0x%04x\n", ptr);
 }
+
+/**
+ * @brief   ATmega system clock prescaler settings
+ *
+ * Some CPUs may not support the highest prescaler settings
+ */
+enum {
+    CPU_ATMEGA_CLK_SCALE_DIV1   = 0,
+    CPU_ATMEGA_CLK_SCALE_DIV2   = 1,
+    CPU_ATMEGA_CLK_SCALE_DIV4   = 2,
+    CPU_ATMEGA_CLK_SCALE_DIV8   = 3,
+    CPU_ATMEGA_CLK_SCALE_DIV16  = 4,
+    CPU_ATMEGA_CLK_SCALE_DIV32  = 5,
+    CPU_ATMEGA_CLK_SCALE_DIV64  = 6,
+    CPU_ATMEGA_CLK_SCALE_DIV128 = 7,
+    CPU_ATMEGA_CLK_SCALE_DIV256 = 8,
+    CPU_ATMEGA_CLK_SCALE_DIV512 = 9,
+};
+
+/**
+ * @brief   Initializes system clock prescaler
+ */
+static inline void atmega_set_prescaler(uint8_t clk_scale)
+{
+    /* Enable clock change */
+    /* Must be assignment to set all other bits to zero, see datasheet */
+    CLKPR = (1 << CLKPCE);
+
+    /* Write clock within 4 cycles */
+    CLKPR = clk_scale;
+}
+
+/**
+ * @brief   Initializes avrlibc stdio
+ */
+void atmega_stdio_init(void);
 
 #ifdef __cplusplus
 }

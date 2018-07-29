@@ -10,7 +10,7 @@
 #define CPU_H
 
 /**
- * @defgroup    lpc2387     NXP LPC2387
+ * @defgroup    cpu_lpc2387     NXP LPC2387
  * @ingroup     cpu
  * @brief       NXP LPC2387 specific code
  * @{
@@ -26,7 +26,7 @@
 extern "C" {
 #endif
 
-extern uintptr_t __stack_start;     ///< end of user stack memory space
+extern uintptr_t __stack_start;     /**< end of user stack memory space */
 
 /**
  * @brief Scale lpc2387 cpu speed

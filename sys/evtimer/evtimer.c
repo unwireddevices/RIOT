@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2016-17 Kaspar Schleiser <kaspar@schleiser.de>
  *               2017 Freie Universität Berlin
+ *               2018 Josua Arndt
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -16,6 +17,7 @@
  *
  * @author      Kaspar Schleiser <kaspar@schleiser.de>
  * @author      Martine Lenders <m.lenders@fu-berlin.de>
+ * @author      Josua Arndt <jarndt@ias.rwth-aachen.de>
  *
  * @}
  */
@@ -33,8 +35,7 @@
  * handle the pointer hack in this function */
 void evtimer_add_event_to_list(evtimer_t *evtimer, evtimer_event_t *event)
 {
-    uint32_t delta_sum = 0;
-
+    DEBUG("evtimer: new event offset %" PRIu32 " ms\n", event->offset);
     /* we want list->next to point to the first list element. thus we take the
      * *address* of evtimer->events, then cast it from (evtimer_event_t **) to
      * (evtimer_event_t*). After that, list->next actually equals
@@ -43,20 +44,32 @@ void evtimer_add_event_to_list(evtimer_t *evtimer, evtimer_event_t *event)
 
     while (list->next) {
         evtimer_event_t *list_entry = list->next;
-        if ((list_entry->offset + delta_sum) > event->offset) {
+        /* Stop when new event time is nearer then next */
+        if (event->offset < list_entry->offset) {
+            DEBUG("evtimer: next %" PRIu32 " < %" PRIu32 " ms\n",
+                  event->offset, list_entry->offset);
             break;
         }
-        delta_sum += list_entry->offset;
+        /* Set event offset relative to previous event */
+        event->offset -= list_entry->offset;
         list = list->next;
     }
 
+    DEBUG("evtimer: new event relativ offset %" PRIu32 " ms\n", event->offset);
+
+    /* Set found next bigger event after new event */
     event->next = list->next;
     if (list->next) {
+        /* Set offset following event relative to new event */
         evtimer_event_t *next_entry = list->next;
-        next_entry->offset += delta_sum;
+        DEBUG("evtimer: recalculate offset for %" PRIu32 " ms\n",
+              next_entry->offset);
+
         next_entry->offset -= event->offset;
+
+        DEBUG("evtimer: resulting new event offset %" PRIu32 " ms\n",
+              next_entry->offset);
     }
-    event->offset -= delta_sum;
 
     list->next = event;
 }
@@ -79,14 +92,14 @@ static void _del_event_from_list(evtimer_t *evtimer, evtimer_event_t *event)
     }
 }
 
-static void _set_timer(xtimer_t *timer, uint32_t offset)
+static void _set_timer(xtimer_t *timer, uint32_t offset_ms)
 {
-    uint64_t offset_in_us = (uint64_t)offset * 1000;
+    uint64_t offset_us = (uint64_t)offset_ms * US_PER_MS;
 
-    DEBUG("evtimer: now=%" PRIu32 " setting xtimer to %" PRIu32 ":%" PRIu32 "\n",
-          xtimer_now_usec(), (uint32_t)(offset_in_us >> 32),
-          (uint32_t)(offset_in_us));
-    _xtimer_set64(timer, offset_in_us, offset_in_us >> 32);
+    DEBUG("evtimer: now=%" PRIu32 " us setting xtimer to %" PRIu32 ":%" PRIu32 " us\n",
+          xtimer_now_usec(), (uint32_t)(offset_us >> 32), (uint32_t)(offset_us));
+
+    xtimer_set64(timer, offset_us);
 }
 
 static void _update_timer(evtimer_t *evtimer)
@@ -102,16 +115,17 @@ static void _update_timer(evtimer_t *evtimer)
 
 static uint32_t _get_offset(xtimer_t *timer)
 {
-    uint64_t now = xtimer_now_usec64();
-    uint64_t target = ((uint64_t)timer->long_target) << 32 | timer->target;
+    uint64_t now_us = xtimer_now_usec64();
+    uint64_t target_us = _xtimer_usec_from_ticks64(
+                        ((uint64_t)timer->long_target) << 32 | timer->target);
 
-    if (target <= now) {
+    if (target_us <= now_us) {
         return 0;
     }
     else {
-        target -= now;
+        target_us -= now_us;
         /* add half of 125 so integer division rounds to nearest */
-        return div_u64_by_125((target >> 3) + 62);
+        return div_u64_by_125((target_us >> 3) + 62);
     }
 }
 

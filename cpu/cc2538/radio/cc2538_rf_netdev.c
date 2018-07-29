@@ -33,22 +33,6 @@
 
 #define _MAX_MHR_OVERHEAD   (25)
 
-static int  _get(netdev_t *dev, netopt_t opt, void *value, size_t max_len);
-static int  _set(netdev_t *dev, netopt_t opt, const void *value, size_t value_len);
-static int  _send(netdev_t *netdev, const struct iovec *vector, unsigned count);
-static int  _recv(netdev_t *netdev, void *buf, size_t len, void *info);
-static void _isr(netdev_t *netdev);
-static int  _init(netdev_t *dev);
-
-const netdev_driver_t cc2538_rf_driver = {
-    .get  = _get,
-    .set  = _set,
-    .send = _send,
-    .recv = _recv,
-    .isr  = _isr,
-    .init = _init,
-};
-
 /* Reference pointer for the IRQ handler */
 static netdev_t *_dev;
 
@@ -253,7 +237,7 @@ static int _set(netdev_t *netdev, netopt_t opt, const void *value, size_t value_
     return res;
 }
 
-static int _send(netdev_t *netdev, const struct iovec *vector, unsigned count)
+static int _send(netdev_t *netdev, const iolist_t *iolist)
 {
     (void) netdev;
 
@@ -268,8 +252,8 @@ static int _send(netdev_t *netdev, const struct iovec *vector, unsigned count)
        start of the FIFO, so we can come back and update it later */
     rfcore_write_byte(0);
 
-    for (unsigned i = 0; i < count; i++) {
-        pkt_len += vector[i].iov_len;
+    for (const iolist_t *iol = iolist; iol; iol = iol->iol_next) {
+        pkt_len += iol->iol_len;
 
         if (pkt_len > CC2538_RF_MAX_DATA_LEN) {
             DEBUG("cc2538_rf: packet too large (%u > %u)\n",
@@ -277,7 +261,7 @@ static int _send(netdev_t *netdev, const struct iovec *vector, unsigned count)
             return -EOVERFLOW;
         }
 
-        rfcore_write_fifo(vector[i].iov_base, vector[i].iov_len);
+        rfcore_write_fifo(iol->iol_base, iol->iol_len);
     }
 
 #ifdef MODULE_NETSTATS_L2
@@ -383,27 +367,32 @@ static int _init(netdev_t *netdev)
     uint16_t addr_short = cc2538_get_addr_short();
     uint64_t addr_long = cc2538_get_addr_long();
 
+    netdev_ieee802154_reset(&dev->netdev);
+
     /* Initialise netdev_ieee802154_t struct */
-    netdev_ieee802154_set((netdev_ieee802154_t *)netdev, NETOPT_NID, &pan,
-                          sizeof(pan));
-    netdev_ieee802154_set((netdev_ieee802154_t *)netdev, NETOPT_CHANNEL, &chan,
-                          sizeof(chan));
-    netdev_ieee802154_set((netdev_ieee802154_t *)netdev, NETOPT_ADDRESS,
+    netdev_ieee802154_set(&dev->netdev, NETOPT_NID,
+                          &pan, sizeof(pan));
+    netdev_ieee802154_set(&dev->netdev, NETOPT_CHANNEL,
+                          &chan, sizeof(chan));
+    netdev_ieee802154_set(&dev->netdev, NETOPT_ADDRESS,
                           &addr_short, sizeof(addr_short));
-    netdev_ieee802154_set((netdev_ieee802154_t *)netdev, NETOPT_ADDRESS_LONG,
+    netdev_ieee802154_set(&dev->netdev, NETOPT_ADDRESS_LONG,
                           &addr_long, sizeof(addr_long));
 
     cc2538_set_state(dev, NETOPT_STATE_IDLE);
 
-    /* set default protocol */
-#ifdef MODULE_GNRC_SIXLOWPAN
-    dev->netdev.proto = GNRC_NETTYPE_SIXLOWPAN;
-#elif MODULE_GNRC
-    dev->netdev.proto = GNRC_NETTYPE_UNDEF;
-#endif
 #ifdef MODULE_NETSTATS_L2
     memset(&netdev->stats, 0, sizeof(netstats_t));
 #endif
 
     return 0;
 }
+
+const netdev_driver_t cc2538_rf_driver = {
+    .get  = _get,
+    .set  = _set,
+    .send = _send,
+    .recv = _recv,
+    .isr  = _isr,
+    .init = _init,
+};

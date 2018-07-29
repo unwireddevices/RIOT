@@ -7,7 +7,9 @@
  */
 
 /**
- * @ingroup     cpu_nrf52
+ * @defgroup        cpu_nrf52 Nordic nRF52 MCU
+ * @ingroup         cpu
+ * @brief           Nordic nRF52 family of CPUs
  * @{
  *
  * @file
@@ -74,6 +76,16 @@ extern "C" {
 #endif /* DONT_OVERRIDE_NVIC */
 #endif /* SOFTDEVICE_PRESENT */
 /** @} */
+
+/**
+ * @brief   Put the CPU in the low-power 'wait for event' state
+ */
+static inline void nrf52_sleep(void)
+{
+    __SEV();
+    __WFE();
+    __asm("nop");
+}
 
 #ifdef __cplusplus
 }

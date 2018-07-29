@@ -44,7 +44,11 @@ extern sx127x_t sx127x;
 void SX127XInit(RadioEvents_t *events)
 {
     (void) events;
-    sx127x_init(&sx127x);
+    if (sx127x_init(&sx127x) < 0) {
+        DEBUG("[semtech-loramac] radio: failed to initialize radio\n");
+    }
+
+    DEBUG("[semtech-loramac] radio: initialization successful\n");
 }
 
 RadioState_t SX127XGetStatus(void)
@@ -136,10 +140,11 @@ uint32_t SX127XGetTimeOnAir(RadioModems_t modem, uint8_t pktLen)
 void SX127XSend(uint8_t *buffer, uint8_t size)
 {
     netdev_t *dev = (netdev_t *)&sx127x;
-    struct iovec vec[1];
-    vec[0].iov_base = buffer;
-    vec[0].iov_len = size;
-    dev->driver->send(dev, vec, 1);
+    iolist_t iol = {
+        .iol_base = buffer,
+        .iol_len = size
+    };
+    dev->driver->send(dev, &iol);
 }
 
 void SX127XSetSleep(void)

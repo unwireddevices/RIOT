@@ -801,12 +801,14 @@ static void *uq_handler(void *arg)
         /* Configure for TX */
         configure_sx127x(ls);
         DEBUG("[LoRa] uq_handler: transceiver configured\n");
+        
         /* Send frame into LoRa PHY */
-        struct iovec data[1];
-        data[0].iov_base = f;
-        data[0].iov_len = header_size + payload_size;
-               
-        if (ls->_internal.device->driver->send(ls->_internal.device, data, 1) < 0) {
+        iolist_t data = {
+            .iol_base = f,
+            .iol_len = header_size + payload_size,
+        };
+        
+        if (ls->_internal.device->driver->send(ls->_internal.device, &data) < 0) {
             puts("[LoRa] uq_handler: cannot send, device busy");
         }
         

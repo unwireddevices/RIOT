@@ -25,12 +25,11 @@
 
 #include "irq.h"
 #include "periph/pm.h"
-<<<<<<< HEAD
-=======
+
 #if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \
     defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4) || \
-    defined(CPU_FAM_STM32L0)
->>>>>>> 260e6c5... cpu/stm32f0: add periph_pm support
+    defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L4)
+
 #include "stmclk.h"
 #include "periph_cpu_common.h"
 
@@ -81,19 +80,11 @@ enum pm_mode pm_set(enum pm_mode mode)
     
     powermode = mode;
 
-<<<<<<< HEAD
-=======
-/* I just copied it from stm32f1/2/4, but I suppose it would work for the
- * others... /KS */
-#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \
-    defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4) || \
-    defined(CPU_FAM_STM32L0)
->>>>>>> 260e6c5... cpu/stm32f0: add periph_pm support
     switch (mode) {
         case PM_POWERDOWN:
-#if defined(CPU_FAM_STM32F1) || defined(CPU_FAM_STM32F2) || \
-    defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32L0) || \
-    defined(CPU_FAM_STM32L1)
+#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \
+    defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4) || \
+    defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L4)
             /* Set PDDS to enter standby mode on deepsleep and clear flags */
             PWR->CR |= (PWR_CR_PDDS | PWR_CR_CWUF | PWR_CR_CSBF);
             
@@ -101,26 +92,14 @@ enum pm_mode pm_set(enum pm_mode mode)
             /* Disable Vrefint in standby mode */
             PWR->CR |= PWR_CR_ULP;
             
-            /* Enable WKUP pin to use for wakeup from standby mode */
-<<<<<<< HEAD
-            PWR->CSR |= (PWR_CSR_EWUP1 | PWR_CSR_EWUP2);
-#if !defined(CPU_MODEL_STM32L053R8)
-            /* STM32L053 only have 2 wake pins */
-            PWR->CSR |= PWR_CSR_EWUP3;
-#endif
-#else   /* STM32Fxxx series */
-            PWR->CSR |= PWR_CSR_EWUP;
-#endif
-#elif defined(CPU_FAM_STM32L4)
-            PWR->CR3 |= (PWR_CR3_EWUP1 | PWR_CR3_EWUP2 | PWR_CR3_EWUP3 | \
-                         PWR_CR3_EWUP4 | PWR_CR3_EWUP5);
-
+#if defined(CPU_FAM_STM32L4)
             PWR->CR1 &= ~PWR_CR1_LPMS;
             PWR->CR1 |= PWR_CR1_LPMS_STANDBY;
 #endif
-=======
+
+            /* Enable WKUP pin to use for wakeup from standby mode */
             PWR->CSR |= PM_EWUP_CONFIG;
->>>>>>> 260e6c5... cpu/stm32f0: add periph_pm support
+
             /* Set SLEEPDEEP bit of system control block */
             deep = 1;
             
@@ -184,15 +163,9 @@ enum pm_mode pm_set(enum pm_mode mode)
             break;
     }
 
-<<<<<<< HEAD
-#if defined(CPU_FAM_STM32F1) || defined(CPU_FAM_STM32F2) || \
-    defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32L0) || \
-    defined(CPU_FAM_STM32L1) || defined(CPU_FAM_STM32L4)
-=======
 #if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \
     defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4) || \
-    defined(CPU_FAM_STM32L0)
->>>>>>> 260e6c5... cpu/stm32f0: add periph_pm support
+    defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L4)
     if (deep) {
         /* Re-init clock after STOP */
         stmclk_init_sysclk();
@@ -209,15 +182,9 @@ void pm_init(void) {
     /* Nothing to do here yet */
 }
 
-<<<<<<< HEAD
-#if defined(CPU_FAM_STM32F1) || defined(CPU_FAM_STM32F2) || \
-    defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32L0) || \
-    defined(CPU_FAM_STM32L1) || defined(CPU_FAM_STM32L4)
-=======
 #if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \
     defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4) || \
-    defined(CPU_FAM_STM32L0)
->>>>>>> 260e6c5... cpu/stm32f0: add periph_pm support
+    defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L4)
 void pm_off(void)
 {
     irq_disable();

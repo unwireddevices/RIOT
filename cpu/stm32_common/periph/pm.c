@@ -48,11 +48,11 @@ enum pm_mode pm_set(enum pm_mode mode)
     
     powermode = mode;
 
+    switch (mode) {
+        case PM_POWERDOWN:
 #if defined(CPU_FAM_STM32F1) || defined(CPU_FAM_STM32F2) || \
     defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32L0) || \
     defined(CPU_FAM_STM32L1)
-    switch (mode) {
-        case PM_POWERDOWN:
             /* Set PDDS to enter standby mode on deepsleep and clear flags */
             PWR->CR |= (PWR_CR_PDDS | PWR_CR_CWUF | PWR_CR_CSBF);
             
@@ -68,6 +68,13 @@ enum pm_mode pm_set(enum pm_mode mode)
 #endif
 #else   /* STM32Fxxx series */
             PWR->CSR |= PWR_CSR_EWUP;
+#endif
+#elif defined(CPU_FAM_STM32L4)
+            PWR->CR3 |= (PWR_CR3_EWUP1 | PWR_CR3_EWUP2 | PWR_CR3_EWUP3 | \
+                         PWR_CR3_EWUP4 | PWR_CR3_EWUP5);
+
+            PWR->CR1 &= ~PWR_CR1_LPMS;
+            PWR->CR1 |= PWR_CR1_LPMS_STANDBY;
 #endif
             /* Set SLEEPDEEP bit of system control block */
             deep = 1;
@@ -92,6 +99,10 @@ enum pm_mode pm_set(enum pm_mode mode)
             /* set to 1 to select HSI16 */
             RCC->CFGR &= ~RCC_CFGR_STOPWUCK;
 #endif
+#elif defined(CPU_FAM_STM32L4)
+            /* Set STOP 0 mode by default */
+            PWR->CR1 &= ~PWR_CR1_LPMS;
+            PWR->CR1 |= PWR_CR1_LPMS_STOP0;
 #else   /* STM32Fxxx series */
             /* Clear PDDS and LPDS bits to enter stop mode on */
             /* deepsleep with voltage regulator on */
@@ -127,13 +138,10 @@ enum pm_mode pm_set(enum pm_mode mode)
         case PM_UNKNOWN:
             break;
     }
-#else
-    (void) mode;
-#endif
 
 #if defined(CPU_FAM_STM32F1) || defined(CPU_FAM_STM32F2) || \
     defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32L0) || \
-    defined(CPU_FAM_STM32L1)
+    defined(CPU_FAM_STM32L1) || defined(CPU_FAM_STM32L4)
     if (deep) {
         /* Re-init clock after STOP */
         stmclk_init_sysclk();
@@ -152,7 +160,7 @@ void pm_init(void) {
 
 #if defined(CPU_FAM_STM32F1) || defined(CPU_FAM_STM32F2) || \
     defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32L0) || \
-    defined(CPU_FAM_STM32L1)
+    defined(CPU_FAM_STM32L1) || defined(CPU_FAM_STM32L4)
 void pm_off(void)
 {
     irq_disable();

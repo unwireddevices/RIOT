@@ -433,21 +433,23 @@ static const i2c_conf_t i2c_config[] = {
  * @{
  */
 #define ADC_CONFIG {            \
-    { GPIO_PIN(PORT_A, 1), 6 },\
-    { GPIO_PIN(PORT_A, 2), 7 },\
-    { GPIO_PIN(PORT_A, 3), 8 },\
-    { GPIO_PIN(PORT_A, 4), 9 },\
-    { GPIO_PIN(PORT_A, 5), 10 },\
-    { GPIO_PIN(PORT_A, 6), 11 }, \
-	{ GPIO_PIN(PORT_A, 7), 12 }, \
-	{ GPIO_UNDEF, ADC_VREF_CHANNEL}, \
-	{ GPIO_UNDEF, ADC_TEMPERATURE_CHANNEL}, \
+    { GPIO_PIN(PORT_A, 1), 0, 6 },\
+    { GPIO_PIN(PORT_A, 2), 0, 7 },\
+    { GPIO_PIN(PORT_A, 3), 0, 8 },\
+    { GPIO_PIN(PORT_A, 4), 0, 9 },\
+    { GPIO_PIN(PORT_A, 5), 0, 10 },\
+    { GPIO_PIN(PORT_A, 6), 0, 11 }, \
+	{ GPIO_PIN(PORT_A, 7), 0, 12 }, \
+	{ GPIO_UNDEF, 0, ADC_VREF_CHANNEL}, \
+	{ GPIO_UNDEF, 0, ADC_TEMPERATURE_CHANNEL}, \
+    { GPIO_UNDEF, 0, ADC_VBAT_CHANNEL}, \
 }
 
 #define ADC_VREF_INDEX          7
 #define ADC_TEMPERATURE_INDEX   8
+#define ADC_VBAT_INDEX          9
 
-#define ADC_NUMOF           (9)
+#define ADC_NUMOF               (10)
 /** @} */
 #ifdef __cplusplus
 }

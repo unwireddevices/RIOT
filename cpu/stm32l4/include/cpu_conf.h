@@ -31,6 +31,8 @@
 #include "vendor/stm32l476xx.h"
 #elif defined(CPU_MODEL_STM32L475VG)
 #include "vendor/stm32l475xx.h"
+#elif defined(CPU_MODEL_STM32L451CC)
+#include "vendor/stm32l451xx.h"
 #elif defined(CPU_MODEL_STM32L432KC)
 #include "vendor/stm32l432xx.h"
 #elif defined(CPU_MODEL_STM32L433RC)
@@ -50,13 +52,10 @@ extern "C" {
 #define CPU_DEFAULT_IRQ_PRIO            (1U)
 #if defined(CPU_MODEL_STM32L432KC) || defined(CPU_MODEL_STM32L433RC)
 #define CPU_IRQ_NUMOF                   (83U)
-<<<<<<< HEAD
 #elif defined(CPU_MODEL_STM32L451CC)
 #define CPU_IRQ_NUMOF                   (85U)
-=======
 #elif defined(CPU_MODEL_STM32L496ZG)
 #define CPU_IRQ_NUMOF                   (91U)
->>>>>>> 91edabcc0bf4a27e9cca002801ffc831f9c5fe6c
 #else
 #define CPU_IRQ_NUMOF                   (82U)
 #endif

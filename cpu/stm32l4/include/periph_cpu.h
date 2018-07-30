@@ -50,12 +50,14 @@ enum {
  */
 #if defined(CPU_MODEL_STM32L476RG) || defined(CPU_MODEL_STM32L475VG)
 #define ADC_DEVS            (3U)
-#elif defined(CPU_MODEL_STM32L452RE) || defined(CPU_MODEL_STM32L432KC)
+#elif defined(CPU_MODEL_STM32L452RE) || defined(CPU_MODEL_STM32L432KC) || \
+      defined(CPU_MODEL_STM32L451CC)
 #define ADC_DEVS            (1U)
 #endif
 
 #if defined(CPU_MODEL_STM32L476RG) || defined(CPU_MODEL_STM32L475VG) || \
-    defined(CPU_MODEL_STM32L452RE) || defined(CPU_MODEL_STM32L432KC)
+    defined(CPU_MODEL_STM32L452RE) || defined(CPU_MODEL_STM32L432KC) || \
+    defined(CPU_MODEL_STM32L451CC)
 /**
  * @brief   ADC voltage regulator start-up time [us]
  */

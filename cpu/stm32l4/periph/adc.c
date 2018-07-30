@@ -30,10 +30,11 @@
 /**
  * @brief map CPU specific register/value names
  */
-#if defined(CPU_MODEL_STM32L476RG)
+#if defined(CPU_MODEL_STM32L476RG) || defined(CPU_MODEL_STM32L451CC)
 #define ADC_CR_REG      CR
 #define ADC_ISR_REG     ISR
 #define ADC_PERIPH_CLK  AHB2
+#define ADC123_COMMON   ADC1_COMMON
 /* on stm32-l476rg all ADC clocks are are enabled by this bit
    further clock config is possible over CKMODE[1:0] bits in ADC_CCR reg */
 #define ADC_CLK_EN_MASK   (RCC_AHB2ENR_ADCEN)
@@ -53,6 +54,7 @@
 /* The sampling time can be specified for each channel over SMPR1 and SMPR2.
    This specifies the first channel that goes to SMPR2 instead of SMPR1. */
 #define ADC_SMPR2_FIRST_CHAN (10)
+
 #endif
 
 /**

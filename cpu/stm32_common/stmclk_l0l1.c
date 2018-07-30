@@ -58,6 +58,9 @@
         #if (CLOCK_USE_PLL == 0)
             #define CLOCK_CFGR_SW              RCC_CFGR_SW_HSI
             #define CLOCK_CFGR_SW_RDY          RCC_CFGR_SWS_HSI
+        #else
+            #define CLOCK_CFGR_SW              RCC_CFGR_SW_PLL
+            #define CLOCK_CFGR_SW_RDY          RCC_CFGR_SWS_PLL
         #endif
     #elif defined(CLOCK_HSE)
         #define CLOCK_CR_SOURCE            RCC_CR_HSEON
@@ -68,6 +71,9 @@
         #if (CLOCK_USE_PLL == 0)
             #define CLOCK_CFGR_SW              RCC_CFGR_SW_HSE
             #define CLOCK_CFGR_SW_RDY          RCC_CFGR_SWS_HSE
+        #else
+            #define CLOCK_CFGR_SW              RCC_CFGR_SW_PLL
+            #define CLOCK_CFGR_SW_RDY          RCC_CFGR_SWS_PLL
         #endif
     #endif
 #endif
@@ -283,7 +289,9 @@ void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider) {
     /* Set latency = 0, disable prefetch and 64-bit access */
     FLASH->ACR &= ~FLASH_ACR_LATENCY;
     FLASH->ACR &= ~FLASH_ACR_PRFTEN;
+#if defined(CPU_FAM_STM32L1)
     FLASH->ACR &= ~FLASH_ACR_ACC64;
+#endif
     while (!(FLASH->SR & FLASH_SR_READY)) {}
     
     /* Disable high speed clock sources and PLL */
@@ -295,10 +303,8 @@ void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider) {
     cpu_clock_global = 65536 * (1 << (msi_range >> 13));
 }
 
+#if defined(CPU_FAM_STM32L1)
 static uint32_t cpu_find_memory_size(char *base, uint32_t block, uint32_t maxsize) {
-#if defined(CPU_FAM_STM32L0)
-    return 0;
-#elif defined(CPU_FAM_STM32L1)
     char *address = base;
     do {
         address += block;
@@ -308,10 +314,8 @@ static uint32_t cpu_find_memory_size(char *base, uint32_t block, uint32_t maxsiz
     } while ((uint32_t)(address - base) < maxsize);
 
     return (uint32_t)(address - base);
-#else
-#error unexpected MCU
-#endif
 }
+#endif
 
 uint32_t get_cpu_ram_size(void) {
 #if defined(CPU_FAM_STM32L0)

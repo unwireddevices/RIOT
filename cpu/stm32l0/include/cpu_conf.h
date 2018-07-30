@@ -141,7 +141,6 @@ uint32_t get_cpu_name(char *name);
 #define EEPROM_SIZE                (1024U)  /* 1kB */
 #endif
 /** @} */
->>>>>>> 91edabcc0bf4a27e9cca002801ffc831f9c5fe6c
 
 #ifdef __cplusplus
 }

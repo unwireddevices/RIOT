@@ -39,7 +39,9 @@ void blink_led(gpio_t led)
     int i;
     for (i = 0; i < 4; i++) {
         gpio_toggle(led);
+        puts("ON");
         rtctimers_millis_sleep(50);
+        puts("OFF");
     }
     gpio_clear(led);
 }

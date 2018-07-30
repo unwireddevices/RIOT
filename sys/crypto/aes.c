@@ -54,8 +54,7 @@ const cipher_id_t CIPHER_AES_128 = &aes_interface;
 #ifndef AES_ASM
 
 #if defined(AES_CALCULATE_TABLES)
-    #if defined(CPU_ARCH_CORTEX_M0) || defined(CPU_ARCH_CORTEX_M0PLUS) || \
-        defined(CPU_ARCH_CORTEX_M3) || defined(CPU_ARCH_CORTEX_M4) || \
+    #if defined(CPU_ARCH_CORTEX_M3) || defined(CPU_ARCH_CORTEX_M4) || \
         defined(CPU_ARCH_CORTEX_M4F)
         
         #define AES_ARM_OPTIMIZE

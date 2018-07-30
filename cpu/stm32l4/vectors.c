@@ -148,9 +148,6 @@ ISR_VECTOR(1) const isr_t vector_cpu[CPU_IRQ_NUMOF] = {
     [RTC_Alarm_IRQn          ] = isr_rtc_alarm,            /* [41] RTC Alarm (A and B) through EXTI Line Interrupt */
     [SPI3_IRQn               ] = isr_spi3,                 /* [51] SPI3 global Interrupt */
     [TIM6_DAC_IRQn           ] = isr_tim6_dac,             /* [54] TIM6 global and DAC1&2 underrun error  interrupts */
-#if !defined(CPU_MODEL_STM32L451CC)
-    [TIM7_IRQn               ] = isr_tim7,                 /* [55] TIM7 global interrupt */
-#endif    
     [DMA2_Channel1_IRQn      ] = isr_dma2_channel1,        /* [56] DMA2 Channel 1 global Interrupt */
     [DMA2_Channel2_IRQn      ] = isr_dma2_channel2,        /* [57] DMA2 Channel 2 global Interrupt */
     [DMA2_Channel3_IRQn      ] = isr_dma2_channel3,        /* [58] DMA2 Channel 3 global Interrupt */
@@ -166,9 +163,6 @@ ISR_VECTOR(1) const isr_t vector_cpu[CPU_IRQ_NUMOF] = {
     [I2C3_EV_IRQn            ] = isr_i2c3_ev,              /* [72] I2C3 event interrupt */
     [I2C3_ER_IRQn            ] = isr_i2c3_er,              /* [73] I2C3 error interrupt */
     [SAI1_IRQn               ] = isr_sai1,                 /* [74] Serial Audio Interface 1 global interrupt */
-#if !defined(CPU_MODEL_STM32L451CC)
-    [SWPMI1_IRQn             ] = isr_swpmi1,               /* [76] Serial Wire Interface 1 global interrupt */
-#endif
     [TSC_IRQn                ] = isr_tsc,                  /* [77] Touch Sense Controller global interrupt */
     [RNG_IRQn                ] = isr_rng,                  /* [80] RNG global interrupt */
     [FPU_IRQn                ] = isr_fpu,                  /* [81] FPU global interrupt */
@@ -203,7 +197,7 @@ ISR_VECTOR(1) const isr_t vector_cpu[CPU_IRQ_NUMOF] = {
     [DFSDM1_FLT2_IRQn        ] = isr_dfsdm1_flt2,          /* [63] DFSDM1 Filter 2 global Interrupt */
     [OTG_FS_IRQn             ] = isr_otg_fs,               /* [67] USB OTG FS global Interrupt */
     [SAI2_IRQn               ] = isr_sai2,                 /* [75] Serial Audio Interface 2 global interrupt */
-#elif defined(CPU_MODEL_STM32L451CC)
+#elif defined(CPU_MODEL_STM32L451CC) || defined(CPU_MODEL_STM32L452RE)
     [ADC1_IRQn               ] = isr_adc1,                 /* [18] ADC1 global Interrupt */
     [TIM1_TRG_COM_IRQn       ] = isr_tim1_trg_com,         /* [26] TIM1 Trigger and Commutation Interrupt */
     [TIM3_IRQn               ] = isr_tim3,                 /* [29] TIM3 global Interrupt */
@@ -222,4 +216,10 @@ ISR_VECTOR(1) const isr_t vector_cpu[CPU_IRQ_NUMOF] = {
 #if defined(CPU_MODEL_STM32L476RG)
     [LCD_IRQn                ] = isr_lcd,                  /* [78] LCD global interrupt */
 #endif
+#if defined(CPU_MODEL_STM32L432KC) || defined(CPU_MODEL_STM32L476RG) || \
+    defined(CPU_MODEL_STM32L475VG)
+    [TIM7_IRQn               ] = isr_tim7,                 /* [55] TIM7 global interrupt */
+    [SWPMI1_IRQn             ] = isr_swpmi1,               /* [76] Serial Wire Interface 1 global interrupt */
+#endif
+
 };

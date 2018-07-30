@@ -124,9 +124,9 @@ static void pm_select_run_mode(uint8_t pm_mode) {
 
 void pm_set_lowest(void)
 {
-    if (!pm_prevent_sleep) {
-        pm_set(PM_POWERDOWN);
-    }
+    // if (!pm_prevent_sleep) {
+    //     pm_set(PM_POWERDOWN);
+    // }
 }
 
 void pm_init(void)

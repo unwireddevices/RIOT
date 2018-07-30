@@ -33,7 +33,21 @@
 #include "vendor/stm32l432xx.h"
 #elif defined(CPU_MODEL_STM32L451CC)
 #include "vendor/stm32l451xx.h"
+#elif defined(CPU_MODEL_STM32L452RE)
+#include "vendor/stm32l452xx.h"
 #endif
+
+
+
+#define STM32L4_DEV_ID_CAT1                 0x435
+#define STM32L4_DEV_ID_CAT2                 0x462
+#define STM32L4_DEV_ID_CAT3                 0x415
+#define STM32L4_DEV_ID_CAT4                 0x461
+
+
+#define STM32L4_CPUID_ADDR_CAT1234          (0x1FFF7590)        
+
+#define ST_DEV_ID                           ((DBGMCU->IDCODE) & DBGMCU_IDCODE_DEV_ID)
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,7 +60,7 @@ extern "C" {
 #define CPU_DEFAULT_IRQ_PRIO            (1U)
 #if defined(CPU_MODEL_STM32L432KC)
 #define CPU_IRQ_NUMOF                   (83U)
-#elif defined(CPU_MODEL_STM32L451CC)
+#elif defined(CPU_MODEL_STM32L451CC) || defined(CPU_MODEL_STM32L452RE)
 #define CPU_IRQ_NUMOF                   (85U)
 #else
 #define CPU_IRQ_NUMOF                   (82U)

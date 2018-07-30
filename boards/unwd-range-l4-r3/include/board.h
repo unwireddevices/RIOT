@@ -80,8 +80,8 @@ extern "C" {
 #define UNWD_CONNECT_BTN		UNWD_GPIO_1
 
 /** LEDs */
-#define LED_GREEN   GPIO_PIN(PORT_B, 0)
-#define LED_RED     GPIO_UNDEF
+#define LED_RED   GPIO_PIN(PORT_B, 0)
+#define LED_GREEN     GPIO_UNDEF
 
 /** GPIO Ports */
 #define UNWD_GPIO_1 GPIO_PIN(PORT_B, 1)
@@ -111,15 +111,15 @@ extern "C" {
 #define UMDK_UART_DEV 1
 #define UMDK_UART_BAUDRATE_NO 7 /* 115200 */
 
-/**
- * @name xtimer configuration
- * @{
- */
-#define XTIMER              TIMER_DEV(0)
-#define XTIMER_CHAN         (0)
-#define XTIMER_OVERHEAD     (6)
-#define XTIMER_BACKOFF      (3)
-/** @} */
+// /**
+//  * @name xtimer configuration
+//  * @{
+//  */
+// #define XTIMER              TIMER_DEV(0)
+// #define XTIMER_CHAN         (0)
+// #define XTIMER_OVERHEAD     (6)
+// #define XTIMER_BACKOFF      (3)
+// /** @} */
 
 /**
  * @brief   Initialize board specific hardware, including clock, LEDs and std-IO

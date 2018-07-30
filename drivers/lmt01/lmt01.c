@@ -75,9 +75,6 @@ int lmt01_init(lmt01_t *lmt01, gpio_t en_pin, gpio_t sens_pin) {
 
 	lmt01->_internal.pulse_count = 0;
 	lmt01->_internal.state = LMT01_UNKNOWN;
-    
-    pm_add_gpio_exclusion(lmt01->en_pin);
-    pm_add_gpio_exclusion(lmt01->sens_pin);
 
     /*
 	int res = gpio_init(en_pin, GPIO_OUT);

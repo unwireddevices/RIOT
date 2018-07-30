@@ -27,6 +27,7 @@ extern "C" {
 
 #include "thread.h"
 #include "periph/pm.h"
+#include "pm_layered.h"
 #include "periph/rtc.h"
 #include "periph/gpio.h"
 #include "random.h"
@@ -662,12 +663,7 @@ static void iwdg_reset (void *arg) {
 
 static void ls_enable_sleep (void *arg) {
     (void)arg;
-    
-    pm_prevent_sleep = 0;
-#ifdef LPM_ENABLE_IDLE_MODE
-    /* allow CPU frequency switching */
-    pm_prevent_switch = 0;
-#endif
+    pm_unblock(PM_SLEEP);
     puts("Low-power sleep mode active");
     return;
 }

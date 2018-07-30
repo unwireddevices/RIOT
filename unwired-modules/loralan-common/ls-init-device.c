@@ -33,6 +33,7 @@ extern "C" {
 #include "sx127x.h"
 #include "net/lora.h"
 #include "periph/pm.h"
+#include "pm_layered.h"
 #include "periph/rtc.h"
 #include "random.h"
 #include "cpu.h"
@@ -109,8 +110,7 @@ void init_role(shell_command_t *commands) {
     pm_init();
 	
     /* disable sleep and frequency switching for now */
-	pm_prevent_sleep = 1;
-    pm_prevent_switch = 1;
+	pm_block(PM_SLEEP);
     
     print_logo();
     xtimer_init();

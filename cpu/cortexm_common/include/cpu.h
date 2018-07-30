@@ -104,6 +104,9 @@ static inline void cortexm_sleep(int deep)
     }
 
     /* ensure that all memory accesses have completed and trigger sleeping */
+#if defined (__CC_ARM)
+    __force_stores();
+#endif
     unsigned state = irq_disable();
     __DSB();
     __WFI();

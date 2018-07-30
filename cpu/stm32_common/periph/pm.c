@@ -25,10 +25,8 @@
 
 #include "irq.h"
 #include "periph/pm.h"
-#if defined(CPU_FAM_STM32F1) || defined(CPU_FAM_STM32F2) || \
-    defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32L0)
 #include "stmclk.h"
-#endif
+#include "periph_cpu_common.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -42,42 +40,59 @@
 #define PM_STOP_CONFIG (PWR_CR_LPDS | PWR_CR_FPDS)
 #endif
 
+static uint8_t powermode;
+
 enum pm_mode pm_set(enum pm_mode mode)
 {
     int deep = 0;
+    
+    powermode = mode;
 
-/* I just copied it from stm32f1/2/4, but I suppose it would work for the
- * others... /KS */
 #if defined(CPU_FAM_STM32F1) || defined(CPU_FAM_STM32F2) || \
-    defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32L0)
+    defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32L0) || \
+    defined(CPU_FAM_STM32L1)
     switch (mode) {
-        case STM32_PM_STANDBY:
+        case PM_POWERDOWN:
             /* Set PDDS to enter standby mode on deepsleep and clear flags */
             PWR->CR |= (PWR_CR_PDDS | PWR_CR_CWUF | PWR_CR_CSBF);
+            
+#if defined(CPU_FAM_STM32L0) || defined (CPU_FAM_STM32L1)
+            /* Disable Vrefint in standby mode */
+            PWR->CR |= PWR_CR_ULP;
+            
             /* Enable WKUP pin to use for wakeup from standby mode */
-#if defined(CPU_FAM_STM32L0)
             PWR->CSR |= (PWR_CSR_EWUP1 | PWR_CSR_EWUP2);
 #if !defined(CPU_MODEL_STM32L053R8)
             /* STM32L053 only have 2 wake pins */
             PWR->CSR |= PWR_CSR_EWUP3;
 #endif
-#else
+#else   /* STM32Fxxx series */
             PWR->CSR |= PWR_CSR_EWUP;
 #endif
             /* Set SLEEPDEEP bit of system control block */
             deep = 1;
+            
+            cortexm_sleep(deep);
             break;
-        case STM32_PM_STOP:
-#if defined(CPU_FAM_STM32L0)
+        case PM_SLEEP:
+#if defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L1)
             /* Clear PDDS to enter stop mode on */
-            /*
-             * Regarding LPSDSR, it's up to the user to configure it :
-             * 0: Voltage regulator on during Deepsleep/Sleep/Low-power run mode
-             * 1: Voltage regulator in low-power mode during
-             *    Deepsleep/Sleep/Low-power run mode
-             */
             PWR->CR &= ~(PWR_CR_PDDS);
-#else
+            
+            /* Clear Wakeup flag */    
+            PWR->CR |= PWR_CR_CWUF;
+            
+            /* Voltage regulator in LP mode */
+            PWR->CR |= PWR_CR_LPSDSR;
+            
+            /* Disable Vrefint in stop mode */
+            PWR->CR |= PWR_CR_ULP;
+#if defined(CPU_FAM_STM32L0)
+            /* set to 0 to select MSI as wakeup clock */
+            /* set to 1 to select HSI16 */
+            RCC->CFGR &= ~RCC_CFGR_STOPWUCK;
+#endif
+#else   /* STM32Fxxx series */
             /* Clear PDDS and LPDS bits to enter stop mode on */
             /* deepsleep with voltage regulator on */
             PWR->CR &= ~(PWR_CR_PDDS | PWR_CR_LPDS);
@@ -85,10 +100,27 @@ enum pm_mode pm_set(enum pm_mode mode)
 #endif
             /* Set SLEEPDEEP bit of system control block */
             deep = 1;
+            
+            cortexm_sleep(deep);
             break;
-        case PM_IDLE:
+        case PM_IDLE: {
+#if defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L1)
+            /* 115200 bps stdio UART with default 16x oversamplig needs 2 MHz or 4 MHz MSI clock */
+            /* at 1 MHz, it will be switched to 8x oversampling with 3.55 % baudrate error */
+            /* if you need stdio UART at lower frequencies, change its settings to lower baudrate */
+            unsigned state = irq_disable();
+			switch_to_msi(RCC_ICSCR_MSIRANGE_5, RCC_CFGR_HPRE_DIV1);
+            irq_restore(state);
+#else   /* STM32Fxxx series */
+#endif
             break;
+        }
         case PM_ON:
+#if defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L1)
+            /* switching back to default speed */
+            stmclk_init_sysclk();
+#else   /* STM32Fxxx series */
+#endif
             break;
         case PM_OFF:
             break;
@@ -99,10 +131,9 @@ enum pm_mode pm_set(enum pm_mode mode)
     (void) mode;
 #endif
 
-    cortexm_sleep(deep);
-
 #if defined(CPU_FAM_STM32F1) || defined(CPU_FAM_STM32F2) || \
-    defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32L0)
+    defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32L0) || \
+    defined(CPU_FAM_STM32L1)
     if (deep) {
         /* Re-init clock after STOP */
         stmclk_init_sysclk();
@@ -111,11 +142,20 @@ enum pm_mode pm_set(enum pm_mode mode)
     return PM_UNKNOWN;
 }
 
+enum pm_mode pm_get(void) {
+    return powermode;
+}
+
+void pm_init(void) {
+    /* Nothing to do here yet */
+}
+
 #if defined(CPU_FAM_STM32F1) || defined(CPU_FAM_STM32F2) || \
-    defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32L0)
+    defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32L0) || \
+    defined(CPU_FAM_STM32L1)
 void pm_off(void)
 {
     irq_disable();
-    pm_set(0);
+    pm_set(PM_OFF);
 }
 #endif

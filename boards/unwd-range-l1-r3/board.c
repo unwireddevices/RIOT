@@ -30,11 +30,9 @@ void board_init(void)
     /* initialize the boards LEDs */
     if (LED_GREEN != GPIO_UNDEF) {
         gpio_init(LED_GREEN, GPIO_OUT);
-        pm_add_gpio_exclusion(LED_GREEN);
     }
     
     if (LED_RED != GPIO_UNDEF) {
         gpio_init(LED_RED, GPIO_OUT);
-        pm_add_gpio_exclusion(LED_RED);
     }
 }

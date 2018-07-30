@@ -31,14 +31,14 @@
 #include "vendor/stm32l476xx.h"
 #elif defined(CPU_MODEL_STM32L475VG)
 #include "vendor/stm32l475xx.h"
-#elif defined(CPU_MODEL_STM32L451CC)
-#include "vendor/stm32l451xx.h"
-#elif defined(CPU_MODEL_STM32L432KC)
-#include "vendor/stm32l432xx.h"
-#elif defined(CPU_MODEL_STM32L433RC)
-#include "vendor/stm32l433xx.h"
 #elif defined(CPU_MODEL_STM32L452RE)
 #include "vendor/stm32l452xx.h"
+#elif defined(CPU_MODEL_STM32L451CC)
+#include "vendor/stm32l451xx.h"
+#elif defined(CPU_MODEL_STM32L433RC)
+#include "vendor/stm32l433xx.h"
+#elif defined(CPU_MODEL_STM32L432KC)
+#include "vendor/stm32l432xx.h"
 #endif
 
 #ifdef __cplusplus

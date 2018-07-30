@@ -113,12 +113,8 @@ enum pm_mode pm_set(enum pm_mode mode)
 #endif
 
             /* Enable WKUP pin to use for wakeup from standby mode */
-<<<<<<< HEAD
-            PWR->CSR |= PM_EWUP_CONFIG;
-
-=======
             PWR->CSR |= _ewup_config();
->>>>>>> 5ab8060... fixup! fixup! cpu/stm32f0: add periph_pm support
+
             /* Set SLEEPDEEP bit of system control block */
             deep = 1;
             

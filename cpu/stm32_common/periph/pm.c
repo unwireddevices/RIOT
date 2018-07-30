@@ -28,10 +28,6 @@
 #include "irq.h"
 #include "periph/pm.h"
 
-#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \
-    defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4) || \
-    defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L4)
-
 #include "stmclk.h"
 #include "periph_cpu_common.h"
 
@@ -97,15 +93,13 @@ enum pm_mode pm_set(enum pm_mode mode)
 
     switch (mode) {
         case PM_POWERDOWN:
-#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \
-    defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4) || \
-    defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L4)
             /* Set PDDS to enter standby mode on deepsleep and clear flags */
             PWR->CR |= (PWR_CR_PDDS | PWR_CR_CWUF | PWR_CR_CSBF);
             
 #if defined(CPU_FAM_STM32L0) || defined (CPU_FAM_STM32L1)
             /* Disable Vrefint in standby mode */
             PWR->CR |= PWR_CR_ULP;
+#endif
             
 #if defined(CPU_FAM_STM32L4)
             PWR->CR1 &= ~PWR_CR1_LPMS;
@@ -178,14 +172,10 @@ enum pm_mode pm_set(enum pm_mode mode)
             break;
     }
 
-#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \
-    defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4) || \
-    defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L4)
     if (deep) {
         /* Re-init clock after STOP */
         stmclk_init_sysclk();
     }
-#endif
     return PM_UNKNOWN;
 }
 
@@ -197,12 +187,9 @@ void pm_init(void) {
     /* Nothing to do here yet */
 }
 
-#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \
-    defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F4) || \
-    defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L4)
 void pm_off(void)
 {
     irq_disable();
     pm_set(PM_OFF);
 }
-#endif
+

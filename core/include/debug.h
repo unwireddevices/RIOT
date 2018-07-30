@@ -53,6 +53,7 @@ extern "C" {
 #define DEBUG_PRINT(...) \
     do { \
         if ((sched_active_thread == NULL) || (sched_active_thread->stack_size >= THREAD_EXTRA_STACKSIZE_PRINTF)) { \
+            printf("(%s)\t", __FUNCTION__); \
             printf(__VA_ARGS__); \
         } \
         else { \

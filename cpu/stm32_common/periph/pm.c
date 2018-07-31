@@ -110,13 +110,8 @@ enum pm_mode pm_set(enum pm_mode mode)
             PWR->CR1 |= PWR_CR1_LPMS_STANDBY;
 #endif
 
-#if defined(CPU_FAM_STM32L4)
-            /* Enable WKUP pin to use for wakeup from standby mode */
-            PWR->SCR |= _ewup_config();
-#else
             /* Enable WKUP pin to use for wakeup from standby mode */
             PWR->CSR |= _ewup_config();
-#endif
 
             /* Set SLEEPDEEP bit of system control block */
             state = irq_disable();

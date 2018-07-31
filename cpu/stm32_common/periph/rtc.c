@@ -644,9 +644,9 @@ void rtc_poweroff(void)
 void ISR_NAME(void)
 {
     if (RTC->ISR & RTC_ISR_ALRAF) {
-        DEBUG("%s: RTC Alarm A interrupt\n", __FUNCTION__);
+        DEBUG("%s: alarm A interrupt\n", __FUNCTION__);
         if (isr_ctx.cb_a != NULL) {
-            DEBUG("%s: RTC Alarm A callback\n", __FUNCTION__);
+            DEBUG("%s: alarm A callback %08lx\n", __FUNCTION__, (uint32_t)isr_ctx.cb_a);
             isr_ctx.cb_a(isr_ctx.arg_a);
         }
         RTC->ISR &= ~RTC_ISR_ALRAF;
@@ -655,9 +655,9 @@ void ISR_NAME(void)
     
 #if !defined(CPU_FAM_STM32F0)    
     if (RTC->ISR & RTC_ISR_ALRBF) {
-        DEBUG("%s: RTC Alarm B interrupt\n", __FUNCTION__);
+        DEBUG("%s: alarm B interrupt\n", __FUNCTION__);
         if (isr_ctx.cb_b) {
-            DEBUG("%s: RTC Alarm B callback\n", __FUNCTION__);
+            DEBUG("%s: alarm B callback %08lx\n", __FUNCTION__, (uint32_t)isr_ctx.cb_b);
             isr_ctx.cb_b(isr_ctx.arg_b);
         }
         RTC->ISR &= ~RTC_ISR_ALRBF;
@@ -678,6 +678,8 @@ void ISR_NAME(void)
     }
     
     cortexm_isr_end();
+    
+    DEBUG("%s: exit RTC alarm irq\n", __FUNCTION__);
 }
 
 #endif /* RTC */

@@ -50,35 +50,63 @@
 static inline uint32_t _ewup_config(void)
 {
     uint32_t tmp = 0;
-#ifdef PM_EWUP_CONFIG
-    tmp |= PM_EWUP_CONFIG;
-#elif defined(PWR_CSR_EWUP)
-    tmp |= PWR_CSR_EWUP;
+    
+#if defined(CPU_FAM_STM32L4)
+    #if defined(PWR_CR3_EWUP8)
+            tmp |= PWR_CR3_EWUP8;
+    #endif
+    #if defined(PWR_CR3_EWUP7)
+        tmp |= PWR_CR3_EWUP7;
+    #endif
+    #if defined(PWR_CR3_EWUP6)
+        tmp |= PWR_CR3_EWUP6;
+    #endif
+    #if defined(PWR_CR3_EWUP5)
+        tmp |= PWR_CR3_EWUP5;
+    #endif
+    #if defined(PWR_CR3_EWUP4)
+        tmp |= PWR_CR3_EWUP4;
+    #endif
+    #if defined(PWR_CR3_EWUP3)
+        tmp |= PWR_CR3_EWUP3;
+    #endif
+    #if defined(PWR_CR3_EWUP2)
+        tmp |= PWR_CR3_EWUP2;
+    #endif
+    #if defined(PWR_CR3_EWUP1)
+        tmp |= PWR_CR3_EWUP1;
+    #endif
 #else
-#if defined(PWR_CSR_EWUP8)
-    tmp |= PWR_CSR_EWUP8;
-#endif
-#if defined(PWR_CSR_EWUP7)
-    tmp |= PWR_CSR_EWUP7;
-#endif
-#if defined(PWR_CSR_EWUP6)
-    tmp |= PWR_CSR_EWUP6;
-#endif
-#if defined(PWR_CSR_EWUP5)
-    tmp |= PWR_CSR_EWUP5;
-#endif
-#if defined(PWR_CSR_EWUP4)
-    tmp |= PWR_CSR_EWUP4;
-#endif
-#if defined(PWR_CSR_EWUP3)
-    tmp |= PWR_CSR_EWUP3;
-#endif
-#if defined(PWR_CSR_EWUP2)
-    tmp |= PWR_CSR_EWUP2;
-#endif
-#if defined(PWR_CSR_EWUP1)
-    tmp |= PWR_CSR_EWUP1;
-#endif
+    #ifdef PM_EWUP_CONFIG
+        tmp |= PM_EWUP_CONFIG;
+    #elif defined(PWR_CSR_EWUP)
+        tmp |= PWR_CSR_EWUP;
+    #else
+        #if defined(PWR_CSR_EWUP8)
+            tmp |= PWR_CSR_EWUP8;
+        #endif
+        #if defined(PWR_CSR_EWUP7)
+            tmp |= PWR_CSR_EWUP7;
+        #endif
+        #if defined(PWR_CSR_EWUP6)
+            tmp |= PWR_CSR_EWUP6;
+        #endif
+        #if defined(PWR_CSR_EWUP5)
+            tmp |= PWR_CSR_EWUP5;
+        #endif
+        #if defined(PWR_CSR_EWUP4)
+            tmp |= PWR_CSR_EWUP4;
+        #endif
+        #if defined(PWR_CSR_EWUP3)
+            tmp |= PWR_CSR_EWUP3;
+        #endif
+        #if defined(PWR_CSR_EWUP2)
+            tmp |= PWR_CSR_EWUP2;
+        #endif
+        #if defined(PWR_CSR_EWUP1)
+            tmp |= PWR_CSR_EWUP1;
+        #endif
+    #endif
 #endif
     return tmp;
 }
@@ -106,11 +134,10 @@ enum pm_mode pm_set(enum pm_mode mode)
             PWR->CR |= PWR_CR_ULP;
 #endif
 
+/* Enable WKUP pin to use for wakeup from standby mode */
 #if defined(CPU_FAM_STM32L4)
-            /* Enable WKUP pin to use for wakeup from standby mode */
-            PWR->SCR |= _ewup_config();
+            PWR->CR3 |= _ewup_config();
 #else
-            /* Enable WKUP pin to use for wakeup from standby mode */
             PWR->CSR |= _ewup_config();
 #endif
 

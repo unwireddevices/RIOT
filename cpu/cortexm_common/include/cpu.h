@@ -103,6 +103,7 @@ static inline void cortexm_sleep(int deep)
         SCB->SCR &= ~(SCB_SCR_SLEEPDEEP_Msk);
     }
 
+    unsigned state = irq_disable();
     /* ensure that all memory accesses have completed and trigger sleeping */
 #if defined (__CC_ARM)
     __force_stores();
@@ -110,6 +111,8 @@ static inline void cortexm_sleep(int deep)
 
     __DSB();
     __WFI();
+    
+    irq_restore(state);
 }
 
 /**

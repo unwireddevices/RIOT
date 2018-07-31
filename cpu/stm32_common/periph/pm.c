@@ -91,8 +91,6 @@ enum pm_mode pm_set(enum pm_mode mode)
     
     powermode = mode;
     
-    unsigned state;
-
     switch (mode) {
         case PM_POWERDOWN:
 #if defined(CPU_FAM_STM32L4)
@@ -112,7 +110,6 @@ enum pm_mode pm_set(enum pm_mode mode)
             PWR->CSR |= _ewup_config();
 
             /* Set SLEEPDEEP bit of system control block */
-            state = irq_disable();
             deep = 1;
             
             cortexm_sleep(deep);
@@ -146,7 +143,6 @@ enum pm_mode pm_set(enum pm_mode mode)
             PWR->CR |= PM_STOP_CONFIG;
 #endif
             /* Set SLEEPDEEP bit of system control block */
-            state = irq_disable();
             deep = 1;
             
             cortexm_sleep(deep);
@@ -179,7 +175,6 @@ enum pm_mode pm_set(enum pm_mode mode)
     if (deep) {
         /* Re-init clock after STOP */
         stmclk_init_sysclk();
-        irq_restore(state);
     }
 
     return PM_UNKNOWN;

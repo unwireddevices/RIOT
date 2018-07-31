@@ -134,21 +134,32 @@ void stmclk_init_sysclk(void)
     /* SYSCLK, HCLK, PCLK2 and PCLK1 configuration */
 #if defined(CLOCK_HS_MULTI)   
     /* MCU after reboot or poweron */
-    if (clock_source_rdy == 0) {
-        RCC->CR |= RCC_CR_HSEON;
-        clock_source_rdy = RCC_CR_HSERDY;
-    }
-        
-    volatile int timeout = 0;
-    while (!(RCC->CR & clock_source_rdy)) {
-        timeout++;
-        if (timeout > 10000) {
+    switch (clock_source_rdy) {
+        case RCC_CR_HSERDY:
+            RCC->CR |= RCC_CR_HSEON;
+            break;
+        case RCC_CR_HSIRDY:
             RCC->CR |= RCC_CR_HSION;
-            RCC->CR &= ~RCC_CR_HSEON;
-            clock_source_rdy = RCC_CR_HSIRDY;
-            timeout = 0;
-        }
+            break;
+        default:
+            RCC->CR |= RCC_CR_HSEON;
+            clock_source_rdy = RCC_CR_HSERDY;
+            
+            volatile int timeout = 0;
+            while (!(RCC->CR & clock_source_rdy)) {
+                timeout++;
+                if (timeout > 10000) {
+                    RCC->CR |= RCC_CR_HSION;
+                    RCC->CR &= ~RCC_CR_HSEON;
+                    clock_source_rdy = RCC_CR_HSIRDY;
+                    break;
+                }
+            }
+            break;
     }
+    
+    while (!(RCC->CR & clock_source_rdy)) {};
+    
 #else
     /* Enable high speed clock source */
     RCC->CR |= CLOCK_CR_SOURCE;

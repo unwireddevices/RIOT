@@ -91,6 +91,8 @@
 #endif
 /** @} */
 
+volatile uint32_t cpu_clock_global;
+
 void stmclk_init_sysclk(void)
 {
     /* disable any interrupts. Global interrupts could be enabled if this is

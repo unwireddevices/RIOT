@@ -95,8 +95,10 @@ enum pm_mode pm_set(enum pm_mode mode)
 
     switch (mode) {
         case PM_POWERDOWN:
+#if !defined(CPU_FAM_STM32L4)
             /* Set PDDS to enter standby mode on deepsleep and clear flags */
             PWR->CR |= (PWR_CR_PDDS | PWR_CR_CWUF | PWR_CR_CSBF);
+#endif
             
 #if defined(CPU_FAM_STM32L0) || defined (CPU_FAM_STM32L1)
             /* Disable Vrefint in standby mode */
@@ -108,8 +110,13 @@ enum pm_mode pm_set(enum pm_mode mode)
             PWR->CR1 |= PWR_CR1_LPMS_STANDBY;
 #endif
 
+#if defined(CPU_FAM_STM32L4)
+            /* Enable WKUP pin to use for wakeup from standby mode */
+            PWR->SCR |= _ewup_config();
+#else
             /* Enable WKUP pin to use for wakeup from standby mode */
             PWR->CSR |= _ewup_config();
+#endif
 
             /* Set SLEEPDEEP bit of system control block */
             state = irq_disable();

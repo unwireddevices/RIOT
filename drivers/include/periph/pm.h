@@ -39,18 +39,13 @@ extern "C" {
  * @name Available power modes
  */
 enum pm_mode {
-    PM_ON,             /**< MCU is active */
-    PM_IDLE,           /**< MCU is idle */
-    PM_SLEEP,          /**< MCU in sleep mode */
-    PM_POWERDOWN,      /**< MCU is powered down */
     PM_OFF,            /**< MCU is off */
+    PM_POWERDOWN,      /**< MCU is powered down */
+    PM_SLEEP,          /**< MCU in sleep mode */
+    PM_IDLE,           /**< MCU is idle */
+    PM_ON,             /**< MCU is active */
     PM_UNKNOWN = -1    /**< status unknown/unavailable */
 };
-
-/**
- * @brief   Gets current power mode
- */
-enum pm_mode pm_get(void);
 
 /**
  * @brief   Reboot MCU

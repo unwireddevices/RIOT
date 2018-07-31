@@ -179,24 +179,9 @@ enum pm_mode pm_set(enum pm_mode mode)
             
             cortexm_sleep(deep);
             break;
-        case PM_IDLE: {
-#if defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L1)
-            /* 115200 bps stdio UART with default 16x oversamplig needs 2 MHz or 4 MHz MSI clock */
-            /* at 1 MHz, it will be switched to 8x oversampling with 3.55 % baudrate error */
-            /* if you need stdio UART at lower frequencies, change its settings to lower baudrate */
-            unsigned state = irq_disable();
-			switch_to_msi(RCC_ICSCR_MSIRANGE_5, RCC_CFGR_HPRE_DIV1);
-            irq_restore(state);
-#else   /* STM32Fxxx series */
-#endif
+        case PM_IDLE:
             break;
-        }
         case PM_ON:
-#if defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L1)
-            /* switching back to default speed */
-            stmclk_init_sysclk();
-#else   /* STM32Fxxx series */
-#endif
             break;
         case PM_OFF:
             break;

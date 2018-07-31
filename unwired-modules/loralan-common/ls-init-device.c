@@ -109,7 +109,10 @@ void ls_setup_sx127x(netdev_t *dev, ls_datarate_t dr, uint32_t frequency) {
 void init_role(shell_command_t *commands) {
     pm_init();
 	
-    /* disable sleep and frequency switching for now */
+    /* disable standby and power off forever */
+    pm_block(PM_POWERDOWN);
+    
+    /* disable sleep for now */
 	pm_block(PM_SLEEP);
     
     print_logo();

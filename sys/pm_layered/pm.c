@@ -76,6 +76,7 @@ void pm_block(unsigned mode)
     unsigned state = irq_disable();
     pm_blocker.val_u8[mode]++;
     irq_restore(state);
+    DEBUG("pm: blocking mode %u\n", mode);
 }
 
 void pm_unblock(unsigned mode)

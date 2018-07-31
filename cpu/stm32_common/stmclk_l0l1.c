@@ -207,11 +207,11 @@ void stmclk_init_sysclk(void)
     /* set AHB, APB1 and APB2 clock dividers */
     tmpreg = RCC->CFGR;
     tmpreg &= ~RCC_CFGR_HPRE;
-    tmpreg |= (uint32_t)CLOCK_AHB_DIV;
+    tmpreg |= CLOCK_AHB_DIV;
     tmpreg &= ~RCC_CFGR_PPRE1;
-    tmpreg |= (uint32_t)CLOCK_APB1_DIV;
+    tmpreg |= CLOCK_APB1_DIV;
     tmpreg &= ~RCC_CFGR_PPRE2;
-    tmpreg |= (uint32_t)CLOCK_APB2_DIV;
+    tmpreg |= CLOCK_APB2_DIV;
     RCC->CFGR = tmpreg;
 
 #if CLOCK_USE_PLL

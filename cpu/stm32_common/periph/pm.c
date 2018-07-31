@@ -106,8 +106,13 @@ enum pm_mode pm_set(enum pm_mode mode)
             PWR->CR |= PWR_CR_ULP;
 #endif
 
+#if defined(CPU_FAM_STM32L4)
+            /* Enable WKUP pin to use for wakeup from standby mode */
+            PWR->SCR |= _ewup_config();
+#else
             /* Enable WKUP pin to use for wakeup from standby mode */
             PWR->CSR |= _ewup_config();
+#endif
 
             /* Set SLEEPDEEP bit of system control block */
             deep = 1;

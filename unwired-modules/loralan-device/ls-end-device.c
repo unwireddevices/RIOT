@@ -583,13 +583,13 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
             break;
         }
         case NETDEV_EVENT_CRC_ERROR:
-            puts("sx127x: RX CRC failed");
+            puts("[LoRa] RX CRC failed");
             DEBUG("[LoRa] state = IDLE\n");
             ls->state = LS_ED_IDLE;
             break;
 
         case NETDEV_EVENT_TX_COMPLETE:
-            puts("sx127x: transmission done.");
+            puts("[LoRa] transmission done.");
 
             /* Open RX windows after each transmitted packet */
             open_rx_windows(ls);
@@ -597,7 +597,7 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
             break;
 
         case NETDEV_EVENT_RX_TIMEOUT:
-            puts("sx127x: RX timeout");
+            puts("[LoRa] RX timeout");
             DEBUG("[LoRa] state = IDLE\n");
             ls->state = LS_ED_IDLE;
             close_rx_windows(ls);
@@ -606,20 +606,20 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
 
         case NETDEV_EVENT_TX_TIMEOUT:
             /* this should not happen, re-init SX127X here */
-            puts("sx127x: TX timeout");
+            puts("[LoRa] TX timeout");
             ls->_internal.device->driver->init(ls->_internal.device);
             ls_ed_sleep(ls);
 
             break;
             
         case NETDEV_EVENT_CAD_DONE:
-            DEBUG("%s: sx127x: CAD done\n");
+            DEBUG("[LoRa] CAD done\n");
             ls->_internal.last_cad_success = false;
             ls_ed_sleep(ls);
             break;
             
         case NETDEV_EVENT_CAD_DETECTED:
-            DEBUG("%s: sx127x: CAD detected\n");
+            DEBUG("[LoRa] CAD detected\n");
             ls->_internal.last_cad_success = true;
             ls_ed_sleep(ls);
             break;
@@ -630,7 +630,7 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
             break;
 
         default:
-            printf("sx127x: received event #%d\n", (int) event);
+            printf("[LoRa] received event #%d\n", (int) event);
             ls_ed_sleep(ls);
             break;
     }

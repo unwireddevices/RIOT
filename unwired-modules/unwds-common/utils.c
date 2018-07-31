@@ -36,16 +36,12 @@ extern "C" {
 
 void blink_led(gpio_t led)
 {
-    /*
     int i;
     for (i = 0; i < 4; i++) {
         gpio_toggle(led);
         rtctimers_millis_sleep(50);
     }
     gpio_clear(led);
-    */
-    (void)led;
-    puts("LED LED LED");
 }
 
 void print_logo(void)

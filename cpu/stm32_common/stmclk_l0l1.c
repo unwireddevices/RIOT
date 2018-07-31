@@ -78,6 +78,14 @@
     #endif
 #endif
 
+#if (CLOCK_CORECLOCK > 16000000U)
+    #define CORE_VOLTAGE PWR_CR_VOS_0
+#elif (CLOCK_CORECLOCK > 8000000U)
+    #define CORE_VOLTAGE PWR_CR_VOS_1
+#else
+    #define CORE_VOLTAGE (PWR_CR_VOS_1 | PWR_CR_VOS_0)
+#endif
+
 static volatile uint32_t clock_source_rdy = 0;
 volatile uint32_t cpu_clock_global;
 volatile uint32_t cpu_ports_number = 3;
@@ -108,7 +116,9 @@ void stmclk_init_sysclk(void)
     /* Set MSION bit */
     RCC->CR |= RCC_CR_MSION;
     /* Reset SW, HPRE, PPRE1, PPRE2, MCOSEL and MCOPRE bits */
-    RCC->CFGR &= ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLDIV | RCC_CFGR_PLLMUL);
+    RCC->CFGR &= ~(RCC_CFGR_HPRE | RCC_CFGR_PPRE1 | RCC_CFGR_PPRE2);
+    RCC->CFGR &= ~(RCC_CFGR_MCOSEL | RCC_CFGR_MCOPRE);
+    RCC->CFGR &= ~(RCC_CFGR_SW);
     /* Reset HSION, HSEON, CSSON and PLLON bits */
     RCC->CR &= ~(RCC_CR_HSION | RCC_CR_HSEON | RCC_CR_HSEBYP | RCC_CR_CSSON | RCC_CR_PLLON);
     /* Disable all interrupts */
@@ -147,23 +157,51 @@ void stmclk_init_sysclk(void)
     while (!(RCC->CR & CLOCK_CR_SOURCE_RDY)) {}
 #endif
 
+/* Choose the most efficient flash configuration */
 #if defined(CPU_FAM_STM32L1)
     FLASH->ACR |= FLASH_ACR_ACC64;
 #endif
-    /* Enable Prefetch Buffer */
-    FLASH->ACR |= FLASH_ACR_PRFTEN;
-    /* Flash 1 wait state */
+#if (CLOCK_CORECLOCK > 8000000U)
+    /* (at F > 8MHz/16MHz WS must be 1) */    
     FLASH->ACR |= CLOCK_FLASH_LATENCY;
-    /* Select the Voltage Range 1 (1.8 V) */
-    PWR->CR = PWR_CR_VOS_0;
-    /* Wait Until the Voltage Regulator is ready */
+    FLASH->ACR |= FLASH_ACR_PRFTEN;
+#else
+    /* Set 0 wait state, 32-bit access and no prefetch */
+    FLASH->ACR &= ~FLASH_ACR_LATENCY;
+    FLASH->ACR &= ~FLASH_ACR_PRFTEN;
+#if defined(CPU_FAM_STM32L1)
+    FLASH->ACR &= ~FLASH_ACR_ACC64;
+#endif
+#endif
+    /* Wait for flash to become ready */
+    while (!(FLASH->SR & FLASH_SR_READY)) {}
+
+    /* Power domain enable */
+    periph_clk_en(APB1, RCC_APB1ENR_PWREN);
+    /* Select the Voltage Range */
+    tmpreg = PWR->CR;
+    tmpreg &= ~PWR_CR_VOS;
+    tmpreg |= CORE_VOLTAGE;
+    PWR->CR = tmpreg;
+    /* Wait until the Voltage Regulator is ready */
     while((PWR->CSR & PWR_CSR_VOSF) != 0) {}
-    /* HCLK = SYSCLK */
-    RCC->CFGR |= (uint32_t)CLOCK_AHB_DIV;
-    /* PCLK2 = HCLK */
-    RCC->CFGR |= (uint32_t)CLOCK_APB2_DIV;
-    /* PCLK1 = HCLK */
-    RCC->CFGR |= (uint32_t)CLOCK_APB1_DIV;
+
+    /* Enable low-power run if permitted */
+#if CLOCK_MSI
+    if ((CLOCK_MSIRANGE == RCC_ICSCR_MSIRANGE_1) || (msi_range == RCC_ICSCR_MSIRANGE_0)) {
+        PWR->CR |= PWR_CR_LPSDSR | PWR_CR_LPRUN;
+    }
+#endif
+
+    /* set AHB, APB1 and APB2 clock dividers */
+    tmpreg = RCC->CFGR;
+    tmpreg &= ~RCC_CFGR_HPRE;
+    tmpreg |= (uint32_t)CLOCK_AHB_DIV;
+    tmpreg &= ~RCC_CFGR_PPRE1;
+    tmpreg |= (uint32_t)CLOCK_APB1_DIV;
+    tmpreg &= ~RCC_CFGR_PPRE2;
+    tmpreg |= (uint32_t)CLOCK_APB2_DIV;
+    RCC->CFGR = tmpreg;
 
 #if CLOCK_USE_PLL
     /*  PLL configuration: PLLCLK = CLOCK_SOURCE / PLL_DIV * PLL_MUL */

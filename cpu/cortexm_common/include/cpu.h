@@ -107,15 +107,9 @@ static inline void cortexm_sleep(int deep)
 #if defined (__CC_ARM)
     __force_stores();
 #endif
-    unsigned state = irq_disable();
+
     __DSB();
     __WFI();
-
-#if defined(CPU_MODEL_STM32L152RE)
-    /* STM32L152RE crashes without this __NOP(). See #8518. */
-    __NOP();
-#endif
-    irq_restore(state);
 }
 
 /**

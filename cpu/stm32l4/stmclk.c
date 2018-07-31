@@ -157,6 +157,12 @@ void stmclk_init_sysclk(void)
     RCC->CFGR |= (RCC_CFGR_SW_PLL);
     while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL) {}
 
+
+//    RCC->CFGR |= (RCC_CFGR_MCOPRE_DIV1|(RCC_CFGR_MCOSEL_2 | RCC_CFGR_MCOSEL_1 | RCC_CFGR_MCOSEL_0));
+
     stmclk_disable_hsi();
+
+    cpu_clock_global = CLOCK_CORECLOCK;
+
     irq_restore(is);
 }

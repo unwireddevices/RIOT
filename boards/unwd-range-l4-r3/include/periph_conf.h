@@ -35,7 +35,7 @@ extern "C" {
 #define CLOCK_HSE           (0)//(24000000)
 /* 0: no external low speed crystal available,
  * 1: external crystal available (always 32.768kHz) */
-#define CLOCK_LSE           (1)
+#define CLOCK_LSE           (32768)
 /* 0: enable MSI only if HSE isn't available
  * 1: always enable MSI (e.g. if USB or RNG is used)*/
 #define CLOCK_MSI_ENABLE    (1)
@@ -81,42 +81,23 @@ static const dac_conf_t dac_config[] = {
 #define DAC_NUMOF           (sizeof(dac_config) / sizeof(dac_config[0]))
 /** @} */
 
-// /**
-//  * @brief Timer configuration
-//  * @{
-//  */
-// #define TIMER_0_MAX_VALUE   (0x0000ffff)
- 
-// static const timer_conf_t timer_config[] = {
-//     {
-//         .dev      = TIM6,
-//         .max      = TIMER_0_MAX_VALUE,
-//         .rcc_mask = RCC_APB1ENR1_TIM6EN,
-//         .bus      = APB1,
-//         .irqn     = TIM6_DAC_IRQn
-//     }
-// };
-
-// #define TIMER_0_ISR         isr_tim6
-
-// #define TIMER_NUMOF         (sizeof(timer_config) / sizeof(timer_config[0]))
-// /** @} */
-
 /**
- * @name    Timer configuration
+ * @brief Timer configuration
  * @{
  */
+#define TIMER_0_MAX_VALUE   (0xffffffff)
+ 
 static const timer_conf_t timer_config[] = {
     {
         .dev      = TIM2,
-        .max      = 0xffffffff,
+        .max      = TIMER_0_MAX_VALUE,
         .rcc_mask = RCC_APB1ENR1_TIM2EN,
         .bus      = APB1,
         .irqn     = TIM2_IRQn
     }
 };
 
-#define TIMER_0_ISR         isr_tim2
+#define TIMER_0_ISR         (isr_tim2)
 
 #define TIMER_NUMOF         (sizeof(timer_config) / sizeof(timer_config[0]))
 
@@ -141,18 +122,18 @@ static const timer_conf_t timer_config[] = {
  * @{
  */
 static const uart_conf_t uart_config[] = {
-    {
-        .dev      = USART1,
-        .rcc_mask = RCC_APB2ENR_USART1EN,
-        .rx_pin   = GPIO_PIN(PORT_A, 10),
-        .tx_pin   = GPIO_PIN(PORT_A, 9),
-        .rx_mode  = GPIO_IN_PU,
-        .tx_mode  = GPIO_OUT,
-        .rx_af    = GPIO_AF7,
-        .tx_af    = GPIO_AF7,
-        .bus      = APB2,
-        .irqn     = USART1_IRQn
-    },
+    // {
+    //     .dev      = USART1,
+    //     .rcc_mask = RCC_APB2ENR_USART1EN,
+    //     .rx_pin   = GPIO_PIN(PORT_A, 10),
+    //     .tx_pin   = GPIO_PIN(PORT_A, 9),
+    //     .rx_mode  = GPIO_IN_PU,
+    //     .tx_mode  = GPIO_OUT,
+    //     .rx_af    = GPIO_AF7,
+    //     .tx_af    = GPIO_AF7,
+    //     .bus      = APB2,
+    //     .irqn     = USART1_IRQn
+    // },
     {
         .dev      = USART2,
         .rcc_mask = RCC_APB1ENR1_USART2EN,
@@ -338,16 +319,16 @@ static const pwm_conf_t pwm_config[] = {
     //     .af       = GPIO_AF1,
     //     .bus      = APB1
     // },
-    {
-        .dev      = TIM3,
-        .rcc_mask = RCC_APB1ENR1_TIM3EN,
-        .chan     = { { .pin = GPIO_PIN(PORT_A, 6), .cc_chan = 0 },
-                      { .pin = GPIO_PIN(PORT_A, 7), .cc_chan = 1 },
-                      { .pin = GPIO_UNDEF,          .cc_chan = 0 },
-                      { .pin = GPIO_UNDEF,          .cc_chan = 0 } },
-        .af       = GPIO_AF2,
-        .bus      = APB1
-    },
+    // {
+    //     .dev      = TIM3,
+    //     .rcc_mask = RCC_APB1ENR1_TIM3EN,
+    //     .chan     = { { .pin = GPIO_PIN(PORT_A, 6), .cc_chan = 0 },
+    //                   { .pin = GPIO_PIN(PORT_A, 7), .cc_chan = 1 },
+    //                   { .pin = GPIO_UNDEF,          .cc_chan = 0 },
+    //                   { .pin = GPIO_UNDEF,          .cc_chan = 0 } },
+    //     .af       = GPIO_AF2,
+    //     .bus      = APB1
+    // },
         {
         .dev      = TIM16,
         .rcc_mask = RCC_APB2ENR_TIM16EN,

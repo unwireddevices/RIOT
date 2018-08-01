@@ -598,9 +598,9 @@ void *_semtech_loramac_event_loop(void *arg)
     }
 }
 
-int semtech_loramac_init(semtech_loramac_t *mac)
+int semtech_loramac_init(semtech_loramac_t *mac, sx127x_params_t *params)
 {
-    sx127x_setup(&sx127x, &sx127x_params[0]);
+    sx127x_setup(&sx127x, params);
     sx127x.netdev.driver = &sx127x_driver;
     sx127x.netdev.event_callback = _semtech_loramac_event_cb;
 

@@ -128,7 +128,7 @@ typedef struct {
  * @return  0 on success
  * @return -1 on failure
  */
-int semtech_loramac_init(semtech_loramac_t *mac);
+int semtech_loramac_init(semtech_loramac_t *mac, sx127x_params_t *params);
 
 /**
  * @brief   Starts a LoRaWAN network join procedure

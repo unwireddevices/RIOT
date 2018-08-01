@@ -1,6 +1,8 @@
 # If no BOARD is found in the environment, use this default:
 BOARD ?= unwd-range-l1-r3
 
+CFLAGS += -Wno-unused
+
 ############ UMDK MODULES USED #####################
 # variable in the list below must match modules'
 # subdirectory name in ../../unwired-modules/

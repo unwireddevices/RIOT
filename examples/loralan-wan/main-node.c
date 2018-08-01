@@ -101,7 +101,7 @@ void radio_init(void)
     
     semtech_loramac_init(&ls, &sx127x_params);
 
-    puts("init_radio: loramac initialization done");
+    puts("[LoRa] LoRaMAC successfully initialized");
 }
 
 static int node_join(semtech_loramac_t *ls) {
@@ -109,6 +109,8 @@ static int node_join(semtech_loramac_t *ls) {
     if (current_join_retries < 120) {
         current_join_retries++;
     }
+    
+    blink_led(LED_GREEN);
     
     if (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A) {
         printf("[LoRa] joining, attempt %d / %d\n", current_join_retries + 1, unwds_get_node_settings().max_retr + 1);
@@ -120,9 +122,11 @@ static int node_join(semtech_loramac_t *ls) {
 }
 
 static void *sender_thread(void *arg) {
-    semtech_loramac_t *ls = (semtech_loramac_t *) arg;
+    semtech_loramac_t *ls = (semtech_loramac_t *)arg;
     
     msg_t msg;
+    
+    puts("[LoRa] sender thread started");
     
     while (1) {
         msg_receive(&msg);
@@ -133,7 +137,6 @@ static void *sender_thread(void *arg) {
         case SEMTECH_LORAMAC_JOIN_SUCCEEDED: {
             current_join_retries = 0;
             puts("[LoRa] successfully joined to the network");
-            blink_led(LED_GREEN);
             break;
         }
         case SEMTECH_LORAMAC_JOIN_FAILED:
@@ -149,12 +152,6 @@ static void *sender_thread(void *arg) {
                 /* Pseudorandom delay for collision avoidance */
                 unsigned int delay = random_uint32_range(5000 + (current_join_retries - 1)*30000, 30000 + (current_join_retries - 1)*30000);
                 printf("[LoRa] random delay %d ms\n", (unsigned int) (delay));
-                
-                /* limit max delay between attempts to 1 hour */
-                if (current_join_retries < 120) {
-                    current_join_retries++;
-                }
-                
                 rtctimers_millis_set_msg(&send_retry_timer, delay, &msg_join, sender_pid);
       
                 break;
@@ -170,7 +167,13 @@ static void *sender_thread(void *arg) {
 static void *receiver_thread(void *arg) {
     semtech_loramac_t *ls = (semtech_loramac_t *) arg;
     
+    puts("[LoRa] receiver thread started");
+    
+    msg_t msg;
+    
     while (1) {
+        msg_receive(&msg);
+        /*
         int res = semtech_loramac_recv(ls);
         
         switch (res) {
@@ -187,6 +190,7 @@ static void *receiver_thread(void *arg) {
                 puts("[LoRa] unknown response");
                 break;
         }
+        */
     }
     
     return NULL;
@@ -264,19 +268,11 @@ static void ls_setup(semtech_loramac_t *ls)
     
     id = config_get_appid();
     semtech_loramac_set_appeui(ls, (uint8_t *)&id);
-    
     semtech_loramac_set_appkey(ls, config_get_joinkey());
-    
     semtech_loramac_set_dr(ls, LORAMAC_DR_0);
     semtech_loramac_set_class(ls, unwds_get_node_settings().nodeclass);
     
-    char sender_stack[2048];
-    sender_pid = thread_create(sender_stack, sizeof(sender_stack), THREAD_PRIORITY_MAIN - 2,
-                               THREAD_CREATE_STACKTEST, sender_thread, ls,  "LoRa sender thread");
-        
-    char receiver_stack[2048];
-    receiver_pid = thread_create(receiver_stack, sizeof(receiver_stack), THREAD_PRIORITY_MAIN - 2,
-                               THREAD_CREATE_STACKTEST, receiver_thread, ls,  "LoRa receiver thread");
+    puts("[LoRa] LoRaMAC values set");
 }
 
 int ls_set_cmd(int argc, char **argv)
@@ -602,6 +598,17 @@ void init_normal(shell_command_t *commands)
             
             blink_led(LED_GREEN);
         }
+        
+        /*
+        char sender_stack[2048];
+        sender_pid = thread_create(sender_stack, sizeof(sender_stack), THREAD_PRIORITY_MAIN - 1,
+                                   THREAD_CREATE_STACKTEST, sender_thread, (void *) &ls,  "LoRa sender thread");
+            
+        
+        char receiver_stack[2048];
+        receiver_pid = thread_create(receiver_stack, sizeof(receiver_stack), THREAD_PRIORITY_MAIN - 1,
+                                   THREAD_CREATE_STACKTEST, receiver_thread, (void *) &ls,  "LoRa receiver thread");
+        */     
 
         if (!unwds_get_node_settings().no_join) {
         	msg_send(&msg_join, sender_pid);

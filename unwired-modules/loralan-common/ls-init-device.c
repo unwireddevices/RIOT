@@ -108,12 +108,9 @@ void ls_setup_sx127x(netdev_t *dev, ls_datarate_t dr, uint32_t frequency) {
 
 void init_role(shell_command_t *commands) {
     pm_init();
-	
-    /* disable standby and power off forever */
-    pm_block(PM_POWERDOWN);
-    
-    /* disable sleep for now */
-	pm_block(PM_SLEEP);
+    /* all power modes are blocked by default */
+    /* unblock PM_IDLE here, PM_SLEEP to be unlocked later */
+    pm_unblock(PM_IDLE);
     
     print_logo();
     xtimer_init();

@@ -54,14 +54,18 @@ extern "C" {
  *
  * @param[in]   mode      power mode to block
  */
-void pm_block(unsigned mode);
+void _pm_block(unsigned mode, const char *caller);
+
+#define pm_block(x) _pm_block(x, __func__)
 
 /**
  * @brief   Unblock a power mode
  *
  * @param[in]   mode      power mode to unblock
  */
-void pm_unblock(unsigned mode);
+void _pm_unblock(unsigned mode, const char *caller);
+
+#define pm_unblock(x) _pm_unblock(x, __func__)
 
 /**
  * @brief   Switches the MCU to a new power mode

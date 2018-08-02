@@ -1581,7 +1581,7 @@ index 00000000..e7dbe6e2
 diff --git a/src/mac/region/Region.c b/src/mac/region/Region.c
 --- a/src/mac/region/Region.c	2018-08-02 08:02:00.255071800 +0300
 +++ b/src/mac/region/Region.c	2018-08-02 08:07:59.828759300 +0300
-@@ -552,6 +552,60 @@
+@@ -552,6 +552,58 @@
  #define US915_HYBRID_APPLY_DR_OFFSET( )
  #endif
  
@@ -1591,8 +1591,7 @@ diff --git a/src/mac/region/Region.c b/src/mac/region/Region.c
 +#define RU864_IS_ACTIVE( )                         RU864_CASE { return true; }
 +#define RU864_GET_PHY_PARAM( )                     RU864_CASE { return RegionRU864GetPhyParam( getPhy ); }
 +#define RU864_SET_BAND_TX_DONE( )                  RU864_CASE { RegionRU864SetBandTxDone( txDone ); break; }
-+#define RU864_INIT_DEFAULTS( )                     RU864_CASE { RegionRU864InitDefaults( params ); break; }
-+#define RU864_GET_NVM_CTX( )                       RU864_CASE { return RegionRU864GetNvmCtx( params ); }
++#define RU864_INIT_DEFAULTS( )                     RU864_CASE { RegionRU864InitDefaults( type ); break; }
 +#define RU864_VERIFY( )                            RU864_CASE { return RegionRU864Verify( verify, phyAttribute ); }
 +#define RU864_APPLY_CF_LIST( )                     RU864_CASE { RegionRU864ApplyCFList( applyCFList ); break; }
 +#define RU864_CHAN_MASK_SET( )                     RU864_CASE { return RegionRU864ChanMaskSet( chanMaskSet ); }
@@ -1604,7 +1603,7 @@ diff --git a/src/mac/region/Region.c b/src/mac/region/Region.c
 +#define RU864_NEW_CHANNEL_REQ( )                   RU864_CASE { return RegionRU864NewChannelReq( newChannelReq ); }
 +#define RU864_TX_PARAM_SETUP_REQ( )                RU864_CASE { return RegionRU864TxParamSetupReq( txParamSetupReq ); }
 +#define RU864_DL_CHANNEL_REQ( )                    RU864_CASE { return RegionRU864DlChannelReq( dlChannelReq ); }
-+#define RU864_ALTERNATE_DR( )                      RU864_CASE { return RegionRU864AlternateDr( currentDr ); }
++#define RU864_ALTERNATE_DR( )                      RU864_CASE { return RegionRU864AlternateDr( alternateDr ); }
 +#define RU864_CALC_BACKOFF( )                      RU864_CASE { RegionRU864CalcBackOff( calcBackOff ); break; }
 +#define RU864_NEXT_CHANNEL( )                      RU864_CASE { return RegionRU864NextChannel( nextChanParams, channel, time, aggregatedTimeOff ); }
 +#define RU864_CHANNEL_ADD( )                       RU864_CASE { return RegionRU864ChannelAdd( channelAdd ); }
@@ -1617,7 +1616,6 @@ diff --git a/src/mac/region/Region.c b/src/mac/region/Region.c
 +#define RU864_GET_PHY_PARAM( )
 +#define RU864_SET_BAND_TX_DONE( )
 +#define RU864_INIT_DEFAULTS( )
-+#define RU864_GET_NVM_CTX( )
 +#define RU864_VERIFY( )
 +#define RU864_APPLY_CF_LIST( )
 +#define RU864_CHAN_MASK_SET( )

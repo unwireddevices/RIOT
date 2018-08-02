@@ -46,22 +46,22 @@ extern "C" {
 #define LORA_PREAMBLE_LENGTH                        8         // Same for Tx and Rx
 #define LORA_SYMBOL_TIMEOUT                         5         // Symbols
 #define LORA_FIX_LENGTH_PAYLOAD_ON                  true
-#define LORA_IQ_INVERSION							false
+#define LORA_IQ_INVERSION							              false
 
-#define SX127X_DIO0 GPIO_PIN(PORT_A, 12)
-#define SX127X_DIO1 GPIO_PIN(PORT_C, 13)
-#define SX127X_DIO2 GPIO_PIN(PORT_A, 0)
-#define SX127X_DIO3 GPIO_PIN(PORT_B, 6) /* CadDone */
-#define SX127X_DIO4 GPIO_PIN(PORT_B, 7) /* CadDetect */
-#define SX127X_DIO5 GPIO_UNDEF
+#define SX127X_DIO0                                 GPIO_PIN(PORT_A, 12)
+#define SX127X_DIO1                                 GPIO_PIN(PORT_C, 13)
+#define SX127X_DIO2                                 GPIO_PIN(PORT_A, 0)
+#define SX127X_DIO3                                 GPIO_PIN(PORT_B, 6) /* CadDone */
+#define SX127X_DIO4                                 GPIO_PIN(PORT_B, 7) /* CadDetect */
+#define SX127X_DIO5                                 GPIO_UNDEF
 
-#define SX127X_RESET GPIO_PIN(PORT_A, 8)
+#define SX127X_RESET                                GPIO_PIN(PORT_A, 8)
 
 /** RF on/off switching pin */
-#define SX127X_RFSWITCH                 GPIO_PIN(PORT_A, 11)
+#define SX127X_RFSWITCH                             GPIO_PIN(PORT_A, 11)
 
 /* pin PB4 tied to groud in R4 and left floating in R3 */
-#define UNWD_RANGE_REV34_PIN            GPIO_PIN(PORT_B, 4)
+#define UNWD_RANGE_REV34_PIN                        GPIO_PIN(PORT_B, 4)
 
 #define SX127X_GET_RFSWITCH_ACTIVE_LEVEL() ({\
         int active_level;\
@@ -72,53 +72,53 @@ extern "C" {
     })
 
 /** SX127x SPI */
-#define SX127X_SPI 1
-#define SX127X_SPI_NSS  GPIO_PIN(PORT_B, 12)
+#define SX127X_SPI                                  1
+#define SX127X_SPI_NSS                              GPIO_PIN(PORT_B, 12)
 
 /** "Connect" Button */
-#define UNWD_USE_CONNECT_BTN	1
-#define UNWD_CONNECT_BTN		UNWD_GPIO_1
+#define UNWD_USE_CONNECT_BTN                        1
+#define UNWD_CONNECT_BTN                            UNWD_GPIO_1
 
 /** LEDs */
-#define LED_GREEN   GPIO_PIN(PORT_B, 0)
-#define LED_RED     GPIO_UNDEF
+#define LED_GREEN                                   GPIO_PIN(PORT_B, 0)
+#define LED_RED                                     GPIO_UNDEF
 
 /** GPIO Ports */
-#define UNWD_GPIO_1 GPIO_PIN(PORT_B, 1)
-#define UNWD_GPIO_4 GPIO_PIN(PORT_A, 4)
-#define UNWD_GPIO_5 GPIO_PIN(PORT_A, 5)
-#define UNWD_GPIO_6 GPIO_PIN(PORT_B, 8)
-#define UNWD_GPIO_7 GPIO_PIN(PORT_B, 9)
-#define UNWD_GPIO_16 GPIO_PIN(PORT_B, 3)
-#define UNWD_GPIO_17 GPIO_PIN(PORT_A, 15)
+#define UNWD_GPIO_1                                 GPIO_PIN(PORT_B, 1)
+#define UNWD_GPIO_4                                 GPIO_PIN(PORT_A, 4)
+#define UNWD_GPIO_5                                 GPIO_PIN(PORT_A, 5)
+#define UNWD_GPIO_6                                 GPIO_PIN(PORT_B, 8)
+#define UNWD_GPIO_7                                 GPIO_PIN(PORT_B, 9)
+#define UNWD_GPIO_16                                GPIO_PIN(PORT_B, 3)
+#define UNWD_GPIO_17                                GPIO_PIN(PORT_A, 15)
 
-#define UNWD_GPIO_30 GPIO_PIN(PORT_B, 11)
-#define UNWD_GPIO_29 GPIO_PIN(PORT_B, 10)
-#define UNWD_GPIO_28 GPIO_PIN(PORT_A, 7)
-#define UNWD_GPIO_27 GPIO_PIN(PORT_A, 6)
-#define UNWD_GPIO_26 GPIO_PIN(PORT_A, 3)
-#define UNWD_GPIO_25 GPIO_PIN(PORT_A, 2)
-#define UNWD_GPIO_24 GPIO_PIN(PORT_A, 1)
+#define UNWD_GPIO_30                                GPIO_PIN(PORT_B, 11)
+#define UNWD_GPIO_29                                GPIO_PIN(PORT_B, 10)
+#define UNWD_GPIO_28                                GPIO_PIN(PORT_A, 7)
+#define UNWD_GPIO_27                                GPIO_PIN(PORT_A, 6)
+#define UNWD_GPIO_26                                GPIO_PIN(PORT_A, 3)
+#define UNWD_GPIO_25                                GPIO_PIN(PORT_A, 2)
+#define UNWD_GPIO_24                                GPIO_PIN(PORT_A, 1)
 
 /** @} */
 
-#define UART_STDIO_DEV              UART_DEV(0)
-#define UART_STDIO_BAUDRATE         (115200U)
-#define UART_STDIO_RX_BUFSIZE       (64U)
+#define UART_STDIO_DEV                              UART_DEV(0)
+#define UART_STDIO_BAUDRATE                         (115200U)
+#define UART_STDIO_RX_BUFSIZE                       (64U)
 
-#define GATE_COMM_UART              (UART_DEV(1))
+#define GATE_COMM_UART                              (UART_DEV(1))
 
-#define UMDK_UART_DEV 1
-#define UMDK_UART_BAUDRATE_NO 7 /* 115200 */
+#define UMDK_UART_DEV                               1
+#define UMDK_UART_BAUDRATE_NO                       7 /* 115200 */
 
 /**
  * @name xtimer configuration
  * @{
  */
-#define XTIMER              TIMER_DEV(0)
-#define XTIMER_CHAN         (0)
-#define XTIMER_OVERHEAD     (6)
-#define XTIMER_BACKOFF      (3)
+#define XTIMER                                      TIMER_DEV(0)
+#define XTIMER_CHAN                                 (0)
+#define XTIMER_OVERHEAD                             (6)
+#define XTIMER_BACKOFF                              (3)
 /** @} */
 
 /**

@@ -33,6 +33,10 @@
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
+#if !defined(US_PER_MS)
+#define US_PER_MS 1000UL
+#endif
+
 extern sx127x_t sx127x;
 
 /*

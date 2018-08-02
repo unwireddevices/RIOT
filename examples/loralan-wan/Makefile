@@ -1,7 +1,9 @@
 # If no BOARD is found in the environment, use this default:
 BOARD ?= unwd-range-l1-r3
 
-CFLAGS += -Wno-unused
+# LORA_REGION ?= EU868
+LORA_REGION ?= RU864
+CFLAGS += -DREGION_$(LORA_REGION)
 
 ############ UMDK MODULES USED #####################
 # variable in the list below must match modules'
@@ -66,9 +68,6 @@ USEMODULE += random
 USEMODULE += hashes
 USEMODULE += checksum
 USEMODULE += rtctimers-millis
-
-LORA_REGION ?= EU868
-CFLAGS += -DREGION_$(LORA_REGION)
 
 USEPKG += semtech-loramac
 USEMODULE += sx127x

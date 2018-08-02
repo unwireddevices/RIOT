@@ -300,6 +300,10 @@ void _init_loramac(semtech_loramac_t *mac,
     DEBUG("[semtech-loramac] initialize loramac for US915 hybrid region\n");
     LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
                           LORAMAC_REGION_US915_HYBRID);
+#elif defined(REGION_RU864)
+    DEBUG("[semtech-loramac] initialize loramac for RU864 region\n");
+    LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
+                          LORAMAC_REGION_RU864);
 #else
 #error "Please define a region in the compiler options."
 #endif

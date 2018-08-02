@@ -67,6 +67,9 @@ static rtctimers_millis_t send_retry_timer;
 
 static kernel_pid_t receiver_pid;
 
+static char sender_stack[2048];
+static char receiver_stack[2048];
+
 static sx127x_t sx127x;
 static semtech_loramac_t ls;
 
@@ -111,7 +114,7 @@ static int node_join(semtech_loramac_t *ls) {
     }
     
     if (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A) {
-        printf("[LoRa] joining, attempt %d / %d\n", current_join_retries + 1, unwds_get_node_settings().max_retr + 1);
+        printf("[LoRa] joining, attempt %d / %d\n", current_join_retries, unwds_get_node_settings().max_retr + 1);
     } else {
         puts("[LoRa] joining");
     }
@@ -147,13 +150,8 @@ static void *sender_thread(void *arg) {
                 puts("ls: join request timed out, resending");
                 
                 /* Pseudorandom delay for collision avoidance */
-                unsigned int delay = random_uint32_range(5000 + (current_join_retries - 1)*30000, 30000 + (current_join_retries - 1)*30000);
-                printf("[LoRa] random delay %d ms\n", (unsigned int) (delay));
-                
-                /* limit max delay between attempts to 1 hour */
-                if (current_join_retries < 120) {
-                    current_join_retries++;
-                }
+                unsigned int delay = random_uint32_range(10000 + (current_join_retries - 1)*30000, 30000 + (current_join_retries - 1)*30000);
+                printf("[LoRa] random delay %d s\n", delay/1000);
                 
                 rtctimers_millis_set_msg(&send_retry_timer, delay, &msg_join, sender_pid);
       
@@ -162,7 +160,7 @@ static void *sender_thread(void *arg) {
         }
         default:
             break;
-    }
+        }
     }
     return NULL;
 }
@@ -269,14 +267,6 @@ static void ls_setup(semtech_loramac_t *ls)
     
     semtech_loramac_set_dr(ls, LORAMAC_DR_0);
     semtech_loramac_set_class(ls, unwds_get_node_settings().nodeclass);
-    
-    char sender_stack[2048];
-    sender_pid = thread_create(sender_stack, sizeof(sender_stack), THREAD_PRIORITY_MAIN - 2,
-                               THREAD_CREATE_STACKTEST, sender_thread, ls,  "LoRa sender thread");
-        
-    char receiver_stack[2048];
-    receiver_pid = thread_create(receiver_stack, sizeof(receiver_stack), THREAD_PRIORITY_MAIN - 2,
-                               THREAD_CREATE_STACKTEST, receiver_thread, ls,  "LoRa receiver thread");
 }
 
 int ls_set_cmd(int argc, char **argv)
@@ -293,8 +283,28 @@ int ls_set_cmd(int argc, char **argv)
         puts("\tmaxretr <0-255> -- sets maximum number of retransmissions of confirmed app. data [5 is recommended]");
         puts("\tclass <A/B/C> -- sets device class");
     }
+    
+    char *key = argv[1];
+    char *value = argv[2];
 
-    (void)argv;
+    if (strcmp(key, "class") == 0) {
+        char v = value[0];
+
+        if (v != 'A' && v != 'B' && v != 'C') {
+            puts("set сlass: A, B or C");
+            return 1;
+        }
+
+        if (v == 'A') {
+            unwds_set_class(LS_ED_CLASS_A);
+        }
+        else if (v == 'B') {
+            unwds_set_class(LS_ED_CLASS_B);
+        }
+        else if (v == 'C') {
+            unwds_set_class(LS_ED_CLASS_C);
+        }
+    }
 
     return 0;
 }
@@ -602,6 +612,13 @@ void init_normal(shell_command_t *commands)
             
             blink_led(LED_GREEN);
         }
+        
+        sender_pid = thread_create(sender_stack, sizeof(sender_stack), THREAD_PRIORITY_MAIN - 2,
+                                   THREAD_CREATE_STACKTEST, sender_thread, &ls,  "LoRa sender thread");
+            
+        
+        receiver_pid = thread_create(receiver_stack, sizeof(receiver_stack), THREAD_PRIORITY_MAIN - 2,
+                                   THREAD_CREATE_STACKTEST, receiver_thread, &ls,  "LoRa receiver thread");
 
         if (!unwds_get_node_settings().no_join) {
         	msg_send(&msg_join, sender_pid);

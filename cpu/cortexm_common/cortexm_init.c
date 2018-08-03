@@ -95,8 +95,7 @@ bool cpu_check_address(volatile const char *address)
     /* Cortex-M0 doesn't have BusFault */
     (void) address;
     
-    puts("Cortex-M0 doesn't have BusFault");
-    assert(false);
+    printf("[warning] %s: Cortex-M0 doesn't have BusFault", __func__);
     return true;
 #endif
 }

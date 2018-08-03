@@ -21,7 +21,7 @@
 #include "lis3mdl.h"
 #include "include/lis3mdl-internal.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 #define MASK_INT16_MSB     (0x8000)
@@ -60,12 +60,10 @@ int lis3mdl_init(lis3mdl_t *dev, const lis3mdl_params_t *params)
 
     uint8_t tmp;
 
+    puts("Acquire bus");
+    
     i2c_acquire(DEV_I2C);
 
-    // if (i2c_init_master(DEV_I2C, I2C_SPEED_NORMAL) < 0) {
-    //     DEBUG("LIS3MDL: Master initialization failed\n");
-    //     return -1;
-    // }
     i2c_init(DEV_I2C);
 
     i2c_read_reg(DEV_I2C, DEV_ADDR, LIS3DML_WHO_AM_I_REG, &tmp, 0);
@@ -74,6 +72,8 @@ int lis3mdl_init(lis3mdl_t *dev, const lis3mdl_params_t *params)
               tmp, LIS3MDL_CHIP_ID);
         return -1;
     }
+    
+    puts("Set parameters");
 
     tmp = ( LIS3MDL_MASK_REG1_TEMP_EN   /* enable temperature sensor */
           | dev->params.xy_mode         /* set x-, y-axis operative mode */
@@ -89,6 +89,8 @@ int lis3mdl_init(lis3mdl_t *dev, const lis3mdl_params_t *params)
     /* set z-axis operative mode */
     i2c_write_reg(DEV_I2C, DEV_ADDR, LIS3MDL_CTRL_REG4, dev->params.z_mode, 0);
 
+    puts("Release bus");
+    
     i2c_release(DEV_I2C);
 
     return 0;
@@ -101,23 +103,40 @@ void lis3mdl_read_mag(const lis3mdl_t *dev, lis3mdl_3d_data_t *data)
     i2c_acquire(DEV_I2C);
 
     i2c_read_regs(DEV_I2C, DEV_ADDR, LIS3MDL_OUT_X_L_REG, &tmp[0], 2, 0);
-    data->x_axis = (tmp[1] << 8) | tmp[0];
+    int16_t x = ((tmp[1] << 8) | tmp[0]);
+    x = _twos_complement(x);
 
     i2c_read_regs(DEV_I2C, DEV_ADDR, LIS3MDL_OUT_Y_L_REG, &tmp[0], 2, 0);
-    data->y_axis = (tmp[1] << 8) | tmp[0];
+    int16_t y = ((tmp[1] << 8) | tmp[0]);
+    y = _twos_complement(y);
 
     i2c_read_regs(DEV_I2C, DEV_ADDR, LIS3MDL_OUT_Z_L_REG, &tmp[0], 2, 0);
-    data->z_axis = (tmp[1] << 8) | tmp[0];
+    int16_t z = ((tmp[1] << 8) | tmp[0]);
+    z = _twos_complement(z);
 
-    data->x_axis = _twos_complement(data->x_axis);
-    data->y_axis = _twos_complement(data->y_axis);
-    data->z_axis = _twos_complement(data->z_axis);
-
-    /* Divide the raw data by 1000 to geht [G] := Gauss */
-    data->x_axis /= GAUSS_DIVIDER;
-    data->y_axis /= GAUSS_DIVIDER;
-    data->z_axis /= GAUSS_DIVIDER;
-
+    int32_t scale = 0;
+    switch (dev->params.scale) {
+        case LIS3MDL_SCALE_4G:
+            scale = 8192;
+            break;
+        case LIS3MDL_SCALE_8G:
+            scale = 4096;
+            break;
+        case LIS3MDL_SCALE_12G:
+            scale = 2731;
+            break;
+        case LIS3MDL_SCALE_16G:
+            scale = 2048;
+            break;
+        default:
+            scale = 1;
+            break;
+    }
+    
+    data->x_axis = (1000 * (int32_t)x)/scale;
+    data->y_axis = (1000 * (int32_t)y)/scale;
+    data->z_axis = (1000 * (int32_t)z)/scale;
+    
     i2c_release(DEV_I2C);
 }
 

@@ -44,14 +44,15 @@ int sht21_init(sht21_t *dev)
     /* Acquire I2C bus */
     i2c_acquire(dev->i2c);
 
-    if (i2c_init_master(dev->i2c, I2C_SPEED_NORMAL) < 0) {
-        i2c_release(dev->i2c);
-        puts("[sht21 driver] Error initializing I2C bus");
+    // if (i2c_init_master(dev->i2c, I2C_SPEED_NORMAL) < 0) {
+    //     i2c_release(dev->i2c);
+    //     puts("[sht21 driver] Error initializing I2C bus");
         
-        return -1;
-    }
-    
-    if (i2c_read_reg(dev->i2c, SHT21_ADDRESS, SHT21_USER_REG_READ, (char *)&config) != 1) {
+    //     return -1;
+    // }
+    i2c_init(dev->i2c);
+
+    if (i2c_read_reg(dev->i2c, SHT21_ADDRESS, SHT21_USER_REG_READ, (char *)&config, 0) != 1) {
         puts("[sht21 driver] Error: sensor not found");
         i2c_release(dev->i2c);
 
@@ -65,7 +66,7 @@ int sht21_init(sht21_t *dev)
     config |= SHT21_USER_CONFIG;
 
     puts("[sht21 driver] Setting configuration register");
-    i2c_write_reg(dev->i2c, SHT21_ADDRESS, SHT21_USER_REG_WRITE, config);
+    i2c_write_reg(dev->i2c, SHT21_ADDRESS, SHT21_USER_REG_WRITE, config, 0);
     i2c_release(dev->i2c);
     
     return 0;
@@ -117,17 +118,17 @@ static int read_sensor_hold(sht21_t *dev, bool need_rh, int *result) {
     uint8_t config;
     /* Write command somehow hangs I2C if there was NACK before */
     /* So lets do read first */
-    i2c_read_reg(dev->i2c, SHT21_ADDRESS, SHT21_USER_REG_READ, (char *)&config);
+    i2c_read_reg(dev->i2c, SHT21_ADDRESS, SHT21_USER_REG_READ, (char *)&config, 0);
     
     /* Choose measurement command: humidity or temperature */
     uint8_t cmd = (need_rh) ? SHT21_REG_RH_HOLD : SHT21_REG_T_HOLD;
 
-    i2c_write_byte(dev->i2c, SHT21_ADDRESS, cmd);
+    i2c_write_byte(dev->i2c, SHT21_ADDRESS, cmd, 0);
 
     /* Read back measurements: MSB, LSB and checksum byte */
     
     uint8_t bytes[3];
-    i2c_read_bytes(dev->i2c, SHT21_ADDRESS, (char *) bytes, 3);
+    i2c_read_bytes(dev->i2c, SHT21_ADDRESS, (char *) bytes, 3, 0);
     
     if (sht21_check_crc(bytes, 2, bytes[2])) {
         return -1;

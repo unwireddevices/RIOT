@@ -20,9 +20,9 @@
 
 #include "unwds-common.h"
 
-#define UMDK_OPT3001_STACK_SIZE 1024
+#define UMDK_OPT3001_STACK_SIZE         1024
 
-#define UMDK_OPT3001_I2C 1
+#define UMDK_OPT3001_I2C                1
 
 #define UMDK_OPT3001_PUBLISH_PERIOD_MIN 1
 

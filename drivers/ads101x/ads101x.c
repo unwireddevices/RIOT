@@ -73,18 +73,21 @@ int _ads101x_init_test(i2c_t i2c, uint8_t addr)
 
     /* Acquire test */
     i2c_acquire(i2c);
-    if (i2c_init_master(i2c, I2C_SPEED) < 0) {
-        i2c_release(i2c);
-        DEBUG("[ads101x] init - error: unable to initialize I2C bus\n");
-        return ADS101X_NOI2C;
-    }
+    // if (i2c_init_master(i2c, I2C_SPEED) < 0) {
+    //     i2c_release(i2c);
+    //     DEBUG("[ads101x] init - error: unable to initialize I2C bus\n");
+    //     return ADS101X_NOI2C;
+    // }
+
+    i2c_init(i2);
+
 
     /* Register read/write test */
-    i2c_read_regs(i2c, addr, ADS101X_CONF_ADDR, &regs, 2);
+    i2c_read_regs(i2c, addr, ADS101X_CONF_ADDR, &regs, 2, 0);
     regs[1] = (regs[1] & ~ADS101X_DATAR_MASK) | ADS101X_DATAR_3300;
 
-    i2c_write_regs(i2c, addr, ADS101X_CONF_ADDR, &regs, 2);
-    i2c_read_regs(i2c, addr, ADS101X_CONF_ADDR, &regs, 2);
+    i2c_write_regs(i2c, addr, ADS101X_CONF_ADDR, &regs, 2, 0);
+    i2c_read_regs(i2c, addr, ADS101X_CONF_ADDR, &regs, 2, 0);
 
     i2c_release(i2c);
 
@@ -103,7 +106,7 @@ int ads101x_set_mux_gain(const ads101x_t *dev, uint8_t mux_gain)
 
     i2c_acquire(I2C);
 
-    i2c_read_regs(I2C, ADDR, ADS101X_CONF_ADDR, &regs, 2);
+    i2c_read_regs(I2C, ADDR, ADS101X_CONF_ADDR, &regs, 2, 0);
 
     /* Zero mux and gain */
     regs[0] &= ~ADS101X_MUX_MASK;
@@ -112,7 +115,7 @@ int ads101x_set_mux_gain(const ads101x_t *dev, uint8_t mux_gain)
     /* Write mux and gain */
     regs[0] |= mux_gain;
 
-    i2c_write_regs(I2C, ADDR, ADS101X_CONF_ADDR, &regs, 2);
+    i2c_write_regs(I2C, ADDR, ADS101X_CONF_ADDR, &regs, 2, 0);
 
     i2c_release(I2C);
 
@@ -127,17 +130,17 @@ int ads101x_read_raw(const ads101x_t *dev, int16_t *raw)
     i2c_acquire(I2C);
 
     /* Read control register */
-    i2c_read_regs(I2C, ADDR, ADS101X_CONF_ADDR, &regs, 2);
+    i2c_read_regs(I2C, ADDR, ADS101X_CONF_ADDR, &regs, 2, 0);
 
     /* Tell the ADC to aquire a single-shot sample */
     regs[0] |= ADS101X_CONF_OS_CONV;
-    i2c_write_regs(I2C, ADDR, ADS101X_CONF_ADDR, &regs, 2);
+    i2c_write_regs(I2C, ADDR, ADS101X_CONF_ADDR, &regs, 2, 0);
 
     /* Wait for the sample to be aquired */
     xtimer_usleep(ADS101X_READ_DELAY);
 
     /* Read the sample */
-    status = i2c_read_regs(I2C, ADDR, ADS101X_CONV_RES_ADDR, &regs, 2);
+    status = i2c_read_regs(I2C, ADDR, ADS101X_CONV_RES_ADDR, &regs, 2, 0);
 
     i2c_release(I2C);
 
@@ -163,11 +166,11 @@ int ads101x_enable_alert(ads101x_alert_t *dev,
 
     /* Read control register */
     i2c_acquire(I2C);
-    i2c_read_regs(I2C, ADDR, ADS101X_CONF_ADDR, &regs, 2);
+    i2c_read_regs(I2C, ADDR, ADS101X_CONF_ADDR, &regs, 2, 0);
 
     /* Enable alert comparator */
     regs[1] &= ~ADS101X_CONF_COMP_DIS;
-    i2c_write_regs(I2C, ADDR, ADS101X_CONF_ADDR, &regs, 2);
+    i2c_write_regs(I2C, ADDR, ADS101X_CONF_ADDR, &regs, 2, 0);
 
     i2c_release(I2C);
 
@@ -189,15 +192,15 @@ int ads101x_set_alert_parameters(const ads101x_alert_t *dev,
     /* Set up low_limit */
     regs[0] = (uint8_t)(low_limit >> 8);
     regs[1] = (uint8_t)low_limit;
-    i2c_write_regs(I2C, ADDR, ADS101X_LOW_LIMIT_ADDR, &regs, 2);
+    i2c_write_regs(I2C, ADDR, ADS101X_LOW_LIMIT_ADDR, &regs, 2, 0);
 
     /* Set up high_limit */
     regs[0] = (uint8_t)(high_limit >> 8);
     regs[1] = (uint8_t)high_limit;
-    i2c_write_regs(I2C, ADDR, ADS101X_HIGH_LIMIT_ADDR, &regs, 2);
+    i2c_write_regs(I2C, ADDR, ADS101X_HIGH_LIMIT_ADDR, &regs, 2, 0);
 
     /* Read control register */
-    i2c_read_regs(I2C, ADDR, ADS101X_CONF_ADDR, &regs, 2);
+    i2c_read_regs(I2C, ADDR, ADS101X_CONF_ADDR, &regs, 2, 0);
 
     /* Set up window mode */
     if (low_limit != 0) {
@@ -208,7 +211,7 @@ int ads101x_set_alert_parameters(const ads101x_alert_t *dev,
         /* Disable window mode */
         regs[1] &= ~ADS101X_CONF_COMP_MODE_WIND;
     }
-    i2c_write_regs(I2C, ADDR, ADS101X_CONF_ADDR, &regs, 2);
+    i2c_write_regs(I2C, ADDR, ADS101X_CONF_ADDR, &regs, 2, 0);
 
     i2c_release(I2C);
 

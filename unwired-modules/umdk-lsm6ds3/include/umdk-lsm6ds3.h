@@ -20,7 +20,7 @@
 
 #include "unwds-common.h"
 
-#define UMDK_LSM6DS3_I2C I2C_1
+#define UMDK_LSM6DS3_I2C        (1)
 
 #define UMDK_LSM6DS3_STACK_SIZE 1024
 

@@ -29,7 +29,7 @@
 static int fxos8700_read_regs(const fxos8700_t* dev, uint8_t reg, uint8_t* data, size_t len)
 {
     i2c_acquire(dev->p.i2c);
-    if (i2c_read_regs(dev->p.i2c, dev->p.addr, reg, (char*) data, len) <= 0) {
+    if (i2c_read_regs(dev->p.i2c, dev->p.addr, reg, (char*) data, len, 0) <= 0) {
         DEBUG("[fxos8700] Can't read register 0x%x\n", reg);
         i2c_release(dev->p.i2c);
         return FXOS8700_BUSERR;
@@ -42,7 +42,7 @@ static int fxos8700_read_regs(const fxos8700_t* dev, uint8_t reg, uint8_t* data,
 static int fxos8700_write_regs(const fxos8700_t* dev, uint8_t reg, uint8_t* data, size_t len)
 {
     i2c_acquire(dev->p.i2c);
-    if (i2c_write_regs(dev->p.i2c, dev->p.addr, reg, (char*) data, len) <= 0) {
+    if (i2c_write_regs(dev->p.i2c, dev->p.addr, reg, (char*) data, len, 0) <= 0) {
         DEBUG("[fxos8700] Can't write to register 0x%x\n", reg);
         i2c_release(dev->p.i2c);
         return FXOS8700_BUSERR;
@@ -72,7 +72,7 @@ int fxos8700_init(fxos8700_t* dev, const fxos8700_params_t *params)
         return FXOS8700_NOBUS;
     }
 
-    if (i2c_read_regs(dev->p.i2c, dev->p.addr, FXOS8700_REG_WHO_AM_I, &config, 1) <= 0) {
+    if (i2c_read_regs(dev->p.i2c, dev->p.addr, FXOS8700_REG_WHO_AM_I, &config, 1, 0) <= 0) {
         i2c_release(dev->p.i2c);
         DEBUG("[fxos8700] Could not read WHOAMI\n");
         return FXOS8700_NOBUS;

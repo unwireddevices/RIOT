@@ -66,12 +66,13 @@ int srf02_init(srf02_t *dev, i2c_t i2c, uint8_t addr)
     /* Acquire exclusive access to the bus. */
     i2c_acquire(dev->i2c);
     /* initialize i2c interface */
-    if (i2c_init_master(dev->i2c, BUS_SPEED) < 0) {
-        DEBUG("[srf02] error initializing I2C bus\n");
-        return -1;
-    }
+    // if (i2c_init_master(dev->i2c, BUS_SPEED) < 0) {
+    //     DEBUG("[srf02] error initializing I2C bus\n");
+    //     return -1;
+    // }
+    i2c_init(dev->i2c);
     /* try to read the software revision (read the CMD reg) from the device */
-    i2c_read_reg(i2c, dev->addr, REG_CMD, &rev);
+    i2c_read_reg(i2c, dev->addr, REG_CMD, &rev, 0);
     if (rev == 0 || rev == 255) {
         i2c_release(dev->i2c);
         DEBUG("[srf02] error reading the devices software revision\n");
@@ -91,7 +92,7 @@ void srf02_trigger(const srf02_t *dev, srf02_mode_t mode)
     /* trigger a new measurement by writing the mode to the CMD register */
     DEBUG("[srf02] trigger new reading\n");
     i2c_acquire(dev->i2c);
-    i2c_write_reg(dev->i2c, dev->addr, REG_CMD, mode);
+    i2c_write_reg(dev->i2c, dev->addr, REG_CMD, mode, 0);
     i2c_release(dev->i2c);
 }
 
@@ -101,7 +102,7 @@ uint16_t srf02_read(const srf02_t *dev)
 
     /* read the results */
     i2c_acquire(dev->i2c);
-    i2c_read_regs(dev->i2c, dev->addr, REG_HIGH, res, 2);
+    i2c_read_regs(dev->i2c, dev->addr, REG_HIGH, res, 2, 0);
     i2c_release(dev->i2c);
     DEBUG("[srf02] result - high: 0x%02x low: 0x%02x\n", res[0], res[1]);
 
@@ -127,9 +128,9 @@ void srf02_set_addr(srf02_t *dev, uint8_t new_addr)
     DEBUG("[srf02] reprogramming device address to 0x%02x\n", (int)new_addr);
 
     /* write the new address, for this we need to follow a certain sequence */
-    i2c_write_reg(dev->i2c, dev->addr, REG_CMD, CMD_ADDR_SEQ1);
-    i2c_write_reg(dev->i2c, dev->addr, REG_CMD, CMD_ADDR_SEQ2);
-    i2c_write_reg(dev->i2c, dev->addr, REG_CMD, CMD_ADDR_SEQ3);
+    i2c_write_reg(dev->i2c, dev->addr, REG_CMD, CMD_ADDR_SEQ1, 0);
+    i2c_write_reg(dev->i2c, dev->addr, REG_CMD, CMD_ADDR_SEQ2, 0);
+    i2c_write_reg(dev->i2c, dev->addr, REG_CMD, CMD_ADDR_SEQ3, 0);
     i2c_write_reg(dev->i2c, dev->addr, REG_CMD, new_addr);
     dev->addr = (new_addr >> 1);
 

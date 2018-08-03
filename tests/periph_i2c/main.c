@@ -106,7 +106,7 @@ int cmd_write(int argc, char **argv)
 
     if (length == 1) {
         printf("i2c_write_byte(I2C_%i, 0x%02x, 0x%02x)\n", i2c_dev, addr, data[0]);
-        res = i2c_write_byte(i2c_dev, addr, data[0]);
+        res = i2c_write_byte(i2c_dev, addr, data[0], 0);
     }
     else {
         printf("i2c_write_bytes(I2C_%i, 0x%02x, [", i2c_dev, addr);
@@ -114,7 +114,7 @@ int cmd_write(int argc, char **argv)
             printf(", 0x%02x", data[i]);
         }
         puts("])");
-        res = i2c_write_bytes(i2c_dev, addr, data, length);
+        res = i2c_write_bytes(i2c_dev, addr, data, length, 0);
     }
 
     if (res < 0) {
@@ -153,7 +153,7 @@ int cmd_write_reg(int argc, char **argv)
     if (length == 1) {
         printf("i2c_write_reg(I2C_%i, 0x%02x, 0x%02x, 0x%02x)\n",
                i2c_dev, addr, reg, data[0]);
-        res = i2c_write_reg(i2c_dev, addr, reg, data[0]);
+        res = i2c_write_reg(i2c_dev, addr, reg, data[0], 0);
     }
     else {
         printf("i2c_write_regs(I2C_%i, 0x%02x, 0x%02x, [", i2c_dev, addr, reg);
@@ -161,7 +161,7 @@ int cmd_write_reg(int argc, char **argv)
             printf("0x%02x, ", data[i]);
         }
         puts("])");
-        res = i2c_write_regs(i2c_dev, addr, reg, data, length);
+        res = i2c_write_regs(i2c_dev, addr, reg, data, length, 0);
     }
 
     if (res < 1) {
@@ -200,11 +200,11 @@ int cmd_read(int argc, char **argv)
     }
     else if (length == 1) {
         printf("i2c_read_byte(I2C_%i, 0x%02x)\n", i2c_dev, addr);
-        res = i2c_read_byte(i2c_dev, addr, data);
+        res = i2c_read_byte(i2c_dev, addr, data, 0);
     }
     else {
         printf("i2c_read_bytes(I2C_%i, 0x%02x, %i)\n", i2c_dev, addr, length);
-        res = i2c_read_bytes(i2c_dev, addr, data, length);
+        res = i2c_read_bytes(i2c_dev, addr, data, length, 0);
     }
 
     if (res < 1) {
@@ -248,11 +248,11 @@ int cmd_read_reg(int argc, char **argv)
     }
     else if (length == 1) {
         printf("i2c_read_reg(I2C_%i, 0x%02x, 0x%02x)\n", i2c_dev, addr, reg);
-        res = i2c_read_reg(i2c_dev, addr, reg, data);
+        res = i2c_read_reg(i2c_dev, addr, reg, data, 0);
     }
     else {
         printf("i2c_read_regs(I2C_%i, 0x%02x, 0x%02x, %i)\n", i2c_dev, addr, reg, length);
-        res = i2c_read_regs(i2c_dev, addr, reg, data, length);
+        res = i2c_read_regs(i2c_dev, addr, reg, data, length, 0);
     }
 
     if (res < 1) {

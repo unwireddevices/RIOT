@@ -34,7 +34,7 @@ static bool read_register(lsm6ds3_t *dev, uint8_t *result, uint8_t reg)
 {
     i2c_acquire(dev->params.i2c);
 
-    if (i2c_read_reg(dev->params.i2c, dev->params.i2c_addr, reg, (char *) result) < 0) {
+    if (i2c_read_reg(dev->params.i2c, dev->params.i2c_addr, reg, (char *) result, 0) < 0) {
         i2c_release(dev->params.i2c);
         return false;
     }
@@ -48,7 +48,7 @@ bool read_register_int16(lsm6ds3_t *dev, int16_t *result, uint8_t reg)
 {
     i2c_acquire(dev->params.i2c);
 
-    if (i2c_read_regs(dev->params.i2c, dev->params.i2c_addr, reg, (void *) result, 2) < 0) {
+    if (i2c_read_regs(dev->params.i2c, dev->params.i2c_addr, reg, (void *) result, 2, 0) < 0) {
         i2c_release(dev->params.i2c);
         return false;
     }
@@ -62,7 +62,7 @@ bool write_register(lsm6ds3_t *dev, uint8_t reg, uint8_t data)
 {
     i2c_acquire(dev->params.i2c);
 
-    if (i2c_write_reg(dev->params.i2c, dev->params.i2c_addr, reg, data) < 0) {
+    if (i2c_write_reg(dev->params.i2c, dev->params.i2c_addr, reg, data, 0) < 0) {
         i2c_release(dev->params.i2c);
         return false;
     }
@@ -144,10 +144,11 @@ int lsm6ds3_init(lsm6ds3_t *dev)
     
     /* Initialize I2C bus */
     i2c_acquire(dev->params.i2c);
-    if (i2c_init_master(dev->params.i2c, I2C_SPEED_NORMAL) < 0) {
-        i2c_release(dev->params.i2c);
-        return -1;
-    }
+    // if (i2c_init_master(dev->params.i2c, I2C_SPEED_NORMAL) < 0) {
+    //     i2c_release(dev->params.i2c);
+    //     return -1;
+    // }
+    i2c_init(dev->params.i2c);
     i2c_release(dev->params.i2c);
     
     /* Check device ID */

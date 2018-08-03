@@ -83,7 +83,7 @@ int adcxx1c_read_raw(const adcxx1c_t *dev, int16_t *raw)
     i2c_acquire(I2C);
     status = i2c_read_regs(I2C, ADDR, ADCXX1C_CONV_RES_ADDR, buf, 2, 0);
     i2c_release(I2C);
-    if (status < 2) {
+    if (status < 0) {
         return ADCXX1C_NOI2C;
     }
 

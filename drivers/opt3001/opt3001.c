@@ -52,7 +52,7 @@ int opt3001_init(opt3001_t *dev)
     // }
     i2c_init(dev->i2c);
 
-    if ( i2c_read_regs(dev->i2c, OPT3001_ADDRESS, OPT3001_REG_ID, (char *)&chipid, 2, 0) != 0) {
+    if (i2c_read_regs(dev->i2c, OPT3001_ADDRESS, OPT3001_REG_ID, (char *)&chipid, 2, 0) < 0) {
         puts("[opt3001 driver] Error: sensor not found");
         i2c_release(dev->i2c);
         return -1;

@@ -1082,6 +1082,10 @@ typedef struct
 #define PACKAGE_BASE          ((uint32_t)0x1FFF7500U)        /*!< Package data register base address     */
 #define UID_BASE              ((uint32_t)0x1FFF7590U)        /*!< Unique device ID register base address */
 #define FLASHSIZE_BASE        ((uint32_t)0x1FFF75E0U)        /*!< Flash size data register base address  */
+
+#define FLASH_KEY1            ((uint32_t)0x45670123U)
+#define FLASH_KEY2            ((uint32_t)0xCDEF89ABU)
+
 /**
   * @}
   */

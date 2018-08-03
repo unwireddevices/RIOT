@@ -229,7 +229,7 @@ static int read_calibration_data(bmx280_t* dev)
     memset(buffer, 0, sizeof(buffer));
     nr_bytes = i2c_read_regs(dev->params.i2c_dev, dev->params.i2c_addr, offset,
                              buffer, nr_bytes_to_read, 0);
-    if (nr_bytes != nr_bytes_to_read) {
+    if (nr_bytes < 0) {
         LOG_ERROR("Unable to read calibration data\n");
         return -1;
     }
@@ -323,7 +323,7 @@ static int do_measurement(const bmx280_t* dev)
 
     nr_bytes = i2c_read_regs(dev->params.i2c_dev, dev->params.i2c_addr,
                              offset, measurement_regs, nr_bytes_to_read, 0);
-    if (nr_bytes != nr_bytes_to_read) {
+    if (nr_bytes < 0 ) {
         LOG_ERROR("Unable to read temperature data\n");
         return -1;
     }

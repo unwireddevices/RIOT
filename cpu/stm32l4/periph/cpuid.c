@@ -31,14 +31,9 @@
 
 void cpuid_get(void *id)
 {
-    (void)id;
-    // uint32_t cpuid_address;
+    uint32_t cpuid_address;
     
-    // if ((ST_DEV_ID == STM32L1_DEV_ID_CAT1) || (ST_DEV_ID == STM32L1_DEV_ID_CAT2)) {
-    //     cpuid_address = STM32L1_CPUID_ADDR_CAT12;
-    // } else {
-    //     cpuid_address = STM32L1_CPUID_ADDR_CAT3456;
-    // }
+    cpuid_address = CPUID_ADDR;
     
-    // memcpy(id, (void *)cpuid_address, CPUID_LEN);
+    memcpy(id, (void *)cpuid_address, CPUID_LEN);
 }

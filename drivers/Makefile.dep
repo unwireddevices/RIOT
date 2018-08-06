@@ -208,6 +208,16 @@ ifneq (,$(filter lis2dh12%,$(USEMODULE)))
   USEMODULE += lis2dh12
 endif
 
+ifneq (,$(filter lis2hh12$,$(USEMODULE)))
+  ifneq(,$(filter lis2hh12_i2c,$(USEMODULE)))
+    FEATURE_REQUIRED += periph_i2c
+    FEATURE_REQUIRED += periph_gpio
+  esle
+    FEATURE_REQUIRED += periph_spi
+  endif
+  USEMODULE += lis2hh12
+endif
+
 ifneq (,$(filter lis3dh,$(USEMODULE)))
   FEATURES_REQUIRED += periph_gpio
   FEATURES_REQUIRED += periph_spi

@@ -19,7 +19,7 @@
  */
 
 #include "saul.h"
-#include "lis2dh12.h"
+#include "lis2hh12.h"
 
 static int read_accelerometer(const void *dev, phydat_t *res)
 {

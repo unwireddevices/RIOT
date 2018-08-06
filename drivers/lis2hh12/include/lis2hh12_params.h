@@ -33,9 +33,23 @@ extern "C" {
  * @name    Set default configuration parameters for LIS2HH12 devices
  * @{
  */
+#define LIS2HH12_ACC_SAD0L          (0x10)
+#define LIS2HH12_ACC_SAD0H          (0x01)
+#define LIS2HH12_ACC_I2C_SADROOT    (0x07)
+
+/* I2C address if acc SA0 pin to GND */
+#define LIS2HH12_ACC_I2C_SAD_L      ((LIS2HH12_ACC_I2C_SADROOT << 2)| \
+                                      LIS2HH12_ACC_SAD0L)
+
+/* I2C address if acc SA0 pin to Vdd */
+#define LIS2HH12_ACC_I2C_SAD_H      ((LIS2HH12_ACC_I2C_SADROOT << 2)| \
+                                      LIS2HH12_ACC_SAD0H)
 
 #ifndef LIS2HH12_PARAM_I2C
 #define LIS2HH12_PARAM_I2C          (I2C_DEV(0))
+#endif
+#ifndef LIS2HH12_PARAM_ADDR
+#define LIS2HH12_PARAM_ADDR         (LIS2HH12_ACC_I2C_SAD_L)
 #endif
 #ifndef LIS2HH12_PARAM_SCALE
 #define LIS2HH12_PARAM_SCALE        LIS2HH12_SCALE_2G
@@ -45,8 +59,9 @@ extern "C" {
 #endif
 
 #ifndef LIS2HH12_PARAMS
-#define LIS2HH12_PARAMS             { .i2c = LIS2HH12_PARAM_I2C,     \
-                                      .odr = LIS2HH12_RATE_100HZ, \
+#define LIS2HH12_PARAMS             { .i2c = LIS2HH12_PARAM_I2C,      \
+                                      .i2c_addr = LIS2HH12_PARAM_ADDR \
+                                      .odr = LIS2HH12_RATE_100HZ,     \
                                       .scale  = LIS2HH12_SCALE_2G }
 #endif
 

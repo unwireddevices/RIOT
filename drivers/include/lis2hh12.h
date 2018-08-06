@@ -78,6 +78,7 @@ typedef enum {
  */
 typedef struct {
     i2c_t i2c;                      /**< I2C device                */
+    uint8_t i2c_addr;               /**< I2C address               */
     lis2hh12_odr_t odr;             /**< Output data range         */
     lis2dh12_scale_t scale;         /**< sampling sensitivity used */
 } lis2hh12_params_t;

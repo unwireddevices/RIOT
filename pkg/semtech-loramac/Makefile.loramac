@@ -1,7 +1,7 @@
 DIRS += src/mac
 DIRS += src/mac/region
 DIRS += src/system/crypto
-DIRS += src/boards/mcu/stm32
+DIRS += src/boards/mcu/
 
 INCLUDES += -I$(PKGDIRBASE)/semtech-loramac/src/mac \
             -I$(PKGDIRBASE)/semtech-loramac/src/boards/mcu/stm32 \

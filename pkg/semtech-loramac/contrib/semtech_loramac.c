@@ -122,7 +122,6 @@ static bool _semtech_loramac_send(semtech_loramac_t *mac,
             mcpsReq.Req.Confirmed.fPort = mac->port;
             mcpsReq.Req.Confirmed.fBuffer = payload;
             mcpsReq.Req.Confirmed.fBufferSize = len;
-            mcpsReq.Req.Confirmed.NbTrials = 3;
             mcpsReq.Req.Confirmed.Datarate = (int8_t)dr;
         }
     }
@@ -157,8 +156,7 @@ static void mcps_confirm(McpsConfirm_t *confirm)
             case MCPS_CONFIRMED:
                 /* Check Datarate
                    Check TxPower
-                   Check AckReceived
-                   Check NbTrials */
+                   Check AckReceived */
                 DEBUG("[semtech-loramac] MCPS confirm event CONFIRMED\n");
                 break;
 
@@ -349,7 +347,7 @@ static void _join_otaa(semtech_loramac_t *mac)
     mlmeReq.Req.Join.DevEui = mac->deveui;
     mlmeReq.Req.Join.AppEui = mac->appeui;
     mlmeReq.Req.Join.AppKey = mac->appkey;
-    mlmeReq.Req.Join.NbTrials = LORAWAN_MAX_JOIN_RETRIES;
+    mlmeReq.Req.Join.Datarate = mac->datarate;
     LoRaMacMlmeRequest(&mlmeReq);
     mutex_unlock(&mac->lock);
 }
@@ -483,6 +481,14 @@ static void _semtech_loramac_event_cb(netdev_t *dev, netdev_event_t event, void 
         case NETDEV_EVENT_CAD_DONE:
             DEBUG("[semtech-loramac] test: CAD done\n");
             semtech_loramac_radio_events.CadDone(((sx127x_t *)dev)->_internal.is_last_cad_success);
+            break;
+            
+        case NETDEV_EVENT_CAD_DETECTED:
+            DEBUG("[semtech-loramac] CAD detected\n");
+            break;
+            
+        case NETDEV_EVENT_VALID_HEADER:
+            DEBUG("[semtech-loramac] valid header received");
             break;
 
         default:

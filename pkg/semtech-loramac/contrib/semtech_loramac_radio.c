@@ -179,22 +179,22 @@ int16_t SX127XReadRssi(RadioModems_t modem)
     return sx127x_read_rssi(&sx127x);
 }
 
-void SX127XWrite(uint8_t addr, uint8_t data)
+void SX127XWrite(uint16_t addr, uint8_t data)
 {
     sx127x_reg_write(&sx127x, addr, data);
 }
 
-uint8_t SX127XRead(uint8_t addr)
+uint8_t SX127XRead(uint16_t addr)
 {
     return sx127x_reg_read(&sx127x, addr);
 }
 
-void SX127XWriteBuffer(uint8_t addr, uint8_t *buffer, uint8_t size)
+void SX127XWriteBuffer(uint16_t addr, uint8_t *buffer, uint8_t size)
 {
     sx127x_reg_write_burst(&sx127x, addr, buffer, size);
 }
 
-void SX127XReadBuffer(uint8_t addr, uint8_t *buffer, uint8_t size)
+void SX127XReadBuffer(uint16_t addr, uint8_t *buffer, uint8_t size)
 {
     sx127x_reg_read_burst(&sx127x, addr, buffer, size);
 }
@@ -232,6 +232,12 @@ void SX127XSetPublicNetwork(bool enable)
     }
 }
 
+uint32_t SX127XGetWakeupTime(void)
+{
+    /* 1 ms board wakeup time */
+    return 1;
+}
+
 /**
  * LoRa function callbacks
  */
@@ -259,5 +265,9 @@ const struct Radio_s Radio =
     SX127XWriteBuffer,
     SX127XReadBuffer,
     SX127XSetMaxPayloadLength,
-    SX127XSetPublicNetwork
+    SX127XSetPublicNetwork,
+    SX127XGetWakeupTime,
+    NULL, /* SX126x only */
+    NULL, /* SX126x only */
+    NULL, /* SX126x only */
 };

@@ -110,6 +110,7 @@ typedef struct {
     uint8_t caller_pid;                          /**< pid of caller thread */
     uint8_t port;                                /**< application TX port */
     uint8_t cnf;                                 /**< enable/disable confirmable messages */
+    uint8_t datarate;                            /**< default datarate */
     uint8_t deveui[LORAMAC_DEVEUI_LEN];          /**< device EUI */
     uint8_t appeui[LORAMAC_APPEUI_LEN];          /**< application EUI */
     uint8_t appkey[LORAMAC_APPKEY_LEN];          /**< application key */

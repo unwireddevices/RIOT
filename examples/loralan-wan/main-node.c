@@ -176,7 +176,6 @@ static void *receiver_thread(void *arg) {
     
     while (1) {
         msg_receive(&msg);
-        /*
         int res = semtech_loramac_recv(ls);
         
         switch (res) {
@@ -193,7 +192,6 @@ static void *receiver_thread(void *arg) {
                 puts("[LoRa] unknown response");
                 break;
         }
-        */
     }
     
     return NULL;

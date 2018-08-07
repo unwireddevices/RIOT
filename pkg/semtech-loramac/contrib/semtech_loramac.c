@@ -42,7 +42,7 @@
 #include "LoRaMac.h"
 #include "region/Region.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 #define LORAWAN_MAX_JOIN_RETRIES                    (3U)
@@ -220,6 +220,22 @@ static void mcps_indication(McpsIndication_t *indication)
     msg_send(&msg, semtech_loramac_pid);
 }
 
+/*MLME-Indication event function */
+static void mlme_indication( MlmeIndication_t *mlmeIndication )
+{
+    switch( mlmeIndication->MlmeIndication )
+    {
+        case MLME_SCHEDULE_UPLINK:
+        {   // The MAC signals that we shall provide an uplink as soon as possible
+            DEBUG("[semtech-loramac] Mlme schedule uplink event");
+            // OnTxNextPacketTimerEvent( );
+            break;
+        }
+        default:
+            break;
+    }
+}
+
 /*MLME-Confirm event function */
 static void mlme_confirm(MlmeConfirm_t *confirm)
 {
@@ -266,45 +282,53 @@ void _init_loramac(semtech_loramac_t *mac,
     primitives->MacMcpsConfirm = mcps_confirm;
     primitives->MacMcpsIndication = mcps_indication;
     primitives->MacMlmeConfirm = mlme_confirm;
+    primitives->MacMlmeIndication = mlme_indication;
+    
+    int result;
+    
 #if defined(REGION_AS923)
     DEBUG("[semtech-loramac] initialize loramac for AS923 region\n");
-    LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
+    result = LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
                           LORAMAC_REGION_AS923);
 #elif defined(REGION_AU915)
     DEBUG("[semtech-loramac] initialize loramac for AU915 region\n");
-    LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
+    result = LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
                           LORAMAC_REGION_AU915);
 #elif defined(REGION_CN779)
     DEBUG("[semtech-loramac] initialize loramac for CN779 region\n");
-    LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
+    result = LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
                           LORAMAC_REGION_CN779);
 #elif defined(REGION_EU868)
     DEBUG("[semtech-loramac] initialize loramac for EU868 region\n");
-    LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
+    result = LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
                           LORAMAC_REGION_EU868);
 #elif defined(REGION_IN865)
     DEBUG("[semtech-loramac] initialize loramac for IN865 region\n");
-    LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
+    result = LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
                           LORAMAC_REGION_IN865);
 #elif defined(REGION_KR920)
     DEBUG("[semtech-loramac] initialize loramac for KR920 region\n");
-    LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
+    result = LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
                           LORAMAC_REGION_KR920);
 #elif defined(REGION_US915)
     DEBUG("[semtech-loramac] initialize loramac for US915 region\n");
-    LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
+    result = LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
                           LORAMAC_REGION_US915);
 #elif defined(REGION_US915_HYBRID)
     DEBUG("[semtech-loramac] initialize loramac for US915 hybrid region\n");
-    LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
+    result = LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
                           LORAMAC_REGION_US915_HYBRID);
 #elif defined(REGION_RU864)
     DEBUG("[semtech-loramac] initialize loramac for RU864 region\n");
-    LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
+    result = LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
                           LORAMAC_REGION_RU864);
 #else
 #error "Please define a region in the compiler options."
 #endif
+    if (result != LORAMAC_STATUS_OK) {
+        DEBUG("[semtech-loramac] initialization failed with code %d\n", result);
+    }
+
     mutex_unlock(&mac->lock);
 
 #if defined(REGION_EU868) && USE_SEMTECH_DEFAULT_CHANNEL_LINEUP

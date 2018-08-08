@@ -27,8 +27,8 @@
 #define MASK_INT16_MSB     (0x8000)
 #define MASK_INT16_NMSB    (0x7FFF)
 
-#define TEMP_DIVIDER       (16)
-#define TEMP_OFFSET        (25)
+#define TEMP_DIVIDER        (8)
+#define TEMP_OFFSET         (25)
 
 #define GAUSS_DIVIDER      (1000)
 
@@ -102,31 +102,43 @@ void lis3mdl_read_mag(const lis3mdl_t *dev, lis3mdl_3d_data_t *data)
 
     i2c_acquire(DEV_I2C);
 
-    i2c_read_regs(DEV_I2C, DEV_ADDR, LIS3MDL_OUT_X_L_REG, &tmp[0], 2, 0);
+    i2c_read_reg(DEV_I2C, DEV_ADDR, LIS3MDL_OUT_X_L_REG, &tmp[0], 0);
+    i2c_read_reg(DEV_I2C, DEV_ADDR, LIS3MDL_OUT_X_H_REG, &tmp[1], 0);
+
+    DEBUG("LIS3MDL: OUT_X %02X %02X\n", tmp[1], tmp[0]);
+
     int16_t x = ((tmp[1] << 8) | tmp[0]);
     x = _twos_complement(x);
 
-    i2c_read_regs(DEV_I2C, DEV_ADDR, LIS3MDL_OUT_Y_L_REG, &tmp[0], 2, 0);
+    i2c_read_reg(DEV_I2C, DEV_ADDR, LIS3MDL_OUT_Y_L_REG, &tmp[0], 0);
+    i2c_read_reg(DEV_I2C, DEV_ADDR, LIS3MDL_OUT_Y_H_REG, &tmp[1], 0);
+
+    DEBUG("LIS3MDL: OUT_X %02X %02X\n", tmp[1], tmp[0]);
+
     int16_t y = ((tmp[1] << 8) | tmp[0]);
     y = _twos_complement(y);
 
-    i2c_read_regs(DEV_I2C, DEV_ADDR, LIS3MDL_OUT_Z_L_REG, &tmp[0], 2, 0);
+    i2c_read_reg(DEV_I2C, DEV_ADDR, LIS3MDL_OUT_Z_L_REG, &tmp[0], 0);
+    i2c_read_reg(DEV_I2C, DEV_ADDR, LIS3MDL_OUT_Z_H_REG, &tmp[1], 0);
+
+    DEBUG("LIS3MDL: OUT_Z %02X %02X\n", tmp[1], tmp[0]);
+
     int16_t z = ((tmp[1] << 8) | tmp[0]);
     z = _twos_complement(z);
 
     int32_t scale = 0;
     switch (dev->params.scale) {
         case LIS3MDL_SCALE_4G:
-            scale = 8192;
+            scale = 6842;
             break;
         case LIS3MDL_SCALE_8G:
-            scale = 4096;
+            scale = 3421;
             break;
         case LIS3MDL_SCALE_12G:
-            scale = 2731;
+            scale = 2281;
             break;
         case LIS3MDL_SCALE_16G:
-            scale = 2048;
+            scale = 1711;
             break;
         default:
             scale = 1;
@@ -142,9 +154,14 @@ void lis3mdl_read_mag(const lis3mdl_t *dev, lis3mdl_3d_data_t *data)
 
 void lis3mdl_read_temp(const lis3mdl_t *dev, int16_t *value)
 {
+    uint8_t tmp[2] = {0, 0};
+
     i2c_acquire(DEV_I2C);
-    i2c_read_regs(DEV_I2C, DEV_ADDR, LIS3MDL_TEMP_OUT_L_REG, (uint8_t*)value, 2, 0);
+    i2c_read_regs(DEV_I2C, DEV_ADDR, LIS3MDL_TEMP_OUT_L_REG, &tmp[0], 2, 0);
+    i2c_read_regs(DEV_I2C, DEV_ADDR, LIS3MDL_TEMP_OUT_H_REG, &tmp[1], 2, 0);
     i2c_release(DEV_I2C);
+
+    *value = ((tmp[1] << 8) | tmp[0]);
 
     *value = _twos_complement(*value);
 

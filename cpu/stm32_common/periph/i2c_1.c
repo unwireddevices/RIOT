@@ -420,7 +420,7 @@ static inline int _read(I2C_TypeDef *i2c, uint8_t *data, size_t length)
 
         /* read data from data register */
         data[i] = i2c->RXDR;
-        DEBUG("[i2c] read: Read byte %i from DR\n", i);
+        DEBUG("[i2c] read: Read byte %i from DR [%02X]\n", i, data[i]);
     }
 
     int ret = _check_bus(i2c);

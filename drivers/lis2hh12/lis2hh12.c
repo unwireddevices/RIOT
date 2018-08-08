@@ -20,7 +20,7 @@
 #include "lis2hh12.h"
 #include "include/lis2hh12_internal.h"
 
-#define ENABLE_DEBUG        (1)
+#define ENABLE_DEBUG        (0)
 #include "debug.h"
 
 
@@ -68,7 +68,7 @@ int lis2hh12_init(lis2hh12_t *dev, const lis2hh12_params_t *params)
         return LIS2HH12_NOBUS;
     }
     
-    tmp = ( //LIS2HH12_MASK_CTRL1_BDU_EN |    /* enable block data update (registers not updated until MSB and LSB read) */
+    tmp = ( LIS2HH12_MASK_CTRL1_BDU_EN |    /* enable block data update (registers not updated until MSB and LSB read) */
             LIS2HH12_MASK_CTRL1_XYZ_EN |    /* enable  x-, y, z-axis  */
             dev->params.odr);               /* set output data rate */
     
@@ -99,14 +99,19 @@ int lis2hh12_read_xyz(const lis2hh12_t *dev, lis2hh12_data_t *data)
 
     i2c_acquire(DEV_I2C);
 
-    if (i2c_read_regs(DEV_I2C, DEV_ADDR, LIS2HH12_OUT_X_L, &tmp[0], 2, 0) < 0)
+    if (i2c_read_reg(DEV_I2C, DEV_ADDR, LIS2HH12_OUT_X_L, &tmp[0], 0) < 0)
         return LIS2HH12_NOBUS;
+    if (i2c_read_reg(DEV_I2C, DEV_ADDR, LIS2HH12_OUT_X_H, &tmp[1], 0) < 0)
+        return LIS2HH12_NOBUS;
+    DEBUG("LIS2HH12: LIS2HH12_OUT_X %02X %02X\n", tmp[1], tmp[0]);
 
     int16_t x = ((tmp[1] << 8) | tmp[0]);
     DEBUG("LIS2HH12: LIS2HH12_OUT_X %d\n", x);
     x = _twos_complement(x);
 
-    if(i2c_read_regs(DEV_I2C, DEV_ADDR, LIS2HH12_OUT_Y_L, &tmp[0], 2, 0) < 0)
+    if (i2c_read_reg(DEV_I2C, DEV_ADDR, LIS2HH12_OUT_Y_L, &tmp[0], 0) < 0)
+        return LIS2HH12_NOBUS;
+    if (i2c_read_reg(DEV_I2C, DEV_ADDR, LIS2HH12_OUT_Y_H, &tmp[1], 0) < 0)
         return LIS2HH12_NOBUS;
 
     int16_t y = ((tmp[1] << 8) | tmp[0]);
@@ -114,7 +119,9 @@ int lis2hh12_read_xyz(const lis2hh12_t *dev, lis2hh12_data_t *data)
     y = _twos_complement(y);
 
 
-    if (i2c_read_regs(DEV_I2C, DEV_ADDR, LIS2HH12_OUT_Z_L, &tmp[0], 2, 0) < 0)
+    if (i2c_read_reg(DEV_I2C, DEV_ADDR, LIS2HH12_OUT_Z_L, &tmp[0], 0) < 0)
+        return LIS2HH12_NOBUS;
+    if (i2c_read_reg(DEV_I2C, DEV_ADDR, LIS2HH12_OUT_Z_H, &tmp[1], 0) < 0)
         return LIS2HH12_NOBUS;
 
     int16_t z = ((tmp[1] << 8) | tmp[0]);
@@ -148,11 +155,19 @@ int lis2hh12_read_xyz(const lis2hh12_t *dev, lis2hh12_data_t *data)
 
 int lis2hh12_read_temp(const lis2hh12_t *dev, int16_t *value)
 {
+    uint8_t tmp[2] = {0, 0};
+
     i2c_acquire(DEV_I2C);
     
-    if (i2c_read_regs(DEV_I2C, DEV_ADDR, LIS2HH12_TEMP_L, (uint8_t*)value, 2, 0) < 0)
+    // if (i2c_read_regs(DEV_I2C, DEV_ADDR, LIS2HH12_TEMP_L, (uint8_t*)value, 2, 0) < 0)
+    //     return LIS2HH12_NOBUS;
+    if (i2c_read_reg(DEV_I2C, DEV_ADDR, LIS2HH12_TEMP_L, &tmp[0], 0) < 0)
+        return LIS2HH12_NOBUS;
+    if (i2c_read_reg(DEV_I2C, DEV_ADDR, LIS2HH12_TEMP_H, &tmp[1], 0) < 0)
         return LIS2HH12_NOBUS;
 
+    *value = ((tmp[1] << 8) | tmp[0]);
+    DEBUG("LIS2HH12: LIS2HH12_TEMP %d\n", *value);
     i2c_release(DEV_I2C);
 
     *value = _twos_complement(*value);

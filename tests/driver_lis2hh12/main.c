@@ -25,7 +25,7 @@
 #include "lis2hh12_params.h"
 
 
-#define DELAY       (20UL * MS_PER_SEC)
+#define DELAY       (1000UL * MS_PER_SEC)
 
 /* allocate device descriptor */
 static lis2hh12_t dev;
@@ -55,7 +55,7 @@ int main(void)
         }
 
         /* print data to STDIO */
-        printf("Accelerometer [G]:\tX: %d\tY: %d\tZ: %d\n",
+        printf("Accelerometer [mG]:\tX: %d\tY: %d\tZ: %d\n",
                acc_value.x_axis,
                acc_value.y_axis,
                acc_value.z_axis);

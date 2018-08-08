@@ -47,7 +47,7 @@ extern "C" {
 #define LIS3MDL_PARAM_ODR           (LIS3MDL_ODR_10Hz)
 #endif
 #ifndef LIS3MDL_PARAM_SCALE
-#define LIS3MDL_PARAM_SCALE         (4)
+#define LIS3MDL_PARAM_SCALE         (LIS3MDL_SCALE_4G)
 #endif
 #ifndef LIS3MDL_PARAM_OPMODE
 #define LIS3MDL_PARAM_OPMODE        (LIS3MDL_OP_CONT_CONV)

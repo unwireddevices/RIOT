@@ -30,7 +30,7 @@
 
 #include "radio/radio.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 #if !defined(US_PER_MS)

@@ -224,6 +224,7 @@ int i2c_read_regs(i2c_t dev, uint16_t address, uint16_t reg, void *data,
         DEBUG("[i2c] read_regs: send start sequence\n");
         /* send start sequence and slave address */
         int ret = _start(i2c, address, 1, 0, flags);
+        DEBUG("[i2c] read_regs: retval _start() is %d\n", ret);
         if (ret < 0) {
             _stop(i2c);
             return ret;
@@ -235,6 +236,8 @@ int i2c_read_regs(i2c_t dev, uint16_t address, uint16_t reg, void *data,
     while (!(i2c->ISR & I2C_ISR_TXIS) && tick--) {
         if ((i2c->ISR & ERROR_FLAG) || !tick) {
             /* end transmission */
+            DEBUG("[i2c] read_regs: tick is %d\n", tick);
+            DEBUG("[i2c] read_regs: i2c->ISR is %ld\n", i2c->ISR);
             _stop(i2c);
             return -ENXIO;
         }

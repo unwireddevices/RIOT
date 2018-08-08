@@ -23,11 +23,19 @@
 
 static int read_accelerometer(const void *dev, phydat_t *res)
 {
-    if (lis2hh12_read((const lis2hh12_t *)dev, res->val) != LIS2HH12_OK) {
+    lis2hh12_data_t xyz;
+
+    if (lis2hh12_read_xyz((const lis2hh12_t *)dev, &xyz) != LIS2HH12_OK) {
         return 0;
     }
-    res->unit = UNIT_G;
+
+    res->val[0] = xyz.x_axis;
+    res->val[1] = xyz.y_axis;
+    res->val[2] = xyz.z_axis;
+    /* unit: milli-G */
     res->scale = -3;
+    res->unit = UNIT_G;
+
     return 3;
 }
 

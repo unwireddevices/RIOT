@@ -154,7 +154,7 @@ extern "C" {
 #define LIS2HH12_MASK_XOR               (0x10)      /**< X-axis data overrun.                  */
 #define LIS2HH12_MASK_ZYXDA             (0x08)      /**< X-, Y- and Z-axis new data available. */
 #define LIS2HH12_MASK_ZDA               (0x04)      /**< Z-axis new data available.            */
-#define LIS2HH12_MASK_YDA               (0x02)      /**< Y-axis new data available.            */
+#define LIS2HH12_MASK_XDA               (0x02)      /**< Y-axis new data available.            */
 #define LIS2HH12_MASK_YDA               (0x01)      /**< Y-axis new data available.            */
 /** @} */
 

@@ -420,6 +420,10 @@ auto_init_mpu9150();
     extern void auto_init_lis2dh12(void);
     auto_init_lis2dh12();
 #endif
+#ifdef MODULE_LIS2HH12
+    extern void auto_init_lis2hh12(void);
+    auto_init_lis2hh12();
+#endif
 #ifdef MODULE_SI114X
     extern void auto_init_si114x(void);
     auto_init_si114x();

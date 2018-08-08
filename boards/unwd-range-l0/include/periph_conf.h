@@ -91,18 +91,18 @@ static const timer_conf_t timer_config[] = {
  * @brief UART configuration
  */
 static const uart_conf_t uart_config[] = {
-    {
-        .dev      = USART1,
-        .rcc_mask = RCC_APB2ENR_USART1EN,
-        .rx_pin   = GPIO_PIN(PORT_A, 10),
-        .tx_pin   = GPIO_PIN(PORT_A, 9),
-        .rx_mode  = GPIO_IN_PU,
-        .tx_mode  = GPIO_OUT,
-        .rx_af    = GPIO_AF4,
-        .tx_af    = GPIO_AF4,
-        .bus      = APB2,
-        .irqn     = USART1_IRQn
-    },
+    // {
+    //     .dev      = USART1,
+    //     .rcc_mask = RCC_APB2ENR_USART1EN,
+    //     .rx_pin   = GPIO_PIN(PORT_A, 10),
+    //     .tx_pin   = GPIO_PIN(PORT_A, 9),
+    //     .rx_mode  = GPIO_IN_PU,
+    //     .tx_mode  = GPIO_OUT,
+    //     .rx_af    = GPIO_AF4,
+    //     .tx_af    = GPIO_AF4,
+    //     .bus      = APB2,
+    //     .irqn     = USART1_IRQn
+    // },
     {
         .dev      = USART2,
         .rcc_mask = RCC_APB1ENR_USART2EN,
@@ -204,10 +204,10 @@ static const i2c_conf_t i2c_config[] = {
     {
         .dev            = I2C1,
         .speed          = I2C_SPEED_NORMAL,
-        .scl_pin        = GPIO_PIN(PORT_B,  8),
-        .sda_pin        = GPIO_PIN(PORT_B,  9),
-        .scl_af         = GPIO_AF4,
-        .sda_af         = GPIO_AF4,
+        .scl_pin        = GPIO_PIN(PORT_B,  6),
+        .sda_pin        = GPIO_PIN(PORT_B,  7),
+        .scl_af         = GPIO_AF1,
+        .sda_af         = GPIO_AF1,
         .bus            = APB1,
         .rcc_mask       = RCC_APB1ENR_I2C1EN,
         .irqn           = I2C1_IRQn

@@ -7,7 +7,7 @@
  */
 
 /**
- * @defgroup    drivers_lis2dh12 LIS2HH12 Accelerometer
+ * @defgroup    drivers_lis2hh12 LIS2HH12 Accelerometer
  * @ingroup     drivers_sensors
  * @brief       Driver for the STM LIS2HH12 accelerometer
  *
@@ -39,7 +39,7 @@ extern "C" {
 
 /* SPI support is not implemented (yet), so throw an error when selected */
 #ifndef MODULE_LIS2HH12_I2C
-#error "LIS2DH12 error: SPI mode is not supported, yet."
+#error "LIS2HH12 error: SPI mode is not supported, yet."
 #endif
 
 /**
@@ -80,15 +80,15 @@ typedef struct {
     i2c_t i2c;                      /**< I2C device                */
     uint8_t i2c_addr;               /**< I2C address               */
     lis2hh12_odr_t odr;             /**< Output data range         */
-    lis2dh12_scale_t scale;         /**< sampling sensitivity used */
+    lis2hh12_scale_t scale;         /**< sampling sensitivity used */
 } lis2hh12_params_t;
 
 
 /**
- * @brief   LIS2DH12 device descriptor
+ * @brief   LIS2HH12 device descriptor
  */
 typedef struct {
-    const lis2hh12_params_t *p;     /**< device configuration */
+    lis2hh12_params_t params;     /**< device configuration */
 } lis2hh12_t;
 
 /**
@@ -106,7 +106,7 @@ enum {
 extern const saul_driver_t lis2hh12_saul_driver;
 
 /**
- * @brief   Initialize the given LIS2DH12 sensor device
+ * @brief   Initialize the given LIS2HH12 sensor device
  *
  * @param[out] dev      device descriptor
  * @param[in]  params   static device configuration

@@ -11,7 +11,7 @@
  * @{
  *
  * @file
- * @brief       Default configuration for LIS2DH12 devices
+ * @brief       Default configuration for LIS2HH12 devices
  *
  * @author      Alexander Ugorelov <alex_u@unwds.com>
  *
@@ -33,7 +33,7 @@ extern "C" {
  * @name    Set default configuration parameters for LIS2HH12 devices
  * @{
  */
-#define LIS2HH12_ACC_SAD0L          (0x10)
+#define LIS2HH12_ACC_SAD0L          (0x02)
 #define LIS2HH12_ACC_SAD0H          (0x01)
 #define LIS2HH12_ACC_I2C_SADROOT    (0x07)
 
@@ -52,17 +52,17 @@ extern "C" {
 #define LIS2HH12_PARAM_ADDR         (LIS2HH12_ACC_I2C_SAD_L)
 #endif
 #ifndef LIS2HH12_PARAM_SCALE
-#define LIS2HH12_PARAM_SCALE        LIS2HH12_SCALE_2G
+#define LIS2HH12_PARAM_SCALE        LIS2HH12_SCALE_8G
 #endif
-#ifndef LIS2HH12_PARAM_RATE
-#define LIS2HH12_PARAM_RATE         LIS2HH12_RATE_100HZ
+#ifndef LIS2HH12_PARAM_ODR
+#define LIS2HH12_PARAM_ODR          LIS2HH12_ODR_100HZ
 #endif
 
 #ifndef LIS2HH12_PARAMS
-#define LIS2HH12_PARAMS             { .i2c = LIS2HH12_PARAM_I2C,      \
-                                      .i2c_addr = LIS2HH12_PARAM_ADDR \
-                                      .odr = LIS2HH12_RATE_100HZ,     \
-                                      .scale  = LIS2HH12_SCALE_2G }
+#define LIS2HH12_PARAMS             { .i2c      = LIS2HH12_PARAM_I2C,  \
+                                      .i2c_addr = LIS2HH12_PARAM_ADDR, \
+                                      .odr      = LIS2HH12_PARAM_ODR,  \
+                                      .scale    = LIS2HH12_SCALE_2G }
 #endif
 
 #ifndef LIS2HH12_SAULINFO
@@ -71,7 +71,7 @@ extern "C" {
 /**@}*/
 
 /**
- * @brief   LIS2DH12 configuration
+ * @brief   LIS2HH12 configuration
  */
 static const lis2hh12_params_t lis2hh12_params[] =
 {
@@ -90,5 +90,5 @@ static const saul_reg_info_t lis2hh12_saul_info[] =
 }
 #endif
 
-#endif /* LIS2DH12_PARAMS_H */
+#endif /* LIS2HH12_PARAMS_H */
 /** @} */

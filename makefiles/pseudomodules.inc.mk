@@ -35,6 +35,7 @@ PSEUDOMODULES += gnrc_txtsnd
 PSEUDOMODULES += l2filter_blacklist
 PSEUDOMODULES += l2filter_whitelist
 PSEUDOMODULES += lis2dh12_spi
+PSEUDOMODULES += lis2hh12_i2c
 PSEUDOMODULES += log
 PSEUDOMODULES += log_printfnoformat
 PSEUDOMODULES += lora

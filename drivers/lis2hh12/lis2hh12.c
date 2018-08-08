@@ -7,11 +7,11 @@
  */
 
 /**
- * @ingroup     drivers_lis2dh12
+ * @ingroup     drivers_lis2hh12
  * @{
  *
  * @file
- * @brief       LIS2DH12 accelerometer driver implementation
+ * @brief       LIS2HH12 accelerometer driver implementation
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  * @}
@@ -20,12 +20,16 @@
 #include "lis2hh12.h"
 #include "include/lis2hh12_internal.h"
 
-#define ENABLE_DEBUG        (0)
+#define ENABLE_DEBUG        (1)
 #include "debug.h"
+
+
+#define MASK_INT16_MSB     (0x8000)
+#define MASK_INT16_NMSB    (0x7FFF)
 
 /* shortcuts for I2C bus parameters */
 #define DEV_I2C            (dev->params.i2c)
-#define DEV_ADDR           (dev->params.addr)
+#define DEV_ADDR           (dev->params.i2c_addr)
 
 /**
  * @brief Takes an unsigned value representing a two's complement number
@@ -46,7 +50,7 @@
     }
 }
 
-int lis2dh12_init(lis2hh12_t *dev, const lis2hh12_params_t *params)
+int lis2hh12_init(lis2hh12_t *dev, const lis2hh12_params_t *params)
 {
     dev->params = *params;
 
@@ -64,9 +68,9 @@ int lis2dh12_init(lis2hh12_t *dev, const lis2hh12_params_t *params)
         return LIS2HH12_NOBUS;
     }
     
-    tmp = ( LIS2HH12_MASK_CTRL1_BDU_EN      /* enable block data update (registers not updated until MSB and LSB read) */
-          | LIS2HH12_MASK_CTRL1_XYZ_EN      /* enable  x-, y, z-axis  */
-          | dev->params.odr);             /* set output data rate */
+    tmp = ( //LIS2HH12_MASK_CTRL1_BDU_EN |    /* enable block data update (registers not updated until MSB and LSB read) */
+            LIS2HH12_MASK_CTRL1_XYZ_EN |    /* enable  x-, y, z-axis  */
+            dev->params.odr);               /* set output data rate */
     
     if (i2c_write_reg(DEV_I2C, DEV_ADDR, LIS2HH12_CTRL1, tmp, 0) < 0)
         return LIS2HH12_NOBUS;
@@ -95,23 +99,26 @@ int lis2hh12_read_xyz(const lis2hh12_t *dev, lis2hh12_data_t *data)
 
     i2c_acquire(DEV_I2C);
 
-    if (i2c_read_regs(DEV_I2C, DEV_ADDR, LIS3MDL_OUT_X_L_REG, &tmp[0], 2, 0) < 0)
+    if (i2c_read_regs(DEV_I2C, DEV_ADDR, LIS2HH12_OUT_X_L, &tmp[0], 2, 0) < 0)
         return LIS2HH12_NOBUS;
 
     int16_t x = ((tmp[1] << 8) | tmp[0]);
+    DEBUG("LIS2HH12: LIS2HH12_OUT_X %d\n", x);
     x = _twos_complement(x);
 
-    if(i2c_read_regs(DEV_I2C, DEV_ADDR, LIS3MDL_OUT_Y_L_REG, &tmp[0], 2, 0) < 0)
+    if(i2c_read_regs(DEV_I2C, DEV_ADDR, LIS2HH12_OUT_Y_L, &tmp[0], 2, 0) < 0)
         return LIS2HH12_NOBUS;
 
     int16_t y = ((tmp[1] << 8) | tmp[0]);
+    DEBUG("LIS2HH12: LIS2HH12_OUT_Y %d\n", y);
     y = _twos_complement(y);
 
 
-    if (i2c_read_regs(DEV_I2C, DEV_ADDR, LIS3MDL_OUT_Z_L_REG, &tmp[0], 2, 0) < 0)
+    if (i2c_read_regs(DEV_I2C, DEV_ADDR, LIS2HH12_OUT_Z_L, &tmp[0], 2, 0) < 0)
         return LIS2HH12_NOBUS;
 
     int16_t z = ((tmp[1] << 8) | tmp[0]);
+    DEBUG("LIS2HH12: LIS2HH12_OUT_Z %d\n", z);
     z = _twos_complement(z);
 
     int16_t scale = 0;
@@ -150,15 +157,15 @@ int lis2hh12_read_temp(const lis2hh12_t *dev, int16_t *value)
 
     *value = _twos_complement(*value);
 
-    return LIS2DH12_OK;
+    return LIS2HH12_OK;
 }
 
 int lis2hh12_poweron(const lis2hh12_t *dev)
 {
     i2c_acquire(DEV_I2C);
-    tmp = ( LIS2HH12_MASK_CTRL1_BDU_EN      /* enable block data update (registers not updated until MSB and LSB read) */
-          | LIS2HH12_MASK_CTRL1_XYZ_EN      /* enable  x-, y, z-axis  */
-          | dev->params.odr);             /* set output data rate */
+    uint8_t tmp  = ( LIS2HH12_MASK_CTRL1_BDU_EN |       /* enable block data update (registers not updated until MSB and LSB read) */
+                     LIS2HH12_MASK_CTRL1_XYZ_EN |       /* enable  x-, y, z-axis  */
+                     dev->params.odr);                  /* set output data rate */
     
     if(i2c_write_reg(DEV_I2C, DEV_ADDR, LIS2HH12_CTRL1, tmp, 0) < 0)
         return LIS2HH12_NOBUS;

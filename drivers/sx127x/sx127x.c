@@ -37,7 +37,7 @@
 #include "sx127x_registers.h"
 #include "sx127x_netdev.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 /* Internal functions */
@@ -111,11 +111,9 @@ int sx127x_init(sx127x_t *dev)
 #endif
     sx127x_set_op_mode(dev, SX127X_RF_OPMODE_SLEEP);
 
-    if (_init_gpios(dev) < 0) {
-        DEBUG("[sx127x] error: failed to initialize GPIOs\n");
-        return -SX127X_ERR_GPIOS;
-    }
-
+    /* do not check return code as GPIO_UNDEF will produce an error */
+    _init_gpios(dev);
+    
     return SX127X_INIT_OK;
 }
 

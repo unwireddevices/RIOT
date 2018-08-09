@@ -32,6 +32,7 @@ umdk-hx711     = 1
 umdk-fdc1004   = 1
 umdk-adxl345   = 1
 umdk-modbus	   = 1
+umdk-cr95	   = 1
 
 ####### UMDK MODULES defines and Makefile.include inclusion ############
 

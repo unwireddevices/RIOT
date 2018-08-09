@@ -23,6 +23,8 @@
 #include "mutex.h"
 #include "periph/adc.h"
 
+#define ADC_VREFINT_CAL     (0x1FF80078UL)
+
 /**
  * @brief   Maximum allowed ADC clock speed
  */
@@ -144,6 +146,7 @@ int adc_sample(adc_t line,  adc_res_t res)
     /* Reactivate VREFINT and temperature sensor if necessary */
     if (adc_config[line].chan == 17) {
         ADC->CCR |= ADC_CCR_VREFEN;
+        while ((PWR->CSR & PWR_CSR_VREFINTRDYF) == 0);
     }
     else if (adc_config[line].chan == 18) {
         ADC->CCR |= ADC_CCR_TSEN;
@@ -165,6 +168,13 @@ int adc_sample(adc_t line,  adc_res_t res)
 
     /* read result */
     sample = (int)ADC1->DR;
+    
+    /* VDD calculation based on VREFINT */
+	if (adc_config[line].chan == 17) {
+        uint16_t cal;
+        cal = *(uint16_t *)ADC_VREFINT_CAL;
+        sample = 3000 * (cal) / sample;
+	}
 
     /* Disable ADC */
     _disable_adc();

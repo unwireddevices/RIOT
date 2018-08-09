@@ -30,6 +30,7 @@ extern "C" {
 #include "pm_layered.h"
 #include "periph/rtc.h"
 #include "periph/gpio.h"
+#include "periph/adc.h"
 #include "random.h"
 
 #include "net/lora.h"
@@ -508,15 +509,22 @@ shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX] = {
 
 static void unwds_callback(module_data_t *buf)
 {
+    if (buf->data[15] == 0) {
+        if (adc_init(ADC_LINE(ADC_VREF_INDEX)) == 0) {
+            buf->data[15] = adc_sample(ADC_LINE(ADC_VREF_INDEX), ADC_RES_12BIT)/50;
+            printf("Battery voltage %d mV\n", buf->data[15] * 50);
+        }
+    }
+    
     int res = semtech_loramac_send(&ls, buf->data, buf->length);
 
     switch (res) {
         case SEMTECH_LORAMAC_BUSY:
             puts("[error] MAC already busy");
+            break;
         case SEMTECH_LORAMAC_NOT_JOINED: {
             puts("[error] Not joined to the network");
 
-            /* Try to join to the network */
             if (current_join_retries == 0) {
                 puts("[info] Attempting to rejoin");
                 msg_send(&msg_join, sender_pid);

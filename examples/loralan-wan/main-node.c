@@ -66,6 +66,7 @@ static kernel_pid_t sender_pid;
 static rtctimers_millis_t send_retry_timer;
 
 static kernel_pid_t receiver_pid;
+static kernel_pid_t main_thread_pid;
 
 static char sender_stack[2048];
 static char receiver_stack[2048];
@@ -134,35 +135,38 @@ static void *sender_thread(void *arg) {
     while (1) {
         msg_receive(&msg);
         
-        int res = node_join(ls);
-        
-        switch (res) {
-        case SEMTECH_LORAMAC_JOIN_SUCCEEDED: {
-            current_join_retries = 0;
-            puts("[LoRa] successfully joined to the network");
-            break;
-        }
-        case SEMTECH_LORAMAC_JOIN_FAILED:
-        case SEMTECH_LORAMAC_NOT_JOINED:
-        case SEMTECH_LORAMAC_BUSY: {
-            if ((current_join_retries >= unwds_get_node_settings().max_retr + 1) &&
-                (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A)) {
-                /* class A node: go to sleep */
-                puts("[LoRa] maximum join retries exceeded, stopping");
+        if (msg.sender_pid == main_thread_pid) {
+            int res = node_join(ls);
+            
+            switch (res) {
+            case SEMTECH_LORAMAC_JOIN_SUCCEEDED: {
                 current_join_retries = 0;
-            } else {
-                puts("ls: join request timed out, resending");
-                
-                /* Pseudorandom delay for collision avoidance */
-                unsigned int delay = random_uint32_range(10000 + (current_join_retries - 1)*30000, 30000 + (current_join_retries - 1)*30000);
-                printf("[LoRa] random delay %d s\n", delay/1000);
-                rtctimers_millis_set_msg(&send_retry_timer, delay, &msg_join, sender_pid);
-      
+                puts("[LoRa] successfully joined to the network");
                 break;
             }
-        }
-        default:
-            break;
+            case SEMTECH_LORAMAC_JOIN_FAILED:
+            case SEMTECH_LORAMAC_NOT_JOINED:
+            case SEMTECH_LORAMAC_BUSY: {
+                if ((current_join_retries >= unwds_get_node_settings().max_retr + 1) &&
+                    (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A)) {
+                    /* class A node: go to sleep */
+                    puts("[LoRa] maximum join retries exceeded, stopping");
+                    current_join_retries = 0;
+                } else {
+                    puts("[LoRa] join request timed out, resending");
+                    
+                    /* Pseudorandom delay for collision avoidance */
+                    unsigned int delay = random_uint32_range(10000 + (current_join_retries - 1)*30000, 30000 + (current_join_retries - 1)*30000);
+                    printf("[LoRa] random delay %d s\n", delay/1000);
+                    rtctimers_millis_set_msg(&send_retry_timer, delay, &msg_join, sender_pid);
+          
+                    break;
+                }
+            }
+            default:
+                printf("[LoRa] join request: unknown response %d\n", res);
+                break;
+            }
         }
     }
     return NULL;
@@ -568,6 +572,9 @@ static void ls_enable_sleep (void *arg) {
 
 void init_normal(shell_command_t *commands)
 {
+    /* should always be 2 */
+    main_thread_pid = thread_getpid();
+    
     if (!unwds_config_load()) {
         puts("[!] Device is not configured yet. Type \"help\" to see list of possible configuration commands.");
         puts("[!] Configure the node and type \"reboot\" to reboot and apply settings.");

@@ -32,7 +32,7 @@
 #include "sx127x_registers.h"
 #include "sx127x_internal.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 

@@ -30,7 +30,7 @@
 #include "sx127x_netdev.h"
 #include "sx127x.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 /* Internal helper functions */

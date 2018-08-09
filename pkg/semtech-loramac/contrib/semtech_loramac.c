@@ -42,7 +42,7 @@
 #include "LoRaMac.h"
 #include "region/Region.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 #define LORAWAN_MAX_JOIN_RETRIES                    (3U)
@@ -643,7 +643,7 @@ int semtech_loramac_init(semtech_loramac_t *mac, sx127x_params_t *params)
                                         THREAD_PRIORITY_MAIN - 1,
                                         THREAD_CREATE_STACKTEST,
                                         _semtech_loramac_event_loop, mac,
-                                        "recv_thread");
+                                        "LoRaMAC stack");
 
     if (semtech_loramac_pid <= KERNEL_PID_UNDEF) {
         DEBUG("Creation of receiver thread failed\n");

@@ -103,7 +103,7 @@ FEATURES_REQUIRED += periph_cpuid
 
 QUIET ?= 1
 
-#CFLAGS += -DDEVELHELP
+CFLAGS += -DDEVELHELP
 CFLAGS += -DNO_RIOT_BANNER
 
 ####################################################

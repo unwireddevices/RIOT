@@ -85,6 +85,9 @@ int lis3mdl_init(lis3mdl_t *dev, const lis3mdl_params_t *params)
     /* set z-axis operative mode */
     i2c_write_reg(DEV_I2C, DEV_ADDR, LIS3MDL_CTRL_REG4, dev->params.z_mode, 0);
 
+    tmp = 1<<6; /* enable BDU (block data update) */ 
+    i2c_write_reg(DEV_I2C, DEV_ADDR, LIS3MDL_CTRL_REG5, tmp, 0);
+    
     i2c_release(DEV_I2C);
 
     return 0;

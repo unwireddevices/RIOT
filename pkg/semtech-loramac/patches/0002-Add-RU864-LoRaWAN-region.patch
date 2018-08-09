@@ -1736,13 +1736,13 @@ index 0000000..5f47a7e
 + * LoRaMac default channel 1
 + * Channel = { Frequency [Hz], RX1 Frequency [Hz], { ( ( DrMax << 4 ) | DrMin ) }, Band }
 + */
-+#define RU864_LC1                                   { 868900000, 0, { ( ( DR_5 << 4 ) | DR_0 ) }, 1 }
++#define RU864_LC1                                   { 868900000, 0, { ( ( DR_5 << 4 ) | DR_0 ) }, 0 }
 +
 +/*!
 + * LoRaMac default channel 2
 + * Channel = { Frequency [Hz], RX1 Frequency [Hz], { ( ( DrMax << 4 ) | DrMin ) }, Band }
 + */
-+#define RU864_LC2                                   { 869100000, 0, { ( ( DR_5 << 4 ) | DR_0 ) }, 1 }
++#define RU864_LC2                                   { 869100000, 0, { ( ( DR_5 << 4 ) | DR_0 ) }, 0 }
 +
 +/*!
 + * LoRaMac channels which are allowed for the join procedure

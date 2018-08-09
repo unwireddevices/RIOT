@@ -93,7 +93,7 @@ int sx127x_reset(const sx127x_t *dev)
 
     /* Wait 10 ms */
     rtctimers_millis_sleep(10);
-    
+
     return 0;
 }
 

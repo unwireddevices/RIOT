@@ -37,6 +37,7 @@
 #define UMDK_CR95_IFACE_SPI 2
 
 #define CR95_MAX_DATA_BYTES 254
+#define UMDK_CR95_DETECT_MS 5000
 
 #define TX_RATE_106 0 
 #define RX_RATE_106 0
@@ -61,7 +62,25 @@ typedef enum {
 	UMDK_CR95_MSG_IDN     = 3,
 	UMDK_CR95_MSG_UID     = 4,
 	UMDK_CR95_MSG_ANTICOL     = 5,
+	UMDK_CR95_MSG_IDLE     = 6,
+	UMDK_CR95_MSG_PROTOCOL     = 7,
 } cr95_msg_t;
+
+/**
+ * @brief Pack RX state values
+ */
+typedef enum {
+	UMDK_CR95_NOT_RECIEVED     = 0,
+	UMDK_CR95_RECIEVED     = 1,
+} cr95_rx_state_t;
+
+/**
+ * @brief CR95 Pack state values
+ */
+typedef enum {
+	UMDK_CR95_PACK_OK     = 1,
+	UMDK_CR95_PACK_ERROR     = 0,
+} cr95_pack_state_t;
 
 /**
  * @brief   CR95 pack structure

@@ -168,6 +168,14 @@ static void *sender_thread(void *arg) {
                 printf("[LoRa] join request: unknown response %d\n", res);
                 break;
             }
+        } else {
+            switch (msg.type) {
+                case MSG_TYPE_LORAMAC_TX_DONE:
+                    puts("[LoRa] TX done");
+                    break;
+                default:
+                    break;
+            }
         }
     }
     return NULL;

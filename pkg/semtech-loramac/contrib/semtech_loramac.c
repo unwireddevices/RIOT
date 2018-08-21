@@ -645,14 +645,11 @@ int semtech_loramac_init(semtech_loramac_t *mac, sx127x_params_t *params)
                                         _semtech_loramac_event_loop, mac,
                                         "LoRaMAC stack");
 
-    if (semtech_loramac_pid <= KERNEL_PID_UNDEF) {
-        DEBUG("Creation of receiver thread failed\n");
-        return -1;
+    if (semtech_loramac_pid > KERNEL_PID_UNDEF) {
+        _init_loramac(mac, &semtech_loramac_primitives, &semtech_loramac_callbacks);
     }
-
-    _init_loramac(mac, &semtech_loramac_primitives, &semtech_loramac_callbacks);
-
-    return 0;
+    
+    return semtech_loramac_pid;
 }
 
 uint8_t semtech_loramac_join(semtech_loramac_t *mac, uint8_t type)

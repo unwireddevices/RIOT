@@ -522,9 +522,11 @@ static inline void irq_handler(i2c_t dev)
         DEBUG("OVR\n");
     }
     if (state & I2C_SR1_AF) {
+        i2c->SR1 &= ~I2C_SR1_AF;
         DEBUG("AF\n");
     }
     if (state & I2C_SR1_ARLO) {
+        i2c->SR1 &= ~I2C_SR1_ARLO;
         DEBUG("ARLO\n");
     }
     if (state & I2C_SR1_BERR) {
@@ -539,7 +541,7 @@ static inline void irq_handler(i2c_t dev)
     if (state & I2C_SR1_SMBALERT) {
         DEBUG("SMBALERT\n");
     }
-    core_panic(PANIC_GENERAL_ERROR, "I2C FAULT");
+    /* core_panic(PANIC_GENERAL_ERROR, "I2C FAULT"); */
 }
 
 #if I2C_0_ISR

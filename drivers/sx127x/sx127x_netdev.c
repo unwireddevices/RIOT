@@ -234,6 +234,7 @@ static void _isr(netdev_t *netdev)
 
     uint8_t irq = dev->irq;
 
+#ifdef SX127X_USE_DIO_MULTI
     /* if the IRQ is from an OR'd pin check the actual IRQ on the registers */
     if (irq == SX127X_IRQ_DIO_MULTI) {
         uint8_t interruptReg = sx127x_reg_read(dev, SX127X_REG_LR_IRQFLAGS);
@@ -260,6 +261,7 @@ static void _isr(netdev_t *netdev)
                 break;
         }
     }
+#endif
 
     dev->irq = 0;
 

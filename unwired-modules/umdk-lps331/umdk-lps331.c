@@ -74,7 +74,7 @@ static void prepare_result(module_data_t *data)
 {
     int16_t measurements[2];
 
-    measurements[0] = (lps331ap_read_temp(&dev) + 50 / 100);
+    measurements[0] = (lps331ap_read_temp(&dev) + 50) / 100;
     measurements[1] = lps331ap_read_pres(&dev);
     
     char buf[10];

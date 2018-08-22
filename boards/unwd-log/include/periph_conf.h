@@ -200,28 +200,26 @@ static const spi_conf_t spi_config[] = {
  * @name    I2C configuration
  * @{
  */
-#define I2C_NUMOF           (1U)
-#define I2C_0_EN            1
-#define I2C_IRQ_PRIO        1
 #define I2C_APBCLK          (CLOCK_APB1)
 
-/* I2C 0 device configuration */
-#define I2C_0_DEV           I2C2
-#define I2C_0_CLKEN()       (RCC->APB1ENR |= RCC_APB1ENR_I2C2EN)
-#define I2C_0_CLKDIS()      (RCC->APB1ENR &= ~(RCC_APB1ENR_I2C2EN))
-#define I2C_0_EVT_IRQ       I2C2_EV_IRQn
-#define I2C_0_EVT_ISR       isr_i2c2_ev
-#define I2C_0_ERR_IRQ       I2C2_ER_IRQn
-#define I2C_0_ERR_ISR       isr_i2c2_er
-/* I2C 0 pin configuration */
-#define I2C_0_SCL_PORT      GPIOB
-#define I2C_0_SCL_PIN       10
-#define I2C_0_SCL_AF        4
-#define I2C_0_SCL_CLKEN()   (RCC->AHB1ENR |= RCC_AHB1ENR_GPIOBEN)
-#define I2C_0_SDA_PORT      GPIOB
-#define I2C_0_SDA_PIN       11
-#define I2C_0_SDA_AF        4
-#define I2C_0_SDA_CLKEN()   (RCC->AHB1ENR |= RCC_AHB1ENR_GPIOBEN)
+static const i2c_conf_t i2c_config[] = {
+    {
+        .dev            = I2C2,
+        .speed          = I2C_SPEED_NORMAL,
+        .scl_pin        = GPIO_PIN(PORT_B, 10),
+        .sda_pin        = GPIO_PIN(PORT_B, 11),
+        .scl_af         = GPIO_AF4,
+        .sda_af         = GPIO_AF4,
+        .bus            = APB1,
+        .rcc_mask       = RCC_APB1ENR_I2C2EN,
+        .clk            = I2C_APBCLK,
+        .irqn           = I2C2_EV_IRQn
+    }
+};
+
+#define I2C_0_ISR           isr_i2c1_ev
+
+#define I2C_NUMOF           (sizeof(i2c_config) / sizeof(i2c_config[0]))
 /** @} */
 
 /**

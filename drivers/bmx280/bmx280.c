@@ -72,10 +72,6 @@ int bmx280_init(bmx280_t* dev, const bmx280_params_t* params)
     dev->params = *params;
 
     /* Initialize I2C interface */
-    // if (i2c_init_master(dev->params.i2c_dev, I2C_SPEED_NORMAL)) {
-    //     DEBUG("[Error] I2C device not enabled\n");
-    //     return BMX280_ERR_I2C;
-    // }
     i2c_init(dev->params.i2c_dev);
 
 

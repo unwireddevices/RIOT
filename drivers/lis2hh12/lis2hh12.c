@@ -55,8 +55,6 @@ int lis2hh12_init(lis2hh12_t *dev, const lis2hh12_params_t *params)
     dev->params = *params;
 
     uint8_t tmp;
-
-    puts("Acquire bus");
     
     i2c_acquire(DEV_I2C);
 

@@ -128,7 +128,7 @@ int lis2hh12_read_xyz(const lis2hh12_t *dev, lis2hh12_data_t *data)
     DEBUG("LIS2HH12: LIS2HH12_OUT_Z %d\n", z);
     z = _twos_complement(z);
 
-    int16_t scale = 0;
+    int32_t scale = 0;
     switch (dev->params.scale) {
         case LIS2HH12_SCALE_2G:
             scale = 61;
@@ -144,9 +144,9 @@ int lis2hh12_read_xyz(const lis2hh12_t *dev, lis2hh12_data_t *data)
             break;
     }
 
-    data->x_axis = x * scale / 1000;
-    data->y_axis = y * scale / 1000;
-    data->z_axis = z * scale / 1000;
+    data->x_axis = ((int32_t)x * scale);
+    data->y_axis = ((int32_t)y * scale);
+    data->z_axis = ((int32_t)z * scale);
 
     i2c_release(DEV_I2C);
 

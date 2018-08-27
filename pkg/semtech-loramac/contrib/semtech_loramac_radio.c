@@ -30,11 +30,11 @@
 
 #include "radio/radio.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 #if !defined(US_PER_MS)
-#define US_PER_MS 1000UL
+#define US_PER_MS 1UL
 #endif
 
 extern sx127x_t sx127x;
@@ -133,7 +133,7 @@ void SX127XSetTxConfig(RadioModems_t modem, int8_t power, uint32_t fdev,
     sx127x_set_tx_power(&sx127x, power);
     sx127x_set_preamble_length(&sx127x, preambleLen);
     sx127x_set_rx_single(&sx127x, false);
-    sx127x_set_tx_timeout(&sx127x, timeout * US_PER_MS); /* base unit us, LoRaMAC ms */
+    sx127x_set_tx_timeout(&sx127x, timeout); /* base unit us, LoRaMAC ms */
 }
 
 uint32_t SX127XGetTimeOnAir(RadioModems_t modem, uint8_t pktLen)
@@ -164,7 +164,7 @@ void SX127XSetStby(void)
 
 void SX127XSetRx(uint32_t timeout)
 {
-    sx127x_set_rx_timeout(&sx127x, timeout * US_PER_MS);
+    sx127x_set_rx_timeout(&sx127x, timeout);
     sx127x_set_rx(&sx127x);
 }
 

@@ -551,7 +551,7 @@ static inline void irq_handler(i2c_t dev)
     if (state & I2C_ISR_ALERT) {
         DEBUG("SMBALERT\n");
     }
-    core_panic(PANIC_GENERAL_ERROR, "I2C FAULT");
+    /* core_panic(PANIC_GENERAL_ERROR, "I2C FAULT"); */
 }
 
 #ifdef I2C_0_ISR

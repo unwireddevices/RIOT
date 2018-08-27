@@ -18,8 +18,8 @@
 
 #include "sht21.h"
 #include "periph/i2c.h"
-
-#include "xtimer.h"
+#include "byteorder.h"
+#include "rtctimers-millis.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,15 +44,10 @@ int sht21_init(sht21_t *dev)
     /* Acquire I2C bus */
     i2c_acquire(dev->i2c);
 
-    // if (i2c_init_master(dev->i2c, I2C_SPEED_NORMAL) < 0) {
-    //     i2c_release(dev->i2c);
-    //     puts("[sht21 driver] Error initializing I2C bus");
-        
-    //     return -1;
-    // }
+    /* Initialize I2C bus */
     i2c_init(dev->i2c);
 
-    if (i2c_read_reg(dev->i2c, SHT21_ADDRESS, SHT21_USER_REG_READ, (char *)&config, 0) != 1) {
+    if (i2c_read_reg(dev->i2c, SHT21_ADDRESS, SHT21_USER_REG_READ, (char *)&config, 0) < 0) {
         puts("[sht21 driver] Error: sensor not found");
         i2c_release(dev->i2c);
 
@@ -72,70 +67,47 @@ int sht21_init(sht21_t *dev)
     return 0;
 }
 
-static int sht21_check_crc(uint8_t data[], uint8_t nbrOfBytes, uint8_t checksum)
-{
-    int crc = 0;
-    int byteCtr;
-    //calculates 8-Bit checksum with given polynomial
-    for (byteCtr = 0; byteCtr < nbrOfBytes; ++byteCtr) {
-        crc ^= (data[byteCtr]);
-        for (int bit = 8; bit > 0; --bit) {
-            crc = (crc << 1);
-            if (crc & 0x80) {
-                crc ^= 0x131;
-            }
-        }
-    }
-    
-    if (crc != checksum) {
-        return -1;
-    }
-    
-    return 0;
-}
-
-static inline int ticks_to_millicelsius(int ticks)
+static inline int ticks_to_millicelsius(uint16_t ticks)
 {
     ticks &= ~0x0003; /* clear status bits */
     /*
      * Formula T = -46.85 + 175.72 * ST / 2^16 from data sheet 6.2,
      * optimized for integer fixed point (3 digits) arithmetic
      */
-    return ((21965 * ticks) >> 13) - 46850;
+    return ((21965 * (int)ticks) >> 13) - 46850;
 }
 
-static inline int ticks_to_per_cent_mille(int ticks)
+static inline int ticks_to_per_cent_mille(uint16_t ticks)
 {
     ticks &= ~0x0003; /* clear status bits */
     /*
      * Formula RH = -6 + 125 * SRH / 2^16 from data sheet 6.1,
      * optimized for integer fixed point (3 digits) arithmetic
      */
-    return ((15625 * ticks) >> 13) - 6000;
+    return ((15625 * (int)ticks) >> 13) - 6000;
 }
 
-static int read_sensor_hold(sht21_t *dev, bool need_rh, int *result) {
+static int read_sensor(sht21_t *dev, bool need_rh, int *result) {
     uint8_t config;
     /* Write command somehow hangs I2C if there was NACK before */
     /* So lets do read first */
     i2c_read_reg(dev->i2c, SHT21_ADDRESS, SHT21_USER_REG_READ, (char *)&config, 0);
     
     /* Choose measurement command: humidity or temperature */
-    uint8_t cmd = (need_rh) ? SHT21_REG_RH_HOLD : SHT21_REG_T_HOLD;
-
+    //uint8_t cmd = (need_rh) ? SHT21_REG_RH_HOLD : SHT21_REG_T_HOLD;
+    uint8_t cmd = (need_rh) ? SHT21_REG_RH_NACK : SHT21_REG_T_NACK;
+    
     i2c_write_byte(dev->i2c, SHT21_ADDRESS, cmd, 0);
 
+    rtctimers_millis_sleep(100);
     /* Read back measurements: MSB, LSB and checksum byte */
     
-    uint8_t bytes[3];
-    i2c_read_bytes(dev->i2c, SHT21_ADDRESS, (char *) bytes, 3, 0);
-    
-    if (sht21_check_crc(bytes, 2, bytes[2])) {
-        return -1;
-    }
-    
+    uint16_t data;
+    i2c_read_bytes(dev->i2c, SHT21_ADDRESS, (void *)&data, 2, 0);
+
     /* Compose 16 bit integer */
-    int data = bytes[0] << 8 | bytes[1];
+    byteorder_swap((void *)&data, sizeof(data));
+    
     *result = (need_rh) ? ticks_to_per_cent_mille(data) : ticks_to_millicelsius(data);
     
     return 0;
@@ -169,8 +141,8 @@ uint32_t sht21_measure(sht21_t *dev, sht21_measure_t *measure)
 
     i2c_acquire(dev->i2c);
 
-    result = read_sensor_hold(dev, false, &temperature);
-    result += read_sensor_hold(dev, true, &humidity);
+    result = read_sensor(dev, false, &temperature);
+    result += read_sensor(dev, true, &humidity);
 
     i2c_release(dev->i2c);
 

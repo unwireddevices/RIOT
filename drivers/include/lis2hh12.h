@@ -46,9 +46,9 @@ extern "C" {
  * @brief   3d data container of the LIS3MDL sensor
  */
 typedef struct {
-    int16_t x_axis;                  /**< Data from x-axis */
-    int16_t y_axis;                  /**< Data from y_axis */
-    int16_t z_axis;                  /**< Data from z_axis */
+    int32_t x_axis;                  /**< Data from x-axis */
+    int32_t y_axis;                  /**< Data from y_axis */
+    int32_t z_axis;                  /**< Data from z_axis */
 } lis2hh12_data_t;
 
 /**

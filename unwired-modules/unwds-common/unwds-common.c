@@ -27,6 +27,7 @@ extern "C" {
 #include <stdbool.h>
 #include <string.h>
 
+#include "byteorder.h"
 #include "nvram.h"
 #include "xtimer.h"
 #include "board.h"
@@ -478,6 +479,37 @@ void int_to_float_str(char *buf, int decimal, uint8_t precision) {
     strcat(format, digits);
     
     snprintf(buf, 50, format, abs(decimal/divider), abs(decimal%divider));
+}
+
+void convert_to_be_sam(void *ptr, size_t size) {
+    switch (size) {
+        case 1: {
+            int8_t v = *(int8_t*)ptr;
+            *(uint8_t*)ptr = ((v + (v >> 7)) ^ (v >> 7)) | (v & (1 << 7));
+            break;
+        }
+        case 2: {
+            int16_t v = *(int16_t*)ptr;
+            *(uint16_t*)ptr = ((v + (v >> 15)) ^ (v >> 15)) | (v & (1 << 15));
+            break;
+        }
+        case 4: {
+            int32_t v = *(int32_t*)ptr;
+            *(uint32_t*)ptr = ((v + (v >> 31)) ^ (v >> 31)) | (v & (1 << 31));
+            break;
+        }
+        case 8: {
+            int64_t v = *(int64_t*)ptr;
+            *(uint64_t*)ptr = ((v + (v >> 63)) ^ (v >> 63)) | (v & (1ULL << 63));
+            break;
+        }
+        default:
+            return;
+    }
+    
+    if (byteorder_is_little_endian()) {
+        byteorder_swap(ptr, size);
+    }
 }
 
 /* determine EEPROM size to work seamlessly with CC and CB-A MCUs */

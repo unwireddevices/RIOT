@@ -1,0 +1,45 @@
+From d742ff7eb2642e26390bb99f744ca0fe8e87442e Mon Sep 17 00:00:00 2001
+From: Oleg Artamonov <oleg@unwds.com>
+Date: Thu, 9 Aug 2018 14:12:01 +0300
+Subject: [PATCH] Disable RxWindowTimer2 stop if aggregated time already bigger
+ than Rx2 delay (temporary solution)
+
+---
+ src/mac/LoRaMac.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/mac/LoRaMac.c b/src/mac/LoRaMac.c
+index 5b8c99f..e642c04 100644
+--- a/src/mac/LoRaMac.c
++++ b/src/mac/LoRaMac.c
+@@ -1165,11 +1165,13 @@ static void OnRadioRxError( void )
+ 
+         if( LoRaMacDeviceClass != CLASS_C )
+         {
++            /*
+             if( TimerGetElapsedTime( AggregatedLastTxDoneTime ) >= RxWindow2Delay )
+             {
+                 TimerStop( &RxWindowTimer2 );
+                 LoRaMacFlags.Bits.MacDone = 1;
+             }
++            */
+         }
+     }
+     else
+@@ -1209,11 +1211,13 @@ static void OnRadioRxTimeout( void )
+ 
+         if( LoRaMacDeviceClass != CLASS_C )
+         {
++            /*
+             if( TimerGetElapsedTime( AggregatedLastTxDoneTime ) >= RxWindow2Delay )
+             {
+                 TimerStop( &RxWindowTimer2 );
+                 LoRaMacFlags.Bits.MacDone = 1;
+             }
++            */
+         }
+     }
+     else
+-- 
+2.7.4
+

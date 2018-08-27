@@ -29,9 +29,9 @@ static int read_accelerometer(const void *dev, phydat_t *res)
         return 0;
     }
 
-    res->val[0] = xyz.x_axis;
-    res->val[1] = xyz.y_axis;
-    res->val[2] = xyz.z_axis;
+    res->val[0] = xyz.x_axis/1000;
+    res->val[1] = xyz.y_axis/1000;
+    res->val[2] = xyz.z_axis/1000;
     /* unit: milli-G */
     res->scale = -3;
     res->unit = UNIT_G;

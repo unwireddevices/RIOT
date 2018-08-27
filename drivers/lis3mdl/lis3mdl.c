@@ -60,8 +60,6 @@ int lis3mdl_init(lis3mdl_t *dev, const lis3mdl_params_t *params)
 
     uint8_t tmp;
 
-    puts("Acquire bus");
-    
     i2c_acquire(DEV_I2C);
 
     i2c_init(DEV_I2C);
@@ -73,8 +71,6 @@ int lis3mdl_init(lis3mdl_t *dev, const lis3mdl_params_t *params)
         return -1;
     }
     
-    puts("Set parameters");
-
     tmp = ( LIS3MDL_MASK_REG1_TEMP_EN   /* enable temperature sensor */
           | dev->params.xy_mode         /* set x-, y-axis operative mode */
           | dev->params.odr);           /* set output data rate */
@@ -89,10 +85,10 @@ int lis3mdl_init(lis3mdl_t *dev, const lis3mdl_params_t *params)
     /* set z-axis operative mode */
     i2c_write_reg(DEV_I2C, DEV_ADDR, LIS3MDL_CTRL_REG4, dev->params.z_mode, 0);
 
+    /* enable BDU (block data update) */ 
     i2c_write_reg(DEV_I2C, DEV_ADDR, LIS3MDL_CTRL_REG5, LIS3MDL_MASK_REG5_BDU, 0);
 
-    puts("Release bus");
-    
+    puts("Release bus");   
     i2c_release(DEV_I2C);
 
     return 0;

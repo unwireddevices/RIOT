@@ -92,10 +92,7 @@ static int count_pulses(lmt01_t *lmt01) {
 	/* Wait minimum time for sensor wake up and all transitions to be done */
     rtctimers_millis_sleep(LMT01_MIN_TIMEOUT_MS);
     
-    uint8_t powermode = pm_get();
-    if (powermode != PM_ON) {
-        pm_set(PM_ON);
-    }
+    pm_block(PM_SLEEP);
 
 	int pulse_count = 0;
 	uint8_t gpio_prev_value = 0;
@@ -127,9 +124,7 @@ static int count_pulses(lmt01_t *lmt01) {
 		}
 	}
     
-    if (powermode != PM_ON) {
-        pm_set(powermode);
-    }
+    pm_unblock(PM_SLEEP);
 	
 	/* Disable sensor */
 	lmt01_off(lmt01);

@@ -21,19 +21,19 @@
 #include "lis3mdl.h"
 #include "include/lis3mdl-internal.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG        (1)
 #include "debug.h"
 
-#define MASK_INT16_MSB     (0x8000)
-#define MASK_INT16_NMSB    (0x7FFF)
+#define MASK_INT16_MSB      (0x8000)
+#define MASK_INT16_NMSB     (0x7FFF)
 
 #define TEMP_DIVIDER        (8)
 #define TEMP_OFFSET         (25)
 
-#define GAUSS_DIVIDER      (1000)
+#define GAUSS_DIVIDER       (1000)
 
-#define DEV_I2C            (dev->params.i2c)
-#define DEV_ADDR           (dev->params.addr)
+#define DEV_I2C             (dev->params.i2c)
+#define DEV_ADDR            (dev->params.addr)
 
 /**
  * @brief Takes an unsigned value representing a two's complement number
@@ -89,6 +89,8 @@ int lis3mdl_init(lis3mdl_t *dev, const lis3mdl_params_t *params)
     /* set z-axis operative mode */
     i2c_write_reg(DEV_I2C, DEV_ADDR, LIS3MDL_CTRL_REG4, dev->params.z_mode, 0);
 
+    i2c_write_reg(DEV_I2C, DEV_ADDR, LIS3MDL_CTRL_REG5, LIS3MDL_MASK_REG5_BDU, 0);
+
     puts("Release bus");
     
     i2c_release(DEV_I2C);
@@ -108,15 +110,19 @@ void lis3mdl_read_mag(const lis3mdl_t *dev, lis3mdl_3d_data_t *data)
     DEBUG("LIS3MDL: OUT_X %02X %02X\n", tmp[1], tmp[0]);
 
     int16_t x = ((tmp[1] << 8) | tmp[0]);
-    x = _twos_complement(x);
+    DEBUG("LIS3MDL: x %04X\n", x);
+    //x = _twos_complement(x);
+    DEBUG("LIS3MDL: x %04X\n", x);
 
     i2c_read_reg(DEV_I2C, DEV_ADDR, LIS3MDL_OUT_Y_L_REG, &tmp[0], 0);
     i2c_read_reg(DEV_I2C, DEV_ADDR, LIS3MDL_OUT_Y_H_REG, &tmp[1], 0);
 
-    DEBUG("LIS3MDL: OUT_X %02X %02X\n", tmp[1], tmp[0]);
+    DEBUG("LIS3MDL: OUT_Y %02X %02X\n", tmp[1], tmp[0]);
 
     int16_t y = ((tmp[1] << 8) | tmp[0]);
-    y = _twos_complement(y);
+    DEBUG("LIS3MDL: y %04X\n", y);
+    //y = _twos_complement(y);
+    DEBUG("LIS3MDL: y %04X\n", y);
 
     i2c_read_reg(DEV_I2C, DEV_ADDR, LIS3MDL_OUT_Z_L_REG, &tmp[0], 0);
     i2c_read_reg(DEV_I2C, DEV_ADDR, LIS3MDL_OUT_Z_H_REG, &tmp[1], 0);
@@ -124,7 +130,9 @@ void lis3mdl_read_mag(const lis3mdl_t *dev, lis3mdl_3d_data_t *data)
     DEBUG("LIS3MDL: OUT_Z %02X %02X\n", tmp[1], tmp[0]);
 
     int16_t z = ((tmp[1] << 8) | tmp[0]);
-    z = _twos_complement(z);
+    DEBUG("LIS3MDL: z %04X\n", z);
+    //z = _twos_complement(z);
+    DEBUG("LIS3MDL: z %04X\n", z);
 
     int32_t scale = 0;
     switch (dev->params.scale) {
@@ -161,11 +169,16 @@ void lis3mdl_read_temp(const lis3mdl_t *dev, int16_t *value)
     i2c_read_regs(DEV_I2C, DEV_ADDR, LIS3MDL_TEMP_OUT_H_REG, &tmp[1], 2, 0);
     i2c_release(DEV_I2C);
 
+    DEBUG("LIS3MDL: TEMP_OUT %02X %02X\n", tmp[1], tmp[0]);
+
     *value = ((tmp[1] << 8) | tmp[0]);
-
+    DEBUG("LIS3MDL: value %d(%04X)\n", *value, *value);
+    
     *value = _twos_complement(*value);
-
+    DEBUG("LIS3MDL: value %d\n", *value);
+    
     *value = (TEMP_OFFSET + (*value / TEMP_DIVIDER));
+    DEBUG("LIS3MDL: value %d\n", *value);
 }
 
 void lis3mdl_enable(const lis3mdl_t *dev)

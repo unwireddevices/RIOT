@@ -1,11 +1,10 @@
-/*
- * Copyright (C) 2018 Freie Universität Berlin
+ /*
+ * Copyright (C) 2016-2018 Unwired Devices
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
  * details.
  */
-
 /**
  * @ingroup     drivers_lis2hh12
  * @{
@@ -13,7 +12,8 @@
  * @file
  * @brief       LIS2HH12 accelerometer driver implementation
  *
- * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
+ *@author      Alexander Ugorelov <alex_u@unwds.com>
+ *
  * @}
  */
 

@@ -28,6 +28,23 @@ extern "C" {
 #endif
 
 /**
+ * @name    Set default configuration parameters for LIS3MDL devices
+ * @{
+ */
+#define LIS3MDL_SAD0L               (0x00)
+#define LIS3MDL_SAD0H               (0x10)
+#define LIS3MDL_I2C_SADROOT         (0x07)
+
+/* I2C address if acc SA0 pin to GND */
+#define LIS3MDL_I2C_SAD_L           ((LIS3MDL_I2C_SADROOT << 2)| \
+                                      LIS3MDL_SAD0L)
+
+/* I2C address if acc SA0 pin to Vdd */
+#define LIS3MDL_I2C_SAD_H           ((LIS3MDL_I2C_SADROOT << 2)| \
+                                      LIS3MDL_SAD0H)
+
+
+/**
  * @name    Set default configuration parameters
  * @{
  */
@@ -35,7 +52,7 @@ extern "C" {
 #define LIS3MDL_PARAM_I2C           (I2C_DEV(0))
 #endif
 #ifndef LIS3MDL_PARAM_ADDR
-#define LIS3MDL_PARAM_ADDR          (0x1E)
+#define LIS3MDL_PARAM_ADDR          (LIS3MDL_I2C_SAD_L)
 #endif
 #ifndef LIS3MDL_PARAM_XYMODE
 #define LIS3MDL_PARAM_XYMODE        (LIS3MDL_XY_MODE_HIGH)
@@ -44,7 +61,7 @@ extern "C" {
 #define LIS3MDL_PARAM_ZMODE         (LIS3MDL_Z_MODE_HIGH)
 #endif
 #ifndef LIS3MDL_PARAM_ODR
-#define LIS3MDL_PARAM_ODR           (LIS3MDL_ODR_10Hz)
+#define LIS3MDL_PARAM_ODR           (LIS3MDL_ODR_1_25Hz)
 #endif
 #ifndef LIS3MDL_PARAM_SCALE
 #define LIS3MDL_PARAM_SCALE         (LIS3MDL_SCALE_4G)

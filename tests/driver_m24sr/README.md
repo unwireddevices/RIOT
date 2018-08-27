@@ -1,0 +1,9 @@
+# About
+This is a manual test application for the M24SRxx dynamic NFC/RFID tag IC.
+
+# Usage
+This test application will initialize the M24SRxx with the following parameters:
+ - ...
+ - ...
+
+After initialization, ...

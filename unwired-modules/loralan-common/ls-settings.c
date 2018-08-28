@@ -60,6 +60,11 @@ void unwds_set_channel(ls_channel_t channel) {
     return;
 }
 
+void unwds_set_cnf(bool confirmation) {
+    node_settings.confirmation = confirmation;
+    return;
+}
+
 void unwds_set_dr(ls_datarate_t dr) {
     node_settings.dr = dr;
     return;
@@ -119,7 +124,8 @@ void unwds_config_reset(void) {
     memset((void *)node_settings.enabled_mods, 0, sizeof(node_settings.enabled_mods));
 
     node_settings.no_join = 0;
-    node_settings.dev_addr = 0; 
+    node_settings.dev_addr = 0;
+    node_settings.confirmation = true; 
     
     /* Modules enabled by default */
     unwds_set_module(UNWDS_CONFIG_MODULE_ID, true);
@@ -137,7 +143,7 @@ bool unwds_config_load(void)
         return false;
     }
     
-    if (node_settings.config_version < UNWDS_LS_SETTINGS_CONFIG_VERSION) {
+    if (node_settings.config_version < 0x3) {
         config_read_role_block((uint8_t *) &old_node_settings, sizeof(old_role_settings_t));
         if (old_node_settings.is_valid == 1) {
             puts("[node] Converting gateway configuration to a new format");
@@ -150,6 +156,12 @@ bool unwds_config_load(void)
             unwds_config_save();
             puts("Done.");
         }
+    } else if (node_settings.config_version == 0x3) {
+        puts("[node] Converting gateway configuration version 0x3 to a new format");
+        unwds_set_cnf(true);
+        puts("Saving new gateway configuration to EEPROM...");
+        unwds_config_save();
+        puts("Done.");
     }
     
     if (node_settings.is_config_valid != 1) {

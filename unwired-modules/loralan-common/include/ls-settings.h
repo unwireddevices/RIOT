@@ -23,22 +23,22 @@
 #include "ls-mac-types.h"
 #include "unwds-common.h"
 
-#define UNWDS_LS_SETTINGS_CONFIG_VERSION 0x3
+#define UNWDS_LS_SETTINGS_CONFIG_VERSION 0x4
 
+/* Max size is ROLE_CONFIG_SIZE = 128 bytes */
 typedef struct {
-    uint8_t config_version;
-    uint8_t is_config_valid; 
-    uint8_t region_index;   /**< Selected channels region index */
-    ls_channel_t channel;
-    ls_datarate_t dr;
-    ls_node_class_t nodeclass;
-    uint8_t max_retr;
-    bool no_join;			/**< Statically personalized device, no join required to send data */    
-    bool req_time;
-    
-    ls_addr_t dev_addr;		/**< Predefined device's network address */
-
-    uint32_t enabled_mods[8];       /**< Defines ability mask - list of enabled UNWDS modules */
+    uint8_t         config_version;
+    uint8_t         is_config_valid;    /**< 1 if config is valid */
+    uint8_t         region_index;       /**< Selected channels region index */
+    ls_channel_t    channel;            /**< Radio channel */
+    ls_datarate_t   dr;                 /**< Default data rate */
+    ls_node_class_t nodeclass;          /**< Default node class */
+    uint8_t         max_retr;           /**< Attempts to retry if ack was not received / join unsuccessful */
+    bool            no_join;            /**< Statically personalized device, no join required to send data */
+    bool            req_time;           /**< Request time after join */
+    ls_addr_t       dev_addr;           /**< Predefined device's network address */
+    uint32_t        enabled_mods[8];    /**< Defines ability mask - list of enabled UNWDS modules */
+    bool            confirmation;       /**< Require confirmation when sending packets */
 } node_role_settings_t;
 
 node_role_settings_t unwds_get_node_settings(void);
@@ -50,6 +50,7 @@ void unwds_set_dr(ls_datarate_t dr);
 void unwds_set_max_retr(uint8_t max_retr);
 void unwds_set_class(ls_node_class_t nodeclass);
 void unwds_set_module(uint8_t modid, bool enable);
+void unwds_set_cnf(bool confirmation);
 
 int unwds_config_save(void);
 bool unwds_config_load(void);

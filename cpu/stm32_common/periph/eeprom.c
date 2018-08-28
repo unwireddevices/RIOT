@@ -21,6 +21,8 @@
 
 #include <assert.h>
 
+#if defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L1)
+
 #include "cpu.h"
 
 #define ENABLE_DEBUG        (0)
@@ -52,3 +54,5 @@ void eeprom_write_byte(uint32_t pos, uint8_t data)
     *(uint8_t *)(EEPROM_START_ADDR + pos) = data;
     _lock();
 }
+
+#endif

@@ -23,6 +23,10 @@
 #include "mutex.h"
 #include "periph/adc.h"
 
+/* Factory calibration data */
+#define ADC_VREFINT_CAL     (0x1FFFF7BAUL)
+#define ADC_TSENSE_CAL1     (0x1FFFF7B8UL)
+
 /**
  * @brief   Maximum allowed ADC clock speed
  */
@@ -61,8 +65,12 @@ int adc_init(adc_t line)
 
     /* lock and power on the device */
     prep();
-    /*configure the pin */
-    gpio_init_analog(adc_config[line].pin);
+    
+    if (adc_config[line].pin != GPIO_UNDEF) {
+        /*configure the pin */
+        gpio_init_analog(adc_config[line].pin);
+    }
+    
     /* reset configuration */
     ADC1->CFGR2 = 0;
     /* enable device */
@@ -78,6 +86,7 @@ int adc_init(adc_t line)
 int adc_sample(adc_t line,  adc_res_t res)
 {
     int sample;
+    int cal_vref, cal_ts1;
 
     /* check if resolution is applicable */
     if (res > 0xf0) {
@@ -86,6 +95,12 @@ int adc_sample(adc_t line,  adc_res_t res)
 
     /* lock and power on the ADC device  */
     prep();
+    
+    /* Reactivate VREFINT and temperature sensor if necessary */
+    if ((adc_config[line].chan == ADC_VREF_CHANNEL) || (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL)) {
+        ADC->CCR = (ADC_CCR_VREFEN | ADC_CCR_TSEN);
+        while ((PWR->CSR & PWR_CSR_VREFINTRDYF) == 0);
+    }
 
     /* set resolution and channel */
     ADC1->CFGR1 = res;
@@ -95,6 +110,72 @@ int adc_sample(adc_t line,  adc_res_t res)
     while (!(ADC1->ISR & ADC_ISR_EOC)) {}
     /* read result */
     sample = (int)ADC1->DR;
+    
+    /* in case of temperature channel sample VDD too */
+    int sample_vref = 0;
+    if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL) {
+        /* sample VREF */
+        ADC1->CHSELR = (1 << ADC_VREF_CHANNEL);
+        ADC1->CR |= ADC_CR_ADSTART;
+        while (!(ADC1->ISR & ADC_ISR_EOC)) {}
+        
+        sample_vref = (int)ADC1->DR;
+        
+        /* calibrate temperature data */
+        cal_ts1   = *(uint16_t *)ADC_TSENSE_CAL1;
+        cal_vref  = *(uint16_t *)ADC_VREFINT_CAL;
+
+        /* calibration values are for ADC_RES_12BIT, adjust for it if needed */
+        switch (res) {
+            case ADC_RES_6BIT:
+                sample = sample << 6;
+                sample_vref = sample_vref << 6;
+                break;
+            case ADC_RES_8BIT:
+                sample = sample << 4;
+                sample_vref = sample_vref << 4;
+                break;
+            case ADC_RES_10BIT:
+                sample = sample << 2;
+                sample_vref = sample_vref << 2;
+                break;
+            default:
+                break;
+        }
+        
+        /* Adjust temperature sensor data for actual VDD */
+        sample = (cal_vref * sample)/sample_vref;
+
+        /* return chip temperature, 1 C resolution */
+        /* 4.3 mV/C, datasheet 6.3.17 -> 4.3 * 3300/4096 = 3.464 ADC counts per C */
+        sample = 30 + (100*(sample - cal_ts1))/346;
+    }
+    
+    /* Deactivate VREFINT and temperature sensor to save power */
+    ADC->CCR &= ~(ADC_CCR_VREFEN | ADC_CCR_TSEN);
+    
+    /* VDD calculation based on VREF */
+	if (adc_config[line].chan == ADC_VREF_CHANNEL) {
+        cal_vref = *(uint16_t *)ADC_VREFINT_CAL;
+        
+        /* calibration value is for ADC_RES_12BIT, adjust for it if needed */
+        switch (res) {
+            case ADC_RES_6BIT:
+                sample = sample << 6;
+                break;
+            case ADC_RES_8BIT:
+                sample = sample << 4;
+                break;
+            case ADC_RES_10BIT:
+                sample = sample << 2;
+                break;
+            default:
+                break;
+        }
+        
+        /* return Vdd in mV instead of Vref in ADC counts*/
+        sample = (3300 * cal_vref) / sample;
+	}
 
     /* unlock and power off device again */
     done();

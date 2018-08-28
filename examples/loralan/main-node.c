@@ -272,6 +272,8 @@ static void ls_setup(ls_ed_t *ls)
     }
     ls->join_timeout_cb = joined_timeout_cb;
     ls->joined_cb = joined_cb;
+    
+    ls->settings.confirmation = unwds_get_node_settings().confirmation;
 
     ls->appdata_send_failed_cb = appdata_send_failed_cb;
     ls->settings.max_retr = unwds_get_node_settings().max_retr;     /* Maximum number of confirmed data retransmissions */
@@ -438,6 +440,8 @@ static void print_config(void)
     printf("CHANNEL = %d [%d]\n", unwds_get_node_settings().channel, (unsigned) regions[unwds_get_node_settings().region_index].channels[unwds_get_node_settings().channel]);
 
     printf("DATARATE = %d\n", unwds_get_node_settings().dr);
+    
+    printf("CONFIRMED = %s\n", (unwds_get_node_settings().confirmation) ? "yes" : "no");
 
     char nodeclass = 'A'; // unwds_get_node_settings().nodeclass == LS_ED_CLASS_A
     if (unwds_get_node_settings().nodeclass == LS_ED_CLASS_B) {

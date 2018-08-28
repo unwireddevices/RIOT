@@ -23,7 +23,10 @@
 #include "mutex.h"
 #include "periph/adc.h"
 
+/* Factory calibration data */
 #define ADC_VREFINT_CAL     (0x1FF80078UL)
+#define ADC_TSENSE_CAL1     (0x1FF8007AUL)
+#define ADC_TSENSE_CAL2     (0x1FF8007EUL)
 
 /**
  * @brief   Maximum allowed ADC clock speed
@@ -99,7 +102,7 @@ int adc_init(adc_t line)
     /* lock and power on the device */
     prep();
 
-    if ((adc_config[line].chan != 17) && (adc_config[line].chan != 18)) {
+    if (adc_config[line].pin != GPIO_UNDEF) {
         /* configure the pin */
         gpio_init_analog(adc_config[line].pin);
     }
@@ -128,6 +131,7 @@ int adc_init(adc_t line)
 int adc_sample(adc_t line,  adc_res_t res)
 {
     int sample;
+    int cal_vref, cal_ts1, cal_ts2;
 
     /* check if resolution is applicable */
     if ( (res != ADC_RES_6BIT) &&
@@ -144,15 +148,11 @@ int adc_sample(adc_t line,  adc_res_t res)
     _enable_adc();
 
     /* Reactivate VREFINT and temperature sensor if necessary */
-    if (adc_config[line].chan == 17) {
-        ADC->CCR |= ADC_CCR_VREFEN;
+    if ((adc_config[line].chan == ADC_VREF_CHANNEL) || (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL)) {
+        ADC->CCR = (ADC_CCR_VREFEN | ADC_CCR_TSEN);
         while ((PWR->CSR & PWR_CSR_VREFINTRDYF) == 0);
     }
-    else if (adc_config[line].chan == 18) {
-        ADC->CCR |= ADC_CCR_TSEN;
-    }
-    /* else nothing */
-
+    
     /* set resolution and channel */
     ADC1->CFGR1 &= ~ADC_CFGR1_RES;
     ADC1->CFGR1 |= res & ADC_CFGR1_RES;
@@ -169,18 +169,75 @@ int adc_sample(adc_t line,  adc_res_t res)
     /* read result */
     sample = (int)ADC1->DR;
     
-    /* VDD calculation based on VREFINT */
-	if (adc_config[line].chan == 17) {
-        uint16_t cal;
-        cal = *(uint16_t *)ADC_VREFINT_CAL;
-        sample = 3000 * (cal) / sample;
-	}
+    /* in case of temperature channel sample VDD too */
+    int sample_vref = 0;
+    if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL) {
+        /* sample VREF */
+        ADC1->CHSELR = (1 << ADC_VREF_CHANNEL);
+        ADC1->ISR |= ADC_ISR_EOC;
+        ADC1->ISR |= ADC_ISR_EOC;
+        while (!(ADC1->ISR & ADC_ISR_EOC)) {}
+        
+        sample_vref = (int)ADC1->DR;
+        
+        /* calibrate temperature data */
+        cal_ts1   = *(uint16_t *)ADC_TSENSE_CAL1;
+        cal_ts2   = *(uint16_t *)ADC_TSENSE_CAL2;
+        cal_vref  = *(uint16_t *)ADC_VREFINT_CAL;
 
-    /* Disable ADC */
-    _disable_adc();
-
+        /* calibration values are for ADC_RES_12BIT, adjust for it if needed */
+        switch (res) {
+            case ADC_RES_6BIT:
+                sample = sample << 6;
+                sample_vref = sample_vref << 6;
+                break;
+            case ADC_RES_8BIT:
+                sample = sample << 4;
+                sample_vref = sample_vref << 4;
+                break;
+            case ADC_RES_10BIT:
+                sample = sample << 2;
+                sample_vref = sample_vref << 2;
+                break;
+            default:
+                break;
+        }
+        
+        /* Adjust temperature sensor data for actual VDD */
+        sample = (cal_vref * sample)/sample_vref;
+        
+        /* return chip temperature, 1 C resolution */
+        sample = 30 + (100*(sample - cal_ts1))/(cal_ts2 - cal_ts1);
+    }
+    
     /* Deactivate VREFINT and temperature sensor to save power */
     ADC->CCR &= ~(ADC_CCR_VREFEN | ADC_CCR_TSEN);
+    
+    /* VDD calculation based on VREF */
+	if (adc_config[line].chan == ADC_VREF_CHANNEL) {
+        cal_vref = *(uint16_t *)ADC_VREFINT_CAL;
+        
+        /* calibration value is for ADC_RES_12BIT, adjust for it if needed */
+        switch (res) {
+            case ADC_RES_6BIT:
+                sample = sample << 6;
+                break;
+            case ADC_RES_8BIT:
+                sample = sample << 4;
+                break;
+            case ADC_RES_10BIT:
+                sample = sample << 2;
+                break;
+            default:
+                break;
+        }
+        
+        /* return Vdd in mV instead of Vref in ADC counts*/
+        sample = (3000 * cal_vref) / sample;
+	}
+    
+    /* Disable ADC */
+    _disable_adc();
 
     /* unlock and power off device again */
     done();

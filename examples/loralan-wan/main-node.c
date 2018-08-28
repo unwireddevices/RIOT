@@ -39,6 +39,9 @@ extern "C" {
 #include "sx127x_params.h"
 #include "sx127x_netdev.h"
 
+#include "fmt.h"
+#include "byteorder.h"
+
 #include "ls-settings.h"
 #include "ls-config.h"
 
@@ -68,11 +71,11 @@ static rtctimers_millis_t send_retry_timer;
 
 static kernel_pid_t receiver_pid;
 static kernel_pid_t main_thread_pid;
+static kernel_pid_t loramac_pid;
 
 static char sender_stack[2048];
 static char receiver_stack[2048];
 
-static sx127x_t sx127x;
 static semtech_loramac_t ls;
 
 static uint8_t current_join_retries = 0;
@@ -96,17 +99,14 @@ void radio_init(void)
    
     sx127x_params.rfswitch_pin = SX127X_RFSWITCH;
     sx127x_params.rfswitch_active_level = SX127X_GET_RFSWITCH_ACTIVE_LEVEL();
-
-    sx127x_radio_settings_t settings;
-    settings.channel = RF_FREQUENCY;
-    settings.modem = SX127X_MODEM_LORA;
-    settings.state = SX127X_RF_IDLE;
-
-    sx127x.settings = settings;
     
-    semtech_loramac_init(&ls, &sx127x_params);
+    loramac_pid = semtech_loramac_init(&ls, &sx127x_params);
 
-    puts("[LoRa] LoRaMAC successfully initialized");
+    if (loramac_pid > KERNEL_PID_UNDEF) {
+        puts("[LoRa] LoRaMAC successfully initialized");
+    } else {
+        puts("[LoRa] LoRaMAC initialization failed");
+    }
 }
 
 static int node_join(semtech_loramac_t *ls) {
@@ -136,7 +136,7 @@ static void *sender_thread(void *arg) {
     while (1) {
         msg_receive(&msg);
         
-        if (msg.sender_pid == main_thread_pid) {
+        if (msg.sender_pid != loramac_pid) {
             int res = node_join(ls);
             
             switch (res) {
@@ -185,11 +185,8 @@ static void *receiver_thread(void *arg) {
     semtech_loramac_t *ls = (semtech_loramac_t *) arg;
     
     puts("[LoRa] receiver thread started");
-    
-    msg_t msg;
-    
+   
     while (1) {
-        msg_receive(&msg);
         int res = semtech_loramac_recv(ls);
         
         switch (res) {
@@ -279,13 +276,28 @@ static void ls_setup(semtech_loramac_t *ls)
     // ls->settings.max_retr = unwds_get_node_settings().max_retr;     /* Maximum number of confirmed data retransmissions */
 
     uint64_t id = config_get_nodeid();
-    semtech_loramac_set_deveui(ls, (uint8_t *)&id);
+    uint8_t deveui[LORAMAC_DEVEUI_LEN];
+    memcpy(deveui, &id, LORAMAC_DEVEUI_LEN);
+    byteorder_swap(deveui, LORAMAC_DEVEUI_LEN);
+    semtech_loramac_set_deveui(ls, deveui);
     
     id = config_get_appid();
-    semtech_loramac_set_appeui(ls, (uint8_t *)&id);
-    semtech_loramac_set_appkey(ls, config_get_joinkey());
+    uint8_t appeui[LORAMAC_APPEUI_LEN];
+    memcpy(appeui, &id, LORAMAC_APPEUI_LEN);
+    byteorder_swap(appeui, LORAMAC_APPEUI_LEN);
+    semtech_loramac_set_appeui(ls, appeui);
+    
+    uint8_t appkey[LORAMAC_APPKEY_LEN];
+    memcpy(appkey, config_get_joinkey(), LORAMAC_APPKEY_LEN);
+    byteorder_swap(appkey, LORAMAC_APPKEY_LEN);
+    semtech_loramac_set_appkey(ls, appkey);
+    
     semtech_loramac_set_dr(ls, LORAMAC_DR_0);
+    semtech_loramac_set_adr(ls, true);
     semtech_loramac_set_class(ls, unwds_get_node_settings().nodeclass);
+    
+    semtech_loramac_set_tx_mode(ls, LORAMAC_TX_UNCNF); /* unconfirmed packets */
+    semtech_loramac_set_tx_port(ls, LORAMAC_DEFAULT_TX_PORT); /* port 2 */
     
     puts("[LoRa] LoRaMAC values set");
 }

@@ -178,7 +178,7 @@ int adc_sample(adc_t line,  adc_res_t res)
     ADC1->SQR1 &= ~ADC_SQR1_L;
     ADC1->SQR5 = adc_config[line].chan;
 
-    /* wait for regulat channel to be ready*/
+    /* wait for regular channel to be ready*/
     while (!(ADC1->SR & ADC_SR_RCNR)) {}
     /* start conversion and wait for results */
     ADC1->CR2 |= ADC_CR2_SWSTART;
@@ -211,11 +211,11 @@ int adc_sample(adc_t line,  adc_res_t res)
                 break;
         }
         
-        sample = 3000 * (cal_vref) / sample;
+        sample = (3000 * cal_vref) / sample;
 	}
     
     /* in case of temperature channel sample VDD too */
-    int sample_vdd = 0;
+    int sample_vref = 0;
     if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL) {
         ADC1->SQR5 = ADC_VREF_CHANNEL;
         /* wait for regulat channel to be ready*/
@@ -225,7 +225,7 @@ int adc_sample(adc_t line,  adc_res_t res)
         ADC1->CR2 |= ADC_CR2_SWSTART;
         while (!(ADC1->SR & ADC_SR_EOC)) {}
         
-        sample_vdd = (int)ADC1->DR;
+        sample_vref = (int)ADC1->DR;
         ADC1 -> SR &= ~ADC_SR_STRT;
         
         /* calibrate temperature data */
@@ -244,24 +244,24 @@ int adc_sample(adc_t line,  adc_res_t res)
         switch (res) {
             case ADC_RES_6BIT:
                 sample = sample << 6;
-                sample_vdd = sample_vdd << 6;
+                sample_vref = sample_vref << 6;
                 break;
             case ADC_RES_8BIT:
                 sample = sample << 4;
-                sample_vdd = sample_vdd << 4;
+                sample_vref = sample_vref << 4;
                 break;
             case ADC_RES_10BIT:
                 sample = sample << 2;
-                sample_vdd = sample_vdd << 2;
+                sample_vref = sample_vref << 2;
                 break;
             default:
                 break;
         }
         
         /* Adjust temperature sensor data for actual VDD */
-        sample = (cal_vref * sample)/sample_vdd;
+        sample = (cal_vref * sample)/sample_vref;
         
-        /* Calculate chip temperature, 1 C resolution */
+        /* return chip temperature, 1 C resolution */
         sample = 30 + (80*(sample - cal_ts1))/(cal_ts2 - cal_ts1);
     }
        

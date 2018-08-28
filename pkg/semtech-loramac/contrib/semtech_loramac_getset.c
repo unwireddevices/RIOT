@@ -117,6 +117,7 @@ void semtech_loramac_set_dr(semtech_loramac_t *mac, uint8_t dr)
 {
     mutex_lock(&mac->lock);
     DEBUG("[semtech-loramac] set dr %d\n", dr);
+    mac->datarate = dr;
     MibRequestConfirm_t mibReq;
     mibReq.Type = MIB_CHANNELS_DEFAULT_DATARATE;
     mibReq.Param.ChannelsDatarate = dr;

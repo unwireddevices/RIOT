@@ -196,6 +196,21 @@ int adc_sample(adc_t line,  adc_res_t res)
         } else {
             cal_vref = *(uint16_t *)ADC_VREFINT_CAL;
         }
+        /* calibration value is for ADC_RES_12BIT, adjust for it if needed */
+        switch (res) {
+            case ADC_RES_6BIT:
+                sample = sample << 6;
+                break;
+            case ADC_RES_8BIT:
+                sample = sample << 4;
+                break;
+            case ADC_RES_10BIT:
+                sample = sample << 2;
+                break;
+            default:
+                break;
+        }
+        
         sample = 3000 * (cal_vref) / sample;
 	}
     
@@ -216,21 +231,38 @@ int adc_sample(adc_t line,  adc_res_t res)
         /* calibrate temperature data */
         if (get_cpu_category() < 3) {
             /* low-end devices doesn't provide calibration values, see errata */
-            cal_ts1   = 670;
-            cal_ts2   = 848;
-            cal_vref  = 1672;
+            /* values according to STM32L151x6/8/B-A datasheet, tables 17 and 59 */
+            cal_ts1   = 680;
+            cal_ts2   = 856;
+            cal_vref  = 1671;
         } else {
             cal_ts1   = *(uint16_t *)ADC_TS_CAL1;
             cal_ts2   = *(uint16_t *)ADC_TS_CAL2;
             cal_vref  = *(uint16_t *)ADC_VREFINT_CAL;
         }
+        /* calibration values are for ADC_RES_12BIT, adjust for it if needed */
+        switch (res) {
+            case ADC_RES_6BIT:
+                sample = sample << 6;
+                sample_vdd = sample_vdd << 6;
+                break;
+            case ADC_RES_8BIT:
+                sample = sample << 4;
+                sample_vdd = sample_vdd << 4;
+                break;
+            case ADC_RES_10BIT:
+                sample = sample << 2;
+                sample_vdd = sample_vdd << 2;
+                break;
+            default:
+                break;
+        }
         
-        /* Correct temperature sensor data for actual VDD */
+        /* Adjust temperature sensor data for actual VDD */
         sample = (cal_vref * sample)/sample_vdd;
         
-        /* Calculate chip temperature */
-        /* 0.1 C resolution */
-        sample = (800*(sample - cal_ts1))/(cal_ts2 - cal_ts1) + 300;
+        /* Calculate chip temperature, 1 C resolution */
+        sample = 30 + (80*(sample - cal_ts1))/(cal_ts2 - cal_ts1);
     }
        
     /* Disable temperature and Vref conversion */

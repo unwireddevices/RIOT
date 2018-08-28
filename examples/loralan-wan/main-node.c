@@ -292,11 +292,17 @@ static void ls_setup(semtech_loramac_t *ls)
     byteorder_swap(appkey, LORAMAC_APPKEY_LEN);
     semtech_loramac_set_appkey(ls, appkey);
     
-    semtech_loramac_set_dr(ls, LORAMAC_DR_0);
+    
+    semtech_loramac_set_dr(ls, unwds_get_node_settings().dr);
+    
     semtech_loramac_set_adr(ls, true);
     semtech_loramac_set_class(ls, unwds_get_node_settings().nodeclass);
     
-    semtech_loramac_set_tx_mode(ls, LORAMAC_TX_UNCNF); /* unconfirmed packets */
+    if (unwds_get_node_settings().confirmation) {
+        semtech_loramac_set_tx_mode(ls, LORAMAC_TX_CNF);   /* confirmed packets */
+    } else {
+        semtech_loramac_set_tx_mode(ls, LORAMAC_TX_UNCNF); /* unconfirmed packets */
+    }
     semtech_loramac_set_tx_port(ls, LORAMAC_DEFAULT_TX_PORT); /* port 2 */
     
     puts("[LoRa] LoRaMAC values set");
@@ -369,6 +375,8 @@ static void print_config(void)
     printf("APPID64 = 0x%08x%08x\n", (unsigned int) (appid >> 32), (unsigned int) (appid & 0xFFFFFFFF));
 
     printf("DATARATE = %d\n", unwds_get_node_settings().dr);
+    
+    printf("CONFIRMED = %s\n", (unwds_get_node_settings().confirmation) ? "yes" : "no");
 
     char nodeclass = 'A'; // unwds_get_node_settings().nodeclass == LS_ED_CLASS_A
     if (unwds_get_node_settings().nodeclass == LS_ED_CLASS_B) {

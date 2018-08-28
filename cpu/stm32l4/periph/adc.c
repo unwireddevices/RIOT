@@ -27,6 +27,11 @@
 #include "periph_conf.h"
 #include "xtimer.h"
 
+/* Factory calibration data */
+#define ADC_VREFINT_CAL     (0x1FFF75AAUL)
+#define ADC_TSENSE_CAL1     (0x1FFF75A8UL)
+#define ADC_TSENSE_CAL2     (0x1FFF75CAUL)
+
 /**
  * @brief map CPU specific register/value names
  */
@@ -128,8 +133,10 @@ int adc_init(adc_t line)
         ADC123_COMMON->CCR |= (ADC_CCR_CKMODE_1);
     }
 
-    /* configure the pin */
-    gpio_init_analog(adc_config[line].pin);
+    if (adc_config[line].pin != GPIO_UNDEF) {
+        /* configure the pin */
+        gpio_init_analog(adc_config[line].pin);
+    }
 
 #if defined(CPU_MODEL_STM32L476RG) || defined(CPU_MODEL_STM32L475VG)
     /* On STM32L475xx/476xx/486xx devices, before any conversion of an input channel coming
@@ -184,6 +191,7 @@ int adc_init(adc_t line)
 int adc_sample(adc_t line, adc_res_t res)
 {
     int sample;
+    int cal_vref, cal_ts1, cal_ts2;
 
     /* check if resolution is applicable */
     if (res & 0x3) {
@@ -192,6 +200,16 @@ int adc_sample(adc_t line, adc_res_t res)
 
     /* lock and power on the ADC device  */
     prep(line);
+    
+    /* enable lines for VREF/VBAT/temperature measurements */
+    if (adc_config[line].dev == 0) {
+        if ((adc_config[line].chan == ADC_VREF_CHANNEL) ||
+            (adc_config[line].chan == ADC_VBAT_CHANNEL) ||
+            (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL)) {
+                
+            ADC123_COMMON->CCR |= (ADC_CCR_VREFEN | ADC_CCR_TSEN | ADC_CCR_VBATEN);
+        }
+    }
 
     /* first clear resolution */
     dev(line)->CFGR &= ~(ADC_CFGR_RES);
@@ -208,6 +226,106 @@ int adc_sample(adc_t line, adc_res_t res)
 
     /* read the sample */
     sample = (int)dev(line)->DR;
+    
+    /* in case of temperature channel sample VDD too */
+    if (adc_config[line].dev == 0) {
+        int sample_vref = 0;
+        if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL) {
+            /* sample VREF */
+            ADC1->SQR1 = (ADC_VREF_CHANNEL << ADC_SQR1_SQ1_Pos);
+            ADC1->ADC_CR_REG |= ADC_CR_ADSTART;
+            while (!(ADC1->ISR & ADC_ISR_EOC)) {}
+            
+            sample_vref = (int)ADC1->DR;
+            
+            /* calibrate temperature data */
+            cal_ts1   = *(uint16_t *)ADC_TSENSE_CAL1;
+            cal_ts2   = *(uint16_t *)ADC_TSENSE_CAL2;
+            cal_vref  = *(uint16_t *)ADC_VREFINT_CAL;
+
+            /* calibration values are for ADC_RES_12BIT, adjust for it if needed */
+            switch (res) {
+                case ADC_RES_6BIT:
+                    sample = sample << 6;
+                    sample_vref = sample_vref << 6;
+                    break;
+                case ADC_RES_8BIT:
+                    sample = sample << 4;
+                    sample_vref = sample_vref << 4;
+                    break;
+                case ADC_RES_10BIT:
+                    sample = sample << 2;
+                    sample_vref = sample_vref << 2;
+                    break;
+                default:
+                    break;
+            }
+            
+            /* Adjust temperature sensor data for actual VDD */
+            sample = (cal_vref * sample)/sample_vref;
+            
+            /* return chip temperature, 1 C resolution */
+            sample = 30 + (100*(sample - cal_ts1))/(cal_ts2 - cal_ts1);
+        }
+        
+        /* VBAT calculation based on VREF */
+        if (adc_config[line].chan == ADC_VBAT_CHANNEL) {
+            ADC1->SQR1 = (ADC_VREF_CHANNEL << ADC_SQR1_SQ1_Pos);
+            ADC1->ADC_CR_REG |= ADC_CR_ADSTART;
+            while (!(ADC1->ISR & ADC_ISR_EOC)) {}
+            
+            sample_vref = (int)ADC1->DR;
+            
+            cal_vref = *(uint16_t *)ADC_VREFINT_CAL;
+            
+            /* calibration value is for ADC_RES_12BIT, adjust for it if needed */
+            switch (res) {
+                case ADC_RES_6BIT:
+                    sample = sample << 6;
+                    break;
+                case ADC_RES_8BIT:
+                    sample = sample << 4;
+                    break;
+                case ADC_RES_10BIT:
+                    sample = sample << 2;
+                    break;
+                default:
+                    break;
+            }
+            
+            /* Adjust VBAT value data for actual VDD and multiply by 3 (datasheet 3.15.3) */
+            sample = 3*(cal_vref * sample)/sample_vref;
+            
+            /* return Vbat in mV instead of ADC counts*/
+            sample = (sample * 3000)/4096;
+        }
+        
+        /* disable VREF, VBAT and temperature sensing */
+        ADC123_COMMON->CCR &= ~(ADC_CCR_VREFEN | ADC_CCR_TSEN | ADC_CCR_VBATEN);
+        
+        /* VDD calculation based on VREF */
+        if (adc_config[line].chan == ADC_VREF_CHANNEL) {
+            cal_vref = *(uint16_t *)ADC_VREFINT_CAL;
+            
+            /* calibration value is for ADC_RES_12BIT, adjust for it if needed */
+            switch (res) {
+                case ADC_RES_6BIT:
+                    sample = sample << 6;
+                    break;
+                case ADC_RES_8BIT:
+                    sample = sample << 4;
+                    break;
+                case ADC_RES_10BIT:
+                    sample = sample << 2;
+                    break;
+                default:
+                    break;
+            }
+            
+            /* return Vdd in mV instead of Vref in ADC counts*/
+            sample = (3000 * cal_vref) / sample;
+        }
+    }
 
     /* free the device again */
     done(line);

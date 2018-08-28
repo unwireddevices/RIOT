@@ -134,16 +134,20 @@ int adc_init(adc_t line)
             adc_set_sample_time(ADC_SAMPLE_TIME_96C);
     }
 
-    /* check if this channel is an internal ADC channel, if so
-     * enable the internal temperature and Vref */
-    if (adc_config[line].chan == 16 || adc_config[line].chan == 17) {
-        ADC->CCR |= ADC_CCR_TSVREFE;
-    }
-
     /* enable the ADC module */
     ADC1->CR2 = ADC_CR2_ADON;
     /* turn off during idle phase*/
     ADC1->CR1 = ADC_CR1_PDI;
+    
+    /* check if this channel is an internal ADC channel, if so
+     * enable the internal temperature and Vref */
+    if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL || adc_config[line].chan == ADC_VREF_CHANNEL) {
+        ADC->CCR |= ADC_CCR_TSVREFE;
+        while ((PWR->CSR & PWR_CSR_VREFINTRDYF) == 0);
+    }
+    
+    /* Wait for ADC to become ready */
+	while ((ADC1->SR & ADC_SR_ADONS) == 0);
 
     /* free the device again */
     done();
@@ -158,99 +162,81 @@ int adc_sample(adc_t line,  adc_res_t res)
 {
     int sample;
 
+    /* check if resolution is applicable */
+    if ( (res != ADC_RES_6BIT) &&
+         (res != ADC_RES_8BIT) &&
+         (res != ADC_RES_10BIT) &&
+         (res != ADC_RES_12BIT)) {
+        return -1;
+    }
+
     /* lock and power on the ADC device  */
     prep();
-	
-    /* ADC1 CR1 Configuration */
-    uint32_t tmpreg1 = ADC1->CR1;
-    tmpreg1 &= CR1_CLEAR_MASK;
-    tmpreg1 |= res;
-    ADC1->CR1 = tmpreg1;
-
-    /* CR2 config */
-    tmpreg1 = ADC1->CR2;
-    tmpreg1 &= CR2_CLEAR_MASK;
-
-    uint32_t align = 0x00000000; /* Left alignment of data */
-    uint32_t edge = 0x00000000;
-    uint32_t etrig = 0x03000000;
-    uint32_t continuous_conv_mode = 0;
-
-    tmpreg1 |= align | edge | etrig | (continuous_conv_mode << 1);
-    ADC1->CR2 = tmpreg1;
-
-    /* Enable ADC */
-    ADC1->CR2 |= (uint32_t)ADC_CR2_ADON;
     
-	/* Enable temperature and Vref conversion */
-	if (adc_config[line].pin == GPIO_UNDEF) {
-		ADC->CCR |= ADC_CCR_TSVREFE;
-        while ((PWR->CSR & PWR_CSR_VREFINTRDYF) == 0);
-	}
-	
-	/* Wait for ADC to become ready */
-	while ((ADC1->SR & ADC_SR_ADONS) == 0);
-	
-	ADC1->CR2 |= ADC_CR2_EOCS;
+    /* set resolution, conversion channel and single read */
+    ADC1->CR1 |= res & ADC_CR1_RES;
+    ADC1->SQR1 &= ~ADC_SQR1_L;
+    ADC1->SQR5 = adc_config[line].chan;
 
-    /* Start conversion on regular channels. */
-    ADC1->CR2 |= (uint32_t)ADC_CR2_SWSTART;
-
-    /* Wait until the end of ADC conversion */
-    while ((ADC1->SR & ADC_SR_EOC) == 0);
-
-    /* read result */
+    /* wait for regulat channel to be ready*/
+    while (!(ADC1->SR & ADC_SR_RCNR)) {}
+    /* start conversion and wait for results */
+    ADC1->CR2 |= ADC_CR2_SWSTART;
+    while (!(ADC1->SR & ADC_SR_EOC)) {}
+    /* finally read sample and reset the STRT bit in the status register */
     sample = (int)ADC1->DR;
+    ADC1 -> SR &= ~ADC_SR_STRT;
     
-    int sample_ts = 0;
-    if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL) {
-        sample_ts = sample;
-        while ((ADC1->SR & ADC_SR_EOC) == 0);
-        sample = (int)ADC1->DR;
-    }
-    
-	/* VDD calculation based on VREFINT */
-	if ((adc_config[line].chan == ADC_VREF_CHANNEL) || (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL)) {
-        uint16_t cal;
+    int cal_vref, cal_ts1, cal_ts2;
+    /* In case of VREF channel calculate and return actual VDD, not Vref */
+	if (adc_config[line].chan == ADC_VREF_CHANNEL) {
         if (get_cpu_category() < 3) {
             /* low-end devices doesn't provide calibration values, see errata */
-            cal = 1672;
-            
+            cal_vref = 1672;
         } else {
-            cal = *(uint16_t *)ADC_VREFINT_CAL;
+            cal_vref = *(uint16_t *)ADC_VREFINT_CAL;
         }
-        sample = 3000 * (cal) / sample;
+        sample = 3000 * (cal_vref) / sample;
 	}
-
-	/* Chip temperature calculation */
-	if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL) {
-
-        uint16_t cal1, cal2;
+    
+    /* in case of temperature channel sample VDD too */
+    int sample_vdd = 0;
+    if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL) {
+        ADC1->SQR5 = ADC_VREF_CHANNEL;
+        /* wait for regulat channel to be ready*/
+        while (!(ADC1->SR & ADC_SR_RCNR)) {}
+        
+        /* start conversion and wait for results */
+        ADC1->CR2 |= ADC_CR2_SWSTART;
+        while (!(ADC1->SR & ADC_SR_EOC)) {}
+        
+        sample_vdd = (int)ADC1->DR;
+        ADC1 -> SR &= ~ADC_SR_STRT;
+        
+        /* calibrate temperature data */
         if (get_cpu_category() < 3) {
-        /* low-end devices doesn't provide calibration values, see errata */
-                cal1 = 670;
-                cal2 = 848;
+            /* low-end devices doesn't provide calibration values, see errata */
+            cal_ts1   = 670;
+            cal_ts2   = 848;
+            cal_vref  = 1672;
         } else {
-                cal1 = *(uint16_t *)ADC_TS_CAL1;
-                cal2 = *(uint16_t *)ADC_TS_CAL2;
+            cal_ts1   = *(uint16_t *)ADC_TS_CAL1;
+            cal_ts2   = *(uint16_t *)ADC_TS_CAL2;
+            cal_vref  = *(uint16_t *)ADC_VREFINT_CAL;
         }
-        /* Correct temperature sensor data for actual Vdd */
-        sample_ts = (sample_ts * sample)/3000;
+        
+        /* Correct temperature sensor data for actual VDD */
+        sample = (cal_vref * sample)/sample_vdd;
         
         /* Calculate chip temperature */
-        /* sample = Vdd, sample_ts = temperature sensor data */
         /* 0.1 C resolution */
-        sample_ts = 300 - (((int)cal1 - sample_ts)*80) / (int)(cal2 - cal1);
-        
-        ADC1->CR1 &= ~ADC_CR1_SCAN;
-        ADC1->CR2 &= ~ADC_CR2_DELS;
-	}
-
-	/* Disable temperature and Vref conversion */
+        sample = (800*(sample - cal_ts1))/(cal_ts2 - cal_ts1) + 300;
+    }
+       
+    /* Disable temperature and Vref conversion */
 	ADC->CCR &= ~ADC_CCR_TSVREFE;
-	
-    /* unlock and power off device */
-	ADC1->CR2 &= ~(ADC_CR2_ADON);
+    
+    /* power off and unlock device again */
     done();
 
     return sample;

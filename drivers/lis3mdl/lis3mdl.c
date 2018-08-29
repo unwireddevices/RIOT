@@ -21,7 +21,8 @@
 #include "lis3mdl.h"
 #include "include/lis3mdl-internal.h"
 
-#define ENABLE_DEBUG        (1)
+#define ENABLE_DEBUG        (0)
+
 #include "debug.h"
 
 #define MASK_INT16_MSB      (0x8000)
@@ -58,13 +59,15 @@ int lis3mdl_init(lis3mdl_t *dev, const lis3mdl_params_t *params)
 {
     dev->params = *params;
 
-    uint8_t tmp;
+    uint8_t tmp = 0x00;
+    int ret = 0;
 
     i2c_acquire(DEV_I2C);
 
     i2c_init(DEV_I2C);
 
-    i2c_read_reg(DEV_I2C, DEV_ADDR, LIS3DML_WHO_AM_I_REG, &tmp, 0);
+    ret = i2c_read_reg(DEV_I2C, DEV_ADDR, LIS3DML_WHO_AM_I_REG, &tmp, 0);
+    DEBUG("LIS3MDL: ret is %d\n", ret);
     if (tmp != LIS3MDL_CHIP_ID) {
         DEBUG("LIS3MDL: Identification failed, %02X != %02X\n",
               tmp, LIS3MDL_CHIP_ID);
@@ -88,7 +91,6 @@ int lis3mdl_init(lis3mdl_t *dev, const lis3mdl_params_t *params)
     /* enable BDU (block data update) */ 
     i2c_write_reg(DEV_I2C, DEV_ADDR, LIS3MDL_CTRL_REG5, LIS3MDL_MASK_REG5_BDU, 0);
 
-    puts("Release bus");   
     i2c_release(DEV_I2C);
 
     return 0;
@@ -146,7 +148,7 @@ void lis3mdl_read_mag(const lis3mdl_t *dev, lis3mdl_3d_data_t *data)
     data->x_axis = (1000 * (int32_t)x)/scale;
     data->y_axis = (1000 * (int32_t)y)/scale;
     data->z_axis = (1000 * (int32_t)z)/scale;
-    
+
     i2c_release(DEV_I2C);
 }
 

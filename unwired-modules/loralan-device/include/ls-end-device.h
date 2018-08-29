@@ -141,6 +141,7 @@ typedef struct {
 	uint8_t max_retr;							/**< Maximum number of retransmissions */
 	bool no_join;								/**< Statically personalized device, no join required */
     bool auto_shutdown;
+    bool confirmation;
 } ls_ed_settings_t;
 
 typedef struct {

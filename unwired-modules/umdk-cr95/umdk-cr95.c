@@ -63,6 +63,11 @@ static uint8_t rxbuf[30];
 static uint8_t txbuf[30];
 static uint8_t txbuf_tmp[30];
 
+// static uint8_t rxbuf_tmp[30];
+// static volatile uint8_t num_bytes_rx_tmp = 0;
+
+// static volatile uint8_t spi_rx = 0xAA;
+
 static volatile uint8_t num_bytes_rx = 0;
 static volatile uint8_t uart_rx = 0;
 
@@ -71,24 +76,28 @@ static uint8_t current_cmd = 0;
 static uint8_t (*cr95_iface)(uint8_t) = NULL;
 static uint8_t iface = UMDK_CR95_IFACE_UART;
 static uint8_t protocol = 0;
+static uint8_t offset = 0;
 
 static uint8_t uart_irq_debug = 0;
 
 static volatile cr95_pack_state_t current_state = UMDK_CR95_PACK_ERROR;
 static volatile cr95_rx_state_t flag_rx = UMDK_CR95_NOT_RECIEVED;
 
-uint8_t idle_cmd[17] = {0x00, 0x07, 0x0E, 0x02, 0x21, 0x00, 0x79, 0x01, 0x18, 0x00, 0x20, 0x60, 0x60, 0x42, 0xFC, 0x3F, 0x08};	
+// uint8_t idle_cmd[17] = {0x00, 0x07, 0x0E, 0x02, 0x21, 0x00, 0x79, 0x01, 0x18, 0x00, 0x20, 0x60, 0x60, 0x42, 0xFC, 0x3F, 0x08};	
+uint8_t idle_cmd[14] = {0x02, 0x21, 0x00, 0x79, 0x01, 0x18, 0x00, 0x20, 0x60, 0x60, 0x42, 0xFC, 0x3F, 0x08};
 	uint8_t send_1a[2] = {0x26, 0x07};
 	uint8_t send_2a[3] = {0x93, 0x20, 0x08};
 
 
 static uint8_t _send_uart(uint8_t length);
-static uint8_t _send_recv_spi(uint8_t length);
+static uint8_t _send_spi(uint8_t length);
+
 // static void _reset_spi(void);
 static uint8_t _send_pack(uint8_t len);
 static uint8_t _cmd_echo(void);
 static uint8_t _idn_cmd(void);
 static uint8_t _cr95_select_iface(uint8_t iface);
+static uint8_t _cmd_idle(void);
 // static uint8_t _cr95_wake_up(void);
 
 // static uint8_t _select_protocol(void);
@@ -106,7 +115,7 @@ static void detect_tag(void);
 static uint8_t _select_protocol(void)
 {
 	if(protocol & ISO14443A_SELECT) {
-		puts("		[ ISO 14443 A ]");
+		// puts("		[ ISO 14443 A ]");
 		_send_pack(_select_iso14443a());
 	}
 	if(protocol & ISO14443B_SELECT) {
@@ -132,16 +141,26 @@ static uint8_t _select_protocol(void)
 }
 
 static uint8_t _send_receive(uint8_t * data, uint8_t length)
+{	
+	txbuf[0] = CR95_CMD_SEND_RECV;
+	txbuf[1] = length;
+	memcpy(txbuf + 2, data, length);
+	
+	return (2 + length);
+}
+
+static uint8_t _cmd_idle(void)
 {
-	txbuf[0] = 0x00;
+	// txbuf[0] = 0x00;
 	
-	txbuf[1] = CR95_CMD_SEND_RECV;
-	txbuf[2] = length;
-	memcpy(txbuf + 3, data, length);
-	// txbuf[3] = 0x26;
-	// txbuf[4] = 0x07;
+	txbuf[0] = CR95_CMD_IDLE;
+	txbuf[1] = sizeof(idle_cmd);
+	memcpy(txbuf + 2, idle_cmd, sizeof(idle_cmd));
 	
-	return (3 + length);
+	_send_pack(2 + sizeof(idle_cmd));
+	
+	return 1;
+	// return (3 + length);
 }
 
 
@@ -206,21 +225,21 @@ static uint8_t _select_iso15693(void)
 
 static uint8_t _select_iso14443a(void)
 {
-	txbuf[0] = 0x00;
+	// txbuf[0] = 0x00;
 	
-	txbuf[1] = CR95_CMD_PROTOCOL;
-	txbuf[2] = 2;// Length
+	txbuf[0] = CR95_CMD_PROTOCOL;
+	txbuf[1] = 2;// Length
 	
-	txbuf[3] = ISO_14443A;
-	txbuf[4] = 0x00 | (TX_RATE_106 << 6) | (RX_RATE_106 << 4);	// (TX_RATE << 6) | (RX_RATE << 4) // 02
+	txbuf[2] = ISO_14443A;
+	txbuf[3] = 0x00 | (TX_RATE_106 << 6) | (RX_RATE_106 << 4);
 
-	txbuf[5] = 0x00;	// PP (Optioanal) 															// 00
-	txbuf[6] = 0x00;	// MM (Optioanal)															// 01
-	txbuf[7] = 0x00;	// DD (Optioanal)															// 80
+	txbuf[4] = 0x00;	// PP (Optioanal) 															// 00
+	txbuf[5] = 0x00;	// MM (Optioanal)															// 01
+	txbuf[6] = 0x00;	// DD (Optioanal)															// 80
+	txbuf[7] = 0x00;	// ST Reserved (Optioanal)
 	txbuf[8] = 0x00;	// ST Reserved (Optioanal)
-	txbuf[9] = 0x00;	// ST Reserved (Optioanal)
 
-	return 5;
+	return 4;
 }
 
 static uint8_t _select_iso14443b(void)
@@ -258,29 +277,25 @@ static uint8_t _cr95_select_iface(uint8_t iface)
 		cr95_iface = &_send_uart;
 	
 		uart_rx = 1;
-			/* disable SPI device */
-		// spi_release(SPI_DEV(cr95_params.spi));
+		offset = 0;
 		
 		puts("[umdk-" _UMDK_NAME_ "] Using UART interface");
-		// rtctimers_millis_sleep(15);
 	}
 	else if(iface == UMDK_CR95_IFACE_SPI) {		
 		gpio_set(UMDK_CR95_SSI_0);
-		cr95_iface = &_send_recv_spi;
+		cr95_iface = &_send_spi;
 
 		uart_rx = 0;
-			/* disable UART device */
-		// uart_poweroff(UART_DEV(cr95_params.uart));
+		offset = 1;
 		
 		puts("[umdk-" _UMDK_NAME_ "] Using SPI interface");
-		// xtimer_usleep(100);
 	}
 	else {
 		puts("[umdk-" _UMDK_NAME_ "] Error selecting interface");
 		return 0;
 	}
-		rtctimers_millis_sleep(10);
-		puts("[SELECTED IFACE]");
+		rtctimers_millis_sleep(CR95_HFO_SETUP_TIME_MS);
+
 	return 1;
 }
 
@@ -290,17 +305,28 @@ static uint8_t _cmd_echo(void)
 	flag_rx = UMDK_CR95_NOT_RECIEVED;
 	current_state = UMDK_CR95_PACK_ERROR;
 	
-	txbuf[0] = 0x00;
-	txbuf[1] = CR95_CMD_ECHO;
+	uint32_t time_begin = rtctimers_millis_now();
+	uint32_t time_end = 0;
+	uint32_t time_delta = 0;
+	uint32_t cnt = 0;
+	
+	txbuf[0] = CR95_CMD_ECHO;
 	
 	msg_rx.type = UMDK_CR95_MSG_ECHO;
-	_send_pack(2);
+	_send_pack(1);
 	
-	rtctimers_millis_sleep(5);
-	
-	// while(flag_rx == UMDK_CR95_NOT_RECIEVED) {
-		 // xtimer_usleep(15);
-	// }
+	while(flag_rx != UMDK_CR95_RECIEVED) {
+		cnt++;
+		time_end = rtctimers_millis_now();
+		time_delta = time_end - time_begin;
+		if(time_delta > UMDK_CR95_NO_RESPONSE_TIME_MS) {
+			current_state = UMDK_CR95_PACK_ERROR;
+			printf("[NO RESPONSE] : %ld  ( %ld ms)	%ld / %ld\n", cnt, time_delta, time_begin, time_end);
+			break;
+		}
+	}
+	printf("[RESPONSE] : %ld  ( %ld ms)\n\n", cnt, time_delta);
+	// rtctimers_millis_sleep(10);
 	
 	return (uint8_t)current_state;
 }
@@ -317,32 +343,44 @@ static void *radio_send(void *arg)
 
 		cr95_msg_t  msg_type = (cr95_msg_t)msg.type;
 		
-		// printf("RX data[%d]: ", num_bytes_rx);
-		// for(uint32_t i = 0; i < num_bytes_rx; i++) {
-				// printf(" %02X", rxbuf[i]);
-			// }	
-		// printf("\n");
+		printf("RX data[%d]: ", num_bytes_rx);
+		for(uint32_t i = 0; i < num_bytes_rx; i++) {
+				printf(" %02X", rxbuf[i]);
+			}	
+		printf("\n");
 		
 		switch(msg_type) {
 			case UMDK_CR95_MSG_RADIO: {
-				if((rxbuf[0] == 0x00) && (rxbuf[1] == 0x00)) {
-					current_state = UMDK_CR95_PACK_OK;
+				
+				// printf("RADIO data[%d]: ", num_bytes_rx_tmp);
+				// for(uint32_t i = 0; i < num_bytes_rx_tmp; i++) {
+						// printf(" %02X", rxbuf_tmp[i]);
+					// }	
+				// printf("\n");
+				
+// num_bytes_rx_tmp = 0;
+				
+				// if((rxbuf[0] == 0x00) && (rxbuf[1] == 0x00)) {
+					// current_state = UMDK_CR95_PACK_OK;
 					// puts("	OK");
-				}
-				else {
-					current_state = UMDK_CR95_PACK_ERROR;
+				// }
+				// else {
+					// current_state = UMDK_CR95_PACK_ERROR;
 					// puts("	ERROR");
-				}
-				flag_rx = UMDK_CR95_RECIEVED;
+				// }
+				// flag_rx = UMDK_CR95_RECIEVED;
 				break;
 			}
 			
 			case UMDK_CR95_MSG_ECHO: {
-				if((rxbuf[0] == CR95_CMD_ECHO) || (rxbuf[1] == CR95_CMD_ECHO)) {
+				// puts("		MSG ECHO");
+				
+				if(rxbuf[0 + offset] == CR95_CMD_ECHO) {
 					current_state = UMDK_CR95_PACK_OK;
 				}
 				else {
 					current_state = UMDK_CR95_PACK_ERROR;
+					puts("	ERROR");
 				}
 				
 				flag_rx = UMDK_CR95_RECIEVED;
@@ -350,15 +388,18 @@ static void *radio_send(void *arg)
 				rxbuf[1] = 0x00;
 				num_bytes_rx = 0;
 				current_cmd = 0;
+				// printf("IRQs: %d  [%02X]\n", num_bytes_rx_tmp, spi_rx);
+				// spi_rx = 0xAA;
+				// num_bytes_rx_tmp = 0;
 				break;
 			}
 			
 			case UMDK_CR95_MSG_IDLE: {	
-	
+				// puts("		MSG IDLE");
 				num_bytes_rx = 0;
 				
-				if(rxbuf[2] == 0x02) {
-					// puts(" -> [DETECT]");
+				if(rxbuf[2 + offset] == 0x02) {
+					puts(" -> [DETECT]");
 					current_state = UMDK_CR95_PACK_OK;
 					flag_rx = UMDK_CR95_RECIEVED;
 					
@@ -370,36 +411,43 @@ static void *radio_send(void *arg)
 					// puts(" -> [NOT DETECT]");
 					current_state = UMDK_CR95_PACK_ERROR;
 				}
-				rtctimers_millis_set(&detect_timer, UMDK_CR95_DETECT_MS);
 				flag_rx = UMDK_CR95_RECIEVED;
+				rtctimers_millis_set(&detect_timer, UMDK_CR95_DETECT_MS);
+				
 				break;
 			}
 			
 			case UMDK_CR95_MSG_PROTOCOL: {
+				// printf("		MSG PROTOCOL\n");
 				num_bytes_rx = 0;	
-				if((rxbuf[0] == 0x00) && (rxbuf[1] == 0x00)) {
+				if((rxbuf[0 + offset] == 0x00) && (rxbuf[1 + offset] == 0x00)) {
 					current_state = UMDK_CR95_PACK_OK;
+					// puts("	OK");
 					msg_rx.type = UMDK_CR95_MSG_UID;
 					_send_pack(_send_receive(send_1a, 2));
+					
 				}
 				else {
 					current_state = UMDK_CR95_PACK_ERROR;
 					// puts("	ERROR");
 				}
 				flag_rx = UMDK_CR95_RECIEVED;
-				// puts("			RX\n");
+				// printf("IRQs: %d  [%02X]\n", num_bytes_rx_tmp, spi_rx);
+				// spi_rx = 0xAA;
+				// num_bytes_rx_tmp = 0;
 				break;
 			}
 			
-			case UMDK_CR95_MSG_ANTICOL: {				
-				if(rxbuf[0] == 0x80) {
-					uint32_t uid =  (rxbuf[5] << 24) + (rxbuf[4] << 16) + (rxbuf[3] << 8) + rxbuf[2];
+			case UMDK_CR95_MSG_ANTICOL: {	
+				// printf("		MSG ANTICOL\n");			
+				if(rxbuf[0 + offset] == 0x80) {
+					uint32_t uid =  (rxbuf[5 + offset] << 24) + (rxbuf[4 + offset] << 16) + (rxbuf[3 + offset] << 8) + rxbuf[2 + offset];
 					printf("	-> UID: ");
-						printf(" %02X %02X %02X %02X", rxbuf[2], rxbuf[3], rxbuf[4], rxbuf[5]);
+						printf(" %02X %02X %02X %02X", rxbuf[2 + offset], rxbuf[3 + offset], rxbuf[4 + offset], rxbuf[5 + offset]);
 					printf(" ->  %"PRIu32"\n", uid);
 				}
 				else {
-					puts("[ NOT VALID DATA ]");
+					puts("[ NOT VALID ANTICOL DATA ]");
 					current_state = UMDK_CR95_PACK_ERROR;
 				}
 				
@@ -409,14 +457,15 @@ static void *radio_send(void *arg)
 			}
 			
 			case UMDK_CR95_MSG_UID: {
+				// printf("		MSG UID\n");
 				num_bytes_rx = 0;
-				if(rxbuf[0] == 0x80) {
+				if(rxbuf[0 + offset] == 0x80) {
 					current_state = UMDK_CR95_PACK_OK;
 					msg_rx.type = UMDK_CR95_MSG_ANTICOL;
 					_send_pack(_send_receive(send_2a, 3));
 				}
 				else {
-					puts("[ NOT VALID DATA ]");
+					puts("[ NOT VALID UID DATA ]");
 					current_state = UMDK_CR95_PACK_ERROR;
 				}
 				flag_rx = UMDK_CR95_RECIEVED;
@@ -445,32 +494,28 @@ void cr95_uart_rx(void *arg, uint8_t data)
 	(void) arg;
 	if(uart_irq_debug == 1) puts("			IRQ");
 	
-	if(uart_rx == 0) {
-		puts("RX UART NOT ALLOW");
-		num_bytes_rx = 0;
-		return;
-	}
-	
 	if(num_bytes_rx >= 30) {
 		puts("OVERFLOW");
 		return;
 	}
 	
+	if(uart_rx == 0) {
+		puts("RX UART NOT ALLOW");
+		return;
+	}
+		
 	rxbuf[num_bytes_rx] = data;
 	num_bytes_rx++;
 	
-	// num_bytes++;
-	// xtimer_set_msg(&rx_timer, 1000, &msg_rx_time, radio_pid);
-	
 	if(current_cmd == CR95_CMD_ECHO) {
-		// puts("IRQ ECHO");
+		// puts("		UART IRQ ECHO");
 		msg_try_send(&msg_rx, radio_pid);
 		return;
 	}
 	
 	if(num_bytes_rx >= 2) {
 		if((num_bytes_rx - 2) == rxbuf[1]) {
-			// puts("		IRQ MSG");
+			// puts("		UART IRQ MSG");
 			msg_try_send(&msg_rx, radio_pid);
 		}
 	}
@@ -489,59 +534,75 @@ static uint8_t _send_uart(uint8_t length)
 	// printf("\n");
 	
 	num_bytes_rx = 0;
-    uart_write(UART_DEV(cr95_params.uart), txbuf + 1, length - 1);
-
-	// uint32_t delay_ms = (uint32_t)( (length * 8 * 1000) / 57600) + 2;
-	// uint32_t delay_us = (uint32_t)( (length * 8 * 1000000) / 57600) + 1;
-		// rtctimers_millis_sleep(5);
-		// puts("SENT");
-		// xtimer_spin(xtimer_ticks_from_usec(10000));
-		// xtimer_usleep(5000);
-
-	// rtctimers_millis_sleep(  (uint32_t)( (length * 8 * 1000) / 57600) + 1 );
+    uart_write(UART_DEV(cr95_params.uart), txbuf, length);
 	
 	return 1;
 }
 
-static uint8_t _send_recv_spi(uint8_t length) 
+static void cr95_spi_rx(void* arg)
+{
+	(void) arg;
+
+	gpio_irq_disable(UMDK_CR95_IRQ_OUT);
+	
+	txbuf_tmp[0] = 0x02;
+	spi_transfer_bytes(SPI_DEV(cr95_params.spi), cr95_params.cs_spi, false, txbuf_tmp, rxbuf, sizeof(rxbuf));
+	
+	num_bytes_rx = 12;
+	// num_bytes_rx = 5;
+	
+	spi_release(SPI_DEV(cr95_params.spi));
+	
+	// puts("	[SPI RX]");
+	// num_bytes_rx = rxbuf[rxbuf[1] + offset];
+	
+	msg_send(&msg_rx, radio_pid);
+}	
+
+static uint8_t _send_spi(uint8_t length) 
 {
 	uint8_t tx_spi;
-	uint8_t rx_poll = 0;
+	// uint8_t rx_poll = 0;
 	// uint8_t rx_data = 0;
-	uint32_t cnt_poll = 0;
+	// uint32_t cnt_poll = 0;
 	//****************
 	
-printf("SPI[%d] -> ", length );
-	for(uint8_t i = 0; i < length; i++) {
-		if(i == 2) printf("  [ ");
-		printf(" %02X", txbuf[i]);
-		if(i == 2) printf(" ]   ");
-	}
-	printf("\n");
-	
-	memset(rxbuf, 0x00, 25);
+// printf("SPI[%d] -> ", length );
+	// for(uint8_t i = 0; i < length; i++) {
+		// if(i == 1) printf("  [ ");
+		// printf(" %02X", txbuf[i]);
+		// if(i == 1) printf(" ]   ");
+	// }
+	// printf("\n");
+
 	spi_acquire(SPI_DEV(cr95_params.spi), cr95_params.cs_spi, SPI_MODE_0, SPI_CLK_1MHZ);
 	
 	/*Send command*/
 	tx_spi = 0x00;
 	spi_transfer_bytes(SPI_DEV(cr95_params.spi), cr95_params.cs_spi, true, &tx_spi, NULL, 1);
-	spi_transfer_bytes(SPI_DEV(cr95_params.spi), cr95_params.cs_spi, false, txbuf + 1, NULL, length - 1);
+	spi_transfer_bytes(SPI_DEV(cr95_params.spi), cr95_params.cs_spi, false, txbuf, NULL, length);
+	
+	gpio_irq_enable(UMDK_CR95_IRQ_OUT);
+	
+	// puts("[ Polling... ]");
+	// xtimer_usleep(10);
 	
 	/*Send polling*/
-	tx_spi = 0x03;
-	while(rx_poll != 0x08) {		
-		spi_transfer_bytes(SPI_DEV(cr95_params.spi), cr95_params.cs_spi, true, &tx_spi, NULL, 1);
-		spi_transfer_bytes(SPI_DEV(cr95_params.spi), cr95_params.cs_spi, false, &tx_spi, &rx_poll, 1);	
-		rx_poll &= 0xF8;	
-		cnt_poll++;
-		if(cnt_poll > 100000) {
-			puts("			[ NOT POLLING ]");
-			break;
-		}
-	}
+	// tx_spi = 0x03;
+	// while(rx_poll != 0x08) {		
+		// spi_transfer_bytes(SPI_DEV(cr95_params.spi), cr95_params.cs_spi, true, &tx_spi, NULL, 1);
+		// spi_transfer_bytes(SPI_DEV(cr95_params.spi), cr95_params.cs_spi, false, &tx_spi, &rx_poll, 1);	
+		// rx_poll &= 0xF8;	
+		// cnt_poll++;
+		// if(cnt_poll > 100000) {
+			// puts("			[ NOT POLLING ]");
+			// return 0;
+			// break;
+		// }
+	// }
 	
 	/*Read data*/
-	tx_spi = 0x02;	
+	// tx_spi = 0x02;	
 				// if(current_cmd == CR95_CMD_ECHO){
 					// spi_transfer_bytes(SPI_DEV(cr95_params.spi), cr95_params.cs_spi, true, &tx_spi, NULL, 1);
 							// spi_transfer_bytes(SPI_DEV(cr95_params.spi), cr95_params.cs_spi, true, &tx_spi, NULL, 1);
@@ -559,23 +620,25 @@ printf("SPI[%d] -> ", length );
 				// }
 	
 	
-	txbuf_tmp[0] = tx_spi;
-	spi_transfer_bytes(SPI_DEV(cr95_params.spi), cr95_params.cs_spi, false, txbuf_tmp, rxbuf, 25);
-	num_bytes_rx = 25;
+	// txbuf_tmp[0] = tx_spi;
+	// spi_transfer_bytes(SPI_DEV(cr95_params.spi), cr95_params.cs_spi, false, txbuf_tmp, rxbuf, 25);
+	// num_bytes_rx = 25;
+	// num_bytes_rx = 5;
 	
 	/*Send Reset*/
 	// tx_spi = 0x01;
 	// spi_transfer_bytes(SPI_DEV(cr95_params.spi), cr95_params.cs_spi, false, &tx_spi, &rx_reset, 1);
 
-	spi_release(SPI_DEV(cr95_params.spi));
+	// spi_release(SPI_DEV(cr95_params.spi));
 	
 	// rtctimers_millis_sleep(20);	
 	// _send_IRQIN_NegativePulse();
 	
-	// printf("POLLING[%d]: %02X\n  ", cnt_poll, rx_poll);
+	// printf("		POLLING[%ld]: %02X\n  ", cnt_poll, rx_poll);
 		/* Schedule sending after timeout */
-	msg_send(&msg_rx, radio_pid);
-	xtimer_usleep(15);
+	// msg_send(&msg_rx, radio_pid);
+	
+	// xtimer_usleep(15);
 	
 	return 1;
 }
@@ -628,67 +691,84 @@ static void detect_tag(void)
 static void detect_handler(void *arg) 
 {
 	(void) arg;
+	memset(rxbuf, 0x00, sizeof(rxbuf));
 	current_cmd = CR95_CMD_IDLE;
-	
+	// num_bytes_rx_tmp = 0;
 	flag_rx = UMDK_CR95_NOT_RECIEVED;
 	current_state = UMDK_CR95_PACK_ERROR;
 	
+	puts("				--------------------------");
 	msg_rx.type = UMDK_CR95_MSG_IDLE;
-	memcpy(txbuf, idle_cmd, 17);
-	_send_uart(17); 
-	// puts("\n\n				[ Detecting... ]");
+	_cmd_idle();
 }
 
 void umdk_cr95_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 {
 	(void)non_gpio_pin_map;
+	
 	(void)event_callback;
-	
 	// callback = event_callback;
-	
-	memset(txbuf, 0x00, 30);
-	memset(rxbuf, 0x00, 30);
 
-	/* Initialize the UART params*/
-    uart_params_t params;
-    params.baudrate = UMDK_CR95_UART_BAUD_DEF;
-    params.databits = UART_DATABITS_8;
-    params.parity = UART_PARITY_NOPARITY;
-    params.stopbits = UART_STOPBITS_10;
-	
 	iface = UMDK_CR95_IFACE_UART;
 	// iface = UMDK_CR95_IFACE_SPI;
 	
 	gpio_init(UMDK_CR95_SSI_0, GPIO_OUT);
-	
-	gpio_clear(UMDK_CR95_SSI_0);	// UART - default
-	// gpio_set(UMDK_CR95_SSI_0);	// SPI
-	
 	gpio_init(UMDK_CR95_IRQ_IN, GPIO_OUT);
-		/* Set low level IRQ_IN/RX */
-	gpio_set(UMDK_CR95_IRQ_IN);
-	rtctimers_millis_sleep(10);
-	gpio_clear(UMDK_CR95_IRQ_IN);
-	rtctimers_millis_sleep(10);
-	gpio_init_af(UMDK_CR95_IRQ_IN, GPIO_AF7);
 	
-	/* Initialize UART */
-    if (uart_init_ext(UART_DEV(cr95_params.uart), &params, cr95_uart_rx, NULL)) {
-		return;
-    }
-	else {
-		printf("[umdk-" _UMDK_NAME_ "] Init UART interface: %02d \n", cr95_params.uart);
-	}
+	if(iface == UMDK_CR95_IFACE_SPI) {		// SPI
+			/* Select iface */
+		gpio_set(UMDK_CR95_SSI_0);
+			/* Set low level IRQ_IN/RX */
+		gpio_set(UMDK_CR95_IRQ_IN);
+		rtctimers_millis_sleep(CR95_RAMP_UP_TIME_MS);
+		gpio_clear(UMDK_CR95_IRQ_IN);
+		rtctimers_millis_sleep(CR95_RAMP_UP_TIME_MS);
 		
-	 /* Initialize SPI */
-	spi_init(SPI_DEV(cr95_params.spi));
-	 /* Initialize CS SPI */
-	if(spi_init_cs(SPI_DEV(cr95_params.spi), cr95_params.cs_spi) == SPI_OK) {
-		printf("[umdk-" _UMDK_NAME_ "] Init SPI interface: %02d\n", cr95_params.spi);
+			 /* Initialize SPI */
+		spi_init(SPI_DEV(cr95_params.spi));
+		 /* Initialize CS SPI */
+		if(spi_init_cs(SPI_DEV(cr95_params.spi), cr95_params.cs_spi) == SPI_OK) {
+			printf("[umdk-" _UMDK_NAME_ "] Init SPI interface: %02d\n", cr95_params.spi);
+		}
+		else {
+			printf("[umdk-" _UMDK_NAME_ "] Error init SPI interface: %02d\n", cr95_params.spi);
+			return;
+		}
+		
+		gpio_init_int(UMDK_CR95_IRQ_OUT, GPIO_IN_PU, GPIO_FALLING, cr95_spi_rx, NULL);
+		gpio_irq_enable(UMDK_CR95_IRQ_OUT);
+		gpio_irq_disable(UMDK_CR95_IRQ_OUT);
+		
+		
 	}
-	else {
-		return;
+	else {	// UART - default iface
+	
+			/* Initialize the UART params*/
+		uart_params_t params;
+		params.baudrate = UMDK_CR95_UART_BAUD_DEF;
+		params.databits = UART_DATABITS_8;
+		params.parity = UART_PARITY_NOPARITY;
+		params.stopbits = UART_STOPBITS_10;
+	
+				/* Select iface */
+		gpio_clear(UMDK_CR95_SSI_0);	
+			/* Set low level IRQ_IN/RX */
+		gpio_set(UMDK_CR95_IRQ_IN);
+		rtctimers_millis_sleep(CR95_RAMP_UP_TIME_MS);
+		gpio_clear(UMDK_CR95_IRQ_IN);
+		rtctimers_millis_sleep(CR95_RAMP_UP_TIME_MS);
+		
+		/* Initialize UART */
+		gpio_init_af(UMDK_CR95_IRQ_IN, GPIO_AF7);
+		if (uart_init_ext(UART_DEV(cr95_params.uart), &params, cr95_uart_rx, NULL)) {
+			printf("[umdk-" _UMDK_NAME_ "] Error init UART interface: %02d \n", cr95_params.uart);
+			return;
+		}
+		else {
+			printf("[umdk-" _UMDK_NAME_ "] Init UART interface: %02d \n", cr95_params.uart);
+		}
 	}
+	
 		 
 	 /* Create handler thread */
     char *stack = (char *) allocate_stack(UMDK_CR95_STACK_SIZE);
@@ -705,21 +785,33 @@ void umdk_cr95_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 		return;
 	}
 	
-	puts("ECHO");
-	if(_cmd_echo() == UMDK_CR95_PACK_ERROR) {
-		puts("NO DEVICE FOUND");
-		return;
-	}
-	else {
-		puts("DEVICE FOUND");
-	}
-	
+	// num_bytes_rx_tmp = 0;
+	memset(txbuf, 0x00, 30);
+	memset(rxbuf, 0x00, 30);
+
+	puts("[ ECHO ]");
+		if(_cmd_echo() == UMDK_CR95_PACK_ERROR) {
+			puts("NO DEVICE FOUND");
+			return;
+		}
+		
 	protocol = ISO14443A_SELECT;
 
-	msg_rx.type = UMDK_CR95_MSG_RADIO;
-	_select_protocol();
-	xtimer_usleep(1000);
-	printf("FLAG: RX / SELECT 	-> %d / %d\n", flag_rx, current_state);
+	// msg_rx.type = UMDK_CR95_MSG_PROTOCOL;
+	// _select_protocol();
+	
+	
+	
+	// msg_rx.type = UMDK_CR95_MSG_UID;
+		// _send_pack(_send_receive(send_1a, 2));
+		
+		// msg_rx.type = UMDK_CR95_MSG_ANTICOL;
+					// _send_pack(_send_receive(send_2a, 3));
+	
+	// msg_rx.type = UMDK_CR95_MSG_RADIO;
+	// _select_protocol();
+	// xtimer_usleep(1000);
+	// printf("FLAG: RX / SELECT 	-> %d / %d\n", flag_rx, current_state);
 				// uint8_t sel_14443[8] = { 0x00, 0x02, 0x04, 0x02, 0x00, 0x01, 0x80};	
 				// memcpy(txbuf, sel_14443, 7);
 				// _send_uart(7);
@@ -783,6 +875,9 @@ void umdk_cr95_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 	
 	// memcpy(txbuf, send_w2, 7);
 	// _send_uart(7);
+	
+	
+		// rtctimers_millis_sleep(15);
 		
 	puts("		--->	START CR95 DETECTing	<---");
 	 /* Configure periodic wakeup */
@@ -841,7 +936,7 @@ uart_irq_debug = 0;
 _select_iso14443a();
 _select_iso14443b();
 _select_iso15693();
-
+    rtctimers_millis_set(&detect_timer, UMDK_CR95_DETECT_MS);
 	reply->as_ack = true;	
 	reply->length = 1;
 	reply->data[0] = _UMDK_MID_;

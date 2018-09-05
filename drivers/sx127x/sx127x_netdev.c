@@ -241,6 +241,7 @@ static void _isr(netdev_t *netdev)
 
         switch (interruptReg) {
             case SX127X_RF_LORA_IRQFLAGS_TXDONE:
+            case SX127X_RF_LORA_IRQFLAGS_RXDONE:
                 irq = SX127X_IRQ_DIO0;
                 break;
 

@@ -537,6 +537,18 @@ shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX] = {
 
 static void unwds_callback(module_data_t *buf)
 {
+    if (buf->data[14] == 0) {
+        if (adc_init(ADC_LINE(ADC_TEMPERATURE_INDEX)) == 0) {
+            int8_t temperature = adc_sample(ADC_LINE(ADC_TEMPERATURE_INDEX), ADC_RES_12BIT);
+            
+            /* convert to sign-and-magnitude format */
+            convert_to_be_sam((void *)&temperature, 1);
+            
+            buf->data[14] = (uint8_t)temperature;
+            printf("MCU temperature is %d C\n", buf->data[14]);
+        }
+    }
+    
     if (buf->data[15] == 0) {
         if (adc_init(ADC_LINE(ADC_VREF_INDEX)) == 0) {
             buf->data[15] = adc_sample(ADC_LINE(ADC_VREF_INDEX), ADC_RES_12BIT)/50;

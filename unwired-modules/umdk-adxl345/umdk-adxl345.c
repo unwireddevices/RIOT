@@ -97,16 +97,20 @@ static void prepare_result(module_data_t *data) {
     
     printf("Angle: %s degrees\n", angle);
 
+    memset(data->data, 0, 16);
     data->data[0] = _UMDK_MID_;
     
-    if ((theta > 150) || (theta < -150))  {
+    if ((theta > 100) || (theta < -100))  {
         printf("Significant tilt detected: %d\n", theta);
         data->data[1] = 1;
     } else {
         data->data[1] = 0;
     }
     
-    data->length = 2;
+    convert_to_be_sam((void *)&theta, sizeof(theta));
+    memcpy(&data->data[2], (void *)&theta, sizeof(theta));
+    
+    data->length = 16;
 }
 
 static void *timer_thread(void *arg) {

@@ -146,6 +146,9 @@ void int_to_float_str(char *buf, int decimal, uint8_t precision);
 /* converts number to BE, sign-and-magnitude format */
 void convert_to_be_sam(void *ptr, size_t size);
 
+/* converts number to BE, sign-and-magnitude format */
+void convert_from_be_sam(void *ptr, size_t size);
+
 bool unwds_read_nvram_storage(unwds_module_id_t module_id, uint8_t *data_out, uint8_t size);
 bool unwds_write_nvram_storage(unwds_module_id_t module_id, uint8_t *data, size_t data_size);
 

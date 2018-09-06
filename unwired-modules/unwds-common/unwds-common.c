@@ -512,6 +512,38 @@ void convert_to_be_sam(void *ptr, size_t size) {
     }
 }
 
+void convert_from_be_sam(void *ptr, size_t size) {
+    if (byteorder_is_little_endian()) {
+        byteorder_swap(ptr, size);
+    }
+    
+    switch (size) {
+        case 1: {
+            int8_t v = *(int8_t*)ptr;
+            *(uint8_t*)ptr = (~(v >> 7) & v) | (((v & 0x80) - v) & (v >> 7));
+            break;
+        }
+        case 2: {
+            int16_t v = *(int16_t*)ptr;
+            *(uint16_t*)ptr = (~(v >> 15) & v) | (((v & 0x8000) - v) & (v >> 15));
+            break;
+        }
+        case 4: {
+            int32_t v = *(int32_t*)ptr;
+            *(uint32_t*)ptr = (~(v >> 31) & v) | (((v & 0x80000000) - v) & (v >> 31));
+            break;
+        }
+        case 8: {
+            int64_t v = *(int64_t*)ptr;
+            *(uint64_t*)ptr = (~(v >> 63) & v) | (((v & (1ULL << 63)) - v) & (v >> 63));
+            break;
+            break;
+        }
+        default:
+            return;
+    }
+}
+
 /* determine EEPROM size to work seamlessly with CC and CB-A MCUs */
 void unwds_init(void) {
     unwds_eeprom_layout.eeprom_size = get_cpu_eeprom_size();

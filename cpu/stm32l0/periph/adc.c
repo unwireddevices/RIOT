@@ -175,7 +175,7 @@ int adc_sample(adc_t line,  adc_res_t res)
         /* sample VREF */
         ADC1->CHSELR = (1 << ADC_VREF_CHANNEL);
         ADC1->ISR |= ADC_ISR_EOC;
-        ADC1->ISR |= ADC_ISR_EOC;
+        ADC1->CR |= ADC_CR_ADSTART;
         while (!(ADC1->ISR & ADC_ISR_EOC)) {}
         
         sample_vref = (int)ADC1->DR;

@@ -176,8 +176,18 @@ static void *sender_thread(void *arg) {
                     puts("[LoRa] Uplink confirmation failed");
                     break;
                 case MSG_TYPE_LORAMAC_RX:
-                    puts("[LoRa] Data received");
-                    if (ls->rx_data.payload_len != 0) {
+                    if ((ls->rx_data.payload_len == 0) && ls->rx_data.ack) {
+                        puts("[LoRa] Ack received");
+                    } else {
+                        puts("[LoRa] Data received");
+                        DEBUG("\t- Size: %d\n"
+                          "\t- Port: %d\n"
+                          "\t- RSSI: %d\n"
+                          "\t- DR:   %d\n",
+                          mac->rx_data.payload_len,
+                          mac->rx_data.port,
+                          mac->rx_data.rssi,
+                          mac->rx_data.datarate);
                         appdata_received(ls->rx_data.payload, ls->rx_data.payload_len);
                     }
                     break;

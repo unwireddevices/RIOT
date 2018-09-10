@@ -59,7 +59,7 @@ extern "C" {
 #include "net/loramac.h"
 #include "semtech_loramac.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 static rtctimers_millis_t iwdg_timer;
@@ -173,7 +173,16 @@ static void *sender_thread(void *arg) {
                 case MSG_TYPE_LORAMAC_TX_DONE:
                     puts("[LoRa] TX done");
                     break;
+                case MSG_TYPE_LORAMAC_TX_CNF_FAILED:
+                    puts("[LoRa] Uplink confirmation failed");
+                    break;
+                case MSG_TYPE_LORAMAC_RX:
+                    puts("[LoRa] Data received");
+                    break;
+                case MSG_TYPE_LORAMAC_JOIN:
+                    puts("[LoRa] LoRaMAC join notification\n");
                 default:
+                    DEBUG("[LoRa] Unidentified LoRaMAC msg type %d\n", msg.type);
                     break;
             }
         }
@@ -194,6 +203,7 @@ static void *receiver_thread(void *arg) {
                 puts("[LoRa] TX completed, no data received");
                 break;
             case SEMTECH_LORAMAC_DATA_RECEIVED:
+                puts("[LoRa] Downlink data received");
                 appdata_received(ls->rx_data.payload, ls->rx_data.payload_len);
                 break;
             case SEMTECH_LORAMAC_TX_CNF_FAILED:
@@ -614,7 +624,9 @@ static void iwdg_reset (void *arg) {
     
     wdg_reload();
     rtctimers_millis_set(&iwdg_timer, 15000);
-    DEBUG("Watchdog reset\n");
+#if ENABLE_DEBUG
+    puts("Watchdog reset");
+#endif
     return;
 }
 

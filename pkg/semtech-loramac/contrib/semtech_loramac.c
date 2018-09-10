@@ -612,13 +612,22 @@ void *_semtech_loramac_event_loop(void *arg)
                            indication->Buffer, indication->BufferSize);
                     mac->rx_data.payload_len = indication->BufferSize;
                     mac->rx_data.port = indication->Port;
+                    mac->rx_data.ack = indication->AckReceived;
+                    mac->rx_data.multicast = indication->Multicast;
+                    mac->rx_data.rssi = indication->Rssi;
+                    mac->rx_data.datarate = indication->RxDatarate;
+                    
                     DEBUG("[semtech-loramac] loramac RX data:\n"
-                          "  - Payload: %s\n"
+                          "  - Type: %s\n"
                           "  - Size: %d\n"
-                          "  - Port: %d\n",
-                          (char *)mac->rx_data.payload,
+                          "  - Port: %d\n"
+                          "  - RSSI: %d\n"
+                          "  - DR:   %d\n",
+                          (mac->rx_data.ack)? "ACK" : "Data",
                           mac->rx_data.payload_len,
-                          mac->rx_data.port);
+                          mac->rx_data.port,
+                          mac->rx_data.rssi,
+                          mac->rx_data.datarate);
                     msg_send(&msg_ret, mac->caller_pid);
                     /* switch back to idle state now*/
                     mac->state = SEMTECH_LORAMAC_STATE_IDLE;

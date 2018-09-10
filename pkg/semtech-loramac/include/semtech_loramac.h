@@ -90,6 +90,10 @@ typedef struct {
     uint8_t payload[LORAWAN_APP_DATA_MAX_SIZE];  /**< RX payload buffer */
     uint8_t payload_len;                         /**< Length of the RX payload */
     uint8_t port;                                /**< RX port */
+    bool ack;                                    /**< An acknowledgement was received */
+    uint8_t multicast;                           /**< Multicast */
+    int16_t rssi;                                /**< RSSI of the received packet */
+    uint8_t datarate;                            /**< Downlink datarate */
 } semtech_loramac_rx_data_t;
 
 /**

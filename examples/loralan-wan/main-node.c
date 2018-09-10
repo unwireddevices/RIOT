@@ -59,7 +59,7 @@ extern "C" {
 #include "net/loramac.h"
 #include "semtech_loramac.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 static rtctimers_millis_t iwdg_timer;
@@ -69,18 +69,17 @@ static msg_t msg_join;
 static kernel_pid_t sender_pid;
 static rtctimers_millis_t send_retry_timer;
 
-static kernel_pid_t receiver_pid;
 static kernel_pid_t main_thread_pid;
 static kernel_pid_t loramac_pid;
 
 static char sender_stack[2048];
-static char receiver_stack[2048];
 
 static semtech_loramac_t ls;
 
 static uint8_t current_join_retries = 0;
 
 static bool appdata_received(uint8_t *buf, size_t buflen);
+static void unwds_callback(module_data_t *buf);
 
 void radio_init(void)
 {
@@ -178,6 +177,9 @@ static void *sender_thread(void *arg) {
                     break;
                 case MSG_TYPE_LORAMAC_RX:
                     puts("[LoRa] Data received");
+                    if (ls->rx_data.payload_len != 0) {
+                        appdata_received(ls->rx_data.payload, ls->rx_data.payload_len);
+                    }
                     break;
                 case MSG_TYPE_LORAMAC_JOIN:
                     puts("[LoRa] LoRaMAC join notification\n");
@@ -187,34 +189,6 @@ static void *sender_thread(void *arg) {
             }
         }
     }
-    return NULL;
-}
-
-static void *receiver_thread(void *arg) {
-    semtech_loramac_t *ls = (semtech_loramac_t *) arg;
-    
-    puts("[LoRa] receiver thread started");
-   
-    while (1) {
-        int res = semtech_loramac_recv(ls);
-        
-        switch (res) {
-            case SEMTECH_LORAMAC_TX_DONE:
-                puts("[LoRa] TX completed, no data received");
-                break;
-            case SEMTECH_LORAMAC_DATA_RECEIVED:
-                puts("[LoRa] Downlink data received");
-                appdata_received(ls->rx_data.payload, ls->rx_data.payload_len);
-                break;
-            case SEMTECH_LORAMAC_TX_CNF_FAILED:
-                puts("[LoRa] uplink message ACK failed");
-                break;
-            default:
-                puts("[LoRa] unknown response");
-                break;
-        }
-    }
-    
     return NULL;
 }
 
@@ -267,12 +241,7 @@ static bool appdata_received(uint8_t *buf, size_t buflen)
     }
     
     if (result != UNWDS_MODULE_NO_DATA) {
-/*
-        int res = ls_ed_send_app_data(&ls, reply.data, reply.length, true, true, false);
-        if (res < 0) {
-            printf("send: error #%d\n", res);
-        }
-*/
+        unwds_callback(&reply);
     }
 
     /* Don't allow to send app. data ACK by the network.
@@ -699,9 +668,6 @@ void init_normal(shell_command_t *commands)
                                    THREAD_CREATE_STACKTEST, sender_thread, &ls,  "LoRa sender thread");
             
         
-        receiver_pid = thread_create(receiver_stack, sizeof(receiver_stack), THREAD_PRIORITY_MAIN - 2,
-                                   THREAD_CREATE_STACKTEST, receiver_thread, &ls,  "LoRa receiver thread");
-
         if (!unwds_get_node_settings().no_join) {
         	msg_send(&msg_join, sender_pid);
         }

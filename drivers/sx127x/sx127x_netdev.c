@@ -204,7 +204,6 @@ static int _init(netdev_t *netdev)
 {
     sx127x_t *sx127x = (sx127x_t*) netdev;
 
-    sx127x->irq = 0;
     sx127x_radio_settings_t settings;
     settings.channel = SX127X_CHANNEL_DEFAULT;
     settings.modem = SX127X_MODEM_DEFAULT;
@@ -231,40 +230,33 @@ static int _init(netdev_t *netdev)
 static void _isr(netdev_t *netdev)
 {
     sx127x_t *dev = (sx127x_t *) netdev;
+    int irq = 0;
 
-    uint8_t irq = dev->irq;
+    /* check the actual IRQ on the registers */
+    uint8_t interruptReg = sx127x_reg_read(dev, SX127X_REG_LR_IRQFLAGS);
 
-#ifdef SX127X_USE_DIO_MULTI
-    /* if the IRQ is from an OR'd pin check the actual IRQ on the registers */
-    if (irq == SX127X_IRQ_DIO_MULTI) {
-        uint8_t interruptReg = sx127x_reg_read(dev, SX127X_REG_LR_IRQFLAGS);
+    switch (interruptReg) {
+        case SX127X_RF_LORA_IRQFLAGS_TXDONE:
+        case SX127X_RF_LORA_IRQFLAGS_RXDONE:
+            irq = SX127X_IRQ_DIO0;
+            break;
 
-        switch (interruptReg) {
-            case SX127X_RF_LORA_IRQFLAGS_TXDONE:
-            case SX127X_RF_LORA_IRQFLAGS_RXDONE:
-                irq = SX127X_IRQ_DIO0;
-                break;
+        case SX127X_RF_LORA_IRQFLAGS_RXTIMEOUT:
+            irq = SX127X_IRQ_DIO1;
+            break;
 
-            case SX127X_RF_LORA_IRQFLAGS_RXTIMEOUT:
-                irq = SX127X_IRQ_DIO1;
-                break;
+        case SX127X_RF_LORA_IRQFLAGS_FHSSCHANGEDCHANNEL:
+            irq = SX127X_IRQ_DIO2;
+            break;
 
-            case SX127X_RF_LORA_IRQFLAGS_FHSSCHANGEDCHANNEL:
-                irq = SX127X_IRQ_DIO2;
-                break;
+        case SX127X_RF_LORA_IRQFLAGS_CADDETECTED:
+        case SX127X_RF_LORA_IRQFLAGS_CADDONE:
+            irq = SX127X_IRQ_DIO3;
+            break;
 
-            case SX127X_RF_LORA_IRQFLAGS_CADDETECTED:
-            case SX127X_RF_LORA_IRQFLAGS_CADDONE:
-                irq = SX127X_IRQ_DIO3;
-                break;
-
-            default:
-                break;
-        }
+        default:
+            break;
     }
-#endif
-
-    dev->irq = 0;
 
     switch (irq) {
         case SX127X_IRQ_DIO0:

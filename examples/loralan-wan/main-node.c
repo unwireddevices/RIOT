@@ -181,18 +181,19 @@ static void *sender_thread(void *arg) {
                     } else {
                         puts("[LoRa] Data received");
                         DEBUG("\t- Size: %d\n"
-                          "\t- Port: %d\n"
-                          "\t- RSSI: %d\n"
-                          "\t- DR:   %d\n",
-                          mac->rx_data.payload_len,
-                          mac->rx_data.port,
-                          mac->rx_data.rssi,
-                          mac->rx_data.datarate);
+                              "\t- Port: %d\n"
+                              "\t- RSSI: %d\n"
+                              "\t- DR:   %d\n",
+                              ls->rx_data.payload_len,
+                              ls->rx_data.port,
+                              ls->rx_data.rssi,
+                              ls->rx_data.datarate);
                         appdata_received(ls->rx_data.payload, ls->rx_data.payload_len);
                     }
                     break;
                 case MSG_TYPE_LORAMAC_JOIN:
                     puts("[LoRa] LoRaMAC join notification\n");
+                    break;
                 default:
                     DEBUG("[LoRa] Unidentified LoRaMAC msg type %d\n", msg.type);
                     break;

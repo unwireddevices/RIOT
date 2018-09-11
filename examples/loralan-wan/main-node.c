@@ -180,7 +180,8 @@ static void *sender_thread(void *arg) {
                         puts("[LoRa] Ack received");
                     } else {
                         puts("[LoRa] Data received");
-                        DEBUG("\t- Size: %d\n"
+#if ENABLE_DEBUG
+                        printf("\t- Size: %d\n"
                               "\t- Port: %d\n"
                               "\t- RSSI: %d\n"
                               "\t- DR:   %d\n",
@@ -188,6 +189,12 @@ static void *sender_thread(void *arg) {
                               ls->rx_data.port,
                               ls->rx_data.rssi,
                               ls->rx_data.datarate);
+                        printf("[LoRa] Hex data: ");
+                        for (int l = 0; l < ls->rx_data.payload_len; l++) {
+                            printf("%02X ", ls->rx_data.payload[l]);
+                        }
+                        printf("\n");
+#endif
                         appdata_received(ls->rx_data.payload, ls->rx_data.payload_len);
                     }
                     break;
@@ -282,7 +289,6 @@ static void ls_setup(semtech_loramac_t *ls)
     byteorder_swap(appkey, LORAMAC_APPKEY_LEN);
     semtech_loramac_set_appkey(ls, appkey);
     
-    
     semtech_loramac_set_dr(ls, unwds_get_node_settings().dr);
     
     semtech_loramac_set_adr(ls, true);
@@ -293,6 +299,7 @@ static void ls_setup(semtech_loramac_t *ls)
     } else {
         semtech_loramac_set_tx_mode(ls, LORAMAC_TX_UNCNF); /* unconfirmed packets */
     }
+
     semtech_loramac_set_tx_port(ls, LORAMAC_DEFAULT_TX_PORT); /* port 2 */
     
     puts("[LoRa] LoRaMAC values set");

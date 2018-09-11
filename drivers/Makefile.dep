@@ -71,9 +71,10 @@ ifneq (,$(filter bm%280,$(USEMODULE)))
   USEMODULE += bmx280
 endif
 
-ifneq (,$(filter bme280,$(USEMODULE)))
-    FEATURES_REQUIRED += periph_i2c
-    USEMODULE += xtimer
+ifneq (,$(filter bmes680,$(USEMODULE)))
+  FEATURES_REQUIRED += periph_i2c
+  USEMODULE += xtimer
+  USEMODULE += bme680
 endif
 
 ifneq (,$(filter cc110x,$(USEMODULE)))

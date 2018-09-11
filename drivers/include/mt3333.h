@@ -22,6 +22,8 @@
 #include "ringbuffer.h"
 #include "periph/uart.h"
 
+#include <time.h>
+
 /**
  * MT3333 NMEA message field indicies
  */
@@ -31,6 +33,8 @@
 #define MT3333_NS_FIELD_IDX 4
 #define MT3333_LON_FIELD_IDX 5
 #define MT3333_EW_FIELD_IDX 6
+#define MT3333_VELOCITY_FIELD_IDX 7
+#define MT3333_DIRECTION_FIELD_IDX 8
 #define MT3333_DATE_FIELD_IDX 9
 
 #define MT3333_UART_BAUDRATE_DEFAULT 9600
@@ -51,16 +55,13 @@
  */
 #define MT3333_READER_THREAD_STACK_SIZE_BYTES (2560)
 
-typedef struct tm mt3333_tm_t;
-
 typedef struct {
-	char lat[15];
-	char lon[15];
-
-	char date[15];
-	char time[15];
-    bool valid;
-	bool n, e;
+	int lat;            /**< Latitude, degrees * 1E6 */
+	int lon;            /**< Logitude, degrees * 1E6 */
+    int velocity;       /**< Velocity, mm/s */
+    int direction;      /**< Direction, degrees * 1E3, relative to north */
+	time_t time;        /**< Epoch */
+    bool valid;         /**< Data validity */
 } mt3333_gps_data_t;
 
 /**
@@ -79,7 +80,7 @@ typedef struct {
 	mt3333_param_t params;					/**< Holds driver parameters */
     ringbuffer_t rxrb;						/**< Holds incoming data ring buffer */
 	char *rxbuf;	                        /**< Memory buffer for the ring buffer data */
-	char *reader_stack;	                /**< Reader thread stack, has to be allocated by the application */
+	char *reader_stack;	                    /**< Reader thread stack, has to be allocated by the application */
 	kernel_pid_t reader_pid;				/**< Reader thread PID */
 } mt3333_t;
 

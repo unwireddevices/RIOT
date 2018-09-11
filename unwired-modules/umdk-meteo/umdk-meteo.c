@@ -33,7 +33,6 @@ extern "C" {
 #include <stdbool.h>
 #include <string.h>
 
-#include "periph/gpio.h"
 #include "periph/i2c.h"
 
 #include "board.h"
@@ -41,6 +40,7 @@ extern "C" {
 #include "bmx280.h"
 #include "sht21.h"
 #include "lps331ap.h"
+#include "lm75.h"
 
 #include "unwds-common.h"
 #include "umdk-meteo.h"
@@ -51,6 +51,7 @@ extern "C" {
 static bmx280_t dev_bmx280;
 static sht21_t dev_sht21;
 static lps331ap_t dev_lps331;
+static lm75_t dev_lm75;
 
 static uwnds_cb_t *callback;
 
@@ -65,6 +66,7 @@ typedef enum {
     UMDK_METEO_BME280   = 1,
     UMDK_METEO_SHT21    = 1 << 1,
     UMDK_METEO_LPS331   = 1 << 2,
+    UMDK_METEO_LM75     = 1 << 3,
 } umdk_meteo_active_sensors_t;
 
 static uint8_t active_sensors = 0;
@@ -80,19 +82,29 @@ static bool init_sensor(void) {
     
     if (bmx280_init(&dev_bmx280, &bme280_params[0]) == BMX280_OK) {
         active_sensors |= UMDK_METEO_BME280;
-        printf("[umdk-" _UMDK_NAME_ "] Bosch BME280 sensor found");
+        puts("[umdk-" _UMDK_NAME_ "] Bosch BME280 sensor found");      
     }
     
     dev_sht21.i2c = bme280_params[0].i2c_dev;
     if (sht21_init(&dev_sht21) == 0) {
         active_sensors |= UMDK_METEO_SHT21;
-        printf("[umdk-" _UMDK_NAME_ "] Sensirion SHT21 sensor found");
+        puts("[umdk-" _UMDK_NAME_ "] Sensirion SHT21 sensor found");
     }
     
     dev_lps331.i2c = bme280_params[0].i2c_dev;
-    if (lps331ap_init(&dev_lps331, dev_lps331.i2c, 0x5D, LPS331AP_RATE_1HZ)) {
+    if (lps331ap_init(&dev_lps331, dev_lps331.i2c, 0x5D, LPS331AP_RATE_1HZ) == 0) {
         active_sensors |= UMDK_METEO_LPS331;
-        printf("[umdk-" _UMDK_NAME_ "] STMicro LPS331 sensor found");
+        puts("[umdk-" _UMDK_NAME_ "] STMicro LPS331 sensor found");
+    }
+    
+    dev_lm75.params.i2c = bme280_params[0].i2c_dev;
+    dev_lm75.params.a1 = 0;
+    dev_lm75.params.a2 = 0;
+    dev_lm75.params.a3 = 0;
+    
+    if (lm75_init(&dev_lm75) == 0) {
+        active_sensors |= UMDK_METEO_LM75;
+        puts("[umdk-" _UMDK_NAME_ "] LM75 sensor found");
     }
     
 	return (active_sensors != 0);
@@ -107,6 +119,12 @@ static void prepare_result(module_data_t *data) {
         measurements[2] = bmx280_read_pressure(&dev_bmx280)/100; /* Pa -> mbar */
     } else {
         /* if there's BME280, no need in additional sensors */
+        
+        if ((!(active_sensors & UMDK_METEO_LPS331)) && !(active_sensors & UMDK_METEO_SHT21)) {
+            if (active_sensors & UMDK_METEO_LM75) {
+                measurements[0] = lm75_get_ambient_temperature(&dev_lm75)/100; /* degrees C * 1000 -> degrees C * 10 */
+            }
+        }
         
         if (active_sensors & UMDK_METEO_LPS331) {
             if (! (active_sensors & UMDK_METEO_SHT21)) {
@@ -136,14 +154,14 @@ static void prepare_result(module_data_t *data) {
     }
 
     if (data) {
-        /* One byte for module ID, two bytes for temperature, two bytes for humidity, two bytes for pressure */
+        /* 8 bytes total */
         data->length = 16;
-        memset(data->data, 0, data->length);
 
         data->data[0] = _UMDK_MID_;
+        data->data[1] = UMDK_METEO_DATA;
 
         /* Copy measurements into response */
-        memcpy(data->data + 1, (uint8_t *)measurements, sizeof(measurements));
+        memcpy(data->data + 2, (uint8_t *)measurements, sizeof(measurements));
     }
 }
 
@@ -260,7 +278,7 @@ void umdk_meteo_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	/* Create handler thread */
 	char *stack = (char *) allocate_stack(UMDK_METEO_STACK_SIZE);
 	if (!stack) {
-		puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Are too many modules enabled?");
+		puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Is too many modules enabled?");
 		return;
 	}
     
@@ -281,13 +299,13 @@ void umdk_meteo_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 static void reply_fail(module_data_t *reply) {
 	reply->length = 2;
 	reply->data[0] = _UMDK_MID_;
-	reply->data[1] = 255;
+	reply->data[1] = UMDK_METEO_FAIL;
 }
 
 static void reply_ok(module_data_t *reply) {
 	reply->length = 2;
 	reply->data[0] = _UMDK_MID_;
-	reply->data[1] = 0;
+	reply->data[1] = UMDK_METEO_COMMAND;
 }
 
 bool umdk_meteo_cmd(module_data_t *cmd, module_data_t *reply) {
@@ -298,7 +316,7 @@ bool umdk_meteo_cmd(module_data_t *cmd, module_data_t *reply) {
 
 	umdk_meteo_cmd_t c = cmd->data[0];
 	switch (c) {
-	case UMDK_METEO_SET_PERIOD: {
+	case UMDK_METEO_COMMAND: {
 		if (cmd->length != 2) {
 			reply_fail(reply);
 			break;

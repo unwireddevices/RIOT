@@ -28,16 +28,12 @@
 #define UMDK_ADC_CONVERT_TO_MILLIVOLTS 1
 
 typedef enum {
-	UMDK_ADC_CMD_SET_PERIOD = 0,
-	UMDK_ADC_CMD_POLL = 1,
-	UMDK_ADC_CMD_SET_GPIO = 2,
-	UMDK_ADC_SET_LINES = 3,
+    UMDK_ADC_DATA = 0,
+	UMDK_ADC_CMD_COMMAND = 1,
+	UMDK_ADC_CMD_POLL = 2,
+    UMDK_ADC_FAIL = 0xFF,
 } umdk_adc_cmd_t;
 
-typedef enum {
-	UMDK_ADC_REPLY_FAIL = 1,
-	UMDK_ADC_REPLY_OK = 0,
-} umdk_adc_reply_t;
 
 void umdk_adc_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
 bool umdk_adc_cmd(module_data_t *data, module_data_t *reply);

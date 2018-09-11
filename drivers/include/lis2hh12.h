@@ -38,8 +38,8 @@ extern "C" {
 #endif
 
 /* SPI support is not implemented (yet), so throw an error when selected */
-#ifndef MODULE_LIS2HH12_I2C
-#error "LIS2HH12 error: SPI mode is not supported, yet."
+#ifdef MODULE_LIS2HH12_SPI
+#error "LIS2HH12 error: SPI mode is not supported yet."
 #endif
 
 /**

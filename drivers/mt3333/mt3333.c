@@ -20,15 +20,12 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "mt3333.h"
 #include "thread.h"
 #include "assert.h"
-#include "ringbuffer.h"
-#include "periph/uart.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
-
-#include "mt3333.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -86,48 +83,114 @@ static int get_csv_field(char *buf, int fieldno, char *field, int maxlen) {
 static bool parse(mt3333_t *dev, char *buf, mt3333_gps_data_t *data) {
     (void)dev;
     
-    DEBUG("[gps] %s\n", buf);
-    
-	/* We're interested in G/NRMC packets */
-	if (strstr(buf, "RMC") == NULL) {
-		return false;
-	}
+	/* We're interested in RMC packets */
+	if (strstr(buf, "RMC") != NULL) {
+        DEBUG("[gps] %s\n", buf);
 
-	/* Check validity sign */
-	char valid;
-	if (get_csv_field(buf, MT3333_VALID_FIELD_IDX, &valid, 1)) {
-		if (valid != 'A') {
-			data->valid = false;
-        } else {
-            data->valid = true;
+        /* Check validity sign */
+        char valid;
+        if (get_csv_field(buf, MT3333_VALID_FIELD_IDX, &valid, 1)) {
+            if (valid != 'A') {
+                data->valid = false;
+                DEBUG("[gps] Data not valid\n");
+            } else {
+                data->valid = true;
+                DEBUG("[gps] Data valid\n");
+            }
         }
-	}
 
-	char ns, ew;
+        char sign;
+        char tmp[15];
+        
+        if (!get_csv_field(buf, MT3333_LAT_FIELD_IDX, tmp, 15))
+            return false;
+        if (!get_csv_field(buf, MT3333_NS_FIELD_IDX, &sign, 1))
+            return false;
+        
+        int s1, s2, s3;
+        if (sscanf(tmp, "%d.%04d", &s1, &s2) != 2)
+            return false;
+        
+        data->lat = (s1/100);
+        s1 -= data->lat * 100;
+        data->lat *= 1000000;
+        data->lat += (1000000*s1)/60;
+        data->lat += (10*s2)/6;
+        
+        if (sign == 'S') {
+            data->lat = -data->lat;
+        }
+        
+        DEBUG("[gps] Latitude: %d\n", data->lat);
+        
+        if (!get_csv_field(buf, MT3333_LON_FIELD_IDX, tmp, 15))
+            return false;
+        if (!get_csv_field(buf, MT3333_EW_FIELD_IDX, &sign, 1))
+            return false;
+        
+        if (sscanf(tmp, "%d.%04d", &s1, &s2) != 2)
+            return false;
+        
+        data->lon = (s1/100);
+        s1 -= data->lon * 100;
+        data->lon *= 1000000;
+        data->lon += (1000000*s1)/60;
+        data->lon += (10*s2)/6;
+        
+        if (sign == 'W') {
+            data->lon = -data->lon;
+        }
+        
+        DEBUG("[gps] Longitude: %d\n", data->lon);
 
-	if (!get_csv_field(buf, MT3333_TIME_FIELD_IDX, data->time, 15))
-		return false;
+        struct tm time;
+        if (!get_csv_field(buf, MT3333_DATE_FIELD_IDX, tmp, 15))
+            return false;
+        
+        if (sscanf(tmp, "%02d%02d%02d", &s1, &s2, &s3) != 3)
+            return false;
+        
+        time.tm_mday = s1;
+        time.tm_mon = s2;
+        time.tm_year = 100 + s3;
+        
+        DEBUG("[gps] Date: %d.%d.%d\n", s1, s2, s3);
+        
+        if (!get_csv_field(buf, MT3333_TIME_FIELD_IDX, tmp, 15))
+            return false;
+        
+        if (sscanf(tmp, "%02d%02d%02d", &s1, &s2, &s3) != 3)
+            return false;
+        
+        time.tm_hour = s1;
+        time.tm_min = s2;
+        time.tm_sec = 100 + s3;
+        
+        data->time = mktime(&time);
+        
+        DEBUG("[gps] Time: %d:%d:%d\n", s1, s2, s3);
+        
+        if (!get_csv_field(buf, MT3333_VELOCITY_FIELD_IDX, tmp, 15))
+            return false;
+        
+        if (sscanf(tmp, "%d.%02d", &s1, &s2) != 2)
+            return false;
+        
+        data->velocity = ((1000*s1 + 10*s2)*514)/1000; // mm/s
+        DEBUG("[gps] Velocity: %d mm/s\n", data->velocity);
+        
+        if (!get_csv_field(buf, MT3333_DIRECTION_FIELD_IDX, tmp, 15))
+            return false;
+        
+        if (sscanf(tmp, "%d.%02d", &s1, &s2) != 2)
+            return false;
+        data->direction = (1000*s1 + 10*s2);
+        DEBUG("[gps] Direction: %d millidegrees\n", data->direction);
 
-	if (!get_csv_field(buf, MT3333_LAT_FIELD_IDX, data->lat, 15))
-		return false;
-
-	if (!get_csv_field(buf, MT3333_LON_FIELD_IDX, data->lon, 15))
-		return false;
-
-	if (!get_csv_field(buf, MT3333_NS_FIELD_IDX, &ns, 1))
-		return false;
-
-	if (!get_csv_field(buf, MT3333_EW_FIELD_IDX, &ew, 1))
-		return false;
-
-	if (!get_csv_field(buf, MT3333_DATE_FIELD_IDX, data->date, 15))
-		return false;
-
-	/* Check N/S E/W polarity */
-	data->e = (ew == 'E');
-	data->n = (ns == 'N');
-
-	return true;
+        return true;
+    }
+    
+    return false;
 }
 
 static void *reader(void *arg) {

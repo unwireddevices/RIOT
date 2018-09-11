@@ -10,30 +10,28 @@ CFLAGS += -DREGION_$(LORA_REGION)
 # subdirectory name in ../../unwired-modules/
 # and no other variable should have umdk-% name
 
-umdk-gpio	   = 1
-umdk-4btn	   = 1
-umdk-gps	   = 1
-umdk-lm75	   = 1
-umdk-lsm6ds3   = 1
-umdk-lmt01	   = 1
-umdk-uart	   = 1
-umdk-pir	   = 1
-umdk-adc	   = 1
-umdk-counter   = 1
-umdk-rssiecho  = 1
-umdk-pwm	   = 1
-umdk-opt3001   = 1
-umdk-meteo     = 1
-umdk-config    = 1
-umdk-mhz19     = 1
-umdk-usound    = 1
-umdk-hd44780   = 1
-umdk-ibutton   = 1
-umdk-irblaster = 1
-umdk-hx711     = 1
-umdk-fdc1004   = 1
-umdk-adxl345   = 1
-umdk-modbus	   = 1
+umdk-gpio	        		= 1
+umdk-4btn	        		= 1
+umdk-gps	        		= 1
+umdk-lmt01	        		= 1
+umdk-uart	   				= 1
+umdk-pir	   				= 1
+umdk-adc	   				= 1
+umdk-counter   				= 1
+umdk-rssiecho  				= 1
+umdk-pwm	   				= 1
+umdk-light     				= 1
+umdk-meteo     				= 1
+umdk-config    				= 1
+umdk-mhz19     				= 1
+umdk-usound    				= 1
+umdk-hd44780   				= 1
+umdk-ibutton   				= 1
+umdk-irblaster 		        = 1
+umdk-hx711          		= 1
+umdk-fdc1004        		= 1
+umdk-inclinometer   		= 1
+umdk-modbus	   		        = 1
 
 ####### UMDK MODULES defines and Makefile.include inclusion ############
 

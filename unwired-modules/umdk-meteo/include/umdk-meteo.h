@@ -40,7 +40,7 @@
 
 typedef enum {
     UMDK_METEO_DATA = 0,
-	UMDK_METEO_SET_PERIOD = 1,
+	UMDK_METEO_COMMAND = 1,
 	UMDK_METEO_POLL = 2,
     UMDK_METEO_FAIL = 0xFF,
 } umdk_meteo_cmd_t;

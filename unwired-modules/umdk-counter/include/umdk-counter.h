@@ -48,15 +48,15 @@ typedef enum {
 } umdk_counter_msg_t;
 
 typedef enum {
-    UMDK_COUNTER_CMD_SET_PERIOD = 0,
-    UMDK_COUNTER_CMD_POLL = 1,
-    UMDK_COUNTER_CMD_RESET = 2,
+    UMDK_COUNTER_DATA = 0,
+    UMDK_COUNTER_CMD_COMMAND = 1,
+    UMDK_COUNTER_CMD_POLL = 2,
+    UMDK_COUNTER_CMD_RESET = 3,
 } umdk_counter_cmd_t;
 
 typedef enum {
     UMDK_COUNTER_REPLY_OK = 0,
-    UMDK_COUNTER_REPLY_UNKNOWN_COMMAND = 1,
-    UMDK_COUNTER_REPLY_INV_PARAMETER = 2,
+    UMDK_COUNTER_REPLY_ERR = 0xFF,
 } umdk_counter_reply_t;
 
 void umdk_counter_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);

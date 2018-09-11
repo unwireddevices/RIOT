@@ -1,0 +1,3 @@
+USEMODULE += lis2hh12
+USEMODULE += adxl345
+USEMODULE += lsm6ds3

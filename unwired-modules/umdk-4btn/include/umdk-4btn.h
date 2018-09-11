@@ -29,6 +29,11 @@
 
 #define UMDK_4BTN_DEBOUNCE_TIME_MS 100
 
+typedef enum {
+    UMDK_4BTN_DATA = 0,
+    UMDK_4BTN_FAIL = 255
+} umdk_4btn_cmd_t;
+
 void umdk_4btn_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
 bool umdk_4btn_cmd(module_data_t *data, module_data_t *reply);
 

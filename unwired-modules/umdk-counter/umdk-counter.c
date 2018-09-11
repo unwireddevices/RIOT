@@ -178,8 +178,8 @@ static void reset_config(void) {
 
 static int set_period(int period) {
     if (!period || (period > UMDK_COUNTER_PUBLISH_PERIOD_MAX)) {
-            return 0;
-        }
+        return 0;
+    }
             
     conf_counter.publish_period = period;
     save_config();
@@ -279,23 +279,21 @@ bool umdk_counter_cmd(module_data_t *cmd, module_data_t *reply)
 
     umdk_counter_cmd_t c = cmd->data[0];
     switch (c) {
-        case UMDK_COUNTER_CMD_SET_PERIOD: {
-            if (cmd->length != 2) {
-                return false;
+        case UMDK_COUNTER_CMD_COMMAND: {
+            uint8_t period = cmd->data[1];
+            set_period(period);
+            
+            /* reset counter data */
+            if (cmd->data[2]) {
+                memset(&conf_counter.count_value[0], 0, sizeof(conf_counter.count_value));
+                save_config();
             }
 
-            uint8_t period = cmd->data[1];
-            /* do not change period if new one is 0 or > max */
-            
             reply->length = 2;
             reply->data[0] = _UMDK_MID_;
+            reply->data[1] = UMDK_COUNTER_REPLY_OK;
+            reply->data[2] = conf_counter.publish_period;
             
-            if (!set_period(period)) {           
-                reply->data[1] = UMDK_COUNTER_REPLY_INV_PARAMETER;
-            } else {
-                reply->data[1] = UMDK_COUNTER_REPLY_OK;
-            }
-
             return true; /* Allow reply */
         }
 
@@ -304,20 +302,10 @@ bool umdk_counter_cmd(module_data_t *cmd, module_data_t *reply)
             msg_send(&publishing_msg, handler_pid);
             return false; /* Don't reply */
         }
-        case UMDK_COUNTER_CMD_RESET: {
-            memset(&conf_counter.count_value[0], 0, sizeof(conf_counter.count_value));
-            save_config();
-            
-            reply->length = 2;
-            reply->data[0] = _UMDK_MID_;
-            reply->data[1] = UMDK_COUNTER_REPLY_OK;
-
-            return true;
-        }
         default:
             reply->length = 2;
             reply->data[0] = _UMDK_MID_;
-            reply->data[1] = UMDK_COUNTER_REPLY_UNKNOWN_COMMAND;
+            reply->data[1] = UMDK_COUNTER_REPLY_ERR;
             break;
     }
 

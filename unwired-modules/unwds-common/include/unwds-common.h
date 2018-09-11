@@ -72,7 +72,7 @@ bool unwds_erase_nvram_config(unwds_module_id_t module_id);
 
 uint8_t *allocate_stack(uint32_t stack_size);
 
-#define UNWDS_MAX_MODULE_NAME 10
+#define UNWDS_MAX_MODULE_NAME 15
 #define UNWDS_MAX_DATA_LEN 126
 
 #define UNWDS_STORAGE_BLOCKS_MAX 16

@@ -62,10 +62,11 @@ static void *handler(void *arg) {
         int btn = msg.type;
 
         module_data_t data;
-        data.length = 3;
+        data.length = 4;
         data.data[0] = _UMDK_MID_;
-        data.data[1] = (btn & 0xFF) + 1;
-        data.data[2] = (btn >> 15);
+        data.data[1] = UMDK_4BTN_DATA;
+        data.data[2] = (btn & 0xFF) + 1;
+        data.data[3] = (btn >> 15);
 
         callback(&data);
     }

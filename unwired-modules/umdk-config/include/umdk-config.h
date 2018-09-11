@@ -22,7 +22,7 @@
 
 typedef enum {
 	UMDK_CONFIG_REPLY_OK = 0,
-	UMDK_CONFIG_REPLY_ERR = 253,
+	UMDK_CONFIG_REPLY_ERR = 0xFF,
 } umdk_config_reply_t;
 
 typedef enum {

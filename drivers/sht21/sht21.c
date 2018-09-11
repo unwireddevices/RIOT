@@ -21,6 +21,9 @@
 #include "byteorder.h"
 #include "rtctimers-millis.h"
 
+#define ENABLE_DEBUG    (0)
+#include "debug.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -48,7 +51,7 @@ int sht21_init(sht21_t *dev)
     i2c_init(dev->i2c);
 
     if (i2c_read_reg(dev->i2c, SHT21_ADDRESS, SHT21_USER_REG_READ, (char *)&config, 0) < 0) {
-        puts("[sht21 driver] Error: sensor not found");
+        DEBUG("[sht21 driver] Error: sensor not found\n");
         i2c_release(dev->i2c);
 
         return -1;
@@ -60,7 +63,7 @@ int sht21_init(sht21_t *dev)
     /* Set configuration bits without changing those reserved */
     config |= SHT21_USER_CONFIG;
 
-    puts("[sht21 driver] Setting configuration register");
+    DEBUG("[sht21 driver] Setting configuration register\n");
     i2c_write_reg(dev->i2c, SHT21_ADDRESS, SHT21_USER_REG_WRITE, config, 0);
     i2c_release(dev->i2c);
     

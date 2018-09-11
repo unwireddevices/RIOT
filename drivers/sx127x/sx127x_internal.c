@@ -51,14 +51,14 @@ int sx127x_check_version(sx127x_t *dev)
     switch (version) {
         case VERSION_SX1272:
             dev->_internal.modem_chip = SX127X_MODEM_SX1272;
-            DEBUG("SX1272/73 transceiver detected.\n");
+            puts("SX1272/73 transceiver detected");
             break;
         case VERSION_SX1276:
             dev->_internal.modem_chip = SX127X_MODEM_SX1276;
-            DEBUG("SX1276/77/78/79 transceiver detected.\n");
+            puts("SX1276/77/78/79 transceiver detected");
             break;
         default:
-            DEBUG("[Error] sx127x test failed, invalid version number: %d\n",
+            printf("[Error] sx127x test failed, invalid version number: %d\n",
                    version);
             return -1;
     }
@@ -123,7 +123,6 @@ void sx127x_read_fifo(const sx127x_t *dev, uint8_t *buffer, uint8_t size)
     sx127x_reg_read_burst(dev, 0, buffer, size);
 }
 
-#if defined(MODULE_SX1276)
 void sx1276_rx_chain_calibration(sx127x_t *dev)
 {
     uint8_t reg_pa_config_init_val;
@@ -164,7 +163,6 @@ void sx1276_rx_chain_calibration(sx127x_t *dev)
     sx127x_reg_write(dev, SX127X_REG_PACONFIG, reg_pa_config_init_val);
     sx127x_set_channel(dev, initial_freq);
 }
-#endif
 
 int16_t sx127x_read_rssi(const sx127x_t *dev)
 {

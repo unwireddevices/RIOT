@@ -1,9 +1,8 @@
 include ../Makefile.tests_common
 
-FEATURES_REQUIRED = periph_i2c
+FEATURES_REQUIRED = periph_i2c periph_gpio
 
-USEMODULE += $(DRIVER)
 USEMODULE += xtimer
-USEMODULE += adxl345
+USEMODULE += m24sr
 
 include $(RIOTBASE)/Makefile.include

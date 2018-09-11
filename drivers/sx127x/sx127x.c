@@ -116,9 +116,10 @@ int sx127x_init(sx127x_t *dev)
 
     sx127x_reset(dev);
 
-#if defined(MODULE_SX1276)
-    sx1276_rx_chain_calibration(dev);
-#endif
+    if (dev->_internal.modem_chip == SX127X_MODEM_SX1276) {
+        sx1276_rx_chain_calibration(dev);
+    }
+    
     sx127x_set_op_mode(dev, SX127X_RF_OPMODE_SLEEP);
 
     /* do not check return code as GPIO_UNDEF will produce an error */

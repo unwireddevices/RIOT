@@ -286,7 +286,6 @@ static void ls_setup(semtech_loramac_t *ls)
     
     uint8_t appkey[LORAMAC_APPKEY_LEN];
     memcpy(appkey, config_get_joinkey(), LORAMAC_APPKEY_LEN);
-    byteorder_swap(appkey, LORAMAC_APPKEY_LEN);
     semtech_loramac_set_appkey(ls, appkey);
     
     semtech_loramac_set_dr(ls, unwds_get_node_settings().dr);

@@ -70,6 +70,9 @@ int bmx280_init(bmx280_t* dev, const bmx280_params_t* params)
     uint8_t chip_id;
 
     dev->params = *params;
+    
+    /* Acquire I2C bus */
+    i2c_acquire(dev->params.i2c_dev);
 
     /* Initialize I2C interface */
     i2c_init(dev->params.i2c_dev);
@@ -80,14 +83,18 @@ int bmx280_init(bmx280_t* dev, const bmx280_params_t* params)
     if ((chip_id != BME280_CHIP_ID) && (chip_id != BMP280_CHIP_ID)) {
         DEBUG("[Error] Did not detect a BMX280 at address %02x (%02x != %02x or %02x)\n",
               dev->params.i2c_addr, chip_id, BME280_CHIP_ID, BMP280_CHIP_ID);
+        i2c_release(dev->params.i2c_dev);
         return BMX280_ERR_NODEV;
     }
 
     /* Read compensation data, 0x88..0x9F, 0xA1, 0xE1..0xE7 */
     if (read_calibration_data(dev)) {
         DEBUG("[Error] Could not read calibration data\n");
+        i2c_release(dev->params.i2c_dev);
         return BMX280_ERR_NOCAL;
     }
+    
+    i2c_release(dev->params.i2c_dev);
 
     return BMX280_OK;
 }
@@ -213,6 +220,8 @@ uint16_t bme280_read_humidity(const bmx280_t *dev)
  */
 static int read_calibration_data(bmx280_t* dev)
 {
+    i2c_acquire(dev->params.i2c_dev);
+    
     uint8_t buffer[128];        /* 128 should be enough to read all calibration bytes */
     int nr_bytes;
 #ifdef MODULE_BME280
@@ -284,6 +293,8 @@ static int read_calibration_data(bmx280_t* dev)
         ((dev->params.press_oversample & 7) << 2) |
         (dev->params.run_mode & 3);
     write_u8_reg(dev, BMX280_CTRL_MEAS_REG, b);
+    
+    i2c_release(dev->params.i2c_dev);
 
     return 0;
 }
@@ -293,6 +304,8 @@ static int read_calibration_data(bmx280_t* dev)
  */
 static int do_measurement(const bmx280_t* dev)
 {
+    i2c_acquire(dev->params.i2c_dev);
+    
     /*
      * If settings has FORCED mode, then the device go to sleep after
      * it finished the measurement. To read again we have to set the
@@ -321,9 +334,12 @@ static int do_measurement(const bmx280_t* dev)
                              offset, measurement_regs, nr_bytes_to_read, 0);
     if (nr_bytes < 0 ) {
         LOG_ERROR("Unable to read temperature data\n");
+        i2c_release(dev->params.i2c_dev);
         return -1;
     }
     DUMP_BUFFER("Raw Sensor Data", measurement_regs, nr_bytes);
+    
+    i2c_release(dev->params.i2c_dev);
 
     return 0;
 }

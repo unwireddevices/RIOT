@@ -102,24 +102,10 @@ static const uart_conf_t uart_config[] = {
         .tx_af    = GPIO_AF4,
         .bus      = APB1,
         .irqn     = USART2_IRQn
-    },
-    {
-        .dev      = USART4,
-        .rcc_mask = RCC_APB1ENR_USART4EN,
-        .rx_pin   = GPIO_PIN(PORT_B, 11),
-        .tx_pin   = GPIO_PIN(PORT_B, 10),
-        .rx_mode  = GPIO_IN_PU,
-        .tx_mode  = GPIO_OUT,
-        .rx_af    = GPIO_AF6,
-        .tx_af    = GPIO_AF6,
-        .bus      = APB1,
-        .irqn     = USART4_5_IRQn
     }
 };
 
-#define UART_0_ISR          (isr_usart1)
-#define UART_1_ISR          (isr_usart2)
-#define UART_2_ISR          (isr_usart4)
+#define UART_0_ISR          (isr_usart2)
 
 #define UART_NUMOF          (sizeof(uart_config) / sizeof(uart_config[0]))
 /** @} */

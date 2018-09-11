@@ -30,7 +30,8 @@
 
 typedef enum {
 	UMDK_GPS_DATA = 0,
-	UMDK_GPS_CMD_POLL = 1,
+    UMDK_GPS_COMMAND = 1,
+	UMDK_GPS_CMD_POLL = 2,
 	UMDK_GPS_REPLY_ERROR = 0xFF,
 } umdk_gps_cmd_t;
 

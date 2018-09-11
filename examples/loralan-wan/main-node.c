@@ -556,6 +556,13 @@ static void unwds_callback(module_data_t *buf)
         }
     }
     
+#if ENABLE_DEBUG
+    for (int k = 0; k<16; k++) {
+        printf("%02X ", buf->data[k]);
+    }
+    printf("\n");
+#endif
+    
     int res = semtech_loramac_send(&ls, buf->data, buf->length);
 
     switch (res) {

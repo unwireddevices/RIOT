@@ -1,0 +1,3 @@
+USEMODULE += bme280
+USEMODULE += sht21
+USEMODULE += lps331ap

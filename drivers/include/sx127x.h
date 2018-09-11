@@ -223,12 +223,9 @@ typedef struct {
     gpio_t dio3_pin;                   /**< Interrupt line DIO3 (CAD done) */
     gpio_t dio4_pin;                   /**< Interrupt line DIO4 (not used) */
     gpio_t dio5_pin;                   /**< Interrupt line DIO5 (not used) */
-<<<<<<< HEAD
     gpio_t rfswitch_pin;               /**< GPIO to switch PE4259 on/off */
     gpio_t rfswitch_active_level;      /**< PE4259 power switch active level */
-=======
     gpio_t dio_multi_pin;              /**< Interrupt line for muliple IRQs */
->>>>>>> 32143dd589... drivers/sx127x: add preliminar multi interrupt pin support
     uint8_t paselect;                  /**< Power amplifier mode (RFO or PABOOST) */
 } sx127x_params_t;
 

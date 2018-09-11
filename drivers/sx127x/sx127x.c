@@ -92,13 +92,9 @@ int sx127x_reset(const sx127x_t *dev)
     gpio_init(dev->params.reset_pin, GPIO_IN);
 
     /* Wait 10 ms */
-<<<<<<< HEAD
     rtctimers_millis_sleep(10);
-=======
-    xtimer_usleep(1000 * 10);
-
+    
     return 0;
->>>>>>> 32143dd589... drivers/sx127x: add preliminar multi interrupt pin support
 }
 
 int sx127x_init(sx127x_t *dev)

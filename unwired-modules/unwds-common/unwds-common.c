@@ -299,14 +299,12 @@ bool unwds_erase_nvram_config(unwds_module_id_t module_id) {
 /**
  * Stacks pool.
  */
-// static uint8_t stack_pool[UNWDS_STACK_POOL_SIZE_BYTES];
-// static uint32_t stack_size_used = 0;
-
-uint8_t *allocate_stack(uint32_t stack_size) {
+uint8_t *allocate_stack_name(uint32_t stack_size, const char* caller_name) {
     uint8_t *address = (uint8_t *)malloc(stack_size);
     
     /* additional check for allocation validity */
     if (address && !cpu_check_address((char *)&address[stack_size - 1])) {
+        printf("[ERROR] Unable to allocate memory for %s\n", caller_name);
         address = NULL;
     }
     

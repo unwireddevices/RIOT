@@ -70,7 +70,9 @@ bool unwds_write_nvram_config(unwds_module_id_t module_id, uint8_t *data, size_t
  */
 bool unwds_erase_nvram_config(unwds_module_id_t module_id);
 
-uint8_t *allocate_stack(uint32_t stack_size);
+uint8_t *allocate_stack_name(uint32_t stack_size, const char* caller_name);
+
+#define allocate_stack(stack_size) allocate_stack_name(stack_size, __func__)
 
 #define UNWDS_MAX_MODULE_NAME 15
 #define UNWDS_MAX_DATA_LEN 126

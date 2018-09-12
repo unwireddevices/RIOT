@@ -477,7 +477,6 @@ void umdk_inclinometer_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callba
     /* Create handler thread */
 	char *stack_measure = (char *) allocate_stack(UMDK_INCLINOMETER_STACK_SIZE);
 	if (!stack_measure) {
-		puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Are too many modules enabled?");
 		return;
 	}
     
@@ -489,7 +488,6 @@ void umdk_inclinometer_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callba
     /* Create handler thread */
 	char *stack = (char *) allocate_stack(UMDK_INCLINOMETER_STACK_SIZE);
 	if (!stack) {
-		puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Are too many modules enabled?");
 		return;
 	}
   

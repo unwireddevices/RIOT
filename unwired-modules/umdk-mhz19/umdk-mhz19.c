@@ -164,7 +164,6 @@ void umdk_mhz19_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     
     mhz19.reader_stack = (uint8_t *) allocate_stack(UMDK_MHZ19_READER_STACK_SIZE);
     if (!mhz19.reader_stack) {
-        puts("[umdk-" _UMDK_NAME_ "] Unable to allocate memory. Is too many modules enabled?");
         return;
     }
     
@@ -179,7 +178,6 @@ void umdk_mhz19_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 
     char *timer_stack = (char *) allocate_stack(UMDK_MHZ19_STACK_SIZE);
     if (!timer_stack) {
-        puts("[umdk-" _UMDK_NAME_ "] Unable to allocate memory. Is too many modules enabled?");
         return;
     }
     timer_pid = thread_create(timer_stack, UMDK_MHZ19_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "umdk-mhz19 timer thread");

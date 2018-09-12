@@ -32,18 +32,19 @@ extern "C" {
 #endif
 
 static kernel_pid_t reader_pid;
-static tsrb_t rxrb;
-static char *rxbuf;
-static uint8_t rmc_detect = 0;
-static char *rmc_buf;
+
+static int rx_cnt = 0;
+static int rmc_detect = 0;
 const char rmc_message[] = "RMC";
+
+static char *rxbuf;
+static char *rmc_buf;
 
 static void rx_cb(void *arg, uint8_t data)
 {
     (void)arg;
     
-	/* Insert received character into ring buffer */
-	tsrb_add_one(&rxrb, data);
+    rxbuf[rx_cnt++] = data;
     
     /* We're interested in RMC messages only */
     if (rmc_detect < 3) {
@@ -53,15 +54,17 @@ static void rx_cb(void *arg, uint8_t data)
     /* Notify parser thread about RMC message */
     if (data == MT3333_EOL) {
         if (rmc_detect == 3) {
-            int chars = tsrb_avail(&rxrb);
-            tsrb_get(&rxrb, rmc_buf, chars);
-            rmc_buf[chars] = 0;
+            memcpy(rmc_buf, rxbuf, rx_cnt);
+            rmc_buf[rx_cnt] = 0;
             msg_t msg;
             msg_send(&msg, reader_pid);
-        } else {
-            tsrb_clear(&rxrb);
         }
+        rx_cnt = 0;
         rmc_detect = 0;
+    }
+    
+    if (rx_cnt == MT3333_RXBUF_SIZE_BYTES) {
+        rx_cnt = 0;
     }
 }
 
@@ -116,7 +119,7 @@ static bool parse_rmc(char *buf, mt3333_gps_data_t *data) {
     char sign;
     char tmp[15];
     
-    if (!get_csv_field(buf, MT3333_LAT_FIELD_IDX, tmp, 15))
+    if (!get_csv_field(buf, MT3333_LAT_FIELD_IDX, tmp, sizeof(tmp)))
         return false;
     if (!get_csv_field(buf, MT3333_NS_FIELD_IDX, &sign, 1))
         return false;
@@ -137,7 +140,7 @@ static bool parse_rmc(char *buf, mt3333_gps_data_t *data) {
     
     DEBUG("[gps] Latitude: %d\n", data->lat);
     
-    if (!get_csv_field(buf, MT3333_LON_FIELD_IDX, tmp, 15))
+    if (!get_csv_field(buf, MT3333_LON_FIELD_IDX, tmp, sizeof(tmp)))
         return false;
     if (!get_csv_field(buf, MT3333_EW_FIELD_IDX, &sign, 1))
         return false;
@@ -158,7 +161,7 @@ static bool parse_rmc(char *buf, mt3333_gps_data_t *data) {
     DEBUG("[gps] Longitude: %d\n", data->lon);
 
     struct tm time;
-    if (!get_csv_field(buf, MT3333_DATE_FIELD_IDX, tmp, 15))
+    if (!get_csv_field(buf, MT3333_DATE_FIELD_IDX, tmp, sizeof(tmp)))
         return false;
     
     if (sscanf(tmp, "%02d%02d%02d", &s1, &s2, &s3) != 3)
@@ -170,7 +173,7 @@ static bool parse_rmc(char *buf, mt3333_gps_data_t *data) {
     
     DEBUG("[gps] Date: %d.%d.%d\n", s1, s2, s3);
     
-    if (!get_csv_field(buf, MT3333_TIME_FIELD_IDX, tmp, 15))
+    if (!get_csv_field(buf, MT3333_TIME_FIELD_IDX, tmp, sizeof(tmp)))
         return false;
     
     if (sscanf(tmp, "%02d%02d%02d", &s1, &s2, &s3) != 3)
@@ -184,7 +187,7 @@ static bool parse_rmc(char *buf, mt3333_gps_data_t *data) {
     
     DEBUG("[gps] Time: %d:%d:%d\n", s1, s2, s3);
     
-    if (!get_csv_field(buf, MT3333_VELOCITY_FIELD_IDX, tmp, 15))
+    if (!get_csv_field(buf, MT3333_VELOCITY_FIELD_IDX, tmp, sizeof(tmp)))
         return false;
     
     if (sscanf(tmp, "%d.%02d", &s1, &s2) != 2)
@@ -193,7 +196,7 @@ static bool parse_rmc(char *buf, mt3333_gps_data_t *data) {
     data->velocity = ((1000*s1 + 10*s2)*514)/1000; // mm/s
     DEBUG("[gps] Velocity: %d mm/s\n", data->velocity);
     
-    if (!get_csv_field(buf, MT3333_DIRECTION_FIELD_IDX, tmp, 15))
+    if (!get_csv_field(buf, MT3333_DIRECTION_FIELD_IDX, tmp, sizeof(tmp)))
         return false;
     
     if (sscanf(tmp, "%d.%02d", &s1, &s2) != 2)
@@ -244,7 +247,7 @@ static void mt3333_send_at_command(mt3333_t *dev, char *command) {
     strcat(cmd, command);
     strcat(cmd, "*");
     
-    char buf[10];
+    char buf[5];
     snprintf(buf, 5, "%02x\r\n", checksum);
     strcat(cmd, buf);
     
@@ -264,11 +267,9 @@ void mt3333_set_baudrate(mt3333_t *dev, int baudrate) {
 
 void mt3333_set_glp(mt3333_t *dev, bool enabled) {
     char cmd[20] = {};
-    if (enabled) {
-        snprintf(cmd, 20, "PQGLP,W,1,1");
-    } else {
-        snprintf(cmd, 20, "PQGLP,W,0,1");
-    }
+    
+    snprintf(cmd, 20, "PQGLP,W,%d,1", enabled? 1:0);
+    
     mt3333_send_at_command(dev, cmd);
 }
 
@@ -276,10 +277,8 @@ void mt3333_set_powersave(mt3333_t *dev, mt3333_powersave_mode_t mode) {
     char cmd[20] = {};
     if (mode == MT3333_POWERSAVE_STANDBY) {
         snprintf(cmd, 20, "PMTK161,0");
-    } else if (mode == MT3333_POWERSAVE_BACKUP) {
-        snprintf(cmd, 20, "PMTK225,4");
-    } else if (mode == MT3333_POWERSAVE_FULLON) {
-        snprintf(cmd, 20, "PMTK225,0");
+    } else {
+        snprintf(cmd, 20, "PMTK225,%d", (mode == MT3333_POWERSAVE_BACKUP)? 4:0);
     }
     mt3333_send_at_command(dev, cmd);
 }
@@ -306,11 +305,9 @@ int mt3333_init(mt3333_t *dev, mt3333_param_t *param) {
 	}
     
     /* Initialize message buffer */
-    rmc_buf = dev->reader_stack;
-    
-    /* Initialize the input ring buffer */
+    rmc_buf = dev->reader_stack;    
+    /* Initialize input buffer */
     rxbuf = dev->reader_stack + MT3333_RXBUF_SIZE_BYTES;
-	tsrb_init(&rxrb, rxbuf, MT3333_RXBUF_SIZE_BYTES);
 
 	/* Initialize the UART */
 	if (uart_init(dev->params.uart, dev->params.baudrate, rx_cb, NULL)) {

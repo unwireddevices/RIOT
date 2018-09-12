@@ -31,19 +31,20 @@
 extern "C" {
 #endif
 
-static mt3333_t *_dev;
+static kernel_pid_t reader_pid;
+static tsrb_t rxrb;
 
 static void rx_cb(void *arg, uint8_t data)
 {
-	mt3333_t *dev = (mt3333_t *) arg;
-
+    (void)arg;
+    
 	/* Insert received character into ring buffer */
-	tsrb_add_one(&dev->rxrb, data);
+	tsrb_add_one(&rxrb, data);
 
     /* Notify parser thread about ready message */
     if (data == MT3333_EOL) {
         msg_t msg;
-        msg_send(&msg, dev->reader_pid);
+        msg_send(&msg, reader_pid);
     }
 }
 
@@ -201,7 +202,6 @@ static void *reader(void *arg) {
     msg_init_queue(msg_queue, 8);
 
     mt3333_gps_data_t data;
-    memset(&data, 0, sizeof(data));
 
     char buf[MT3333_PARSER_BUF_SIZE] = { '\0' };
 
@@ -212,7 +212,7 @@ static void *reader(void *arg) {
         char c;
         int i = 0;
         do {
-        	c = tsrb_get_one(&dev->rxrb);
+        	c = tsrb_get_one(&rxrb);
         	buf[i++] = c;
         } while (c != MT3333_EOL);
 
@@ -229,7 +229,7 @@ static void *reader(void *arg) {
     return NULL;
 }
 
-static void mt3333_send_at_command(char *command) {
+static void mt3333_send_at_command(mt3333_t *dev, char *command) {
     uint8_t checksum = 0;
     uint32_t i;
     for (i = 0; i < strlen(command); i++) {
@@ -237,13 +237,11 @@ static void mt3333_send_at_command(char *command) {
     }
     
     /* command + delimeters + checksum + CRLF + ending 0 */
-    if (strlen(command) + 2 + 2 + 3 > 100) {
+    char cmd[30];
+    if (strlen(command) + 2 + 2 + 3 > sizeof(cmd)) {
         DEBUG("[mt3333 ] command too long\n");
         return;
     }
-    
-    /* first 100 bytes are free to use */
-    char *cmd = (char *)_dev->reader_stack;
     
     snprintf(cmd, 2, "$");
     strcat(cmd, command);
@@ -253,31 +251,31 @@ static void mt3333_send_at_command(char *command) {
     snprintf(buf, 5, "%02x\r\n", checksum);
     strcat(cmd, buf);
     
-    uart_write(_dev->params.uart, (uint8_t *)cmd, strlen(cmd));
+    uart_write(dev->params.uart, (uint8_t *)cmd, strlen(cmd));
     
     DEBUG("GPS command: %s\n", cmd);
 }
 
-void mt3333_set_baudrate(int baudrate) {
+void mt3333_set_baudrate(mt3333_t *dev, int baudrate) {
     char cmd[20] = {};
     snprintf(cmd, 20, "PQBAUD,W,%d", baudrate);
-    mt3333_send_at_command(cmd);
+    mt3333_send_at_command(dev, cmd);
     
-    _dev->params.baudrate = baudrate;
-    uart_init(_dev->params.uart, _dev->params.baudrate, rx_cb, _dev);
+    dev->params.baudrate = baudrate;
+    uart_init(dev->params.uart, dev->params.baudrate, rx_cb, dev);
 }
 
-void mt3333_set_glp(bool enabled) {
+void mt3333_set_glp(mt3333_t *dev, bool enabled) {
     char cmd[20] = {};
     if (enabled) {
         snprintf(cmd, 20, "PQGLP,W,1,1");
     } else {
         snprintf(cmd, 20, "PQGLP,W,0,1");
     }
-    mt3333_send_at_command(cmd);
+    mt3333_send_at_command(dev, cmd);
 }
 
-void mt3333_set_powersave(mt3333_powersave_mode_t mode) {
+void mt3333_set_powersave(mt3333_t *dev, mt3333_powersave_mode_t mode) {
     char cmd[20] = {};
     if (mode == MT3333_POWERSAVE_STANDBY) {
         snprintf(cmd, 20, "PMTK161,0");
@@ -286,13 +284,13 @@ void mt3333_set_powersave(mt3333_powersave_mode_t mode) {
     } else if (mode == MT3333_POWERSAVE_FULLON) {
         snprintf(cmd, 20, "PMTK225,0");
     }
-    mt3333_send_at_command(cmd);
+    mt3333_send_at_command(dev, cmd);
 }
 
-void mt3333_set_periodic(mt3333_powersave_mode_t mode, int run, int sleep, int run_ext, int sleep_ext) {
+void mt3333_set_periodic(mt3333_t *dev, mt3333_powersave_mode_t mode, int run, int sleep, int run_ext, int sleep_ext) {
     char cmd[50] = {};
     snprintf(cmd, 50, "PMTK225,%d,%d,%d,%d,%d", (int)mode, run, sleep, run_ext, sleep_ext);
-    mt3333_send_at_command(cmd);
+    mt3333_send_at_command(dev, cmd);
 }
 
 int mt3333_init(mt3333_t *dev, mt3333_param_t *param) {
@@ -302,23 +300,20 @@ int mt3333_init(mt3333_t *dev, mt3333_param_t *param) {
 	/* Copy parameters */
 	dev->params = *param;
     
-    _dev = dev;
-    
     /* Create reader thread */
-	dev->reader_pid = thread_create(dev->reader_stack + 100 + MT3333_RXBUF_SIZE_BYTES,
-                                    MT3333_READER_THREAD_STACK_SIZE_BYTES - 100 - MT3333_RXBUF_SIZE_BYTES,
+	reader_pid = thread_create(dev->reader_stack + MT3333_RXBUF_SIZE_BYTES,
+                                    MT3333_READER_THREAD_STACK_SIZE_BYTES - MT3333_RXBUF_SIZE_BYTES,
                                     THREAD_PRIORITY_MAIN - 1, 0, reader, dev, "MT3333 reader");
-	if (dev->reader_pid <= KERNEL_PID_UNDEF) {
+	if (reader_pid <= KERNEL_PID_UNDEF) {
 		return -2;
 	}
     
-    dev->rxbuf = dev->reader_stack + 100;
-
-	/* Initialize the input ring buffer */
-	tsrb_init(&dev->rxrb, dev->rxbuf, MT3333_RXBUF_SIZE_BYTES);
+    /* Initialize the input ring buffer */
+    dev->rxbuf = dev->reader_stack;
+	tsrb_init(&rxrb, dev->rxbuf, MT3333_RXBUF_SIZE_BYTES);
 
 	/* Initialize the UART */
-	if (uart_init(dev->params.uart, dev->params.baudrate, rx_cb, dev)) {
+	if (uart_init(dev->params.uart, dev->params.baudrate, rx_cb, NULL)) {
 		return -1;
 	}
 

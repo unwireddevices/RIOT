@@ -68,8 +68,8 @@ typedef struct {
  * @biref Structure that holds the MT3333 driver parameters
  */
 typedef struct {
-	uart_t uart;	/**< The device descriptor on which the MT3333 module is attached */
-    int baudrate;  /**< UART baudrate, 9600 bps is the default value */
+	uart_t uart;	                        /**< The device descriptor on which the MT3333 module is attached */
+    int baudrate;                           /**< UART baudrate, 9600 bps is the default value */
 	void (*gps_cb)(mt3333_gps_data_t data);	/**< Callback which called when module give us a valid GPS NMEA GMRC message */
 } mt3333_param_t;
 
@@ -78,10 +78,8 @@ typedef struct {
  */
 typedef struct {
 	mt3333_param_t params;					/**< Holds driver parameters */
-    tsrb_t rxrb;						    /**< Thread-safe ringbuffer for incoming data */
 	char *rxbuf;	                        /**< Memory buffer for the ring buffer data */
 	char *reader_stack;	                    /**< Reader thread stack, has to be allocated by the application */
-	kernel_pid_t reader_pid;				/**< Reader thread PID */
 } mt3333_t;
 
 typedef enum {
@@ -106,21 +104,21 @@ int mt3333_init(mt3333_t *dev, mt3333_param_t *param);
 /**
  * @brief Change MT3333 baudrate
  */
-void mt3333_set_baudrate(int baudrate);
+void mt3333_set_baudrate(mt3333_t *dev, int baudrate);
 
 /**
  * @brief Set MT3333 to low-power GLP mode (support depends on core firmware version)
  */
-void mt3333_set_glp(bool enabled);
+void mt3333_set_glp(mt3333_t *dev, bool enabled);
 
 /**
  * @brief Set MT3333 to the specified power mode
  */
-void mt3333_set_powersave(mt3333_powersave_mode_t mode);
+void mt3333_set_powersave(mt3333_t *dev, mt3333_powersave_mode_t mode);
 
 /**
  * @brief Set MT3333 to periodic mode with specified parameters
  */
-void mt3333_set_periodic(mt3333_powersave_mode_t mode, int run, int sleep, int run_ext, int sleep_ext);
+void mt3333_set_periodic(mt3333_t *dev, mt3333_powersave_mode_t mode, int run, int sleep, int run_ext, int sleep_ext);
 
 #endif /* mt3333_H_ */

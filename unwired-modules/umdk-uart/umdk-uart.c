@@ -302,7 +302,6 @@ void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     
     rxbuf = (uint8_t *) allocate_stack(UMDK_UART_RXBUF_SIZE);
     if (!rxbuf) {
-    	puts("umdk-" _UMDK_NAME_ ": unable to allocate buffer. Are too many modules enabled?");
     	return;
     }
     memset(rxbuf, 0, UMDK_UART_RXBUF_SIZE);
@@ -324,7 +323,6 @@ void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 
     char *stack = (char *) allocate_stack(UMDK_UART_STACK_SIZE);
     if (!stack) {
-    	puts("umdk-" _UMDK_NAME_ ": unable to allocate memory. Are too many modules enabled?");
     	return;
     }
 

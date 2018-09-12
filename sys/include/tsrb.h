@@ -68,6 +68,16 @@ static inline void tsrb_init(tsrb_t *rb, char *buffer, unsigned bufsize)
 }
 
 /**
+ * @brief       Clear ringbuffer
+ * @param[in]   rb  Ringbuffer to operate on
+ */
+static inline void tsrb_clear(tsrb_t *rb)
+{
+    rb->reads = 0;
+    rb->writes = 0;
+}
+
+/**
  * @brief       Test if the tsrb is empty.
  * @param[in]   rb  Ringbuffer to operate on
  * @return      0   if not empty

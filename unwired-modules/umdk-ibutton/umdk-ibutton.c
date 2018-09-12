@@ -162,7 +162,6 @@ void umdk_ibutton_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     /* Create handler thread */
     char *stack = (char *) allocate_stack(UMDK_IBUTTON_STACK_SIZE);
     if (!stack) {
-        puts("umdk-ibutton: unable to allocate memory. Is too many modules enabled?");
         return;
     }
     ibutton_pid = thread_create(stack, UMDK_IBUTTON_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,

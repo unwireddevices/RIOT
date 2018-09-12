@@ -360,7 +360,6 @@ void umdk_usound_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
     
     dev.times = (int *)allocate_stack(UZ_MAX_PULSES * sizeof(int));
     if (!dev.times) {
-		printf("[umdk-" _UMDK_NAME_ "] Unable to allocate driver memory. Are too many modules enabled?");
 		return;
 	}
 
@@ -372,7 +371,6 @@ void umdk_usound_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
 	/* Create handler thread */
 	char *stack = (char *) allocate_stack(UMDK_USOUND_STACK_SIZE);
 	if (!stack) {
-		printf("[umdk-" _UMDK_NAME_ "] Unable to allocate memory. Are too many modules enabled?");
 		return;
 	}
     

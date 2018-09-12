@@ -39,8 +39,6 @@
 #define CR95_HFO_SETUP_TIME_MS 10
 #define CR95_ECHO_WAIT_TIME_MS 10
 
-#define UMDK_CR95_IFACE_UART 1
-#define UMDK_CR95_IFACE_SPI 2
 
 #define CR95_MAX_DATA_BYTES 254
 #define UMDK_CR95_DETECT_MS 1000
@@ -55,12 +53,6 @@
 #define TX_RATE_14443A TX_RATE_106
 #define RX_RATE_14443A RX_RATE_106
 
-
-#define NO_SELECT_PROTOCOL 0x0
-#define ISO14443A_SELECT 0x1
-#define ISO14443B_SELECT 0x2
-#define ISO15693_SELECT 0x4
-#define ISO18092_SELECT 0x8
 
 /**
  * @brief Thread messages values
@@ -92,14 +84,6 @@ typedef enum {
 	UMDK_CR95_PACK_ERROR     = 0,
 } cr95_pack_state_t;
 
-/**
- * @brief   CR95 pack structure
- */
-typedef struct {
-	uint8_t cmd;
-	uint8_t length;
-	uint8_t data[CR95_MAX_DATA_BYTES];
-} cr95_pack_t;
 
 /**
  * @brief   CR95 commands list
@@ -123,9 +107,21 @@ typedef enum {
 	ISO_15693 = 0x01,
 	ISO_14443A = 0x02,
 	ISO_14443B = 0x03,
-	ISO_18092 = 0x04
+	ISO_18092 = 0x04,
 } cr95_protocol_t;
 
+
+/**
+ * @brief   Mask Protocols select
+ */
+typedef enum {
+	NO_SELECT_PROTOCOL	= 0x00,
+	ISO14443A_SELECT = 0x01,
+	ISO14443B_SELECT = 0x02,
+	ISO15693_SELECT = 0x04,
+	ISO18092_SELECT = 0x08,
+	SELECT_ALL_PROTOCOL = 0x0F,
+} umdk_cr95_select_protocol_t;
 
 /**
  * @brief   CR95 hardware and global parameters.
@@ -141,15 +137,29 @@ typedef struct {
 } cr95_params_t;
 
 /**
- * @brief CR95 interfaces configurations structure
+ * @brief CR95 interfaces
+ */
+typedef enum {
+	CR95_IFACE_UART     = 1,
+	CR95_IFACE_SPI     = 2,
+} cr95_iface_t;
+
+/**
+ * @brief CR95 modes
+ */
+typedef enum {
+	CR95_WRITER     = 1,
+	CR95_READER     = 2,
+} cr95_mode_t;
+
+/**
+ * @brief CR95 configurations structure
  */
 typedef struct {
-	uint8_t uart_dev;
-	uint32_t baudrate;
-    uint8_t databits;
-    uint8_t parity;
-    uint8_t stopbits;	
-} umdk_cr95_ifaces_t;
+	cr95_iface_t iface;
+	cr95_mode_t mode;
+	uint8_t protocol;
+ } umdk_cr95_config_t;
 
 void umdk_cr95_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
 bool umdk_cr95_cmd(module_data_t *data, module_data_t *reply);

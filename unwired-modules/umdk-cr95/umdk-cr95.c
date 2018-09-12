@@ -46,10 +46,12 @@ extern "C" {
 #include "xtimer.h"
 #include "rtctimers-millis.h"
 
-#define ENABLE_DEBUG 0
+#define ENABLE_DEBUG 1
 #include "debug.h"
 
 static msg_t msg_rx;
+
+static umdk_cr95_config_t umdk_cr95_config = { CR95_IFACE_UART, CR95_READER, ISO14443A_SELECT };
 
 static cr95_params_t cr95_params = { .spi = UMDK_CR95_SPI_DEV, .cs_spi = UMDK_CR95_SPI_CS, \
 									 .uart = UMDK_CR95_UART_DEV, \
@@ -64,29 +66,35 @@ static xtimer_t rx_timer;
 static uint8_t rxbuf[30];
 static uint8_t txbuf[30];
 
+static uint8_t dac_data_h = 0x00;
+static uint8_t dac_data_l = 0x00;
+
 static volatile uint8_t num_bytes_rx = 0;
 static volatile uint8_t uart_rx = 0;
 
 static uint8_t current_cmd = 0;
 
 static uint8_t (*cr95_iface)(uint8_t) = NULL;
-static uint8_t iface = UMDK_CR95_IFACE_UART;
+
 static uint8_t protocol = 0;
 static uint8_t offset = 0;
-
-static uint8_t uart_irq_debug = 0;
 
 static volatile cr95_pack_state_t current_state = UMDK_CR95_PACK_ERROR;
 static volatile cr95_rx_state_t flag_rx = UMDK_CR95_NOT_RECIEVED;
 
 	uint8_t send_1a[2] = {0x26, 0x07};
 	uint8_t send_2a[3] = {0x93, 0x20, 0x08};
+	
+	uint8_t send_data[10] = {0x80, 0x08, 0x90, 0xAB, 0x85, 0xD7, 0x69, 0x28, 0x00, 0x00 };
 
 static uint8_t cr95_select_iface(uint8_t iface);	
 	
 static uint8_t send_pack(uint8_t len);
 static uint8_t _send_uart(uint8_t length);
 static uint8_t _send_spi(uint8_t length);
+
+// static uint32_t t1 = 0;
+// static uint32_t t2 = 0; 
 
 
 // static void _reset_spi(void);
@@ -97,7 +105,7 @@ static uint8_t _calibration(void);
 
 static uint8_t _cmd_select_protocol(void);
 static uint8_t _select_iso15693(void);
-// static uint8_t _select_field_off(void);
+static uint8_t _select_field_off(void);
 static uint8_t _select_iso14443a(void);
 static uint8_t _select_iso14443b(void);
 static uint8_t _select_iso18092(void);
@@ -106,6 +114,21 @@ static uint8_t _cmd_send_receive(uint8_t * data, uint8_t length);
 void _send_IRQIN_NegativePulse(void);
 
 static bool _check_pack(uint8_t length);
+
+static void detect_handler(void *arg) 
+{
+	(void) arg;
+	
+	// t1 = xtimer_now_usec();
+	
+	memset(rxbuf, 0x00, sizeof(rxbuf));
+	current_cmd = CR95_CMD_IDLE;
+
+	flag_rx = UMDK_CR95_NOT_RECIEVED;
+	current_state = UMDK_CR95_PACK_ERROR;
+
+	_cmd_idle();
+}
 
 static uint8_t _cmd_select_protocol(void)
 {
@@ -153,25 +176,37 @@ static uint8_t _cmd_send_receive(uint8_t * data, uint8_t length)
 
 static uint8_t _cmd_idle(void)
 {	
+
+puts("IDLE");
 	msg_rx.type = UMDK_CR95_MSG_IDLE;
 	
-	txbuf[0] = CR95_CMD_IDLE;
+	txbuf[0] = CR95_CMD_IDLE;	// Command
 	txbuf[1] = 14;				// Data Length 
-	
-	txbuf[2] = 0x02;	
-	txbuf[3] = 0x21;
-	txbuf[4] = 0x00;
-	txbuf[5] = 0x79;
-	txbuf[6] = 0x01;
-	txbuf[7] = 0x18;
-	txbuf[8] = 0x00;
-	txbuf[9] = 0x20;
-	txbuf[10] = 0x60;
-	txbuf[11] = 0x60;
-	txbuf[12] = 0x42;
-	txbuf[13] = 0xFC;
-	txbuf[14] = 0x3F;
-	txbuf[15] = 0x08;
+	/* Idle params */
+		/* Wake Up Source */
+	txbuf[2] = 0x02;			// Tag Detection
+		/* Enter Control (the resources when entering WFE mode)*/
+	txbuf[3] = 0x21;			// Tag Detection
+	txbuf[4] = 0x00;			// 
+		/* Wake Up Control (the wake-up resources) */
+	txbuf[5] = 0x79;			// Tag Detection
+	txbuf[6] = 0x01;			//
+		/* Leave Control (the resources when returning to Ready state)*/
+	txbuf[7] = 0x18;			// Tag Detection
+	txbuf[8] = 0x00;			//
+		/* Wake Up Period (the time allowed between two tag detections) */
+	txbuf[9] = 0x20;			// Typical value 0x20
+		/* Osc Start (the delay for HFO stabilization) */
+	txbuf[10] = 0x60;			// Recommendeded value 0x60
+		/* DAC Start (the delay for DAC stabilization) */
+	txbuf[11] = 0x60;			// Recommendeded value 0x60
+		/* DAC Data */
+	txbuf[12] = dac_data_l; 	//0x42;			// DacDataL
+	txbuf[13] = dac_data_h; 	//0xFC;			// DacDataH
+		/* Swing Count */
+	txbuf[14] = 0x3F;			// Recommendeded value 0x3F
+		/* Max Sleep */
+	txbuf[15] = 0x08;			// Typical value 0x28
 	
 	send_pack(16);
 	
@@ -216,13 +251,44 @@ static uint8_t _cmd_idn(void)
 	return 1;
 }
 
-// static uint8_t _select_field_off(void)
-// {
+static uint8_t _select_field_off(void)
+{
+	msg_rx.type = UMDK_CR95_MSG_PROTOCOL;
 	
-// }
+	txbuf[0] = CR95_CMD_PROTOCOL;
+	txbuf[1] = 2;
+	txbuf[2] = FIELD_OFF;
+	txbuf[3] = 0x00;
+	
+	send_pack(4);
+	
+	return 1;
+}
 
 static uint8_t _select_iso18092(void)
 {
+	uint8_t length  = 0;
+	
+	txbuf[0] = CR95_CMD_PROTOCOL;
+	txbuf[1] = 2;	// Data Length
+	
+	txbuf[2] = ISO_18092;
+	
+	// txbuf[3] = 0x00 | (TX_RATE_14443A << 6) | (RX_RATE_14443A << 4);
+	
+	txbuf[3] = 0x51;
+	length = 4;
+	
+	txbuf[4] = 0x00;	// PP (Optioanal) 															// 00
+	txbuf[5] = 0x00;	// MM (Optioanal)															// 01
+	txbuf[6] = 0x00;	// DD (Optioanal)															// 80
+	txbuf[7] = 0x00;	// ST Reserved (Optioanal)
+	txbuf[8] = 0x00;	// ST Reserved (Optioanal)
+
+	send_pack(length);
+	
+	return 4;
+	
 	return 0;
 }
 
@@ -284,13 +350,15 @@ txbuf[4] = 0x01;
 
 static uint8_t send_pack(uint8_t len)
 {	
-	// printf("SEND[%d] -> ", len);
-	// for(uint8_t i = 0; i < len; i++) {
-		// if(i == 1) printf("  [ ");
-		// printf(" %02X", txbuf[i + 1]);
-		// if(i == 1) printf(" ]   ");
-	// }
-	// printf("\n");
+
+
+	printf("SEND[%d] -> ", len);
+	for(uint8_t i = 0; i < len; i++) {
+		if(i == 1) printf("  [ ");
+		printf(" %02X", txbuf[i]);
+		if(i == 1) printf(" ]   ");
+	}
+	printf("\n");
 
 	current_state = UMDK_CR95_PACK_ERROR;
 	flag_rx = UMDK_CR95_NOT_RECIEVED;
@@ -342,11 +410,13 @@ static void *radio_send(void *arg)
 
 		cr95_msg_t  msg_type = (cr95_msg_t)msg.type;
 		
-		// printf("	%d:RX data[%d]: ", (uint8_t)msg_type, num_bytes_rx);
-		// for(uint32_t i = 0; i < num_bytes_rx; i++) {
-				// printf(" %02X", rxbuf[i]);
-			// }	
-		// printf("\n");
+#if ENABLE_DEBUG
+		DEBUG("	%d:RX data[%d]: ", (uint8_t)msg_type, num_bytes_rx);
+		for(uint32_t i = 0; i < num_bytes_rx; i++) {
+				DEBUG(" %02X", rxbuf[i]);
+			}	
+		DEBUG("\n");
+#endif
 		
 		switch(msg_type) {
 			case UMDK_CR95_MSG_RADIO: {
@@ -396,19 +466,25 @@ static void *radio_send(void *arg)
 				num_bytes_rx = 0;
 				flag_rx = UMDK_CR95_RECIEVED;
 				rtctimers_millis_set(&detect_timer, UMDK_CR95_DETECT_MS);
-				
+				// t2 = xtimer_now_usec();
+				// printf("TIME: %ld\n", t2-t1);
 				break;
 			}
 			
 			case UMDK_CR95_MSG_PROTOCOL: {
-				// printf("		MSG PROTOCOL\n");
-				
+				printf("		MSG PROTOCOL\n");
+				current_cmd = 0x0;
 				if(_check_pack(num_bytes_rx)) {				
 					if((rxbuf[0 + offset] == 0x00) && (rxbuf[1 + offset] == 0x00)) {
 						current_state = UMDK_CR95_PACK_OK;
 						// puts("	OK");
-						msg_rx.type = UMDK_CR95_MSG_UID;
-						_cmd_send_receive(send_1a, 2);
+						if(umdk_cr95_config.mode == CR95_READER) {
+							msg_rx.type = UMDK_CR95_MSG_UID;
+							_cmd_send_receive(send_1a, 2);
+						}
+						else if(umdk_cr95_config.mode == CR95_WRITER) {
+							_cmd_send_receive(send_data, 10);
+						}
 						
 					}
 					else {
@@ -465,14 +541,50 @@ static void *radio_send(void *arg)
 			
 			case UMDK_CR95_MSG_IDN: {
 				printf("[umdk-" _UMDK_NAME_ "] Device: ");
-				for(uint32_t i = 2; i < 13; i++ ) {
+				for(uint32_t i = 2; i < 14; i++ ) {
 					printf("%c", rxbuf[i]);
 				}
 				printf("\n");
 				
-				// _calibration();
+				_calibration();
+	
+				break;
+			}
+			
+			case UMDK_CR95_MSG_CALIBR: {
+					num_bytes_rx = 0;
+					/* First launch */
+				if(dac_data_h == 0x00) {
+					if(rxbuf[2] == 0x02) {
+						dac_data_h = 0xFC;
+						puts("[First launch calibration]");
+						_calibration();
+					}
+					else {
+						puts("[umdk-" _UMDK_NAME_ "] Error calibration tag detection");
+					}
+				}
+				else if(dac_data_h > 0x02) {	/* Calibration */
+					if(rxbuf[2] == 0x02) {						
+						dac_data_l = dac_data_h;
+						dac_data_h = 0xFC;
+						
+						printf("\n			FINISH:  %02X  / %02X\n", dac_data_l, dac_data_h);
+						
+						if(umdk_cr95_config.mode == CR95_READER) {
+							rtctimers_millis_set(&detect_timer, UMDK_CR95_DETECT_MS);
+						}
+						break;
+					}
+					else if(rxbuf[2] == 0x01) {
+						dac_data_h -= 0x04;
+						_calibration();
+					}
+					else {
+						puts("[umdk-" _UMDK_NAME_ "] Error calibration tag detection");
+					}
+				}
 				
-				rtctimers_millis_set(&detect_timer, UMDK_CR95_DETECT_MS);
 				break;
 			}
 			
@@ -553,10 +665,13 @@ static void cr95_spi_rx(void* arg)
 	}
 	
 	msg_send(&msg_rx, radio_pid);
+	
+	return;
 }	
 
 static uint8_t _send_spi(uint8_t length) 
 {
+	num_bytes_rx = 0;
 	uint8_t tx_spi = 0x00;
 
 	spi_acquire(SPI_DEV(cr95_params.spi), cr95_params.cs_spi, SPI_MODE_0, UMDK_CR95_SPI_CLK);
@@ -573,26 +688,15 @@ static uint8_t _send_spi(uint8_t length)
 }
 
 
-static void detect_handler(void *arg) 
-{
-	(void) arg;
-	memset(rxbuf, 0x00, sizeof(rxbuf));
-	current_cmd = CR95_CMD_IDLE;
-	// puts("[Detecting...]");
-	flag_rx = UMDK_CR95_NOT_RECIEVED;
-	current_state = UMDK_CR95_PACK_ERROR;
-
-	_cmd_idle();
-}
-
 static uint8_t cr95_select_iface(uint8_t iface)
 {		
 	gpio_init(UMDK_CR95_SSI_0, GPIO_OUT);
+	// gpio_init(cr95_params.ssi_0, GPIO_OUT);
 	gpio_init(UMDK_CR95_IRQ_IN, GPIO_OUT);
 	
 	// TODO: Set "power on" CR95HF
 
-	if(iface == UMDK_CR95_IFACE_UART) {	
+	if(iface == CR95_IFACE_UART) {	
 			/* Initialize the UART params*/
 		uart_params_t params;
 		params.baudrate = UMDK_CR95_UART_BAUD_DEF;
@@ -624,7 +728,7 @@ static uint8_t cr95_select_iface(uint8_t iface)
 		uart_rx = 1;
 		offset = 0;
 	}
-	else if(iface == UMDK_CR95_IFACE_SPI) {	
+	else if(iface == CR95_IFACE_SPI) {	
 		/* Select SPI iface */
 		gpio_set(UMDK_CR95_SSI_0);
 			/* Set low level IRQ_IN/RX */
@@ -666,46 +770,108 @@ static uint8_t cr95_select_iface(uint8_t iface)
 
 static uint8_t _calibration(void)
 {
-	// msg_rx.type = UMDK_CR95_MSG_CALIBR;
 	
-	// uint8_t calibr[16] = {0x07, 0x0E, 0x03, 0x21, 0x00,  0x79, 0x01, 0x18, 0x00, 
-							// 0x02, 0x60, 0x60, 0x00, 0x00, 0x3F, 0x01};
+	// printf("\nDacData:  %02X  / %02X\n", dac_data_l, dac_data_h);
+	msg_rx.type = UMDK_CR95_MSG_CALIBR;
 	
-	return  1;
+	current_cmd = 0x66;
+	// txbuf[0] = CR95_CMD_IDLE;
+	// txbuf[1] = 14;				// Data Length 
 	
-	txbuf[0] = CR95_CMD_IDLE;
+	// txbuf[2] = 0x03;	
+	
+	// txbuf[3] = 0x21;
+	// txbuf[4] = 0x00;
+	// txbuf[5] = 0x79;
+	// txbuf[6] = 0x01;
+	// txbuf[7] = 0x18;
+	// txbuf[8] = 0x00;
+	
+	// txbuf[9] = 0x02;
+	
+	// txbuf[10] = 0x60;
+	// txbuf[11] = 0x60;
+	
+	// txbuf[12] = 0x00;
+	// txbuf[13] = 0x00;
+	
+	// txbuf[14] = 0x3F;
+	// txbuf[15] = 0x01;
+	
+	// uint8_t CAL[] =   {0x07, 0x0E, 0x03, 0xA1, 0x00, 0xF8, 0x01, 0x18, 0x00, 0x01, 0x60, 0x60, 0x00, 0xFE, 0x3F, 0x01};
+	
+	// uint8_t cal[16] = {0x07, 0x0E, 0x03, 0x21, 0x00,  0x79, 0x01, 0x18, 0x00, 0x02, 0x60, 0x60, 0x00, 0x00, 0x3F, 0x01};
+	
+	txbuf[0] = CR95_CMD_IDLE;	// Command
 	txbuf[1] = 14;				// Data Length 
+	/* Idle params */
+		/* Wake Up Source */
+	txbuf[2] = 0x03;			// Tag Detection + Time out
+		/* Enter Control (the resources when entering WFE mode)*/
+	txbuf[3] = 0xA1;			// Tag Detector Calibration
+	txbuf[4] = 0x00;			// 
+		/* Wake Up Control (the wake-up resources) */
+	txbuf[5] = 0xF8;			// Tag Detector Calibration
+	txbuf[6] = 0x01;			//
+		/* Leave Control (the resources when returning to Ready state)*/
+	txbuf[7] = 0x18;			// Tag Detection
+	txbuf[8] = 0x00;	
+		/* Wake Up Period (the time allowed between two tag detections) */
+	txbuf[9] = 0x02;			// 
+		/* Osc Start (the delay for HFO stabilization) */
+	txbuf[10] = 0x60;			// Recommendeded value 0x60
+		/* DAC Start (the delay for DAC stabilization) */
+	txbuf[11] = 0x60;			// Recommendeded value 0x60
 	
-	txbuf[2] = 0x03;	
 	
-	txbuf[3] = 0x21;
-	txbuf[4] = 0x00;
-	txbuf[5] = 0x79;
-	txbuf[6] = 0x01;
-	txbuf[7] = 0x18;
-	txbuf[8] = 0x00;
+		/* DAC Data */
+	txbuf[12] = dac_data_l;			// DacDataL
+	txbuf[13] = dac_data_h;			// DacDataH
 	
-	txbuf[9] = 0x02;
 	
-	txbuf[10] = 0x60;
-	txbuf[11] = 0x60;
+		/* Swing Count */
+	txbuf[14] = 0x3F;			// Recommendeded value 0x3F
+		/* Max Sleep */
+	txbuf[15] = 0x01;			// This value must be set to 0x01 during tag detection calibration
 	
-	txbuf[12] = 0x00;
-	txbuf[13] = 0x00;
 	
-	txbuf[14] = 0x3F;
-	txbuf[15] = 0x01;
-	
-	// send_pack(16);
-	
-	// tag_cmd[14] = 0xFE;
-	// while(tag_cmd[14] > 0x06) {
-		// tag_cmd[14] -= 0x04;
-		// memcpy(txbuf, tag_cmd, 17);
-		// _send_uart(17); 
-	// }
+	send_pack(16);
 	
 	return  1;
+}
+
+static void reset_config(void) {
+	umdk_cr95_config.iface = CR95_IFACE_UART;
+	umdk_cr95_config.mode = CR95_READER;
+	umdk_cr95_config.protocol = ISO14443A_SELECT;
+}
+
+static inline void save_config(void) {
+	unwds_write_nvram_config(_UMDK_MID_, (uint8_t *) &umdk_cr95_config, sizeof(umdk_cr95_config));
+}
+
+static void init_config(void) {
+	reset_config();
+	
+	if (!unwds_read_nvram_config(_UMDK_MID_, (uint8_t *) &umdk_cr95_config, sizeof(umdk_cr95_config))) {
+		reset_config();
+        return;
+    }
+	
+    if (umdk_cr95_config.iface > CR95_IFACE_SPI) {
+		reset_config();
+		return;
+    }
+	
+	if (umdk_cr95_config.mode > CR95_READER) {
+		reset_config();
+		return;
+    }
+	
+	if (umdk_cr95_config.protocol > SELECT_ALL_PROTOCOL) {
+		reset_config();
+		return;
+    }
 }
 
 void umdk_cr95_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
@@ -715,10 +881,18 @@ void umdk_cr95_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 	(void)event_callback;
 	// callback = event_callback;
 
-	iface = UMDK_CR95_IFACE_UART;
-	// iface = UMDK_CR95_IFACE_SPI;
+	// save_config();
+	init_config();	
 	
-	if(!cr95_select_iface(iface)) {
+	if(umdk_cr95_config.mode == CR95_WRITER) {
+			puts("WRITER mode");
+		}
+		else if(umdk_cr95_config.mode == CR95_READER) {
+			puts("READER mode");
+		}
+	
+	
+	if(!cr95_select_iface(umdk_cr95_config.iface)) {
 		return;
 	}
 	
@@ -734,91 +908,16 @@ void umdk_cr95_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 	memset(txbuf, 0x00, 30);
 	memset(rxbuf, 0x00, 30);
 
-	// if(_cmd_echo() == UMDK_CR95_PACK_ERROR) {
-		// return;
-	// }
+			rtctimers_millis_sleep(950);
+	
 	_cmd_echo();
 	
-	_calibration();
 	
-	protocol = ISO14443A_SELECT;
+	// protocol = ISO14443A_SELECT;
+	protocol = umdk_cr95_config.protocol;
 	
-	// msg_rx.type = UMDK_CR95_MSG_UID;
-		// send_pack(_send_receive(send_1a, 2));
-		
-		// msg_rx.type = UMDK_CR95_MSG_ANTICOL;
-					// send_pack(_send_receive(send_2a, 3));
-	
-	// msg_rx.type = UMDK_CR95_MSG_RADIO;
-	// _select_protocol();
-	// xtimer_usleep(1000);
-	// printf("FLAG: RX / SELECT 	-> %d / %d\n", flag_rx, current_state);
-				// uint8_t sel_14443[8] = { 0x00, 0x02, 0x04, 0x02, 0x00, 0x01, 0x80};	
-				// memcpy(txbuf, sel_14443, 7);
-				// _send_uart(7);
-				// rtctimers_millis_sleep(15);
-			
-
-// send_pack(_send_receive(send_1a, 2));
-	// send_pack(_send_receive(send_2a, 3));
-	
-// uint8_t send_r1[6] = {0x00, 0x09, 0x03, 0x68, 0x00, 0x01};
-// uint8_t send_r2[6] = {0x00, 0x08, 0x03, 0x69, 0x01, 0x00};
-	
-	// memcpy(txbuf, send_r1, 6);
-	// _send_uart(6);
-	// memcpy(txbuf, send_r2, 6);
-	// _send_uart(6);
 	
 
-// uint8_t send_w1[7] = {0x00, 0x09, 0x04, 0x3A, 0x00, 0x58, 0x04};
-// uint8_t send_w2[7] = {0x00, 0x09, 0x04, 0x68, 0x01, 0x01, 0xD1};	
-	// memcpy(txbuf, send_w1, 7);
-	// _send_uart(7);
-	// memcpy(txbuf, send_w2, 7);
-	// _send_uart(7);
-
-	// memcpy(txbuf, send_r1, 6);
-	// _send_uart(6);
-	// memcpy(txbuf, send_r2, 6);
-	// _send_uart(6);
-	
-	// uint8_t thisdata[16] = {0x07, 0x0E, 0x03, 0x21, 0x00,  0x79, 0x01, 0x18, 0x00, 
-							// 0x02, 0x60, 0x60, 0x00, 0x00, 0x3F, 0x01};
-	/* Step 0 */
-	// uint8_t tag_cmd[17] = {0x00, 0x07, 0x0E, 0x03, 0x21, 0x00, 0x79, 0x01, 0x18, 0x00, 
-							// 0x02, 0x60, 0x60, 0x00, 0x00, 0x3F, 0x01};	
-	// memcpy(txbuf, tag_cmd, 17);
-	// _send_uart(17); 
-	
-	// tag_cmd[14] = 0xFE;
-	// while(tag_cmd[14] > 0x06) {
-		// tag_cmd[14] -= 0x04;
-	// memcpy(txbuf, tag_cmd, 17);
-	// _send_uart(17); 
-	// }
-	
-		// tag_cmd[14] = 0x42;
-	 // tag_cmd[17] = {0x00, 0x07, 0x0E, 0x03, 0x21, 0x00, 0x79, 0x01, 0x18, 0x00, 0x20, 0x60, 0x60, 0x00, 0x42, 0x3F, 0x01};	
-	// memcpy(txbuf, tag_cmd, 17);
-	// _send_uart(17); 
-	
-	// uint8_t send_r3[6] = {0x00, 0x08, 0x03, 0x62, 0x01, 0x00};
-	// memcpy(txbuf, send_r3, 6);
-	// _send_uart(6); 
-	
-	
-	// uint8_t send_w1[7] = {0x00, 0x09, 0x04, 0x3A, 0x00, 0x58, 0x04};
-// uint8_t send_w2[7] = {0x00, 0x09, 0x04, 0x68, 0x01, 0x01, 0xD1};
-	
-	// memcpy(txbuf, send_w1, 7);
-	// _send_uart(7);
-	
-	// memcpy(txbuf, send_w2, 7);
-	// _send_uart(7);
-	
-	
-		// rtctimers_millis_sleep(950);
 		
 	// puts("		--->	START CR95 DETECTing	<---");
 	 /* Configure periodic wakeup */
@@ -839,24 +938,60 @@ void umdk_cr95_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 
 bool umdk_cr95_cmd(module_data_t *cmd, module_data_t *reply)
 {	
-memset(txbuf, 0x00, 30);
+	memset(txbuf, 0x00, 30);
 	memset(rxbuf, 0x00, 30);
-uart_irq_debug = 0;
-	printf("CMD: %02X  ", cmd->data[0]);
-	for(uint32_t i = 1; i < cmd->length; i++) {
+
+	printf("Data: ");
+	for(uint32_t i = 0; i < cmd->length; i++) {
 		printf(" %02X", cmd->data[i]);
 	}
 	printf("\n");
+	if(cmd->data[0] == 0x00) {	// Send data
+	
+		_cmd_select_protocol();
+		// memcpy(txbuf, cmd->data + 1, cmd->length);
+		
+	
+	}
+	else if(cmd->data[0] == 0x01) {	// IFACE
+		if(cmd->data[1] == CR95_IFACE_UART) {
+			umdk_cr95_config.iface = CR95_IFACE_UART;
+			puts("UART iface");
+		}
+		else if(cmd->data[1] == CR95_IFACE_SPI) {
+			umdk_cr95_config.iface = CR95_IFACE_SPI;
+			puts("SPI iface");
+		}
+		save_config();
+	}
+	else if(cmd->data[0] == 0x02) {	// MODE
+		if(cmd->data[1] == CR95_WRITER) {
+			umdk_cr95_config.mode = CR95_WRITER;
+			puts("WRITER mode");
+		}
+		else if(cmd->data[1] == CR95_READER) {
+			umdk_cr95_config.iface = CR95_READER;
+			puts("READER mode");
+		}
+				save_config();
+	}
+	else if(cmd->data[0] == 0x03) {	// PROTOCOL
+			
+	}	
 	
 	return false;
 	
 	
 _cmd_idn();
+_select_field_off();
 
 _select_iso14443a();
 _select_iso14443b();
 _select_iso15693();
     rtctimers_millis_set(&detect_timer, UMDK_CR95_DETECT_MS);
+	
+	
+	
 	reply->as_ack = true;	
 	reply->length = 1;
 	reply->data[0] = _UMDK_MID_;

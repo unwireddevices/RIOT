@@ -212,7 +212,7 @@ void umdk_gps_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 	printf("[umdk-" _UMDK_NAME_ "] Publish period: %d min\n", gps_config.publish_period_min);
     
     /* Dynamically allocate MT3333 reading stack */
-	gps.reader_stack = (char *) allocate_stack(UMDK_GPS_READER_STACK_SIZE);
+	gps.reader_stack = (char *) allocate_stack(MT3333_READER_THREAD_STACK_SIZE_BYTES);
 	if (!gps.reader_stack) {
 		puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Is too many modules enabled?");
 		return;

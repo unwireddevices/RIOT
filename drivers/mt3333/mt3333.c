@@ -38,7 +38,7 @@ static void rx_cb(void *arg, uint8_t data)
 	mt3333_t *dev = (mt3333_t *) arg;
 
 	/* Insert received character into ring buffer */
-	ringbuffer_add_one(&dev->rxrb, data);
+	tsrb_add_one(&dev->rxrb, data);
 
     /* Notify parser thread about ready message */
     if (data == MT3333_EOL) {
@@ -212,7 +212,7 @@ static void *reader(void *arg) {
         char c;
         int i = 0;
         do {
-        	c = ringbuffer_get_one(&dev->rxrb);
+        	c = tsrb_get_one(&dev->rxrb);
         	buf[i++] = c;
         } while (c != MT3333_EOL);
 
@@ -315,7 +315,7 @@ int mt3333_init(mt3333_t *dev, mt3333_param_t *param) {
     dev->rxbuf = dev->reader_stack + 100;
 
 	/* Initialize the input ring buffer */
-	ringbuffer_init(&dev->rxrb, dev->rxbuf, MT3333_RXBUF_SIZE_BYTES);
+	tsrb_init(&dev->rxrb, dev->rxbuf, MT3333_RXBUF_SIZE_BYTES);
 
 	/* Initialize the UART */
 	if (uart_init(dev->params.uart, dev->params.baudrate, rx_cb, dev)) {

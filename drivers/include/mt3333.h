@@ -19,7 +19,7 @@
 #define mt3333_H_
 
 #include "thread.h"
-#include "ringbuffer.h"
+#include "tsrb.h"
 #include "periph/uart.h"
 
 #include <time.h>
@@ -43,7 +43,7 @@
 /**
  * @brief Input ring buffer size in bytes
  */
-#define MT3333_RXBUF_SIZE_BYTES (128)
+#define MT3333_RXBUF_SIZE_BYTES (256)
 
 /**
  * @brief Parser buf size, must not be smaller than the biggest GNMRC message possible
@@ -78,7 +78,7 @@ typedef struct {
  */
 typedef struct {
 	mt3333_param_t params;					/**< Holds driver parameters */
-    ringbuffer_t rxrb;						/**< Holds incoming data ring buffer */
+    tsrb_t rxrb;						    /**< Thread-safe ringbuffer for incoming data */
 	char *rxbuf;	                        /**< Memory buffer for the ring buffer data */
 	char *reader_stack;	                    /**< Reader thread stack, has to be allocated by the application */
 	kernel_pid_t reader_pid;				/**< Reader thread PID */

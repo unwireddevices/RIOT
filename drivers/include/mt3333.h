@@ -46,11 +46,6 @@
 #define MT3333_RXBUF_SIZE_BYTES (256)
 
 /**
- * @brief Parser buf size, must not be smaller than the biggest GNMRC message possible
- */
-#define MT3333_PARSER_BUF_SIZE (256)
-
-/**
  * @brief Reader&Parser thread stack size in bytes
  */
 #define MT3333_READER_THREAD_STACK_SIZE_BYTES (2560)
@@ -78,7 +73,6 @@ typedef struct {
  */
 typedef struct {
 	mt3333_param_t params;					/**< Holds driver parameters */
-	char *rxbuf;	                        /**< Memory buffer for the ring buffer data */
 	char *reader_stack;	                    /**< Reader thread stack, has to be allocated by the application */
 } mt3333_t;
 

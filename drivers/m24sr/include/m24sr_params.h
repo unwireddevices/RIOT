@@ -51,7 +51,7 @@ extern "C" {
 
 
 //#define I2C_GPO_SYNCHRO_ALLOWED
-#define I2C_GPO_INTERRUPT_ALLOWED
+#define I2C_GPO_INTERRUPT_ALLOWED       (1)
 
 #ifndef M24SR_PARAMS
 #define M24SR_PARAMS            {                                               \

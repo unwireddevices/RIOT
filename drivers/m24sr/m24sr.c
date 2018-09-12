@@ -1268,21 +1268,23 @@ int m24sr_i2c_init_hw (m24sr_t *dev, const m24sr_params_t *params, gpio_cb_t gpo
     dev->params = *params;
 
     /* Configure GPIO pins*/
-#if I2C_GPO_INTERRUPT_ALLOWED
-    retval = gpio_init_int(dev->params.gpo_pin, GPIO_IN, dev->params.gpo_flank, gpo_pin_cb, gpo_pin_cb_arg);
-    if (retval < 0) {
-        DEBUG("[m24sr] error: failed to initialize GPO pin\n");
-        return retval;
-    }
+    if (dev->params.gpo_pin != GPIO_UNDEF) {
+#if defined(I2C_GPO_INTERRUPT_ALLOWED)
+        retval = gpio_init_int(dev->params.gpo_pin, GPIO_IN, dev->params.gpo_flank, gpo_pin_cb, gpo_pin_cb_arg);
+        if (retval < 0) {
+            DEBUG("[m24sr] error: failed to initialize GPO pin\n");
+            return retval;
+        }
 #else
-    (void *) gpo_pin_cb;
-    (void *) gpo_pin_cb_arg;
-    retval = gpio_init(dev->params.gpo_pin, GPIO_IN);
-    if (retval < 0) {
-        DEBUG("[m24sr] error: failed to initialize GPO pin\n");
-        return retval;
-    }
+        (void)gpo_pin_cb;
+        (void)gpo_pin_cb_arg;
+        retval = gpio_init(dev->params.gpo_pin, GPIO_IN);
+        if (retval < 0) {
+            DEBUG("[m24sr] error: failed to initialize GPO pin\n");
+            return retval;
+        }
 #endif
+    }
 
     if (dev->params.rfdisable_pin != GPIO_UNDEF) {
             /* Configure GPIO pins for RF DISABLE*/
@@ -1556,6 +1558,12 @@ uint16_t m24sr_manage_gpo(const m24sr_t *dev, m24sr_gpo_mode_t gpo_config, uint8
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 //This global function for emmulatiom I2C eeprom
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+int m24sr_eeprom_init(m24sr_t *dev, const m24sr_params_t *params) {
+    int ret = M24SR_OK;
+
+    return ret;
+}
 
 
 int m24sr_eeprom_read(m24sr_t *dev, void *dst, uint32_t addr, uint32_t size) {

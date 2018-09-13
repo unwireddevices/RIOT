@@ -289,34 +289,39 @@ static void *publish_thread(void *arg) {
         data.as_ack = is_polled;
         is_polled = false;
 
-        data.length = 16;
-        memset(data.data, 0, 16);
         data.data[0] = _UMDK_MID_;
         data.data[1] = UMDK_INCLINOMETER_DATA;
+        data.length = 2;
         
         int16_t th = (theta.current + 5)/10;
         convert_to_be_sam((void *)&th, sizeof(th));
-        memcpy((void *)&data.data[2], (uint8_t *)&th, sizeof(th));
+        memcpy((void *)&data.data[data.length], (uint8_t *)&th, sizeof(th));
+        data.length += sizeof(th);
         
         th = (theta.min + 5)/10;
         convert_to_be_sam((void *)&th, sizeof(th));
-        memcpy((void *)&data.data[2 + 2], (uint8_t *)&th, sizeof(th));
+        memcpy((void *)&data.data[data.length], (uint8_t *)&th, sizeof(th));
+        data.length += sizeof(th);
         
         th = (theta.max + 5)/10;
         convert_to_be_sam((void *)&th, sizeof(th));
-        memcpy((void *)&data.data[2 + 4], (uint8_t *)&th, sizeof(th));
+        memcpy((void *)&data.data[data.length], (uint8_t *)&th, sizeof(th));
+        data.length += sizeof(th);
         
         int16_t ph = (phi.current + 5)/10;
         convert_to_be_sam((void *)&ph, sizeof(ph));
-        memcpy((void *)&data.data[2 + 6], (uint8_t *)&ph, sizeof(ph));
+        memcpy((void *)&data.data[data.length], (uint8_t *)&ph, sizeof(ph));
+        data.length += sizeof(ph);
         
         ph = (phi.min + 5)/10;
         convert_to_be_sam((void *)&ph, sizeof(ph));
-        memcpy((void *)&data.data[2 + 8], (uint8_t *)&ph, sizeof(ph));
+        memcpy((void *)&data.data[data.length], (uint8_t *)&ph, sizeof(ph));
+        data.length += sizeof(ph);
         
         ph = (phi.max + 5)/10;
         convert_to_be_sam((void *)&ph, sizeof(ph));
-        memcpy((void *)&data.data[2 + 10], (uint8_t *)&ph, sizeof(ph));
+        memcpy((void *)&data.data[data.length], (uint8_t *)&ph, sizeof(ph));
+        data.length += sizeof(ph);
         
         /* Notify the application */
         callback(&data);

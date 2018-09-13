@@ -560,23 +560,34 @@ shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX] = {
 
 static void unwds_callback(module_data_t *buf)
 {
-    if (buf->data[14] == 0) {
-        if (adc_init(ADC_LINE(ADC_TEMPERATURE_INDEX)) == 0) {
-            int8_t temperature = adc_sample(ADC_LINE(ADC_TEMPERATURE_INDEX), ADC_RES_12BIT);
-            
-            /* convert to sign-and-magnitude format */
-            convert_to_be_sam((void *)&temperature, 1);
-            
-            buf->data[14] = (uint8_t)temperature;
-            printf("MCU temperature is %d C\n", buf->data[14]);
+    uint8_t status_idx = 0;
+    
+    if (buf->length < 15) {
+        status_idx = 14;
+    } else {
+        if (buf->length < 31) {
+            status_idx = 30;
+        } else {
+            printf("[LoRa] Payload too big: %d bytes (should be 30 bytes max)\n", buf->length);
+            return;
         }
     }
     
-    if (buf->data[15] == 0) {
-        if (adc_init(ADC_LINE(ADC_VREF_INDEX)) == 0) {
-            buf->data[15] = adc_sample(ADC_LINE(ADC_VREF_INDEX), ADC_RES_12BIT)/50;
-            printf("Battery voltage %d mV\n", buf->data[15] * 50);
-        }
+    printf("[LoRa] Payload size %d bytes + 2 status bytes -> %d bytes\n", buf->length, status_idx + 2);
+    
+    if (adc_init(ADC_LINE(ADC_TEMPERATURE_INDEX)) == 0) {
+        int8_t temperature = adc_sample(ADC_LINE(ADC_TEMPERATURE_INDEX), ADC_RES_12BIT);
+        
+        /* convert to sign-and-magnitude format */
+        convert_to_be_sam((void *)&temperature, 1);
+        
+        buf->data[status_idx] = (uint8_t)temperature;
+        printf("MCU temperature is %d C\n", buf->data[status_idx]);
+    }
+    
+    if (adc_init(ADC_LINE(ADC_VREF_INDEX)) == 0) {
+        buf->data[status_idx + 1] = adc_sample(ADC_LINE(ADC_VREF_INDEX), ADC_RES_12BIT)/50;
+        printf("Battery voltage %d mV\n", buf->data[status_idx + 1] * 50);
     }
     
 #if ENABLE_DEBUG

@@ -101,12 +101,14 @@ static void prepare_result(module_data_t *data) {
 	printf("[umdk-" _UMDK_NAME_ "] Luminocity %u lux\n", luminocity);
     
     if (data) {
-        data->length = 16;
         data->data[0] = _UMDK_MID_;
         data->data[1] = UMDK_LIGHT_DATA;
+        data->length = 2;
+        
         /* Copy measurements into response */
         convert_to_be_sam((void *)&luminocity, sizeof(luminocity));
-        memcpy(data->data + 2, (uint8_t *) &luminocity, sizeof(luminocity));
+        memcpy(&data->data[data->length], (uint8_t *) &luminocity, sizeof(luminocity));
+        data->length += sizeof(luminocity);
     }
 }
 

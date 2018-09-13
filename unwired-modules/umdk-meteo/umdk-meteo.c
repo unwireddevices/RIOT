@@ -154,14 +154,13 @@ static void prepare_result(module_data_t *data) {
     }
 
     if (data) {
-        /* 8 bytes total */
-        data->length = 16;
-
         data->data[0] = _UMDK_MID_;
         data->data[1] = UMDK_METEO_DATA;
+        data->length = 2;
 
         /* Copy measurements into response */
-        memcpy(data->data + 2, (uint8_t *)measurements, sizeof(measurements));
+        memcpy(&data->data[data->length], (uint8_t *)measurements, sizeof(measurements));
+        data->length += sizeof(measurements);
     }
 }
 

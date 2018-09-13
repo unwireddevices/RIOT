@@ -77,6 +77,7 @@ static char sender_stack[2048];
 static semtech_loramac_t ls;
 
 static uint8_t current_join_retries = 0;
+static uint8_t uplinks_failed = 0;
 
 static bool appdata_received(uint8_t *buf, size_t buflen);
 static void unwds_callback(module_data_t *buf);
@@ -144,10 +145,11 @@ static void *sender_thread(void *arg) {
                 puts("[LoRa] successfully joined to the network");
                 break;
             }
+            case SEMTECH_LORAMAC_RESTRICTED:
             case SEMTECH_LORAMAC_JOIN_FAILED:
             case SEMTECH_LORAMAC_NOT_JOINED:
             case SEMTECH_LORAMAC_BUSY: {
-                if ((current_join_retries >= unwds_get_node_settings().max_retr + 1) &&
+                if ((current_join_retries > unwds_get_node_settings().max_retr) &&
                     (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A)) {
                     /* class A node: go to sleep */
                     puts("[LoRa] maximum join retries exceeded, stopping");
@@ -174,6 +176,14 @@ static void *sender_thread(void *arg) {
                     break;
                 case MSG_TYPE_LORAMAC_TX_CNF_FAILED:
                     puts("[LoRa] Uplink confirmation failed");
+                    uplinks_failed++;
+                    
+                    if (uplinks_failed > unwds_get_node_settings().max_retr) {
+                        puts("[LoRa] Too many uplinks failed, rejoining");
+                        current_join_retries = 0;
+                        uplinks_failed = 0;
+                        msg_send(&msg_join, sender_pid);
+                    }
                     break;
                 case MSG_TYPE_LORAMAC_RX:
                     if ((ls->rx_data.payload_len == 0) && ls->rx_data.ack) {
@@ -209,17 +219,6 @@ static void *sender_thread(void *arg) {
     }
     return NULL;
 }
-
-/*
-void appdata_send_failed_cb(void)
-{
-	if (!unwds_get_node_settings().no_join) {
-		puts("[LoRa] rejoining");
-        msg_send(&msg_join, sender_pid);
-	} else
-		puts("[LoRa] failed to send confirmed application data");
-}
-*/
 
 static bool appdata_received(uint8_t *buf, size_t buflen)
 {
@@ -270,8 +269,6 @@ static bool appdata_received(uint8_t *buf, size_t buflen)
 
 static void ls_setup(semtech_loramac_t *ls)
 {
-    // ls->settings.max_retr = unwds_get_node_settings().max_retr;     /* Maximum number of confirmed data retransmissions */
-
     uint64_t id = config_get_nodeid();
     uint8_t deveui[LORAMAC_DEVEUI_LEN];
     memcpy(deveui, &id, LORAMAC_DEVEUI_LEN);
@@ -290,8 +287,11 @@ static void ls_setup(semtech_loramac_t *ls)
     
     semtech_loramac_set_dr(ls, unwds_get_node_settings().dr);
     
-    semtech_loramac_set_adr(ls, true);
+    semtech_loramac_set_adr(ls, unwds_get_node_settings().adr);
     semtech_loramac_set_class(ls, unwds_get_node_settings().nodeclass);
+    
+    /* Maximum number of confirmed data retransmissions */
+    semtech_loramac_set_retries(ls, unwds_get_node_settings().max_retr);
     
     if (unwds_get_node_settings().confirmation) {
         semtech_loramac_set_tx_mode(ls, LORAMAC_TX_CNF);   /* confirmed packets */
@@ -312,30 +312,51 @@ int ls_set_cmd(int argc, char **argv)
         if (unwds_get_node_settings().no_join)
         	puts("\taddr <address> -- sets predefined device address for statically personalized devices");
 
-        puts("\tnojoin <0/1> -- selecting wether device is statically personalized or not");
-        puts("\tch <ch> -- sets device channel in selected region");
-        puts("\tdr <0-6> -- sets device data rate [0 - slowest, 3 - average, 6 - fastest]");
-        puts("\tmaxretr <0-255> -- sets maximum number of retransmissions of confirmed app. data [5 is recommended]");
-        puts("\tclass <A/B/C> -- sets device class");
+        puts("\totaa <0/1> -- select between OTAA and ABP");
+//        puts("\tch <ch> -- sets device channel in selected region");
+        puts("\tdr <0-6> -- sets default data rate [0 - slowest, 3 - average, 6 - fastest]");
+        puts("\tmaxretr <0-5> -- sets maximum number of retransmissions of confirmed app. data [2 is recommended]");
+        puts("\tclass <A/C> -- sets device class");
+        puts("\tadr <0/1> -- enable or disable ADR");
     }
     
     char *key = argv[1];
     char *value = argv[2];
+    
+    if (strcmp(key, "otaa") == 0) {
+        int v = atoi(value);
+        unwds_set_nojoin(v);
+    }
+    
+    if (strcmp(key, "maxretr") == 0) {
+        int v = atoi(value);
+        if (v > 5) {
+            v = 5;
+        }
+        unwds_set_max_retr(v);
+    }
+    
+    if (strcmp(key, "adr") == 0) {
+        int v = atoi(value);
+        unwds_set_adr(v);
+    }
 
     if (strcmp(key, "class") == 0) {
         char v = value[0];
 
-        if (v != 'A' && v != 'B' && v != 'C') {
-            puts("set сlass: A, B or C");
+        if (v != 'A' && v != 'C') {
+            puts("set сlass: A or C");
             return 1;
         }
 
         if (v == 'A') {
             unwds_set_class(LS_ED_CLASS_A);
         }
+        /*
         else if (v == 'B') {
             unwds_set_class(LS_ED_CLASS_B);
         }
+        */
         else if (v == 'C') {
             unwds_set_class(LS_ED_CLASS_C);
         }
@@ -371,6 +392,8 @@ static void print_config(void)
     printf("APPID64 = 0x%08x%08x\n", (unsigned int) (appid >> 32), (unsigned int) (appid & 0xFFFFFFFF));
 
     printf("DATARATE = %d\n", unwds_get_node_settings().dr);
+    
+    printf("ADR = %s\n", (unwds_get_node_settings().adr)?  "yes" : "no");
     
     printf("CONFIRMED = %s\n", (unwds_get_node_settings().confirmation) ? "yes" : "no");
 

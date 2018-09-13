@@ -62,7 +62,7 @@ typedef struct {
     uint8_t INS;                            /**< Operation code */
     uint8_t P1;                             /**< Selection Mode */
     uint8_t P2;                             /**< Selection Option */
-} cmd_apdu_header_t;
+} __attribute__((packed)) cmd_apdu_header_t;
 
 
 /**
@@ -72,7 +72,7 @@ typedef struct {
     uint8_t LC;                             /**< Data field length */ 
     uint8_t *data;                          /**< Command parameters */ 
     uint8_t LE;                             /**< Expected length of data to be returned */
-} cmd_apdu_body_t;
+} __attribute__((packed)) cmd_apdu_body_t;
 
 /**
   * @brief  APDU Command structure 
@@ -80,7 +80,7 @@ typedef struct {
 typedef struct {
     cmd_apdu_header_t header;
     cmd_apdu_body_t   body;
-} cmd_apdu_t;
+} __attribute__((packed)) cmd_apdu_t;
 
 /**
   * @brief  SC response structure
@@ -89,12 +89,14 @@ typedef struct {
     uint8_t *data ;                        /**< Data returned from the card */
     uint8_t SW1;                            /**< Command Processing status */
     uint8_t SW2;                            /**< Command Processing qualification */
-} resp_apdu_t;
+} __attribute__((packed)) resp_apdu_t;
 
 
 
-typedef struct
-{
+/**
+  * @brief CC File structure
+  */
+typedef struct {
     uint16_t cc_file_len;
     uint8_t  version;
     uint16_t max_read_byte;
@@ -105,9 +107,25 @@ typedef struct
     uint16_t ndef_file_max_size;
     uint8_t  read_access;
     uint8_t  write_access;
-} cc_file_info_t;
+} __attribute__((packed)) cc_file_info_t;
 
 
+
+/**
+  * @brief System file structure
+  */
+typedef struct {
+  uint16_t sys_file_len;
+  uint8_t  i2c_protect;
+  uint8_t  i2c_watchdog;
+  uint8_t  gpo;
+  uint8_t  reserved;
+  uint8_t  rf_enable;
+  uint8_t  ndef_file_num;
+  uint8_t  UID[7];
+  uint16_t memory_size;
+  uint8_t  prod_code;  
+}__attribute__((packed)) sys_file_info_t;
 
 
 /**

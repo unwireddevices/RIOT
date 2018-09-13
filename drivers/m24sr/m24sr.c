@@ -1256,12 +1256,19 @@ void m24sr_rf_config_hw(const m24sr_t *dev, uint8_t state)
 
 
 
+static void _alert_cb(void *arg) {
+    m24sr_t *dev = arg;
+
+    if (dev->cb) {
+        dev->cb(dev->arg);
+    }
+}
 
 /**
   * @brief  This function initializes the M24SR_I2C interface
   * @retval None
   */
-int m24sr_i2c_init_hw (m24sr_t *dev, const m24sr_params_t *params, gpio_cb_t gpo_pin_cb, void *gpo_pin_cb_arg)
+int m24sr_i2c_init_hw (m24sr_t *dev, const m24sr_params_t *params, m24sr_cb_t gpo_pin_cb, void *arg)
 {
     int retval = 0x0;
 
@@ -1401,10 +1408,11 @@ void m24sr_rf_config(const m24sr_t *dev, uint8_t rf_config)
   * @retval SUCCESS : Initalization done
   * @retval ERROR : Not able to Initialize.
   */
-int m24sr_init (m24sr_t *dev, const m24sr_params_t *params, gpio_cb_t gpo_pin_cb, void *gpo_pin_cb_arg, uint8_t* CCBuffer, uint8_t size )
-{
+int m24sr_init(m24sr_t *dev, const m24sr_params_t *params, gpio_cb_t gpo_pin_cb, void *gpo_pin_cb_arg) {
     int status = M24SR_OK;
     uint8_t trials = 5;
+
+    cc_file_t cc_file;
 
     /* Perform HW initialization */
     status = m24sr_i2c_init_hw (dev, params, gpo_pin_cb, gpo_pin_cb_arg);
@@ -1414,16 +1422,14 @@ int m24sr_init (m24sr_t *dev, const m24sr_params_t *params, gpio_cb_t gpo_pin_cb
     _m24sr_init_structure();
 
 #if defined(I2C_GPO_SYNCHRO_ALLOWED) || defined(I2C_GPO_INTERRUPT_ALLOWED)
-    if (_m24sr_kill_rf_session(dev) == M24SR_ACTION_COMPLETED)
-    {
+    if (_m24sr_kill_rf_session(dev) == M24SR_ACTION_COMPLETED) {
         m24sr_manage_i2c_gpo(I2C_ANSWER_READY);
         m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
     }
 #endif /* I2C_GPO_SYNCHRO_ALLOWED */
 
     /* Read CC file */
-    while (status != M24SR_OK && trials)
-    {
+    while (status != M24SR_OK && trials) {
         status = _m24sr_get_i2c_session(dev);
         trials--;
     }
@@ -1443,9 +1449,9 @@ int m24sr_init (m24sr_t *dev, const m24sr_params_t *params, gpio_cb_t gpo_pin_cb
         return M24SR_ERROR;
 
     /* read the first 15 bytes of the CC file */
-    if (m24sr_read_data(dev, 0x0000, CCBuffer, 0x0F) == M24SR_OK)
+    if (m24sr_read_data(dev, 0x0000, cc_file, 0x0F) == M24SR_OK)
     {
-        ndef_file_id = (uint16_t) ((CCBuffer[0x09] << 8) | CCBuffer[0x0A]);
+        ndef_file_id = (uint16_t) ((cc_file[0x09] << 8) | cc_file[0x0A]);
         status = m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
         if (status != M24SR_OK)
             return M24SR_ERROR;
@@ -1559,8 +1565,14 @@ uint16_t m24sr_manage_gpo(const m24sr_t *dev, m24sr_gpo_mode_t gpo_config, uint8
 //This global function for emmulatiom I2C eeprom
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-int m24sr_eeprom_init(m24sr_t *dev, const m24sr_params_t *params) {
+
+
+
+
+int m24sr_eeprom_init(m24sr_t *dev, const m24sr_params_t *params, m24sr_cb_t cb, void *arg) {
     int ret = M24SR_OK;
+
+
 
     return ret;
 }

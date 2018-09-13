@@ -46,12 +46,21 @@ typedef struct {
     uint16_t type;
 } m24sr_memory_t;
 
+
+/**
+ * @brief   ADCxx1C alert callback
+ */
+typedef void (*m24sr_cb_t)(void *);
+
+
 /**
  * @brief   M24SR device descriptor
  */
 typedef struct {
     m24sr_params_t params;      /**< device configuration */
     m24sr_memory_t memory;      /**< device memory parameters */
+    m24sr_cb_t cb;              /**< alert callback */
+    void *arg;                  /**< alert callback param */
 } m24sr_t;
 
 
@@ -68,7 +77,7 @@ enum {
     M24SR_ERROR_PARAM = -4,         /**< error parameter */
 };
 
-int m24sr_eeprom_init(m24sr_t *dev, const m24sr_params_t *params);
+int m24sr_eeprom_init(m24sr_t *dev, const m24sr_params_t *params, gpio_cb_t gpo_pin_cb, void *arg);
 int m24sr_eeprom_read(m24sr_t *dev, void *dest, uint32_t addr, uint32_t size);
 int m24sr_eeprom_write(m24sr_t *dev, void *src, uint32_t addr, uint32_t size);
 int m24sr_eeprom_erase(m24sr_t *dev, uint32_t addr, uint32_t size);

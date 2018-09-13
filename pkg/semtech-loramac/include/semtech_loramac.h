@@ -46,6 +46,7 @@ extern "C" {
 #define MSG_TYPE_LORAMAC_RX            (0x3463)  /**< Some data received */
 #define MSG_TYPE_LORAMAC_LINK_CHECK    (0x3464)  /**< Link check info received */
 #define MSG_TYPE_LORAMAC_TX_CNF_FAILED (0x3465)  /**< MAC TX confirmed failed */
+#define MSG_TYPE_LORAMAC_TX_SCHEDULE   (0x3466)  /**< MAC TX schedule */
 /** @} */
 
 /**
@@ -64,7 +65,8 @@ enum {
     SEMTECH_LORAMAC_TX_DONE,                     /**< Transmission completed */
     SEMTECH_LORAMAC_TX_CNF_FAILED,               /**< Confirmable transmission failed */
     SEMTECH_LORAMAC_DATA_RECEIVED,               /**< Data received */
-    SEMTECH_LORAMAC_BUSY                         /**< Internal MAC is busy */
+    SEMTECH_LORAMAC_BUSY,                        /**< Internal MAC is busy */
+    SEMTECH_LORAMAC_RESTRICTED                   /**< Restricted access to channels */
 };
 
 /**
@@ -115,6 +117,7 @@ typedef struct {
     uint8_t port;                                /**< application TX port */
     uint8_t cnf;                                 /**< enable/disable confirmable messages */
     uint8_t datarate;                            /**< default datarate */
+    uint8_t trials;                              /**< number of retries for confirmed uplinks */
     uint8_t deveui[LORAMAC_DEVEUI_LEN];          /**< device EUI */
     uint8_t appeui[LORAMAC_APPEUI_LEN];          /**< application EUI */
     uint8_t appkey[LORAMAC_APPKEY_LEN];          /**< application key */
@@ -382,6 +385,22 @@ void semtech_loramac_set_tx_power(semtech_loramac_t *mac, uint8_t power);
  * @return                 The TX power index (from 1 to 16)
  */
 uint8_t semtech_loramac_get_tx_power(semtech_loramac_t *mac);
+
+/**
+ * @brief   Sets number of retries for confirmed uplinks
+ *
+ * @param[in] mac          Pointer to the mac
+ * @param[in] power        Number of retries (0 for no retries)
+ */
+void semtech_loramac_set_retries(semtech_loramac_t *mac, uint8_t trials);
+
+/**
+ * @brief   Gets number of retries for confirmed uplinks
+ *
+ * @param[in] mac          Pointer to the mac
+ * @return                 Number of retries
+ */
+uint8_t semtech_loramac_get_retries(semtech_loramac_t *mac);
 
 /**
  * @brief   Sets the TX application port

@@ -26,8 +26,6 @@
 #include "sx127x_internal.h"
 #include "sx127x_netdev.h"
 
-#include "semtech-loramac/board.h"
-
 #include "radio/radio.h"
 
 #define ENABLE_DEBUG (0)
@@ -238,6 +236,22 @@ uint32_t SX127XGetWakeupTime(void)
     return 1;
 }
 
+void SX127XIrqProcess(void)
+{
+    return;
+}
+void SX127XRxBoosted(uint32_t timeout)
+{
+    (void) timeout;
+    return;
+}
+void SX127XSetRxDutyCycle(uint32_t rx_time, uint32_t sleep_time)
+{
+    (void) rx_time;
+    (void) sleep_time;
+    return;
+}
+
 /**
  * LoRa function callbacks
  */
@@ -267,7 +281,7 @@ const struct Radio_s Radio =
     SX127XSetMaxPayloadLength,
     SX127XSetPublicNetwork,
     SX127XGetWakeupTime,
-    NULL, /* SX126x only */
-    NULL, /* SX126x only */
-    NULL, /* SX126x only */
+    SX127XIrqProcess,       /* SX126x only */
+    SX127XRxBoosted,        /* SX126x only */
+    SX127XSetRxDutyCycle    /* SX126x only */
 };

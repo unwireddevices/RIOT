@@ -38,7 +38,6 @@
 #include "sx127x_netdev.h"
 
 #include "semtech_loramac.h"
-#include "semtech-loramac/board.h"
 #include "LoRaMac.h"
 #include "region/Region.h"
 
@@ -122,15 +121,30 @@ static bool _semtech_loramac_send(semtech_loramac_t *mac,
             mcpsReq.Req.Confirmed.fPort = mac->port;
             mcpsReq.Req.Confirmed.fBuffer = payload;
             mcpsReq.Req.Confirmed.fBufferSize = len;
+            mcpsReq.Req.Confirmed.NbTrials = mac->trials;
             mcpsReq.Req.Confirmed.Datarate = (int8_t)dr;
         }
     }
 
-    if (LoRaMacMcpsRequest(&mcpsReq) == LORAMAC_STATUS_OK) {
-        DEBUG("[semtech-loramac] MCPS request OK\n");
-        return false;
+    int ret = LoRaMacMcpsRequest(&mcpsReq);
+    
+    switch (ret) {
+        case LORAMAC_STATUS_OK:
+            DEBUG("[semtech-loramac] MCPS request OK\n");
+            return false;
+        case LORAMAC_STATUS_BUSY:
+            DEBUG("[semtech-loramac] MCPS status BUSY\n");
+            break;
+        case LORAMAC_STATUS_DUTYCYCLE_RESTRICTED:
+            DEBUG("[semtech-loramac] MCPS duty cycle restriction\n");
+            break;
+        default:
+            DEBUG("[semtech-loramac] MCPS request error %d\n", ret);
+            break;
     }
-
+    
+    mac->state = SEMTECH_LORAMAC_STATE_IDLE;
+    
     return true;
 }
 
@@ -207,6 +221,20 @@ static void mcps_indication(McpsIndication_t *indication)
                 break;
         }
     }
+    
+    /* Check Multicast
+       Check Port
+       Check Datarate
+       Check FramePending */
+    if (indication->FramePending == true) {
+        /* The server signals that it has pending data to be sent.
+           We schedule an uplink as soon as possible to flush the server. */
+        DEBUG("[semtech-loramac] MCPS indication: pending data, schedule an "
+              "uplink\n");
+        msg_t msg;
+        msg.type = MSG_TYPE_LORAMAC_TX_SCHEDULE;
+        msg_send(&msg, semtech_loramac_pid);
+    }
 
     msg_t msg;
     if (indication->RxData) {
@@ -223,14 +251,15 @@ static void mcps_indication(McpsIndication_t *indication)
 /*MLME-Indication event function */
 static void mlme_indication( MlmeIndication_t *mlmeIndication )
 {
-    switch( mlmeIndication->MlmeIndication )
-    {
+    switch (mlmeIndication->MlmeIndication) {
         case MLME_SCHEDULE_UPLINK:
-        {   // The MAC signals that we shall provide an uplink as soon as possible
-            DEBUG("[semtech-loramac] Mlme schedule uplink event");
-            // OnTxNextPacketTimerEvent( );
+            /* The MAC signals that we shall provide an uplink
+               as soon as possible */
+            DEBUG("[semtech-loramac] MLME indication: schedule an uplink\n");
+            msg_t msg;
+            msg.type = MSG_TYPE_LORAMAC_TX_SCHEDULE;
+            msg_send(&msg, semtech_loramac_pid);
             break;
-        }
         default:
             break;
     }
@@ -284,68 +313,14 @@ void _init_loramac(semtech_loramac_t *mac,
     primitives->MacMlmeConfirm = mlme_confirm;
     primitives->MacMlmeIndication = mlme_indication;
     
-    int result;
+    int result = LoRaMacInitialization(&semtech_loramac_radio_events,
+                                        primitives, callbacks, LORAMAC_ACTIVE_REGION);
     
-#if defined(REGION_AS923)
-    DEBUG("[semtech-loramac] initialize loramac for AS923 region\n");
-    result = LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
-                          LORAMAC_REGION_AS923);
-#elif defined(REGION_AU915)
-    DEBUG("[semtech-loramac] initialize loramac for AU915 region\n");
-    result = LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
-                          LORAMAC_REGION_AU915);
-#elif defined(REGION_CN779)
-    DEBUG("[semtech-loramac] initialize loramac for CN779 region\n");
-    result = LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
-                          LORAMAC_REGION_CN779);
-#elif defined(REGION_EU868)
-    DEBUG("[semtech-loramac] initialize loramac for EU868 region\n");
-    result = LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
-                          LORAMAC_REGION_EU868);
-#elif defined(REGION_IN865)
-    DEBUG("[semtech-loramac] initialize loramac for IN865 region\n");
-    result = LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
-                          LORAMAC_REGION_IN865);
-#elif defined(REGION_KR920)
-    DEBUG("[semtech-loramac] initialize loramac for KR920 region\n");
-    result = LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
-                          LORAMAC_REGION_KR920);
-#elif defined(REGION_US915)
-    DEBUG("[semtech-loramac] initialize loramac for US915 region\n");
-    result = LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
-                          LORAMAC_REGION_US915);
-#elif defined(REGION_US915_HYBRID)
-    DEBUG("[semtech-loramac] initialize loramac for US915 hybrid region\n");
-    result = LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
-                          LORAMAC_REGION_US915_HYBRID);
-#elif defined(REGION_RU864)
-    DEBUG("[semtech-loramac] initialize loramac for RU864 region\n");
-    result = LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
-                          LORAMAC_REGION_RU864);
-#else
-#error "Please define a region in the compiler options."
-#endif
     if (result != LORAMAC_STATUS_OK) {
         DEBUG("[semtech-loramac] initialization failed with code %d\n", result);
     }
 
     mutex_unlock(&mac->lock);
-
-#if defined(REGION_EU868) && USE_SEMTECH_DEFAULT_CHANNEL_LINEUP
-    DEBUG("[semtech-loramac] EU868 region: use default channels\n");
-    mutex_lock(&mac->lock);
-    LoRaMacChannelAdd(3, (ChannelParams_t)LC4);
-    LoRaMacChannelAdd(4, (ChannelParams_t)LC5);
-    LoRaMacChannelAdd(5, (ChannelParams_t)LC6);
-    LoRaMacChannelAdd(6, (ChannelParams_t)LC7);
-    LoRaMacChannelAdd(7, (ChannelParams_t)LC8);
-    LoRaMacChannelAdd(8, (ChannelParams_t)LC9);
-    LoRaMacChannelAdd(9, (ChannelParams_t)LC10);
-    mutex_unlock(&mac->lock);
-
-    semtech_loramac_set_rx2_dr(mac, LORAMAC_DEFAULT_RX2_DR);
-    semtech_loramac_set_rx2_freq(mac, LORAMAC_DEFAULT_RX2_FREQ);
-#endif
 
     semtech_loramac_set_dr(mac, LORAMAC_DEFAULT_DR);
     semtech_loramac_set_adr(mac, LORAMAC_DEFAULT_ADR);
@@ -372,8 +347,35 @@ static void _join_otaa(semtech_loramac_t *mac)
     mlmeReq.Req.Join.AppEui = mac->appeui;
     mlmeReq.Req.Join.AppKey = mac->appkey;
     mlmeReq.Req.Join.Datarate = mac->datarate;
-    LoRaMacMlmeRequest(&mlmeReq);
-    mutex_unlock(&mac->lock);
+    uint8_t ret = LoRaMacMlmeRequest(&mlmeReq);
+    
+    switch(ret) {
+        case LORAMAC_STATUS_OK:
+            mutex_unlock(&mac->lock);
+            return;
+        case LORAMAC_STATUS_DUTYCYCLE_RESTRICTED:
+        {
+            mutex_unlock(&mac->lock);
+            DEBUG("[semtech-loramac] Duty cycle restricted\n");
+            /* Cannot join. */
+            msg_t msg;
+            msg.type = MSG_TYPE_LORAMAC_JOIN;
+            msg.content.value = SEMTECH_LORAMAC_RESTRICTED;
+            msg_send(&msg, semtech_loramac_pid);
+            return;
+        }
+        default:
+        {
+            mutex_unlock(&mac->lock);
+            DEBUG("[semtech-loramac] join not successful: %d\n", ret);
+            /* Cannot join. */
+            msg_t msg;
+            msg.type = MSG_TYPE_LORAMAC_JOIN;
+            msg.content.value = SEMTECH_LORAMAC_JOIN_FAILED;
+            msg_send(&msg, semtech_loramac_pid);
+            return;
+        }
+    }
 }
 
 static void _join_abp(semtech_loramac_t *mac)
@@ -547,7 +549,7 @@ void *_semtech_loramac_event_loop(void *arg)
 
                 case MSG_TYPE_MAC_TIMEOUT:
                 {
-                    DEBUG("[semtech-loramac] MAC timer timeout\n");
+                    DEBUG("%lu - [semtech-loramac] MAC timer timeout\n", rtctimers_millis_now());
                     void (*callback)(void) = msg.content.ptr;
                     callback();
                     break;
@@ -593,6 +595,15 @@ void *_semtech_loramac_event_loop(void *arg)
                     msg_send(&msg_ret, mac->caller_pid);
                     /* switch back to idle state now*/
                     mac->state = SEMTECH_LORAMAC_STATE_IDLE;
+                    break;
+                }
+                case MSG_TYPE_LORAMAC_TX_SCHEDULE:
+                {
+                    DEBUG("[semtech-loramac] schedule immediate TX\n");
+                    uint8_t prev_port = mac->port;
+                    mac->port = 0;
+                    _semtech_loramac_send(mac, NULL, 0);
+                    mac->port = prev_port;
                     break;
                 }
                 case MSG_TYPE_LORAMAC_TX_CNF_FAILED:

@@ -23,7 +23,6 @@
 
 #include "net/loramac.h"
 
-#include "semtech-loramac/board.h"
 #include "LoRaMac.h"
 
 #define ENABLE_DEBUG (0)
@@ -252,6 +251,16 @@ void semtech_loramac_set_tx_mode(semtech_loramac_t *mac, uint8_t mode)
 uint8_t semtech_loramac_get_tx_mode(semtech_loramac_t *mac)
 {
     return mac->cnf;
+}
+
+void semtech_loramac_set_retries(semtech_loramac_t *mac, uint8_t trials)
+{
+    mac->trials = trials;
+}
+
+uint8_t semtech_loramac_get_retries(semtech_loramac_t *mac)
+{
+    return mac->trials;
 }
 
 static void _semtech_loramac_set_rx2_params(semtech_loramac_channel_params_t params)

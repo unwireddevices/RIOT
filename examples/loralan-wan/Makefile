@@ -4,6 +4,7 @@ BOARD ?= unwd-range-l1-r3
 # LORA_REGION ?= EU868
 LORA_REGION ?= RU864
 CFLAGS += -DREGION_$(LORA_REGION)
+CFLAGS += -DLORAMAC_ACTIVE_REGION=LORAMAC_REGION_$(LORA_REGION)
 
 ############ UMDK MODULES USED #####################
 # variable in the list below must match modules'

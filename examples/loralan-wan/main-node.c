@@ -325,7 +325,11 @@ int ls_set_cmd(int argc, char **argv)
     
     if (strcmp(key, "otaa") == 0) {
         int v = atoi(value);
-        unwds_set_nojoin(v);
+        if (v) {
+            unwds_set_nojoin(true);
+        } else {
+            unwds_set_nojoin(false);
+        }
     }
     
     if (strcmp(key, "maxretr") == 0) {
@@ -372,7 +376,7 @@ static void print_config(void)
     uint64_t eui64 = config_get_nodeid();
     uint64_t appid = config_get_appid();
 
-    printf("NOJOIN = %s\n", (unwds_get_node_settings().no_join) ? "yes" : "no");
+    printf("OTAA = %s\n", (unwds_get_node_settings().no_join) ? "no" : "yes");
 
     if (!unwds_get_node_settings().no_join && DISPLAY_JOINKEY_2BYTES) {
         uint8_t *key = config_get_joinkey();

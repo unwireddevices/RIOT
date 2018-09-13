@@ -30,6 +30,7 @@
 typedef enum {
     UMDK_INCLINOMETER_DATA = 0,
     UMDK_INCLINOMETER_CONFIG = 1,
+    UMDK_INCLINOMETER_ALARM = 2,
     UMDK_INCLINOMETER_FAIL = 255
 } umdk_inclinometer_cmd_t;
 

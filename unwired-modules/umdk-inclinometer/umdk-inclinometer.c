@@ -69,7 +69,13 @@ static uwnds_cb_t *callback;
 static kernel_pid_t measure_pid;
 static kernel_pid_t timer_pid;
 
-static msg_t timer_msg = {};
+typedef enum {
+    INCLINOMETER_NORMAL_MESSAGE,
+    INCLINOMETER_ALARM_MESSAGE
+} inclinometer_msg_t;
+
+static msg_t timer_msg = { .type = INCLINOMETER_NORMAL_MESSAGE };
+static msg_t alarm_msg = { .type = INCLINOMETER_ALARM_MESSAGE };
 static msg_t measure_msg = {};
 static rtctimers_millis_t timer;
 static rtctimers_millis_t measure_timer;
@@ -85,6 +91,7 @@ static struct {
 } inclinometer_config;
 
 typedef struct angles {
+    int32_t previous;
     int32_t current;
     int32_t max;
     int32_t min;
@@ -226,6 +233,9 @@ static void *measure_thread(void *arg) {
         printf("Acceleration: X %s mg, Y %s mg, Z %s mg\n", acc[0], acc[1], acc[2]);
 #endif
 
+        theta.previous = theta.current;
+        phi.previous = phi.current;
+
         if (y != 0) {
             phi.current = atan2(z, y) * RADIAN_TO_DEGREE_MILLIS;
             theta.current = atan2((-x) , sqrt(y*y + z*z)) * RADIAN_TO_DEGREE_MILLIS;
@@ -248,12 +258,12 @@ static void *measure_thread(void *arg) {
             phi.min = phi.current;
         }
         
-        if (abs(theta.current) > inclinometer_config.threshold_xz) {
-            
+        if (abs(theta.current - theta.previous) > inclinometer_config.threshold_xz) {
+            msg_send(&alarm_msg, timer_pid);
         }
         
-        if (abs(phi.current) > inclinometer_config.threshold_yz) {
-            
+        if (abs(phi.current - phi.previous) > inclinometer_config.threshold_yz) {
+            msg_send(&alarm_msg, timer_pid);
         }
         
         int_to_float_str(acc[0], (int)theta.current, 3);
@@ -273,6 +283,9 @@ static void *measure_thread(void *arg) {
     return NULL;
 }
 
+static uint32_t last_publish_time = 0;
+static bool alarm_was_sent = false;
+
 static void *publish_thread(void *arg) {
     (void)arg;
     
@@ -285,12 +298,32 @@ static void *publish_thread(void *arg) {
     while (1) {
         msg_receive(&msg);
 
+        if ((last_publish_time < (rtctimers_millis_now() - (1000 * inclinometer_config.publish_period_sec) - 100)) &&
+             alarm_was_sent) {
+                 
+            puts("[umdk-" _UMDK_NAME_ "] Ignore alarm message");
+            continue;
+        }
+        
         module_data_t data = {};
         data.as_ack = is_polled;
         is_polled = false;
-
+        
         data.data[0] = _UMDK_MID_;
-        data.data[1] = UMDK_INCLINOMETER_DATA;
+        switch (msg.type) {
+            case INCLINOMETER_NORMAL_MESSAGE:
+                data.data[1] = UMDK_INCLINOMETER_DATA;
+                alarm_was_sent = false;
+                break;
+            case INCLINOMETER_ALARM_MESSAGE:
+                data.data[1] = UMDK_INCLINOMETER_ALARM;
+                alarm_was_sent = true;
+                break;
+            default:
+                data.data[1] = UMDK_INCLINOMETER_DATA;
+                alarm_was_sent = false;
+                break;
+        }        
         data.length = 2;
         
         int16_t th = (theta.current + 5)/10;
@@ -332,6 +365,8 @@ static void *publish_thread(void *arg) {
         
         phi.max = INT_MIN;
         phi.min = INT_MAX;
+        
+        last_publish_time = rtctimers_millis_now();
 
         /* Restart after delay */
         rtctimers_millis_set_msg(&timer, 1000 * inclinometer_config.publish_period_sec, &timer_msg, timer_pid);
@@ -505,18 +540,15 @@ void umdk_inclinometer_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callba
 }
 
 static void reply_fail(module_data_t *reply) {
-	reply->length = 16;
-    memset(reply->data, 0, reply->length);
 	reply->data[0] = _UMDK_MID_;
     reply->data[1] = UMDK_INCLINOMETER_FAIL;
+    reply->length = 2;
 }
 
 static void reply_ok(module_data_t *reply) {
-	reply->length = 16;
-    memset(reply->data, 0, reply->length);
-    
 	reply->data[0] = _UMDK_MID_;
 	reply->data[1] = UMDK_INCLINOMETER_CONFIG;
+    reply->length = 2;
     
     uint16_t period = inclinometer_config.publish_period_sec;
     uint16_t rate = inclinometer_config.rate;
@@ -528,10 +560,17 @@ static void reply_ok(module_data_t *reply) {
     convert_to_be_sam((void *)&xz, sizeof(xz));
     convert_to_be_sam((void *)&yz, sizeof(yz));
     
-    memcpy(&reply->data[2], (void *)&rate, sizeof(rate));
-    memcpy(&reply->data[4], (void *)&period, sizeof(period));
-    memcpy(&reply->data[6], (void *)&xz, sizeof(xz));
-    memcpy(&reply->data[8], (void *)&yz, sizeof(yz));
+    memcpy(&reply->data[reply->length], (void *)&rate, sizeof(rate));
+    reply->length += sizeof(rate);
+    
+    memcpy(&reply->data[reply->length], (void *)&period, sizeof(period));
+    reply->length += sizeof(period);
+    
+    memcpy(&reply->data[reply->length], (void *)&xz, sizeof(xz));
+    reply->length += sizeof(xz);
+    
+    memcpy(&reply->data[reply->length], (void *)&yz, sizeof(yz));
+    reply->length += sizeof(yz);
 }
 
 bool umdk_inclinometer_cmd(module_data_t *cmd, module_data_t *reply) {

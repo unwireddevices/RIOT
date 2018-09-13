@@ -85,6 +85,10 @@ void unwds_set_addr(ls_addr_t dev_addr) {
     return;
 }
 
+void unwds_set_adr(bool adr) {
+    node_settings.adr = adr;
+}
+
 void unwds_set_module(uint8_t modid, bool enable) {
     
     if (unwds_is_module_exists(modid))
@@ -159,6 +163,7 @@ bool unwds_config_load(void)
     } else if (node_settings.config_version == 0x3) {
         puts("[node] Converting gateway configuration version 0x3 to a new format");
         unwds_set_cnf(true);
+        unwds_set_adr(true);
         puts("Saving new gateway configuration to EEPROM...");
         unwds_config_save();
         puts("Done.");

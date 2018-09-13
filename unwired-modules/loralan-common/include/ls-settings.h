@@ -39,6 +39,7 @@ typedef struct {
     ls_addr_t       dev_addr;           /**< Predefined device's network address */
     uint32_t        enabled_mods[8];    /**< Defines ability mask - list of enabled UNWDS modules */
     bool            confirmation;       /**< Require confirmation when sending packets */
+    bool            adr;                /**< Enable Adaptive Data Rate */
 } node_role_settings_t;
 
 node_role_settings_t unwds_get_node_settings(void);
@@ -48,6 +49,7 @@ void unwds_set_addr(ls_addr_t dev_addr);
 void unwds_set_channel(ls_channel_t channel);
 void unwds_set_dr(ls_datarate_t dr);
 void unwds_set_max_retr(uint8_t max_retr);
+void unwds_set_adr(bool adr);
 void unwds_set_class(ls_node_class_t nodeclass);
 void unwds_set_module(uint8_t modid, bool enable);
 void unwds_set_cnf(bool confirmation);

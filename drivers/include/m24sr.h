@@ -68,7 +68,7 @@ enum {
     M24SR_ERROR_PARAM = -4,         /**< error parameter */
 };
 
-int m24sr_eeprom_init(m24sr_t *dev, const m24sr_params_t params);
+int m24sr_eeprom_init(m24sr_t *dev, const m24sr_params_t *params);
 int m24sr_eeprom_read(m24sr_t *dev, void *dest, uint32_t addr, uint32_t size);
 int m24sr_eeprom_write(m24sr_t *dev, void *src, uint32_t addr, uint32_t size);
 int m24sr_eeprom_erase(m24sr_t *dev, uint32_t addr, uint32_t size);

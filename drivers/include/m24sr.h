@@ -28,6 +28,18 @@
 extern "C" {
 #endif
 
+typedef enum {
+  I2C_TOKEN_RELEASE_HW = 0,
+  I2C_TOKEN_RELEASE_SW,
+  I2C_TOKEN_RELEASE_NUM
+} m24sr_token_mode_t;
+
+typedef enum {
+  I2C_OPEN_SESSION = 0,
+  I2C_KILL_RF,
+  I2C_PRIORITY_NUM
+} m24sr_priority_t;
+
 /**
  * @brief   M24SR configuration parameters
  */
@@ -37,6 +49,8 @@ typedef struct {
     gpio_t  gpo_pin;            /**< Interrupt GPO   */
     gpio_t  rfdisable_pin;      /**< GPIO to switch RF on/off */
     gpio_t  pwr_en_pin;         /**< GPIO to switch power on/off*/
+    m24sr_priority_t priority;             /**<*/
+    m24sr_token_mode_t token_mode;      /**<*/
 } m24sr_params_t;
 
 
@@ -44,11 +58,13 @@ typedef struct {
 typedef struct {
     uint16_t chipsize;
     uint16_t type;
+    uint16_t max_read_byte;
+    uint16_t max_write_byte;
 } m24sr_memory_t;
 
 
 /**
- * @brief   ADCxx1C alert callback
+ * @brief   M24SR alert callback
  */
 typedef void (*m24sr_cb_t)(void *);
 
@@ -57,10 +73,10 @@ typedef void (*m24sr_cb_t)(void *);
  * @brief   M24SR device descriptor
  */
 typedef struct {
-    m24sr_params_t params;      /**< device configuration */
-    m24sr_memory_t memory;      /**< device memory parameters */
-    m24sr_cb_t cb;              /**< alert callback */
-    void *arg;                  /**< alert callback param */
+    m24sr_params_t params;              /**< device configuration */
+    m24sr_memory_t memory;              /**< device memory parameters */
+    m24sr_cb_t cb;                      /**< alert callback */
+    void *arg;                          /**< alert callback param */
 } m24sr_t;
 
 
@@ -75,6 +91,7 @@ enum {
     M24SR_NODEV   = -2,             /**< unable to talk to device */
     M24SR_ERROR   = -3,             /**< any error memory */
     M24SR_ERROR_PARAM = -4,         /**< error parameter */
+    M24SR_WRONG_CRC = -5,
 };
 
 int m24sr_eeprom_init(m24sr_t *dev, const m24sr_params_t *params, gpio_cb_t gpo_pin_cb, void *arg);

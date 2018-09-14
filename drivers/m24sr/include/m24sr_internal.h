@@ -40,9 +40,6 @@ extern "C" {
 #define M24SR_WRITE_MAX_NUM_BYTE                            0xF6
 
 
-#define NDEF_SESSION_CLOSED                                 0xDEADBEEF
-
-
 /* ---------------------- status code ----------------------------------------*/
 #define M24SR_ACTION_COMPLETED                              0x9000
 #define UB_STATUS_OFFSET                                    4

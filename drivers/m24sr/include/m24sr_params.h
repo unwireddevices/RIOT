@@ -34,21 +34,32 @@ extern "C" {
  */
 
 #ifndef M24SR_PARAM_I2C
-    #define M24SR_PARAM_I2C             (I2C_DEV(0))
-#endif
-#ifndef M24SR_PARAM_ADDR
-    #define M24SR_PARAM_ADDR            (0xAC)
-#endif
-#ifndef M24SR_PARAM_GPO_PIN
-    #define M24SR_PARAM_GPO_PIN         (GPIO_UNDEF)
-#endif
-#ifndef M24SR_PARAM_RF_DIS_PIN
-    #define M24SR_PARAM_RF_DIS_PIN      (GPIO_UNDEF)
-#endif
-#ifndef M24SR_PARAM_PWR_EN_PIN
-    #define M24SR_PARAM_PWR_EN_PIN      (GPIO_UNDEF)
+#define M24SR_PARAM_I2C             (I2C_DEV(0))
 #endif
 
+#ifndef M24SR_PARAM_ADDR
+#define M24SR_PARAM_ADDR            (0xAC)
+#endif
+
+#ifndef M24SR_PARAM_GPO_PIN
+#define M24SR_PARAM_GPO_PIN         (GPIO_UNDEF)
+#endif
+
+#ifndef M24SR_PARAM_RF_DIS_PIN
+#define M24SR_PARAM_RF_DIS_PIN      (GPIO_UNDEF)
+#endif
+
+#ifndef M24SR_PARAM_PWR_EN_PIN
+#define M24SR_PARAM_PWR_EN_PIN      (GPIO_UNDEF)
+#endif
+
+#ifndef M24SR_PRIORITY_OPEN
+#define M24SR_PRIORITY_OPEN         (I2C_OPEN_SESSION)
+#endif
+
+#ifndef M24SR_CLOSE_TOKEN_MODE
+#define M24SR_CLOSE_TOKEN_MODE      (I2C_TOKEN_RELEASE_SW)
+#endif    
 
 //#define I2C_GPO_SYNCHRO_ALLOWED
 #define I2C_GPO_INTERRUPT_ALLOWED       (1)
@@ -59,7 +70,9 @@ extern "C" {
                                     .i2c_addr       = M24SR_PARAM_ADDR,         \
                                     .gpo_pin        = M24SR_PARAM_GPO_PIN,      \
                                     .rfdisable_pin  = M24SR_PARAM_RF_DIS_PIN,   \
-                                    .pwr_en_pin     = M24SR_PARAM_PWR_EN_PIN    \
+                                    .pwr_en_pin     = M24SR_PARAM_PWR_EN_PIN,   \
+                                    .priority       = M24SR_PRIORITY_OPEN,      \
+                                    .token_mode     = M24SR_CLOSE_TOKEN_MODE    \
                                 }
 #endif
 

@@ -48,12 +48,6 @@ extern "C" {
   */
 #define TOGGLE(val)                                         ((val != 0x00)? 0x00 : 0x01)
 
-typedef enum {
-  I2C_TOKEN_RELEASE_HW = 0,
-  I2C_TOKEN_RELEASE_SW,
-  I2C_TOKEN_REALISE_NUM
-} m24sr_token_mode_t;
-
 /**
   * @brief  APDU-Header command structure
   */

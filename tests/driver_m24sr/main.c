@@ -92,6 +92,12 @@ static uint8_t lcg_rand8(void) {
 }
 
 
+static void _gpo_pin_cb (void *arg) {
+    (void)arg;
+    puts("[Alert]\n");
+}
+
+
 int main(void)
 {
     uint32_t i;
@@ -112,7 +118,7 @@ int main(void)
 
 
     puts("Initializing M24SR memory device descriptor... ");
-    if (m24sr_eeprom_init(&dev, &m24sr_params) == 0) {
+    if (m24sr_eeprom_init(&dev, &m24sr_params, _gpo_pin_cb, NULL) == 0) {
         puts("[OK]");
     }
     else {

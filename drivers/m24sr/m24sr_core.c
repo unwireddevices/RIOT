@@ -24,12 +24,14 @@
 
 #include "m24sr.h"
 #include "m24sr_core.h"
+#include "m24sr_internal.h"
 
 #include "assert.h"
 #include "periph/gpio.h"
 #include "periph/i2c.h"
+#include "xtimer.h"
 
-#define ENABLE_DEBUG        (0)
+#define ENABLE_DEBUG                (1)
 #include "debug.h"
 
 
@@ -48,8 +50,7 @@
 #endif
 
 
-static m24sr_waiting_time_mode_t synchro_mode = M24SR_WAITINGTIME_POLLING;
-volatile bool is_gpo_low = false;
+static m24sr_waiting_time_mode_t synchro_mode = M24SR_WAITING_TIME_POLLING;
 
 /**
  * @brief [brief description]
@@ -130,7 +131,7 @@ int m24sr_rcv_i2c_response(const m24sr_t *dev, uint8_t *buffer, uint8_t len) {
   */
 int m24sr_poll_i2c (const m24sr_t *dev) {
 
-    int ret = 0x0;
+    int ret = M24SR_OK;
     uint32_t current_timestamp = 0;
     const uint32_t start_timestamp = (xtimer_now_usec() / US_PER_MS);
 
@@ -139,7 +140,7 @@ int m24sr_poll_i2c (const m24sr_t *dev) {
     {
         ret = _write_i2c(dev, 0x00, 0);
         current_timestamp = (xtimer_now_usec() / US_PER_MS);
-    } while ((current_timestamp - start_timestamp) < M24SR_I2C_TIMEOUT) && (ret != 0));
+    } while (((current_timestamp - start_timestamp) < M24SR_I2C_TIMEOUT) && (ret != 0));
     
     if (((current_timestamp - start_timestamp) > M24SR_I2C_TIMEOUT) || (ret != 0)) {
         ret = M24SR_NODEV;
@@ -154,20 +155,20 @@ int m24sr_poll_i2c (const m24sr_t *dev) {
 
 int m24sr_release_i2c_token(const m24sr_t *dev) {
 
-    int status = 0x0;
+    int status = M24SR_OK;
     uint8_t data[] = {0x00};
 
     status = i2c_write_bytes(dev->params.i2c, dev->params.i2c_addr, data, 0, I2C_NOSTOP);
     if (status != 0)
-        return M24SR_ERROR_I2CTIMEOUT;
+        return M24SR_NOBUS;
 
     xtimer_sleep(80 * US_PER_MS);
 
     status = i2c_write_bytes(dev->params.i2c, dev->params.i2c_addr, data, 0, I2C_NOSTART);
     if (status == 0)
-        return M24SR_STATUS_SUCCESS;
+        return M24SR_OK;
     else
-        return M24SR_ERROR_I2CTIMEOUT;
+        return M24SR_NOBUS;
 }
 
 
@@ -177,35 +178,33 @@ int m24sr_release_i2c_token(const m24sr_t *dev) {
   * @retval M24SR_ERROR_DEFAULT : the response of the M24LR is not ready
   */
 int m24sr_is_answer_rdy(const m24sr_t *dev) {
-    uint16_t status;
     uint32_t retry = 0xFFFFF;
     uint8_t stable = 0;
 
     switch (synchro_mode) {
-        case M24SR_WAITINGTIME_POLLING:
-            if( _m24sr_poll_i2c(dev) != M24SR_STATUS_SUCCESS)
-                return M24SR_ERROR_DEFAULT;
-            return M24SR_STATUS_SUCCESS;
-        case M24SR_WAITINGTIME_GPO:
-            /* mbd does not support interrupt for the moment with nucleo board */
+        case M24SR_WAITING_TIME_POLLING:
+            if(m24sr_poll_i2c(dev) != M24SR_OK)
+                return M24SR_NOBUS;
+            return M24SR_OK;
+        case M24SR_WAITING_TIME_GPO:
             do {
-                if (gpio_read(dev->params.gpo_pin) == GPO_PIN_RESET) {
+                if (gpio_read(dev->params.gpo_pin) == 0) {
                     stable ++;
                 }
                 retry --;
             }
             while (stable < 5 && retry > 0);
             if (!retry)
-               return M24SR_ERROR_DEFAULT;
-            return M24SR_STATUS_SUCCESS;
+               return M24SR_NOBUS;
+            return M24SR_OK;
         case M24SR_INTERRUPT_GPO:
             /* Check if the GPIO is not already low before calling this function */
-            if (gpio_read(dev->params.gpo_pin) == GPO_PIN_SET) {
-                while (GPO_Low == 0);
+            if (gpio_read(dev->params.gpo_pin) == 1) {
+                while (dev->arg == 0);
             }
-            GPO_Low = 0;
-            return M24SR_STATUS_SUCCESS;
+            //dev->arg = 0;
+            return M24SR_OK;
         default:
-            return M24SR_ERROR_DEFAULT;
+            return M24SR_ERROR;
     }
 }

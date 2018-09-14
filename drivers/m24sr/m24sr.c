@@ -29,11 +29,13 @@
 #include "periph/i2c.h"
 #include "xtimer.h"
 
-#define ENABLE_DEBUG        (0)
+#define ENABLE_DEBUG                (1)
 #include "debug.h"
 
 
-#define M24SR_PWD_LEN   0x10
+#define M24SR_PWD_LEN               0x10
+#define NDEF_FILE_LEN_POS           0
+#define NDEF_FILE_LEN_NUM_BYTES     2
 
 static cmd_apdu_t cmd;
 static uint8_t data_buffer[0xFF];
@@ -41,12 +43,6 @@ static uint8_t cmd_data[0xFF];
 
 static uint8_t device_id_byte = 0x00;
 
-static uint32_t ndef_session_id = NDEF_SESSION_CLOSED;
-
-/* Init NDEF File ID with bad value in case Init failed */
-static uint16_t ndef_file_id = 0xBEEF;
-
-#define M24SR_WRONG_CRC 0xDEAD
 
 
 
@@ -61,13 +57,16 @@ volatile uint8_t  gpo_low = 0;
   * @retval None
   */
 static void _m24sr_init_structure (void);
-void m24sr_set_i2c_synchro_mode(m24sr_waiting_time_mode_t mode);
+static void m24sr_set_i2c_synchro_mode(m24sr_waiting_time_mode_t mode);
 static uint16_t _m24sr_update_crc (uint8_t ch, uint16_t *crc);
 static uint16_t _m24sr_compute_crc (uint8_t *data, uint8_t length);
-static uint16_t _m24sr_is_correct_crc_residue (uint8_t *data, uint8_t length);
+static int _m24sr_is_correct_crc_residue (uint8_t *data, uint8_t length);
 static void _m24sr_build_iblock_cmd (uint16_t category, cmd_apdu_t cmd, uint8_t *iblock, uint16_t *numByte);
+
+#if 0
 static int _is_iblock(uint8_t *buffer);
 static int _is_rblock(uint8_t *buffer);
+#endif
 static int _is_sblock(uint8_t *buffer);
 
 static int m24sr_select_application(const m24sr_t *dev);
@@ -161,7 +160,7 @@ static uint16_t _m24sr_compute_crc (uint8_t *data, uint8_t length)
 * @retval   Status (SW1&SW2)    :   CRC16 residue is correct
 * @retval   M24SR_ERROR_CRC     :  CRC16 residue is false
 */
-static uint16_t _m24sr_is_correct_crc_residue (uint8_t *data, uint8_t length)
+static int _m24sr_is_correct_crc_residue (uint8_t *data, uint8_t length)
 {
     uint16_t res_crc = 0;
 
@@ -251,6 +250,9 @@ static void _m24sr_build_iblock_cmd (uint16_t category, cmd_apdu_t cmd, uint8_t 
     }
 }
 
+
+#if 0
+
 /**
 * @brief    This function return M24SR_STATUS_SUCCESS if the pBuffer is an I-block
 * @param    pBuffer     :   pointer of the data
@@ -278,6 +280,7 @@ static int _is_rblock (uint8_t *buffer) {
         return M24SR_ERROR;
     }
 }
+#endif
 
 /**
 * @brief    This function return M24SR_STATUS_SUCCESS if the pBuffer is an s-block
@@ -312,7 +315,7 @@ static int m24sr_select_application(const m24sr_t *dev) {
 
     uint8_t *data = data_buffer;
     uint16_t len;
-    cmd_apdu_t cmd;
+    
 
     const uint8_t buffer[] = {0xD2, 0x76, 0x00, 0x00, 0x85, 0x01, 0x01};
 
@@ -373,8 +376,6 @@ static int m24sr_select_capability_container_file(const m24sr_t *dev, uint16_t c
     uint8_t *data = data_buffer;
     uint16_t len;
     
-    cmd_apdu_t cmd;
-
     /* build the command */
     cmd.header.CLA = CLA_DEFAULT;
     cmd.header.INS = INS_SELECT;
@@ -421,8 +422,6 @@ static int m24sr_select_ndef_file(const m24sr_t *dev, uint16_t ndef_file_id) {
     uint8_t *data = data_buffer;
     uint16_t len;
 
-    cmd_apdu_t cmd;
-
     /* build the command */
     cmd.header.CLA = CLA_DEFAULT;
     cmd.header.INS = INS_SELECT;
@@ -468,8 +467,6 @@ static int m24sr_select_system_file(const m24sr_t *dev, uint16_t sys_file_id) {
 
     uint8_t *data = data_buffer;
     uint16_t len;
-
-    cmd_apdu_t cmd; 
 
     /* build the command */
     cmd.header.CLA = CLA_DEFAULT;
@@ -558,9 +555,6 @@ static int m24sr_update_binary(const m24sr_t *dev, uint16_t offset, uint8_t *src
 
     uint8_t *data = data_buffer;
 
-    cmd_apdu_t cmd;
-
-
     /* build the command */
     cmd.header.CLA = CLA_DEFAULT;
     cmd.header.INS = INS_UPDATE_BINARY;
@@ -616,7 +610,6 @@ static int m24sr_verify(const m24sr_t *dev, uint16_t pwd_id, uint8_t num_pwd_byt
 
     uint8_t *data = data_buffer;
     uint16_t len = 0;
-    cmd_apdu_t cmd;
 
     /*check the parameters */
     if (pwd_id > 0x0003) {
@@ -972,6 +965,8 @@ int m24sr_disable_permanent_state(const m24sr_t *dev, uint16_t mode_protect) {
 }
 #endif
 
+
+#if defined(M24SR_UPDATE_FILE_TYPE)
 static int m24sr_update_file_type (const m24sr_t *dev, uint8_t file_type) {
     /* CLA  | INS  | P1   | P2   | Lc   | Data | Le */
     /* 0xA2 | 0xD6 | 0x00 | 0x00 | 0x01 | 0x0X |  - */
@@ -1028,8 +1023,9 @@ static int m24sr_update_file_type (const m24sr_t *dev, uint8_t file_type) {
     }
     return ret;
 }
+#endif
 
-
+#if 0
 static int _m24sr_gpo_send_interrupt (const m24sr_t *dev) {
     /* CLA  | INS  | P1   | P2   | Lc   | Data | Le */
     /* 0xA2 | 0xD6 | 0x00 | 0x1E | 0x00 |  -   |  - */
@@ -1125,6 +1121,7 @@ static int _m24sr_gpo_state_control (const m24sr_t *dev, uint8_t state) {
 
     return ret;
 }
+#endif
 
 /**
   * @brief  This function sends the FWT extension command (S-Block format)
@@ -1209,14 +1206,13 @@ static int _m24sr_kill_rf_session (const m24sr_t *dev) {
 }
 
 
-static int _m24sr_open_i2c_session (const m24sr_t *dev, uint16_t priority) {
+static int _m24sr_open_i2c_session (const m24sr_t *dev, m24sr_priority_t priority) {
     int ret = M24SR_OK;
     uint16_t timeout = 1000;
 
-    if (priority == TAKE_SESSION) {
+    if (priority == I2C_KILL_RF) {
         ret = _m24sr_kill_rf_session(dev);
-    }
-    else {
+    } else if (priority == I2C_OPEN_SESSION) {
         ret = _m24sr_get_i2c_session(dev);
         while (ret != M24SR_OK && timeout) {
             xtimer_usleep(1 * US_PER_MS);
@@ -1254,8 +1250,7 @@ void m24sr_rf_config_hw(const m24sr_t *dev, uint8_t state)
     }
 }
 
-
-
+#if defined(I2C_GPO_INTERRUPT_ALLOWED)
 static void _alert_cb(void *arg) {
     m24sr_t *dev = arg;
 
@@ -1263,28 +1258,31 @@ static void _alert_cb(void *arg) {
         dev->cb(dev->arg);
     }
 }
+#endif
 
 /**
   * @brief  This function initializes the M24SR_I2C interface
   * @retval None
   */
-int m24sr_i2c_init_hw (m24sr_t *dev, const m24sr_params_t *params, m24sr_cb_t gpo_pin_cb, void *arg)
-{
-    int retval = 0x0;
+int m24sr_i2c_init_hw (m24sr_t *dev, const m24sr_params_t *params, m24sr_cb_t gpo_cb, void *gpo_cb_arg) {
+    int retval = M24SR_OK;
 
     dev->params = *params;
 
     /* Configure GPIO pins*/
     if (dev->params.gpo_pin != GPIO_UNDEF) {
 #if defined(I2C_GPO_INTERRUPT_ALLOWED)
-        retval = gpio_init_int(dev->params.gpo_pin, GPIO_IN, dev->params.gpo_flank, gpo_pin_cb, gpo_pin_cb_arg);
+        dev->cb = gpo_cb;
+        dev->arg = gpo_cb_arg; 
+
+        retval = gpio_init_int(dev->params.gpo_pin, GPIO_IN, dev->params.gpo_flank, _alert_cb, dev);
         if (retval < 0) {
             DEBUG("[m24sr] error: failed to initialize GPO pin\n");
             return retval;
         }
 #else
-        (void)gpo_pin_cb;
-        (void)gpo_pin_cb_arg;
+        (void)gpo_cb;
+        (void)gpo_cb_arg;
         retval = gpio_init(dev->params.gpo_pin, GPIO_IN);
         if (retval < 0) {
             DEBUG("[m24sr] error: failed to initialize GPO pin\n");
@@ -1292,16 +1290,15 @@ int m24sr_i2c_init_hw (m24sr_t *dev, const m24sr_params_t *params, m24sr_cb_t gp
         }
 #endif
     }
-
+    /* Configure GPIO pins for RF DISABLE */
     if (dev->params.rfdisable_pin != GPIO_UNDEF) {
-            /* Configure GPIO pins for RF DISABLE*/
-        retval = gpio_init(dev->params.rfdisable_pin, GPIO_IN);
+        retval = gpio_init(dev->params.rfdisable_pin, GPIO_OUT);
         if (retval < 0) {
             DEBUG("[m24sr] error: failed to initialize RF DISABLE pin\n");
             return retval;
         }
     }
-
+    /* Configure GPIO pins for Power Enable*/
     if (dev->params.pwr_en_pin != GPIO_UNDEF) {
         retval = gpio_init(dev->params.pwr_en_pin, GPIO_OUT);
         if (retval < 0){
@@ -1349,9 +1346,9 @@ uint16_t m24sr_manage_i2c_gpo(const m24sr_t *dev, m24sr_gpo_mode_t gpo_i2c_confi
     status = m24sr_update_binary(dev, 0x0004 , &gpo_config, 0x01);
 
     /* if we have set interrupt mode for I2C synchro we can enable interrupt mode */
-    if (gpo_i2c_config == I2C_ANSWER_READY && status == M24SR_ACTION_COMPLETED)
+    if (gpo_i2c_config == I2C_ANSWER_READY && status == M24SR_OK)
 #ifdef I2C_GPO_SYNCHRO_ALLOWED
-        m24sr_set_i2c_synchro_mode(M24SR_WAITINGTIME_GPO);
+        m24sr_set_i2c_synchro_mode(M24SR_WAITING_TIME_GPO);
 #else
         m24sr_set_i2c_synchro_mode(M24SR_INTERRUPT_GPO);
 #endif
@@ -1411,8 +1408,7 @@ void m24sr_rf_config(const m24sr_t *dev, uint8_t rf_config)
 int m24sr_init(m24sr_t *dev, const m24sr_params_t *params, gpio_cb_t gpo_pin_cb, void *gpo_pin_cb_arg) {
     int status = M24SR_OK;
     uint8_t trials = 5;
-
-    cc_file_t cc_file;
+    cc_file_info_t cc_file;
 
     /* Perform HW initialization */
     status = m24sr_i2c_init_hw (dev, params, gpo_pin_cb, gpo_pin_cb_arg);
@@ -1422,7 +1418,7 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params, gpio_cb_t gpo_pin_cb,
     _m24sr_init_structure();
 
 #if defined(I2C_GPO_SYNCHRO_ALLOWED) || defined(I2C_GPO_INTERRUPT_ALLOWED)
-    if (_m24sr_kill_rf_session(dev) == M24SR_ACTION_COMPLETED) {
+    if (_m24sr_kill_rf_session(dev) == M24SR_OK) {
         m24sr_manage_i2c_gpo(I2C_ANSWER_READY);
         m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
     }
@@ -1433,33 +1429,35 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params, gpio_cb_t gpo_pin_cb,
         status = _m24sr_get_i2c_session(dev);
         trials--;
     }
-    if (status != M24SR_OK)
+    if (status != M24SR_OK) {
         return M24SR_ERROR;
+    }
     /*===================================*/
     /* Select the NFC type 4 application */
     /*===================================*/
     status = m24sr_select_application(dev);
-    if (status != M24SR_OK)
+    if (status != M24SR_OK) {
         return M24SR_ERROR;
+    }
     /*==================*/
     /* select a CC file */
     /*==================*/
     status = m24sr_select_capability_container_file(dev, M24SR_CC_FILE_ID);
-    if (status != M24SR_OK)
+    if (status != M24SR_OK) {
         return M24SR_ERROR;
+    }
 
     /* read the first 15 bytes of the CC file */
-    if (m24sr_read_data(dev, 0x0000, cc_file, 0x0F) == M24SR_OK)
-    {
-        ndef_file_id = (uint16_t) ((cc_file[0x09] << 8) | cc_file[0x0A]);
-        status = m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
-        if (status != M24SR_OK)
-            return M24SR_ERROR;
+    if (m24sr_read_data(dev, 0x0000, (uint8_t *)&cc_file, sizeof(cc_file_info_t)) == M24SR_OK) {
+        
+        dev->memory.chipsize = (cc_file.ndef_file_max_size - NDEF_FILE_LEN_NUM_BYTES);
+        dev->memory.max_read_byte = cc_file.max_read_byte;
+        dev->memory.max_write_byte = cc_file.max_write_byte;
+
+        m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
         return M24SR_OK;
     } else {
-        status = m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
-        if (status != M24SR_OK)
-            return M24SR_ERROR;
+        m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
         return M24SR_OK;
     }
     return status; 
@@ -1473,19 +1471,21 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params, gpio_cb_t gpo_pin_cb,
   * @param  pData : pointer on buffer to store read data
   * @retval Status (SW1&SW2) : Status of the operation.
   */
-uint16_t m24sr_read_data (const m24sr_t *dev, uint16_t offset, uint8_t *dst, uint16_t size)
-{
+uint16_t m24sr_read_data (const m24sr_t *dev, uint16_t offset, uint8_t *dst, uint16_t size) {
     uint16_t status;
+    uint16_t max_read_byte = dev->memory.max_read_byte;
 
-    if (size > M24SR_READ_MAX_NUM_BYTE) {
+    if (size > max_read_byte) {
         do {
-            status = m24sr_read_binary(dev, offset, dst, M24SR_READ_MAX_NUM_BYTE);
-            offset += M24SR_READ_MAX_NUM_BYTE;
-            dst += M24SR_READ_MAX_NUM_BYTE;
-            size -= M24SR_READ_MAX_NUM_BYTE;
-        } while (size > M24SR_READ_MAX_NUM_BYTE && status == M24SR_OK);
-        if (status == M24SR_OK && size)
+            status = m24sr_read_binary(dev, offset, dst, max_read_byte);
+            offset += max_read_byte;
+            dst += max_read_byte;
+            size -= max_read_byte;
+        } while (size > max_read_byte && status == M24SR_OK);
+        
+        if (status == M24SR_OK && size) {
             status = m24sr_read_binary (dev, offset, dst, (uint8_t)(size));
+        }
     } else {
         status = m24sr_read_binary (dev, offset, dst, (uint8_t)(size));
     }
@@ -1500,17 +1500,18 @@ uint16_t m24sr_read_data (const m24sr_t *dev, uint16_t offset, uint8_t *dst, uin
   * @param  pData : pointer on buffer to store read data
   * @retval Status (SW1&SW2) : Status of the operation.
   */
-uint16_t m24sr_force_read_data(const m24sr_t *dev, uint16_t offset, uint8_t *dst, uint16_t size)
-{
+uint16_t m24sr_force_read_data(const m24sr_t *dev, uint16_t offset, uint8_t *dst, uint16_t size) {
     uint16_t status;
+    uint16_t max_read_byte = dev->memory.max_read_byte;
 
-    if (size > M24SR_READ_MAX_NUM_BYTE) {
+    if (size > max_read_byte) {
         do {
-            status = m24sr_extended_read_binary (dev, offset, dst, M24SR_READ_MAX_NUM_BYTE);
-            offset += M24SR_READ_MAX_NUM_BYTE;
-            dst += M24SR_READ_MAX_NUM_BYTE;
-            size -= M24SR_READ_MAX_NUM_BYTE;
-        } while (size > M24SR_READ_MAX_NUM_BYTE && status == M24SR_OK);
+            status = m24sr_extended_read_binary (dev, offset, dst, max_read_byte);
+            offset += max_read_byte;
+            dst += max_read_byte;
+            size -= max_read_byte;
+        } while (size > max_read_byte && status == M24SR_OK);
+        
         if (status == M24SR_OK && size) {
             status = m24sr_extended_read_binary (dev, offset, dst, (uint8_t)(size));
         }
@@ -1527,16 +1528,19 @@ uint16_t m24sr_force_read_data(const m24sr_t *dev, uint16_t offset, uint8_t *dst
 uint16_t m24sr_write_data (const m24sr_t *dev, uint16_t offset, uint8_t *src, uint16_t size)
 {
     uint16_t status;
+    uint16_t max_write_byte = dev->memory.max_write_byte;
 
-    if (size > M24SR_READ_MAX_NUM_BYTE) {
+    if (size > max_write_byte) {
         do {
-            status = m24sr_update_binary(dev, offset, src, M24SR_READ_MAX_NUM_BYTE);
-            offset += M24SR_READ_MAX_NUM_BYTE;
-            src += M24SR_READ_MAX_NUM_BYTE;
-            size -= M24SR_READ_MAX_NUM_BYTE;
-        } while (size > M24SR_READ_MAX_NUM_BYTE && status == M24SR_OK);
-        if (status == M24SR_OK && size)
+            status = m24sr_update_binary(dev, offset, src, max_write_byte);
+            offset += max_write_byte;
+            src += max_write_byte;
+            size -= max_write_byte;
+        } while (size > max_write_byte && status == M24SR_OK);
+        
+        if (status == M24SR_OK && size) {
             status = m24sr_update_binary (dev, offset, src, (uint8_t)(size));
+        }
     } else {
         status = m24sr_update_binary (dev, offset, src, (uint8_t)(size));
     }
@@ -1572,6 +1576,11 @@ uint16_t m24sr_manage_gpo(const m24sr_t *dev, m24sr_gpo_mode_t gpo_config, uint8
 int m24sr_eeprom_init(m24sr_t *dev, const m24sr_params_t *params, m24sr_cb_t cb, void *arg) {
     int ret = M24SR_OK;
 
+    (void)dev;
+    (void)params;
+    (void)cb;
+    (void)arg;
+
 
 
     return ret;
@@ -1580,6 +1589,10 @@ int m24sr_eeprom_init(m24sr_t *dev, const m24sr_params_t *params, m24sr_cb_t cb,
 
 int m24sr_eeprom_read(m24sr_t *dev, void *dst, uint32_t addr, uint32_t size) {
     uint16_t total_size = dev->memory.chipsize;
+    cc_file_info_t cc_file;
+    uint16_t ndef_file_id = 0x0000;
+    uint16_t ndef_file_size = 0x0000;
+    int status = M24SR_OK;
 
     if (addr > total_size) {
         return -EOVERFLOW;
@@ -1590,11 +1603,59 @@ int m24sr_eeprom_read(m24sr_t *dev, void *dst, uint32_t addr, uint32_t size) {
     if (size == 0) {
         return 0;
     }
+
+    status = _m24sr_open_i2c_session(dev, dev->params.priority);      
+    if (status != M24SR_OK) {
+        return M24SR_ERROR;
+    }
+    /* Select the NFC type 4 application */ 
+    status = m24sr_select_application(dev);
+    if (status != M24SR_OK) {
+        return M24SR_ERROR;
+    }
+    /**/
+    m24sr_select_capability_container_file(dev, M24SR_CC_FILE_ID);
+    m24sr_read_binary(dev, 0x0000, (uint8_t *)&cc_file, sizeof(cc_file_info_t));
+    
+    ndef_file_id = cc_file.ndef_file_id;
+    /* select NDEF file   */
+    status = m24sr_select_ndef_file(dev, ndef_file_id);
+    if (status != M24SR_OK) {
+        return M24SR_ERROR;
+    }
+
+    status = m24sr_read_data(dev, NDEF_FILE_LEN_POS, (uint8_t *)&ndef_file_size, NDEF_FILE_LEN_NUM_BYTES);
+    if (status != M24SR_OK) {
+        return M24SR_ERROR;
+    }
+
+    if (size < ndef_file_size) {
+        status = m24sr_read_data(dev, NDEF_FILE_LEN_POS + addr, dst, size + NDEF_FILE_LEN_NUM_BYTES);
+    } else {
+        return M24SR_ERROR;
+    }
+    
+    if(status == M24SR_OK) {
+        return M24SR_OK;
+    } else {
+        return M24SR_ERROR;
+    }
+
+    m24sr_close_session(dev, dev->params.token_mode);
+    // if (status != M24SR_OK) {
+    //     return M24SR_ERROR;
+    // }
+
     return size;
 }
 
 int m24sr_eeprom_write(m24sr_t *dev, void *src, uint32_t addr, uint32_t size) {
     uint16_t total_size = dev->memory.chipsize;
+    cc_file_info_t cc_file;
+    uint16_t ndef_file_id = 0x0000;
+    uint16_t ndef_file_size = 0x0000;
+    int status = M24SR_OK;
+
     
     if (addr > total_size) {
         return -EOVERFLOW;
@@ -1606,142 +1667,109 @@ int m24sr_eeprom_write(m24sr_t *dev, void *src, uint32_t addr, uint32_t size) {
         return 0;
     }
 
+
+    status = _m24sr_open_i2c_session(dev, dev->params.priority);      
+    if (status != M24SR_OK) {
+        return M24SR_ERROR;
+    }
+    /* Select the NFC type 4 application */ 
+    status = m24sr_select_application(dev);
+    if (status != M24SR_OK) {
+        return M24SR_ERROR;
+    }
+    /**/
+    m24sr_select_capability_container_file(dev, M24SR_CC_FILE_ID);
+    m24sr_read_binary(dev, 0x0000, (uint8_t *)&cc_file, sizeof(cc_file_info_t));
+    
+    ndef_file_id = cc_file.ndef_file_id;
+    /* select NDEF file   */
+    status = m24sr_select_ndef_file(dev, ndef_file_id);
+    if (status != M24SR_OK) {
+        return M24SR_ERROR;
+    }
+
+    status = m24sr_read_data(dev, NDEF_FILE_LEN_POS, (uint8_t *)&ndef_file_size, NDEF_FILE_LEN_NUM_BYTES);
+    if (status != M24SR_OK) {
+        return M24SR_ERROR;
+    }
+
+    if (size < ndef_file_size) {
+        status = m24sr_write_data(dev, NDEF_FILE_LEN_POS + addr, src, size + NDEF_FILE_LEN_NUM_BYTES);
+    } else {
+        return M24SR_ERROR;
+    }
+    
+    if(status != M24SR_OK) {
+        return M24SR_ERROR;
+    }
+
+    m24sr_close_session(dev, dev->params.token_mode);
+
+
+
     return size;
 }
 
 int m24sr_eeprom_erase(m24sr_t *dev, uint32_t addr, uint32_t size) {
     uint16_t total_size = dev->memory.chipsize;
-    
+    cc_file_info_t cc_file;
+    uint16_t ndef_file_id = 0x0000;
+    uint16_t ndef_file_size = 0x0000;
+    int status = M24SR_OK;
+    uint8_t src[0xFF]={0x00};
+
     if (addr > total_size) {
         return -EOVERFLOW;
     }
     if (addr + size > total_size) {
         return -EOVERFLOW;
     }
+
+    status = _m24sr_open_i2c_session(dev, dev->params.priority);      
+    if (status != M24SR_OK) {
+        return M24SR_ERROR;
+    }
+    /* Select the NFC type 4 application */ 
+    status = m24sr_select_application(dev);
+    if (status != M24SR_OK) {
+        return M24SR_ERROR;
+    }
+    /**/
+    m24sr_select_capability_container_file(dev, M24SR_CC_FILE_ID);
+    m24sr_read_binary(dev, 0x0000, (uint8_t *)&cc_file, sizeof(cc_file_info_t));
+    
+    ndef_file_id = cc_file.ndef_file_id;
+    /* select NDEF file   */
+    status = m24sr_select_ndef_file(dev, ndef_file_id);
+    if (status != M24SR_OK) {
+        return M24SR_ERROR;
+    }
+
+    status = m24sr_read_data(dev, NDEF_FILE_LEN_POS, (uint8_t *)&ndef_file_size, NDEF_FILE_LEN_NUM_BYTES);
+    if (status != M24SR_OK) {
+        return M24SR_ERROR;
+    }
+
+    if (size < ndef_file_size) {
+        status = m24sr_write_data(dev, NDEF_FILE_LEN_POS + addr, src, size + NDEF_FILE_LEN_NUM_BYTES);
+    } else {
+        return M24SR_ERROR;
+    }
+    
+    if(status != M24SR_OK) {
+        return M24SR_ERROR;
+    }
+
+    m24sr_close_session(dev, dev->params.token_mode);
+
+
     return 0;
 }
 
 int m24sr_eeprom_power(m24sr_t *dev, uint8_t power) {
+
+    (void)dev;
+    (void)power;
+
     return 0;
-}
-
-
-
-
-
-
-/**
-  * @brief  This fonction read NDEF file
-    * @param    pNDEF : pointer on buffer to fill with NDEF data
-  * @retval SUCCESS : NDEF file data have been retrieve
-    * @retval ERROR : Not able to get NDEF file data
-  */
-uint16_t tt4_read_ndef (uint8_t *ndef_file) {
-    uint16_t status = M24SR_ERROR;
-    sCCFileInfo *cc_file;
-    
-    cc_file = &CCFileStruct;
-    
-    if(open_ndef_session(cc_file->ndef_id, ASK_FOR_SESSION) == M24SR_OK)
-    {
-        status = read_ndef_file(ndef_file);
-        close_ndef_session(cc_file->ndef_id);
-    }
-    
-    return status;
-}
-
-void m24sr_select_ndef_message(void) {
-    // m24sr_open_i2c_session();
-    // m24sr_select_application();
-    // m24sr_select_capability_container_file();
-    // m24sr_read_binary();
-    // m24sr_select_ndef_file();
-}
-
-
-/**
-  * @brief  This fonction configure the M24SR to access NDEF message by I2C
-    * @param    NDEF_fileID : NDEF identification to select NDEF in M24SR
-    * @param  Priority: 2 options: check if M24SR available to open session (no RF session on going)
-  *                                                          Kill RF session and open I2C sesssion.
-  * @retval SUCCESS : Session is opened
-    * @retval ERROR : Not able to open session. 
-  */
-uint16_t m24sr_open_ndef_session(const m24sr_t *dev, uint16_t ndef_session_id, cc_file_t cc_file, uint16_t priority )
-{
-    uint16_t status = M24SR_ERROR;
-    uint16_t timeout = 1000;
-
-    
-    if(ndef_session_id == NDEF_SESSION_CLOSED)
-    {
-        status = m24sr_open_i2c_session(dev, priority)      
-        if (status != M24SR_OK)
-            return M24SR_ERROR;
-        /* Select the NFC type 4 application */ 
-        status = m24sr_select_application(dev);
-        if (status != M24SR_OK)
-            return M24SR_ERROR;
-        /**/
-        m24sr_select_capability_container_file(dev, M24SR_CC_FILE_ID);
-        m24sr_read_binary(dev, 0x0000, &cc_file, sizeof(cc_file));
-        /*@Fixme Parse CC file insert funcion and find value ndef_file_id*/
-        /* select NDEF file   */
-        status = m24sr_select_ndef_file(dev, ndef_file_id);
-        if (status != M24SR_OK)
-            return M24SR_ERROR;
-    
-        ndef_session_id = (uint32_t)(ndef_file_id);
-
-        return M24SR_OK;
-    }
-    else if(ndef_session_id == ndef_file_id)
-    {
-        /* Session already Open not an issue caller can perform access in NDEF file */
-        return M24SR_OK;
-    }  
-}
-
-#define NDEF_FILE_LEN_POS           0
-#define NDEF_FILE_LEN_NUM_BYTES     2
-
-uint16_t read_ndef_file(const m24sr_t *dev, uint8_t *ndef_file)
-{
-    uint16_t status = M24SR_ERROR;
-    uint16_t ndef_size = 0;
-    
-    status = m24sr_read_data(dev, NDEF_FILE_LEN_POS, ndef_file, NDEF_FILE_LEN_NUM_BYTES);
-    
-    if( status == M24SR_OK) {
-        ndef_size = (uint16_t) (*ndef_file << 8);
-        ndef_size = ndef_size | (uint16_t)(*++ndef_file);
-        
-        status = m24sr_read_data(dev, NDEF_FILE_LEN_POS,--ndef_file, ndef_size + NDEF_FILE_LEN_NUM_BYTES);
-    }
-    
-    if(status == M24SR_OK)
-        return M24SR_OK;
-    else
-        return M24SR_ERROR;
-    
-}
-
-
-uint16_t m24sr_close_ndef_session (const m24sr_t *dev, const cc_file_t *cc_file, uint16_t *ndef_session_id, m24sr_token_mode_t token_mode)
-{
-    uint16_t status = M24SR_ERROR;
-    
-    if(ndef_session_id == (uint32_t)(ndef_file_id)) {
-        status = m24sr_close_session(dev, token_mode);
-        if (status != M24SR_OK)
-            return M24SR_ERROR;
-        ndef_session_id = NDEF_SESSION_CLOSED;
-        return M24SR_ERROR;
-    } else if(ndef_session_id == NDEF_SESSION_CLOSED) {
-        /* Not an error as session is already closed */
-        return M24SR_ERROR;
-    }
-
-    return status;
 }

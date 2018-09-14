@@ -241,7 +241,7 @@ endif
 ifneq (,$(filter m24sr,$(USEMODULE)))
   FEATURES_REQUIRED += periph_i2c
   FEATURES_REQUIRED += periph_gpio
-  FEATURES_REQUIRED += xtimer
+  USEMODULE += xtimer
 endif
 
 ifneq (,$(filter mag3110,$(USEMODULE)))

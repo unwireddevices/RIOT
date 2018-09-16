@@ -187,18 +187,16 @@ static void *sender_thread(void *arg) {
                     break;
                 case MSG_TYPE_LORAMAC_RX:
                     if ((ls->rx_data.payload_len == 0) && ls->rx_data.ack) {
-                        puts("[LoRa] Ack received");
+                        printf("[LoRa] Ack received: RSSI %d, DR %d\n",
+                                ls->rx_data.rssi,
+                                ls->rx_data.datarate);
                     } else {
-                        puts("[LoRa] Data received");
+                        printf("[LoRa] Data received: %d bytes, port %d, RSSI %d, DR %d\n",
+                                ls->rx_data.payload_len,
+                                ls->rx_data.port,
+                                ls->rx_data.rssi,
+                                ls->rx_data.datarate);
 #if ENABLE_DEBUG
-                        printf("\t- Size: %d\n"
-                              "\t- Port: %d\n"
-                              "\t- RSSI: %d\n"
-                              "\t- DR:   %d\n",
-                              ls->rx_data.payload_len,
-                              ls->rx_data.port,
-                              ls->rx_data.rssi,
-                              ls->rx_data.datarate);
                         printf("[LoRa] Hex data: ");
                         for (int l = 0; l < ls->rx_data.payload_len; l++) {
                             printf("%02X ", ls->rx_data.payload[l]);

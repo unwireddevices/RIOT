@@ -50,7 +50,7 @@
 #endif
 
 
-static m24sr_waiting_time_mode_t synchro_mode = M24SR_WAITING_TIME_POLLING;
+
 
 /**
  * @brief [brief description]
@@ -181,7 +181,7 @@ int m24sr_is_answer_rdy(const m24sr_t *dev) {
     uint32_t retry = 0xFFFFF;
     uint8_t stable = 0;
 
-    switch (synchro_mode) {
+    switch (dev->synchro_mode) {
         case M24SR_WAITING_TIME_POLLING:
             if(m24sr_poll_i2c(dev) != M24SR_OK)
                 return M24SR_NOBUS;
@@ -200,7 +200,7 @@ int m24sr_is_answer_rdy(const m24sr_t *dev) {
         case M24SR_INTERRUPT_GPO:
             /* Check if the GPIO is not already low before calling this function */
             if (gpio_read(dev->params.gpo_pin) == 1) {
-                while (dev->arg == 0);
+                while (dev->arg == 0); //@FIXME Change to event_received
             }
             //dev->arg = 0;
             return M24SR_OK;

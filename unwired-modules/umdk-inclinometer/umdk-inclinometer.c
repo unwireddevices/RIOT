@@ -552,8 +552,8 @@ static void reply_ok(module_data_t *reply) {
     
     uint16_t period = inclinometer_config.publish_period_sec;
     uint16_t rate = inclinometer_config.rate;
-    uint16_t xz = inclinometer_config.threshold_xz;
-    uint16_t yz = inclinometer_config.threshold_yz;
+    uint16_t xz = inclinometer_config.threshold_xz/10;
+    uint16_t yz = inclinometer_config.threshold_yz/10;
     
     convert_to_be_sam((void *)&period, sizeof(period));
     convert_to_be_sam((void *)&rate, sizeof(rate));
@@ -602,7 +602,7 @@ bool umdk_inclinometer_cmd(module_data_t *cmd, module_data_t *reply) {
         convert_from_be_sam((void *)&threshold_xz, sizeof(threshold_xz));
         convert_from_be_sam((void *)&threshold_yz, sizeof(threshold_yz));
         
-        set_threshold(threshold_xz, threshold_yz);
+        set_threshold(threshold_xz*10, threshold_yz*10);
 
         /* reply with configuration */
         reply_ok(reply);

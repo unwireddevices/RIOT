@@ -131,7 +131,7 @@ typedef enum {
 } m24sr_gpo_hw_mode_t;
 
 /**
-  * @brief  GPO state structure 
+  * @brief  GPO state
   */
 typedef enum {
     HIGH_IMPEDANCE = 0,
@@ -145,7 +145,7 @@ typedef enum {
 
 int m24sr_release_i2c_token(const m24sr_t *dev);
 int m24sr_send_i2c_cmd(const m24sr_t *dev, uint8_t *buffer, uint8_t len);
-int m24sr_is_answer_rdy(const m24sr_t *dev);
+int m24sr_is_answer_rdy(m24sr_t *dev);
 int m24sr_poll_i2c (const m24sr_t *dev);
 int m24sr_rcv_i2c_response(const m24sr_t *dev, uint8_t *buffer, uint8_t len);
 

@@ -59,7 +59,7 @@ extern "C" {
 
 #ifndef M24SR_CLOSE_TOKEN_MODE
 #define M24SR_CLOSE_TOKEN_MODE      (I2C_TOKEN_RELEASE_SW)
-#endif    
+#endif 
 
 //#define I2C_GPO_SYNCHRO_ALLOWED
 #define I2C_GPO_INTERRUPT_ALLOWED       (1)

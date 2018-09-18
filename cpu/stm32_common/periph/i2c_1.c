@@ -42,7 +42,7 @@
 #include "periph/gpio.h"
 #include "periph_conf.h"
 
-#define ENABLE_DEBUG    (0)
+#define ENABLE_DEBUG    (1)
 #include "debug.h"
 
 #define TICK_TIMEOUT    (0xFFFF)
@@ -363,7 +363,7 @@ static inline int _start(I2C_TypeDef *i2c, uint16_t address,
     /* set address mode to 7-bit */
     i2c->CR2 &= ~(I2C_CR2_ADD10);
 
-    DEBUG("[i2c] start: set slave address\n");
+    DEBUG("[i2c] start: set slave address [0x%04X]\n", address);
     /* set slave address */
     i2c->CR2 &= ~(I2C_CR2_SADD);
     i2c->CR2 |= (address << 1);
@@ -373,7 +373,7 @@ static inline int _start(I2C_TypeDef *i2c, uint16_t address,
     i2c->CR2 &= ~(I2C_CR2_RD_WRN);
     i2c->CR2 |= (rw_flag << I2C_CR2_RD_WRN_Pos);
 
-    DEBUG("[i2c] start: set number of bytes\n");
+    DEBUG("[i2c] start: set number of bytes [%d]\n", length);
     /* set number of bytes */
     i2c->CR2 &= ~(I2C_CR2_NBYTES);
     i2c->CR2 |= (length << I2C_CR2_NBYTES_Pos);

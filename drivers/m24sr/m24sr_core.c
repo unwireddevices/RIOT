@@ -65,12 +65,13 @@ static int _write_i2c(const m24sr_t *dev, uint8_t *buffer, uint32_t len)
 {
     int ret = -1;
 
+    DEBUG("m24sr: -> ");
+    PRINTBUFF(buffer, len);
+
     i2c_acquire(dev->params.i2c);
     ret = i2c_write_bytes(dev->params.i2c, dev->params.i2c_addr, buffer, len, 0);
     i2c_release(dev->params.i2c);
 
-    DEBUG("m24sr: -> ");
-    PRINTBUFF(buffer, len);
     return ret;
 }
 
@@ -136,8 +137,8 @@ int m24sr_poll_i2c (const m24sr_t *dev) {
     const uint32_t start_timestamp = (xtimer_now_usec() / US_PER_MS);
 
     /* Wait until M24SR is ready or timeout occurs */
-    do 
-    {
+
+    do {
         ret = _write_i2c(dev, 0x00, 0);
         current_timestamp = (xtimer_now_usec() / US_PER_MS);
     } while (((current_timestamp - start_timestamp) < M24SR_I2C_TIMEOUT) && (ret != 0));
@@ -148,7 +149,7 @@ int m24sr_poll_i2c (const m24sr_t *dev) {
     else {
         ret = M24SR_OK;
     }
-
+    DEBUG("Polling end. Status is %d\n",ret);
     return ret;
 }
 
@@ -177,7 +178,7 @@ int m24sr_release_i2c_token(const m24sr_t *dev) {
   * @retval M24SR_STATUS_SUCCESS : a response of the M24LR is ready
   * @retval M24SR_ERROR_DEFAULT : the response of the M24LR is not ready
   */
-int m24sr_is_answer_rdy(const m24sr_t *dev) {
+int m24sr_is_answer_rdy(m24sr_t *dev) {
     uint32_t retry = 0xFFFFF;
     uint8_t stable = 0;
 
@@ -200,9 +201,9 @@ int m24sr_is_answer_rdy(const m24sr_t *dev) {
         case M24SR_INTERRUPT_GPO:
             /* Check if the GPIO is not already low before calling this function */
             if (gpio_read(dev->params.gpo_pin) == 1) {
-                while (dev->arg == 0); //@FIXME Change to event_received
+                while (dev->event_ready == 0); //@FIXME Change to event_received
             }
-            //dev->arg = 0;
+            dev->event_ready = 0;
             return M24SR_OK;
         default:
             return M24SR_ERROR;

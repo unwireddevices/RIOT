@@ -184,15 +184,6 @@ extern "C" {
 #define M24SR_MASK_RBLOCK                                   0x80
 #define M24SR_MASK_SBLOCK                                   0xC0
 
-/**
-  * @brief  Synchronization Mechanism structure 
-  */
-typedef enum{
-    M24SR_WAITING_TIME_UNKNOWN = 0,
-    M24SR_WAITING_TIME_POLLING,
-    M24SR_WAITING_TIME_GPO,
-    M24SR_INTERRUPT_GPO,
-} m24sr_waiting_time_mode_t;    
 
 
 

@@ -44,12 +44,6 @@ static uint8_t cmd_data[0xFF];
 static uint8_t device_id_byte = 0x00;
 
 
-
-
-static m24sr_waiting_time_mode_t synchro_mode = M24SR_WAITING_TIME_POLLING;
-volatile uint8_t  gpo_low = 0;
-
-
 /**
   * @brief  Initialize the command and response structure
   * 
@@ -57,7 +51,7 @@ volatile uint8_t  gpo_low = 0;
   * @retval None
   */
 static void _m24sr_init_structure (void);
-static void m24sr_set_i2c_synchro_mode(m24sr_waiting_time_mode_t mode);
+static void m24sr_set_i2c_synchro_mode(m24sr_t *dev, m24sr_wait_mode_t mode);
 static uint16_t _m24sr_update_crc (uint8_t ch, uint16_t *crc);
 static uint16_t _m24sr_compute_crc (uint8_t *data, uint8_t length);
 static int _m24sr_is_correct_crc_residue (uint8_t *data, uint8_t length);
@@ -67,29 +61,30 @@ static void _m24sr_build_iblock_cmd (uint16_t category, cmd_apdu_t cmd, uint8_t 
 static int _is_iblock(uint8_t *buffer);
 static int _is_rblock(uint8_t *buffer);
 #endif
+
 static int _is_sblock(uint8_t *buffer);
 
-static int m24sr_select_application(const m24sr_t *dev);
-static int m24sr_select_capability_container_file(const m24sr_t *dev, uint16_t cc_file_id);
-static int m24sr_select_ndef_file(const m24sr_t *dev, uint16_t ndef_file_id);
-static int m24sr_select_system_file(const m24sr_t *dev, uint16_t sys_file_id);
-static int m24sr_read_binary(const m24sr_t *dev, uint16_t offset, uint8_t *dst_data, uint16_t len);
-static int m24sr_update_binary(const m24sr_t *dev, uint16_t offset, uint8_t *src_data, uint16_t len);
-static int m24sr_verify(const m24sr_t *dev, uint16_t pwd_id, uint8_t num_pwd_byte , uint8_t *pwd);
+static int m24sr_select_application(m24sr_t *dev);
+static int m24sr_select_capability_container_file(m24sr_t *dev, uint16_t cc_file_id);
+static int m24sr_select_ndef_file(m24sr_t *dev, uint16_t ndef_file_id);
+static int m24sr_select_system_file(m24sr_t *dev, uint16_t sys_file_id);
+static int m24sr_read_binary(m24sr_t *dev, uint16_t offset, uint8_t *dst_data, uint16_t len);
+static int m24sr_update_binary(m24sr_t *dev, uint16_t offset, uint8_t *src_data, uint16_t len);
+static int m24sr_verify(m24sr_t *dev, uint16_t pwd_id, uint8_t num_pwd_byte , uint8_t *pwd);
 
-static int m24sr_extended_read_binary(const m24sr_t *dev, uint16_t offset, uint8_t *dst_data, uint32_t len);
-
-
-
-uint16_t m24sr_manage_i2c_gpo(const m24sr_t *dev, m24sr_gpo_mode_t gpo_i2c_config);
-
-
-static int _m24sr_fwt_extension(const m24sr_t *dev, uint8_t fwt_byte);
+static int m24sr_extended_read_binary(m24sr_t *dev, uint16_t offset, uint8_t *dst_data, uint32_t len);
 
 
 
-uint16_t m24sr_read_data (const m24sr_t *dev, uint16_t offset, uint8_t *dst, uint16_t size);
-uint16_t m24sr_write_data (const m24sr_t *dev, uint16_t offset, uint8_t *src, uint16_t size);
+uint16_t m24sr_manage_i2c_gpo(m24sr_t *dev, m24sr_gpo_mode_t gpo_i2c_config);
+
+
+static int _m24sr_fwt_extension(m24sr_t *dev, uint8_t fwt_byte);
+
+
+
+uint16_t m24sr_read_data (m24sr_t *dev, uint16_t offset, uint8_t *dst, uint16_t size);
+uint16_t m24sr_write_data (m24sr_t *dev, uint16_t offset, uint8_t *src, uint16_t size);
 
 
 
@@ -99,14 +94,14 @@ uint16_t m24sr_write_data (const m24sr_t *dev, uint16_t offset, uint8_t *src, ui
   * @param  mode : interruption or polling
   * @retval None
   */
-void m24sr_set_i2c_synchro_mode(m24sr_waiting_time_mode_t mode) {
-#if defined (I2C_GPO_SYNCHRO_ALLOWED) || defined (I2C_GPO_INTERRUPT_ALLOWED)
-    synchro_mode = mode;
+void m24sr_set_i2c_synchro_mode(m24sr_t *dev, m24sr_wait_mode_t mode) {
+#if defined(I2C_GPO_SYNCHRO_ALLOWED) || defined(I2C_GPO_INTERRUPT_ALLOWED)
+    dev->synchro_mode = mode;
 #else
     if (mode == M24SR_WAITING_TIME_GPO || mode == M24SR_INTERRUPT_GPO)
-        synchro_mode = M24SR_WAITING_TIME_POLLING;
+        dev->synchro_mode = M24SR_WAITING_TIME_POLLING;
     else
-        synchro_mode = mode;
+        dev->synchro_mode = mode;
 #endif /*  I2C_GPO_SYNCHRO_ALLOWED */
 }
 
@@ -306,7 +301,7 @@ static int _is_sblock (uint8_t *buffer) {
  * @param len [description]
  * @return [description]
  */
-static int m24sr_select_application(const m24sr_t *dev) {
+static int m24sr_select_application(m24sr_t *dev) {
     /* CLA  | INS  |  P1  |  P2  |  Lc  |  Data            | Le   */
     /* 0x00 | 0xA4 | 0x04 | 0x00 | 0x07 | 0xD2760000850101 | 0x00 */
     int ret = M24SR_OK;
@@ -366,7 +361,7 @@ static int m24sr_select_application(const m24sr_t *dev) {
  * @param len [description]
  * @return [description]
  */
-static int m24sr_select_capability_container_file(const m24sr_t *dev, uint16_t cc_file_id) {
+static int m24sr_select_capability_container_file(m24sr_t *dev, uint16_t cc_file_id) {
     /* CLA  | INS  | P1   | P2   | Lc   | Data   | Le */
     /* 0x00 | 0xA4 | 0x00 | 0x0C | 0x02 | 0xE103 | -  */
     int ret = M24SR_OK;
@@ -412,7 +407,7 @@ static int m24sr_select_capability_container_file(const m24sr_t *dev, uint16_t c
     return ret;
 }
 
-static int m24sr_select_ndef_file(const m24sr_t *dev, uint16_t ndef_file_id) {
+static int m24sr_select_ndef_file(m24sr_t *dev, uint16_t ndef_file_id) {
     /* CLA  | INS  | P1   | P2   | Lc   | Data   | Le */
     /* 0x00 | 0xA4 | 0x00 | 0x0C | 0x02 | 0x0001 | -  */
     int ret = M24SR_OK;
@@ -458,7 +453,7 @@ static int m24sr_select_ndef_file(const m24sr_t *dev, uint16_t ndef_file_id) {
     return ret;
 }
 
-static int m24sr_select_system_file(const m24sr_t *dev, uint16_t sys_file_id) {
+static int m24sr_select_system_file(m24sr_t *dev, uint16_t sys_file_id) {
     /* CLA  | INS  | P1   | P2   | Lc   | Data   | Le */
     /* 0x00 | 0xA4 | 0x00 | 0x0C | 0x02 | 0xE101 | -  */
     int ret = M24SR_OK;
@@ -504,7 +499,7 @@ static int m24sr_select_system_file(const m24sr_t *dev, uint16_t sys_file_id) {
     return ret;
 }
 
-static int m24sr_read_binary(const m24sr_t *dev, uint16_t offset, uint8_t *dst_data, uint16_t len) {
+static int m24sr_read_binary(m24sr_t *dev, uint16_t offset, uint8_t *dst_data, uint16_t len) {
     /* CLA  | INS  | P1  P2 | Lc  | Data | Le                        */
     /* 0x00 | 0xB0 | Offset |  -  | -    | NubBytes (0x01 =< Le =< 0xF6) */
     int ret = M24SR_OK;
@@ -546,7 +541,7 @@ static int m24sr_read_binary(const m24sr_t *dev, uint16_t offset, uint8_t *dst_d
 }
 
 
-static int m24sr_update_binary(const m24sr_t *dev, uint16_t offset, uint8_t *src_data, uint16_t len) {
+static int m24sr_update_binary(m24sr_t *dev, uint16_t offset, uint8_t *src_data, uint16_t len) {
     /* CLA  | INS  | P1  P2 | Lc                            | Data          | Le */
     /* 0x00 | 0xD6 | Offset | NubBytes (0x01 =< Le =< 0xF6) | Data Lc Bytes |  - */
     int ret = M24SR_OK;
@@ -599,7 +594,7 @@ static int m24sr_update_binary(const m24sr_t *dev, uint16_t offset, uint8_t *src
 }
 
 
-static int m24sr_verify(const m24sr_t *dev, uint16_t pwd_id, uint8_t num_pwd_byte , uint8_t *pwd) {
+static int m24sr_verify(m24sr_t *dev, uint16_t pwd_id, uint8_t num_pwd_byte , uint8_t *pwd) {
     /* CLA  | INS  | P1 P2  | Lc   | Data         | Le */
     /* 0x00 | 0x20 | 0x000X | 0x10 | PWD Lc Bytes | -  */
     /*               0x0001 - Read NDEF PWD XMIT       */
@@ -776,7 +771,7 @@ void m24sr_enable_verification_requirement(uint16_t mode_protect) {
 }
 
 
-int m24sr_disable_verification_requirement(const m24sr_t dev, uint16_t mode_protect) {
+int m24sr_disable_verification_requirement(m24sr_t dev, uint16_t mode_protect) {
     /* CLA  | INS  | P1 P2  | Lc | Data | Le */
     /* 0x00 | 0x26 | 0x000X | -  | -    | -  */
     /*               0x0001 - DIS Read Protect NDEF  */
@@ -831,7 +826,7 @@ int m24sr_disable_verification_requirement(const m24sr_t dev, uint16_t mode_prot
 #endif
 
 // Proprietary STM cmd set
-static int m24sr_extended_read_binary(const m24sr_t *dev, uint16_t offset, uint8_t *dst_data, uint32_t len) {
+static int m24sr_extended_read_binary(m24sr_t *dev, uint16_t offset, uint8_t *dst_data, uint32_t len) {
     /* CLA  | INS  | P1 P2  | Lc | Data  | Le */
     /* 0xA2 | 0xB0 | Offset |  - |   -   | Len  */
     int ret = M24SR_OK;
@@ -871,7 +866,7 @@ static int m24sr_extended_read_binary(const m24sr_t *dev, uint16_t offset, uint8
 }
 
 #if 0
-int m24sr_enable_permanent_state(const m24sr_t *dev, uint16_t mode_protect) {
+int m24sr_enable_permanent_state(m24sr_t *dev, uint16_t mode_protect) {
     /* CLA  | INS  | P1 P2  | Lc | Data | Le */
     /* 0xA2 | 0x28 | 0x000X | -  | -    | -  */
     /*               0x0001 - ENA Read Protect NDEF  */
@@ -918,7 +913,7 @@ int m24sr_enable_permanent_state(const m24sr_t *dev, uint16_t mode_protect) {
 }
 
 
-int m24sr_disable_permanent_state(const m24sr_t *dev, uint16_t mode_protect) {
+int m24sr_disable_permanent_state(m24sr_t *dev, uint16_t mode_protect) {
     /* CLA  | INS  | P1 P2  | Lc | Data | Le */
     /* 0xA2 | 0x26 | 0x000X | -  | -    | -  */
     /*               0x0001 - DIS Read Protect NDEF  */
@@ -967,7 +962,7 @@ int m24sr_disable_permanent_state(const m24sr_t *dev, uint16_t mode_protect) {
 
 
 #if defined(M24SR_UPDATE_FILE_TYPE)
-static int m24sr_update_file_type (const m24sr_t *dev, uint8_t file_type) {
+static int m24sr_update_file_type (m24sr_t *dev, uint8_t file_type) {
     /* CLA  | INS  | P1   | P2   | Lc   | Data | Le */
     /* 0xA2 | 0xD6 | 0x00 | 0x00 | 0x01 | 0x0X |  - */
     /*                                    0x04 - Type NDEF        */
@@ -1026,7 +1021,7 @@ static int m24sr_update_file_type (const m24sr_t *dev, uint8_t file_type) {
 #endif
 
 #if 0
-static int _m24sr_gpo_send_interrupt (const m24sr_t *dev) {
+static int _m24sr_gpo_send_interrupt (m24sr_t *dev) {
     /* CLA  | INS  | P1   | P2   | Lc   | Data | Le */
     /* 0xA2 | 0xD6 | 0x00 | 0x1E | 0x00 |  -   |  - */
     int ret = M24SR_OK;
@@ -1070,7 +1065,7 @@ static int _m24sr_gpo_send_interrupt (const m24sr_t *dev) {
     return ret;
 }
 
-static int _m24sr_gpo_state_control (const m24sr_t *dev, uint8_t state) {
+static int _m24sr_gpo_state_control (m24sr_t *dev, uint8_t state) {
     /* CLA  | INS  | P1   | P2   | Lc   | Data | Le */
     /* 0xA2 | 0xD6 | 0x00 | 0x1F | 0x01 | 0x0X |  - */
     /*                                    0x00 - Reset Value (GPO Low) */
@@ -1129,7 +1124,7 @@ static int _m24sr_gpo_state_control (const m24sr_t *dev, uint8_t state) {
   * @retval Status (SW1&SW2) : Status of the operation to complete.
     * @retval M24SR_ERROR_I2CTIMEOUT : The I2C timeout occured.
   */
-static int _m24sr_fwt_extension(const m24sr_t *dev, uint8_t fwt_byte)
+static int _m24sr_fwt_extension(m24sr_t *dev, uint8_t fwt_byte)
 {
     int ret = M24SR_OK;
     uint8_t  *buffer = data_buffer;
@@ -1251,12 +1246,10 @@ void m24sr_rf_config_hw(const m24sr_t *dev, uint8_t state)
 }
 
 #if defined(I2C_GPO_INTERRUPT_ALLOWED)
-static void _alert_cb(void *arg) {
+static void _irq_handler(void *arg) {
     m24sr_t *dev = (m24sr_t *)arg;
 
-    if (dev->cb) {
-        dev->cb(dev->arg);
-    }
+    dev->event_ready = 1;
 }
 #endif
 
@@ -1264,7 +1257,7 @@ static void _alert_cb(void *arg) {
   * @brief  This function initializes the M24SR_I2C interface
   * @retval None
   */
-int m24sr_i2c_init_hw (m24sr_t *dev, const m24sr_params_t *params, m24sr_cb_t gpo_cb, void *gpo_cb_arg) {
+int m24sr_i2c_init_hw (m24sr_t *dev, const m24sr_params_t *params) {
     int retval = M24SR_OK;
 
     dev->params = *params;
@@ -1272,20 +1265,17 @@ int m24sr_i2c_init_hw (m24sr_t *dev, const m24sr_params_t *params, m24sr_cb_t gp
     /* Configure GPIO pins*/
     if (dev->params.gpo_pin != GPIO_UNDEF) {
 #if defined(I2C_GPO_INTERRUPT_ALLOWED)
-        dev->cb = gpo_cb;
-        dev->arg = gpo_cb_arg; 
 
-        retval = gpio_init_int(dev->params.gpo_pin, GPIO_IN, dev->params.gpo_flank, _alert_cb, dev);
+        retval = gpio_init_int(dev->params.gpo_pin, GPIO_IN, dev->params.gpo_flank, _irq_handler, dev);
         if (retval < 0) {
-            DEBUG("[m24sr] error: failed to initialize GPO pin\n");
+            DEBUG("[m24sr] ERROR: failed to initialize GPO pin\n");
+            DEBUG("[m24sr] ERROR: Interrupt pin not initialized\n");
             return retval;
         }
 #else
-        (void)gpo_cb;
-        (void)gpo_cb_arg;
         retval = gpio_init(dev->params.gpo_pin, GPIO_IN);
         if (retval < 0) {
-            DEBUG("[m24sr] error: failed to initialize GPO pin\n");
+            DEBUG("[m24sr] ERROR: failed to initialize GPO pin\n");
             return retval;
         }
 #endif
@@ -1294,7 +1284,7 @@ int m24sr_i2c_init_hw (m24sr_t *dev, const m24sr_params_t *params, m24sr_cb_t gp
     if (dev->params.rfdisable_pin != GPIO_UNDEF) {
         retval = gpio_init(dev->params.rfdisable_pin, GPIO_OUT);
         if (retval < 0) {
-            DEBUG("[m24sr] error: failed to initialize RF DISABLE pin\n");
+            DEBUG("[m24sr] ERROR: failed to initialize RF DISABLE pin\n");
             return retval;
         }
     }
@@ -1302,7 +1292,7 @@ int m24sr_i2c_init_hw (m24sr_t *dev, const m24sr_params_t *params, m24sr_cb_t gp
     if (dev->params.pwr_en_pin != GPIO_UNDEF) {
         retval = gpio_init(dev->params.pwr_en_pin, GPIO_OUT);
         if (retval < 0){
-            DEBUG("[m24sr] error: failed to initialize POWER EN pin\n");
+            DEBUG("[m24sr] ERROR: failed to initialize POWER EN pin\n");
             return retval;
         }
     }
@@ -1318,7 +1308,7 @@ int m24sr_i2c_init_hw (m24sr_t *dev, const m24sr_params_t *params, m24sr_cb_t gp
   * @param    GPO_I2Cconfig: GPO configuration to set
   * @retval Status (SW1&SW2) : Status of the operation to complete.
   */
-uint16_t m24sr_manage_i2c_gpo(const m24sr_t *dev, m24sr_gpo_mode_t gpo_i2c_config)
+uint16_t m24sr_manage_i2c_gpo(m24sr_t *dev, m24sr_gpo_mode_t gpo_i2c_config)
 {
     uint16_t status;
     uint8_t gpo_config;
@@ -1331,7 +1321,7 @@ uint16_t m24sr_manage_i2c_gpo(const m24sr_t *dev, m24sr_gpo_mode_t gpo_i2c_confi
     memset(default_pwd, 0x00, M24SR_PWD_LEN);
 
     /* we must not be in interrupt mode for I2C synchro as we will change GPO purpose */
-    m24sr_set_i2c_synchro_mode(M24SR_WAITING_TIME_POLLING);
+    m24sr_set_i2c_synchro_mode(dev, M24SR_WAITING_TIME_POLLING);
 
     m24sr_select_application(dev);
     m24sr_select_system_file(dev, M24SR_SYS_FILE_ID);
@@ -1348,9 +1338,9 @@ uint16_t m24sr_manage_i2c_gpo(const m24sr_t *dev, m24sr_gpo_mode_t gpo_i2c_confi
     /* if we have set interrupt mode for I2C synchro we can enable interrupt mode */
     if (gpo_i2c_config == I2C_ANSWER_READY && status == M24SR_OK)
 #ifdef I2C_GPO_SYNCHRO_ALLOWED
-        m24sr_set_i2c_synchro_mode(M24SR_WAITING_TIME_GPO);
+        m24sr_set_i2c_synchro_mode(dev, M24SR_WAITING_TIME_GPO);
 #else
-        m24sr_set_i2c_synchro_mode(M24SR_INTERRUPT_GPO);
+        m24sr_set_i2c_synchro_mode(dev, M24SR_INTERRUPT_GPO);
 #endif
     return status;
 }
@@ -1361,7 +1351,7 @@ uint16_t m24sr_manage_i2c_gpo(const m24sr_t *dev, m24sr_gpo_mode_t gpo_i2c_confi
     * @param    GPO_RFconfig: GPO configuration to set
   * @retval Status (SW1&SW2) : Status of the operation to complete.
   */
-uint16_t m24sr_manage_rf_gpo(const m24sr_t *dev, m24sr_gpo_mode_t gpo_rf_config)
+uint16_t m24sr_manage_rf_gpo(m24sr_t *dev, m24sr_gpo_mode_t gpo_rf_config)
 {
     uint16_t status;
     uint8_t gpo_config;
@@ -1397,6 +1387,7 @@ void m24sr_rf_config(const m24sr_t *dev, uint8_t rf_config)
 }
 
 
+#define I2C_GPO_INTERRUPT_ALLOWED       (1)
 
 /**
   * @brief  This fonction initialize the M24SR
@@ -1405,26 +1396,30 @@ void m24sr_rf_config(const m24sr_t *dev, uint8_t rf_config)
   * @retval SUCCESS : Initalization done
   * @retval ERROR : Not able to Initialize.
   */
-int m24sr_init(m24sr_t *dev, const m24sr_params_t *params, gpio_cb_t gpo_pin_cb, void *gpo_pin_cb_arg) {
+int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
     int status = M24SR_OK;
     uint8_t trials = 5;
     cc_file_info_t cc_file;
 
     /* Perform HW initialization */
-    status = m24sr_i2c_init_hw (dev, params, gpo_pin_cb, gpo_pin_cb_arg);
+    status = m24sr_i2c_init_hw (dev, params);
     if (status != M24SR_OK)
         return M24SR_ERROR;
+
+    dev->synchro_mode = M24SR_WAITING_TIME_POLLING;   
 
     _m24sr_init_structure();
 
 #if defined(I2C_GPO_SYNCHRO_ALLOWED) || defined(I2C_GPO_INTERRUPT_ALLOWED)
+     DEBUG("Kill RF Session\n");
     if (_m24sr_kill_rf_session(dev) == M24SR_OK) {
-        m24sr_manage_i2c_gpo(I2C_ANSWER_READY);
+        m24sr_manage_i2c_gpo(dev, I2C_ANSWER_READY);
         m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
     }
 #endif /* I2C_GPO_SYNCHRO_ALLOWED */
 
     /* Read CC file */
+    status = _m24sr_get_i2c_session(dev);
     while (status != M24SR_OK && trials) {
         status = _m24sr_get_i2c_session(dev);
         trials--;
@@ -1435,6 +1430,7 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params, gpio_cb_t gpo_pin_cb,
     /*===================================*/
     /* Select the NFC type 4 application */
     /*===================================*/
+    DEBUG("Select the NFC type 4 application\n");
     status = m24sr_select_application(dev);
     if (status != M24SR_OK) {
         return M24SR_ERROR;
@@ -1471,7 +1467,7 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params, gpio_cb_t gpo_pin_cb,
   * @param  pData : pointer on buffer to store read data
   * @retval Status (SW1&SW2) : Status of the operation.
   */
-uint16_t m24sr_read_data (const m24sr_t *dev, uint16_t offset, uint8_t *dst, uint16_t size) {
+uint16_t m24sr_read_data (m24sr_t *dev, uint16_t offset, uint8_t *dst, uint16_t size) {
     uint16_t status;
     uint16_t max_read_byte = dev->memory.max_read_byte;
 
@@ -1500,7 +1496,7 @@ uint16_t m24sr_read_data (const m24sr_t *dev, uint16_t offset, uint8_t *dst, uin
   * @param  pData : pointer on buffer to store read data
   * @retval Status (SW1&SW2) : Status of the operation.
   */
-uint16_t m24sr_force_read_data(const m24sr_t *dev, uint16_t offset, uint8_t *dst, uint16_t size) {
+uint16_t m24sr_force_read_data(m24sr_t *dev, uint16_t offset, uint8_t *dst, uint16_t size) {
     uint16_t status;
     uint16_t max_read_byte = dev->memory.max_read_byte;
 
@@ -1525,7 +1521,7 @@ uint16_t m24sr_force_read_data(const m24sr_t *dev, uint16_t offset, uint8_t *dst
 
 
 
-uint16_t m24sr_write_data (const m24sr_t *dev, uint16_t offset, uint8_t *src, uint16_t size)
+uint16_t m24sr_write_data (m24sr_t *dev, uint16_t offset, uint8_t *src, uint16_t size)
 {
     uint16_t status;
     uint16_t max_write_byte = dev->memory.max_write_byte;
@@ -1553,7 +1549,7 @@ uint16_t m24sr_write_data (const m24sr_t *dev, uint16_t offset, uint8_t *src, ui
   * @param  mode: select RF or I2C, GPO config to update
   * @retval Status : Status of the operation.
   */
-uint16_t m24sr_manage_gpo(const m24sr_t *dev, m24sr_gpo_mode_t gpo_config, uint8_t mode) {
+uint16_t m24sr_manage_gpo(m24sr_t *dev, m24sr_gpo_mode_t gpo_config, uint8_t mode) {
     uint16_t status;
 
     if (mode == RF_GPO) {
@@ -1573,10 +1569,10 @@ uint16_t m24sr_manage_gpo(const m24sr_t *dev, m24sr_gpo_mode_t gpo_config, uint8
 
 
 
-int m24sr_eeprom_init(m24sr_t *dev, const m24sr_params_t *params, m24sr_cb_t cb, void *arg) {
+int m24sr_eeprom_init(m24sr_t *dev, const m24sr_params_t *params) {
     int ret = M24SR_OK;
 
-    ret = m24sr_init(dev, params, cb, arg);
+    ret = m24sr_init(dev, params);
 
     return ret;
 }

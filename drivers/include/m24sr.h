@@ -28,17 +28,39 @@
 extern "C" {
 #endif
 
+
+/**
+ * @brief Type token release
+ */
 typedef enum {
   I2C_TOKEN_RELEASE_HW = 0,
   I2C_TOKEN_RELEASE_SW,
   I2C_TOKEN_RELEASE_NUM
 } m24sr_token_mode_t;
 
+/**
+ * @brief Type open session
+ */
 typedef enum {
   I2C_OPEN_SESSION = 0,
   I2C_KILL_RF,
   I2C_PRIORITY_NUM
 } m24sr_priority_t;
+
+
+
+
+/**
+  * @brief  Synchronization Mechanism structure 
+  */
+typedef enum{
+    M24SR_WAITING_TIME_UNKNOWN = 0,
+    M24SR_WAITING_TIME_POLLING,
+    M24SR_WAITING_TIME_GPO,
+    M24SR_INTERRUPT_GPO,
+} m24sr_wait_mode_t;    
+
+
 
 /**
  * @brief   M24SR configuration parameters
@@ -75,12 +97,11 @@ typedef void (*m24sr_cb_t)(void *);
 typedef struct {
     m24sr_params_t params;              /**< device configuration */
     m24sr_memory_t memory;              /**< device memory parameters */
-    m24sr_cb_t cb;                      /**< alert callback */
-    void *arg;                          /**< alert callback param */
+    // m24sr_cb_t cb;                      /**< alert callback */
+    // void *arg;                          /**< alert callback param */
     m24sr_wait_mode_t synchro_mode;        // @TODO static m24sr_waiting_time_mode_t synchro_mode = M24SR_WAITING_TIME_POLLING;
-    uint8_t event_received;                 /**< check if an event was received */
-    mutex_t event_lock;                     /**< mutex for waiting for event */
-
+    uint8_t event_ready;                 /**< check if an event was received */
+    // mutex_t event_lock;                     /**< mutex for waiting for event */
 } m24sr_t;
 
 
@@ -98,7 +119,7 @@ enum {
     M24SR_WRONG_CRC = -5,
 };
 
-int m24sr_eeprom_init(m24sr_t *dev, const m24sr_params_t *params, gpio_cb_t gpo_pin_cb, void *arg);
+int m24sr_eeprom_init(m24sr_t *dev, const m24sr_params_t *params);
 int m24sr_eeprom_read(m24sr_t *dev, void *dest, uint32_t addr, uint32_t size);
 int m24sr_eeprom_write(m24sr_t *dev, void *src, uint32_t addr, uint32_t size);
 int m24sr_eeprom_erase(m24sr_t *dev, uint32_t addr, uint32_t size);

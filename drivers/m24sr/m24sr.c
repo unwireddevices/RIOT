@@ -1252,7 +1252,7 @@ void m24sr_rf_config_hw(const m24sr_t *dev, uint8_t state)
 
 #if defined(I2C_GPO_INTERRUPT_ALLOWED)
 static void _alert_cb(void *arg) {
-    m24sr_t *dev = arg;
+    m24sr_t *dev = (m24sr_t *)arg;
 
     if (dev->cb) {
         dev->cb(dev->arg);
@@ -1576,12 +1576,7 @@ uint16_t m24sr_manage_gpo(const m24sr_t *dev, m24sr_gpo_mode_t gpo_config, uint8
 int m24sr_eeprom_init(m24sr_t *dev, const m24sr_params_t *params, m24sr_cb_t cb, void *arg) {
     int ret = M24SR_OK;
 
-    (void)dev;
-    (void)params;
-    (void)cb;
-    (void)arg;
-
-
+    ret = m24sr_init(dev, params, cb, arg);
 
     return ret;
 }

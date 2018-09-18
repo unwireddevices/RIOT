@@ -77,6 +77,10 @@ typedef struct {
     m24sr_memory_t memory;              /**< device memory parameters */
     m24sr_cb_t cb;                      /**< alert callback */
     void *arg;                          /**< alert callback param */
+    m24sr_wait_mode_t synchro_mode;        // @TODO static m24sr_waiting_time_mode_t synchro_mode = M24SR_WAITING_TIME_POLLING;
+    uint8_t event_received;                 /**< check if an event was received */
+    mutex_t event_lock;                     /**< mutex for waiting for event */
+
 } m24sr_t;
 
 

@@ -102,7 +102,7 @@ int main(void)
 
     m24sr_params_t m24sr_params = {
         .i2c = (I2C_DEV(0)), 
-        .i2c_addr = (0xAD),
+        .i2c_addr = (0x56),
         .gpo_pin = GPIO_PIN(PORT_A, 5),
         .rfdisable_pin = GPIO_UNDEF,
         .pwr_en_pin = GPIO_UNDEF,

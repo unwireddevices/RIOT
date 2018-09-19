@@ -109,6 +109,7 @@ static int _read_i2c(const m24sr_t *dev, uint8_t *buffer, uint32_t len)
 
 int m24sr_send_i2c_cmd(const m24sr_t *dev, uint8_t *buffer, uint8_t len) {
     int ret = (_write_i2c(dev, buffer, len) == 0) ? (M24SR_OK) : (M24SR_NOBUS);
+    DEBUG("Write I2C is %s\n",(ret == 0)?"M24SR_OK":"M24SR_NOBUS");
     return ret;
 }
 
@@ -121,7 +122,8 @@ int m24sr_send_i2c_cmd(const m24sr_t *dev, uint8_t *buffer, uint8_t len) {
  * @return Status (M24SR_STATUS_SUCCESS : The function is succesful, M24SR_ERROR_I2CTIMEOUT : The I2C timeout occured.) 
  */
 int m24sr_rcv_i2c_response(const m24sr_t *dev, uint8_t *buffer, uint8_t len) {
-    int ret = (_read_i2c(dev, buffer, len) == 0) ? (M24SR_OK) : (M24SR_NOBUS); 
+    int ret = (_read_i2c(dev, buffer, len) == 0) ? (M24SR_OK) : (M24SR_NOBUS);
+    DEBUG("Read I2C is %s\n",(ret == 0)?"M24SR_OK":"M24SR_NOBUS"); 
     return ret;
 }
 
@@ -133,13 +135,15 @@ int m24sr_rcv_i2c_response(const m24sr_t *dev, uint8_t *buffer, uint8_t len) {
 int m24sr_poll_i2c (const m24sr_t *dev) {
 
     int ret = M24SR_OK;
+    uint8_t data[] = {0x00};
     uint32_t current_timestamp = 0;
     const uint32_t start_timestamp = (xtimer_now_usec() / US_PER_MS);
 
     /* Wait until M24SR is ready or timeout occurs */
 
     do {
-        ret = _write_i2c(dev, 0x00, 0);
+        //ret = _write_i2c(dev, 0x00, 0);
+        ret = i2c_write_bytes(dev->params.i2c, dev->params.i2c_addr, data, 0, I2C_NOSTOP);
         current_timestamp = (xtimer_now_usec() / US_PER_MS);
     } while (((current_timestamp - start_timestamp) < M24SR_I2C_TIMEOUT) && (ret != 0));
     
@@ -149,6 +153,7 @@ int m24sr_poll_i2c (const m24sr_t *dev) {
     else {
         ret = M24SR_OK;
     }
+    i2c_write_bytes(dev->params.i2c, dev->params.i2c_addr, data, 0, I2C_NOSTART);
     DEBUG("Polling end. Status is %d\n",ret);
     return ret;
 }
@@ -159,13 +164,16 @@ int m24sr_release_i2c_token(const m24sr_t *dev) {
     int status = M24SR_OK;
     uint8_t data[] = {0x00};
 
+    DEBUG("Release Token I2C\n");
+
     status = i2c_write_bytes(dev->params.i2c, dev->params.i2c_addr, data, 0, I2C_NOSTOP);
     if (status != 0)
         return M24SR_NOBUS;
-
-    xtimer_sleep(80 * US_PER_MS);
+    DEBUG("Delay\n");
+    xtimer_usleep(40000);
 
     status = i2c_write_bytes(dev->params.i2c, dev->params.i2c_addr, data, 0, I2C_NOSTART);
+    DEBUG("End release token (status is %d)\n", status);
     if (status == 0)
         return M24SR_OK;
     else

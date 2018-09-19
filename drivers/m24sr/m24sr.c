@@ -29,6 +29,8 @@
 #include "periph/i2c.h"
 #include "xtimer.h"
 
+#include "byteorder.h"
+
 #define ENABLE_DEBUG                (1)
 #include "debug.h"
 
@@ -343,7 +345,7 @@ static int m24sr_select_application(m24sr_t *dev) {
         return M24SR_NOBUS;
     }
     status = _m24sr_is_correct_crc_residue(data, num_byte_read); //@TODO Return values not error. Return value is code SW
-    DEBUG ("Return SW code 0x%04X", status);
+    DEBUG ("Return SW code 0x%04X\n", status);
     if (status != SW_OK) {
         return M24SR_ERROR;
     }
@@ -399,7 +401,7 @@ static int m24sr_select_capability_container_file(m24sr_t *dev, uint16_t cc_file
         return M24SR_NOBUS;
     }
     status = _m24sr_is_correct_crc_residue(data, num_byte_read); //@TODO Return values not error. Return value is code SW
-    DEBUG("Return SW code 0x%04X", status);
+    DEBUG("Return SW code 0x%04X\n", status);
     
     if (status != SW_OK) {
         return M24SR_ERROR;
@@ -507,6 +509,9 @@ static int m24sr_read_binary(m24sr_t *dev, uint16_t offset, uint8_t *dst_data, u
     uint16_t status;
     uint8_t *data = data_buffer;
 
+
+    DEBUG("Offset is 0x%04X. Length is %d(0x%04X)\n", offset, len, len);
+
     /* build the command */
     cmd.header.CLA = CLA_DEFAULT;
     cmd.header.INS = INS_READ_BINARY;
@@ -532,8 +537,8 @@ static int m24sr_read_binary(m24sr_t *dev, uint16_t offset, uint8_t *dst_data, u
         return M24SR_NOBUS;
     }
     status = _m24sr_is_correct_crc_residue(data, len + M24SR_STATUS_RESPONSE_NUM_BYTE); //@TODO Return values not error. Return value is code SW
-    memcpy(dst_data, data, len);
-    DEBUG("Return SW code 0x%04X", status);    
+    memcpy(dst_data, &data[1], len);
+    DEBUG("Return SW code 0x%04X\n", status);    
     if (status != SW_OK) {
         return M24SR_ERROR;
     }
@@ -1172,9 +1177,9 @@ static int _m24sr_get_i2c_session (const m24sr_t *dev) {
     uint8_t buffer = M24SR_OPEN_I2C_SESSION;
 
     ret = m24sr_send_i2c_cmd(dev, &buffer, 0x01);
-    if (ret == M24SR_OK) {
-        ret = m24sr_poll_i2c(dev);
-    }
+    // if (ret == M24SR_OK) {
+    //     ret = m24sr_poll_i2c(dev);
+    // }
     return ret;
 }
 
@@ -1194,9 +1199,9 @@ static int _m24sr_kill_rf_session (const m24sr_t *dev) {
     /* Insure no access will be done just after open session */
     /* The only way here is to poll I2C to know when M24SR is ready */
     /* GPO can not be use with KillSession command */ 
-    if (ret == M24SR_OK) {
-        ret = m24sr_poll_i2c(dev);
-    }
+    // if (ret == M24SR_OK) {
+    //     ret = m24sr_poll_i2c(dev);
+    // }
     return ret;
 }
 
@@ -1219,6 +1224,7 @@ static int _m24sr_open_i2c_session (const m24sr_t *dev, m24sr_priority_t priorit
 }
 
 void m24sr_close_session(const m24sr_t *dev, m24sr_token_mode_t type) {
+    DEBUG("Close session %s\n", (type == I2C_TOKEN_RELEASE_SW)?"software":"not software");
     if ((type == I2C_TOKEN_RELEASE_HW) && (dev->params.pwr_en_pin != GPIO_UNDEF)) {
         gpio_clear(dev->params.pwr_en_pin);
     } else if (type == I2C_TOKEN_RELEASE_SW) {
@@ -1398,7 +1404,7 @@ void m24sr_rf_config(const m24sr_t *dev, uint8_t rf_config)
   */
 int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
     int status = M24SR_OK;
-    uint8_t trials = 5;
+    // uint8_t trials = 5;
     cc_file_info_t cc_file;
 
     /* Perform HW initialization */
@@ -1410,23 +1416,25 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
 
     _m24sr_init_structure();
 
-#if defined(I2C_GPO_SYNCHRO_ALLOWED) || defined(I2C_GPO_INTERRUPT_ALLOWED)
-     DEBUG("Kill RF Session\n");
-    if (_m24sr_kill_rf_session(dev) == M24SR_OK) {
-        m24sr_manage_i2c_gpo(dev, I2C_ANSWER_READY);
-        m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
-    }
-#endif /* I2C_GPO_SYNCHRO_ALLOWED */
+// #if defined(I2C_GPO_SYNCHRO_ALLOWED) || defined(I2C_GPO_INTERRUPT_ALLOWED)
+//      DEBUG("Kill RF Session\n");
+//     if (_m24sr_kill_rf_session(dev) == M24SR_OK) {
+//         m24sr_manage_i2c_gpo(dev, I2C_ANSWER_READY);
+//         m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
+//     }
+// #endif /* I2C_GPO_SYNCHRO_ALLOWED */
 
     /* Read CC file */
-    status = _m24sr_get_i2c_session(dev);
-    while (status != M24SR_OK && trials) {
-        status = _m24sr_get_i2c_session(dev);
-        trials--;
-    }
-    if (status != M24SR_OK) {
-        return M24SR_ERROR;
-    }
+    // status = _m24sr_get_i2c_session(dev);
+    // while (status != M24SR_OK && trials) {
+    //     status = _m24sr_get_i2c_session(dev);
+    //     trials--;
+    // }
+    // if (status != M24SR_OK) {
+    //     return M24SR_ERROR;
+    // }
+
+    _m24sr_kill_rf_session(dev);
     /*===================================*/
     /* Select the NFC type 4 application */
     /*===================================*/
@@ -1444,11 +1452,16 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
     }
 
     /* read the first 15 bytes of the CC file */
-    if (m24sr_read_data(dev, 0x0000, (uint8_t *)&cc_file, sizeof(cc_file_info_t)) == M24SR_OK) {
+    DEBUG("CC FILE size %d\n", sizeof(cc_file_info_t));
+    if (m24sr_read_binary(dev, 0x0000, (uint8_t *)&cc_file, sizeof(cc_file_info_t)) == M24SR_OK) {
         
         dev->memory.chipsize = (cc_file.ndef_file_max_size - NDEF_FILE_LEN_NUM_BYTES);
-        dev->memory.max_read_byte = cc_file.max_read_byte;
-        dev->memory.max_write_byte = cc_file.max_write_byte;
+        dev->memory.max_read_byte = (cc_file.max_read_byte); //@FIXME SWAP ByteOrder
+        dev->memory.max_write_byte = (cc_file.max_write_byte);
+
+        DEBUG("[CC FILE] chipsize %d\n", cc_file.ndef_file_max_size);
+        DEBUG("[CC FILE] max_read_byte %d\n", cc_file.max_read_byte);
+        DEBUG("[CC FILE] max_write_byte %d\n", cc_file.max_write_byte);
 
         m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
         return M24SR_OK;
@@ -1470,6 +1483,8 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
 uint16_t m24sr_read_data (m24sr_t *dev, uint16_t offset, uint8_t *dst, uint16_t size) {
     uint16_t status;
     uint16_t max_read_byte = dev->memory.max_read_byte;
+
+    DEBUG("Offset is 0x%04X. Length is %d(0x%04X)\n", offset, size, size);
 
     if (size > max_read_byte) {
         do {

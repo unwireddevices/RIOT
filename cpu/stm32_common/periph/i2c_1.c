@@ -42,7 +42,7 @@
 #include "periph/gpio.h"
 #include "periph_conf.h"
 
-#define ENABLE_DEBUG    (1)
+#define ENABLE_DEBUG    (0)
 #include "debug.h"
 
 #define TICK_TIMEOUT    (0xFFFF)
@@ -400,6 +400,7 @@ static inline int _start(I2C_TypeDef *i2c, uint16_t address,
         return ret;
     }
 
+    DEBUG("[i2c] start: generate start condition is complete\n");
     return 0;
 }
 
@@ -462,7 +463,7 @@ static inline int _write(I2C_TypeDef *i2c, const uint8_t *data, size_t length)
         DEBUG("[i2c] write: write didn't complete\n");
         return -ENXIO;
     }
-
+    DEBUG("[i2c] write: write complete\n");
     return 0;
 }
 
@@ -476,6 +477,8 @@ static inline int _stop(I2C_TypeDef *i2c)
     DEBUG("[i2c] stop: Wait for transfer to be complete\n");
     while (!(i2c->ISR & I2C_ISR_TC) && tick--) {}
     if (i2c->ISR & ERROR_FLAG || !tick) {
+        DEBUG("[i2c] stop: Wait for transfer didn't complete\n");
+        DEBUG("[i2c] stop: Error flag is 0x%08X\n", (unsigned int)i2c->ISR);
         return -EIO;
     }
 
@@ -487,9 +490,11 @@ static inline int _stop(I2C_TypeDef *i2c)
     tick = TICK_TIMEOUT;
     while (!(i2c->CR2 & I2C_CR2_STOP) && tick--) {}
     if (!tick) {
+        DEBUG("[i2c] stop: Stop condition timeout\n");
         return -ETIMEDOUT;
     }
 
+    DEBUG("[i2c] stop: Generate stop condition is complete\n");
     return 0;
 }
 
@@ -518,6 +523,7 @@ static inline int _check_bus(I2C_TypeDef *i2c)
         return -EIO;
     }
 
+    DEBUG("[i2c] check_bus: bus no error\n");
     return ret;
 }
 

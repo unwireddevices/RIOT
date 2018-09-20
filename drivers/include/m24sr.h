@@ -120,9 +120,10 @@ enum {
 };
 
 int m24sr_eeprom_init(m24sr_t *dev, const m24sr_params_t *params);
-int m24sr_eeprom_read(m24sr_t *dev, void *dest, uint32_t addr, uint32_t size);
-int m24sr_eeprom_write(m24sr_t *dev, void *src, uint32_t addr, uint32_t size);
-int m24sr_eeprom_erase(m24sr_t *dev, uint32_t addr, uint32_t size);
+int m24sr_eeprom_read(m24sr_t *dev, void *dest, uint16_t addr, uint16_t size);
+int m24sr_eeprom_write(m24sr_t *dev, void *src, uint16_t addr, uint16_t size);
+//int m24sr_eeprom_erase(m24sr_t *dev, uint16_t addr, uint16_t size);
+int m24sr_eeprom_erase_all(m24sr_t *dev);
 int m24sr_eeprom_power(m24sr_t *dev, uint8_t power);
 
 #ifdef __cplusplus

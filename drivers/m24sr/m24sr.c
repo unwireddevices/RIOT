@@ -31,7 +31,7 @@
 
 #include "byteorder.h"
 
-#define ENABLE_DEBUG                (1)
+#define ENABLE_DEBUG                (0)
 #include "debug.h"
 
 
@@ -316,6 +316,8 @@ static int m24sr_select_application(m24sr_t *dev) {
 
     const uint8_t buffer[] = {0xD2, 0x76, 0x00, 0x00, 0x85, 0x01, 0x01};
 
+    DEBUG("\n");
+
     /* build the command */
     cmd.header.CLA = CLA_DEFAULT;
     cmd.header.INS = INS_SELECT;
@@ -373,6 +375,8 @@ static int m24sr_select_capability_container_file(m24sr_t *dev, uint16_t cc_file
     uint8_t *data = data_buffer;
     uint16_t len;
     
+    DEBUG("\n");
+
     /* build the command */
     cmd.header.CLA = CLA_DEFAULT;
     cmd.header.INS = INS_SELECT;
@@ -419,6 +423,8 @@ static int m24sr_select_ndef_file(m24sr_t *dev, uint16_t ndef_file_id) {
     uint8_t *data = data_buffer;
     uint16_t len;
 
+    DEBUG("\n");
+
     /* build the command */
     cmd.header.CLA = CLA_DEFAULT;
     cmd.header.INS = INS_SELECT;
@@ -447,7 +453,7 @@ static int m24sr_select_ndef_file(m24sr_t *dev, uint16_t ndef_file_id) {
         return M24SR_NOBUS;
     }
     status = _m24sr_is_correct_crc_residue(data, num_byte_read); //@TODO Return values not error. Return value is code SW
-    DEBUG("Return SW code 0x%04X", status);
+    DEBUG("Return SW code 0x%04X\n", status);
     
     if (status != SW_OK) {
         return M24SR_ERROR;
@@ -464,6 +470,8 @@ static int m24sr_select_system_file(m24sr_t *dev, uint16_t sys_file_id) {
 
     uint8_t *data = data_buffer;
     uint16_t len;
+
+    DEBUG("\n");
 
     /* build the command */
     cmd.header.CLA = CLA_DEFAULT;
@@ -493,7 +501,7 @@ static int m24sr_select_system_file(m24sr_t *dev, uint16_t sys_file_id) {
         return M24SR_NOBUS;
     }
     status = _m24sr_is_correct_crc_residue(data, num_byte_read); //@TODO Return values not error. Return value is code SW
-    DEBUG("Return SW code 0x%04X", status);
+    DEBUG("Return SW code 0x%04X\n", status);
     
     if (status != SW_OK) {
         return M24SR_ERROR;
@@ -509,7 +517,7 @@ static int m24sr_read_binary(m24sr_t *dev, uint16_t offset, uint8_t *dst_data, u
     uint16_t status;
     uint8_t *data = data_buffer;
 
-
+    DEBUG("\n");
     DEBUG("Offset is 0x%04X. Length is %d(0x%04X)\n", offset, len, len);
 
     /* build the command */
@@ -555,6 +563,8 @@ static int m24sr_update_binary(m24sr_t *dev, uint16_t offset, uint8_t *src_data,
 
     uint8_t *data = data_buffer;
 
+    DEBUG("\n");
+    DEBUG("Offset is 0x%04X. Length is %d(0x%04X)\n", offset, len, len);
     /* build the command */
     cmd.header.CLA = CLA_DEFAULT;
     cmd.header.INS = INS_UPDATE_BINARY;
@@ -590,7 +600,7 @@ static int m24sr_update_binary(m24sr_t *dev, uint16_t offset, uint8_t *src_data,
         }
     } else {
         status = _m24sr_is_correct_crc_residue(data, M24SR_STATUS_RESPONSE_NUM_BYTE); //@TODO Return values not error. Return value is code SW
-        DEBUG("Return SW code 0x%04X", status);    
+        DEBUG("Return SW code 0x%04X\n", status);    
         if (status != SW_OK) {
             return M24SR_ERROR;
         }
@@ -610,6 +620,9 @@ static int m24sr_verify(m24sr_t *dev, uint16_t pwd_id, uint8_t num_pwd_byte , ui
 
     uint8_t *data = data_buffer;
     uint16_t len = 0;
+
+
+    DEBUG("\n");
 
     /*check the parameters */
     if (pwd_id > 0x0003) {
@@ -655,7 +668,7 @@ static int m24sr_verify(m24sr_t *dev, uint16_t pwd_id, uint8_t num_pwd_byte , ui
     }
 
     status = _m24sr_is_correct_crc_residue(data, M24SR_STATUS_RESPONSE_NUM_BYTE); //@TODO Return values not error. Return value is code SW
-    DEBUG("Return SW code 0x%04X", status);
+    DEBUG("Return SW code 0x%04X\n", status);
     if (status != SW_OK) {
         return M24SR_ERROR;
     }
@@ -839,6 +852,7 @@ static int m24sr_extended_read_binary(m24sr_t *dev, uint16_t offset, uint8_t *ds
     uint16_t status;
     uint8_t *buffer = data_buffer;
 
+    DEBUG("\n");
 
     /* build the command */
     cmd.header.CLA = CLA_STM;
@@ -863,7 +877,7 @@ static int m24sr_extended_read_binary(m24sr_t *dev, uint16_t offset, uint8_t *ds
 
     status = _m24sr_is_correct_crc_residue(buffer, len + M24SR_STATUS_RESPONSE_NUM_BYTE); //@TODO Return values not error. Return value is code SW
     memcpy(dst_data, buffer, len);
-    DEBUG("Return SW code 0x%04X", status);    
+    DEBUG("Return SW code 0x%04X\n", status);    
     if (status != SW_OK) {
         return M24SR_ERROR;
     }
@@ -978,6 +992,8 @@ static int m24sr_update_file_type (m24sr_t *dev, uint8_t file_type) {
     uint16_t status;
 
     uint8_t *data = data_buffer;
+
+    DEBUG("\n");
 
     /* build the command */
     cmd.header.CLA = CLA_DEFAULT;
@@ -1137,6 +1153,8 @@ static int _m24sr_fwt_extension(m24sr_t *dev, uint8_t fwt_byte)
     uint16_t num_byte = 0;
     uint16_t crc;
 
+    DEBUG("\n");
+
     /* create the response */
     buffer[num_byte++] = 0xF2 ;
     buffer[num_byte++] = fwt_byte ;
@@ -1157,7 +1175,7 @@ static int _m24sr_fwt_extension(m24sr_t *dev, uint8_t fwt_byte)
 
     status = _m24sr_is_correct_crc_residue (buffer, M24SR_STATUS_RESPONSE_NUM_BYTE);
     if (status != SW_OK) {
-        DEBUG("Return SW code 0x%04X", status);
+        DEBUG("Return SW code 0x%04X\n", status);
         return M24SR_ERROR;
     }
 
@@ -1387,8 +1405,7 @@ uint16_t m24sr_manage_rf_gpo(m24sr_t *dev, m24sr_gpo_mode_t gpo_rf_config)
     * @param    OnOffChoice: GPO configuration to set
   * @retval Status (SW1&SW2) : Status of the operation to complete.
   */
-void m24sr_rf_config(const m24sr_t *dev, uint8_t rf_config)
-{
+void m24sr_rf_config(const m24sr_t *dev, uint8_t rf_config) {
     m24sr_rf_config_hw(dev, rf_config);
 }
 
@@ -1455,13 +1472,20 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
     DEBUG("CC FILE size %d\n", sizeof(cc_file_info_t));
     if (m24sr_read_binary(dev, 0x0000, (uint8_t *)&cc_file, sizeof(cc_file_info_t)) == M24SR_OK) {
         
-        dev->memory.chipsize = (cc_file.ndef_file_max_size - NDEF_FILE_LEN_NUM_BYTES);
-        dev->memory.max_read_byte = (cc_file.max_read_byte); //@FIXME SWAP ByteOrder
-        dev->memory.max_write_byte = (cc_file.max_write_byte);
+        dev->memory.chipsize = cc_file.ndef_file_max_size;
+        dev->memory.max_read_byte = cc_file.max_read_byte;
+        dev->memory.max_write_byte =cc_file.max_write_byte;
 
-        DEBUG("[CC FILE] chipsize %d\n", cc_file.ndef_file_max_size);
-        DEBUG("[CC FILE] max_read_byte %d\n", cc_file.max_read_byte);
-        DEBUG("[CC FILE] max_write_byte %d\n", cc_file.max_write_byte);
+
+        byteorder_swap((void *)&dev->memory.chipsize, sizeof(dev->memory.chipsize));
+        byteorder_swap((void *)&dev->memory.max_read_byte, sizeof(dev->memory.max_read_byte));
+        byteorder_swap((void *)&dev->memory.max_write_byte, sizeof(dev->memory.max_write_byte));
+
+        dev->memory.chipsize -= NDEF_FILE_LEN_NUM_BYTES; 
+
+        DEBUG("[CC FILE] chipsize %d(0x%04X)\n", dev->memory.chipsize, dev->memory.chipsize);
+        DEBUG("[CC FILE] max_read_byte %d(0x%04X)\n", dev->memory.max_read_byte, dev->memory.max_read_byte);
+        DEBUG("[CC FILE] max_write_byte %d(0x%04X)\n", dev->memory.max_write_byte, dev->memory.max_write_byte);
 
         m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
         return M24SR_OK;
@@ -1515,6 +1539,8 @@ uint16_t m24sr_force_read_data(m24sr_t *dev, uint16_t offset, uint8_t *dst, uint
     uint16_t status;
     uint16_t max_read_byte = dev->memory.max_read_byte;
 
+    DEBUG("Offset is 0x%04X. Length is %d(0x%04X)\n", offset, size, size);
+
     if (size > max_read_byte) {
         do {
             status = m24sr_extended_read_binary (dev, offset, dst, max_read_byte);
@@ -1540,6 +1566,8 @@ uint16_t m24sr_write_data (m24sr_t *dev, uint16_t offset, uint8_t *src, uint16_t
 {
     uint16_t status;
     uint16_t max_write_byte = dev->memory.max_write_byte;
+
+    DEBUG("Offset is 0x%04X. Length is %d(0x%04X)\n", offset, size, size);
 
     if (size > max_write_byte) {
         do {
@@ -1579,11 +1607,6 @@ uint16_t m24sr_manage_gpo(m24sr_t *dev, m24sr_gpo_mode_t gpo_config, uint8_t mod
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 //This global function for emmulatiom I2C eeprom
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-
-
 int m24sr_eeprom_init(m24sr_t *dev, const m24sr_params_t *params) {
     int ret = M24SR_OK;
 
@@ -1593,7 +1616,7 @@ int m24sr_eeprom_init(m24sr_t *dev, const m24sr_params_t *params) {
 }
 
 
-int m24sr_eeprom_read(m24sr_t *dev, void *dst, uint32_t addr, uint32_t size) {
+int m24sr_eeprom_read(m24sr_t *dev, void *dst, uint16_t addr, uint16_t size) {
     uint16_t total_size = dev->memory.chipsize;
     cc_file_info_t cc_file;
     uint16_t ndef_file_id = 0x0000;
@@ -1624,6 +1647,9 @@ int m24sr_eeprom_read(m24sr_t *dev, void *dst, uint32_t addr, uint32_t size) {
     m24sr_read_binary(dev, 0x0000, (uint8_t *)&cc_file, sizeof(cc_file_info_t));
     
     ndef_file_id = cc_file.ndef_file_id;
+    byteorder_swap((void *)&ndef_file_id, sizeof(ndef_file_id));
+    DEBUG("[NDEF File] ID is %d(0x%04X)\n", ndef_file_id, ndef_file_id);
+
     /* select NDEF file   */
     status = m24sr_select_ndef_file(dev, ndef_file_id);
     if (status != M24SR_OK) {
@@ -1635,15 +1661,18 @@ int m24sr_eeprom_read(m24sr_t *dev, void *dst, uint32_t addr, uint32_t size) {
         return M24SR_ERROR;
     }
 
-    if (size < ndef_file_size) {
-        status = m24sr_read_data(dev, NDEF_FILE_LEN_POS + addr, dst, size + NDEF_FILE_LEN_NUM_BYTES);
+
+    byteorder_swap((void *)&ndef_file_size, sizeof(ndef_file_size));
+    DEBUG("[NDEF File] Size is %d(0x%04X)\n", ndef_file_size, ndef_file_size);
+
+    if (size <= ndef_file_size) {
+        status = m24sr_read_data(dev, NDEF_FILE_LEN_NUM_BYTES + addr, dst, size);
+        DEBUG("[NDEF File] status is %d\n", status);
     } else {
         return M24SR_ERROR;
     }
     
-    if(status == M24SR_OK) {
-        return M24SR_OK;
-    } else {
+    if(status != M24SR_OK) {
         return M24SR_ERROR;
     }
 
@@ -1655,12 +1684,13 @@ int m24sr_eeprom_read(m24sr_t *dev, void *dst, uint32_t addr, uint32_t size) {
     return size;
 }
 
-int m24sr_eeprom_write(m24sr_t *dev, void *src, uint32_t addr, uint32_t size) {
+int m24sr_eeprom_write(m24sr_t *dev, void *src, uint16_t addr, uint16_t size) {
     uint16_t total_size = dev->memory.chipsize;
     cc_file_info_t cc_file;
     uint16_t ndef_file_id = 0x0000;
     uint16_t ndef_file_size = 0x0000;
     int status = M24SR_OK;
+    uint16_t write_size = size;
 
     
     if (addr > total_size) {
@@ -1673,6 +1703,8 @@ int m24sr_eeprom_write(m24sr_t *dev, void *src, uint32_t addr, uint32_t size) {
         return 0;
     }
 
+    DEBUG("Address is 0x%04X. Length is %d(0x%04X)\n", addr, size, size);
+
 
     status = _m24sr_open_i2c_session(dev, dev->params.priority);      
     if (status != M24SR_OK) {
@@ -1688,6 +1720,9 @@ int m24sr_eeprom_write(m24sr_t *dev, void *src, uint32_t addr, uint32_t size) {
     m24sr_read_binary(dev, 0x0000, (uint8_t *)&cc_file, sizeof(cc_file_info_t));
     
     ndef_file_id = cc_file.ndef_file_id;
+    byteorder_swap((void *)&ndef_file_id, sizeof(ndef_file_id));
+    DEBUG("[NDEF File] ID is %d(0x%04X)\n", ndef_file_id, ndef_file_id);
+
     /* select NDEF file   */
     status = m24sr_select_ndef_file(dev, ndef_file_id);
     if (status != M24SR_OK) {
@@ -1698,9 +1733,15 @@ int m24sr_eeprom_write(m24sr_t *dev, void *src, uint32_t addr, uint32_t size) {
     if (status != M24SR_OK) {
         return M24SR_ERROR;
     }
+    
+    byteorder_swap((void *)&ndef_file_size, sizeof(ndef_file_size));
+    write_size += ndef_file_size;
+    DEBUG("write_size is %d(0x%04X)\n", write_size, write_size);
+    DEBUG("[NDEF File] Read size is %d(0x%04X)\n", ndef_file_size, ndef_file_size);
+    DEBUG("[NDEF File] Free size %d(0x%04X)\n", (total_size - ndef_file_size), (total_size - ndef_file_size));
 
-    if (size < ndef_file_size) {
-        status = m24sr_write_data(dev, NDEF_FILE_LEN_POS + addr, src, size + NDEF_FILE_LEN_NUM_BYTES);
+    if (size <= (total_size - ndef_file_size)) {
+        status = m24sr_write_data(dev, NDEF_FILE_LEN_NUM_BYTES + addr, src, size);
     } else {
         return M24SR_ERROR;
     }
@@ -1709,27 +1750,102 @@ int m24sr_eeprom_write(m24sr_t *dev, void *src, uint32_t addr, uint32_t size) {
         return M24SR_ERROR;
     }
 
+    DEBUG("[NDEF File] Write size is %d(0x%04X)\n", size, size);
+    DEBUG("[NDEF File] Full size is %d(0x%04X)\n", write_size, write_size);
+    byteorder_swap((void *)&write_size, sizeof(write_size));
+    status = m24sr_write_data(dev, NDEF_FILE_LEN_POS, (uint8_t *)&write_size, NDEF_FILE_LEN_NUM_BYTES);
+
+    if(status != M24SR_OK) {
+        return M24SR_ERROR;
+    }
+
     m24sr_close_session(dev, dev->params.token_mode);
 
-
-
+    DEBUG("[NDEF File] Write size is %d(0x%04X)\n", size, size);
     return size;
 }
 
-int m24sr_eeprom_erase(m24sr_t *dev, uint32_t addr, uint32_t size) {
-    uint16_t total_size = dev->memory.chipsize;
+// int m24sr_eeprom_erase(m24sr_t *dev, uint16_t addr, uint16_t size) {
+//     uint16_t total_size = dev->memory.chipsize;
+//     cc_file_info_t cc_file;
+//     uint16_t ndef_file_id = 0x0000;
+//     uint16_t ndef_file_size = 0x0000;
+//     int status = M24SR_OK;
+//     uint8_t src[0xFF]={0x00};
+
+//     if (addr > total_size) {
+//         return -EOVERFLOW;
+//     }
+//     if (addr + size > total_size) {
+//         return -EOVERFLOW;
+//     }
+
+//     status = _m24sr_open_i2c_session(dev, dev->params.priority);      
+//     if (status != M24SR_OK) {
+//         return M24SR_ERROR;
+//     }
+//     /* Select the NFC type 4 application */ 
+//     status = m24sr_select_application(dev);
+//     if (status != M24SR_OK) {
+//         return M24SR_ERROR;
+//     }
+//     /**/
+//     m24sr_select_capability_container_file(dev, M24SR_CC_FILE_ID);
+//     m24sr_read_binary(dev, 0x0000, (uint8_t *)&cc_file, sizeof(cc_file_info_t));
+    
+//     ndef_file_id = cc_file.ndef_file_id;
+//     byteorder_swap((void *)&ndef_file_id, sizeof(ndef_file_id));
+//     DEBUG("[NDEF File] ID is %d(0x%04X)\n", ndef_file_id, ndef_file_id);
+
+//     /* select NDEF file   */
+//     status = m24sr_select_ndef_file(dev, ndef_file_id);
+//     if (status != M24SR_OK) {
+//         return M24SR_ERROR;
+//     }
+
+//     status = m24sr_read_data(dev, NDEF_FILE_LEN_POS, (uint8_t *)&ndef_file_size, NDEF_FILE_LEN_NUM_BYTES);
+//     if (status != M24SR_OK) {
+//         return M24SR_ERROR;
+//     }
+
+//     byteorder_swap((void *)&ndef_file_size, sizeof(ndef_file_size));
+//     DEBUG("[NDEF File] Read size is %d(0x%04X)\n", ndef_file_size, ndef_file_size);
+
+
+//     memset(src, 0xFF, sizeof(src));
+
+//     if (size < (total_size - ndef_file_size)) {
+//         status = m24sr_write_data(dev, NDEF_FILE_LEN_POS + addr, src, size + NDEF_FILE_LEN_NUM_BYTES);
+//     } else {
+//         return M24SR_ERROR;
+//     }
+    
+//     if(status != M24SR_OK) {
+//         return M24SR_ERROR;
+//     }
+
+//     DEBUG("[NDEF File] Write size is %d(0x%04X)\n", size, size);
+//     status = m24sr_write_data(dev, NDEF_FILE_LEN_POS, (uint8_t *)&size, NDEF_FILE_LEN_NUM_BYTES);
+
+//     if(status != M24SR_OK) {
+//         return M24SR_ERROR;
+//     }
+
+
+//     m24sr_close_session(dev, dev->params.token_mode);
+
+
+//     return 0;
+// }
+
+
+int m24sr_eeprom_erase_all(m24sr_t *dev) {
+    //uint16_t total_size = dev->memory.chipsize;
     cc_file_info_t cc_file;
     uint16_t ndef_file_id = 0x0000;
     uint16_t ndef_file_size = 0x0000;
     int status = M24SR_OK;
-    uint8_t src[0xFF]={0x00};
-
-    if (addr > total_size) {
-        return -EOVERFLOW;
-    }
-    if (addr + size > total_size) {
-        return -EOVERFLOW;
-    }
+    uint16_t size = 0x0000;
 
     status = _m24sr_open_i2c_session(dev, dev->params.priority);      
     if (status != M24SR_OK) {
@@ -1745,6 +1861,9 @@ int m24sr_eeprom_erase(m24sr_t *dev, uint32_t addr, uint32_t size) {
     m24sr_read_binary(dev, 0x0000, (uint8_t *)&cc_file, sizeof(cc_file_info_t));
     
     ndef_file_id = cc_file.ndef_file_id;
+    byteorder_swap((void *)&ndef_file_id, sizeof(ndef_file_id));
+    DEBUG("[NDEF File] ID is %d(0x%04X)\n", ndef_file_id, ndef_file_id);
+
     /* select NDEF file   */
     status = m24sr_select_ndef_file(dev, ndef_file_id);
     if (status != M24SR_OK) {
@@ -1756,21 +1875,22 @@ int m24sr_eeprom_erase(m24sr_t *dev, uint32_t addr, uint32_t size) {
         return M24SR_ERROR;
     }
 
-    if (size < ndef_file_size) {
-        status = m24sr_write_data(dev, NDEF_FILE_LEN_POS + addr, src, size + NDEF_FILE_LEN_NUM_BYTES);
-    } else {
-        return M24SR_ERROR;
-    }
-    
+    byteorder_swap((void *)&ndef_file_size, sizeof(ndef_file_size));
+    DEBUG("[NDEF File] Read size is %d(0x%04X)\n", ndef_file_size, ndef_file_size);
+
+
+    DEBUG("[NDEF File] Write size is %d(0x%04X)\n", size, size);
+    status = m24sr_write_data(dev, NDEF_FILE_LEN_POS, (uint8_t *)&size, NDEF_FILE_LEN_NUM_BYTES);
+
     if(status != M24SR_OK) {
         return M24SR_ERROR;
     }
 
     m24sr_close_session(dev, dev->params.token_mode);
-
-
+    
     return 0;
 }
+
 
 int m24sr_eeprom_power(m24sr_t *dev, uint8_t power) {
 

@@ -31,72 +31,69 @@
 #include "m24sr.h"
 #include "m24sr_params.h"
 
-#define TEST_NVRAM_SPI_SIZE    0x100
-
-
 /* This will only work on small memories. Modify if you need to test NVRAM
  * memories which do not fit inside free RAM */
-// static uint8_t buf_out[TEST_NVRAM_SPI_SIZE];
-// static uint8_t buf_in[TEST_NVRAM_SPI_SIZE];
+static uint8_t buf_out[0xFF];
+static uint8_t buf_in[0XFF];
 
 
-// /**
-//  * @brief xxd-like printing of a binary buffer
-//  */
-// static void print_buffer(const uint8_t * buf, size_t length) {
-//     static const unsigned int bytes_per_line = 16;
-//     static const unsigned int bytes_per_group = 2;
-//     unsigned long i = 0;
-//     while (i < length) {
-//         unsigned int col;
-//         for (col = 0; col < bytes_per_line; ++col) {
-//             /* Print hex data */
-//             if (col == 0) {
-//                 printf("\n%08lx: ", i);
-//             }
-//             else if ((col % bytes_per_group) == 0) {
-//                 putchar(' ');
-//             }
-//             if ((i + col) < length) {
-//                 printf("%02hhx", buf[i + col]);
-//             } else {
-//                 putchar(' ');
-//                 putchar(' ');
-//             }
-//         }
-//         putchar(' ');
-//         for (col = 0; col < bytes_per_line; ++col) {
-//             if ((i + col) < length) {
-//                 /* Echo only printable chars */
-//                 if (isprint(buf[i + col])) {
-//                     putchar(buf[i + col]);
-//                 } else {
-//                     putchar('.');
-//                 }
-//             } else {
-//                 putchar(' ');
-//             }
-//         }
-//         i += bytes_per_line;
-//     }
-//     /* end with a newline */
-//     puts("");
-// }
+/**
+ * @brief xxd-like printing of a binary buffer
+ */
+static void print_buffer(const uint8_t * buf, size_t length) {
+    static const unsigned int bytes_per_line = 16;
+    static const unsigned int bytes_per_group = 2;
+    unsigned long i = 0;
+    while (i < length) {
+        unsigned int col;
+        for (col = 0; col < bytes_per_line; ++col) {
+            /* Print hex data */
+            if (col == 0) {
+                printf("\n%08lx: ", i);
+            }
+            else if ((col % bytes_per_group) == 0) {
+                putchar(' ');
+            }
+            if ((i + col) < length) {
+                printf("%02x ", buf[i + col]);
+            } else {
+                putchar(' ');
+                putchar(' ');
+            }
+        }
+        putchar(' ');
+        for (col = 0; col < bytes_per_line; ++col) {
+            if ((i + col) < length) {
+                /* Echo only printable chars */
+                if (isprint(buf[i + col])) {
+                    putchar(buf[i + col]);
+                } else {
+                    putchar('.');
+                }
+            } else {
+                putchar(' ');
+            }
+        }
+        i += bytes_per_line;
+    }
+    /* end with a newline */
+    puts("\n");
+}
 
-// /* weak PRNG for generating "random" test data */
-// static uint8_t lcg_rand8(void) {
-//     static const uint32_t a = 1103515245;
-//     static const uint32_t c = 12345;
-//     static uint32_t val = 123456; /* seed value */
-//     val = val * a + c;
-//     return (val >> 16) & 0xff;
-// }
+/* weak PRNG for generating "random" test data */
+static uint8_t lcg_rand8(void) {
+    static const uint32_t a = 1103515245;
+    static const uint32_t c = 12345;
+    static uint32_t val = 123456; /* seed value */
+    val = val * a + c;
+    return (val >> 16) & 0xff;
+}
 
 
 int main(void)
 {
-    // uint32_t i;
-    // uint32_t start_delay = 10;
+    uint32_t i;
+    uint32_t start_delay = 3;
     /* allocate device descriptor */
     static m24sr_t dev;
 
@@ -123,116 +120,101 @@ int main(void)
         return 1;
     }
 
+    m24sr_eeprom_erase_all(&dev);
 
     puts("M24SR memory init done.\n");
 
-    // puts("!!! This test will erase everything on the M24SR memory !!!");
-    // puts("!!! Unplug/reset/halt device now if this is not acceptable !!!");
-    // puts("Waiting for 10 seconds before continuing...");
-    // xtimer_sleep(start_delay);
+    puts("!!! This test will erase everything on the M24SR memory !!!");
+    puts("!!! Unplug/reset/halt device now if this is not acceptable !!!");
+    printf("\tWaiting for %ld seconds before continuing...\n", start_delay);
+    xtimer_sleep(start_delay);
 
-    // puts("Reading current memory contents...");
-    // for (i = 0; i < TEST_NVRAM_SPI_SIZE; ++i) {
-    //     if (m24sr_eeprom_read(&dev, &buf_in[i], i, 1) != 1) {
-    //         puts("[Failed]\n");
-    //         return 1;
-    //     }
-    // }
-    // puts("[OK]");
-    // puts("NVRAM contents before test:");
-    // print_buffer(buf_in, sizeof(buf_in));
+    puts("\tWriting blockwise to device\n");
 
+    memset(buf_out, 0xff, sizeof(buf_out));
+    if (m24sr_eeprom_write(&dev, buf_out, 0, dev.memory.chipsize) != dev.memory.chipsize) {
+        puts("[Failed]\n");
+        return 1;
+    }
 
-    //  puts("Writing bytewise 0xFF to device");
+    puts("Reading back blockwise");
+    memset(buf_in, 0x00, sizeof(buf_in));
+    if (m24sr_eeprom_read(&dev, buf_in, 0, dev.memory.chipsize) != dev.memory.chipsize) {
+        puts("[Failed]\n");
+        return 1;
+    }
+    puts("[OK]");
+    puts("Verifying contents...");
+    if (memcmp(buf_in, buf_out, dev.memory.chipsize) != 0) {
+        puts("[Failed]\n");
+        return 1;
+    }
+    puts("[OK]");
 
-    // memset(buf_out, 0xff, sizeof(buf_out));
-    // for (i = 0; i < TEST_NVRAM_SPI_SIZE; ++i) {
-    //     if (m24sr_eeprom_write(&dev, &buf_out[i], i, 1) != 1) {
-    //         puts("[Failed]\n");
-    //         return 1;
-    //     }
-    //     if (buf_out[i] != 0xff) {
-    //         puts("nvram_spi_write modified *src!");
-    //         printf(" i = %08lx\n", (unsigned long) i);
-    //         puts("[Failed]\n");
-    //         return 1;
-    //     }
-    // }
+    m24sr_eeprom_erase_all(&dev);
 
-    // puts("Reading back blockwise");
-    // memset(buf_in, 0x00, sizeof(buf_in));
-    // if (m24sr_eeprom_read(&dev, buf_in, 0, TEST_NVRAM_SPI_SIZE) != TEST_NVRAM_SPI_SIZE) {
-    //     puts("[Failed]\n");
-    //     return 1;
-    // }
-    // puts("[OK]");
-    // puts("Verifying contents...");
-    // if (memcmp(buf_in, buf_out, TEST_NVRAM_SPI_SIZE) != 0) {
-    //     puts("[Failed]\n");
-    //     return 1;
-    // }
-    // puts("[OK]");
+    puts("Writing blockwise address complement to device");
+    for (i = 0; i < dev.memory.chipsize; ++i) {
+        buf_out[i] = (~(i)) & 0xff;
+    }
+    if (m24sr_eeprom_write(&dev, buf_out, 0, dev.memory.chipsize) != dev.memory.chipsize) {
+        puts("[Failed]\n");
+        return 1;
+    }
+    puts("[OK]");
+    puts("buf_out:");
+    print_buffer(buf_out, sizeof(buf_out));
+    puts("Reading back blockwise");
+    memset(buf_in, 0x00, sizeof(buf_in));
+    if (m24sr_eeprom_read(&dev, buf_in, 0, dev.memory.chipsize) != dev.memory.chipsize) {
+        puts("[Failed]\n");
+        return 1;
+    }
+    puts("[OK]");
+    puts("Verifying contents...");
+    if (memcmp(buf_in, buf_out, dev.memory.chipsize) != 0) {
+        puts("buf_in:");
+        print_buffer(buf_in, sizeof(buf_in));
+        puts("[Failed]\n");
+        return 1;
+    }
+    puts("[OK]");
 
-    // puts("Writing blockwise address complement to device");
-    // for (i = 0; i < TEST_NVRAM_SPI_SIZE; ++i) {
-    //     buf_out[i] = (~(i)) & 0xff;
-    // }
-    // if (m24sr_eeprom_write(&dev, buf_out, 0, TEST_NVRAM_SPI_SIZE) != TEST_NVRAM_SPI_SIZE) {
-    //     puts("[Failed]\n");
-    //     return 1;
-    // }
-    // puts("[OK]");
-    // puts("buf_out:");
-    // print_buffer(buf_out, sizeof(buf_out));
-    // puts("Reading back blockwise");
-    // memset(buf_in, 0x00, sizeof(buf_in));
-    // if (m24sr_eeprom_read(&dev, buf_in, 0, TEST_NVRAM_SPI_SIZE) != TEST_NVRAM_SPI_SIZE) {
-    //     puts("[Failed]\n");
-    //     return 1;
-    // }
-    // puts("[OK]");
-    // puts("Verifying contents...");
-    // if (memcmp(buf_in, buf_out, TEST_NVRAM_SPI_SIZE) != 0) {
-    //     puts("buf_in:");
-    //     print_buffer(buf_in, sizeof(buf_in));
-    //     puts("[Failed]\n");
-    //     return 1;
-    // }
-    // puts("[OK]");
+    m24sr_eeprom_erase_all(&dev);
 
-    // puts("Generating pseudo-random test data...");
+    puts("Generating pseudo-random test data...");
 
-    // for (i = 0; i < TEST_NVRAM_SPI_SIZE; ++i) {
-    //     buf_out[i] = lcg_rand8();
-    // }
+    for (i = 0; i < dev.memory.chipsize; ++i) {
+        buf_out[i] = lcg_rand8();
+    }
 
-    // puts("buf_out:");
-    // print_buffer(buf_out, sizeof(buf_out));
+    puts("buf_out:");
+    print_buffer(buf_out, sizeof(buf_out));
 
-    // puts("Writing blockwise data to device");
-    // if (m24sr_eeprom_write(&dev, buf_out, 0, TEST_NVRAM_SPI_SIZE) != TEST_NVRAM_SPI_SIZE) {
-    //     puts("[Failed]\n");
-    //     return 1;
-    // }
-    // puts("[OK]");
+    puts("Writing blockwise data to device");
+    if (m24sr_eeprom_write(&dev, buf_out, 0, dev.memory.chipsize) != dev.memory.chipsize) {
+        puts("[Failed]\n");
+        return 1;
+    }
+    puts("[OK]");
 
-    // puts("Reading back blockwise");
-    // memset(buf_in, 0x00, sizeof(buf_in));
-    // if (m24sr_eeprom_read(&dev, buf_in, 0, TEST_NVRAM_SPI_SIZE) != TEST_NVRAM_SPI_SIZE) {
-    //     puts("[Failed]\n");
-    //     return 1;
-    // }
-    // puts("[OK]");
-    // puts("Verifying contents...");
-    // if (memcmp(buf_in, buf_out, TEST_NVRAM_SPI_SIZE) != 0) {
-    //     puts("buf_in:");
-    //     print_buffer(buf_in, sizeof(buf_in));
-    //     puts("[Failed]\n");
-    //     return 1;
-    // }
-    // puts("[OK]");
+    puts("Reading back blockwise");
+    memset(buf_in, 0x00, sizeof(buf_in));
+    if (m24sr_eeprom_read(&dev, buf_in, 0, dev.memory.chipsize) != dev.memory.chipsize) {
+        puts("[Failed]\n");
+        return 1;
+    }
+    puts("[OK]");
+    puts("Verifying contents...");
+    if (memcmp(buf_in, buf_out, dev.memory.chipsize) != 0) {
+        puts("buf_in:");
+        print_buffer(buf_in, sizeof(buf_in));
+        puts("[Failed]\n");
+        return 1;
+    }
+    puts("[OK]");
 
-    // puts("All tests passed!");
+    puts("All tests passed!");
 
     while (1) {
         gpio_toggle(GPIO_PIN(PORT_B, 0));

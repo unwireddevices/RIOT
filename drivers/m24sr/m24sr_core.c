@@ -31,7 +31,7 @@
 #include "periph/i2c.h"
 #include "xtimer.h"
 
-#define ENABLE_DEBUG                (1)
+#define ENABLE_DEBUG                (0)
 #include "debug.h"
 
 
@@ -109,7 +109,7 @@ static int _read_i2c(const m24sr_t *dev, uint8_t *buffer, uint32_t len)
 
 int m24sr_send_i2c_cmd(const m24sr_t *dev, uint8_t *buffer, uint8_t len) {
     int ret = (_write_i2c(dev, buffer, len) == 0) ? (M24SR_OK) : (M24SR_NOBUS);
-    DEBUG("Write I2C is %s\n",(ret == 0)?"M24SR_OK":"M24SR_NOBUS");
+    //DEBUG("Write I2C is %s\n",(ret == 0)?"M24SR_OK":"M24SR_NOBUS");
     return ret;
 }
 
@@ -123,7 +123,7 @@ int m24sr_send_i2c_cmd(const m24sr_t *dev, uint8_t *buffer, uint8_t len) {
  */
 int m24sr_rcv_i2c_response(const m24sr_t *dev, uint8_t *buffer, uint8_t len) {
     int ret = (_read_i2c(dev, buffer, len) == 0) ? (M24SR_OK) : (M24SR_NOBUS);
-    DEBUG("Read I2C is %s\n",(ret == 0)?"M24SR_OK":"M24SR_NOBUS"); 
+    //DEBUG("Read I2C is %s\n",(ret == 0)?"M24SR_OK":"M24SR_NOBUS"); 
     return ret;
 }
 
@@ -209,7 +209,7 @@ int m24sr_is_answer_rdy(m24sr_t *dev) {
         case M24SR_INTERRUPT_GPO:
             /* Check if the GPIO is not already low before calling this function */
             if (gpio_read(dev->params.gpo_pin) == 1) {
-                while (dev->event_ready == 0); //@FIXME Change to event_received
+                while (dev->event_ready == 0);
             }
             dev->event_ready = 0;
             return M24SR_OK;

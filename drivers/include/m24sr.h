@@ -82,6 +82,7 @@ typedef struct {
     uint16_t type;
     uint16_t max_read_byte;
     uint16_t max_write_byte;
+    uint8_t uid[7];
 } m24sr_memory_t;
 
 

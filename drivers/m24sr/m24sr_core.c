@@ -31,7 +31,7 @@
 #include "periph/i2c.h"
 #include "xtimer.h"
 
-#define ENABLE_DEBUG                (0)
+#define ENABLE_DEBUG                (1)
 #include "debug.h"
 
 
@@ -154,7 +154,7 @@ int m24sr_poll_i2c (const m24sr_t *dev) {
         ret = M24SR_OK;
     }
     i2c_write_bytes(dev->params.i2c, dev->params.i2c_addr, data, 0, I2C_NOSTART);
-    DEBUG("Polling end. Status is %d\n",ret);
+    // DEBUG("Polling end. Status is %d\n",ret);
     return ret;
 }
 
@@ -164,16 +164,16 @@ int m24sr_release_i2c_token(const m24sr_t *dev) {
     int status = M24SR_OK;
     uint8_t data[] = {0x00};
 
-    DEBUG("Release Token I2C\n");
+    // DEBUG("Release Token I2C\n");
 
     status = i2c_write_bytes(dev->params.i2c, dev->params.i2c_addr, data, 0, I2C_NOSTOP);
     if (status != 0)
         return M24SR_NOBUS;
-    DEBUG("Delay\n");
+    // DEBUG("Delay\n");
     xtimer_usleep(40000);
 
     status = i2c_write_bytes(dev->params.i2c, dev->params.i2c_addr, data, 0, I2C_NOSTART);
-    DEBUG("End release token (status is %d)\n", status);
+    // DEBUG("End release token (status is %d)\n", status);
     if (status == 0)
         return M24SR_OK;
     else

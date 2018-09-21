@@ -108,17 +108,20 @@ typedef struct {
 /**
   * @brief System file structure
   */
-typedef struct {
-  uint16_t sys_file_len;
-  uint8_t  i2c_protect;
-  uint8_t  i2c_watchdog;
-  uint8_t  gpo;
-  uint8_t  reserved;
-  uint8_t  rf_enable;
-  uint8_t  ndef_file_num;
-  uint8_t  UID[7];
-  uint16_t memory_size;
-  uint8_t  prod_code;  
+typedef union { 
+    struct {
+        uint16_t sys_file_len;
+        uint8_t  i2c_protect;
+        uint8_t  i2c_watchdog;
+        uint8_t  gpo;
+        uint8_t  reserved;
+        uint8_t  rf_enable;
+        uint8_t  ndef_file_num;
+        uint8_t  UID[7];
+        uint16_t memory_size;
+        uint8_t  prod_code;
+    } field;
+    uint8_t data[18];
 }__attribute__((packed)) sys_file_info_t;
 
 

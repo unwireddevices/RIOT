@@ -31,7 +31,7 @@
 
 #include "byteorder.h"
 
-#define ENABLE_DEBUG                (0)
+#define ENABLE_DEBUG                (1)
 #include "debug.h"
 
 
@@ -1423,6 +1423,7 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
     int status = M24SR_OK;
     // uint8_t trials = 5;
     cc_file_info_t cc_file;
+    sys_file_info_t sys_file;
 
     /* Perform HW initialization */
     status = m24sr_i2c_init_hw (dev, params);
@@ -1458,7 +1459,31 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
     DEBUG("Select the NFC type 4 application\n");
     status = m24sr_select_application(dev);
     if (status != M24SR_OK) {
+        m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
         return M24SR_ERROR;
+    }
+    /*===================*/
+    /* select a SYS file */
+    /*===================*/
+    status = m24sr_select_system_file(dev, M24SR_SYS_FILE_ID);
+    if (status != M24SR_OK) {
+        return M24SR_ERROR;
+    }
+    DEBUG("SYS FILE size %d\n", sizeof(sys_file.data));
+    if (m24sr_read_binary(dev, 0x0000, sys_file.data, sizeof(sys_file.data)) == M24SR_OK) {
+        for (uint8_t i = 0; i < sizeof(sys_file.data); i++) {
+            printf("%02X ", sys_file.data[i]);
+        }
+        printf("\n");
+        printf("NDEF File Number is %02X\n", sys_file.field.ndef_file_num);
+        printf("Unique identifier by a %d bytes : ", sizeof(sys_file.field.UID));
+        for (uint8_t i = 0; i < sizeof(sys_file.field.UID); i++) {
+            printf("%02X ", sys_file.field.UID[i]);
+        }
+        printf("\n");
+    } else {
+        m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
+        return M24SR_OK;
     }
     /*==================*/
     /* select a CC file */
@@ -1765,78 +1790,77 @@ int m24sr_eeprom_write(m24sr_t *dev, void *src, uint16_t addr, uint16_t size) {
     return size;
 }
 
-// int m24sr_eeprom_erase(m24sr_t *dev, uint16_t addr, uint16_t size) {
-//     uint16_t total_size = dev->memory.chipsize;
-//     cc_file_info_t cc_file;
-//     uint16_t ndef_file_id = 0x0000;
-//     uint16_t ndef_file_size = 0x0000;
-//     int status = M24SR_OK;
-//     uint8_t src[0xFF]={0x00};
+int m24sr_eeprom_erase(m24sr_t *dev, uint16_t addr, uint16_t size) {
+    uint16_t total_size = dev->memory.chipsize;
+    cc_file_info_t cc_file;
+    uint16_t ndef_file_id = 0x0000;
+    uint16_t ndef_file_size = 0x0000;
+    int status = M24SR_OK;
+    uint8_t src[0xFF]={0x00};
 
-//     if (addr > total_size) {
-//         return -EOVERFLOW;
-//     }
-//     if (addr + size > total_size) {
-//         return -EOVERFLOW;
-//     }
+    if (addr > total_size) {
+        return -EOVERFLOW;
+    }
+    if (addr + size > total_size) {
+        return -EOVERFLOW;
+    }
 
-//     status = _m24sr_open_i2c_session(dev, dev->params.priority);      
-//     if (status != M24SR_OK) {
-//         return M24SR_ERROR;
-//     }
-//     /* Select the NFC type 4 application */ 
-//     status = m24sr_select_application(dev);
-//     if (status != M24SR_OK) {
-//         return M24SR_ERROR;
-//     }
-//     /**/
-//     m24sr_select_capability_container_file(dev, M24SR_CC_FILE_ID);
-//     m24sr_read_binary(dev, 0x0000, (uint8_t *)&cc_file, sizeof(cc_file_info_t));
+    status = _m24sr_open_i2c_session(dev, dev->params.priority);      
+    if (status != M24SR_OK) {
+        return M24SR_ERROR;
+    }
+    /* Select the NFC type 4 application */ 
+    status = m24sr_select_application(dev);
+    if (status != M24SR_OK) {
+        return M24SR_ERROR;
+    }
+    /**/
+    m24sr_select_capability_container_file(dev, M24SR_CC_FILE_ID);
+    m24sr_read_binary(dev, 0x0000, (uint8_t *)&cc_file, sizeof(cc_file_info_t));
     
-//     ndef_file_id = cc_file.ndef_file_id;
-//     byteorder_swap((void *)&ndef_file_id, sizeof(ndef_file_id));
-//     DEBUG("[NDEF File] ID is %d(0x%04X)\n", ndef_file_id, ndef_file_id);
+    ndef_file_id = cc_file.ndef_file_id;
+    byteorder_swap((void *)&ndef_file_id, sizeof(ndef_file_id));
+    DEBUG("[NDEF File] ID is %d(0x%04X)\n", ndef_file_id, ndef_file_id);
 
-//     /* select NDEF file   */
-//     status = m24sr_select_ndef_file(dev, ndef_file_id);
-//     if (status != M24SR_OK) {
-//         return M24SR_ERROR;
-//     }
+    /* select NDEF file   */
+    status = m24sr_select_ndef_file(dev, ndef_file_id);
+    if (status != M24SR_OK) {
+        return M24SR_ERROR;
+    }
 
-//     status = m24sr_read_data(dev, NDEF_FILE_LEN_POS, (uint8_t *)&ndef_file_size, NDEF_FILE_LEN_NUM_BYTES);
-//     if (status != M24SR_OK) {
-//         return M24SR_ERROR;
-//     }
+    status = m24sr_read_data(dev, NDEF_FILE_LEN_POS, (uint8_t *)&ndef_file_size, NDEF_FILE_LEN_NUM_BYTES);
+    if (status != M24SR_OK) {
+        return M24SR_ERROR;
+    }
 
-//     byteorder_swap((void *)&ndef_file_size, sizeof(ndef_file_size));
-//     DEBUG("[NDEF File] Read size is %d(0x%04X)\n", ndef_file_size, ndef_file_size);
+    byteorder_swap((void *)&ndef_file_size, sizeof(ndef_file_size));
+    DEBUG("[NDEF File] Read size is %d(0x%04X)\n", ndef_file_size, ndef_file_size);
 
 
-//     memset(src, 0xFF, sizeof(src));
+    memset(src, 0xFF, sizeof(src));
 
-//     if (size < (total_size - ndef_file_size)) {
-//         status = m24sr_write_data(dev, NDEF_FILE_LEN_POS + addr, src, size + NDEF_FILE_LEN_NUM_BYTES);
-//     } else {
-//         return M24SR_ERROR;
-//     }
+    if (size < (total_size - ndef_file_size)) {
+        status = m24sr_write_data(dev, NDEF_FILE_LEN_POS + addr, src, size + NDEF_FILE_LEN_NUM_BYTES);
+    } else {
+        return M24SR_ERROR;
+    }
     
-//     if(status != M24SR_OK) {
-//         return M24SR_ERROR;
-//     }
+    if(status != M24SR_OK) {
+        return M24SR_ERROR;
+    }
 
-//     DEBUG("[NDEF File] Write size is %d(0x%04X)\n", size, size);
-//     status = m24sr_write_data(dev, NDEF_FILE_LEN_POS, (uint8_t *)&size, NDEF_FILE_LEN_NUM_BYTES);
+    DEBUG("[NDEF File] Write size is %d(0x%04X)\n", size, size);
+    status = m24sr_write_data(dev, NDEF_FILE_LEN_POS, (uint8_t *)&size, NDEF_FILE_LEN_NUM_BYTES);
 
-//     if(status != M24SR_OK) {
-//         return M24SR_ERROR;
-//     }
-
-
-//     m24sr_close_session(dev, dev->params.token_mode);
+    if(status != M24SR_OK) {
+        return M24SR_ERROR;
+    }
 
 
-//     return 0;
-// }
+    m24sr_close_session(dev, dev->params.token_mode);
+
+    return 0;
+}
 
 
 int m24sr_eeprom_erase_all(m24sr_t *dev) {

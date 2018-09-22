@@ -49,7 +49,7 @@
 
 #if defined(CPU_MODEL_STM32L432KC) || defined(CPU_MODEL_STM32L433RC)
 #define FLASHPAGE_NUMOF            (128U)
-#elif defined(CPU_MODEL_STM32L452RE)
+#elif defined(CPU_MODEL_STM32L452RE) || defined(CPU_MODEL_STM32L451CC)
 #define FLASHPAGE_NUMOF            (256U)
 #else
 #define FLASHPAGE_NUMOF            (512U)

@@ -74,6 +74,10 @@ void eeprom_write_byte(uint32_t pos, uint8_t data);
  */
 size_t eeprom_write(uint32_t pos, const uint8_t *data, size_t len);
 
+size_t eeprom_clear_all(void);
+
+size_t eeprom_clear(uint32_t start, size_t size);
+
 #ifdef __cplusplus
 }
 #endif

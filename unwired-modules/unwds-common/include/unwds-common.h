@@ -25,7 +25,6 @@
 #include "shell.h"
 #include "shell_commands.h"
 #include "periph/gpio.h"
-#include "nvram.h"
 
 #include "unwds-ids.h"
 
@@ -35,7 +34,7 @@ typedef uint8_t unwds_module_id_t;
  * Modules NVRAM configuration.
  */
 
-void unwds_setup_nvram_config(nvram_t *nvram_ptr, int base_addr, int block_size);
+void unwds_setup_nvram_config(int base_addr, int block_size);
 
 /**
  * @brief Reads data from NVRAM configuration for specified module
@@ -151,7 +150,7 @@ void convert_to_be_sam(void *ptr, size_t size);
 /* converts number to BE, sign-and-magnitude format */
 void convert_from_be_sam(void *ptr, size_t size);
 
-bool unwds_read_nvram_storage(unwds_module_id_t module_id, uint8_t *data_out, uint8_t size);
+bool unwds_read_nvram_storage(unwds_module_id_t module_id, uint8_t *data_out, size_t size);
 bool unwds_write_nvram_storage(unwds_module_id_t module_id, uint8_t *data, size_t data_size);
 
 #endif /* UNWDS_COMMON_H_ */

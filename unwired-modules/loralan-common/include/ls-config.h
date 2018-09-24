@@ -19,7 +19,6 @@
 #ifndef LORA_STAR_UNI_CONFIG_H_
 #define LORA_STAR_UNI_CONFIG_H_
 
-#include "nvram.h"
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -70,14 +69,14 @@ typedef struct {
 #define UNWDS_CONFIG_BASE_ADDR (256)
 #define UNWDS_CONFIG_BLOCK_SIZE_BYTES (24)
 
-bool load_eui64_nvram(nvram_t *nvram);
+bool load_eui64_nvram(void);
 bool write_eui64_nvram(uint64_t eui);
 
-bool save_config_nvram(nvram_t *nvram);
-bool load_config_nvram(nvram_t *nvram);
+bool save_config_nvram(void);
+bool load_config_nvram(void);
 bool clear_nvram(void);
 bool clear_nvram_modules(int modid);
-void config_reset_nvram(nvram_t *nvram);
+void config_reset_nvram(void);
 config_role_t config_get_role(void);
 
 /* Device specific settings */
@@ -90,7 +89,5 @@ uint32_t config_get_devnonce(void);
 /* Role specific settings */
 bool config_write_role_block(uint8_t *buf, size_t size);
 bool config_read_role_block(uint8_t *buf, size_t size);
-
-nvram_t *config_get_nvram(void);
 
 #endif /* LORA_STAR_UNI_CONFIG_H_ */

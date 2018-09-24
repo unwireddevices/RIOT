@@ -26,7 +26,7 @@ extern "C" {
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "nvram.h"
+#include "periph/eeprom.h"
 #include "checksum/crc16_ccitt.h"
 
 #include "ls-config.h"
@@ -38,8 +38,6 @@ static bool key_valid = false;
 
 static config_eui64_t eui64;
 static bool eui64_valid = false;
-
-static nvram_t *nv;
 
 uint16_t get_crc(uint8_t *buf, size_t size)
 {
@@ -60,27 +58,23 @@ bool check_crc_eui64(config_eui64_t *cfg, uint32_t crc)
     return actual_crc == crc;
 }
 
-void config_reset_nvram(nvram_t *nvram)
+void config_reset_nvram(void)
 {
-    nv = nvram;
-
     memset(&config, 0, sizeof(nvram_config_t));
     config.magic = CONFIG_MAGIC;
     config.version = CONFIG_FORMAT_VER;
 
     config_valid = false;
 
-    save_config_nvram(nvram);
+    save_config_nvram();
 }
 
-bool load_config_nvram(nvram_t *nvram)
+bool load_config_nvram(void)
 {
-    nv = nvram;
-
     nvram_config_t temp_config;
     memset(&temp_config, 0, sizeof(nvram_config_t));
 
-    if (nvram->read(nvram, (uint8_t *) &temp_config, CONFIG_ADDR, CONFIG_SIZE)) {
+    if (eeprom_read(CONFIG_ADDR, (uint8_t *)&temp_config, CONFIG_SIZE)) {
         /* Check magic */
         if (temp_config.magic != CONFIG_MAGIC) {
             puts("Magic is wrong");
@@ -92,7 +86,7 @@ bool load_config_nvram(nvram_t *nvram)
             /* let's check if it's an old config version */
             
             nvram_old_config_t old_config;
-            if (nvram->read(nvram, (uint8_t *) &old_config, CONFIG_ADDR, CONFIG_SIZE - 4)) {
+            if (eeprom_read(CONFIG_ADDR, (uint8_t *) &old_config, CONFIG_SIZE - 4)) {
                 uint16_t actual_crc = get_crc((uint8_t *) &old_config, CONFIG_SIZE - 4 - 4);
                 if (actual_crc != old_config.cfg_crc) {
                     puts("CRC is wrong");
@@ -100,7 +94,7 @@ bool load_config_nvram(nvram_t *nvram)
                 } else {
                     puts ("Converting old config to a new one");
                     memcpy(&config, &temp_config, sizeof(nvram_config_t));
-                    save_config_nvram(nvram);
+                    save_config_nvram();
                 }
             }
         }
@@ -121,16 +115,16 @@ bool load_config_nvram(nvram_t *nvram)
     return false;
 }
 
-bool save_eui64_nvram(nvram_t *nvram)
+bool save_eui64_nvram(void)
 {
     /* Calculate checksum */
     eui64.crc = get_crc((uint8_t *) &eui64, CONFIG_EUI64_SIZE);
 
     /* Write to NVRAM */
-    return (nvram->write(nvram, (uint8_t *) &eui64, CONFIG_EUI64_ADDR, sizeof(config_eui64_t)) > 0);
+    return (eeprom_write(CONFIG_EUI64_ADDR, (uint8_t *) &eui64, sizeof(config_eui64_t)) > 0);
 }
 
-bool save_config_nvram(nvram_t *nvram)
+bool save_config_nvram(void)
 {
     config.magic = CONFIG_MAGIC;
     config.version = CONFIG_FORMAT_VER;
@@ -139,19 +133,21 @@ bool save_config_nvram(nvram_t *nvram)
     config.cfg_crc = get_crc((uint8_t *) &config, CONFIG_SIZE - 4);
 
     /* Write to NVRAM */
-    return (nvram->write(nvram, (uint8_t *) &config, CONFIG_ADDR, sizeof(nvram_config_t)) > 0);
+    return (eeprom_write(CONFIG_ADDR, (uint8_t *) &config, sizeof(nvram_config_t)) > 0);
 }
 
 bool clear_nvram(void)
 {
-    return nv->clear(nv) > 0;
+    eeprom_clear_all();
+    
+    return true;
 }
 
 bool clear_nvram_modules(int modid)
 {
     if (modid == 0) {
         /* to fix later: clear till last module or end of EEPROM */
-        return nv->clearpart(nv, UNWDS_CONFIG_BASE_ADDR, 50*UNWDS_CONFIG_BLOCK_SIZE_BYTES) > 0;
+        eeprom_clear(UNWDS_CONFIG_BASE_ADDR, 50*UNWDS_CONFIG_BLOCK_SIZE_BYTES);
     }
     
     return true;
@@ -184,16 +180,14 @@ bool config_write_main_block(uint64_t appid64, uint8_t joinkey[16], uint32_t dev
     config.appid64 = appid64;
     memcpy(config.nwk_key, joinkey, 16);
 
-    return save_config_nvram(nv);
+    return save_config_nvram();
 }
 
-bool load_eui64_nvram(nvram_t *nvram)
+bool load_eui64_nvram(void)
 {
-    nv = nvram;
-    
     config_eui64_t temp_eui64;
 
-    if (nvram->read(nvram, (uint8_t *) &temp_eui64, CONFIG_EUI64_ADDR, sizeof(config_eui64_t))) {
+    if (eeprom_read(CONFIG_EUI64_ADDR, (uint8_t *) &temp_eui64, sizeof(config_eui64_t))) {
         /* Check CRC */
         if (!check_crc_eui64(&temp_eui64, temp_eui64.crc)) {
             puts("EUI64 CRC check failed");
@@ -213,7 +207,7 @@ bool write_eui64_nvram(uint64_t eui)
 {
     eui64.eui64 = eui;
 
-    return save_eui64_nvram(nv);
+    return save_eui64_nvram();
 }
 
 uint64_t config_get_nodeid(void)
@@ -244,7 +238,7 @@ bool config_write_role_block(uint8_t *buf, size_t size)
 
     memcpy(config.role_config, buf, size);
 
-    return save_config_nvram(nv);
+    return save_config_nvram();
 }
 
 bool config_read_role_block(uint8_t *buf, size_t size)
@@ -255,10 +249,6 @@ bool config_read_role_block(uint8_t *buf, size_t size)
 
     memcpy(buf, config.role_config, size);
     return true;
-}
-
-nvram_t *config_get_nvram(void) {
-	return nv;
 }
 
 #ifdef __cplusplus

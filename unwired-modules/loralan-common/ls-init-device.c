@@ -45,8 +45,6 @@ extern "C" {
 #include "ls-init-device.h"
 #include "ls-mac.h"
 
-static nvram_t nvram;
-
 static void init_common(shell_command_t *commands);
 static void init_config(shell_command_t *commands);
 static int init_clear_nvram(int argc, char **argv);
@@ -116,18 +114,16 @@ void init_role(shell_command_t *commands) {
     xtimer_init();
     rtctimers_millis_init();
 
-    nvram_eeprom_init(&nvram);
-
     /* Check EUI64 */
-    if (!load_eui64_nvram(&nvram)) {
+    if (!load_eui64_nvram()) {
     	puts("[config] No EUI64 defined for this device. Please provide EUI64 and reboot to apply changes.");
     } else {
-        if (!load_config_nvram(&nvram)) {
+        if (!load_config_nvram()) {
             /* It's first launch or config memory is corrupted */
             puts("[config] No valid configuration found in NVRAM. It's either first launch or NVRAM content is corrupted.");
             puts("[config] Could you please provide APPID64, DEVNONCE and JOINKEY for this device?");
 
-            config_reset_nvram(&nvram);
+            config_reset_nvram();
         } else {
             puts("[config] Configuration loaded from NVRAM");
         }
@@ -331,7 +327,7 @@ static int save_cmd(int argc, char **argv)
 static const shell_command_t shell_commands_cfg[] = {
     { "set", "<config> <value> -- set device configuration values", set_cmd },
     { "get", "-- print current configuration", get_cmd },
-    { "save", "-- save configuration to EEPROM", save_cmd },
+    { "save", "-- save configuration to NVRAM", save_cmd },
 
     { NULL, NULL, NULL }
 };
@@ -373,7 +369,7 @@ static int init_clear_nvram(int argc, char **argv)
     char *key = argv[1];
 
     if (strcmp(key, "all") == 0) {
-        puts("Clearing EEPROM, please wait");
+        puts("Clearing NVRAM, please wait");
         if (clear_nvram()) {
             puts("[ok] Settings cleared, rebooting");
             NVIC_SystemReset();

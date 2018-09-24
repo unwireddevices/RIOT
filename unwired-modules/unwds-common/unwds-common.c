@@ -28,7 +28,7 @@ extern "C" {
 #include <string.h>
 
 #include "byteorder.h"
-#include "nvram.h"
+#include "periph/eeprom.h"
 #include "xtimer.h"
 #include "board.h"
 #include "checksum/fletcher16.h"
@@ -66,15 +66,13 @@ static uint32_t enabled_bitmap[8];
 /**
  * NVRAM config.
  */
-static nvram_t *nvram = NULL;
 static uint32_t nvram_config_block_size = 0;
 static uint32_t nvram_config_base_addr = 0;
 
 static uint8_t storage_used[UNWDS_STORAGE_BLOCKS_MAX] = { 0 };
 static uint8_t storage_blocks[UNWDS_STORAGE_BLOCKS_MAX];
 
-void unwds_setup_nvram_config(nvram_t *nvram_ptr, int base_addr, int block_size) {
-	nvram = nvram_ptr;
+void unwds_setup_nvram_config(int base_addr, int block_size) {
 	nvram_config_base_addr = base_addr;
 	nvram_config_block_size = block_size;
 }
@@ -85,16 +83,16 @@ bool unwds_read_nvram_config(unwds_module_id_t module_id, uint8_t *data_out, uin
 	int addr = nvram_config_base_addr + (module_id - 1) * (nvram_config_block_size + 2);
 
 	/* Either max_size bytes or full block */
-	int size = (max_size < nvram_config_block_size) ? max_size : nvram_config_block_size;
+	uint32_t size = (max_size < nvram_config_block_size) ? max_size : nvram_config_block_size;
     
 	/* Read NVRAM block */
-	if (nvram->read(nvram, data_out, addr, size) < 0) {
+	if (eeprom_read(addr, data_out, size) != size) {
         DEBUG("Error reading NVRAM\n");
 		return false;
     }
         
     uint16_t crc16 = 0;
-    if (nvram->read(nvram, (void *)&crc16, addr + size, 2) < 0) {
+    if (eeprom_read(addr + size, (void *)&crc16, 2) != 1) {
         DEBUG("Error reading CRC16\n");
 		return false;
     }
@@ -118,11 +116,11 @@ bool unwds_write_nvram_config(unwds_module_id_t module_id, uint8_t *data, size_t
     uint16_t crc16 = fletcher16(data, data_size);
     
 	/* Write NVRAM block */
-	if (nvram->write(nvram, data, addr, data_size) < 0) {
+	if (eeprom_write(addr, data, data_size) != data_size) {
 		return false;
     }
     
-    if (nvram->write(nvram, (void *)&crc16, addr + data_size, 2) < 0) {
+    if (eeprom_write(addr + data_size, (void *)&crc16, 2) != 2) {
         return false;
     }
 
@@ -198,7 +196,7 @@ static bool unwds_create_storage_block(unwds_module_id_t module_id) {
             DEBUG("Erasing EEPROM\n");
             /* storage size plus 2 bytes CRC16 */
             int addr = unwds_eeprom_layout.config_storage_addr + (unwds_eeprom_layout.config_storage_size + 2)*i;
-            nvram->clearpart(nvram, addr, unwds_eeprom_layout.config_storage_size + 2);
+            eeprom_clear(addr, unwds_eeprom_layout.config_storage_size + 2);
             
             DEBUG("Writing new storage config\n");
             unwds_write_nvram_config(UNWDS_CONFIG_MODULE_ID, storage_blocks, sizeof(storage_blocks));
@@ -210,7 +208,7 @@ static bool unwds_create_storage_block(unwds_module_id_t module_id) {
     return false;
 }
 
-bool unwds_read_nvram_storage(unwds_module_id_t module_id, uint8_t *data_out, uint8_t size) {
+bool unwds_read_nvram_storage(unwds_module_id_t module_id, uint8_t *data_out, size_t size) {
     
     uint32_t addr = 0;
     uint32_t i = 0;
@@ -239,7 +237,7 @@ bool unwds_read_nvram_storage(unwds_module_id_t module_id, uint8_t *data_out, ui
     }
 
     /* Read NVRAM block */
-	if (nvram->read(nvram, data_out, addr, size + 2) < 0)
+	if (eeprom_read(addr, data_out, size + 2) != size + 2)
 		return false;
     
     uint16_t crc16;
@@ -274,11 +272,11 @@ bool unwds_write_nvram_storage(unwds_module_id_t module_id, uint8_t *data, size_
     uint16_t crc16 = fletcher16(data, data_size);
     
     /* Write NVRAM block */
-	if (nvram->write(nvram, data, addr, data_size) < 0) {
+	if (eeprom_write(addr, data, data_size) != data_size) {
 		return false;
     }
     
-    if (nvram->write(nvram, (void *)&crc16, addr + data_size, 2) < 0) {
+    if (eeprom_write(addr + data_size, (void *)&crc16, 2) != 2) {
         return false;
     }
 
@@ -290,7 +288,7 @@ bool unwds_erase_nvram_config(unwds_module_id_t module_id) {
 	int addr = nvram_config_base_addr + module_id * nvram_config_block_size;
 
 	/* Write NVRAM block */
-	if (nvram->clearpart(nvram, addr, nvram_config_block_size) < 0)
+	if (eeprom_clear(addr, nvram_config_block_size) != nvram_config_block_size)
 		return false;
 
 	return true;

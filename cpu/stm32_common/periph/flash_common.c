@@ -31,10 +31,22 @@
 #define CNTRL_REG_LOCK         (FLASH_PECR_PELOCK)
 #define KEY_REG                (FLASH->PEKEYR)
 #else
+#if defined(CPU_FAM_STM32L4)
+#define FLASH_KEY1             ((uint32_t)0x45670123)
+#define FLASH_KEY2             ((uint32_t)0xCDEF89AB)
+#endif
 #define CNTRL_REG              (FLASH->CR)
 #define CNTRL_REG_LOCK         (FLASH_CR_LOCK)
 #define KEY_REG                (FLASH->KEYR)
 #endif
+
+typedef enum {
+    FLASH_BUSY = 1,
+    FLASH_ERROR_WRP,
+    FLASH_ERROR_PROGRAM,
+    FLASH_COMPLETE,
+    FLASH_TIMEOUT
+} _flash_status_t;
 
 void _unlock(void)
 {
@@ -50,5 +62,25 @@ void _lock(void)
     if (!(CNTRL_REG & CNTRL_REG_LOCK)) {
         DEBUG("[flash-common] locking the flash module\n");
         CNTRL_REG |= CNTRL_REG_LOCK;
+    }
+}
+
+void _wait_for_pending_operations(void)
+{
+    if ((FLASH->SR & FLASH_SR_BSY) == FLASH_SR_BSY) {
+        DEBUG("[flashpage] waiting for any pending operation to finish\n");
+        while (FLASH->SR & FLASH_SR_BSY) {}
+    }
+    else {
+        if ((FLASH->SR & (uint32_t)FLASH_SR_WRPERR) != (uint32_t)0x00) {
+            DEBUG("[flashpage] resettng previously occured flash error\n");
+            FLASH->SR |= (uint32_t)FLASH_SR_WRPERR;
+            while (FLASH->SR & FLASH_SR_BSY) {}
+        }
+    }
+
+    /* Clear 'end of operation' bit in status register */
+    if (FLASH->SR & FLASH_SR_EOP) {
+        FLASH->SR &= ~(FLASH_SR_EOP);
     }
 }

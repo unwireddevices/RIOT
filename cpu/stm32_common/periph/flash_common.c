@@ -68,12 +68,12 @@ void _lock(void)
 void _wait_for_pending_operations(void)
 {
     if ((FLASH->SR & FLASH_SR_BSY) == FLASH_SR_BSY) {
-        DEBUG("[flashpage] waiting for any pending operation to finish\n");
+        DEBUG("[flash-common] waiting for any pending operation to finish\n");
         while (FLASH->SR & FLASH_SR_BSY) {}
     }
     else {
         if ((FLASH->SR & (uint32_t)FLASH_SR_WRPERR) != (uint32_t)0x00) {
-            DEBUG("[flashpage] resettng previously occured flash error\n");
+            DEBUG("[flash-common] resettng previously occured flash error\n");
             FLASH->SR |= (uint32_t)FLASH_SR_WRPERR;
             while (FLASH->SR & FLASH_SR_BSY) {}
         }

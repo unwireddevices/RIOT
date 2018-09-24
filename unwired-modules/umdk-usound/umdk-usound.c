@@ -96,7 +96,7 @@ static bool init_sensor(void) {
     dev.disrupting_pin = GPIO_PIN(PORT_A, 4);
     dev.silencing_pin = GPIO_PIN(PORT_A, 2);
     dev.beeping_pin = GPIO_PIN(PORT_A, 3);
-    dev.sens_pin = GPIO_PIN(PORT_A, 1);
+//    dev.sens_pin = GPIO_PIN(PORT_A, 1);
     dev.adc_pin = GPIO_PIN(PORT_A, 5);
     return o;
 
@@ -356,27 +356,10 @@ void umdk_usound_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
         printf("[umdk-" _UMDK_NAME_ "] Unable to init sensor!");
         return;
     }
-
-    /* Create handler thread */
-    char *stack = (char *) allocate_stack(UMDK_USOUND_STACK_SIZE);
-    if (!stack) {
-        printf("[umdk-" _UMDK_NAME_ "] Unable to allocate memory. Are too many modules enabled?");
-        return;
-    }
     
-    dev.times = (int *)allocate_stack(UZ_MAX_PULSES * sizeof(int));
-    if (!dev.times) {
-		return;
-	}
-
-	if (!init_sensor()) {
-		printf("[umdk-" _UMDK_NAME_ "] Unable to init sensor!");
-        return;
-	}
-
 	/* Create handler thread */
-	char *stack = (char *) allocate_stack(UMDK_USOUND_STACK_SIZE);
-	if (!stack) {
+	char *stack_24hrs = (char *) allocate_stack(UMDK_USOUND_STACK_SIZE);
+	if (!stack_24hrs) {
 		return;
 	}
     
@@ -384,6 +367,14 @@ void umdk_usound_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
     
     /* Start 24 hrs timer */
     rtctimers_millis_set_msg(&timer_24hrs, 1000 * 60 * 60 * 24, &timer_24hrs_msg, timer_24hrs_pid);
+
+    char *stack = (char *) allocate_stack(UMDK_USOUND_STACK_SIZE);
+	if (!stack) {
+		return;
+	}
+    
+    timer_pid = thread_create(stack, UMDK_USOUND_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "usound thread");
+    
     
     /* Start publishing timer */
     if (ultrasoundrange_config.publish_period_min) {

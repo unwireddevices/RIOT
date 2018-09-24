@@ -485,7 +485,7 @@ int adc_all_echoes(ultrasoundrange_t *dev, int16_t begin_time, int max_peaks, ui
     }
     
     // filtering peaks by amp*time>sens2 && distance>min_distance criterion
-    int min_distance = dev -> min_distance;
+    uint32_t min_distance = dev -> min_distance;
     uint32_t sens2 = dev -> sensitivity2 * UZ_NORMALIZING_DIVISOR;
     int y = 0;
     for (int x = 0; x < peak_n; x++) {
@@ -634,7 +634,7 @@ int ultrasoundrange_measure_decay(ultrasoundrange_t *dev, int period, int16_t be
     for (int i = 0; i < reads_len; i++)
         reads[i] = UZ_MAX_ADC / 2;
     int cos = 0; int sin = 0;
-    int amp2 = 0;
+    uint32_t amp2 = 0;
     
     uint32_t high_sens = UZ_MAX_ADC * UZ_MAX_ADC * UZ_AVERAGING_PERIODS * UZ_AVERAGING_PERIODS / 4;
     uint32_t low_sens = high_sens / 512 * 69; // 69 / 512 is approximately exp(-2), i. e. exp(-1) ** 2
@@ -881,7 +881,7 @@ int ultrasoundrange_measure_ringing(ultrasoundrange_t *dev, int idle_period, int
     
     // const int quarter_period = period / 4;
     const int quarter_period = dev->period_us; // length of quarter period in terms of quarters of time units (i. e. 1 us / UZ_QUARTER_PERIOD_DIVISOR)
-    int next_time = 0;
+    uint32_t next_time = 0;
     int max_readings = max_time * UZ_QUARTER_PERIOD_DIVISOR / quarter_period; // number of adc readings based on max time
     int reads[4] = {UZ_HALF_ADC, UZ_HALF_ADC, UZ_HALF_ADC, UZ_HALF_ADC}; // array of four last adc readings for calculating sine and cosine components
     int cos = 0; int sin = 0;
@@ -1088,8 +1088,8 @@ int ultrasoundrange_measure_noise(ultrasoundrange_t *dev, int period, int max_ti
     int max_readings = max_time * UZ_QUARTER_PERIOD_DIVISOR / quarter_period; // number of adc readings based on max time
     uint64_t avg_raw = 0;
     uint64_t avg_raw2 = 0;
-    int max_raw = 0;
-    int min_raw = UZ_MAX_ADC;
+    uint64_t max_raw = 0;
+    uint64_t min_raw = UZ_MAX_ADC;
     uint64_t avg_amp2 = 0;
     int max_amp2 = 0;
     
@@ -1139,7 +1139,7 @@ int ultrasoundrange_measure_noise(ultrasoundrange_t *dev, int period, int max_ti
         // Wait until the end of ADC conversion
         while ((ADC1->SR & ADC_SR_EOC) == 0);
         // read result
-        int read = (int)ADC1->DR;
+        uint32_t read = (uint32_t)ADC1->DR;
         ADC1->SR = ~ADC_SR_EOC;
         
         if (((int16_t)(timer_read(XTIMER_DEV) - next_time)) >= 0)
@@ -1176,7 +1176,7 @@ int ultrasoundrange_measure_noise(ultrasoundrange_t *dev, int period, int max_ti
     
     int raw_variance = (avg_raw2 - (avg_raw * avg_raw) / max_readings ) / (max_readings - 1);
     avg_raw = avg_raw / max_readings;
-    int max_raw_deviation = max_raw - avg_raw;
+    uint64_t max_raw_deviation = max_raw - avg_raw;
     if (avg_raw - min_raw > max_raw_deviation) max_raw_deviation = avg_raw - min_raw;
     
     avg_amp2 = (avg_amp2 / (max_readings / 4)) / UZ_AVERAGING_PERIODS / UZ_AVERAGING_PERIODS;
@@ -1187,9 +1187,9 @@ int ultrasoundrange_measure_noise(ultrasoundrange_t *dev, int period, int max_ti
     }
     printf("Noise measurement for %d microseconds:\n", max_time);
     printf("    Average raw reading value: %d\n", (int)avg_raw);
-    printf("    Minimum raw reading value: %d\n", min_raw);
-    printf("    Maximum raw reading value: %d\n", max_raw);
-    printf("    Maximum reading deviation: %d\n", max_raw_deviation);
+    printf("    Minimum raw reading value: %lld\n", min_raw);
+    printf("    Maximum raw reading value: %lld\n", max_raw);
+    printf("    Maximum reading deviation: %lld\n", max_raw_deviation);
     printf("    Average squared reading deviation (variance): %d\n", raw_variance);
     printf("    Standard deviation: %d\n", isqrt(raw_variance));
     printf("    Average filtered amplitude: %d\n", isqrt(avg_amp2));

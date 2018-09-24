@@ -11,7 +11,7 @@
  * @ingroup     
  * @brief       
  * @{
- * @file		umdk-usound.h
+ * @file        umdk-usound.h
  * @brief       umdk-usound driver module definitions
  * @author      Dmitry Golik
  */
@@ -22,13 +22,20 @@
 
 #define UMDK_USOUND_PUBLISH_PERIOD_MIN 1
 
-#define UMDK_USOUND_STACK_SIZE 1024
+#define UMDK_USOUND_STACK_SIZE 2048
+
+#define UMDK_USOUND_PWREN   GPIO_PIN(PORT_B, 1)
 
 typedef enum {
-	UMDK_USOUND_CMD_SET_PERIOD = 0,
-	UMDK_USOUND_CMD_POLL = 1,
-	UMDK_USOUND_CMD_INIT_SENSOR = 2,
+    UMDK_USOUND_CMD_SET_PERIOD = 0,
+    UMDK_USOUND_CMD_POLL = 1,
+    UMDK_USOUND_CMD_INIT_SENSOR = 2,
 } umdk_usound_cmd_t;
+
+typedef enum {
+    UMDK_SOUND_MODE_DISTANCE = 0,
+    UMDK_SOUND_MODE_THRESHOLD = 1,
+} umdk_sound_mode_t;
 
 void umdk_usound_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
 bool umdk_usound_cmd(module_data_t *data, module_data_t *reply);

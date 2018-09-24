@@ -691,7 +691,7 @@ void init_normal(shell_command_t *commands)
         memcpy(ls.settings.ability, unwds_get_node_settings().enabled_mods, sizeof(ls.settings.ability));
         ls.settings.class = unwds_get_node_settings().nodeclass;
 
-        unwds_setup_nvram_config(config_get_nvram(), UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
+        unwds_setup_nvram_config(UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
 
         uint32_t bootmode = rtc_restore_backup(RTC_REGBACKUP_BOOTLOADER);
         

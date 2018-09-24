@@ -583,7 +583,7 @@ void init_normal(shell_command_t *commands)
         ls_setup(&ls);
         ls_gate_init(&ls);
         
-        unwds_setup_nvram_config(config_get_nvram(), UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
+        unwds_setup_nvram_config(UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
 
         blink_led(LED_GREEN);
     }

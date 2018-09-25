@@ -93,24 +93,25 @@ static bool init_sensor(void) {
     dev.sensitivity = ultrasoundrange_config.sensitivity;
     dev.min_distance = ultrasoundrange_config.min_distance;
     dev.max_distance = ultrasoundrange_config.max_distance;
-    dev.disrupting_pin = GPIO_PIN(PORT_A, 4);
-    dev.silencing_pin = GPIO_PIN(PORT_A, 2);
-    dev.beeping_pin = GPIO_PIN(PORT_A, 3);
-//    dev.sens_pin = GPIO_PIN(PORT_A, 1);
-    dev.adc_pin = GPIO_PIN(PORT_A, 5);
+    dev.disrupting_pin = UMDK_USOUND_DISRUPT_PIN;
+    dev.silencing_pin = UMDK_USOUND_SILENCE_PIN;
+    dev.beeping_pin = UMDK_USOUND_BEEP_PIN;
+    dev.pwren_pin = UMDK_USOUND_PWREN;
+    dev.adc_pin = UMDK_USOUND_ADC_PIN;
+    dev.adc_channel = UMDK_USOUND_ADC_CH;
+    
     return o;
-
 }
 
 static int prepare_result(module_data_t *buf) {
-    /* enable power and wait for it to stabilize */
-    gpio_clear(UMDK_USOUND_PWREN);
+    ultrasoundrange_turn_on(&dev);
+    
     rtctimers_millis_sleep(500);
     
     ultrasoundrange_measure_t measure = {};
     ultrasoundrange_measure(&dev, &measure);
     
-    gpio_set(UMDK_USOUND_PWREN);
+    ultrasoundrange_turn_off(&dev);
     
     int range;
     range = measure.range;
@@ -345,9 +346,6 @@ void umdk_usound_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
     (void) non_gpio_pin_map;
 
     callback = event_callback;
-    
-    gpio_init(UMDK_USOUND_PWREN, GPIO_OUT);
-    gpio_set(UMDK_USOUND_PWREN);
 
     init_config();
     umdk_usound_print_settings();

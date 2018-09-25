@@ -109,8 +109,8 @@ void ultrasoundrange_reset(ultrasoundrange_t *dev) {
     dev -> adc_channel = UZ_ADC_CHANNEL;
     
     dev -> pwren_pin = UZ_PWREN_PIN;
-    calibrate_sound_speed(dev, false); // calculate speed of sound at default temperature
-    // calibrate_sound_speed(dev, true); // calculate speed of sound at measured temperature - temperature measurement works fine on stm32l151ccu6 but crashes on stm32l151cbu6a due to errata
+    //calibrate_sound_speed(dev, false); // calculate speed of sound at default temperature
+    calibrate_sound_speed(dev, true); // calculate speed of sound at measured temperature - temperature measurement works fine on stm32l151ccu6 but crashes on stm32l151cbu6a due to errata
 }
 
 
@@ -127,6 +127,7 @@ void ultrasoundrange_reset(ultrasoundrange_t *dev) {
 int ultrasoundrange_init(ultrasoundrange_t *dev)
 {
     ultrasoundrange_reset(dev);
+    
     /* set ADC clock */
 
     // ADC->CCR &= ~ADC_CCR_ADCPRE;
@@ -137,13 +138,13 @@ int ultrasoundrange_init(ultrasoundrange_t *dev)
 
 
 void ultrasoundrange_turn_off(ultrasoundrange_t *dev)
-{   
+{
     gpio_init(dev -> pwren_pin, GPIO_OUT);
     gpio_set(dev -> pwren_pin);
 }
 
 void ultrasoundrange_turn_on(ultrasoundrange_t *dev)
-{   
+{
     gpio_init(dev -> pwren_pin, GPIO_OUT);
     gpio_clear(dev -> pwren_pin);
     rtctimers_millis_sleep(UZ_PWRON_DELAY_MS);

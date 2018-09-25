@@ -90,17 +90,20 @@ typedef struct {
 /**
   * @brief CC File structure
   */
-typedef struct {
-    uint16_t cc_file_len;
-    uint8_t  version;
-    uint16_t max_read_byte;
-    uint16_t max_write_byte;
-    uint8_t  t_field;
-    uint8_t  l_field;
-    uint16_t ndef_file_id;
-    uint16_t ndef_file_max_size;
-    uint8_t  read_access;
-    uint8_t  write_access;
+typedef union {
+    struct {
+        uint16_t cc_file_len;
+        uint8_t  version;
+        uint16_t max_read_byte;
+        uint16_t max_write_byte;
+        uint8_t  t_field;
+        uint8_t  l_field;
+        uint16_t ndef_file_id;
+        uint16_t ndef_file_max_size;
+        uint8_t  read_access;
+        uint8_t  write_access;
+    } field;
+    uint8_t data[0x0F];
 } __attribute__((packed)) cc_file_info_t;
 
 

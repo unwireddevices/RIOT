@@ -1495,18 +1495,12 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
 
     /* read the first 15 bytes of the CC file */
     DEBUG("CC FILE size %d\n", sizeof(cc_file_info_t));
-    if (m24sr_read_binary(dev, 0x0000, (uint8_t *)&cc_file, sizeof(cc_file_info_t)) == M24SR_OK) {
+    if (m24sr_read_binary(dev, 0x0000, cc_file.data, sizeof(cc_file.data)) == M24SR_OK) {
         
-        dev->memory.chipsize = cc_file.ndef_file_max_size;
-        dev->memory.max_read_byte = cc_file.max_read_byte;
-        dev->memory.max_write_byte =cc_file.max_write_byte;
-
-
-        byteorder_swap((void *)&dev->memory.chipsize, sizeof(dev->memory.chipsize));
-        byteorder_swap((void *)&dev->memory.max_read_byte, sizeof(dev->memory.max_read_byte));
-        byteorder_swap((void *)&dev->memory.max_write_byte, sizeof(dev->memory.max_write_byte));
-
-        dev->memory.chipsize -= NDEF_FILE_LEN_NUM_BYTES; 
+        dev->memory.chipsize       = cc_file.field.ndef_file_max_size;
+        dev->memory.max_read_byte  = cc_file.field.max_read_byte;
+        dev->memory.max_write_byte = cc_file.field.max_write_byte;
+        dev->memory.chipsize      -= NDEF_FILE_LEN_NUM_BYTES; 
 
         DEBUG("[CC FILE] chipsize %d(0x%04X)\n", dev->memory.chipsize, dev->memory.chipsize);
         DEBUG("[CC FILE] max_read_byte %d(0x%04X)\n", dev->memory.max_read_byte, dev->memory.max_read_byte);
@@ -1669,10 +1663,9 @@ int m24sr_eeprom_read(m24sr_t *dev, void *dst, uint16_t addr, uint16_t size) {
     }
     /**/
     m24sr_select_capability_container_file(dev, M24SR_CC_FILE_ID);
-    m24sr_read_binary(dev, 0x0000, (uint8_t *)&cc_file, sizeof(cc_file_info_t));
+    m24sr_read_binary(dev, 0x0000, cc_file.data, sizeof(cc_file.data));
     
-    ndef_file_id = cc_file.ndef_file_id;
-    byteorder_swap((void *)&ndef_file_id, sizeof(ndef_file_id));
+    ndef_file_id = cc_file.field.ndef_file_id;
     DEBUG("[NDEF File] ID is %d(0x%04X)\n", ndef_file_id, ndef_file_id);
 
     /* select NDEF file   */
@@ -1742,10 +1735,9 @@ int m24sr_eeprom_write(m24sr_t *dev, void *src, uint16_t addr, uint16_t size) {
     }
     /**/
     m24sr_select_capability_container_file(dev, M24SR_CC_FILE_ID);
-    m24sr_read_binary(dev, 0x0000, (uint8_t *)&cc_file, sizeof(cc_file_info_t));
+    m24sr_read_binary(dev, 0x0000, cc_file.data, sizeof(cc_file.data));
     
-    ndef_file_id = cc_file.ndef_file_id;
-    byteorder_swap((void *)&ndef_file_id, sizeof(ndef_file_id));
+    ndef_file_id = cc_file.field.ndef_file_id;
     DEBUG("[NDEF File] ID is %d(0x%04X)\n", ndef_file_id, ndef_file_id);
 
     /* select NDEF file   */
@@ -1816,10 +1808,9 @@ int m24sr_eeprom_erase(m24sr_t *dev, uint16_t addr, uint16_t size) {
     }
     /**/
     m24sr_select_capability_container_file(dev, M24SR_CC_FILE_ID);
-    m24sr_read_binary(dev, 0x0000, (uint8_t *)&cc_file, sizeof(cc_file_info_t));
+    m24sr_read_binary(dev, 0x0000, cc_file.data, sizeof(cc_file.data));
     
-    ndef_file_id = cc_file.ndef_file_id;
-    byteorder_swap((void *)&ndef_file_id, sizeof(ndef_file_id));
+    ndef_file_id = cc_file.field.ndef_file_id;
     DEBUG("[NDEF File] ID is %d(0x%04X)\n", ndef_file_id, ndef_file_id);
 
     /* select NDEF file   */
@@ -1882,10 +1873,9 @@ int m24sr_eeprom_erase_all(m24sr_t *dev) {
     }
     /**/
     m24sr_select_capability_container_file(dev, M24SR_CC_FILE_ID);
-    m24sr_read_binary(dev, 0x0000, (uint8_t *)&cc_file, sizeof(cc_file_info_t));
+    m24sr_read_binary(dev, 0x0000, cc_file.data, sizeof(cc_file.data));
     
-    ndef_file_id = cc_file.ndef_file_id;
-    byteorder_swap((void *)&ndef_file_id, sizeof(ndef_file_id));
+    ndef_file_id = cc_file.field.ndef_file_id;
     DEBUG("[NDEF File] ID is %d(0x%04X)\n", ndef_file_id, ndef_file_id);
 
     /* select NDEF file   */

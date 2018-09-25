@@ -25,6 +25,7 @@
 #include "shell.h"
 
 #include "periph/eeprom.h"
+#include "xtimer.h"
 
 #ifndef BUFFER_SIZE
 #define BUFFER_SIZE     (42U)
@@ -98,10 +99,49 @@ static int cmd_write(int argc, char **argv)
     return 0;
 }
 
+static int cmd_test(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+    
+    uint8_t bytes[256];
+    eeprom_clear(0, 256);
+    uint32_t start, stop;
+    
+    for (int i = 0; i < 256; i ++) {
+        bytes[i] = i;
+    }
+    
+    printf("Writing 256 bytes to clean EEPROM: ");
+    start = xtimer_now_usec();
+    eeprom_write(0, bytes, 256);
+    stop = xtimer_now_usec();
+    printf("%lu usec\n", stop-start);
+    
+    for (int i = 0; i < 256; i ++) {
+        bytes[i] = 255-i;
+    }
+    
+    printf("Writing 256 bytes to dirty EEPROM: ");
+    start = xtimer_now_usec();
+    eeprom_write(0, bytes, 256);
+    stop = xtimer_now_usec();
+    printf("%lu usec\n", stop-start);
+    
+    printf("Reading 256 bytes from EEPROM: ");
+    start = xtimer_now_usec();
+    eeprom_read(0, bytes, 256);
+    stop = xtimer_now_usec();
+    printf("%lu usec\n", stop-start);
+    
+    return 0;
+}
+
 static const shell_command_t shell_commands[] = {
     { "info", "Print information about eeprom", cmd_info },
     { "read", "Read bytes from eeprom", cmd_read },
     { "write", "Write bytes to eeprom", cmd_write},
+    { "test", "Test write and read speed", cmd_test},
     { NULL, NULL, NULL }
 };
 
@@ -109,6 +149,8 @@ int main(void)
 {
     puts("EEPROM read write test\n");
     puts("Please refer to the README.md for more details\n");
+    
+    xtimer_init();
 
     cmd_info(0, NULL);
 

@@ -24,7 +24,6 @@
 
 #include <stdint.h>
 
-#include "cpu.h"
 #include "periph_cpu.h"
 
 #ifdef __cplusplus
@@ -74,9 +73,22 @@ void eeprom_write_byte(uint32_t pos, uint8_t data);
  */
 size_t eeprom_write(uint32_t pos, const uint8_t *data, size_t len);
 
-size_t eeprom_clear_all(void);
+/**
+ * @brief   Clear @p len bytes at the given position
+ *
+ * @param[in] pos       start position in eeprom
+ * @param[in] len       the number of bytes to clear
+ *
+ * @return the number of bytes cleared
+ */
+size_t eeprom_clear(uint32_t pos, size_t len);
 
-size_t eeprom_clear(uint32_t start, size_t size);
+/**
+ * @brief   Clear EEPROM completely
+ *
+ * @return the number of bytes cleared
+ */
+size_t eeprom_clear_all(void);
 
 #ifdef __cplusplus
 }

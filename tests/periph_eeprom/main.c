@@ -31,6 +31,10 @@
 #define BUFFER_SIZE     (42U)
 #endif
 
+#ifndef TEST_BUFFER_SIZE
+#define TEST_BUFFER_SIZE    (256U)
+#endif
+
 static char buffer[BUFFER_SIZE + 1];
 
 static int cmd_info(int argc, char **argv)
@@ -104,35 +108,56 @@ static int cmd_test(int argc, char **argv)
     (void)argc;
     (void)argv;
     
-    uint8_t bytes[256];
-    eeprom_clear(0, 256);
+    uint8_t bytes[TEST_BUFFER_SIZE] = { 0 };
+    eeprom_write(0, bytes, TEST_BUFFER_SIZE);
     uint32_t start, stop;
     
-    for (int i = 0; i < 256; i ++) {
+    for (uint32_t i = 0; i < TEST_BUFFER_SIZE; i ++) {
         bytes[i] = i;
     }
     
-    printf("Writing 256 bytes to clean EEPROM: ");
+    printf("Writing %d bytes to clean EEPROM: ", TEST_BUFFER_SIZE);
     start = xtimer_now_usec();
-    eeprom_write(0, bytes, 256);
+    eeprom_write(0, bytes, TEST_BUFFER_SIZE);
     stop = xtimer_now_usec();
     printf("%lu usec\n", stop-start);
     
-    for (int i = 0; i < 256; i ++) {
-        bytes[i] = 255-i;
+    for (uint32_t i = 0; i < TEST_BUFFER_SIZE; i ++) {
+        bytes[i] = TEST_BUFFER_SIZE-i;
     }
     
-    printf("Writing 256 bytes to dirty EEPROM: ");
+    printf("Writing %d bytes to dirty EEPROM: ", TEST_BUFFER_SIZE);
     start = xtimer_now_usec();
-    eeprom_write(0, bytes, 256);
+    eeprom_write(0, bytes, TEST_BUFFER_SIZE);
     stop = xtimer_now_usec();
     printf("%lu usec\n", stop-start);
     
-    printf("Reading 256 bytes from EEPROM: ");
+    printf("Reading %d bytes from EEPROM: ", TEST_BUFFER_SIZE);
     start = xtimer_now_usec();
-    eeprom_read(0, bytes, 256);
+    eeprom_read(0, bytes, TEST_BUFFER_SIZE);
     stop = xtimer_now_usec();
     printf("%lu usec\n", stop-start);
+    
+    return 0;
+}
+
+static int cmd_clear(int argc, char **argv)
+{
+    if (argc < 2) {
+        printf("usage: '%s <pos> <size>' to clear specific data\n", argv[0]);
+        printf("\t'%s all' to clear everything\n", argv[0]);
+        return 1;
+    }
+        
+    printf("Clearing EEPROM... ");
+    if (strcmp(argv[1], "all") == 0) {
+        eeprom_clear_all();
+    } else {
+        uint32_t pos = atoi(argv[1]);
+        uint32_t count = atoi(argv[2]);
+        eeprom_clear(pos, count);
+    }
+    puts("done");
     
     return 0;
 }
@@ -142,6 +167,7 @@ static const shell_command_t shell_commands[] = {
     { "read", "Read bytes from eeprom", cmd_read },
     { "write", "Write bytes to eeprom", cmd_write},
     { "test", "Test write and read speed", cmd_test},
+    { "clear", "Clear EEPROM", cmd_clear},
     { NULL, NULL, NULL }
 };
 
@@ -149,8 +175,6 @@ int main(void)
 {
     puts("EEPROM read write test\n");
     puts("Please refer to the README.md for more details\n");
-    
-    xtimer_init();
 
     cmd_info(0, NULL);
 

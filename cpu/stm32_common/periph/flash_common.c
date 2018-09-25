@@ -40,14 +40,6 @@
 #define KEY_REG                (FLASH->KEYR)
 #endif
 
-typedef enum {
-    FLASH_BUSY = 1,
-    FLASH_ERROR_WRP,
-    FLASH_ERROR_PROGRAM,
-    FLASH_COMPLETE,
-    FLASH_TIMEOUT
-} _flash_status_t;
-
 void _unlock(void)
 {
     if (CNTRL_REG & CNTRL_REG_LOCK) {

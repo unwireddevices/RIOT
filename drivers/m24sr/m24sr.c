@@ -1481,6 +1481,7 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
             printf("%02X ", sys_file.field.UID[i]);
         }
         printf("\n");
+        memcpy(dev->memory.uid, sys_file.field.UID, sizeof(sys_file.field.UID));
     } else {
         m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
         return M24SR_OK;

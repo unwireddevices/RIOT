@@ -46,7 +46,7 @@ extern "C" {
 #include "xtimer.h"
 #include "rtctimers-millis.h"
 
-#define ENABLE_DEBUG 0
+#define ENABLE_DEBUG 1
 #include "debug.h"
 
 static msg_t msg_rx;
@@ -55,7 +55,7 @@ static umdk_cr95_config_t umdk_cr95_config = { CR95_IFACE_UART, CR95_READER, ISO
 
 static cr95_params_t cr95_params = { .spi = UMDK_CR95_SPI_DEV, .cs_spi = UMDK_CR95_SPI_CS, \
 									 .uart = UMDK_CR95_UART_DEV, \
-									 .irq_in = UMDK_CR95_IRQ_IN, .irg_out = UMDK_CR95_IRQ_OUT, \
+									 .irq_in = UMDK_CR95_IRQ_IN, .irq_out = UMDK_CR95_IRQ_OUT, \
 									 .ssi_0 = UMDK_CR95_SSI_0, .ssi_1 = UMDK_CR95_SSI_1 };
 static kernel_pid_t radio_pid;
 // static uwnds_cb_t *callback;
@@ -84,6 +84,7 @@ static volatile cr95_rx_state_t flag_rx = UMDK_CR95_NOT_RECIEVED;
 
 	uint8_t send_1a[2] = {0x26, 0x07};
 	uint8_t send_2a[3] = {0x93, 0x20, 0x08};
+	// uint8_t send_2a[3] = {0x93, 0x70, 0x28};
 	
 	uint8_t send_data[10] = {0x80, 0x08, 0x90, 0xAB, 0x85, 0xD7, 0x69, 0x28, 0x00, 0x00 };
 
@@ -164,7 +165,6 @@ static uint8_t _cmd_send_receive(uint8_t * data, uint8_t length)
 {	
 	current_cmd = CR95_CMD_SEND_RECV;
 	
-	// uint8_t length = 0;
 	txbuf[0] = CR95_CMD_SEND_RECV;
 	txbuf[1] = length;
 	memcpy(txbuf + 2, data, length);
@@ -408,11 +408,14 @@ static void *radio_send(void *arg)
 		cr95_msg_t  msg_type = (cr95_msg_t)msg.type;
 		
 #if ENABLE_DEBUG
+
+		if(msg_type != UMDK_CR95_MSG_CALIBR){
 		DEBUG("		%d:RX data[%d]: ", (uint8_t)msg_type, num_bytes_rx);
 		for(uint32_t i = 0; i < num_bytes_rx; i++) {
 				DEBUG(" %02X", rxbuf[i]);
 		}	
 		DEBUG("\n");
+		}
 #endif
 		
 		switch(msg_type) {
@@ -655,30 +658,11 @@ static uint8_t _send_uart(uint8_t length)
 	return 1;
 }
 
-// static void cr95_spi_recieve(void)
-// {
-	// uint8_t tx_rx = 0x02;
-	
-	// spi_transfer_bytes(SPI_DEV(cr95_params.spi), cr95_params.cs_spi, true, &tx_rx, NULL, 1);
-	// spi_transfer_bytes(SPI_DEV(cr95_params.spi), cr95_params.cs_spi, false, NULL, rxbuf, sizeof(rxbuf));
-		
-	// spi_release(SPI_DEV(cr95_params.spi));
-	
-	// if(current_cmd == CR95_CMD_ECHO) {
-		// num_bytes_rx = 1;
-	// }
-	// else {
-		// num_bytes_rx = rxbuf[1] + 2;
-	// }
-
-	
-	// msg_send(&msg_rx, radio_pid);
-// }
 
 static void cr95_spi_rx(void* arg)
 {
 	(void) arg;
-	gpio_irq_disable(UMDK_CR95_IRQ_OUT);
+	gpio_irq_disable(cr95_params.irq_out);
 	
 	uint8_t tx_rx = 0x02;
 	
@@ -695,10 +679,7 @@ static void cr95_spi_rx(void* arg)
 	}
 	
 	msg_send(&msg_rx, radio_pid);
-	
 		
-	// cr95_spi_recieve();
-	
 	return;
 }	
 
@@ -712,7 +693,7 @@ static uint8_t _send_spi(uint8_t length)
 	spi_transfer_bytes(SPI_DEV(cr95_params.spi), cr95_params.cs_spi, true, &tx_spi, NULL, 1);
 	spi_transfer_bytes(SPI_DEV(cr95_params.spi), cr95_params.cs_spi, false, txbuf, NULL, length);
 	
-	gpio_irq_enable(UMDK_CR95_IRQ_OUT);
+	gpio_irq_enable(cr95_params.irq_out);
 	
 	return 1;
 }
@@ -720,10 +701,8 @@ static uint8_t _send_spi(uint8_t length)
 
 static uint8_t cr95_select_iface(uint8_t iface)
 {		
-	gpio_init(UMDK_CR95_SSI_0, GPIO_OUT);
-	// gpio_init(cr95_params.ssi_0, GPIO_OUT);
-	gpio_init(UMDK_CR95_IRQ_IN, GPIO_OUT);
-	
+	gpio_init(cr95_params.ssi_0, GPIO_OUT);
+	gpio_init(cr95_params.irq_in, GPIO_OUT);
 	// TODO: Set "power on" CR95HF
 
 	if(iface == CR95_IFACE_UART) {	
@@ -735,15 +714,15 @@ static uint8_t cr95_select_iface(uint8_t iface)
 		params.stopbits = UART_STOPBITS_10;
 	
 				/* Select UART iface */
-		gpio_clear(UMDK_CR95_SSI_0);	
+		gpio_clear(cr95_params.ssi_0);	
 			/* Set low level IRQ_IN/RX */
-		gpio_set(UMDK_CR95_IRQ_IN);
+		gpio_set(cr95_params.irq_in);
 		rtctimers_millis_sleep(CR95_RAMP_UP_TIME_MS);
-		gpio_clear(UMDK_CR95_IRQ_IN);
+		gpio_clear(cr95_params.irq_in);
 		rtctimers_millis_sleep(CR95_RAMP_UP_TIME_MS);
 		
 		/* Initialize UART */
-		gpio_init_af(UMDK_CR95_IRQ_IN, GPIO_AF7);
+		gpio_init_af(cr95_params.irq_in, GPIO_AF7);
 		if (uart_init_ext(UART_DEV(cr95_params.uart), &params, cr95_uart_rx, NULL)) {
 			printf("[umdk-" _UMDK_NAME_ "] Error init UART interface: %02d \n", cr95_params.uart);
 			return 0;
@@ -752,18 +731,17 @@ static uint8_t cr95_select_iface(uint8_t iface)
 			printf("[umdk-" _UMDK_NAME_ "] Init UART interface: %02d \n", cr95_params.uart);
 		}
 	
-		// gpio_clear(UMDK_CR95_SSI_0);
 		cr95_iface = &_send_uart;
 	
 		uart_rx = 1;
 	}
 	else if(iface == CR95_IFACE_SPI) {	
 		/* Select SPI iface */
-		gpio_set(UMDK_CR95_SSI_0);
+		gpio_set(cr95_params.ssi_0);
 			/* Set low level IRQ_IN/RX */
-		gpio_set(UMDK_CR95_IRQ_IN);
+		gpio_set(cr95_params.irq_in);
 		rtctimers_millis_sleep(CR95_RAMP_UP_TIME_MS);
-		gpio_clear(UMDK_CR95_IRQ_IN);
+		gpio_clear(cr95_params.irq_in);
 		rtctimers_millis_sleep(CR95_RAMP_UP_TIME_MS);
 		
 			 /* Initialize SPI */
@@ -777,9 +755,8 @@ static uint8_t cr95_select_iface(uint8_t iface)
 			return 0;
 		}
 		
-		gpio_init_int(UMDK_CR95_IRQ_OUT, GPIO_IN_PU, GPIO_FALLING, cr95_spi_rx, NULL);
-		// gpio_irq_enable(UMDK_CR95_IRQ_OUT);
-		gpio_irq_disable(UMDK_CR95_IRQ_OUT);
+		gpio_init_int(cr95_params.irq_out, GPIO_IN_PU, GPIO_FALLING, cr95_spi_rx, NULL);
+		gpio_irq_disable(cr95_params.irq_out);
 	
 		// gpio_set(UMDK_CR95_SSI_0);
 		cr95_iface = &_send_spi;

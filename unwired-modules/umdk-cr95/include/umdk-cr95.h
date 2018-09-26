@@ -130,7 +130,7 @@ typedef struct {
     gpio_t cs_spi;		/**< SPI NSS pin */	
 	uint8_t uart;		/**< UART device */
 	gpio_t irq_in;		/**< Interrupt input (UART RX pin) */
-	gpio_t irg_out;		/**< Interrupt output (UART TX pin) */
+	gpio_t irq_out;		/**< Interrupt output (UART TX pin) */
 	gpio_t ssi_0;		/**< Select serial communication interface */
 	gpio_t ssi_1;		/**< Select serial communication interface */
 } cr95_params_t;

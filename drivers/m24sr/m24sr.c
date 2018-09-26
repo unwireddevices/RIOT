@@ -1195,9 +1195,9 @@ static int _m24sr_get_i2c_session (const m24sr_t *dev) {
     uint8_t buffer = M24SR_OPEN_I2C_SESSION;
 
     ret = m24sr_send_i2c_cmd(dev, &buffer, 0x01);
-    // if (ret == M24SR_OK) {
-    //     ret = m24sr_poll_i2c(dev);
-    // }
+    if (ret == M24SR_OK) {
+        ret = m24sr_poll_i2c(dev);
+    }
     return ret;
 }
 
@@ -1217,9 +1217,9 @@ static int _m24sr_kill_rf_session (const m24sr_t *dev) {
     /* Insure no access will be done just after open session */
     /* The only way here is to poll I2C to know when M24SR is ready */
     /* GPO can not be use with KillSession command */ 
-    // if (ret == M24SR_OK) {
-    //     ret = m24sr_poll_i2c(dev);
-    // }
+    if (ret == M24SR_OK) {
+        ret = m24sr_poll_i2c(dev);
+    }
     return ret;
 }
 

@@ -20,6 +20,8 @@
  *
  * @}
  */
+ 
+#if defined(CPU_FAM_STM32L1) || defined(CPU_FAM_STM32L0)
 
 #include <assert.h>
 #include <string.h>
@@ -209,3 +211,4 @@ size_t eeprom_clear(uint32_t pos, size_t len)
 {
     return eeprom_write(pos, NULL, len);
 }
+#endif /* defined(CPU_FAM_STM32L1) || defined(CPU_FAM_STM32L0) */

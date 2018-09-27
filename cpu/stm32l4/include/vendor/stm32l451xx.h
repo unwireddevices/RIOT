@@ -1087,24 +1087,6 @@ typedef struct
   * @}
   */
 
-/** @defgroup FLASH_Keys FLASH Keys
-  * @{
-  */ 
-#define FLASH_KEY1                ((uint32_t)0x45670123U)               /*!< Flash key1 */
-#define FLASH_KEY2                ((uint32_t)0xCDEF89ABU)               /*!< Flash key2: used with FLASH_KEY1 
-                                                                            to unlock the FLASH registers access */
-
-#define FLASH_PDKEY1              ((uint32_t)0x04152637U)               /*!< Flash power down key1 */
-#define FLASH_PDKEY2              ((uint32_t)0xFAFBFCFDU)               /*!< Flash power down key2: used with FLASH_PDKEY1 
-                                                                            to unlock the RUN_PD bit in FLASH_ACR */
-
-#define FLASH_OPTKEY1             ((uint32_t)0x08192A3BU)               /*!< Flash option byte key1 */
-#define FLASH_OPTKEY2             ((uint32_t)0x4C5D6E7FU)               /*!< Flash option byte key2: used with FLASH_OPTKEY1 
-                                                                            to allow option bytes operations */
-/**
-  * @}
-  */
-
 /** @addtogroup Peripheral_declaration
   * @{
   */

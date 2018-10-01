@@ -103,7 +103,7 @@ typedef union {
         uint8_t  read_access;
         uint8_t  write_access;
     } field;
-    uint8_t data[0x0F];
+    uint8_t data[15];
 } __attribute__((packed)) cc_file_info_t;
 
 

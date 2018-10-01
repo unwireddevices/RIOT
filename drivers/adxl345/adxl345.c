@@ -43,7 +43,7 @@ int adxl345_init(adxl345_t *dev, const adxl345_params_t* params)
     dev->params = (adxl345_params_t*)params;
 
     /* get scale_factor from full_res and range parameters */
-    dev->scale_factor = (dev->params->full_res ? 4 : (dev->params->range * 4));
+    dev->scale_factor = (ADXL345_PARAM_FULL_RES ? ADXL345_PARAM_SCALE_FACTOR : (4 << dev->params->range));
 
     /* Acquire exclusive access */
     i2c_acquire(BUS);
@@ -68,7 +68,7 @@ int adxl345_init(adxl345_t *dev, const adxl345_params_t* params)
     /* configure the user offset */
     i2c_write_regs(BUS, ADDR, ACCEL_ADXL345_OFFSET_X, dev->params->offset, 3, 0);
     /* Basic device setup */
-    reg = (dev->params->full_res | dev->params->range);
+    reg = (ADXL345_PARAM_FULL_RES | dev->params->range);
     
     i2c_write_reg(BUS, ADDR, ACCEL_ADXL345_DATA_FORMAT, reg, 0);
     i2c_write_reg(BUS, ADDR, ACCEL_ADXL345_BW_RATE, dev->params->rate, 0);
@@ -85,17 +85,23 @@ int adxl345_init(adxl345_t *dev, const adxl345_params_t* params)
 
 void adxl345_read(const adxl345_t *dev, adxl345_data_t *data)
 {
-    uint8_t result[6] = {};
+    int16_t result[3] = {};
 
     assert(dev && data);
 
     i2c_acquire(BUS);
-    i2c_read_regs(BUS, ADDR, ACCEL_ADXL345_DATA_X0, result, 6, 0);
+    i2c_read_regs(BUS, ADDR, ACCEL_ADXL345_DATA_X0, (void *)result, 6, 0);
     i2c_release(BUS);
+    
+    if (byteorder_is_little_endian()) {
+        for (int i = 0; i < 3; i++) {
+            byteorder_swap((void *)&result[i], sizeof(result[i]));
+        }
+    }
 
-    data->x = (((result[1] << 8) | result[0]) * dev->scale_factor);
-    data->y = (((result[3] << 8) | result[2]) * dev->scale_factor);
-    data->z = (((result[5] << 8) | result[4]) * dev->scale_factor);
+    data->x = result[0] * ADXL345_PARAM_SCALE_FACTOR;
+    data->y = result[1] * ADXL345_PARAM_SCALE_FACTOR;
+    data->z = result[3] * ADXL345_PARAM_SCALE_FACTOR;
 }
 
 void adxl345_set_interrupt(const adxl345_t *dev)

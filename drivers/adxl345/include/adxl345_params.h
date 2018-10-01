@@ -48,19 +48,18 @@ extern "C" {
                                      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F}
 #endif
 #ifndef ADXL345_PARAM_FULL_RES
-#define ADXL345_PARAM_FULL_RES      (0x08)
+#define ADXL345_PARAM_FULL_RES      (1 << 3)
 #endif
 #ifndef ADXL345_PARAM_OFFSET
 #define ADXL345_PARAM_OFFSET        { 0, 0, 0 }
 #endif
 #ifndef ADXL345_PARAM_SCALE_FACTOR
-#define ADXL345_PARAM_SCALE_FACTOR  (3.9)
+#define ADXL345_PARAM_SCALE_FACTOR  (4)
 #endif
 #ifndef ADXL345_PARAMS
-#define ADXL345_PARAMS              { .offset = ADXL345_PARAM_OFFSET,    \
-                                      .range  = ADXL345_RANGE_16G,     \
-                                      .rate   = ADXL345_PARAM_RATE,      \
-                                      .full_res = ADXL345_PARAM_FULL_RES }
+#define ADXL345_PARAMS              { .offset = ADXL345_PARAM_OFFSET,   \
+                                      .range  = ADXL345_RANGE_16G,      \
+                                      .rate   = ADXL345_PARAM_RATE,     }
 #endif
 #ifndef ADXL345_SAUL_INFO
 #define ADXL345_SAUL_INFO           { .name = "adxl345" }

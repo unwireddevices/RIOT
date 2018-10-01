@@ -21,30 +21,58 @@
 #include "saul.h"
 #include "sht3x.h"
 
-static int read(const sht3x_dev_t *dev, int16_t *temp, int16_t *hum)
+/**
+ * Humidity and temperature sensor values are fetched by separate saul
+ * functions. To avoid double waiting for the sensor and readout of the
+ * sensor values, we read both sensor values once, if necessary, and
+ * store them in local variables to provide them in the separate saul
+ * read functions.
+ */
+static bool _temp_valid = false;
+static bool _hum_valid = false;
+static int16_t _temp;
+static int16_t _hum;
+
+static int read(const sht3x_dev_t *dev)
 {
-    return sht3x_read((sht3x_dev_t *)dev, temp, hum);
+    /* read both sensor values */
+    int res = sht3x_read((sht3x_dev_t *)dev, &_temp, &_hum);
+    if (res != SHT3X_OK) {
+        return res;
+    }
+    /* mark both sensor values as valid */
+    _temp_valid = true;
+    _hum_valid = true;
+    return SHT3X_OK;
 }
 
-static int read_temp(const void *dev, phydat_t *res)
+static int read_temp(const void *dev, phydat_t *data)
 {
-   if (read(dev, &res->val[0], NULL) == SHT3X_OK) {
-        res->unit = UNIT_TEMP_C;
-        res->scale = -2;
+    /* either local variable is valid or fetching it was successful */
+    if (_temp_valid || read(dev) == SHT3X_OK) {
+        /* mark local variable as invalid */
+        _temp_valid = false;
+
+        data->val[0] = _temp;
+        data->unit = UNIT_TEMP_C;
+        data->scale = -2;
         return 1;
     }
-
     return -ECANCELED;
 }
 
-static int read_hum(const void *dev, phydat_t *res)
+static int read_hum(const void *dev, phydat_t *data)
 {
-    if (read(dev, NULL, &res->val[0]) == SHT3X_OK) {
-        res->unit = UNIT_PERCENT;
-        res->scale = -2;
+    /* either local variable is valid or fetching it was successful */
+    if (_hum_valid || read(dev) == SHT3X_OK) {
+        /* mark local variable as invalid */
+        _hum_valid = false;
+
+        data->val[0] = _hum;
+        data->unit = UNIT_PERCENT;
+        data->scale = -2;
         return 1;
     }
-
     return -ECANCELED;
 }
 

@@ -34,7 +34,9 @@ report anything to anyone by any means.
     sexual orientation, gender identity and expression, age, size, family
     status, political belief, religion, and physical ability. Please note
     that above is a finished list and it doesn't include "mental capacity"
-    and "code quality".
+    and "code quality". There are a lot of other opportunities in the world,
+    and even if your IQ is below 90 and you can't write a single line of
+    code that is not shit, you can still join US Military. They accept down to 81.
 -   **Be considerate.** Your work will be used by other people, and you in turn
     will depend on the work of others. Any decision you take will affect users
     and colleagues, and you should take those consequences into account when

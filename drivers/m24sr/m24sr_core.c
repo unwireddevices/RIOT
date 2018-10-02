@@ -31,7 +31,7 @@
 #include "periph/i2c.h"
 #include "xtimer.h"
 
-#define ENABLE_DEBUG                (0)
+#define ENABLE_DEBUG                (1)
 #include "debug.h"
 
 
@@ -143,6 +143,7 @@ int m24sr_poll_i2c (const m24sr_t *dev) {
 
     do {
         //ret = _write_i2c(dev, 0x00, 0);
+        DEBUG("Poll\n");
         ret = i2c_write_bytes(dev->params.i2c, dev->params.i2c_addr, data, 0, I2C_NOSTOP);
         current_timestamp = (xtimer_now_usec() / US_PER_MS);
     } while (((current_timestamp - start_timestamp) < M24SR_I2C_TIMEOUT) && (ret != 0));

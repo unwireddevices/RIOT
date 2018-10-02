@@ -61,7 +61,6 @@ typedef enum{
 } m24sr_wait_mode_t;    
 
 
-
 /**
  * @brief   M24SR configuration parameters
  */
@@ -91,6 +90,14 @@ typedef struct {
  */
 typedef void (*m24sr_cb_t)(void *);
 
+
+/**
+ * @brief  M24SR power states
+ */
+enum m24sr_power_state {
+    M24SR_POWER_UP = 0,    /**< Power up */
+    M24SR_POWER_DOWN,  /**< Power down */
+};
 
 /**
  * @brief   M24SR device descriptor
@@ -123,7 +130,7 @@ enum {
 int m24sr_eeprom_init(m24sr_t *dev, const m24sr_params_t *params);
 int m24sr_eeprom_read(m24sr_t *dev, void *dest, uint16_t addr, uint16_t size);
 int m24sr_eeprom_write(m24sr_t *dev, void *src, uint16_t addr, uint16_t size);
-//int m24sr_eeprom_erase(m24sr_t *dev, uint16_t addr, uint16_t size);
+int m24sr_eeprom_erase(m24sr_t *dev, uint16_t addr, uint16_t size);
 int m24sr_eeprom_erase_all(m24sr_t *dev);
 int m24sr_eeprom_power(m24sr_t *dev, uint8_t power);
 

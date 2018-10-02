@@ -33,8 +33,8 @@
 
 /* This will only work on small memories. Modify if you need to test NVRAM
  * memories which do not fit inside free RAM */
-static uint8_t buf_out[0xFF];
-static uint8_t buf_in[0XFF];
+static uint8_t buf_out[0x100];
+static uint8_t buf_in[0X100];
 
 
 /**

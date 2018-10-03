@@ -31,7 +31,7 @@
 
 #include "byteorder.h"
 
-#define ENABLE_DEBUG                (1)
+#define ENABLE_DEBUG                    (1)
 #include "debug.h"
 
 
@@ -49,9 +49,12 @@
     #define PRINTBUFF(...)
 #endif
 
-#define M24SR_PWD_LEN               0x10
-#define NDEF_FILE_LEN_POS           0
-#define NDEF_FILE_LEN_NUM_BYTES     2
+#define M24SR_PWD_LEN                   0x10
+#define NDEF_FILE_LEN_POS               0
+#define NDEF_FILE_LEN_NUM_BYTES         2
+#define I2C_GPO_INTERRUPT_ALLOWED       (1)
+
+
 
 static cmd_apdu_t cmd;
 static uint8_t data_buffer[0xFF];
@@ -1423,8 +1426,6 @@ void m24sr_rf_config(const m24sr_t *dev, uint8_t rf_config) {
     m24sr_rf_config_hw(dev, rf_config);
 }
 
-
-#define I2C_GPO_INTERRUPT_ALLOWED       (1)
 
 /**
   * @brief  This fonction initialize the M24SR

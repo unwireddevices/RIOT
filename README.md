@@ -51,7 +51,7 @@ Unwired Devices provides numerous new drivers, features and improvements to orig
 as well as complete applications for LoRaWAN and LoRaLAN network stacks with highly modular
 architecture and extensive shell configuration capabilities.
 
-Complete list of added features and improvements can be found in the [CHANGES.md](CHANGES.md) file.
+Complete list of added features and improvements can be found in the [UNWDS.md](UNWDS.md) file.
 
 ## FEATURES
 

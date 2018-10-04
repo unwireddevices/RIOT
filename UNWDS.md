@@ -1,7 +1,7 @@
-CHANGES
-=======
+IMPROVEMENTS BY UNWIRED DEVICES
+===============================
 
-This document describes differences between Unwired Devices for of the RIOS OS and original RIOT OS code.
+This document describes differences between Unwired Devices code and original RIOT OS code.
 
 CPU support
 

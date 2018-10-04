@@ -31,7 +31,7 @@
 
 #include "byteorder.h"
 
-#define ENABLE_DEBUG                    (1)
+#define ENABLE_DEBUG                    (0)
 #include "debug.h"
 
 
@@ -52,7 +52,9 @@
 #define M24SR_PWD_LEN                   0x10
 #define NDEF_FILE_LEN_POS               0
 #define NDEF_FILE_LEN_NUM_BYTES         2
-#define I2C_GPO_INTERRUPT_ALLOWED       (1)
+//#define I2C_GPO_INTERRUPT_ALLOWED       (1) //@TODO Don't use. Fix interrupt work
+
+#define I2C_GPO_SYNCHRO_ALLOWED         (1)
 
 
 
@@ -613,7 +615,7 @@ static int m24sr_update_binary(m24sr_t *dev, uint16_t offset, uint8_t *src_data,
         /*check the CRC */
         if ( _m24sr_is_correct_crc_residue(data, M24SR_WATING_TIME_EXT_RESPONSE_NUM_BYTE) != M24SR_WRONG_CRC) {
             /* send the FrameExension response*/
-            status = _m24sr_fwt_extension(dev, data[M24SR_OFFSET_PCB + 1]); //@FIXME
+            status = _m24sr_fwt_extension(dev, data[M24SR_OFFSET_PCB + 1]);
         }
     } else {
         status = _m24sr_is_correct_crc_residue(data, M24SR_STATUS_RESPONSE_NUM_BYTE); //@TODO Return values not error. Return value is code SW
@@ -1289,7 +1291,6 @@ void m24sr_rf_config_hw(const m24sr_t *dev, uint8_t state)
 #if defined(I2C_GPO_INTERRUPT_ALLOWED)
 static void _irq_handler(void *arg) {
     m24sr_t *dev = (m24sr_t *)arg;
-
     dev->event_ready = 1;
 }
 #endif
@@ -1307,7 +1308,7 @@ int m24sr_i2c_init_hw (m24sr_t *dev, const m24sr_params_t *params) {
     if (dev->params.gpo_pin != GPIO_UNDEF) {
 #if defined(I2C_GPO_INTERRUPT_ALLOWED)
 
-        retval = gpio_init_int(dev->params.gpo_pin, GPIO_IN_PU, dev->params.gpo_flank, _irq_handler, dev);
+        retval = gpio_init_int(dev->params.gpo_pin, GPIO_IN_PU, GPIO_FALLING, _irq_handler, dev);
         if (retval < 0) {
             DEBUG("[m24sr] ERROR: failed to initialize GPO pin\n");
             DEBUG("[m24sr] ERROR: Interrupt pin not initialized\n");
@@ -1447,13 +1448,12 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
 
     _m24sr_init_structure();
 
-// #if defined(I2C_GPO_SYNCHRO_ALLOWED) || defined(I2C_GPO_INTERRUPT_ALLOWED)
-//      DEBUG("Kill RF Session\n");
-//     if (_m24sr_kill_rf_session(dev) == M24SR_OK) {
-//         m24sr_manage_i2c_gpo(dev, I2C_ANSWER_READY);
-//         m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
-//     }
-// #endif /* I2C_GPO_SYNCHRO_ALLOWED */
+#if defined(I2C_GPO_SYNCHRO_ALLOWED) || defined(I2C_GPO_INTERRUPT_ALLOWED)
+    if (_m24sr_kill_rf_session(dev) == M24SR_OK) {
+        m24sr_manage_i2c_gpo(dev, I2C_ANSWER_READY);
+        m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
+    }
+#endif /* I2C_GPO_SYNCHRO_ALLOWED */
 
     /* Read CC file */
     status = _m24sr_get_i2c_session(dev);
@@ -1465,7 +1465,6 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
         return M24SR_ERROR;
     }
 
-    //_m24sr_kill_rf_session(dev);
     /*===================================*/
     /* Select the NFC type 4 application */
     /*===================================*/
@@ -1475,6 +1474,7 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
         m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
         return M24SR_ERROR;
     }
+
     /*===================*/
     /* select a SYS file */
     /*===================*/
@@ -1487,17 +1487,15 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
     DEBUG("SYS FILE size %d\n", sizeof(sys_file));
     if (m24sr_read_binary(dev, 0x0000, (uint8_t *)&sys_file, sizeof(sys_file)) == M24SR_OK) {
         PRINTBUFF((uint8_t *)&sys_file, sizeof(sys_file));
-        printf("NDEF File Number is %02X\n", sys_file.ndef_file_num);
-        printf("Unique identifier by a %d bytes : ", sizeof(sys_file.UID));
-        for (uint8_t i = 0; i < sizeof(sys_file.UID); i++) {
-            printf("%02X ", sys_file.UID[i]);
-        }
-        printf("\n");
+        DEBUG("NDEF File Number is %02X\n", sys_file.ndef_file_num);
+        DEBUG("Unique identifier by a %d bytes : ", sizeof(sys_file.UID));
+        PRINTBUFF((uint8_t *)&sys_file.UID, sizeof(sys_file.UID));
         memcpy(dev->memory.uid, sys_file.UID, sizeof(sys_file.UID));
     } else {
         m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
         return M24SR_OK;
     }
+
     /*==================*/
     /* select a CC file */
     /*==================*/

@@ -3,11 +3,18 @@ export TARGET_ARCH ?= arm-none-eabi
 
 # define build specific options
 export CFLAGS_CPU   = -mcpu=$(MCPU) -mlittle-endian -mthumb $(CFLAGS_FPU)
+
 ifneq (llvm,$(TOOLCHAIN))
 # Clang (observed with v3.7) does not understand  -mno-thumb-interwork, only add if
 # not building with LLVM
-export CFLAGS_CPU  += -mno-thumb-interwork
+export CFLAGS      += -mno-thumb-interwork
+
+# work around https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85606
+ifneq (,$(filter cortex-m0%,$(CPU_ARCH)))
+  CFLAGS_CPU += -march=armv6s-m
 endif
+endif
+
 export CFLAGS_LINK  = -ffunction-sections -fdata-sections -fno-builtin -fshort-enums
 export CFLAGS_DBG  ?= -ggdb -g3
 export CFLAGS_OPT  ?= -Os
@@ -85,8 +92,9 @@ endif
 
 # Explicitly tell the linker to link the startup code.
 #   Without this the interrupt vectors will not be linked correctly!
+VECTORS_O ?= $(BINDIR)/cpu/vectors.o
 ifeq ($(COMMON_STARTUP),)
-export UNDEF += $(BINDIR)/cpu/vectors.o
+export UNDEF += $(VECTORS_O)
 endif
 
 # CPU depends on the cortex-m common module, so include it:

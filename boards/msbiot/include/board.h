@@ -32,11 +32,11 @@ extern "C" {
  * @name    Configure connected CC1101 (radio) device
  * @{
  */
-#define CC110X_SPI          SPI_DEV(0)
-#define CC110X_CS           GPIO_PIN(PORT_B, 12)
-#define CC110X_GDO0         GPIO_PIN(PORT_C, 4)
-#define CC110X_GDO1         GPIO_PIN(PORT_A, 6)
-#define CC110X_GDO2         GPIO_PIN(PORT_C, 5)
+#define CC110X_PARAM_SPI    SPI_DEV(0)
+#define CC110X_PARAM_CS     GPIO_PIN(PORT_B, 12)
+#define CC110X_PARAM_GDO0   GPIO_PIN(PORT_C, 4)
+#define CC110X_PARAM_GDO1   GPIO_PIN(PORT_A, 6)
+#define CC110X_PARAM_GDO2   GPIO_PIN(PORT_C, 5)
 /** @} */
 
 /**
@@ -70,6 +70,14 @@ extern "C" {
 #define LED2_ON             (LED_PORT->BSRR = LED2_MASK)
 #define LED2_OFF            (LED_PORT->BSRR = (LED2_MASK << 16))
 #define LED2_TOGGLE         (LED_PORT->ODR  ^= LED2_MASK)
+/** @} */
+
+/**
+ * @name    Button pin definitions
+ * @{
+ */
+#define BUTTON0_PIN         GPIO_PIN(PORT_B, 13)
+#define BUTTON1_PIN         GPIO_PIN(PORT_A, 0)
 /** @} */
 
 /**

@@ -101,12 +101,26 @@ NORETURN void _assert_failure(const char *file, unsigned line);
  *
  * @see http://pubs.opengroup.org/onlinepubs/9699919799/functions/assert.html
  */
-#define assert(cond) \
-    if (!(cond)) { \
-        _assert_failure(RIOT_FILE_RELATIVE, __LINE__); \
-    }
+#define assert(cond) ((cond) ? (void)0 :  _assert_failure(RIOT_FILE_RELATIVE, __LINE__))
 #else
 #define assert(cond) ((cond) ? (void)0 : core_panic(PANIC_ASSERT_FAIL, assert_crash_message))
+#endif
+
+#if !defined __cplusplus
+#if __STDC_VERSION__ >= 201112L
+/**
+ * @brief c11 static_assert() macro
+ */
+#define static_assert(...) _Static_assert(__VA_ARGS__)
+#else
+/**
+ * @brief static_assert for c-version < c11
+ *
+ * Generates a division by zero compile error when cond is false
+ */
+#define static_assert(cond, ...) \
+    enum { static_assert_failed_on_div_by_0 = 1 / (!!(cond)) }
+#endif
 #endif
 
 #ifdef __cplusplus

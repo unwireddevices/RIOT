@@ -35,12 +35,12 @@ extern "C" {
 
 static inline void iwdg_unlock(void)
 {
-    // IWDG->KR = IWDG_UNLOCK;
+    IWDG->KR = IWDG_UNLOCK;
 }
 
 static inline void iwdg_lock(void)
 {
-    // IWDG->KR = IWDG_LOCK;
+    IWDG->KR = IWDG_LOCK;
 }
 
 void wdg_set_prescaler(uint8_t prescaler)

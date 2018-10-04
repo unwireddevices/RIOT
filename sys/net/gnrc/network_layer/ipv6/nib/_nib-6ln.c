@@ -58,12 +58,7 @@ static inline uint8_t _reverse_iid(const ipv6_addr_t *dst,
             l2addr[0] ^= 0x02;
             return sizeof(dst->u64[1]);
 #endif  /* defined(MODULE_NETDEV_IEEE802154) || defined(MODULE_XBEE) */
-#ifdef MODULE_NRFMIN
-        case NETDEV_TYPE_NRFMIN:
-            l2addr[0] = dst->u8[14];
-            l2addr[1] = dst->u8[15];
-            return sizeof(uint16_t);
-#endif  /* MODULE_NETDEV_IEEE802154 */
+
 #ifdef MODULE_NRFMIN
         case NETDEV_TYPE_NRFMIN:
             l2addr[0] = dst->u8[14];

@@ -39,6 +39,8 @@ def _check_startup(child):
 
 
 def _check_help(child):
+    child.sendline('')
+    child.expect('>')
     child.sendline('help')
     child.expect_exact('Command              Description')
     child.expect_exact('---------------------------------------')
@@ -60,6 +62,6 @@ def testfunc(child):
 
 
 if __name__ == "__main__":
-    sys.path.append(os.path.join(os.environ['RIOTBASE'], 'dist/tools/testrunner'))
+    sys.path.append(os.path.join(os.environ['RIOTTOOLS'], 'testrunner'))
     from testrunner import run
     sys.exit(run(testfunc))

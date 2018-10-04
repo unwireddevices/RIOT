@@ -8,8 +8,8 @@ endif
 ifneq (,$(filter ps,$(USEMODULE)))
   SRC += sc_ps.c
 endif
-ifneq (,$(filter sht11,$(USEMODULE)))
-  SRC += sc_sht11.c
+ifneq (,$(filter sht1x,$(USEMODULE)))
+  SRC += sc_sht1x.c
 endif
 ifneq (,$(filter lpc2387,$(USEMODULE)))
   SRC += sc_heap.c
@@ -40,11 +40,14 @@ ifneq (,$(filter xtimer,$(USEMODULE)))
   SRC += sc_icmpv6_echo.c
 endif
 endif
+ifneq (,$(filter gnrc_pktbuf_cmd,$(USEMODULE)))
+    SRC += sc_gnrc_pktbuf.c
+endif
 ifneq (,$(filter gnrc_rpl,$(USEMODULE)))
     SRC += sc_gnrc_rpl.c
 endif
 ifneq (,$(filter gnrc_sixlowpan_ctx,$(USEMODULE)))
-ifneq (,$(filter gnrc_sixlowpan_nd_border_router,$(USEMODULE)))
+ifneq (,$(filter gnrc_ipv6_nib_6lbr,$(USEMODULE)))
     SRC += sc_gnrc_6ctx.c
 endif
 endif

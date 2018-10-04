@@ -75,9 +75,6 @@ int lmt01_init(lmt01_t *lmt01, gpio_t en_pin, gpio_t sens_pin) {
 
 	lmt01->_internal.pulse_count = 0;
 	lmt01->_internal.state = LMT01_UNKNOWN;
-    
-    pm_add_gpio_exclusion(lmt01->en_pin);
-    pm_add_gpio_exclusion(lmt01->sens_pin);
 
     /*
 	int res = gpio_init(en_pin, GPIO_OUT);
@@ -95,10 +92,7 @@ static int count_pulses(lmt01_t *lmt01) {
 	/* Wait minimum time for sensor wake up and all transitions to be done */
     rtctimers_millis_sleep(LMT01_MIN_TIMEOUT_MS);
     
-    uint8_t powermode = pm_get();
-    if (powermode != PM_ON) {
-        pm_set(PM_ON);
-    }
+    pm_block(PM_SLEEP);
 
 	int pulse_count = 0;
 	uint8_t gpio_prev_value = 0;
@@ -130,9 +124,7 @@ static int count_pulses(lmt01_t *lmt01) {
 		}
 	}
     
-    if (powermode != PM_ON) {
-        pm_set(powermode);
-    }
+    pm_unblock(PM_SLEEP);
 	
 	/* Disable sensor */
 	lmt01_off(lmt01);

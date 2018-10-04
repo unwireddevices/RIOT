@@ -1,9 +1,22 @@
 /*
- * Copyright (C) 2016 Unwired Devices [info@unwds.com]
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * Copyright (C) 2016-2018 Unwired Devices LLC <info@unwds.com>
+
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software
+ * is furnished to do so, subject to the following conditions:
+
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  */
 
 /**
@@ -25,7 +38,6 @@
 #include "shell.h"
 #include "shell_commands.h"
 #include "periph/gpio.h"
-#include "nvram.h"
 
 #include "unwds-ids.h"
 
@@ -35,7 +47,7 @@ typedef uint8_t unwds_module_id_t;
  * Modules NVRAM configuration.
  */
 
-void unwds_setup_nvram_config(nvram_t *nvram_ptr, int base_addr, int block_size);
+void unwds_setup_nvram_config(int base_addr, int block_size);
 
 /**
  * @brief Reads data from NVRAM configuration for specified module
@@ -70,9 +82,11 @@ bool unwds_write_nvram_config(unwds_module_id_t module_id, uint8_t *data, size_t
  */
 bool unwds_erase_nvram_config(unwds_module_id_t module_id);
 
-uint8_t *allocate_stack(uint32_t stack_size);
+uint8_t *allocate_stack_name(uint32_t stack_size, const char* caller_name);
 
-#define UNWDS_MAX_MODULE_NAME 10
+#define allocate_stack(stack_size) allocate_stack_name(stack_size, __func__)
+
+#define UNWDS_MAX_MODULE_NAME 15
 #define UNWDS_MAX_DATA_LEN 126
 
 #define UNWDS_STORAGE_BLOCKS_MAX 16
@@ -143,7 +157,13 @@ int unwds_gpio_pins_total(void);
 
 void int_to_float_str(char *buf, int decimal, uint8_t precision);
 
-bool unwds_read_nvram_storage(unwds_module_id_t module_id, uint8_t *data_out, uint8_t size);
+/* converts number to BE, sign-and-magnitude format */
+void convert_to_be_sam(void *ptr, size_t size);
+
+/* converts number to BE, sign-and-magnitude format */
+void convert_from_be_sam(void *ptr, size_t size);
+
+bool unwds_read_nvram_storage(unwds_module_id_t module_id, uint8_t *data_out, size_t size);
 bool unwds_write_nvram_storage(unwds_module_id_t module_id, uint8_t *data, size_t data_size);
 
 #endif /* UNWDS_COMMON_H_ */

@@ -31,10 +31,9 @@
 
 void cpuid_get(void *id)
 {
-    (void)id;
     uint32_t cpuid_address;
     
-    cpuid_address = STM32L4_CPUID_ADDR_CAT1234;
-   
+    cpuid_address = CPUID_ADDR;
+    
     memcpy(id, (void *)cpuid_address, CPUID_LEN);
 }

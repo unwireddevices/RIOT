@@ -9,12 +9,16 @@
 import os
 import sys
 
+# Float and print operations are slow on boards
+# Got 80 iotlab-m3 and 250 on samr21-xpro
+TIMEOUT = 300
+
 
 def testfunc(child):
-    child.expect('SUCCESS')
+    child.expect('SUCCESS', timeout=TIMEOUT)
 
 
 if __name__ == "__main__":
-    sys.path.append(os.path.join(os.environ['RIOTBASE'], 'dist/tools/testrunner'))
+    sys.path.append(os.path.join(os.environ['RIOTTOOLS'], 'testrunner'))
     from testrunner import run
     sys.exit(run(testfunc))

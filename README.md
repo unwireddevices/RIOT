@@ -1,3 +1,6 @@
+[![Nightly CI status master][master-ci-badge]][master-ci-link]
+[![IRC][irc-badge]][irc-link]
+
                           ZZZZZZ
                         ZZZZZZZZZZZZ
                       ZZZZZZZZZZZZZZZZ
@@ -27,7 +30,7 @@
 The friendly Operating System for IoT!
 
 RIOT is a real-time multi-threading operating system that supports a range of
-devices that are typically found in the Internet of Things (IoT): 
+devices that are typically found in the Internet of Things (IoT):
 8-bit, 16-bit and 32-bit microcontrollers.
 
 RIOT is based on the following design principles: energy-efficiency, real-time
@@ -41,6 +44,14 @@ RIOT is licensed with LGPLv2.1, a copyleft license which fosters
 indirect business models around the free open-source software platform
 provided by RIOT, e.g. it is possible to link closed-source code with the
 LGPL code.
+
+## SPECIFIC FEATURES BY UNWIRED DEVICES
+
+Unwired Devices provides numerous new drivers, features and improvements to original RIOT OS code,
+as well as complete applications for LoRaWAN and LoRaLAN network stacks with highly modular
+architecture and extensive shell configuration capabilities.
+
+Complete list of added features and improvements can be found in the [UNWDS.md](UNWDS.md) file.
 
 ## FEATURES
 
@@ -61,31 +72,22 @@ but not limited to:
 * CoAP
 * CCN-Lite
 
-## SPECIFIC FEATURES BY UNWIRED DEVICES
-
-* LoRaLAN network stack for small-scale LoRa networks (up to 100 nodes with STM32L1 CPU)
-* set of modules providing support for various sensors and actuators for LoRaLAN endpoint device
-* power management support for STM32L1: STOP, STANDBY, SLEEP and frequency switching
-* watchdog, EEPROM, backup registers support for STM32L1
-* RTC-based timers, including subseconds timer (rtctimers and rtctimers-millis)
-* additional peripheral device drivers
-* support for Unwired Range LoRa modems
-
 ## GETTING STARTED
-* You want to start the RIOT? Just follow our [quickstart guide](http://doc.riot-os.org/index.html#the-quickest-start) or the [getting started documentation](http://doc.riot-os.org/getting-started.html).
+* You want to start the RIOT? Just follow our [quickstart guide](http://doc.riot-os.org/index.html#the-quickest-start) or try this [tutorial](https://github.com/RIOT-OS/Tutorials/blob/master/README.md). For specific toolchain installation, follow instructions in the [getting started](http://doc.riot-os.org/getting-started.html) page.
 * The RIOT API itself can be built from the code using doxygen. The latest
-  version is uploaded daily to http://riot-os.org/api.
+  version of the documentation is uploaded daily to [riot-os.org/api](http://riot-os.org/api).
 
 ### USING THE NATIVE PORT WITH NETWORKING
 If you compile RIOT for the native cpu and include the `netdev_tap` module,
 you can specify a network interface like this: `PORT=tap0 make term`
 
 #### SETTING UP A TAP NETWORK
-There is a shellscript in `RIOT/dist/tools/tapsetup` called `tapsetup` which
+There is a shell script in `RIOT/dist/tools/tapsetup` called `tapsetup` which
 you can use to create a network of tap interfaces.
 
 *USAGE*
-To create a bridge and two (or count at your option) tap interfaces:
+
+To create a bridge and two (or `count` at your option) tap interfaces:
 
     ./dist/tools/tapsetup/tapsetup [-c [<count>]]
 
@@ -118,3 +120,9 @@ All code files contain licensing information.
 For more information, see the RIOT website:
 
 http://www.riot-os.org
+
+
+[master-ci-badge]: https://ci.riot-os.org/RIOT-OS/RIOT/master/latest/badge.svg
+[master-ci-link]: https://ci.riot-os.org/RIOT-OS/RIOT/master/latest/output.html
+[irc-badge]: https://img.shields.io/badge/IRC-join%20chat%20%E2%86%92-blue.svg
+[irc-link]: http://webchat.freenode.net?channels=%23riot-os

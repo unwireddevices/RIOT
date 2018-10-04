@@ -1,9 +1,22 @@
 /*
- * Copyright (C) 2016-2018 Unwired Devices [info@unwds.com]
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * Copyright (C) 2016-2018 Unwired Devices LLC <info@unwds.com>
+
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software
+ * is furnished to do so, subject to the following conditions:
+
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  */
 
 /**
@@ -57,17 +70,17 @@ static void configure_sx127x(ls_ed_t *ls)
     
     ls_setup_sx127x(ls->_internal.device, dr, ls->settings.channels_table[ch]);
     
-    DEBUG("[LoRa] configure_sx127x: SX127X configured\n");
+    DEBUG("[LoRa] SX127X configured\n");
 }
 
 static void anticollision_delay(void) {
 	/* Pseudorandom delay up to 8 seconds for collision avoidance */
 	unsigned int delay = random_uint32_range(1000, 8000);
 
-	DEBUG("[LoRa] anticollision_delay: random delay %d ms\n", (unsigned int) (delay));
+	DEBUG("[LoRa] random delay %d ms\n", (unsigned int) (delay));
 	rtctimers_millis_sleep(delay);
 
-	DEBUG("[LoRa] anticollision_delay: delay end\n");
+	DEBUG("[LoRa] delay end\n");
 }
 
 static void enter_rx(ls_ed_t *ls)
@@ -77,17 +90,17 @@ static void enter_rx(ls_ed_t *ls)
 
     /* Don't touch anything if we're already in reception mode */
     if (ls->state == LS_ED_LISTENING) {
-        DEBUG("[LoRa] enter_rx: already listening\n");
+        DEBUG("[LoRa] already listening\n");
     	return;
     }
 
     ls->state = LS_ED_LISTENING;
 
-    DEBUG("[LoRa] enter_rx: configure SX127X\n");
+    DEBUG("[LoRa] configure SX127X\n");
     configure_sx127x(ls);
     uint8_t state = NETOPT_STATE_RX;
     ls->_internal.device->driver->set(ls->_internal.device, NETOPT_STATE, &state, sizeof(uint8_t));
-    DEBUG("[LoRa] enter_rx: SX127X configured\n");
+    DEBUG("[LoRa] SX127X configured\n");
 }
 
 static inline void schedule_tx(ls_ed_t *ls)
@@ -97,7 +110,7 @@ static inline void schedule_tx(ls_ed_t *ls)
     msg_init_queue(msg_queue, 4);
     
     /* Send message to the frame queue thread to initiate frame transmission */
-    DEBUG("[LoRa] schedule_tx: sending message to uplink queue\n");
+    DEBUG("[LoRa] sending message to uplink queue\n");
     msg_try_send(&msg, ls->_internal.uq_thread_pid);
 }
 
@@ -111,7 +124,7 @@ static void open_rx_windows(ls_ed_t *ls)
     
     /* Open second RX windows if class A device */
     if (ls->settings.class == LS_ED_CLASS_A) {
-        DEBUG("[LoRa] open_rx_windows: class A second window\n");        
+        DEBUG("[LoRa] class A second window\n");        
         rtctimers_millis_set_msg(&ls->_internal.rx_window2, 1000*(LS_RX_DELAY1 + LS_RX_DELAY2), &msg_rx2, ls->_internal.tim_thread_pid);
     }
     
@@ -122,7 +135,7 @@ static void send_next(ls_ed_t *ls) {
     anticollision_delay();
 	ls->_internal.confirmation_required = false;
     
-    DEBUG("[LoRa] send_next: sending frame\n");
+    DEBUG("[LoRa] sending frame\n");
 
     /* Schedule RX windows */
     if (ls->settings.class != LS_ED_CLASS_A) {
@@ -137,11 +150,17 @@ static void send_next(ls_ed_t *ls) {
 
 static uint8_t get_node_status(void)
 {
-    DEBUG("[LoRa] get_node_status: battery and voltage\n");
+    DEBUG("[LoRa] battery and voltage\n");
+    
+    return 0;
     
     if (adc_init(ADC_LINE(ADC_VREF_INDEX)) < 0) {
+        DEBUG("[LoRa] ADC init error\n");
         return 0;
     }
+    
+    DEBUG("[LoRa] ADC initialized\n");
+    
     uint16_t vdd;
     /* 2000 mV min voltage */
     /* 50 mV per bit resolution */
@@ -154,7 +173,7 @@ static uint8_t get_node_status(void)
     temp = adc_sample(ADC_LINE(ADC_TEMPERATURE_INDEX), ADC_RES_12BIT);
     temp = 40 + ((temp + 105) / 200); /* -40 is the minimim, 20 deg C per bit */
     
-    DEBUG("[LoRa] get_node_status: V = %d, T = %d\n", vdd, temp);
+    DEBUG("[LoRa] V = %d, T = %d\n", vdd, temp);
     
     return (uint8_t)((vdd & 0x1F) | ((temp & 0x7) << 5));
 }
@@ -162,7 +181,7 @@ static uint8_t get_node_status(void)
 static int send_frame(ls_ed_t *ls, ls_type_t type, uint8_t *buf, size_t buflen)
 {
     assert(ls != NULL);
-    DEBUG("[LoRa] send_frame: sending frame\n");
+    DEBUG("[LoRa] sending frame\n");
 
     mutex_lock(&ls->_internal.curr_frame_mutex);
 
@@ -180,7 +199,7 @@ static int send_frame(ls_ed_t *ls, ls_type_t type, uint8_t *buf, size_t buflen)
     
     if (!ls_frame_fifo_push(&ls->_internal.uplink_queue, frame)) {
     	mutex_unlock(&ls->_internal.curr_frame_mutex);
-        DEBUG("[LoRa] send_frame: FIFO error\n");
+        DEBUG("[LoRa] FIFO error\n");
         return -LS_SEND_E_FIFO_ERROR;
     }
 
@@ -200,7 +219,7 @@ static void close_rx_windows(ls_ed_t *ls)
     /* Clear the default settings flag just in case the second rx window is not expired yet */
     ls->_internal.use_rx_window_2_settings = false;
 
-    DEBUG("[LoRa] close_rx_windows: rx windows closed\n");
+    DEBUG("[LoRa] rx windows closed\n");
 
     /* Remove windows */
     rtctimers_millis_remove(&ls->_internal.rx_window1);
@@ -215,7 +234,7 @@ static void close_rx_windows(ls_ed_t *ls)
 
 static bool ack_recv(ls_ed_t *ls, ls_frame_t  *frame) {
     if (frame->header.dev_addr != ls->_internal.dev_addr) {
-        DEBUG("[LoRa] ack_recv: address mismatch\n");
+        DEBUG("[LoRa] address mismatch\n");
     	return false;
     }
 
@@ -228,7 +247,7 @@ static bool ack_recv(ls_ed_t *ls, ls_frame_t  *frame) {
 	/* Reset number of retries */
 	ls->_internal.num_retr = 0;
 
-	puts("[LoRa] ack_recv: confirmation received");
+	puts("[LoRa] confirmation received");
 
 	ls->_internal.confirmation_required = false;
 
@@ -242,17 +261,17 @@ static bool ack_recv(ls_ed_t *ls, ls_frame_t  *frame) {
 
 static void data_recv(ls_ed_t *ls, ls_frame_t *frame) {
     if (frame->header.dev_addr != ls->_internal.dev_addr) {
-        DEBUG("[LoRa] data_recv: address mismatch\n");
+        DEBUG("[LoRa] address mismatch\n");
     	return;
     }
     
-    DEBUG("[LoRa] data_recv: data received\n");
+    DEBUG("[LoRa] data received\n");
 
 	/* Notify application about the data */
 	if (ls->appdata_received_cb != NULL) {
 		/* Send acknowledge if app. data wasn't sent already */
 		if (ls->appdata_received_cb(frame->payload.data, frame->payload.len)) {
-            DEBUG("[LoRa] data_recv: sending ACK\n");
+            DEBUG("[LoRa] sending ACK\n");
 			send_frame(ls, LS_UL_ACK, NULL, 0);
 		}
 	}
@@ -291,7 +310,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             snprintf(debug_frame_type, 20, "UNKNOWN");
             break;
     }
-    DEBUG("[LoRa] frame_recv: downlink frame received, type %s\n", debug_frame_type);
+    DEBUG("[LoRa] downlink frame received, type %s\n", debug_frame_type);
 #endif
 
     if ((frame->header.type == LS_DL_ACK_W_DATA) ||
@@ -299,22 +318,22 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
         (frame->header.type == LS_DL) || 
         (frame->header.type == LS_DL_TIME_ACK)) {
         if (!ls->settings.no_join && !ls->_internal.is_joined) {
-            DEBUG("[LoRa] frame_recv: not joined\n");
+            DEBUG("[LoRa] not joined\n");
             return false;
         }
 
         if (frame->header.dev_addr != ls->_internal.dev_addr) {
-            DEBUG("[LoRa] frame_recv: address mismatch\n");
+            DEBUG("[LoRa] address mismatch\n");
             return false;
         }
 
         if (!ls_validate_frame_mic(ls->settings.crypto.mic_key, frame)) {
-            DEBUG("[LoRa] frame_recv: invalid MIC\n");
+            DEBUG("[LoRa] invalid MIC\n");
             return false;
         }
     } else {
         if (!ls_validate_frame_mic(ls->settings.crypto.join_key, frame)) {
-            DEBUG("[LoRa] frame_recv: invalid MIC\n");
+            DEBUG("[LoRa] invalid MIC\n");
             return false;
         }
     }
@@ -322,13 +341,13 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
     switch (frame->header.type) {
     	case LS_DL_BROADCAST: { /* Downlink broadcast message */
     		/* Validate and decipher incoming broadcast message */
-            DEBUG("[LoRa] frame_recv: broadcast message\n");
+            DEBUG("[LoRa] broadcast message\n");
             
             ls_decrypt_frame_payload(ls->settings.crypto.join_key, frame);
 
             /* Notify application code about incoming data */
             if (ls->broadcast_appdata_received_cb != NULL) {
-                DEBUG("[LoRa] frame_recv: notify application\n");
+                DEBUG("[LoRa] notify application\n");
             	return ls->broadcast_appdata_received_cb(frame->payload.data, frame->payload.len);
             }
             return false;
@@ -337,15 +356,15 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
     	case LS_DL_ACK_W_DATA: /* Acknowledge with additional data */
             /* Must be joined to the network first */
-            DEBUG("[LoRa] frame_recv: ack with data received\n");
+            DEBUG("[LoRa] ack with data received\n");
 
             /* Remove app data we've got ACK for from FIFO */
             if (!appdata_fifo_empty(&ls->_internal.appdata_fifo)) {
-                DEBUG("[LoRa] frame_recv: remove FIFO entry\n");
+                DEBUG("[LoRa] remove FIFO entry\n");
                 appdata_fifo_pop(&ls->_internal.appdata_fifo, NULL);
             }
 
-            DEBUG("[LoRa] frame_recv: decrypting payload\n");
+            DEBUG("[LoRa] decrypting payload\n");
             ls_decrypt_frame_payload(ls->settings.crypto.aes_key, frame);
 
             bool close_rx_window = ack_recv(ls, frame);
@@ -356,38 +375,38 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
     		break;
 
         case LS_DL_ACK:                             /* Downlink frame acknowledge for confirmed messages */
-            DEBUG("[LoRa] frame_recv: ack received\n");
+            DEBUG("[LoRa] ack received\n");
 
             /* Remove app data we've got ACK for from FIFO */
             if (!appdata_fifo_empty(&ls->_internal.appdata_fifo)) {
-                DEBUG("[LoRa] frame_recv: remove FIFO entry\n");
+                DEBUG("[LoRa] remove FIFO entry\n");
                 appdata_fifo_pop(&ls->_internal.appdata_fifo, NULL);
             }
 
             return ack_recv(ls, frame);
 
         case LS_DL:         /* Downlink frame */
-            DEBUG("[LoRa] frame_recv: donwlink frame received\n");
-            DEBUG("[LoRa] frame_recv: decrypting payload\n");
+            DEBUG("[LoRa] donwlink frame received\n");
+            DEBUG("[LoRa] decrypting payload\n");
             ls_decrypt_frame_payload(ls->settings.crypto.aes_key, frame);
 
             data_recv(ls, frame);
             return true;
 
         case LS_DL_JOIN_ACK: { /* Downlink join acknowledge */
-            DEBUG("[LoRa] frame_recv: join ACK received\n");
+            DEBUG("[LoRa] join ACK received\n");
         	/* Joins are disabled */
         	if (ls->settings.no_join) {
-                DEBUG("[LoRa] frame_recv: OTA disabled\n");
+                DEBUG("[LoRa] OTA disabled\n");
         		return false;
             }
 
             if (frame->payload.len != sizeof(ls_join_ack_t)) {
-                DEBUG("[LoRa] frame_recv: incorrect payload length\n");
+                DEBUG("[LoRa] incorrect payload length\n");
                 return false;
             }
 
-            DEBUG("[LoRa] frame_recv: decrypting payload\n");
+            DEBUG("[LoRa] decrypting payload\n");
             ls_decrypt_frame_payload(ls->settings.crypto.join_key, frame);
 
             ls_join_ack_t ack = { 0 };
@@ -395,7 +414,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
             /* This join ack is not for us */
             if (ack.dev_id != ls->settings.node_id) {
-                DEBUG("[LoRa] frame_recv: join address mismatch\n");
+                DEBUG("[LoRa] join address mismatch\n");
                 return false;
             }
 
@@ -406,21 +425,21 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
             ls_derive_keys(ls->_internal.last_nonce, ack.app_nonce, ack.addr, ls->settings.crypto.mic_key, ls->settings.crypto.aes_key);
 
             /* Remove timeout timer */
-            DEBUG("[LoRa] frame_recv: remove join timeout timer\n");
+            DEBUG("[LoRa] remove join timeout timer\n");
             rtctimers_millis_remove(&ls->_internal.join_req_expired);
 
             /* Make device joined */
             ls->_internal.is_joined = true;
 
             /* Notify application code via callback */
-            DEBUG("[LoRa] frame_recv: notify application\n");
+            DEBUG("[LoRa] notify application\n");
             if (ls->joined_cb != NULL) {
                 ls->joined_cb();
             }
 
             /* Check for queued data to send after join */
             appdata_fifo_t *fifo = &ls->_internal.appdata_fifo;
-            DEBUG("[LoRa] frame_recv: checking FIFO after join\n");
+            DEBUG("[LoRa] checking FIFO after join\n");
 
     		while(!appdata_fifo_empty(fifo)) {
     			appdata_fifo_entry_t e;
@@ -429,33 +448,33 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
     				break;
     			}
 
-    			printf("[LoRa] frame_recv: sending delayed app. data [fid: %d, size: %d]\n", e.id, e.size);
+    			DEBUG("[LoRa] sending delayed app. data [fid: %d, size: %d]\n", e.id, e.size);
 
     			ls_ed_send_app_data(ls, e.data, e.size, e.is_confirmed, e.is_with_ack, true);
     		}
             
-            DEBUG("[LoRa] frame_recv: done\n");
+            DEBUG("[LoRa] done\n");
 
             return true;
         }
 
         case LS_DL_INVITE: {
             /* Individual join invitation for class C devices */
-            DEBUG("[LoRa] frame_recv: join invitation receinved\n");
+            DEBUG("[LoRa] join invitation receinved\n");
             
         	if (ls->settings.class != LS_ED_CLASS_C) {
                 /* Only for class C */
-                DEBUG("[LoRa] frame_recv: not class C device\n");
+                DEBUG("[LoRa] not class C device\n");
         		return false;
             }
 
         	/* Validate and decrypt frame */
             if (frame->payload.len != sizeof(ls_invite_t)) {
-                DEBUG("[LoRa] frame_recv: invalid payload length\n");
+                DEBUG("[LoRa] invalid payload length\n");
                 return false;
             }
 
-            DEBUG("[LoRa] frame_recv: decrypting payload\n");
+            DEBUG("[LoRa] decrypting payload\n");
             ls_decrypt_frame_payload(ls->settings.crypto.join_key, frame);
 
             /* Check device ID */
@@ -464,20 +483,20 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
             /* This is not for us */
             if (ack.dev_id != ls->settings.node_id) {
-                DEBUG("[LoRa] frame_recv: invitation address mismatch\n");
+                DEBUG("[LoRa] invitation address mismatch\n");
                 return false;
             }
 
             puts("[LoRa] invited to join, rejoining..."); // XXX: debug
 
             /* Stop rejoin timeout */
-            DEBUG("[LoRa] frame_recv: remove join timeout timer\n");
+            DEBUG("[LoRa] remove join timeout timer\n");
             rtctimers_millis_remove(&ls->_internal.join_req_expired);
 
 			anticollision_delay();
 
             /* Proceed to join procedure as requested */
-            DEBUG("[LoRa] frame_recv: join\n");
+            DEBUG("[LoRa] join\n");
             ls_ed_join(ls);
         	return false;
         }
@@ -542,10 +561,10 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
 
             /* Check frame format */
             if (ls_validate_frame(message, len)) {
-                DEBUG("[LoRa] sx127x_handler: data valid\n");
+                DEBUG("[LoRa] data valid\n");
                 /* Process new frame */
                 if (frame_recv(ls, frame)) {
-                    DEBUG("[LoRa] sx127x_handler: frame received\n");
+                    DEBUG("[LoRa] frame received\n");
                     /* Class A devices closes RX window after each received packet */
                     if (ls->settings.class == LS_ED_CLASS_A) {
                         DEBUG("[LoRa] class A close RX window\n");
@@ -571,19 +590,19 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
                 }
             }
             else {
-                DEBUG("[LoRa] sx127x_handler: malformed data discarded\n");
+                DEBUG("[LoRa] malformed data discarded\n");
             }
 
             break;
         }
         case NETDEV_EVENT_CRC_ERROR:
-            puts("sx127x: RX CRC failed");
+            puts("[LoRa] RX CRC failed");
             DEBUG("[LoRa] state = IDLE\n");
             ls->state = LS_ED_IDLE;
             break;
 
         case NETDEV_EVENT_TX_COMPLETE:
-            puts("sx127x: transmission done.");
+            puts("[LoRa] transmission done.");
 
             /* Open RX windows after each transmitted packet */
             open_rx_windows(ls);
@@ -591,7 +610,7 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
             break;
 
         case NETDEV_EVENT_RX_TIMEOUT:
-            puts("sx127x: RX timeout");
+            puts("[LoRa] RX timeout");
             DEBUG("[LoRa] state = IDLE\n");
             ls->state = LS_ED_IDLE;
             close_rx_windows(ls);
@@ -600,20 +619,20 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
 
         case NETDEV_EVENT_TX_TIMEOUT:
             /* this should not happen, re-init SX127X here */
-            puts("sx127x: TX timeout");
+            puts("[LoRa] TX timeout");
             ls->_internal.device->driver->init(ls->_internal.device);
             ls_ed_sleep(ls);
 
             break;
             
         case NETDEV_EVENT_CAD_DONE:
-            DEBUG("sx127x: CAD done\n");
+            DEBUG("[LoRa] CAD done\n");
             ls->_internal.last_cad_success = false;
             ls_ed_sleep(ls);
             break;
             
         case NETDEV_EVENT_CAD_DETECTED:
-            DEBUG("sx127x: CAD detected\n");
+            DEBUG("[LoRa] CAD detected\n");
             ls->_internal.last_cad_success = true;
             ls_ed_sleep(ls);
             break;
@@ -624,7 +643,7 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
             break;
 
         default:
-            printf("sx127x: received event #%d\n", (int) event);
+            printf("[LoRa] received event #%d\n", (int) event);
             ls_ed_sleep(ls);
             break;
     }
@@ -645,7 +664,7 @@ void *isr_thread(void *arg)
             dev->driver->isr(dev);
         }
         else {
-            puts("[LoRa] isr_thread: unexpected msg type");
+            puts("[LoRa] unexpected msg type");
         }
     }
 }
@@ -688,7 +707,7 @@ static void *uq_handler(void *arg)
 {
     assert(arg != NULL);
 
-    DEBUG("[LoRa] uq_handler: uplink frame queue handler thread started\n");
+    DEBUG("[LoRa] uplink frame queue handler thread started\n");
 
     ls_ed_t *ls = (ls_ed_t *) arg;
     msg_init_queue(ls->_internal.uq_msg_queue, sizeof(ls->_internal.uq_msg_queue));
@@ -696,11 +715,11 @@ static void *uq_handler(void *arg)
 
     while (1) {
         msg_receive(&msg);
-        DEBUG("[LoRa] uq_handler: message received\n");
+        DEBUG("[LoRa] message received\n");
         
         if (ls_frame_fifo_empty(&ls->_internal.uplink_queue)) {
             ls->state = LS_ED_IDLE;
-            DEBUG("[LoRa] uq_handler: FIFO is empty\n");
+            DEBUG("[LoRa] FIFO is empty\n");
             continue;
         }
 
@@ -708,7 +727,7 @@ static void *uq_handler(void *arg)
         ls_frame_t *f;
         ls_frame_t frame;
         if (!ls_frame_fifo_peek(&ls->_internal.uplink_queue, &frame)) {
-            DEBUG("[LoRa] uq_handler: error getting frame from FIFO\n");
+            DEBUG("[LoRa] error getting frame from FIFO\n");
             continue;
         }
 
@@ -733,7 +752,7 @@ static void *uq_handler(void *arg)
 
         ls->state = LS_ED_TRANSMITTING;
 
-        DEBUG("[LoRa] uq_handler: reconfigure transceiver\n");
+        DEBUG("[LoRa] reconfigure transceiver\n");
         /* Configure to sleep */
         uint8_t state = NETOPT_STATE_SLEEP;
         ls->_internal.device->driver->set(ls->_internal.device, NETOPT_STATE, &state, sizeof(uint8_t));
@@ -746,18 +765,18 @@ static void *uq_handler(void *arg)
 
         /* Apply cryptography procedures */
         if (f->header.type != LS_UL_JOIN_REQ) {
-            DEBUG("[LoRa] uq_handler: encrypt regular frame\n");
+            DEBUG("[LoRa] encrypt regular frame\n");
             ls_encrypt_frame(ls->settings.crypto.mic_key, ls->settings.crypto.aes_key, f, &payload_size);
         }
         else {
-            DEBUG("[LoRa] uq_handler: encrypt join request\n");
+            DEBUG("[LoRa] encrypt join request\n");
             ls_encrypt_frame(ls->settings.crypto.join_key, ls->settings.crypto.join_key, f, &payload_size);
         }
         /* Listen Before Talk with LoRa CAD support */
         /* delays between CAD requests */
         int delay_ms = 5 + ((100 + 10*ls->settings.dr) >> ls->settings.dr);
         
-        DEBUG("[LoRa] uq_handler: checking channel activity every %d ms\n", delay_ms);
+        DEBUG("[LoRa] checking channel activity every %d ms\n", delay_ms);
         
         int cad_tries = 0;
         for (int k = 0; k < 10; k++) {
@@ -769,7 +788,7 @@ static void *uq_handler(void *arg)
             //xtimer_spin(xtimer_ticks_from_usec(delay_ms * 1000));
             rtctimers_millis_sleep(delay_ms);
             if (ls->_internal.last_cad_success) {
-                DEBUG("[LoRa] uq_handler: channel activity detected\n");
+                DEBUG("[LoRa] channel activity detected\n");
                 
                 /* send anyway if we tried too many times */
                 cad_tries++;
@@ -787,7 +806,7 @@ static void *uq_handler(void *arg)
                 k = 0;
             }
         }
-        DEBUG("[LoRa] uq_handler: sending data to transceiver\n");
+        DEBUG("[LoRa] sending data to transceiver\n");
 
 #if ENABLE_DEBUG
         char type_str[10] = {};
@@ -800,17 +819,19 @@ static void *uq_handler(void *arg)
 #endif
         /* Configure for TX */
         configure_sx127x(ls);
-        DEBUG("[LoRa] uq_handler: transceiver configured\n");
+        DEBUG("[LoRa] transceiver configured\n");
+        
         /* Send frame into LoRa PHY */
-        struct iovec data[1];
-        data[0].iov_base = f;
-        data[0].iov_len = header_size + payload_size;
-               
-        if (ls->_internal.device->driver->send(ls->_internal.device, data, 1) < 0) {
-            puts("[LoRa] uq_handler: cannot send, device busy");
+        iolist_t data = {
+            .iol_base = f,
+            .iol_len = header_size + payload_size,
+        };
+        
+        if (ls->_internal.device->driver->send(ls->_internal.device, &data) < 0) {
+            puts("[LoRa] cannot send, device busy");
         }
         
-        DEBUG("[LoRa] uq_handler: data sent\n");
+        DEBUG("[LoRa] data sent\n");
     }
 
     return NULL;
@@ -861,14 +882,14 @@ static void *tim_handler(void *arg)
 
         switch (cmd) {
             case LS_ED_RX1_EXPIRED:
-                DEBUG("[LoRa] tim_handler: RX1 window expired\n");
+                DEBUG("[LoRa] RX1 window expired\n");
 
                 if (ls->settings.class == LS_ED_CLASS_A) {
                     /* Use default settings for the transceiver in second RX window */
                     ls->_internal.use_rx_window_2_settings = true;
 
                     /* Enter reception mode */
-                    DEBUG("[LoRa] tim_handler: class A, enter reception mode\n");
+                    DEBUG("[LoRa] class A, enter reception mode\n");
                     enter_rx(ls);
                 }
 				// for a while, classes B and C are the same
@@ -879,15 +900,15 @@ static void *tim_handler(void *arg)
                     	 * Otherwise, current frame will be retransmitted after confirmation timeout
                     	 */
                     	if (!ls->_internal.confirmation_required) {
-                            DEBUG("[LoRa] tim_handler: schedule current frame transmission\n");
+                            DEBUG("[LoRa] schedule current frame transmission\n");
                     		schedule_tx(ls);
                         } else {
                     		enter_rx(ls);
-                    		DEBUG("[LoRa] tim_handler: awaiting confirmation\n");
+                    		DEBUG("[LoRa] awaiting confirmation\n");
                     	}
                     }
                     else {
-                    	puts("[LoRa] tim_handler: staying in RX mode");
+                    	puts("[LoRa] staying in RX mode");
                         enter_rx(ls);
                     }
                 }
@@ -895,7 +916,7 @@ static void *tim_handler(void *arg)
                 break;
 
             case LS_ED_RX2_EXPIRED:
-                puts("[LoRa] tim_handler: RX2 window expired"); // XXX: debug
+                puts("[LoRa] RX2 window expired"); // XXX: debug
 
                 /* Clear the default settings flag */
                 ls->_internal.use_rx_window_2_settings = false;
@@ -906,21 +927,21 @@ static void *tim_handler(void *arg)
                 	 * Otherwise, current frame will be retransmitted after confirmation timeout
                 	 */
                 	if (!ls->_internal.confirmation_required) {
-                        DEBUG("[LoRa] tim_handler: schedule current frame transmission\n");
+                        DEBUG("[LoRa] schedule current frame transmission\n");
                 		schedule_tx(ls);
                     } else {
-                		DEBUG("[LoRa] tim_handler: awaiting confirmation");
+                		DEBUG("[LoRa] awaiting confirmation");
                     }
                 } else {
 					/* Put transceiver into sleep with low power mode */
-                    DEBUG("[LoRa] tim_handler: put transciever to sleep\n");
+                    DEBUG("[LoRa] put transciever to sleep\n");
 					ls_ed_sleep(ls);
                 }
 
                 break;
 
             case LS_ED_JOIN_REQ_EXPIRED:
-                puts("[LoRa] tim_handler: join request expired"); // XXX: debug
+                puts("[LoRa] join request expired"); // XXX: debug
 
                 /* Connection is lost, clear uplink queue */
 
@@ -933,12 +954,12 @@ static void *tim_handler(void *arg)
                 break;
 
             case LS_ED_APPDATA_ACK_EXPIRED:
-                puts("[LoRa] tim_handler: appdata confirmation timeout");
+                puts("[LoRa] appdata confirmation timeout");
 
                 /* Retransmit data */
                 if (ls->_internal.num_retr >= ls->settings.max_retr) {
                     /* Stop retransmitting */
-                    DEBUG("[LoRa] tim_handler: stop retransmitting\n");
+                    DEBUG("[LoRa] stop retransmitting\n");
                     ls->_internal.num_retr = 0;
 
                     if (ls->appdata_send_failed_cb != NULL) {
@@ -947,7 +968,7 @@ static void *tim_handler(void *arg)
                 }
                 else {
                     /* Do a retransmission */
-                    DEBUG("[LoRa] tim_handler: do a retransmission\n");
+                    DEBUG("[LoRa] do a retransmission\n");
                     ls->_internal.num_retr++;
                     ls->state = LS_ED_IDLE;
 
@@ -964,17 +985,17 @@ static void *tim_handler(void *arg)
  */
 static bool create_tim_handler_thread(ls_ed_t *ls)
 {
-    DEBUG("[LoRa] create_tim_handler_thread: creating LS timeouts thread\n");
+    DEBUG("[LoRa] creating LS timeouts thread\n");
 
     kernel_pid_t pid_tim = thread_create(ls->_internal.tim_thread_stack, sizeof(ls->_internal.tim_thread_stack), THREAD_PRIORITY_MAIN - 2,
                                          THREAD_CREATE_STACKTEST, tim_handler, ls,
                                          "LS timeouts thread");
 
     if (pid_tim <= KERNEL_PID_UNDEF) {
-        DEBUG("[LoRa] create_tim_handler_thread: fail\n");
+        DEBUG("[LoRa] fail\n");
         return false;
     } else {
-        DEBUG("[LoRa] create_tim_handler_thread: success\n");
+        DEBUG("[LoRa] success\n");
     }
 
     ls->_internal.tim_thread_pid = pid_tim;
@@ -1020,7 +1041,7 @@ int ls_ed_init(ls_ed_t *ls)
     msg_join_timeout.content.value = LS_ED_JOIN_REQ_EXPIRED;
     msg_ack_timeout.content.value = LS_ED_APPDATA_ACK_EXPIRED;
 
-    DEBUG("[LoRa] ls_ed_init: init SX127X\n");
+    DEBUG("[LoRa] init SX127X\n");
     /* Initialize the transceiver */
     ls->_internal.device->driver->init(ls->_internal.device);
     
@@ -1028,7 +1049,7 @@ int ls_ed_init(ls_ed_t *ls)
     ls->_internal.device->event_callback = sx127x_handler;
     ls->_internal.device->event_callback_arg = ls;
 
-    DEBUG("[LoRa] ls_ed_init: init RNG\n");
+    DEBUG("[LoRa] init RNG\n");
     /* Initialize random number generator */
     random_init(sx127x_random((sx127x_t *)ls->_internal.device));
 
@@ -1038,7 +1059,7 @@ int ls_ed_init(ls_ed_t *ls)
 }
 
 void ls_ed_poweroff(ls_ed_t *ls) {
-    DEBUG("[LoRa] ls_ed_poweroff: set transceiver to sleep\n");
+    DEBUG("[LoRa] set transceiver to sleep\n");
     uint8_t state = NETOPT_STATE_SLEEP;
     ls->_internal.device->driver->set(ls->_internal.device, NETOPT_STATE, &state, sizeof(uint8_t));
 }
@@ -1052,7 +1073,7 @@ int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed
     /* Store current app. data in FIFO buffer
      * Data will be removed on receiving ACK from gate */
     if (!delayed && (confirmed || (!ls->settings.no_join && !ls->_internal.is_joined))) {
-        DEBUG("[LoRa] ls_ed_send_app_data: pushing data to FIFO\n");
+        DEBUG("[LoRa] pushing data to FIFO\n");
         appdata_fifo_t *fifo = &ls->_internal.appdata_fifo;
 
         /* Last data has priority, so we can pop oldest item from the queue if it's full */
@@ -1064,16 +1085,16 @@ int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed
         
         /* Not joined to the network, delay appdata frame until device is joined */
         if (!ls->settings.no_join && !ls->_internal.is_joined) {
-            DEBUG("[LoRa] ls_ed_send_app_data: data delayed until node is joined\n");
+            DEBUG("[LoRa] data delayed until node is joined\n");
             return -LS_SEND_E_NOT_JOINED;
         }
         
         if (appdata_fifo_size(fifo) > 1) {
-            DEBUG("[LoRa] ls_ed_send_app_data: FIFO is not empty, postpone new data\n");
+            DEBUG("[LoRa] FIFO is not empty, postpone new data\n");
             
             appdata_fifo_entry_t e;
             appdata_fifo_peek(fifo, &e);
-            DEBUG("[LoRa] ls_ed_send_app_data: send oldest data instead [fid: %d, size: %d]\n", e.id, e.size);
+            DEBUG("[LoRa] send oldest data instead [fid: %d, size: %d]\n", e.id, e.size);
             buf = e.data;
             buflen = e.size;
             confirmed = e.is_confirmed;
@@ -1092,7 +1113,7 @@ int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed
         }
     }
 
-    DEBUG("[LoRa] ls_ed_send_app_data: send_frame\n");
+    DEBUG("[LoRa] send_frame\n");
     int res = send_frame(ls, type, buf, buflen);
     if (res < 0) {
         return res;
@@ -1103,10 +1124,10 @@ int ls_ed_send_app_data(ls_ed_t *ls, uint8_t *buf, size_t buflen, bool confirmed
 
 void ls_ed_unjoin(ls_ed_t *ls)
 {
-    DEBUG("[LoRa] ls_ed_unjoin: unjoin node\n");
+    DEBUG("[LoRa] unjoin node\n");
     
 	if (ls->settings.no_join) {
-        DEBUG("[LoRa] ls_ed_unjoin: OTA disabled\n");
+        DEBUG("[LoRa] OTA disabled\n");
 		return;
     }
 
@@ -1130,13 +1151,13 @@ void ls_ed_unjoin(ls_ed_t *ls)
     /* Mark as not joined */
     ls->_internal.is_joined = false;
     
-    DEBUG("[LoRa] ls_ed_unjoin: node unjoined\n");
+    DEBUG("[LoRa] node unjoined\n");
 }
 
 int ls_ed_join(ls_ed_t *ls)
 {
     assert(ls != NULL);
-    DEBUG("[LoRa] ls_ed_join: joining\n");
+    DEBUG("[LoRa] joining\n");
 
     /* Enter IDLE state */
     ls->state = LS_ED_IDLE;
@@ -1162,11 +1183,11 @@ int ls_ed_join(ls_ed_t *ls)
     ls->_internal.last_fid = 0;
 
     /* Send request */
-    DEBUG("[LoRa] ls_ed_join: send join request\n");
+    DEBUG("[LoRa] send join request\n");
     send_frame(ls, LS_UL_JOIN_REQ, (uint8_t *) &req, sizeof(ls_join_req_t));
 
     /* Launch timeout timer */
-    DEBUG("[LoRa] ls_ed_join: set join timeout timer\n");
+    DEBUG("[LoRa] set join timeout timer\n");
     rtctimers_millis_set_msg(&ls->_internal.join_req_expired, 1000*LS_JOIN_TIMEOUT, &msg_join_timeout, ls->_internal.tim_thread_pid);
 
     return LS_OK;
@@ -1176,14 +1197,14 @@ void ls_ed_sleep(ls_ed_t *ls)
 {
     assert(ls != NULL);
     
-    DEBUG("[LoRa] ls_ed_sleep: put transceiver to sleep\n");
+    DEBUG("[LoRa] put transceiver to sleep\n");
 
     if (ls->settings.class == LS_ED_CLASS_A) {
         ls->state = LS_ED_SLEEP;
         uint8_t state = NETOPT_STATE_SLEEP;
         ls->_internal.device->driver->set(ls->_internal.device, NETOPT_STATE, &state, sizeof(uint8_t));
     } else {
-        DEBUG("[LoRa] ls_ed_sleep: ignore sleep, not a Class A\n");
+        DEBUG("[LoRa] ignore sleep, not a Class A\n");
     }
 }
 

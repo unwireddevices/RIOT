@@ -19,8 +19,9 @@
 #define mt3333_H_
 
 #include "thread.h"
-#include "ringbuffer.h"
 #include "periph/uart.h"
+
+#include <time.h>
 
 /**
  * MT3333 NMEA message field indicies
@@ -31,6 +32,8 @@
 #define MT3333_NS_FIELD_IDX 4
 #define MT3333_LON_FIELD_IDX 5
 #define MT3333_EW_FIELD_IDX 6
+#define MT3333_VELOCITY_FIELD_IDX 7
+#define MT3333_DIRECTION_FIELD_IDX 8
 #define MT3333_DATE_FIELD_IDX 9
 
 #define MT3333_UART_BAUDRATE_DEFAULT 9600
@@ -39,36 +42,28 @@
 /**
  * @brief Input ring buffer size in bytes
  */
-#define MT3333_RXBUF_SIZE_BYTES (128)
-
-/**
- * @brief Parser buf size, must not be smaller than the biggest GNMRC message possible
- */
-#define MT3333_PARSER_BUF_SIZE (256)
+#define MT3333_RXBUF_SIZE_BYTES (256)
 
 /**
  * @brief Reader&Parser thread stack size in bytes
  */
 #define MT3333_READER_THREAD_STACK_SIZE_BYTES (2560)
 
-typedef struct tm mt3333_tm_t;
-
 typedef struct {
-	char lat[15];
-	char lon[15];
-
-	char date[15];
-	char time[15];
-    bool valid;
-	bool n, e;
+	int lat;            /**< Latitude, degrees * 1E6 */
+	int lon;            /**< Logitude, degrees * 1E6 */
+    int velocity;       /**< Velocity, mm/s */
+    int direction;      /**< Direction, degrees * 1E3, relative to north */
+	time_t time;        /**< Epoch */
+    bool valid;         /**< Data validity */
 } mt3333_gps_data_t;
 
 /**
  * @biref Structure that holds the MT3333 driver parameters
  */
 typedef struct {
-	uart_t uart;	/**< The device descriptor on which the MT3333 module is attached */
-    int baudrate;  /**< UART baudrate, 9600 bps is the default value */
+	uart_t uart;	                        /**< The device descriptor on which the MT3333 module is attached */
+    int baudrate;                           /**< UART baudrate, 9600 bps is the default value */
 	void (*gps_cb)(mt3333_gps_data_t data);	/**< Callback which called when module give us a valid GPS NMEA GMRC message */
 } mt3333_param_t;
 
@@ -77,10 +72,7 @@ typedef struct {
  */
 typedef struct {
 	mt3333_param_t params;					/**< Holds driver parameters */
-    ringbuffer_t rxrb;						/**< Holds incoming data ring buffer */
-	char *rxbuf;	                        /**< Memory buffer for the ring buffer data */
-	char *reader_stack;	                /**< Reader thread stack, has to be allocated by the application */
-	kernel_pid_t reader_pid;				/**< Reader thread PID */
+	char *reader_stack;	                    /**< Reader thread stack, has to be allocated by the application */
 } mt3333_t;
 
 typedef enum {
@@ -105,21 +97,21 @@ int mt3333_init(mt3333_t *dev, mt3333_param_t *param);
 /**
  * @brief Change MT3333 baudrate
  */
-void mt3333_set_baudrate(int baudrate);
+void mt3333_set_baudrate(mt3333_t *dev, int baudrate);
 
 /**
  * @brief Set MT3333 to low-power GLP mode (support depends on core firmware version)
  */
-void mt3333_set_glp(bool enabled);
+void mt3333_set_glp(mt3333_t *dev, bool enabled);
 
 /**
  * @brief Set MT3333 to the specified power mode
  */
-void mt3333_set_powersave(mt3333_powersave_mode_t mode);
+void mt3333_set_powersave(mt3333_t *dev, mt3333_powersave_mode_t mode);
 
 /**
  * @brief Set MT3333 to periodic mode with specified parameters
  */
-void mt3333_set_periodic(mt3333_powersave_mode_t mode, int run, int sleep, int run_ext, int sleep_ext);
+void mt3333_set_periodic(mt3333_t *dev, mt3333_powersave_mode_t mode, int run, int sleep, int run_ext, int sleep_ext);
 
 #endif /* mt3333_H_ */

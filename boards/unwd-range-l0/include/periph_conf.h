@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Unwired Devices <info@unwds.com>
+ * Copyright (C) 2018 Unwired Devices LLC <info@unwds.com>
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
@@ -7,13 +7,12 @@
  */
 
 /**
- * @ingroup     boards_unwd-range-l1-r3
+ * @ingroup     boards_unwd-range-l0
  * @{
  *
  * @file
- * @brief       Peripheral MCU configuration for the Unwired Range R170115 board
+ * @brief       Peripheral MCU configuration for the Unwired Range L0 board
  *
- * @author      Mikhail Churikov
  * @author      Oleg Artamonov
  */
 
@@ -92,18 +91,6 @@ static const timer_conf_t timer_config[] = {
  */
 static const uart_conf_t uart_config[] = {
     {
-        .dev      = USART1,
-        .rcc_mask = RCC_APB2ENR_USART1EN,
-        .rx_pin   = GPIO_PIN(PORT_A, 10),
-        .tx_pin   = GPIO_PIN(PORT_A, 9),
-        .rx_mode  = GPIO_IN_PU,
-        .tx_mode  = GPIO_OUT,
-        .rx_af    = GPIO_AF4,
-        .tx_af    = GPIO_AF4,
-        .bus      = APB2,
-        .irqn     = USART1_IRQn
-    },
-    {
         .dev      = USART2,
         .rcc_mask = RCC_APB1ENR_USART2EN,
         .rx_pin   = GPIO_PIN(PORT_A, 3),
@@ -114,24 +101,10 @@ static const uart_conf_t uart_config[] = {
         .tx_af    = GPIO_AF4,
         .bus      = APB1,
         .irqn     = USART2_IRQn
-    },
-    {
-        .dev      = USART4,
-        .rcc_mask = RCC_APB1ENR_USART4EN,
-        .rx_pin   = GPIO_PIN(PORT_B, 11),
-        .tx_pin   = GPIO_PIN(PORT_B, 10),
-        .rx_mode  = GPIO_IN_PU,
-        .tx_mode  = GPIO_OUT,
-        .rx_af    = GPIO_AF6,
-        .tx_af    = GPIO_AF6,
-        .bus      = APB1,
-        .irqn     = USART4_5_IRQn
     }
 };
 
-#define UART_0_ISR          (isr_usart1)
-#define UART_1_ISR          (isr_usart2)
-#define UART_2_ISR          (isr_usart4)
+#define UART_0_ISR          (isr_usart2)
 
 #define UART_NUMOF          (sizeof(uart_config) / sizeof(uart_config[0]))
 /** @} */
@@ -198,46 +171,37 @@ static const spi_conf_t spi_config[] = {
 
 /**
  * @name I2C configuration
- * @{
+  * @{
  */
-#define I2C_0_EN            1
-#define I2C_1_EN            1
-#define I2C_NUMOF           (I2C_0_EN + I2C_1_EN)
-#define I2C_IRQ_PRIO        1
-#define I2C_APBCLK          (CLOCK_APB1)
+static const i2c_conf_t i2c_config[] = {
+    {
+        .dev            = I2C1,
+        .speed          = I2C_SPEED_NORMAL,
+        .scl_pin        = GPIO_PIN(PORT_B,  6),
+        .sda_pin        = GPIO_PIN(PORT_B,  7),
+        .scl_af         = GPIO_AF1,
+        .sda_af         = GPIO_AF1,
+        .bus            = APB1,
+        .rcc_mask       = RCC_APB1ENR_I2C1EN,
+        .irqn           = I2C1_IRQn
+    },
+    {
+        .dev            = I2C2,
+        .speed          = I2C_SPEED_NORMAL,
+        .scl_pin        = GPIO_PIN(PORT_B, 13),
+        .sda_pin        = GPIO_PIN(PORT_B, 14),
+        .scl_af         = GPIO_AF5,
+        .sda_af         = GPIO_AF5,
+        .bus            = APB1,
+        .rcc_mask       = RCC_APB1ENR_I2C2EN,
+        .irqn           = I2C2_IRQn
+    }
+};
 
-/* I2C 0 device configuration */
-#define I2C_0_DEV           I2C1
-#define I2C_0_CLKEN()       (periph_clk_en(APB1, RCC_APB1ENR_I2C1EN))
-#define I2C_0_CLKDIS()      (periph_clk_dis(APB1, RCC_APB1ENR_I2C1EN))
-#define I2C_0_EVT_IRQ       I2C1_IRQn
-#define I2C_0_EVT_ISR       isr_i2c1
-/* I2C 0 pin configuration */
-#define I2C_0_SCL_PORT      PORT_B
-#define I2C_0_SCL_PIN       8
-#define I2C_0_SCL_AF        4
-#define I2C_0_SCL_CLKEN()   (periph_clk_en(AHB, RCC_IOPENR_GPIOBEN))
-#define I2C_0_SDA_PORT      PORT_B
-#define I2C_0_SDA_PIN       9
-#define I2C_0_SDA_AF        4
-#define I2C_0_SDA_CLKEN()   (periph_clk_en(AHB, RCC_IOPENR_GPIOBEN))
+#define I2C_0_ISR           isr_i2c1_er
+#define I2C_1_ISR           isr_i2c2_er
 
-/* I2C 1 device configuration */
-#define I2C_1_DEV           I2C2
-#define I2C_1_CLKEN()       (periph_clk_en(APB1, RCC_APB1ENR_I2C2EN))
-#define I2C_1_CLKDIS()      (periph_clk_dis(APB1, RCC_APB1ENR_I2C2EN))
-#define I2C_1_EVT_IRQ       I2C2_IRQn
-#define I2C_1_EVT_ISR       isr_i2c2
-/* I2C 1 pin configuration */
-#define I2C_1_SCL_PORT      PORT_B
-#define I2C_1_SCL_PIN       13
-#define I2C_1_SCL_AF        5
-#define I2C_1_SCL_CLKEN()   (periph_clk_en(AHB, RCC_IOPENR_GPIOBEN))
-#define I2C_1_SDA_PORT      PORT_B
-#define I2C_1_SDA_PIN       14
-#define I2C_1_SDA_AF        5
-#define I2C_1_SDA_CLKEN()   (periph_clk_en(AHB, RCC_IOPENR_GPIOBEN))
-
+#define I2C_NUMOF           (sizeof(i2c_config) / sizeof(i2c_config[0]))
 /** @} */
 
 /**

@@ -10,17 +10,21 @@ import os
 import sys
 
 
+# Biggest step takes 135 seconds on wn430
+TIMEOUT = 150
+
+
 def testfunc(child):
     child.expect_exact("Testing Bloom filter.")
     child.expect_exact("m: 4096 k: 8")
-    child.expect("adding 512 elements took \d+ms")
-    child.expect("checking 10000 elements took \d+ms")
+    child.expect("adding 512 elements took \d+ms", timeout=TIMEOUT)
+    child.expect("checking 10000 elements took \d+ms", timeout=TIMEOUT)
     child.expect("\d+ elements probably in the filter.")
     child.expect("\d+ elements not in the filter.")
     child.expect(".+ false positive rate.")
     child.expect_exact("All done!")
 
 if __name__ == "__main__":
-    sys.path.append(os.path.join(os.environ['RIOTBASE'], 'dist/tools/testrunner'))
+    sys.path.append(os.path.join(os.environ['RIOTTOOLS'], 'testrunner'))
     from testrunner import run
     sys.exit(run(testfunc))

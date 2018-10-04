@@ -62,7 +62,7 @@ int adc_init(adc_t line)
 int adc_sample(adc_t line, adc_res_t res)
 {
     /* resolutions larger than 12 bits are not supported */
-    if (res == ADC_MODE_UNDEF) {
+    if (res >= ADC_MODE_UNDEF(0)) {
         return -1;
     }
 
@@ -76,7 +76,7 @@ int adc_sample(adc_t line, adc_res_t res)
 
     init.acqTime = adc_channel_config[line].acq_time;
     init.reference = adc_channel_config[line].reference;
-    init.resolution = (ADC_Res_TypeDef) (res & 0xFF);
+    init.resolution = (ADC_Res_TypeDef) (res & 0x0F);
 #ifdef _SILICON_LABS_32B_SERIES_0
     init.input = adc_channel_config[line].input;
 #else

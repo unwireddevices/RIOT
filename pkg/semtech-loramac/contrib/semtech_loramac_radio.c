@@ -26,16 +26,16 @@
 #include "sx127x_internal.h"
 #include "sx127x_netdev.h"
 
-#include "semtech-loramac/board.h"
-
 #include "radio/radio.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-extern sx127x_t sx127x;
+#if !defined(US_PER_MS)
+#define US_PER_MS 1UL
+#endif
 
-#define LORAMAC_RX_WINDOW_DURATION  (600UL * US_PER_MS)
+extern sx127x_t sx127x;
 
 /*
  * Radio driver functions implementation wrappers, the netdev2 object
@@ -44,7 +44,11 @@ extern sx127x_t sx127x;
 void SX127XInit(RadioEvents_t *events)
 {
     (void) events;
-    sx127x_init(&sx127x);
+    if (sx127x_init(&sx127x) < 0) {
+        DEBUG("[semtech-loramac] radio: failed to initialize radio\n");
+    }
+
+    DEBUG("[semtech-loramac] radio: initialization successful\n");
 }
 
 RadioState_t SX127XGetStatus(void)
@@ -97,9 +101,12 @@ void SX127XSetRxConfig(RadioModems_t modem, uint32_t bandwidth,
     sx127x_set_freq_hop(&sx127x, freqHopOn);
     sx127x_set_hop_period(&sx127x, hopPeriod);
     sx127x_set_iq_invert(&sx127x, iqInverted);
-    sx127x_set_rx_timeout(&sx127x, LORAMAC_RX_WINDOW_DURATION);
+
+    /* for dealing with timing issues, we set twice 
+     * the symbol timeout */
+    sx127x_set_symbol_timeout(&sx127x, symbTimeout*2);
+
     sx127x_set_rx_single(&sx127x, !rxContinuous);
-    sx127x_set_rx(&sx127x);
 }
 
 void SX127XSetTxConfig(RadioModems_t modem, int8_t power, uint32_t fdev,
@@ -124,7 +131,7 @@ void SX127XSetTxConfig(RadioModems_t modem, int8_t power, uint32_t fdev,
     sx127x_set_tx_power(&sx127x, power);
     sx127x_set_preamble_length(&sx127x, preambleLen);
     sx127x_set_rx_single(&sx127x, false);
-    sx127x_set_tx_timeout(&sx127x, timeout * US_PER_MS); /* base unit us, LoRaMAC ms */
+    sx127x_set_tx_timeout(&sx127x, timeout); /* base unit us, LoRaMAC ms */
 }
 
 uint32_t SX127XGetTimeOnAir(RadioModems_t modem, uint8_t pktLen)
@@ -136,10 +143,11 @@ uint32_t SX127XGetTimeOnAir(RadioModems_t modem, uint8_t pktLen)
 void SX127XSend(uint8_t *buffer, uint8_t size)
 {
     netdev_t *dev = (netdev_t *)&sx127x;
-    struct iovec vec[1];
-    vec[0].iov_base = buffer;
-    vec[0].iov_len = size;
-    dev->driver->send(dev, vec, 1);
+    iolist_t iol = {
+        .iol_base = buffer,
+        .iol_len = size
+    };
+    dev->driver->send(dev, &iol);
 }
 
 void SX127XSetSleep(void)
@@ -154,7 +162,7 @@ void SX127XSetStby(void)
 
 void SX127XSetRx(uint32_t timeout)
 {
-    (void) timeout;
+    sx127x_set_rx_timeout(&sx127x, timeout);
     sx127x_set_rx(&sx127x);
 }
 
@@ -169,22 +177,22 @@ int16_t SX127XReadRssi(RadioModems_t modem)
     return sx127x_read_rssi(&sx127x);
 }
 
-void SX127XWrite(uint8_t addr, uint8_t data)
+void SX127XWrite(uint16_t addr, uint8_t data)
 {
     sx127x_reg_write(&sx127x, addr, data);
 }
 
-uint8_t SX127XRead(uint8_t addr)
+uint8_t SX127XRead(uint16_t addr)
 {
     return sx127x_reg_read(&sx127x, addr);
 }
 
-void SX127XWriteBuffer(uint8_t addr, uint8_t *buffer, uint8_t size)
+void SX127XWriteBuffer(uint16_t addr, uint8_t *buffer, uint8_t size)
 {
     sx127x_reg_write_burst(&sx127x, addr, buffer, size);
 }
 
-void SX127XReadBuffer(uint8_t addr, uint8_t *buffer, uint8_t size)
+void SX127XReadBuffer(uint16_t addr, uint8_t *buffer, uint8_t size)
 {
     sx127x_reg_read_burst(&sx127x, addr, buffer, size);
 }
@@ -222,6 +230,28 @@ void SX127XSetPublicNetwork(bool enable)
     }
 }
 
+uint32_t SX127XGetWakeupTime(void)
+{
+    /* 1 ms board wakeup time */
+    return 1;
+}
+
+void SX127XIrqProcess(void)
+{
+    return;
+}
+void SX127XRxBoosted(uint32_t timeout)
+{
+    (void) timeout;
+    return;
+}
+void SX127XSetRxDutyCycle(uint32_t rx_time, uint32_t sleep_time)
+{
+    (void) rx_time;
+    (void) sleep_time;
+    return;
+}
+
 /**
  * LoRa function callbacks
  */
@@ -249,5 +279,9 @@ const struct Radio_s Radio =
     SX127XWriteBuffer,
     SX127XReadBuffer,
     SX127XSetMaxPayloadLength,
-    SX127XSetPublicNetwork
+    SX127XSetPublicNetwork,
+    SX127XGetWakeupTime,
+    SX127XIrqProcess,       /* SX126x only */
+    SX127XRxBoosted,        /* SX126x only */
+    SX127XSetRxDutyCycle    /* SX126x only */
 };

@@ -21,6 +21,7 @@
 #include <stdio.h>
 
 #include "periph/pm.h"
+#include "pm_layered.h"
 #include "periph/rtc.h"
 #include "thread.h"
 #include "xtimer.h"
@@ -37,6 +38,7 @@ char stack1[2048];
 #define TIMER1_PERIOD 1000
 
 static void *timer1_thread(void *arg) {
+    (void)arg;
     msg_t msg;
     msg_t msg_queue[4];
     msg_init_queue(msg_queue, 4);
@@ -84,8 +86,7 @@ int main(void)
 {
     puts("rtctimers-millis test");
     
-    pm_prevent_sleep = 1;
-    pm_prevent_switch = 1;
+    pm_block(PM_SLEEP);
     
 	rtctimers_millis_init();
 	xtimer_init();

@@ -103,6 +103,45 @@ uint32_t get_cpu_category(void);
  */
 uint32_t get_cpu_name(char *name);
 
+/**
+ * @name    Flash page configuration
+ * @{
+ */
+#if defined(CPU_MODEL_STM32L073RZ) || defined(CPU_MODEL_STM32L072CZ) || \
+    defined(CPU_MODEL_STM32L053R8) || defined(CPU_MODEL_STM32L031K6)
+#define FLASHPAGE_SIZE      (128U)
+#endif
+
+#if defined(CPU_MODEL_STM32L073RZ) || defined(CPU_MODEL_STM32L072CZ)
+#define FLASHPAGE_NUMOF     (1536U)
+#elif defined(CPU_MODEL_STM32L053R8)
+#define FLASHPAGE_NUMOF     (512U)
+#elif defined(CPU_MODEL_STM32L031K6)
+#define FLASHPAGE_NUMOF     (256U)
+#endif
+
+/* The minimum block size which can be written is 4B. However, the erase
+ * block is always FLASHPAGE_SIZE.
+ */
+#define FLASHPAGE_RAW_BLOCKSIZE    (4U)
+/* Writing should be always 4 byte aligned */
+#define FLASHPAGE_RAW_ALIGNMENT    (4U)
+/** @} */
+
+/**
+ * @name    EEPROM configuration
+ * @{
+ */
+#define EEPROM_START_ADDR          (0x08080000)
+#if defined(CPU_MODEL_STM32L073RZ) || defined(CPU_MODEL_STM32L072CZ)
+#define EEPROM_SIZE                (6144U)  /* 6kB */
+#elif defined(CPU_MODEL_STM32L053R8)
+#define EEPROM_SIZE                (2048U)  /* 2kB */
+#elif defined(CPU_MODEL_STM32L031K6)
+#define EEPROM_SIZE                (1024U)  /* 1kB */
+#endif
+/** @} */
+
 #ifdef __cplusplus
 }
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Unwired Devices
+ * Copyright (C) 2018 Unwired Devices LLC <info@unwds.com>
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
@@ -24,6 +24,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include "board_unwd.h"
 
 /** "Connect" Button */
 #define UNWD_USE_CONNECT_BTN	0
@@ -67,11 +69,6 @@ extern "C" {
 #define XTIMER_OVERHEAD     (6)
 #define XTIMER_BACKOFF      (3)
 /** @} */
-
-/**
- * @brief   Initialize board specific hardware, including clock, LEDs and std-IO
- */
-void board_init(void);
 
 #ifdef __cplusplus
 }

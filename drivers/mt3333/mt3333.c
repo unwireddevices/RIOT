@@ -20,33 +20,51 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "mt3333.h"
 #include "thread.h"
 #include "assert.h"
-#include "ringbuffer.h"
-#include "periph/uart.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
-
-#include "mt3333.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-static mt3333_t *_dev;
+static kernel_pid_t reader_pid;
+
+static int rx_cnt = 0;
+static int rmc_detect = 0;
+const char rmc_message[] = "RMC";
+
+static char *rxbuf;
+static char *rmc_buf;
 
 static void rx_cb(void *arg, uint8_t data)
 {
-	mt3333_t *dev = (mt3333_t *) arg;
+    (void)arg;
+    
+    rxbuf[rx_cnt++] = data;
+    
+    /* We're interested in RMC messages only */
+    if (rmc_detect < 3) {
+        rmc_detect = (data == rmc_message[rmc_detect]) ? rmc_detect + 1 : 0;
+    }
 
-	/* Insert received character into ring buffer */
-	ringbuffer_add_one(&dev->rxrb, data);
-
-    /* Notify parser thread about ready message */
+    /* Notify parser thread about RMC message */
     if (data == MT3333_EOL) {
-        msg_t msg;
-        msg_send(&msg, dev->reader_pid);
+        if (rmc_detect == 3) {
+            memcpy(rmc_buf, rxbuf, rx_cnt);
+            rmc_buf[rx_cnt] = 0;
+            msg_t msg;
+            msg_send(&msg, reader_pid);
+        }
+        rx_cnt = 0;
+        rmc_detect = 0;
+    }
+    
+    if (rx_cnt == MT3333_RXBUF_SIZE_BYTES) {
+        rx_cnt = 0;
     }
 }
 
@@ -83,51 +101,110 @@ static int get_csv_field(char *buf, int fieldno, char *field, int maxlen) {
 /**
  * @brief Parses GPS data in NMEA format
  */
-static bool parse(mt3333_t *dev, char *buf, mt3333_gps_data_t *data) {
-    (void)dev;
-    
+static bool parse_rmc(char *buf, mt3333_gps_data_t *data) {
     DEBUG("[gps] %s\n", buf);
-    
-	/* We're interested in G/NRMC packets */
-	if (strstr(buf, "RMC") == NULL) {
-		return false;
-	}
 
-	/* Check validity sign */
-	char valid;
-	if (get_csv_field(buf, MT3333_VALID_FIELD_IDX, &valid, 1)) {
-		if (valid != 'A') {
-			data->valid = false;
+    /* Check validity sign */
+    char valid;
+    if (get_csv_field(buf, MT3333_VALID_FIELD_IDX, &valid, 1)) {
+        if (valid != 'A') {
+            data->valid = false;
+            DEBUG("[gps] Data not valid\n");
         } else {
             data->valid = true;
+            DEBUG("[gps] Data valid\n");
         }
-	}
+    }
 
-	char ns, ew;
+    char sign;
+    char tmp[15];
+    
+    if (!get_csv_field(buf, MT3333_LAT_FIELD_IDX, tmp, sizeof(tmp)))
+        return false;
+    if (!get_csv_field(buf, MT3333_NS_FIELD_IDX, &sign, 1))
+        return false;
+    
+    int s1, s2, s3;
+    if (sscanf(tmp, "%d.%04d", &s1, &s2) != 2)
+        return false;
+    
+    data->lat = (s1/100);
+    s1 -= data->lat * 100;
+    data->lat *= 1000000;
+    data->lat += (1000000*s1)/60;
+    data->lat += (10*s2)/6;
+    
+    if (sign == 'S') {
+        data->lat = -data->lat;
+    }
+    
+    DEBUG("[gps] Latitude: %d\n", data->lat);
+    
+    if (!get_csv_field(buf, MT3333_LON_FIELD_IDX, tmp, sizeof(tmp)))
+        return false;
+    if (!get_csv_field(buf, MT3333_EW_FIELD_IDX, &sign, 1))
+        return false;
+    
+    if (sscanf(tmp, "%d.%04d", &s1, &s2) != 2)
+        return false;
+    
+    data->lon = (s1/100);
+    s1 -= data->lon * 100;
+    data->lon *= 1000000;
+    data->lon += (1000000*s1)/60;
+    data->lon += (10*s2)/6;
+    
+    if (sign == 'W') {
+        data->lon = -data->lon;
+    }
+    
+    DEBUG("[gps] Longitude: %d\n", data->lon);
 
-	if (!get_csv_field(buf, MT3333_TIME_FIELD_IDX, data->time, 15))
-		return false;
+    struct tm time;
+    if (!get_csv_field(buf, MT3333_DATE_FIELD_IDX, tmp, sizeof(tmp)))
+        return false;
+    
+    if (sscanf(tmp, "%02d%02d%02d", &s1, &s2, &s3) != 3)
+        return false;
+    
+    time.tm_mday = s1;
+    time.tm_mon = s2;
+    time.tm_year = 100 + s3;
+    
+    DEBUG("[gps] Date: %d.%d.%d\n", s1, s2, s3);
+    
+    if (!get_csv_field(buf, MT3333_TIME_FIELD_IDX, tmp, sizeof(tmp)))
+        return false;
+    
+    if (sscanf(tmp, "%02d%02d%02d", &s1, &s2, &s3) != 3)
+        return false;
+    
+    time.tm_hour = s1;
+    time.tm_min = s2;
+    time.tm_sec = 100 + s3;
+    
+    data->time = mktime(&time);
+    
+    DEBUG("[gps] Time: %d:%d:%d\n", s1, s2, s3);
+    
+    if (!get_csv_field(buf, MT3333_VELOCITY_FIELD_IDX, tmp, sizeof(tmp)))
+        return false;
+    
+    if (sscanf(tmp, "%d.%02d", &s1, &s2) != 2)
+        return false;
+    
+    data->velocity = ((1000*s1 + 10*s2)*514)/1000; // mm/s
+    DEBUG("[gps] Velocity: %d mm/s\n", data->velocity);
+    
+    if (!get_csv_field(buf, MT3333_DIRECTION_FIELD_IDX, tmp, sizeof(tmp)))
+        return false;
+    
+    if (sscanf(tmp, "%d.%02d", &s1, &s2) != 2)
+        return false;
+    data->direction = (1000*s1 + 10*s2);
+    DEBUG("[gps] Direction: %d millidegrees\n", data->direction);
 
-	if (!get_csv_field(buf, MT3333_LAT_FIELD_IDX, data->lat, 15))
-		return false;
-
-	if (!get_csv_field(buf, MT3333_LON_FIELD_IDX, data->lon, 15))
-		return false;
-
-	if (!get_csv_field(buf, MT3333_NS_FIELD_IDX, &ns, 1))
-		return false;
-
-	if (!get_csv_field(buf, MT3333_EW_FIELD_IDX, &ew, 1))
-		return false;
-
-	if (!get_csv_field(buf, MT3333_DATE_FIELD_IDX, data->date, 15))
-		return false;
-
-	/* Check N/S E/W polarity */
-	data->e = (ew == 'E');
-	data->n = (ns == 'N');
-
-	return true;
+    return true;
 }
 
 static void *reader(void *arg) {
@@ -138,26 +215,12 @@ static void *reader(void *arg) {
     msg_init_queue(msg_queue, 8);
 
     mt3333_gps_data_t data;
-    memset(&data, 0, sizeof(data));
-
-    char buf[MT3333_PARSER_BUF_SIZE] = { '\0' };
 
     while (1) {
         msg_receive(&msg);
 
-        /* Collect input string from the ring buffer */
-        char c;
-        int i = 0;
-        do {
-        	c = ringbuffer_get_one(&dev->rxrb);
-        	buf[i++] = c;
-        } while (c != MT3333_EOL);
-
-        /* Strip the string just in case that there's a garbage after EOL */
-        buf[i] = '\0';
-
         /* Parse received string */
-        if (parse(dev, buf, &data)) {
+        if (parse_rmc(rmc_buf, &data)) {
         	if (dev->params.gps_cb != NULL)
         		dev->params.gps_cb(data);
         }
@@ -166,7 +229,7 @@ static void *reader(void *arg) {
     return NULL;
 }
 
-static void mt3333_send_at_command(char *command) {
+static void mt3333_send_at_command(mt3333_t *dev, char *command) {
     uint8_t checksum = 0;
     uint32_t i;
     for (i = 0; i < strlen(command); i++) {
@@ -174,62 +237,56 @@ static void mt3333_send_at_command(char *command) {
     }
     
     /* command + delimeters + checksum + CRLF + ending 0 */
-    if (strlen(command) + 2 + 2 + 3 > 100) {
+    char cmd[30];
+    if (strlen(command) + 2 + 2 + 3 > sizeof(cmd)) {
         DEBUG("[mt3333 ] command too long\n");
         return;
     }
-    
-    /* first 100 bytes are free to use */
-    char *cmd = (char *)_dev->reader_stack;
     
     snprintf(cmd, 2, "$");
     strcat(cmd, command);
     strcat(cmd, "*");
     
-    char buf[10];
+    char buf[5];
     snprintf(buf, 5, "%02x\r\n", checksum);
     strcat(cmd, buf);
     
-    uart_write(_dev->params.uart, (uint8_t *)cmd, strlen(cmd));
+    uart_write(dev->params.uart, (uint8_t *)cmd, strlen(cmd));
     
     DEBUG("GPS command: %s\n", cmd);
 }
 
-void mt3333_set_baudrate(int baudrate) {
+void mt3333_set_baudrate(mt3333_t *dev, int baudrate) {
     char cmd[20] = {};
     snprintf(cmd, 20, "PQBAUD,W,%d", baudrate);
-    mt3333_send_at_command(cmd);
+    mt3333_send_at_command(dev, cmd);
     
-    _dev->params.baudrate = baudrate;
-    uart_init(_dev->params.uart, _dev->params.baudrate, rx_cb, _dev);
+    dev->params.baudrate = baudrate;
+    uart_init(dev->params.uart, dev->params.baudrate, rx_cb, dev);
 }
 
-void mt3333_set_glp(bool enabled) {
+void mt3333_set_glp(mt3333_t *dev, bool enabled) {
     char cmd[20] = {};
-    if (enabled) {
-        snprintf(cmd, 20, "PQGLP,W,1,1");
-    } else {
-        snprintf(cmd, 20, "PQGLP,W,0,1");
-    }
-    mt3333_send_at_command(cmd);
+    
+    snprintf(cmd, 20, "PQGLP,W,%d,1", enabled? 1:0);
+    
+    mt3333_send_at_command(dev, cmd);
 }
 
-void mt3333_set_powersave(mt3333_powersave_mode_t mode) {
+void mt3333_set_powersave(mt3333_t *dev, mt3333_powersave_mode_t mode) {
     char cmd[20] = {};
     if (mode == MT3333_POWERSAVE_STANDBY) {
         snprintf(cmd, 20, "PMTK161,0");
-    } else if (mode == MT3333_POWERSAVE_BACKUP) {
-        snprintf(cmd, 20, "PMTK225,4");
-    } else if (mode == MT3333_POWERSAVE_FULLON) {
-        snprintf(cmd, 20, "PMTK225,0");
+    } else {
+        snprintf(cmd, 20, "PMTK225,%d", (mode == MT3333_POWERSAVE_BACKUP)? 4:0);
     }
-    mt3333_send_at_command(cmd);
+    mt3333_send_at_command(dev, cmd);
 }
 
-void mt3333_set_periodic(mt3333_powersave_mode_t mode, int run, int sleep, int run_ext, int sleep_ext) {
+void mt3333_set_periodic(mt3333_t *dev, mt3333_powersave_mode_t mode, int run, int sleep, int run_ext, int sleep_ext) {
     char cmd[50] = {};
     snprintf(cmd, 50, "PMTK225,%d,%d,%d,%d,%d", (int)mode, run, sleep, run_ext, sleep_ext);
-    mt3333_send_at_command(cmd);
+    mt3333_send_at_command(dev, cmd);
 }
 
 int mt3333_init(mt3333_t *dev, mt3333_param_t *param) {
@@ -239,23 +296,21 @@ int mt3333_init(mt3333_t *dev, mt3333_param_t *param) {
 	/* Copy parameters */
 	dev->params = *param;
     
-    _dev = dev;
-    
     /* Create reader thread */
-	dev->reader_pid = thread_create(dev->reader_stack + 100 + MT3333_RXBUF_SIZE_BYTES,
-                                    MT3333_READER_THREAD_STACK_SIZE_BYTES - 100 - MT3333_RXBUF_SIZE_BYTES,
+	reader_pid = thread_create(dev->reader_stack + 2*MT3333_RXBUF_SIZE_BYTES,
+                                    MT3333_READER_THREAD_STACK_SIZE_BYTES - 2*MT3333_RXBUF_SIZE_BYTES,
                                     THREAD_PRIORITY_MAIN - 1, 0, reader, dev, "MT3333 reader");
-	if (dev->reader_pid <= KERNEL_PID_UNDEF) {
+	if (reader_pid <= KERNEL_PID_UNDEF) {
 		return -2;
 	}
     
-    dev->rxbuf = dev->reader_stack + 100;
-
-	/* Initialize the input ring buffer */
-	ringbuffer_init(&dev->rxrb, dev->rxbuf, MT3333_RXBUF_SIZE_BYTES);
+    /* Initialize message buffer */
+    rmc_buf = dev->reader_stack;    
+    /* Initialize input buffer */
+    rxbuf = dev->reader_stack + MT3333_RXBUF_SIZE_BYTES;
 
 	/* Initialize the UART */
-	if (uart_init(dev->params.uart, dev->params.baudrate, rx_cb, dev)) {
+	if (uart_init(dev->params.uart, dev->params.baudrate, rx_cb, NULL)) {
 		return -1;
 	}
 

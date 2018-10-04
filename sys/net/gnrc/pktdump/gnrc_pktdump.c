@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup     net_pktdump
+ * @ingroup     net_gnrc_pktdump
  * @{
  *
  * @file
@@ -47,6 +47,8 @@ static char _stack[GNRC_PKTDUMP_STACKSIZE];
 
 static void _dump_snip(gnrc_pktsnip_t *pkt)
 {
+    size_t hdr_len = pkt->size;
+
     switch (pkt->type) {
         case GNRC_NETTYPE_UNDEF:
             printf("NETTYPE_UNDEF (%i)\n", pkt->type);
@@ -68,24 +70,28 @@ static void _dump_snip(gnrc_pktsnip_t *pkt)
         case GNRC_NETTYPE_IPV6:
             printf("NETTYPE_IPV6 (%i)\n", pkt->type);
             ipv6_hdr_print(pkt->data);
+            hdr_len = sizeof(ipv6_hdr_t);
             break;
 #endif
 #ifdef MODULE_GNRC_ICMPV6
         case GNRC_NETTYPE_ICMPV6:
             printf("NETTYPE_ICMPV6 (%i)\n", pkt->type);
             icmpv6_hdr_print(pkt->data);
+            hdr_len = sizeof(icmpv6_hdr_t);
             break;
 #endif
 #ifdef MODULE_GNRC_TCP
         case GNRC_NETTYPE_TCP:
             printf("NETTYPE_TCP (%i)\n", pkt->type);
             tcp_hdr_print(pkt->data);
+            hdr_len = sizeof(tcp_hdr_t);
             break;
 #endif
 #ifdef MODULE_GNRC_UDP
         case GNRC_NETTYPE_UDP:
             printf("NETTYPE_UDP (%i)\n", pkt->type);
             udp_hdr_print(pkt->data);
+            hdr_len = sizeof(udp_hdr_t);
             break;
 #endif
 #ifdef MODULE_CCN_LITE_UTILS
@@ -93,6 +99,12 @@ static void _dump_snip(gnrc_pktsnip_t *pkt)
             printf("GNRC_NETTYPE_CCN_CHUNK (%i)\n", pkt->type);
             printf("Content is: %.*s\n", (int)pkt->size, (char*)pkt->data);
             break;
+#endif
+#ifdef MODULE_NDN_RIOT
+    case GNRC_NETTYPE_NDN:
+            printf("NETTYPE_NDN (%i)\n", pkt->type);
+            od_hex_dump(pkt->data, pkt->size, OD_WIDTH_DEFAULT);
+        break;
 #endif
 #ifdef TEST_SUITES
         case GNRC_NETTYPE_TEST:
@@ -104,6 +116,11 @@ static void _dump_snip(gnrc_pktsnip_t *pkt)
             printf("NETTYPE_UNKNOWN (%i)\n", pkt->type);
             od_hex_dump(pkt->data, pkt->size, OD_WIDTH_DEFAULT);
             break;
+    }
+    if (hdr_len < pkt->size) {
+        size_t size = pkt->size - hdr_len;
+
+        od_hex_dump(((uint8_t *)pkt->data) + hdr_len, size, OD_WIDTH_DEFAULT);
     }
 }
 

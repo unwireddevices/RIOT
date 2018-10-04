@@ -39,22 +39,6 @@
 
 #define _MAX_MHR_OVERHEAD   (25)
 
-static int _send(netdev_t *netdev, const struct iovec *vector, unsigned count);
-static int _recv(netdev_t *netdev, void *buf, size_t len, void *info);
-static int _init(netdev_t *netdev);
-static void _isr(netdev_t *netdev);
-static int _get(netdev_t *netdev, netopt_t opt, void *val, size_t max_len);
-static int _set(netdev_t *netdev, netopt_t opt, const void *val, size_t len);
-
-const netdev_driver_t mrf24j40_driver = {
-    .send = _send,
-    .recv = _recv,
-    .init = _init,
-    .isr = _isr,
-    .get = _get,
-    .set = _set,
-};
-
 static void _irq_handler(void *arg)
 {
     netdev_t *dev = (netdev_t *) arg;
@@ -83,18 +67,17 @@ static int _init(netdev_t *netdev)
     return 0;
 }
 
-static int _send(netdev_t *netdev, const struct iovec *vector, unsigned count)
+static int _send(netdev_t *netdev, const iolist_t *iolist)
 {
     mrf24j40_t *dev = (mrf24j40_t *)netdev;
-    const struct iovec *ptr = vector;
     size_t len = 0;
 
     mrf24j40_tx_prepare(dev);
 
     /* load packet data into FIFO */
-    for (unsigned i = 0; i < count; i++, ptr++) {
+    for (const iolist_t *iol = iolist; iol; iol = iol->iol_next) {
         /* current packet data + FCS too long */
-        if ((len + ptr->iov_len + 2) > IEEE802154_FRAME_LEN_MAX) {
+        if ((len + iol->iol_len + 2) > IEEE802154_FRAME_LEN_MAX) {
             DEBUG("[mrf24j40] error: packet too large (%u byte) to be send\n",
                   (unsigned)len + 2);
             return -EOVERFLOW;
@@ -103,11 +86,12 @@ static int _send(netdev_t *netdev, const struct iovec *vector, unsigned count)
 #ifdef MODULE_NETSTATS_L2
         netdev->stats.tx_bytes += len;
 #endif
-        len = mrf24j40_tx_load(dev, ptr->iov_base, ptr->iov_len, len);
-        if (i == 0) {
+        len = mrf24j40_tx_load(dev, iol->iol_base, iol->iol_len, len);
+        /* only on first iteration: */
+        if (iol == iolist) {
             dev->header_len = len;
             /* Grab the FCF bits from the frame header */
-            dev->fcf_low = *(uint8_t*)(ptr->iov_base);
+            dev->fcf_low = *(uint8_t*)(iol->iol_base);
         }
 
     }
@@ -126,46 +110,45 @@ static int _recv(netdev_t *netdev, void *buf, size_t len, void *info)
     mrf24j40_t *dev = (mrf24j40_t *)netdev;
     uint8_t phr;
     size_t pkt_len;
+    int res = -ENOBUFS;
 
     /* Disable receiving while reading the RX fifo (datasheet sec. 3.11.4) */
     mrf24j40_reg_write_short(dev, MRF24J40_REG_BBREG1, MRF24J40_BBREG1_RXDECINV );
 
-    /* get the size of the received packet */
+    /* get the size of the received packet, this resets the receive FIFO to be
+     * ready for a new frame, so we have to disable RX first (see above) */
     phr = mrf24j40_reg_read_long(dev, MRF24J40_RX_FIFO);
 
     pkt_len = (phr & 0x7f) - 2;
 
     /* just return length when buf == NULL */
-    if (buf == NULL) {
+    if (buf == NULL && len == 0) {
         return pkt_len;
     }
+    /* Only fill buffer if it is supplied and is large enough */
+    if (buf && pkt_len <= len) {
+        /* copy payload */
+        mrf24j40_rx_fifo_read(dev, 1, (uint8_t *)buf, pkt_len);
+
+        if (info != NULL) {
+            netdev_ieee802154_rx_info_t *radio_info = info;
+            uint8_t rssi_scalar = 0;
+            /* Read LQI and RSSI values from the RX fifo */
+            mrf24j40_rx_fifo_read(dev, phr + 1, &(radio_info->lqi), 1);
+            mrf24j40_rx_fifo_read(dev, phr + 2, &(rssi_scalar), 1);
+            radio_info->rssi = mrf24j40_dbm_from_reg(rssi_scalar);
+        }
 #ifdef MODULE_NETSTATS_L2
-    netdev->stats.rx_count++;
-    netdev->stats.rx_bytes += pkt_len;
+        netdev->stats.rx_count++;
+        netdev->stats.rx_bytes += pkt_len;
 #endif
-    /* not enough space in buf */
-    if (pkt_len > len) {
-        DEBUG("[mrf24j40] No space in receive buffers\n");
-        mrf24j40_reg_write_short(dev, MRF24J40_REG_RXFLUSH, MRF24J40_RXFLUSH_RXFLUSH);
-        /* Turn on reception of packets off the air */
-        mrf24j40_reg_write_short(dev, MRF24J40_REG_BBREG1, 0x00);
-        return -ENOBUFS;
+        res = pkt_len;
     }
-    /* copy payload */
-    mrf24j40_rx_fifo_read(dev, 1, (uint8_t *)buf, pkt_len);
-
-    if (info != NULL) {
-        netdev_ieee802154_rx_info_t *radio_info = info;
-        uint8_t rssi_scalar = 0;
-        /* Read LQI and RSSI values from the RX fifo */
-        mrf24j40_rx_fifo_read(dev, phr + 1, &(radio_info->lqi), 1);
-        mrf24j40_rx_fifo_read(dev, phr + 2, &(rssi_scalar), 1);
-        radio_info->rssi = mrf24j40_dbm_from_reg(rssi_scalar);
-    }
-
     /* Turn on reception of packets off the air */
     mrf24j40_reg_write_short(dev, MRF24J40_REG_BBREG1, 0x00);
-    return pkt_len;
+    /* Return -ENOBUFS if a too small buffer is supplied. Return packet size
+     * otherwise */
+    return res;
 }
 
 static netopt_state_t _get_state(mrf24j40_t *dev)
@@ -581,3 +564,12 @@ static void _isr(netdev_t *netdev)
     }
     DEBUG("[mrf24j40] END IRQ\n");
 }
+
+const netdev_driver_t mrf24j40_driver = {
+    .send = _send,
+    .recv = _recv,
+    .init = _init,
+    .isr = _isr,
+    .get = _get,
+    .set = _set,
+};

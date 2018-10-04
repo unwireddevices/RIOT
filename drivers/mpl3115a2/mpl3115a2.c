@@ -58,7 +58,7 @@ int mpl3115a2_init(mpl3115a2_t *dev, const mpl3115a2_params_t *params)
         return -MPL3115A2_ERROR_I2C;
     }
     /* test device */
-    if (i2c_read_regs(BUS, ADDR, MPL3115A2_WHO_AM_I, &reg, 1) != 1) {
+    if (i2c_read_regs(BUS, ADDR, MPL3115A2_WHO_AM_I, &reg, 1, 0) != 1) {
         /* Release the bus for other threads. */
         i2c_release(BUS);
         LOG_ERROR("mpl3115a2_init: I2C error!\n");
@@ -70,7 +70,7 @@ int mpl3115a2_init(mpl3115a2_t *dev, const mpl3115a2_params_t *params)
     }
     /* set sample rate */
     reg = MPL3115A2_CTRL_REG1_OS(dev->params.ratio);
-    if (i2c_write_regs(BUS, ADDR, MPL3115A2_CTRL_REG1, &reg, 1) != 1) {
+    if (i2c_write_regs(BUS, ADDR, MPL3115A2_CTRL_REG1, &reg, 1, 0) != 1) {
         i2c_release(BUS);
         LOG_ERROR("mpl3115a2_init: failed to set sample rate!\n");
         return -MPL3115A2_ERROR_CNF;
@@ -79,7 +79,7 @@ int mpl3115a2_init(mpl3115a2_t *dev, const mpl3115a2_params_t *params)
     reg = MPL3115A2_PT_DATA_CFG_TDEFE |
           MPL3115A2_PT_DATA_CFG_PDEFE |
           MPL3115A2_PT_DATA_CFG_DREM;
-    if (i2c_write_regs(BUS, ADDR, MPL3115A2_PT_DATA_CFG, &reg, 1) != 1) {
+    if (i2c_write_regs(BUS, ADDR, MPL3115A2_PT_DATA_CFG, &reg, 1, 0) != 1) {
         i2c_release(BUS);
         LOG_ERROR("mpl3115a2_init: config failure!\n");
         return -MPL3115A2_ERROR_CNF;
@@ -96,7 +96,7 @@ int mpl3115a2_reset(const mpl3115a2_t *dev)
 
     i2c_acquire(BUS);
     reg = MPL3115A2_CTRL_REG1_RST;
-    if (i2c_write_regs(BUS, ADDR, MPL3115A2_CTRL_REG1, &reg, 1) != 1) {
+    if (i2c_write_regs(BUS, ADDR, MPL3115A2_CTRL_REG1, &reg, 1, 0) != 1) {
         i2c_release(BUS);
         LOG_ERROR("mpl3115a2_reset: failed!\n");
         return -MPL3115A2_ERROR_I2C;
@@ -111,13 +111,13 @@ int mpl3115a2_set_active(const mpl3115a2_t *dev)
     uint8_t reg;
 
     i2c_acquire(BUS);
-    if (i2c_read_regs(BUS, ADDR, MPL3115A2_CTRL_REG1, &reg, 1) != 1) {
+    if (i2c_read_regs(BUS, ADDR, MPL3115A2_CTRL_REG1, &reg, 1, 0) != 1) {
         i2c_release(BUS);
         return -MPL3115A2_ERROR_I2C;
     }
 
     reg |= MPL3115A2_CTRL_REG1_SBYB;
-    if (i2c_write_regs(BUS, ADDR, MPL3115A2_CTRL_REG1, &reg, 1) != 1) {
+    if (i2c_write_regs(BUS, ADDR, MPL3115A2_CTRL_REG1, &reg, 1, 0) != 1) {
         i2c_release(BUS);
         return -MPL3115A2_ERROR_I2C;
     }
@@ -131,13 +131,13 @@ int mpl3115a2_set_standby(const mpl3115a2_t *dev)
     uint8_t reg;
 
     i2c_acquire(BUS);
-    if (i2c_read_regs(BUS, ADDR, MPL3115A2_CTRL_REG1, &reg, 1) != 1) {
+    if (i2c_read_regs(BUS, ADDR, MPL3115A2_CTRL_REG1, &reg, 1, 0) != 1) {
         i2c_release(BUS);
         return -MPL3115A2_ERROR_I2C;
     }
 
     reg &= ~MPL3115A2_CTRL_REG1_SBYB;
-    if (i2c_write_regs(BUS, ADDR, MPL3115A2_CTRL_REG1, &reg, 1) != 1) {
+    if (i2c_write_regs(BUS, ADDR, MPL3115A2_CTRL_REG1, &reg, 1, 0) != 1) {
         i2c_release(BUS);
         return -MPL3115A2_ERROR_I2C;
     }
@@ -151,7 +151,7 @@ int mpl3115a2_is_ready(const mpl3115a2_t *dev)
     uint8_t reg;
 
     i2c_acquire(BUS);
-    if (i2c_read_regs(BUS, ADDR, MPL3115A2_STATUS, &reg, 1) != 1) {
+    if (i2c_read_regs(BUS, ADDR, MPL3115A2_STATUS, &reg, 1, 0) != 1) {
         i2c_release(BUS);
         return -MPL3115A2_ERROR_I2C;
     }
@@ -165,7 +165,7 @@ int mpl3115a2_read_pressure(const mpl3115a2_t *dev, uint32_t *pres, uint8_t *sta
     uint8_t buf[4];
 
     i2c_acquire(BUS);
-    if (i2c_read_regs(BUS, ADDR, MPL3115A2_STATUS, buf, 4) != 4) {
+    if (i2c_read_regs(BUS, ADDR, MPL3115A2_STATUS, buf, 4, 0) != 4) {
         i2c_release(BUS);
         return -MPL3115A2_ERROR_I2C;
     }
@@ -184,7 +184,7 @@ int mpl3115a2_read_temp(const mpl3115a2_t *dev, int16_t *temp)
     uint8_t buf[2];
 
     i2c_acquire(BUS);
-    if (i2c_read_regs(BUS, ADDR, MPL3115A2_OUT_T_MSB, buf, 2) != 2) {
+    if (i2c_read_regs(BUS, ADDR, MPL3115A2_OUT_T_MSB, buf, 2, 0) != 2) {
         i2c_release(BUS);
         return -MPL3115A2_ERROR_I2C;
     }

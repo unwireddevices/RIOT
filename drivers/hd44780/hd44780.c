@@ -62,19 +62,20 @@ static void _i2c_init(const hd44780_t *dev) {
     i2c_acquire(dev->p.i2c_dev);
 
     /* Initialize I2C interface */
-    if (i2c_init_master(dev->p.i2c_dev, I2C_SPEED_NORMAL)) {
-        DEBUG("[Error] I2C device not enabled\n");
-        i2c_release(dev->p.i2c_dev);
-        return;
-    }
-    
+    // if (i2c_init_master(dev->p.i2c_dev, I2C_SPEED_NORMAL)) {
+    //     DEBUG("[Error] I2C device not enabled\n");
+    //     i2c_release(dev->p.i2c_dev);
+    //     return;
+    // }
+    i2c_init(dev->p.i2c_dev);
+
     i2c_release(dev->p.i2c_dev);
 }
 
 
 static inline void _i2c_write(const hd44780_t *dev, uint8_t data) {
     i2c_acquire(dev->p.i2c_dev);
-    i2c_write_byte(dev->p.i2c_dev, dev->p.i2c_address, data);    
+    i2c_write_byte(dev->p.i2c_dev, dev->p.i2c_address, data, 0);    
     i2c_release(dev->p.i2c_dev);
 }
 #endif
@@ -299,7 +300,7 @@ int hd44780_init(hd44780_t *dev, const hd44780_params_t *params)
     } else {
         /* see hitachi HD44780 datasheet page 45 figure 23 */
         _command(dev, HD44780_FUNCTIONSET | dev->flag);
-        xtimer_usleep(HD44780_INIT_WAIT_LONG);  // wait more than 4.1ms
+        xtimer_usleep(HD44780_INIT_WAIT_LONG);  /* wait more than 4.1ms */
 
         _command(dev, HD44780_FUNCTIONSET | dev->flag);
         xtimer_usleep(HD44780_INIT_WAIT_SHORT);

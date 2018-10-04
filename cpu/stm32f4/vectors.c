@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2014-2017 Freie Universität Berlin
- *               2017 OTA keys S.A.
+ *               2017-2018 OTA keys S.A.
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
@@ -29,6 +29,7 @@ void dummy_handler(void) {
 }
 
 WEAK_DEFAULT void isr_adc(void);
+WEAK_DEFAULT void isr_aes(void);
 WEAK_DEFAULT void isr_can1_rx0(void);
 WEAK_DEFAULT void isr_can1_rx1(void);
 WEAK_DEFAULT void isr_can1_sce(void);
@@ -185,7 +186,7 @@ ISR_VECTOR(1) const isr_t vector_cpu[CPU_IRQ_NUMOF] = {
     [71] = isr_usart6,               /* [71] USART6 global interrupt */
     [81] = isr_fpu,                  /* [81] FPU global interrupt */
 
-#if defined(CPU_MODEL_STM32F401RE)
+#if defined(CPU_LINE_STM32F401xE)
     [18] = isr_adc,                  /* [18] ADC1, ADC2 and ADC3 global Interrupts */
     [25] = isr_tim1_up_tim10,        /* [25] TIM1 Update Interrupt and TIM10 global interrupt */
     [28] = isr_tim2,                 /* [28] TIM2 global Interrupt */
@@ -198,7 +199,43 @@ ISR_VECTOR(1) const isr_t vector_cpu[CPU_IRQ_NUMOF] = {
     [72] = isr_i2c3_ev,              /* [72] I2C3 event interrupt */
     [73] = isr_i2c3_er,              /* [73] I2C3 error interrupt */
     [84] = isr_spi4,                 /* [84] SPI4 global Interrupt */
-#elif defined(CPU_MODEL_STM32F407VG)
+#elif defined(CPU_LINE_STM32F405xx)
+    [18] = isr_adc,                  /* [18] ADC1, ADC2 and ADC3 global Interrupts */
+    [19] = isr_can1_tx,              /* [19] CAN1 TX Interrupt */
+    [20] = isr_can1_rx0,             /* [20] CAN1 RX0 Interrupt */
+    [21] = isr_can1_rx1,             /* [21] CAN1 RX1 Interrupt */
+    [22] = isr_can1_sce,             /* [22] CAN1 SCE Interrupt */
+    [25] = isr_tim1_up_tim10,        /* [25] TIM1 Update Interrupt and TIM10 global interrupt */
+    [28] = isr_tim2,                 /* [28] TIM2 global Interrupt */
+    [29] = isr_tim3,                 /* [29] TIM3 global Interrupt */
+    [30] = isr_tim4,                 /* [30] TIM4 global Interrupt */
+    [39] = isr_usart3,               /* [39] USART3 global Interrupt */
+    [42] = isr_otg_fs_wkup,          /* [42] USB OTG FS Wakeup through EXTI line interrupt */
+    [43] = isr_tim8_brk_tim12,       /* [43] TIM8 Break Interrupt and TIM12 global interrupt */
+    [44] = isr_tim8_up_tim13,        /* [44] TIM8 Update Interrupt and TIM13 global interrupt */
+    [45] = isr_tim8_trg_com_tim14,   /* [45] TIM8 Trigger and Commutation Interrupt and TIM14 global interrupt */
+    [46] = isr_tim8_cc,              /* [46] TIM8 Capture Compare global interrupt */
+    [48] = isr_fsmc,                 /* [48] FSMC global Interrupt */
+    [49] = isr_sdio,                 /* [49] SDIO global Interrupt */
+    [51] = isr_spi3,                 /* [51] SPI3 global Interrupt */
+    [52] = isr_uart4,                /* [52] UART4 global Interrupt */
+    [53] = isr_uart5,                /* [53] UART5 global Interrupt */
+    [54] = isr_tim6_dac,             /* [54] TIM6 global and DAC1&2 underrun error  interrupts */
+    [55] = isr_tim7,                 /* [55] TIM7 global interrupt */
+    [63] = isr_can2_tx,              /* [63] CAN2 TX Interrupt */
+    [64] = isr_can2_rx0,             /* [64] CAN2 RX0 Interrupt */
+    [65] = isr_can2_rx1,             /* [65] CAN2 RX1 Interrupt */
+    [66] = isr_can2_sce,             /* [66] CAN2 SCE Interrupt */
+    [67] = isr_otg_fs,               /* [67] USB OTG FS global Interrupt */
+    [72] = isr_i2c3_ev,              /* [72] I2C3 event interrupt */
+    [73] = isr_i2c3_er,              /* [73] I2C3 error interrupt */
+    [74] = isr_otg_hs_ep1_out,       /* [74] USB OTG HS End Point 1 Out global interrupt */
+    [75] = isr_otg_hs_ep1_in,        /* [75] USB OTG HS End Point 1 In global interrupt */
+    [76] = isr_otg_hs_wkup,          /* [76] USB OTG HS Wakeup through EXTI interrupt */
+    [77] = isr_otg_hs,               /* [77] USB OTG HS global interrupt */
+    [78] = isr_dcmi,                 /* [78] DCMI global interrupt */
+    [80] = isr_rng,                  /* [80] RNG global Interrupt */
+#elif defined(CPU_LINE_STM32F407xx)
     [18] = isr_adc,                  /* [18] ADC1, ADC2 and ADC3 global Interrupts */
     [19] = isr_can1_tx,              /* [19] CAN1 TX Interrupt */
     [20] = isr_can1_rx0,             /* [20] CAN1 RX0 Interrupt */
@@ -235,7 +272,7 @@ ISR_VECTOR(1) const isr_t vector_cpu[CPU_IRQ_NUMOF] = {
     [76] = isr_otg_hs_wkup,          /* [76] USB OTG HS Wakeup through EXTI interrupt */
     [77] = isr_otg_hs,               /* [77] USB OTG HS global interrupt */
     [78] = isr_dcmi,                 /* [78] DCMI global interrupt */
-#elif defined(CPU_MODEL_STM32F410RB)
+#elif defined(CPU_LINE_STM32F410Rx)
     [18] = isr_adc,                  /* [18] ADC1 global Interrupts */
     [25] = isr_tim1_up,              /* [25] TIM1 Update Interrupt */
     [54] = isr_tim6_dac,             /* [54] TIM6 global Interrupt and DAC Global Interrupt */
@@ -244,7 +281,7 @@ ISR_VECTOR(1) const isr_t vector_cpu[CPU_IRQ_NUMOF] = {
     [95] = isr_fmpi2c1_ev,           /* [95] FMPI2C1 Event Interrupt */
     [96] = isr_fmpi2c1_er,           /* [96] FMPI2C1 Error Interrupt */
     [97] = isr_lptim1,               /* [97] LPTIM1 interrupt */
-#elif defined(CPU_MODEL_STM32F411RE)
+#elif defined(CPU_LINE_STM32F411xE)
     [18] = isr_adc,                  /* [18] ADC1, ADC2 and ADC3 global Interrupts */
     [25] = isr_tim1_up_tim10,        /* [25] TIM1 Update Interrupt and TIM10 global interrupt */
     [28] = isr_tim2,                 /* [28] TIM2 global Interrupt */
@@ -258,7 +295,7 @@ ISR_VECTOR(1) const isr_t vector_cpu[CPU_IRQ_NUMOF] = {
     [73] = isr_i2c3_er,              /* [73] I2C3 error interrupt */
     [84] = isr_spi4,                 /* [84] SPI4 global Interrupt */
     [85] = isr_spi5,                 /* [85] SPI5 global Interrupt */
-#elif defined(CPU_MODEL_STM32F412ZG)
+#elif defined(CPU_LINE_STM32F412Zx)
     [18] = isr_adc,                  /* [18] ADC1, ADC2 and ADC3 global Interrupts */
     [19] = isr_can1_tx,              /* [19] CAN1 TX Interrupt */
     [20] = isr_can1_rx0,             /* [20] CAN1 RX0 Interrupt */
@@ -293,7 +330,7 @@ ISR_VECTOR(1) const isr_t vector_cpu[CPU_IRQ_NUMOF] = {
     [92] = isr_quadspi,              /* [92] QuadSPI global Interrupt */
     [95] = isr_fmpi2c1_ev,           /* [95] FMPI2C1 Event Interrupt */
     [96] = isr_fmpi2c1_er,           /* [96] FMPI2C1 Error Interrupt */
-#elif defined(CPU_MODEL_STM32F413VG) || defined(CPU_MODEL_STM32F413ZH)
+#elif defined(CPU_LINE_STM32F413xx)
     [18] = isr_adc,                  /* [18] ADC1, ADC2 and ADC3 global Interrupts */
     [19] = isr_can1_tx,              /* [19] CAN1 TX Interrupt */
     [20] = isr_can1_rx0,             /* [20] CAN1 RX0 Interrupt */
@@ -344,7 +381,7 @@ ISR_VECTOR(1) const isr_t vector_cpu[CPU_IRQ_NUMOF] = {
     [99] = isr_dfsdm2_flt1,          /* [99] DFSDM2 Filter 1 global Interrupt */
     [100] = isr_dfsdm2_flt2,          /* [100] DFSDM2 Filter 2 global Interrupt */
     [101] = isr_dfsdm2_flt3,          /* [101] DFSDM2 Filter 3 global Interrupt */
-#elif defined(CPU_MODEL_STM32F415RG)
+#elif defined(CPU_LINE_STM32F415xx)
     [18] = isr_adc,                  /* [18] ADC1, ADC2 and ADC3 global Interrupts */
     [19] = isr_can1_tx,              /* [19] CAN1 TX Interrupt */
     [20] = isr_can1_rx0,             /* [20] CAN1 RX0 Interrupt */
@@ -380,7 +417,59 @@ ISR_VECTOR(1) const isr_t vector_cpu[CPU_IRQ_NUMOF] = {
     [77] = isr_otg_hs,               /* [77] USB OTG HS global interrupt */
     [79] = isr_cryp,                 /* [79] CRYP crypto global interrupt */
     [80] = isr_hash_rng,             /* [80] Hash and Rng global interrupt */
-#elif defined(CPU_MODEL_STM32F429ZI)
+#elif defined(CPU_LINE_STM32F423xx)
+    [18] = isr_adc,                  /* [18] ADC1, ADC2 and ADC3 global Interrupts */
+    [19] = isr_can1_tx,              /* [19] CAN1 TX Interrupt */
+    [20] = isr_can1_rx0,             /* [20] CAN1 RX0 Interrupt */
+    [21] = isr_can1_rx1,             /* [21] CAN1 RX1 Interrupt */
+    [22] = isr_can1_sce,             /* [22] CAN1 SCE Interrupt */
+    [25] = isr_tim1_up_tim10,        /* [25] TIM1 Update Interrupt and TIM10 global interrupt */
+    [28] = isr_tim2,                 /* [28] TIM2 global Interrupt */
+    [29] = isr_tim3,                 /* [29] TIM3 global Interrupt */
+    [30] = isr_tim4,                 /* [30] TIM4 global Interrupt */
+    [39] = isr_usart3,               /* [39] USART3 global Interrupt */
+    [42] = isr_otg_fs_wkup,          /* [42] USB OTG FS Wakeup through EXTI line interrupt */
+    [43] = isr_tim8_brk_tim12,       /* [43] TIM8 Break Interrupt and TIM12 global interrupt */
+    [44] = isr_tim8_up_tim13,        /* [44] TIM8 Update Interrupt and TIM13 global interrupt */
+    [45] = isr_tim8_trg_com_tim14,   /* [45] TIM8 Trigger and Commutation Interrupt and TIM14 global interrupt */
+    [46] = isr_tim8_cc,              /* [46] TIM8 Capture Compare global interrupt */
+    [49] = isr_sdio,                 /* [49] SDIO global Interrupt */
+    [51] = isr_spi3,                 /* [51] SPI3 global Interrupt */
+    [52] = isr_uart4,                /* [52] UART4 global Interrupt */
+    [53] = isr_uart5,                /* [53] UART5 global Interrupt */
+    [54] = isr_tim6_dac,             /* [54] TIM6 global and DAC1&2 underrun error  interrupts */
+    [55] = isr_tim7,                 /* [55] TIM7 global interrupt */
+    [61] = isr_dfsdm1_flt0,          /* [61] DFSDM1 Filter 0 global Interrupt */
+    [62] = isr_dfsdm1_flt1,          /* [62] DFSDM1 Filter 1 global Interrupt */
+    [63] = isr_can2_tx,              /* [63] CAN2 TX Interrupt */
+    [64] = isr_can2_rx0,             /* [64] CAN2 RX0 Interrupt */
+    [65] = isr_can2_rx1,             /* [65] CAN2 RX1 Interrupt */
+    [66] = isr_can2_sce,             /* [66] CAN2 SCE Interrupt */
+    [67] = isr_otg_fs,               /* [67] USB OTG FS global Interrupt */
+    [72] = isr_i2c3_ev,              /* [72] I2C3 event interrupt */
+    [73] = isr_i2c3_er,              /* [73] I2C3 error interrupt */
+    [74] = isr_can3_tx,              /* [74] CAN3 TX Interrupt */
+    [75] = isr_can3_rx0,             /* [75] CAN3 RX0 Interrupt */
+    [76] = isr_can3_rx1,             /* [76] CAN3 RX1 Interrupt */
+    [77] = isr_can3_sce,             /* [77] CAN3 SCE Interrupt */
+    [79] = isr_aes,                  /* [79] AES global Interrupt */
+    [80] = isr_rng,                  /* [80] RNG global Interrupt */
+    [82] = isr_uart7,                /* [82] UART7 global interrupt */
+    [83] = isr_uart8,                /* [83] UART8 global interrupt */
+    [84] = isr_spi4,                 /* [84] SPI4 global Interrupt */
+    [85] = isr_spi5,                 /* [85] SPI5 global Interrupt */
+    [87] = isr_sai1,                 /* [87] SAI1 global Interrupt */
+    [88] = isr_uart9,                /* [88] UART9 global Interrupt */
+    [89] = isr_uart10,               /* [89] UART10 global Interrupt */
+    [92] = isr_quadspi,              /* [92] QuadSPI global Interrupt */
+    [95] = isr_fmpi2c1_ev,           /* [95] FMPI2C1 Event Interrupt */
+    [96] = isr_fmpi2c1_er,           /* [96] FMPI2C1 Error Interrupt */
+    [97] = isr_lptim1,               /* [97] LP TIM1 interrupt */
+    [98] = isr_dfsdm2_flt0,          /* [98] DFSDM2 Filter 0 global Interrupt */
+    [99] = isr_dfsdm2_flt1,          /* [99] DFSDM2 Filter 1 global Interrupt */
+    [100] = isr_dfsdm2_flt2,          /* [100] DFSDM2 Filter 2 global Interrupt */
+    [101] = isr_dfsdm2_flt3,          /* [101] DFSDM2 Filter 3 global Interrupt */
+#elif defined(CPU_LINE_STM32F429xx)
     [18] = isr_adc,                  /* [18] ADC1, ADC2 and ADC3 global Interrupts */
     [19] = isr_can1_tx,              /* [19] CAN1 TX Interrupt */
     [20] = isr_can1_rx0,             /* [20] CAN1 RX0 Interrupt */
@@ -426,7 +515,53 @@ ISR_VECTOR(1) const isr_t vector_cpu[CPU_IRQ_NUMOF] = {
     [88] = isr_ltdc,                 /* [88] LTDC global Interrupt */
     [89] = isr_ltdc_er,              /* [89] LTDC Error global Interrupt */
     [90] = isr_dma2d,                /* [90] DMA2D global Interrupt */
-#elif defined(CPU_MODEL_STM32F446RE) || defined(CPU_MODEL_STM32F446ZE)
+#elif defined(CPU_LINE_STM32F437xx)
+    [18] = isr_adc,                  /* [18] ADC1, ADC2 and ADC3 global Interrupts */
+    [19] = isr_can1_tx,              /* [19] CAN1 TX Interrupt */
+    [20] = isr_can1_rx0,             /* [20] CAN1 RX0 Interrupt */
+    [21] = isr_can1_rx1,             /* [21] CAN1 RX1 Interrupt */
+    [22] = isr_can1_sce,             /* [22] CAN1 SCE Interrupt */
+    [25] = isr_tim1_up_tim10,        /* [25] TIM1 Update Interrupt and TIM10 global interrupt */
+    [28] = isr_tim2,                 /* [28] TIM2 global Interrupt */
+    [29] = isr_tim3,                 /* [29] TIM3 global Interrupt */
+    [30] = isr_tim4,                 /* [30] TIM4 global Interrupt */
+    [39] = isr_usart3,               /* [39] USART3 global Interrupt */
+    [42] = isr_otg_fs_wkup,          /* [42] USB OTG FS Wakeup through EXTI line interrupt */
+    [43] = isr_tim8_brk_tim12,       /* [43] TIM8 Break Interrupt and TIM12 global interrupt */
+    [44] = isr_tim8_up_tim13,        /* [44] TIM8 Update Interrupt and TIM13 global interrupt */
+    [45] = isr_tim8_trg_com_tim14,   /* [45] TIM8 Trigger and Commutation Interrupt and TIM14 global interrupt */
+    [46] = isr_tim8_cc,              /* [46] TIM8 Capture Compare global interrupt */
+    [48] = isr_fmc,                  /* [48] FMC global Interrupt */
+    [49] = isr_sdio,                 /* [49] SDIO global Interrupt */
+    [51] = isr_spi3,                 /* [51] SPI3 global Interrupt */
+    [52] = isr_uart4,                /* [52] UART4 global Interrupt */
+    [53] = isr_uart5,                /* [53] UART5 global Interrupt */
+    [54] = isr_tim6_dac,             /* [54] TIM6 global and DAC1&2 underrun error  interrupts */
+    [55] = isr_tim7,                 /* [55] TIM7 global interrupt */
+    [61] = isr_eth,                  /* [61] Ethernet global Interrupt */
+    [62] = isr_eth_wkup,             /* [62] Ethernet Wakeup through EXTI line Interrupt */
+    [63] = isr_can2_tx,              /* [63] CAN2 TX Interrupt */
+    [64] = isr_can2_rx0,             /* [64] CAN2 RX0 Interrupt */
+    [65] = isr_can2_rx1,             /* [65] CAN2 RX1 Interrupt */
+    [66] = isr_can2_sce,             /* [66] CAN2 SCE Interrupt */
+    [67] = isr_otg_fs,               /* [67] USB OTG FS global Interrupt */
+    [72] = isr_i2c3_ev,              /* [72] I2C3 event interrupt */
+    [73] = isr_i2c3_er,              /* [73] I2C3 error interrupt */
+    [74] = isr_otg_hs_ep1_out,       /* [74] USB OTG HS End Point 1 Out global interrupt */
+    [75] = isr_otg_hs_ep1_in,        /* [75] USB OTG HS End Point 1 In global interrupt */
+    [76] = isr_otg_hs_wkup,          /* [76] USB OTG HS Wakeup through EXTI interrupt */
+    [77] = isr_otg_hs,               /* [77] USB OTG HS global interrupt */
+    [78] = isr_dcmi,                 /* [78] DCMI global interrupt */
+    [79] = isr_cryp,                 /* [79] CRYP crypto global interrupt */
+    [80] = isr_hash_rng,             /* [80] Hash and Rng global interrupt */
+    [82] = isr_uart7,                /* [82] UART7 global interrupt */
+    [83] = isr_uart8,                /* [83] UART8 global interrupt */
+    [84] = isr_spi4,                 /* [84] SPI4 global Interrupt */
+    [85] = isr_spi5,                 /* [85] SPI5 global Interrupt */
+    [86] = isr_spi6,                 /* [86] SPI6 global Interrupt */
+    [87] = isr_sai1,                 /* [87] SAI1 global Interrupt */
+    [90] = isr_dma2d,                /* [90] DMA2D global Interrupt */
+#elif defined(CPU_LINE_STM32F446xx)
     [18] = isr_adc,                  /* [18] ADC1, ADC2 and ADC3 global Interrupts */
     [19] = isr_can1_tx,              /* [19] CAN1 TX Interrupt */
     [20] = isr_can1_rx0,             /* [20] CAN1 RX0 Interrupt */

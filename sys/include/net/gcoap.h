@@ -44,9 +44,10 @@
  * this by uncommenting the appropriate lines in gcoap's make file.
  *
  * gcoap allows an application to specify a collection of request resource paths
- * it wants to be notified about. Create an array of resources, coap_resource_t
- * structs. Use gcoap_register_listener() at application startup to pass in
- * these resources, wrapped in a gcoap_listener_t.
+ * it wants to be notified about. Create an array of resources (coap_resource_t
+ * structs). Note that the elements must be ordered alphabetically with respect
+ * to the resource path. Use gcoap_register_listener() at application startup
+ * to pass in these resources, wrapped in a gcoap_listener_t.
  *
  * gcoap itself defines a resource for `/.well-known/core` discovery, which
  * lists all of the registered paths.
@@ -157,7 +158,13 @@
  * bytes long. For resources that change slowly, this length can be reduced via
  * GCOAP_OBS_VALUE_WIDTH.
  *
- * To cancel a notification, the server expects to receive a GET request with
+ * A client always may re-register for a resource with the same token or with
+ * a new token to indicate continued interest in receiving notifications about
+ * it. Of course the client must not already be using any new token in the
+ * registration for a different resource. Successful registration always is
+ * indicated by the presence of the Observe option in the response.
+ *
+ * To cancel registration, the server expects to receive a GET request with
  * the Observe option value set to 1. The server does not support cancellation
  * via a reset (RST) response to a non-confirmable notification.
  *
@@ -213,11 +220,9 @@
 #define NET_GCOAP_H
 
 #include <stdint.h>
-#include <stdatomic.h>
 
 #include "net/ipv6/addr.h"
 #include "net/sock/udp.h"
-#include "mutex.h"
 #include "net/nanocoap.h"
 #include "xtimer.h"
 
@@ -228,7 +233,9 @@ extern "C" {
 /**
  * @brief  Size for module message queue
  */
+#ifndef GCOAP_MSG_QUEUE_SIZE
 #define GCOAP_MSG_QUEUE_SIZE    (4)
+#endif
 
 /**
  * @brief   Server port; use RFC 7252 default if not defined
@@ -411,7 +418,8 @@ extern "C" {
  * @brief Stack size for module thread
  */
 #ifndef GCOAP_STACK_SIZE
-#define GCOAP_STACK_SIZE (THREAD_STACKSIZE_DEFAULT + DEBUG_EXTRA_STACKSIZE)
+#define GCOAP_STACK_SIZE (THREAD_STACKSIZE_DEFAULT + DEBUG_EXTRA_STACKSIZE \
+                          + sizeof(coap_pkt_t))
 #endif
 
 /**
@@ -478,28 +486,6 @@ typedef struct {
 } gcoap_observe_memo_t;
 
 /**
- * @brief   Container for the state of gcoap itself
- */
-typedef struct {
-    mutex_t lock;                       /**< Shares state attributes safely */
-    gcoap_listener_t *listeners;        /**< List of registered listeners */
-    gcoap_request_memo_t open_reqs[GCOAP_REQ_WAITING_MAX];
-                                        /**< Storage for open requests; if first
-                                             byte of an entry is zero, the entry
-                                             is available */
-    atomic_uint next_message_id;        /**< Next message ID to use */
-    sock_udp_ep_t observers[GCOAP_OBS_CLIENTS_MAX];
-                                        /**< Observe clients; allows reuse for
-                                             observe memos */
-    gcoap_observe_memo_t observe_memos[GCOAP_OBS_REGISTRATIONS_MAX];
-                                        /**< Observed resource registrations */
-    uint8_t resend_bufs[GCOAP_RESEND_BUFS_MAX][GCOAP_PDU_BUF_SIZE];
-                                        /**< Buffers for PDU for request resends;
-                                             if first byte of an entry is zero,
-                                             the entry is available */
-} gcoap_state_t;
-
-/**
  * @brief   Initializes the gcoap thread and device
  *
  * Must call once before first use.
@@ -526,11 +512,14 @@ void gcoap_register_listener(gcoap_listener_t *listener);
  * @param[in] code      Request code: GCOAP_[GET|POST|PUT|DELETE]
  * @param[in] path      Resource path, *must* start with '/'
  *
+ * @pre @p path not `NULL`
+ * @pre @p path must start with `/`
+ *
  * @return  0 on success
  * @return  < 0 on error
  */
 int gcoap_req_init(coap_pkt_t *pdu, uint8_t *buf, size_t len,
-                   unsigned code, char *path);
+                   unsigned code, const char *path);
 
 /**
  * @brief   Finishes formatting a CoAP PDU after the payload has been written
@@ -574,7 +563,7 @@ static inline ssize_t gcoap_request(coap_pkt_t *pdu, uint8_t *buf, size_t len,
  * @param[in] buf           Buffer containing the PDU
  * @param[in] len           Length of the buffer
  * @param[in] remote        Destination for the packet
- * @param[in] resp_handler  Callback when response received
+ * @param[in] resp_handler  Callback when response received, may be NULL
  *
  * @return  length of the packet
  * @return  0 if cannot send
@@ -592,7 +581,7 @@ size_t gcoap_req_send2(const uint8_t *buf, size_t len,
  * @param[in] len           Length of the buffer
  * @param[in] addr          Destination for the packet
  * @param[in] port          Port at the destination
- * @param[in] resp_handler  Callback when response received
+ * @param[in] resp_handler  Callback when response received, may be NULL
  *
  * @return  length of the packet
  * @return  0 if cannot send

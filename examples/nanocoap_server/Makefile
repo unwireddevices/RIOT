@@ -7,9 +7,9 @@ BOARD ?= native
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../..
 
-BOARD_INSUFFICIENT_MEMORY := chronos msb-430 msb-430h nucleo32-f031 nucleo32-f042 \
-                             nucleo32-l031 nucleo-f030 nucleo-l053 stm32f0discovery \
-                             telosb z1
+BOARD_INSUFFICIENT_MEMORY := chronos msb-430 msb-430h nucleo-f031k6 nucleo-f042k6 \
+                             nucleo-l031k6 nucleo-f030r8 nucleo-l053r8 stm32f0discovery \
+                             telosb z1 nucleo-f303k8
 
 # Include packages that pull up and auto-init the link layer.
 # NOTE: 6LoWPAN will be included if IEEE802.15.4 devices are present
@@ -27,6 +27,9 @@ USEMODULE += nanocoap_sock
 # include this for nicely formatting the returned internal value
 USEMODULE += fmt
 
+# include sha256 (used by example blockwise handler)
+USEMODULE += hashes
+
 # include this for printing IP addresses
 USEMODULE += shell_commands
 
@@ -37,7 +40,7 @@ USEMODULE += shell_commands
 
 # Use different settings when compiling for one of the following (low-memory)
 # boards
-LOW_MEMORY_BOARDS := nucleo-f334
+LOW_MEMORY_BOARDS := nucleo-f334r8
 
 ifneq (,$(filter $(BOARD),$(LOW_MEMORY_BOARDS)))
   $(info Using low-memory configuration for microcoap_server.)

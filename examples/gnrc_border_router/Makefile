@@ -8,13 +8,13 @@ BOARD ?= native
 RIOTBASE ?= $(CURDIR)/../..
 
 BOARD_INSUFFICIENT_MEMORY := airfy-beacon b-l072z-lrwan1 bluepill calliope-mini \
-                             cc2650-launchpad cc2650stk maple-mini \
+                             cc2650-launchpad cc2650stk hifive1 maple-mini \
                              microbit msb-430 msb-430h nrf51dongle nrf6310 \
-                             nucleo32-f031 nucleo32-f042 nucleo32-f303 nucleo32-l031 \
-                             nucleo-f030 nucleo-f070 nucleo-f072 nucleo-f103 nucleo-f302 \
-                             nucleo-f334 nucleo-l053 nucleo-l073 opencm904 \
-                             spark-core stm32f0discovery telosb weio wsn430-v1_3b \
-                             wsn430-v1_4 yunjia-nrf51822 z1
+                             nucleo-f031k6 nucleo-f042k6 nucleo-f303k8 nucleo-l031k6 \
+                             nucleo-f030r8 nucleo-f070rb nucleo-f072rb nucleo-f103rb nucleo-f302r8 \
+                             nucleo-f334r8 nucleo-l053r8 nucleo-l073rz opencm904 \
+                             spark-core stm32f0discovery stm32mindev telosb \
+                             weio wsn430-v1_3b wsn430-v1_4 yunjia-nrf51822 z1
 
 # The following boards do not have an available UART
 BOARD_BLACKLIST += mips-malta pic32-wifire pic32-clicker ruuvitag thingy52
@@ -28,7 +28,6 @@ ifeq (,$(filter native,$(BOARD)))
   # ethos baudrate can be configured from make command
   ETHOS_BAUDRATE ?= 115200
   CFLAGS += -DETHOS_BAUDRATE=$(ETHOS_BAUDRATE) -DUSE_ETHOS_FOR_STDIO
-  FEATURES_REQUIRED += periph_uart
 else
   GNRC_NETIF_NUMOF := 2
   TERMFLAGS += -z [::1]:17754
@@ -92,10 +91,10 @@ TERMDEPS += uhcpd-daemon
 .PHONY: uhcpd-daemon
 
 uhcpd-daemon: host-tools
-	$(RIOTBASE)/dist/tools/uhcpd/bin/uhcpd $(TAP) $(IPV6_PREFIX) &
+	$(RIOTTOOLS)/uhcpd/bin/uhcpd $(TAP) $(IPV6_PREFIX) &
 else
 # We override the `make term` command to use ethos
-TERMPROG ?= sudo sh $(RIOTBASE)/dist/tools/ethos/start_network.sh
+TERMPROG ?= sudo sh $(RIOTTOOLS)/ethos/start_network.sh
 TERMFLAGS ?= $(PORT) $(TAP) $(IPV6_PREFIX)
 
 # We depend on the ethos host tools to run the border router, we build them
@@ -108,7 +107,7 @@ include $(RIOTBASE)/Makefile.include
 .PHONY: host-tools
 
 host-tools:
-	$(Q)env -u CC -u CFLAGS make -C $(RIOTBASE)/dist/tools
+	$(Q)env -u CC -u CFLAGS make -C $(RIOTTOOLS)
 
 # Set a custom channel if needed
 ifneq (,$(filter cc110x,$(USEMODULE)))          # radio is cc110x sub-GHz

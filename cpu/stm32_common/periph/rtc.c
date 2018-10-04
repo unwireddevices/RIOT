@@ -132,6 +132,28 @@
 #define RTC_ALRMAR_SU_Pos   (0U)
 #endif
 
+/* STM32F0 doesn't have Alarm B
+ * other MCUs should use Alarm A for regular calendar
+ * and Alarm B for millisecond precision RTC timer
+ */
+#if defined(CPU_FAM_STM32F0)
+    #define RTC_MILLIS_CR_ALARM_EN      RTC_CR_ALRAE
+    #define RTC_MILLIS_CR_ALARM_IE      RTC_CR_ALRAIE
+    #define RTC_MILLIS_ISR_WF           RTC_ISR_ALRAWF
+    #define RTC_MILLIS_REG              ALRMAR
+    #define RTC_MILLIS_SSREG            ALRMASSR
+    #define RTC_MILLIS_SSREG_SS         RTC_ALRMASSR_SS
+    #define RTC_MILLIS_ISR_F            RTC_ISR_ALRAF
+#else
+    #define RTC_MILLIS_CR_ALARM_EN      RTC_CR_ALRBE
+    #define RTC_MILLIS_CR_ALARM_IE      RTC_CR_ALRBIE
+    #define RTC_MILLIS_ISR_WF           RTC_ISR_ALRBWF
+    #define RTC_MILLIS_REG              ALRMBR
+    #define RTC_MILLIS_SSREG            ALRMBSSR
+    #define RTC_MILLIS_SSREG_SS         RTC_ALRMBSSR_SS
+    #define RTC_MILLIS_ISR_F            RTC_ISR_ALRBF
+#endif
+
 /* figure out sync and async prescalers
  * NB: lower PRE_ASYNC values increase rtctimers_millis accuracy,
  * but also increase power consumption
@@ -385,19 +407,14 @@ void rtc_clear_alarm(void)
     isr_ctx.arg_a = NULL;
 }
 
-
-#if defined (CPU_FAM_STM32F0)
 int rtc_millis_set_alarm(uint32_t milliseconds, rtc_alarm_cb_t cb, void *arg)
 {   
-    DEBUG("[CPU_FAM_STM32F0] %s\n", __PRETTY_FUNCTION__);
     rtc_unlock();
+    DEBUG("%s: RTC unlocked\n", __FUNCTION__);
     
-    DEBUG("[rtc_millis_set_alarm] after rtc_unlock()\n");
-
-    RTC->CR &= ~(RTC_CR_ALRAE | RTC_CR_ALRAIE);
-    while (!(RTC->ISR & RTC_ISR_ALRAWF)) {}
-
-    DEBUG("[rtc_millis_set_alarm] setting calendar alarm\n");
+    RTC->CR &= ~(RTC_MILLIS_CR_ALARM_EN | RTC_MILLIS_CR_ALARM_IE);
+    while (!(RTC->ISR & RTC_MILLIS_ISR_WF)) {}
+    DEBUG("%s: alarm disabled\n", __FUNCTION__);
     
     /* setting calendar alarm */
     uint32_t seconds = milliseconds/1000;
@@ -411,170 +428,50 @@ int rtc_millis_set_alarm(uint32_t milliseconds, rtc_alarm_cb_t cb, void *arg)
     uint32_t days = hours/24;
     hours -= 24*days;
     
-    DEBUG("[rtc_millis_set_alarm] %02ld %02ld:%02ld:%02ld:%03ld \n", days, hours, minutes, seconds, milliseconds%1000);
-
     /* Monday is 1 on STM32 and Sunday is 7, there's no day 0 */
     if (days == 0) {
         days = 7;
     }
 
-    RTC->ALRMAR = (val2bcd(days, RTC_ALRMAR_DU_Pos, ALRM_D_MASK) |
-                   val2bcd(hours, RTC_ALRMAR_HU_Pos, ALRM_H_MASK) |
-                   val2bcd(minutes, RTC_ALRMAR_MNU_Pos, ALRM_M_MASK) |
-                   val2bcd(seconds,  RTC_ALRMAR_SU_Pos, ALRM_S_MASK));
+    RTC->RTC_MILLIS_REG = (val2bcd(days, RTC_ALRMAR_DU_Pos, ALRM_D_MASK) |
+                           val2bcd(hours, RTC_ALRMAR_HU_Pos, ALRM_H_MASK) |
+                           val2bcd(minutes, RTC_ALRMAR_MNU_Pos, ALRM_M_MASK) |
+                           val2bcd(seconds,  RTC_ALRMAR_SU_Pos, ALRM_S_MASK));
                    
     /* day of week instead of day of month */
-    RTC->ALRMAR |= RTC_ALRMAR_WDSEL;
-    
+    RTC->RTC_MILLIS_REG |= RTC_ALRMAR_WDSEL;
     
     /* minutes, hours and date doesn't matter */
-    /* RTC->ALRMBR |= (RTC_ALRMBR_MSK2 | RTC_ALRMBR_MSK3 | RTC_ALRMBR_MSK4); */
+    /* RTC->RTC_MILLIS_REG |= (RTC_ALRMAR_MSK2 | RTC_ALRMAR_MSK3 | RTC_ALRMAR_MSK4); */
 
     uint32_t msec = milliseconds % 1000;
     uint32_t alarm_millis_time = PRE_SYNC - (msec*1000)/RTC_SSR_TO_US;
+    
+    DEBUG("%s: next alarm at %lud %lu:%lu:%lu.%lu\n", __FUNCTION__, days, hours, minutes, seconds, msec);
        
     /* set up subseconds alarm */
-    uint32_t regalarm = RTC->ALRMASSR;
+    uint32_t regalarm = RTC->RTC_MILLIS_SSREG;
     regalarm |= (0x8 << 24); // compare 8 bits only
-    regalarm &= ~(RTC_ALRMASSR_SS);
+    regalarm &= ~(RTC_MILLIS_SSREG_SS);
     regalarm |= (alarm_millis_time & 0xFF);
-    RTC->ALRMASSR = regalarm;
+    RTC->RTC_MILLIS_SSREG = regalarm;
     
-    /* Enable Alarm B */
-    RTC->CR |= RTC_CR_ALRAE;
-    RTC->CR |= RTC_CR_ALRAIE;
-    RTC->ISR &= ~(RTC_ISR_ALRAF);
+    /* Enable Alarm */
+    RTC->CR |= RTC_MILLIS_CR_ALARM_EN;
+    RTC->CR |= RTC_MILLIS_CR_ALARM_IE;
+    RTC->ISR &= ~(RTC_MILLIS_ISR_F);
 
+#if defined(CPU_FAM_STM32F0)
     isr_ctx.cb_a = cb;
     isr_ctx.arg_a = arg;
-    
-    rtc_lock();
-    DEBUG("[rtc_millis_set_alarm] after rtc_lock()\n");
-    return 0;
-}
-
-void rtc_millis_clear_alarm(void)
-{
-    rtc_unlock();
-    /* Disable Alarm B */
-    RTC->CR &= ~(RTC_CR_ALRAE | RTC_CR_ALRAIE);
-    while (!(RTC->ISR & RTC_ISR_ALRAWF)) {}
-    
-    isr_ctx.cb_a = NULL;
-    isr_ctx.arg_a = NULL;
-    rtc_lock();
-}
-
-int rtc_millis_get_time(uint32_t *millis)
-{
-    /* clear RSF bit */
-    RTC->ISR &= ~RTC_ISR_RSF;
-    
-    /* wait for RSF to be set by hardware */
-    while (!(RTC->ISR & RTC_ISR_RSF)) {}
-    
-    /* RTC registers need to be read at least twice when running at f < 32768*7 = 229376 Hz APB1 clock */
-    uint32_t rtc_ssr_counter = RTC->SSR;
-
-    /* second read */
-    if (RTC->SSR != rtc_ssr_counter) {
-        /* 3rd read if 1st and 2nd don't match */
-        rtc_ssr_counter = RTC->SSR;
-    }
-
-    uint32_t milliseconds = ((PRE_SYNC - rtc_ssr_counter)*RTC_SSR_TO_US)/1000;
-    
-    /* clear RSF bit */
-    RTC->ISR &= ~RTC_ISR_RSF;
-    
-    /* wait for RSF to be set by hardware */
-    while (!(RTC->ISR & RTC_ISR_RSF)) {}
-    
-    /* RTC registers need to be read at least twice when running at f < 32768*7 = 229376 Hz APB1 clock */
-    /* reading TR locks registers so it must be read first, DR must be read last */
-    uint32_t tr = RTC->TR;
-
-    /* second read */
-    if (RTC->TR != tr) {
-        /* 3rd read if 1st and 2nd don't match */
-        tr = RTC->TR;
-    }
-    
-    uint32_t dr = RTC->DR;
-    
-    uint32_t days = bcd2val(dr, RTC_DR_WDU_Pos, DR_WDU_MASK);
-    
-    /* Monday is 1 on STM32 and Sunday is 7, there's no Day 0 */
-    if (days == 7) {
-        days = 0;
-    }
-    
-    uint32_t hours = bcd2val(tr, RTC_TR_HU_Pos, TR_H_MASK);
-    uint32_t minutes  = bcd2val(tr, RTC_TR_MNU_Pos, TR_M_MASK);
-    uint32_t seconds  = bcd2val(tr, RTC_TR_SU_Pos, TR_S_MASK);
-    
-    seconds += minutes*60 + hours*60*60 + days*24*60*60;
-    
-    *millis = milliseconds + 1000*seconds;
-    
-    return 0;
-}
 #else
-int rtc_millis_set_alarm(uint32_t milliseconds, rtc_alarm_cb_t cb, void *arg)
-{   
-    rtc_unlock();
-    
-    RTC->CR &= ~(RTC_CR_ALRBE | RTC_CR_ALRBIE);
-    while (!(RTC->ISR & RTC_ISR_ALRBWF)) {}
-    
-    /* setting calendar alarm */
-    uint32_t seconds = milliseconds/1000;
-    
-    uint32_t minutes = seconds/60;
-    seconds -= 60*minutes;
-    
-    uint32_t hours = minutes/60;
-    minutes -= 60*hours;
-    
-    uint32_t days = hours/24;
-    hours -= 24*days;
-    
-    /* Monday is 1 on STM32 and Sunday is 7, there's no day 0 */
-    if (days == 0) {
-        days = 7;
-    }
-
-    RTC->ALRMBR = (val2bcd(days, RTC_ALRMAR_DU_Pos, ALRM_D_MASK) |
-                   val2bcd(hours, RTC_ALRMAR_HU_Pos, ALRM_H_MASK) |
-                   val2bcd(minutes, RTC_ALRMAR_MNU_Pos, ALRM_M_MASK) |
-                   val2bcd(seconds,  RTC_ALRMAR_SU_Pos, ALRM_S_MASK));
-                   
-    /* day of week instead of day of month */
-    RTC->ALRMBR |= RTC_ALRMAR_WDSEL;
-    
-    
-    /* minutes, hours and date doesn't matter */
-    /* RTC->ALRMBR |= (RTC_ALRMBR_MSK2 | RTC_ALRMBR_MSK3 | RTC_ALRMBR_MSK4); */
-
-    uint32_t msec = milliseconds % 1000;
-    uint32_t alarm_millis_time = PRE_SYNC - (msec*1000)/RTC_SSR_TO_US;
-       
-    /* set up subseconds alarm */
-    uint32_t regalarm = RTC->ALRMBSSR;
-    regalarm |= (0x8 << 24); // compare 8 bits only
-    regalarm &= ~(RTC_ALRMBSSR_SS);
-    regalarm |= (alarm_millis_time & 0xFF);
-    RTC->ALRMBSSR = regalarm;
-    
-    /* Enable Alarm B */
-    RTC->CR |= RTC_CR_ALRBE;
-    RTC->CR |= RTC_CR_ALRBIE;
-    RTC->ISR &= ~(RTC_ISR_ALRBF);
-
     isr_ctx.cb_b = cb;
     isr_ctx.arg_b = arg;
+#endif
     
     rtc_lock();
+    
+    DEBUG("%s: RTC locked\n", __FUNCTION__);
 
     return 0;
 }
@@ -582,12 +479,17 @@ int rtc_millis_set_alarm(uint32_t milliseconds, rtc_alarm_cb_t cb, void *arg)
 void rtc_millis_clear_alarm(void)
 {
     rtc_unlock();
-    /* Disable Alarm B */
-    RTC->CR &= ~(RTC_CR_ALRBE | RTC_CR_ALRBIE);
-    while (!(RTC->ISR & RTC_ISR_ALRBWF)) {}
+    /* Disable Alarm */
+    RTC->CR &= ~(RTC_MILLIS_CR_ALARM_EN | RTC_MILLIS_CR_ALARM_IE);
+    while (!(RTC->ISR & RTC_MILLIS_ISR_WF)) {}
     
+#if defined(CPU_FAM_STM32F0)
+    isr_ctx.cb_a = NULL;
+    isr_ctx.arg_a = NULL;
+#else
     isr_ctx.cb_b = NULL;
     isr_ctx.arg_b = NULL;
+#endif
     rtc_lock();
 }
 
@@ -629,15 +531,16 @@ int rtc_millis_get_time(uint32_t *millis)
     uint32_t dr = RTC->DR;
     
     uint32_t days = bcd2val(dr, RTC_DR_WDU_Pos, DR_WDU_MASK);
+    uint32_t hours = bcd2val(tr, RTC_TR_HU_Pos, TR_H_MASK);
+    uint32_t minutes  = bcd2val(tr, RTC_TR_MNU_Pos, TR_M_MASK);
+    uint32_t seconds  = bcd2val(tr, RTC_TR_SU_Pos, TR_S_MASK);
+    
+    DEBUG("%s: now is %lud %lu:%lu:%lu.%lu\n", __FUNCTION__, days, hours, minutes, seconds, milliseconds);
     
     /* Monday is 1 on STM32 and Sunday is 7, there's no Day 0 */
     if (days == 7) {
         days = 0;
     }
-    
-    uint32_t hours = bcd2val(tr, RTC_TR_HU_Pos, TR_H_MASK);
-    uint32_t minutes  = bcd2val(tr, RTC_TR_MNU_Pos, TR_M_MASK);
-    uint32_t seconds  = bcd2val(tr, RTC_TR_SU_Pos, TR_S_MASK);
     
     seconds += minutes*60 + hours*60*60 + days*24*60*60;
     
@@ -645,7 +548,6 @@ int rtc_millis_get_time(uint32_t *millis)
     
     return 0;
 }
-#endif
 
 int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg)
 {
@@ -742,15 +644,20 @@ void rtc_poweroff(void)
 void ISR_NAME(void)
 {
     if (RTC->ISR & RTC_ISR_ALRAF) {
+        DEBUG("%s: alarm A interrupt\n", __FUNCTION__);
         if (isr_ctx.cb_a != NULL) {
+            DEBUG("%s: alarm A callback %08lx\n", __FUNCTION__, (uint32_t)isr_ctx.cb_a);
             isr_ctx.cb_a(isr_ctx.arg_a);
         }
         RTC->ISR &= ~RTC_ISR_ALRAF;
         EXTI->PR |= EXTI_PR_BIT;
     }
+    
 #if !defined(CPU_FAM_STM32F0)    
     if (RTC->ISR & RTC_ISR_ALRBF) {
+        DEBUG("%s: alarm B interrupt\n", __FUNCTION__);
         if (isr_ctx.cb_b) {
+            DEBUG("%s: alarm B callback %08lx\n", __FUNCTION__, (uint32_t)isr_ctx.cb_b);
             isr_ctx.cb_b(isr_ctx.arg_b);
         }
         RTC->ISR &= ~RTC_ISR_ALRBF;
@@ -771,6 +678,8 @@ void ISR_NAME(void)
     }
     
     cortexm_isr_end();
+    
+    DEBUG("%s: exit RTC alarm irq\n", __FUNCTION__);
 }
 
 #endif /* RTC */

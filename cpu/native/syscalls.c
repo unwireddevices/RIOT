@@ -10,7 +10,7 @@
  * General Public License v2.1. See the file LICENSE in the top level
  * directory for more details.
  *
- * @ingroup native_cpu
+ * @ingroup cpu_native
  * @{
  * @file
  * @author  Ludwig Knüpfer <ludwig.knuepfer@fu-berlin.de>
@@ -265,6 +265,9 @@ int puts(const char *s)
     return r;
 }
 
+/* Solve 'format string is not a string literal' as it is validly used in this
+ * function */
+__attribute__((__format__ (__printf__, 1, 0)))
 char *make_message(const char *format, va_list argp)
 {
     int size = 100;
@@ -424,10 +427,9 @@ int getpid(void)
 int _gettimeofday(struct timeval *tp, void *restrict tzp)
 {
     (void) tzp;
-    timex_t now;
-    xtimer_now_timex(&now);
-    tp->tv_sec = now.seconds;
-    tp->tv_usec = now.microseconds;
+    uint64_t now = xtimer_now_usec64();
+    tp->tv_sec  = now / US_PER_SEC;
+    tp->tv_usec = now - tp->tv_sec;
     return 0;
 }
 #endif

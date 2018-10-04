@@ -1,9 +1,22 @@
 /*
- * Copyright (C) 2016 Unwired Devices [info@unwds.com]
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * Copyright (C) 2016-2018 Unwired Devices LLC <info@unwds.com>
+
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software
+ * is furnished to do so, subject to the following conditions:
+
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  */
 
 /**
@@ -54,12 +67,12 @@ static rtctimers_millis_t timer;
 static bool is_polled = false;
 
 static struct {
-	uint8_t publish_period_min;
+	uint8_t publish_period_sec;
 	uint32_t adc_lines_enabled;
 } adc_config;
 
 static void reset_config(void) {
-	adc_config.publish_period_min = UMDK_ADC_PUBLISH_PERIOD_MIN;
+	adc_config.publish_period_sec = UMDK_ADC_PUBLISH_PERIOD_MIN;
 
 	for (int i = 0; i < ADC_NUMOF; i++) {
 		adc_config.adc_lines_enabled |= (1 << i);
@@ -73,7 +86,7 @@ static void init_config(void) {
         reset_config();
     }
         
-	printf("[umdk-" _UMDK_NAME_ "] Publish period: %d min\n", adc_config.publish_period_min);
+	printf("[umdk-" _UMDK_NAME_ "] Publish period: %d min\n", adc_config.publish_period_sec);
 }
 
 static inline void save_config(void) {
@@ -158,13 +171,16 @@ static void prepare_result(module_data_t *buf)
             else {
                 puts(" ");
             }
+            
+            convert_to_be_sam((void *)&samples[i], sizeof(samples[i]));
         }
     }
 
     if (buf) {
         buf->data[0] = _UMDK_MID_;
-        memcpy(buf->data + 1, (uint8_t *) &samples, sizeof(samples));
-        buf->length = sizeof(samples) + 1; /* Additional byte for module ID */
+        buf->data[1] = UMDK_ADC_DATA;
+        memcpy(buf->data + 2, (uint8_t *) &samples, sizeof(samples));
+        buf->length = sizeof(samples) + 2;
     }
 }
 
@@ -191,20 +207,20 @@ static void *timer_thread(void *arg)
         callback(&data);
 
         /* Restart after delay */
-        rtctimers_millis_set_msg(&timer, 60000 * adc_config.publish_period_min, &timer_msg, timer_pid);
+        rtctimers_millis_set_msg(&timer, 60000 * adc_config.publish_period_sec, &timer_msg, timer_pid);
     }
 
     return NULL;
 }
 
 static void set_period (int period) {
-    adc_config.publish_period_min = period;
+    adc_config.publish_period_sec = period;
     save_config();
 
     /* Don't restart timer if new period is zero */
-    if (adc_config.publish_period_min) {
-        rtctimers_millis_set_msg(&timer, 60000 * adc_config.publish_period_min, &timer_msg, timer_pid);
-        printf("[umdk-" _UMDK_NAME_ "] Period set to %d minutes\n", adc_config.publish_period_min);
+    if (adc_config.publish_period_sec) {
+        rtctimers_millis_set_msg(&timer, 60000 * adc_config.publish_period_sec, &timer_msg, timer_pid);
+        printf("[umdk-" _UMDK_NAME_ "] Period set to %d minutes\n", adc_config.publish_period_sec);
     } else {
         puts("[umdk-" _UMDK_NAME_ "] Timer stopped");
     }
@@ -244,7 +260,7 @@ int umdk_adc_shell_cmd(int argc, char **argv) {
     
     if (strcmp(cmd, "cfg") == 0) {
         int i = 0;
-        printf("[umdk-" _UMDK_NAME_ "] Period: %d min\n", adc_config.publish_period_min);
+        printf("[umdk-" _UMDK_NAME_ "] Period: %d min\n", adc_config.publish_period_sec);
         for (i = 0; i < 32; i++) {
             if (adc_config.adc_lines_enabled & (1 << i)) {
                 printf("[umdk-" _UMDK_NAME_ "] Line #%d enabled\n", i+1);
@@ -281,7 +297,6 @@ void umdk_adc_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     /* Create handler thread */
     char *stack = (char *) allocate_stack(UMDK_ADC_STACK_SIZE);
     if (!stack) {
-    	puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Is too many modules enabled?");
     	return;
     }
 
@@ -290,21 +305,23 @@ void umdk_adc_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     timer_pid = thread_create(stack, UMDK_ADC_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "ADC thread");
 
     /* Start publishing timer */
-    rtctimers_millis_set_msg(&timer, 60000 * adc_config.publish_period_min, &timer_msg, timer_pid);
+    rtctimers_millis_set_msg(&timer, 60000 * adc_config.publish_period_sec, &timer_msg, timer_pid);
 }
 
 static void reply_ok(module_data_t *reply)
 {
-    reply->length = 2;
+    reply->length = 4;
     reply->data[0] = _UMDK_MID_;
-    reply->data[1] = UMDK_ADC_REPLY_OK;
+    reply->data[1] = UMDK_ADC_CMD_COMMAND;
+    reply->data[2] = adc_config.publish_period_sec;
+    reply->data[3] = adc_config.adc_lines_enabled;
 }
 
 static void reply_fail(module_data_t *reply)
 {
     reply->length = 2;
     reply->data[0] = _UMDK_MID_;
-    reply->data[1] = UMDK_ADC_REPLY_FAIL;
+    reply->data[1] = UMDK_ADC_FAIL;
 }
 
 bool umdk_adc_cmd(module_data_t *cmd, module_data_t *reply)
@@ -316,14 +333,30 @@ bool umdk_adc_cmd(module_data_t *cmd, module_data_t *reply)
 
     umdk_adc_cmd_t c = cmd->data[0];
     switch (c) {
-        case UMDK_ADC_CMD_SET_PERIOD: {
-            if (cmd->length != 2) {
+        case UMDK_ADC_CMD_COMMAND: {
+            if (cmd->length != 3) {
                 reply_fail(reply);
                 break;
             }
 
-            uint8_t period = cmd->data[1];
-            set_period(period);
+            if (cmd->data[1] != 0) {
+                set_period(cmd->data[1]);
+            }
+            
+            if (cmd->data[2] != 0) {
+                adc_config.adc_lines_enabled = cmd->data[2];
+                
+                int i = 0;
+                for (i = 0; i < ADC_NUMOF; i++) {
+                    if (adc_config.adc_lines_enabled & (1 << i))
+                        printf("[umdk-" _UMDK_NAME_ "] Line #%d enabled\n", i+1);
+                }
+                
+                save_config();
+
+                /* Re-initialize ADC lines */
+                init_adc();
+            }
 
             reply_ok(reply);
             break;
@@ -338,25 +371,7 @@ bool umdk_adc_cmd(module_data_t *cmd, module_data_t *reply)
             return false; /* Don't reply */
 
             break;
-
-        case UMDK_ADC_SET_LINES: {
-            adc_config.adc_lines_enabled = cmd->data[1];
             
-            int i = 0;
-            for (i = 0; i < ADC_NUMOF; i++) {
-                if (adc_config.adc_lines_enabled & (1 << i))
-                	printf("[umdk-" _UMDK_NAME_ "] Line #%d enabled\n", i+1);
-            }
-            
-            save_config();
-
-            /* Re-initialize ADC lines */
-            init_adc();
-
-            reply_ok(reply);
-            break;
-        }
-
         default:
             reply_fail(reply);
             break;

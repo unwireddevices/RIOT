@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup     native_cpu
+ * @ingroup     cpu_native
  * @ingroup     drivers_periph_pm
  * @{
  *
@@ -31,7 +31,7 @@
 
 void pm_set_lowest(void)
 {
-    _native_in_syscall++; // no switching here
+    _native_in_syscall++; /* no switching here */
     real_pause();
     _native_in_syscall--;
 

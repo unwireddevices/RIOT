@@ -29,9 +29,7 @@
 #error PM_NUM_MODES must be defined in periph_cpu.h!
 #endif
 
-#ifndef PM_BLOCKER_INITIAL
 #define PM_BLOCKER_INITIAL { .val_u32 = 0x01010101 }
-#endif
 
 /**
  * @brief Power Management mode typedef
@@ -40,6 +38,10 @@ typedef union {
     uint32_t val_u32;
     uint8_t val_u8[PM_NUM_MODES];
 } pm_blocker_t;
+
+#if (PM_NUM_MODES > 4)
+    #error PM_NUM_MODES must be <= 4!
+#endif
 
 /**
  * @brief Global variable for keeping track of blocked modes
@@ -60,38 +62,37 @@ void pm_set_lowest(void)
     /* set lowest mode if blocker is still the same */
     unsigned state = irq_disable();
     if (blocker.val_u32 == pm_blocker.val_u32) {
-        DEBUG("pm: setting mode %u\n", mode);
         pm_set(mode);
     }
-    else {
-        DEBUG("pm: mode block changed\n");
+    
+    irq_restore(state);    
+}
+
+void _pm_block(unsigned mode, const char* caller)
+{
+    unsigned state = irq_disable();
+    if (pm_blocker.val_u8[mode] < 255) {
+        pm_blocker.val_u8[mode]++;
     }
     irq_restore(state);
+    DEBUG("pm: blocking mode %u by %s (%d)\n", mode, caller, pm_blocker.val_u8[mode]);
 }
 
-void pm_block(unsigned mode)
+void _pm_unblock(unsigned mode, const char *caller)
 {
-    assert(pm_blocker.val_u8[mode] != 255);
-
     unsigned state = irq_disable();
-    pm_blocker.val_u8[mode]++;
+    if (pm_blocker.val_u8[mode] > 0) {
+        pm_blocker.val_u8[mode]--;
+    }
     irq_restore(state);
-}
-
-void pm_unblock(unsigned mode)
-{
-    assert(pm_blocker.val_u8[mode] > 0);
-
-    unsigned state = irq_disable();
-    pm_blocker.val_u8[mode]--;
-    irq_restore(state);
+    DEBUG("pm: unblocking mode %u by %s (%d)\n", mode, caller, pm_blocker.val_u8[mode]);
 }
 
 #ifndef PROVIDES_PM_LAYERED_OFF
-void  pm_off(void)
+void pm_off(void)
 {
     pm_blocker.val_u32 = 0;
     pm_set_lowest();
-    while(1);
+    while(1) {}
 }
 #endif

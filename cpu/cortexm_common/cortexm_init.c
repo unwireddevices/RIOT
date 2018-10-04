@@ -69,34 +69,39 @@ void cortexm_init(void)
 #endif
 }
 
+static const uint32_t BFARVALID_MASK = (0x80 << SCB_CFSR_BUSFAULTSR_Pos);
+
 bool cpu_check_address(volatile const char *address)
 {
-#if defined(CPU_ARCH_CORTEX_M3)
+#if defined(CPU_ARCH_CORTEX_M3) || defined(CPU_ARCH_CORTEX_M4) || \
+    defined(CPU_ARCH_CORTEX_M4F) || defined(CPU_ARCH_CORTEX_M7)
     bool is_valid = true;
 
-    /* Clear BFAR ADDRESS VALID flag */
-    SCB->CFSR |= SCB_CFSR_BFARVALID;
+    /* Clear BFARVALID flag */
+    SCB->CFSR |= BFARVALID_MASK;
 
-    SCB->CCR |= SCB_CCR_BFHFNMIGN;
+    /* Ignore BusFault by enabling BFHFNMIGN */
+    SCB->CCR |= SCB_CCR_BFHFNMIGN_Msk;
     __asm volatile ("cpsid f;");
     
     *address;
-    if ((SCB->CFSR & SCB_CFSR_BFARVALID) != 0)
+    /* Check BFARVALID flag */
+    if ((SCB->CFSR & BFARVALID_MASK) != 0)
     {
         /* Bus Fault occured reading the address */
         is_valid = false;
     }
     
     __asm volatile ("cpsie f;");
-    SCB->CCR &= ~SCB_CCR_BFHFNMIGN;
+    /* Reenable BusFault by clearing  BFHFNMIGN */
+    SCB->CCR &= ~SCB_CCR_BFHFNMIGN_Msk;
 
     return is_valid;
 #else
     /* Cortex-M0 doesn't have BusFault */
     (void) address;
     
-    puts("Cortex-M0 doesn't have BusFault");
-    assert(false);
+    printf("[warning] %s: Cortex-M0 doesn't have BusFault\n", __func__);
     return true;
 #endif
 }

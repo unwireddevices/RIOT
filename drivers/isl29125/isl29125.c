@@ -63,12 +63,12 @@ int isl29125_init(isl29125_t *dev, i2c_t i2c, gpio_t gpio,
 
     /* initialize the I2C bus */
     DEBUG("isl29125_init: i2c_init_master\n");
-    (void) i2c_init_master(i2c, I2C_SPEED_NORMAL);
+    (void) i2c_init(i2c);
 
     /* verify the device ID */
     DEBUG("isl29125_init: i2c_read_reg\n");
     uint8_t reg_id;
-    int ret = i2c_read_reg(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_ID, &reg_id);
+    int ret = i2c_read_reg(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_ID, &reg_id, 0);
     if ((reg_id == ISL29125_ID) && (ret == 1)) {
         DEBUG("isl29125_init: ID successfully verified\n");
     }
@@ -80,10 +80,10 @@ int isl29125_init(isl29125_t *dev, i2c_t i2c, gpio_t gpio,
 
     /* configure and enable the sensor */
     DEBUG("isl29125_init: i2c_write_reg(ISL29125_REG_RESET)\n");
-    (void) i2c_write_reg(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_RESET, ISL29125_CMD_RESET);
+    (void) i2c_write_reg(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_RESET, ISL29125_CMD_RESET, 0);
 
     DEBUG("isl29125_init: i2c_write_reg(ISL29125_REG_CONF1)\n");
-    (void) i2c_write_reg(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_CONF1, conf1);
+    (void) i2c_write_reg(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_CONF1, conf1, 0);
 
     /* release the I2C bus */
     DEBUG("isl29125_init: i2c_release\n");
@@ -126,19 +126,19 @@ int isl29125_init_int(isl29125_t *dev, isl29125_interrupt_status_t interrupt_sta
     }
 
     DEBUG("isl29125_init: i2c_write_reg(ISL29125_REG_CONF3)\n");
-    (void) i2c_write_reg(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_CONF3, conf3);
+    (void) i2c_write_reg(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_CONF3, conf3, 0);
 
     DEBUG("isl29125_init: i2c_write_reg(ISL29125_REG_LTHLB)\n");
-    (void) i2c_write_reg(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_LTHLB, lthlb);
+    (void) i2c_write_reg(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_LTHLB, lthlb, 0);
 
     DEBUG("isl29125_init: i2c_write_reg(ISL29125_REG_LTHHB)\n");
-    (void) i2c_write_reg(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_LTHHB, lthhb);
+    (void) i2c_write_reg(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_LTHHB, lthhb, 0);
 
     DEBUG("isl29125_init: i2c_write_reg(ISL29125_REG_HTHLB)\n");
-    (void) i2c_write_reg(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_HTHLB, hthlb);
+    (void) i2c_write_reg(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_HTHLB, hthlb, 0);
 
     DEBUG("isl29125_init: i2c_write_reg(ISL29125_REG_HTHHB)\n");
-    (void) i2c_write_reg(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_HTHHB, hthhb);
+    (void) i2c_write_reg(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_HTHHB, hthhb, 0);
 
     if (gpio_init_int(dev->gpio, GPIO_IN, GPIO_FALLING, cb, arg) < 0) {
         DEBUG("error: gpio_init_int failed\n");
@@ -155,7 +155,7 @@ void isl29125_read_rgb_lux(const isl29125_t *dev, isl29125_rgb_t *dest)
 
     /* read values */
     uint8_t bytes[6];
-    (void) i2c_read_regs(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_GDLB, bytes, 6);
+    (void) i2c_read_regs(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_GDLB, bytes, 6, 0);
 
     /* release the I2C bus */
     (void) i2c_release(dev->i2c);
@@ -183,7 +183,7 @@ void isl29125_read_rgb_color(const isl29125_t *dev, color_rgb_t *dest)
 
     /* read values */
     uint8_t bytes[6];
-    (void) i2c_read_regs(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_GDLB, bytes, 6);
+    (void) i2c_read_regs(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_GDLB, bytes, 6, 0);
 
     /* release the I2C bus */
     (void) i2c_release(dev->i2c);
@@ -202,10 +202,10 @@ void isl29125_set_mode(const isl29125_t *dev, isl29125_mode_t mode)
 
     (void) i2c_acquire(dev->i2c);
 
-    (void) i2c_read_reg(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_CONF1, &conf1);
+    (void) i2c_read_reg(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_CONF1, &conf1, 0);
     conf1 &= ~ISL29125_CON1_MASK_MODE;
     conf1 |= mode;
-    (void) i2c_write_reg(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_CONF1, conf1);
+    (void) i2c_write_reg(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_CONF1, conf1, 0);
 
     (void) i2c_release(dev->i2c);
 }
@@ -217,7 +217,7 @@ int isl29125_read_irq_status(const isl29125_t *dev)
 
     /* read status register */
     uint8_t irq_status;
-    (void) i2c_read_reg(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_STATUS, &irq_status);
+    (void) i2c_read_reg(dev->i2c, ISL29125_I2C_ADDRESS, ISL29125_REG_STATUS, &irq_status, 0);
 
     /* release the I2C bus */
     (void) i2c_release(dev->i2c);

@@ -10,7 +10,7 @@
  */
 
 /*
- * @ingroup netdev
+ * @ingroup drivers_netdev
  * @{
  * @brief   Low-level ethernet driver for tap interfaces
  * @author  Kaspar Schleiser <kaspar@schleiser.de>
@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/uio.h>
 #include <unistd.h>
 
 /* needs to be included before native's declarations of ntohl etc. */
@@ -51,6 +52,7 @@
 
 #include "async_read.h"
 
+#include "iolist.h"
 #include "net/eui64.h"
 #include "net/netdev.h"
 #include "net/netdev/eth.h"
@@ -64,7 +66,7 @@
 
 /* netdev interface */
 static int _init(netdev_t *netdev);
-static int _send(netdev_t *netdev, const struct iovec *vector, unsigned n);
+static int _send(netdev_t *netdev, const iolist_t *iolist);
 static int _recv(netdev_t *netdev, void *buf, size_t n, void *info);
 
 static inline void _get_mac_addr(netdev_t *netdev, uint8_t *dst)
@@ -139,9 +141,11 @@ static int _set(netdev_t *dev, netopt_t opt, const void *value, size_t value_len
         case NETOPT_ADDRESS:
             assert(value_len >= ETHERNET_ADDR_LEN);
             _set_mac_addr(dev, (const uint8_t*)value);
+            res = ETHERNET_ADDR_LEN;
             break;
         case NETOPT_PROMISCUOUSMODE:
             _set_promiscous(dev, ((const bool *)value)[0]);
+            res = sizeof(netopt_enable_t);
             break;
         default:
             res = netdev_eth_set(dev, opt, value, value_len);
@@ -273,17 +277,20 @@ static int _recv(netdev_t *netdev, void *buf, size_t len, void *info)
     return -1;
 }
 
-static int _send(netdev_t *netdev, const struct iovec *vector, unsigned n)
+static int _send(netdev_t *netdev, const iolist_t *iolist)
 {
     netdev_tap_t *dev = (netdev_tap_t*)netdev;
-    int res = _native_writev(dev->tap_fd, vector, n);
+
+    struct iovec iov[iolist_count(iolist)];
+
+    unsigned n;
+    size_t bytes = iolist_to_iovec(iolist, iov, &n);
+
+    int res = _native_writev(dev->tap_fd, iov, n);
 #ifdef MODULE_NETSTATS_L2
-    size_t bytes = 0;
-    for (unsigned i = 0; i < n; i++) {
-        bytes += vector->iov_len;
-        vector++;
-    }
     netdev->stats.tx_bytes += bytes;
+#else
+    (void)bytes;
 #endif
     if (netdev->event_callback) {
         netdev->event_callback(netdev, NETDEV_EVENT_TX_COMPLETE);
@@ -293,7 +300,8 @@ static int _send(netdev_t *netdev, const struct iovec *vector, unsigned n)
 
 void netdev_tap_setup(netdev_tap_t *dev, const netdev_tap_params_t *params) {
     dev->netdev.driver = &netdev_driver_tap;
-    strncpy(dev->tap_name, *(params->tap_name), IFNAMSIZ);
+    strncpy(dev->tap_name, *(params->tap_name), IFNAMSIZ - 1);
+    dev->tap_name[IFNAMSIZ - 1] = '\0';
 }
 
 static void _tap_isr(int fd, void *arg) {

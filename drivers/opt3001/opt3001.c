@@ -44,14 +44,9 @@ int opt3001_init(opt3001_t *dev)
     /* Acquire I2C bus */
     i2c_acquire(dev->i2c);
 
-    if (i2c_init_master(dev->i2c, I2C_SPEED_NORMAL) < 0) {
-        i2c_release(dev->i2c);
-        puts("[opt3001 driver] Error initializing I2C bus");
-        
-        return -1;
-    }
-    
-    if (i2c_read_regs(dev->i2c, OPT3001_ADDRESS, OPT3001_REG_ID, (char *)&chipid, 2) != 2) {
+    i2c_init(dev->i2c);
+
+    if (i2c_read_regs(dev->i2c, OPT3001_ADDRESS, OPT3001_REG_ID, (char *)&chipid, 2, 0) < 0) {
         puts("[opt3001 driver] Error: sensor not found");
         i2c_release(dev->i2c);
         return -1;
@@ -79,7 +74,7 @@ int opt3001_init(opt3001_t *dev)
 static uint32_t read_sensor(opt3001_t *dev) {
     uint16_t data;
     data = OPT3001_CFG;
-    i2c_write_regs(dev->i2c, OPT3001_ADDRESS, OPT3001_REG_CONFIG, (char *)&data, 2);
+    i2c_write_regs(dev->i2c, OPT3001_ADDRESS, OPT3001_REG_CONFIG, (char *)&data, 2, 0);
     
     /* wait till measurement is finished */
     int i = 100;
@@ -87,7 +82,7 @@ static uint32_t read_sensor(opt3001_t *dev) {
         /* 10 ms delay */
         rtctimers_millis_sleep(10);
         
-        i2c_read_regs(dev->i2c, OPT3001_ADDRESS, OPT3001_REG_CONFIG, (char *)&data, 2);
+        i2c_read_regs(dev->i2c, OPT3001_ADDRESS, OPT3001_REG_CONFIG, (char *)&data, 2, 0);
         if (data & OPT3001_CFG_CRF) {
             break;
         }
@@ -100,7 +95,7 @@ static uint32_t read_sensor(opt3001_t *dev) {
     }
 
     /* read result */
-    i2c_read_regs(dev->i2c, OPT3001_ADDRESS, OPT3001_REG_RESULT, (char *)&data, 2);
+    i2c_read_regs(dev->i2c, OPT3001_ADDRESS, OPT3001_REG_RESULT, (char *)&data, 2, 0);
     
     /* swap bytes, as OPT3001 sends MSB first and I2C driver expects LSB first */
     data = ((data >> 8) | (data << 8));

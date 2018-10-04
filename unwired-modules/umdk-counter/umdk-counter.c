@@ -1,9 +1,22 @@
 /*
- * Copyright (C) 2016 Unwired Devices [info@unwds.com]
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * Copyright (C) 2016-2018 Unwired Devices LLC <info@unwds.com>
+
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software
+ * is furnished to do so, subject to the following conditions:
+
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  */
 
 /**
@@ -178,8 +191,8 @@ static void reset_config(void) {
 
 static int set_period(int period) {
     if (!period || (period > UMDK_COUNTER_PUBLISH_PERIOD_MAX)) {
-            return 0;
-        }
+        return 0;
+    }
             
     conf_counter.publish_period = period;
     save_config();
@@ -245,7 +258,6 @@ void umdk_counter_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     /* Create handler thread */
     char *stack = (char *) allocate_stack(UMDK_COUNTER_STACK_SIZE);
     if (!stack) {
-        puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Is too many modules enabled?");
         return;
     }
 
@@ -279,23 +291,21 @@ bool umdk_counter_cmd(module_data_t *cmd, module_data_t *reply)
 
     umdk_counter_cmd_t c = cmd->data[0];
     switch (c) {
-        case UMDK_COUNTER_CMD_SET_PERIOD: {
-            if (cmd->length != 2) {
-                return false;
+        case UMDK_COUNTER_CMD_COMMAND: {
+            uint8_t period = cmd->data[1];
+            set_period(period);
+            
+            /* reset counter data */
+            if (cmd->data[2]) {
+                memset(&conf_counter.count_value[0], 0, sizeof(conf_counter.count_value));
+                save_config();
             }
 
-            uint8_t period = cmd->data[1];
-            /* do not change period if new one is 0 or > max */
-            
             reply->length = 2;
             reply->data[0] = _UMDK_MID_;
+            reply->data[1] = UMDK_COUNTER_REPLY_OK;
+            reply->data[2] = conf_counter.publish_period;
             
-            if (!set_period(period)) {           
-                reply->data[1] = UMDK_COUNTER_REPLY_INV_PARAMETER;
-            } else {
-                reply->data[1] = UMDK_COUNTER_REPLY_OK;
-            }
-
             return true; /* Allow reply */
         }
 
@@ -304,20 +314,10 @@ bool umdk_counter_cmd(module_data_t *cmd, module_data_t *reply)
             msg_send(&publishing_msg, handler_pid);
             return false; /* Don't reply */
         }
-        case UMDK_COUNTER_CMD_RESET: {
-            memset(&conf_counter.count_value[0], 0, sizeof(conf_counter.count_value));
-            save_config();
-            
-            reply->length = 2;
-            reply->data[0] = _UMDK_MID_;
-            reply->data[1] = UMDK_COUNTER_REPLY_OK;
-
-            return true;
-        }
         default:
             reply->length = 2;
             reply->data[0] = _UMDK_MID_;
-            reply->data[1] = UMDK_COUNTER_REPLY_UNKNOWN_COMMAND;
+            reply->data[1] = UMDK_COUNTER_REPLY_ERR;
             break;
     }
 

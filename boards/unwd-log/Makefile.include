@@ -2,4 +2,5 @@
 export CPU = stm32f4
 export CPU_MODEL = stm32f415rg
 
-OFLAGS = -O ihex
+# load the common Makefile.include for Unwired Devices boards
+include $(RIOTBOARD)/common/unwd/Makefile.include

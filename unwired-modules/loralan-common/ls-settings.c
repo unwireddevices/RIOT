@@ -1,9 +1,22 @@
 /*
- * Copyright (C) 2017-2018 Unwired Devices [info@unwds.com]
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * Copyright (C) 2016-2018 Unwired Devices LLC <info@unwds.com>
+
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software
+ * is furnished to do so, subject to the following conditions:
+
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  */
 
 /**
@@ -60,6 +73,11 @@ void unwds_set_channel(ls_channel_t channel) {
     return;
 }
 
+void unwds_set_cnf(bool confirmation) {
+    node_settings.confirmation = confirmation;
+    return;
+}
+
 void unwds_set_dr(ls_datarate_t dr) {
     node_settings.dr = dr;
     return;
@@ -78,6 +96,10 @@ void unwds_set_class(ls_node_class_t nodeclass) {
 void unwds_set_addr(ls_addr_t dev_addr) {
     node_settings.dev_addr = dev_addr;
     return;
+}
+
+void unwds_set_adr(bool adr) {
+    node_settings.adr = adr;
 }
 
 void unwds_set_module(uint8_t modid, bool enable) {
@@ -119,7 +141,8 @@ void unwds_config_reset(void) {
     memset((void *)node_settings.enabled_mods, 0, sizeof(node_settings.enabled_mods));
 
     node_settings.no_join = 0;
-    node_settings.dev_addr = 0; 
+    node_settings.dev_addr = 0;
+    node_settings.confirmation = true; 
     
     /* Modules enabled by default */
     unwds_set_module(UNWDS_CONFIG_MODULE_ID, true);
@@ -137,7 +160,7 @@ bool unwds_config_load(void)
         return false;
     }
     
-    if (node_settings.config_version < UNWDS_LS_SETTINGS_CONFIG_VERSION) {
+    if (node_settings.config_version < 0x3) {
         config_read_role_block((uint8_t *) &old_node_settings, sizeof(old_role_settings_t));
         if (old_node_settings.is_valid == 1) {
             puts("[node] Converting gateway configuration to a new format");
@@ -150,6 +173,13 @@ bool unwds_config_load(void)
             unwds_config_save();
             puts("Done.");
         }
+    } else if (node_settings.config_version == 0x3) {
+        puts("[node] Converting gateway configuration version 0x3 to a new format");
+        unwds_set_cnf(true);
+        unwds_set_adr(true);
+        puts("Saving new gateway configuration to EEPROM...");
+        unwds_config_save();
+        puts("Done.");
     }
     
     if (node_settings.is_config_valid != 1) {

@@ -34,6 +34,7 @@
 #include "net/gnrc/netif/ieee802154.h"
 #include "net/gnrc/netif/internal.h"
 #include "net/netdev_test.h"
+#include "net/netif.h"
 #include "utlist.h"
 #include "xtimer.h"
 
@@ -309,6 +310,12 @@ static void test_ipv6_addr_idx__empty(void)
     TEST_ASSERT_EQUAL_INT(-1, gnrc_netif_ipv6_addr_idx(netifs[0], &addr));
 }
 
+static void test_ipv6_addr_idx__unspecified_addr(void)
+{
+    TEST_ASSERT_EQUAL_INT(-1, gnrc_netif_ipv6_addr_idx(netifs[0],
+                                                       &ipv6_addr_unspecified));
+}
+
 static void test_ipv6_addr_idx__wrong_netif(void)
 {
     static const ipv6_addr_t addr = { .u8 = NETIF0_IPV6_LL };
@@ -338,6 +345,12 @@ static void test_ipv6_addr_match__empty(void)
     static const ipv6_addr_t addr = { .u8 = NETIF0_IPV6_G };
 
     TEST_ASSERT_EQUAL_INT(-1, gnrc_netif_ipv6_addr_match(netifs[0], &addr));
+}
+
+static void test_ipv6_addr_match__unspecified_addr(void)
+{
+    TEST_ASSERT_EQUAL_INT(-1, gnrc_netif_ipv6_addr_match(netifs[0],
+                                                         &ipv6_addr_unspecified));
 }
 
 static void test_ipv6_addr_match__wrong_netif(void)
@@ -416,6 +429,13 @@ static void test_ipv6_addr_best_src__multicast_input(void)
     TEST_ASSERT(ipv6_addr_equal(&addr1, out));
 }
 
+static void test_ipv6_addr_best_src__unspecified_addr(void)
+{
+    TEST_ASSERT_NULL(gnrc_netif_ipv6_addr_best_src(netifs[0],
+                                                   &ipv6_addr_unspecified,
+                                                   false));
+}
+
 static void test_ipv6_addr_best_src__other_subnet(void)
 {
     static const ipv6_addr_t mc_addr = IPV6_ADDR_ALL_ROUTERS_SITE_LOCAL;
@@ -437,6 +457,11 @@ static void test_get_by_ipv6_addr__empty(void)
     TEST_ASSERT_NULL(gnrc_netif_get_by_ipv6_addr(&addr));
 }
 
+static void test_get_by_ipv6_addr__unspecified_addr(void)
+{
+    TEST_ASSERT_NULL(gnrc_netif_get_by_ipv6_addr(&ipv6_addr_unspecified));
+}
+
 static void test_get_by_ipv6_addr__success(void)
 {
     static const ipv6_addr_t addr = { .u8 = NETIF0_IPV6_LL };
@@ -451,6 +476,11 @@ static void test_get_by_prefix__empty(void)
     static const ipv6_addr_t addr = { .u8 = NETIF0_IPV6_G };
 
     TEST_ASSERT_NULL(gnrc_netif_get_by_prefix(&addr));
+}
+
+static void test_get_by_prefix__unspecified_addr(void)
+{
+    TEST_ASSERT_NULL(gnrc_netif_get_by_prefix(&ipv6_addr_unspecified));
 }
 
 static void test_get_by_prefix__success18(void)
@@ -493,7 +523,7 @@ static void test_ipv6_group_join__ENOMEM(void)
 {
     ipv6_addr_t addr = IPV6_ADDR_ALL_NODES_LINK_LOCAL;
 
-    for (unsigned i = 0; i < GNRC_NETIF_IPV6_ADDRS_NUMOF;
+    for (unsigned i = 0; i < GNRC_NETIF_IPV6_GROUPS_NUMOF;
          i++, addr.u16[7].u16++) {
         TEST_ASSERT(0 <= gnrc_netif_ipv6_group_join_internal(netifs[0], &addr));
     }
@@ -554,6 +584,20 @@ static void test_ipv6_group_idx__empty(void)
 {
     TEST_ASSERT_EQUAL_INT(-1, gnrc_netif_ipv6_group_idx(netifs[0],
                                                         &ipv6_addr_all_nodes_link_local));
+}
+
+static void test_ipv6_group_idx__unspecified_addr(void)
+{
+    TEST_ASSERT_EQUAL_INT(-1, gnrc_netif_ipv6_group_idx(netifs[0],
+                                                        &ipv6_addr_unspecified));
+}
+
+static void test_ipv6_group_idx__unicast_addr(void)
+{
+    static const ipv6_addr_t addr = { .u8 = NETIF0_IPV6_G };
+
+    TEST_ASSERT_EQUAL_INT(-1, gnrc_netif_ipv6_group_idx(netifs[0],
+                                                        &addr));
 }
 
 static void test_ipv6_group_idx__wrong_netif(void)
@@ -986,6 +1030,82 @@ static void test_netapi_set__SRC_LEN(void)
                                     sizeof(orig_ieee802154)));
 }
 
+static void test_netif_iter(void)
+{
+    netif_t netif = NETIF_INVALID;
+    int netif_count = 0;
+
+    while ((netif = netif_iter(netif)) != NETIF_INVALID) {
+        netif_count++;
+    }
+    TEST_ASSERT_EQUAL_INT(gnrc_netif_numof(), netif_count);
+}
+
+static void test_netif_get_name(void)
+{
+    char exp_name[NETIF_NAMELENMAX];
+    char name[NETIF_NAMELENMAX];
+    int res;
+    netif_t netif = netif_iter(NETIF_INVALID);
+    /* there must be at least one interface */
+    TEST_ASSERT(NETIF_INVALID != netif);
+
+    res = netif_get_name(netif, name);
+    sprintf(exp_name, "if%d", (int)netif);
+    TEST_ASSERT_EQUAL_INT(strlen(exp_name), res);
+    TEST_ASSERT_EQUAL_STRING(&exp_name[0], &name[0]);
+    TEST_ASSERT_EQUAL_INT(0, netif_get_name(INT16_MAX, name));
+}
+
+static void test_netif_get_by_name(void)
+{
+    char name[NETIF_NAMELENMAX] = "6nPRK28";
+    netif_t netif = netif_iter(NETIF_INVALID);
+
+    TEST_ASSERT_EQUAL_INT(NETIF_INVALID, netif_get_by_name(name));
+    /* there must be at least one interface */
+    TEST_ASSERT(NETIF_INVALID != netif);
+    TEST_ASSERT(netif_get_name(netif, name) > 0);
+    TEST_ASSERT_EQUAL_INT(netif, netif_get_by_name(name));
+}
+
+static void test_netif_get_opt(void)
+{
+    /* just repeat one of the gnrc_netapi_get tests, just with netif_get_opt */
+    static const uint8_t exp_ethernet[] = ETHERNET_SRC;
+    uint8_t value[GNRC_NETIF_L2ADDR_MAXLEN];
+
+    TEST_ASSERT_EQUAL_INT(sizeof(exp_ethernet),
+                          netif_get_opt((netif_t)ethernet_netif->pid,
+                                        NETOPT_ADDRESS, 0,
+                                        &value, sizeof(value)));
+    TEST_ASSERT_EQUAL_INT(0, memcmp(exp_ethernet, value, sizeof(exp_ethernet)));
+}
+
+static void test_netif_set_opt(void)
+{
+    /* just repeat one of the gnrc_netapi_set tests, just with netif_set_opt */
+    static const uint8_t exp_ethernet[] = ETHERNET_SRC;
+    uint8_t value[] = { LA1 + 1, LA2 + 2, LA3 + 3, LA4 + 4, LA5 + 5, LA6 + 6 };
+
+    TEST_ASSERT_EQUAL_INT(sizeof(exp_ethernet),
+                          netif_set_opt((netif_t)ethernet_netif->pid,
+                                        NETOPT_ADDRESS, 0,
+                                        &value, sizeof(value)));
+    TEST_ASSERT_EQUAL_INT(sizeof(value), ethernet_netif->l2addr_len);
+    TEST_ASSERT_EQUAL_INT(0, memcmp(value, ethernet_netif->l2addr,
+                                    ETHERNET_ADDR_LEN));
+    /* return addresses to previous state for further testing */
+    memcpy(value, exp_ethernet, sizeof(exp_ethernet));
+    TEST_ASSERT_EQUAL_INT(sizeof(exp_ethernet),
+                          netif_set_opt(ethernet_netif->pid,
+                                        NETOPT_ADDRESS, 0,
+                                        &value, sizeof(value)));
+    TEST_ASSERT_EQUAL_INT(sizeof(value), ethernet_netif->l2addr_len);
+    TEST_ASSERT_EQUAL_INT(0, memcmp(value, ethernet_netif->l2addr,
+                                    sizeof(value)));
+}
+
 static void test_netapi_send__raw_unicast_ethernet_packet(void)
 {
     uint8_t dst[] = { LA1, LA2, LA3, LA4, LA5, LA6 + 1 };
@@ -1335,20 +1455,25 @@ static Test *embunit_tests_gnrc_netif(void)
         new_TestFixture(test_ipv6_addr_remove__not_allocated),
         new_TestFixture(test_ipv6_addr_remove__success),
         new_TestFixture(test_ipv6_addr_idx__empty),
+        new_TestFixture(test_ipv6_addr_idx__unspecified_addr),
         new_TestFixture(test_ipv6_addr_idx__wrong_netif),
         new_TestFixture(test_ipv6_addr_idx__wrong_addr),
         new_TestFixture(test_ipv6_addr_idx__success),
         new_TestFixture(test_ipv6_addr_match__empty),
+        new_TestFixture(test_ipv6_addr_match__unspecified_addr),
         new_TestFixture(test_ipv6_addr_match__wrong_netif),
         new_TestFixture(test_ipv6_addr_match__wrong_addr),
         new_TestFixture(test_ipv6_addr_match__success18),
         new_TestFixture(test_ipv6_addr_match__success23),
         new_TestFixture(test_ipv6_addr_match__success64),
         new_TestFixture(test_ipv6_addr_best_src__multicast_input),
+        new_TestFixture(test_ipv6_addr_best_src__unspecified_addr),
         new_TestFixture(test_ipv6_addr_best_src__other_subnet),
         new_TestFixture(test_get_by_ipv6_addr__empty),
+        new_TestFixture(test_get_by_ipv6_addr__unspecified_addr),
         new_TestFixture(test_get_by_ipv6_addr__success),
         new_TestFixture(test_get_by_prefix__empty),
+        new_TestFixture(test_get_by_prefix__unspecified_addr),
         new_TestFixture(test_get_by_prefix__success18),
         new_TestFixture(test_get_by_prefix__success23),
         new_TestFixture(test_get_by_prefix__success64),
@@ -1358,6 +1483,8 @@ static Test *embunit_tests_gnrc_netif(void)
         new_TestFixture(test_ipv6_group_leave__not_allocated),
         new_TestFixture(test_ipv6_group_leave__success),
         new_TestFixture(test_ipv6_group_idx__empty),
+        new_TestFixture(test_ipv6_group_idx__unspecified_addr),
+        new_TestFixture(test_ipv6_group_idx__unicast_addr),
         new_TestFixture(test_ipv6_group_idx__wrong_netif),
         new_TestFixture(test_ipv6_group_idx__wrong_addr),
         new_TestFixture(test_ipv6_group_idx__success),
@@ -1381,6 +1508,11 @@ static Test *embunit_tests_gnrc_netif(void)
         new_TestFixture(test_netapi_set__ADDRESS),
         new_TestFixture(test_netapi_set__ADDRESS_LONG),
         new_TestFixture(test_netapi_set__SRC_LEN),
+        new_TestFixture(test_netif_iter),
+        new_TestFixture(test_netif_get_name),
+        new_TestFixture(test_netif_get_by_name),
+        new_TestFixture(test_netif_get_opt),
+        new_TestFixture(test_netif_set_opt),
         /* only add tests not involving output here */
     };
     EMB_UNIT_TESTCALLER(tests, _set_up, NULL, fixtures);
@@ -1452,6 +1584,8 @@ static uint16_t ieee802154_l2addr_len = 8U;
 
 static int _get_netdev_address(netdev_t *dev, void *value, size_t max_len)
 {
+    (void)max_len;
+
     if (dev == ethernet_dev) {
         assert(max_len >= sizeof(ethernet_l2addr));
         memcpy(value, ethernet_l2addr, sizeof(ethernet_l2addr));
@@ -1483,6 +1617,8 @@ static int _set_netdev_address(netdev_t *dev, const void *value,
 
 static int _get_netdev_address_long(netdev_t *dev, void *value, size_t max_len)
 {
+    (void)max_len;
+
     if (dev == ieee802154_dev) {
         assert(max_len >= sizeof(ieee802154_l2addr_long));
         memcpy(value, ieee802154_l2addr_long, sizeof(ieee802154_l2addr_long));
@@ -1504,6 +1640,8 @@ static int _set_netdev_address_long(netdev_t *dev, const void *value,
 
 static int _get_netdev_src_len(netdev_t *dev, void *value, size_t max_len)
 {
+    (void)max_len;
+
     if (dev == ieee802154_dev) {
         assert(max_len == sizeof(uint16_t));
         *((uint16_t *)value) = ieee802154_l2addr_len;
@@ -1515,6 +1653,8 @@ static int _get_netdev_src_len(netdev_t *dev, void *value, size_t max_len)
 static int _set_netdev_src_len(netdev_t *dev, const void *value,
                                size_t value_len)
 {
+    (void)value_len;
+
     if (dev == ieee802154_dev) {
         assert(value_len == sizeof(uint16_t));
         ieee802154_l2addr_len = *((uint16_t *)value);

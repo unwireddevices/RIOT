@@ -11,7 +11,7 @@
  */
 
 /**
- * @addtogroup    native_cpu
+ * @ingroup    cpu_native
  * @{
  * @author  Ludwig Knüpfer <ludwig.knuepfer@fu-berlin.de>
  */
@@ -41,7 +41,7 @@
 #else
 #include <ucontext.h>
 #endif
-#endif // BSD/Linux
+#endif /* BSD/Linux */
 #include <netdb.h>
 #include <ifaddrs.h>
 #include <time.h>

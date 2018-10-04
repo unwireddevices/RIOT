@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup     auto_init_saul
+ * @ingroup     sys_auto_init_saul
  * @{
  *
  * @file
@@ -28,29 +28,37 @@
 /**
  * @brief   Define the number of configured sensors
  */
-#define IO1_XPLAINED_NUMOF    (sizeof(io1_xplained_params) / sizeof(io1_xplained_params[0]))
+#define IO1_XPLAINED_NUM    (sizeof(io1_xplained_params) / sizeof(io1_xplained_params[0]))
 
 /**
  * @brief   Allocation of memory for device descriptors
  */
-static io1_xplained_t io1_xplained_devs[IO1_XPLAINED_NUMOF];
+static io1_xplained_t io1_xplained_devs[IO1_XPLAINED_NUM];
 
 /**
  * @brief   Memory for the SAUL registry entries
  */
-static saul_reg_t saul_entries[IO1_XPLAINED_NUMOF * 4];
+static saul_reg_t saul_entries[IO1_XPLAINED_NUM * 4];
 
 /**
- * @brief   Reference the driver structs.
+ * @brief   Define the number of saul info
+ */
+#define IO1_XPLAINED_INFO_NUM    (sizeof(io1_xplained_saul_info) / sizeof(io1_xplained_saul_info[0]))
+
+/**
+ * @name    Reference the driver structs.
  * @{
  */
-extern const saul_driver_t _saul_driver;
+extern const saul_driver_t gpio_out_saul_driver;
 extern const saul_driver_t io1_xplained_temperature_saul_driver;
 /** @} */
 
 void auto_init_io1_xplained(void)
 {
-    for (unsigned i = 0; i < IO1_XPLAINED_NUMOF; i++) {
+    /* There are 4 saul reg info for each configured device */
+    assert(IO1_XPLAINED_NUM == IO1_XPLAINED_INFO_NUM);
+
+    for (unsigned i = 0; i < IO1_XPLAINED_NUM; i++) {
         if (io1_xplained_init(&io1_xplained_devs[i],
                               &io1_xplained_params[i]) != IO1_XPLAINED_OK) {
             LOG_ERROR("Unable to initialize IO1 Xplained #%i\n", i);
@@ -59,15 +67,19 @@ void auto_init_io1_xplained(void)
 
         /* Temperature */
         saul_entries[i * 4].dev = &(io1_xplained_devs[i]);
-        saul_entries[i * 4].name = io1_xplained_saul_reg_info[i][0].name;
+        saul_entries[i * 4].name = io1_xplained_saul_info[i][0].name;
         saul_entries[i * 4].driver = &io1_xplained_temperature_saul_driver;
         saul_reg_add(&(saul_entries[i * 4]));
 
         /* GPIOs */
-        for (unsigned j = 1; j < 4; j++) {
-            saul_entries[i * 4 + j].dev = &(io1_xplained_saul_gpios[j - 1]);
-            saul_entries[i * 4 + j].name = io1_xplained_saul_reg_info[i][j - 1].name;
-            saul_reg_add(&(saul_entries[i * 4 + j]));
+        for (unsigned j = 0;
+             j < sizeof(io1_xplained_saul_gpios) / sizeof(io1_xplained_saul_gpios[0]);
+             j++) {
+            saul_reg_t *entry = &saul_entries[i * 4 + j + 1];
+            entry->dev = &(io1_xplained_saul_gpios[j]);
+            entry->name = io1_xplained_saul_info[i][j + 1].name;
+            entry->driver = &gpio_out_saul_driver;
+            saul_reg_add(entry);
         }
     }
 }

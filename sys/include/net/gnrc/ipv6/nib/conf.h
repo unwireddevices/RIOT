@@ -68,6 +68,10 @@ extern "C" {
 #define GNRC_IPV6_NIB_CONF_ROUTER       (1)
 #endif
 
+#ifdef MODULE_GNRC_IPV6_NIB_DNS
+#define GNRC_IPV6_NIB_CONF_DNS          (1)
+#endif
+
 /**
  * @name    Compile flags
  * @brief   Compile flags to (de-)activate certain features for NIB
@@ -172,12 +176,21 @@ extern "C" {
 #endif
 
 /**
+ * @brief   Support for DNS configuration options
+ *
+ * @see [RFC 8106](https://tools.ietf.org/html/rfc8106)
+ */
+#ifndef GNRC_IPV6_NIB_CONF_DNS
+#define GNRC_IPV6_NIB_CONF_DNS          (0)
+#endif
+
+/**
  * @brief   Multihop prefix and 6LoWPAN context distribution
  *
  * @see [RFC 6775, section 8.1](https://tools.ietf.org/html/rfc6775#section-8.1)
  */
 #ifndef GNRC_IPV6_NIB_CONF_MULTIHOP_P6C
-#if GNRC_IPV6_NIB_CONF_6LN
+#if GNRC_IPV6_NIB_CONF_6LR
 #define GNRC_IPV6_NIB_CONF_MULTIHOP_P6C (1)
 #else
 #define GNRC_IPV6_NIB_CONF_MULTIHOP_P6C (0)
@@ -201,6 +214,15 @@ extern "C" {
  */
 #ifndef GNRC_IPV6_NIB_CONF_REACH_TIME_RESET
 #define GNRC_IPV6_NIB_CONF_REACH_TIME_RESET (7200000U)
+#endif
+
+/**
+ * @brief   Disable router solicitations
+ *
+ * @warning Only do this if you know what you're doing
+ */
+#ifndef GNRC_IPV6_NIB_CONF_NO_RTR_SOL
+#define GNRC_IPV6_NIB_CONF_NO_RTR_SOL       (0)
 #endif
 
 /**

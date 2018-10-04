@@ -1,8 +1,7 @@
-export FLASHER ?= $(RIOTBASE)/dist/tools/bossa/bossac
+export FLASHER ?= $(RIOTTOOLS)/bossa/bossac
 export FFLAGS  ?= -p $(PORT) -e -i -w -v -b -R $(HEXFILE)
 
-export OFLAGS  = -O binary
-export HEXFILE = $(ELFFILE:.elf=.bin)
+HEXFILE = $(BINFILE)
 
 # some arduino boards need to toggle the serial interface a little bit to get
 # them ready for flashing...
@@ -21,6 +20,6 @@ endif
 
 # if we go with the default (BOSSA shipped with RIOT), we download and build
 # the tool if not already done
-ifeq ($(RIOTBASE)/dist/tools/bossa/bossac,$(FLASHER))
-  FLASHDEPS += $(RIOTBASE)/dist/tools/bossa/bossac
+ifeq ($(RIOTTOOLS)/bossa/bossac,$(FLASHER))
+  FLASHDEPS += $(RIOTTOOLS)/bossa/bossac
 endif

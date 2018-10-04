@@ -7,9 +7,9 @@
  */
 
 /**
- * @defgroup    boards_common_nucleo STM Nucleo Common
+ * @defgroup    boards_common_nucleo STM32 Nucleo Common
  * @ingroup     boards_common
- * @brief       Common files and configuration for all STM Nucleo boards
+ * @brief       Common support for all STM32 Nucleo boards
  * @{
  *
  * @file
@@ -48,12 +48,12 @@ extern "C" {
 #endif
 
 #if defined(CPU_FAM_STM32L1)
-#define XTIMER_BACKOFF              (3)
+#define XTIMER_BACKOFF              (11)
 #define XTIMER_OVERHEAD             (6)
 #endif
 
 #if defined(CPU_FAM_STM32F4) || defined(CPU_MODEL_STM32F303ZE)
-#define XTIMER_BACKOFF              (5)
+#define XTIMER_BACKOFF              (8)
 #define XTIMER_OVERHEAD             (6)
 #endif
 /** @} */

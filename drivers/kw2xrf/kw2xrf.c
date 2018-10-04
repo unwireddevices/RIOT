@@ -90,16 +90,7 @@ int kw2xrf_init(kw2xrf_t *dev, gpio_cb_t cb)
 
 void kw2xrf_reset_phy(kw2xrf_t *dev)
 {
-    /* reset options and sequence number */
-    dev->netdev.seq = 0;
-    dev->netdev.flags = 0;
-
-    /* set default protocol */
-#ifdef MODULE_GNRC_SIXLOWPAN
-    dev->netdev.proto = GNRC_NETTYPE_SIXLOWPAN;
-#elif MODULE_GNRC
-    dev->netdev.proto = GNRC_NETTYPE_UNDEF;
-#endif
+    netdev_ieee802154_reset(&dev->netdev);
 
     dev->tx_power = KW2XRF_DEFAULT_TX_POWER;
     kw2xrf_set_tx_power(dev, dev->tx_power);
@@ -120,9 +111,6 @@ void kw2xrf_reset_phy(kw2xrf_t *dev)
     kw2xrf_set_power_mode(dev, KW2XRF_AUTODOZE);
     kw2xrf_set_sequence(dev, dev->idle_state);
 
-    kw2xrf_set_option(dev, KW2XRF_OPT_TELL_RX_START, true);
-    kw2xrf_set_option(dev, KW2XRF_OPT_TELL_RX_END, true);
-    kw2xrf_set_option(dev, KW2XRF_OPT_TELL_TX_END, true);
     kw2xrf_clear_dreg_bit(dev, MKW2XDM_PHY_CTRL2, MKW2XDM_PHY_CTRL2_SEQMSK);
 
     kw2xrf_enable_irq_b(dev);

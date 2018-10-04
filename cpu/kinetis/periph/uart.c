@@ -34,17 +34,17 @@
 
 #ifndef KINETIS_HAVE_LPUART
 #ifdef LPUART0
-#define KINETIS_HAVE_LPUART      1
+#define KINETIS_HAVE_LPUART     1
 #else
-#define KINETIS_HAVE_LPUART      0
+#define KINETIS_HAVE_LPUART     0
 #endif
 #endif /* KINETIS_HAVE_LPUART */
 
 #ifndef KINETIS_HAVE_UART
 #ifdef UART0
-#define KINETIS_HAVE_UART      1
+#define KINETIS_HAVE_UART       1
 #else
-#define KINETIS_HAVE_UART      0
+#define KINETIS_HAVE_UART       0
 #endif
 #endif /* KINETIS_HAVE_LPUART */
 
@@ -54,13 +54,22 @@
  * using the BRFA field in the UART C4 register.
  */
 #ifdef UART_C4_BRFA
-#define KINETIS_UART_ADVANCED    1
+#define KINETIS_UART_ADVANCED   1
 #endif
 #endif
 
 #ifndef LPUART_OVERSAMPLING_RATE
 /* Use 16x oversampling by default (hardware defaults) */
 #define LPUART_OVERSAMPLING_RATE (16)
+#endif
+
+/* Default LPUART clock setting to avoid compilation failures, define this in
+ * periph_conf.h to set board specific configuration if using the LPUART. */
+#ifndef LPUART_0_SRC
+#define LPUART_0_SRC            0
+#endif
+#ifndef LPUART_1_SRC
+#define LPUART_1_SRC            0
 #endif
 
 /**
@@ -120,6 +129,18 @@ int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
             return UART_NODEV;
     }
     return UART_OK;
+}
+
+void uart_poweron(uart_t uart)
+{
+    (void)uart;
+    /* not implemented (yet) */
+}
+
+void uart_poweroff(uart_t uart)
+{
+    (void)uart;
+    /* not implemented (yet) */
 }
 
 #if KINETIS_HAVE_UART && KINETIS_HAVE_LPUART
@@ -296,7 +317,19 @@ static inline void uart_init_lpuart(uart_t uart, uint32_t baudrate)
     LPUART_Type *dev = uart_config[uart].dev;
     uint32_t clk = uart_config[uart].freq;
 
-    /* Remember to select a module clock in board_init! (SIM->SOPT2[LPUART0SRC]) */
+    /* Set LPUART clock source */
+#ifdef SIM_SOPT2_LPUART0SRC
+    if (dev == LPUART0) {
+        SIM->SOPT2 = (SIM->SOPT2 & ~SIM_SOPT2_LPUART0SRC_MASK) |
+            SIM_SOPT2_LPUART0SRC(LPUART_0_SRC);
+    }
+#endif
+#ifdef SIM_SOPT2_LPUART1SRC
+    if (dev == LPUART1) {
+        SIM->SOPT2 = (SIM->SOPT2 & ~SIM_SOPT2_LPUART1SRC_MASK) |
+            SIM_SOPT2_LPUART1SRC(LPUART_1_SRC);
+    }
+#endif
 
     /* Select mode */
     /* transmitter and receiver disabled */

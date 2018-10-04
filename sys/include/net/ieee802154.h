@@ -46,6 +46,8 @@ extern "C" {
  * @{
  */
 #define IEEE802154_MAX_HDR_LEN              (23U)
+#define IEEE802154_MIN_FRAME_LEN            (IEEE802154_FCF_LEN + sizeof(uint8_t))
+
 #define IEEE802154_FCF_LEN                  (2U)
 #define IEEE802154_FCS_LEN                  (2U)
 
@@ -120,6 +122,10 @@ extern const uint8_t ieee802154_addr_bcast[IEEE802154_ADDR_BCAST_LEN];
 
 #ifndef IEEE802154_DEFAULT_CHANNEL
 #define IEEE802154_DEFAULT_CHANNEL          (26U)
+#endif
+
+#ifndef IEEE802154_DEFAULT_SUBGHZ_PAGE
+#define IEEE802154_DEFAULT_SUBGHZ_PAGE      (2U)
 #endif
 
 #ifndef IEEE802154_DEFAULT_PANID

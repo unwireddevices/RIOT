@@ -31,6 +31,11 @@
 #include "bit.h"
 #include "periph/gpio.h"
 
+#ifndef PORT_PCR_ODE_MASK
+/* For compatibility with Kinetis CPUs without open drain GPIOs (e.g. KW41Z) */
+#define PORT_PCR_ODE_MASK 0
+#endif
+
 /**
  * @brief   Get the OCR reg value from the gpio_mode_t value
  */
@@ -108,6 +113,7 @@ static isr_ctx_t isr_ctx[CTX_NUMOF];
  */
 static uint32_t isr_map[ISR_MAP_SIZE];
 
+static const uint8_t port_irqs[] = PORT_IRQS;
 
 static inline PORT_Type *port(gpio_t pin)
 {
@@ -212,9 +218,11 @@ int gpio_init_int(gpio_t pin, gpio_mode_t mode, gpio_flank_t flank,
 
     /* clear interrupt flags */
     port(pin)->ISFR &= ~(1 << pin_num(pin));
+
     /* enable global port interrupts in the NVIC */
-    NVIC_EnableIRQ(PORTA_IRQn + port_num(pin));
-    /* finally, enable the interrupt for the select pin */
+    NVIC_EnableIRQ(port_irqs[port_num(pin)]);
+
+    /* finally, enable the interrupt for the selected pin */
     port(pin)->PCR[pin_num(pin)] |= flank;
     return 0;
 }
@@ -290,8 +298,8 @@ static inline void irq_handler(PORT_Type *port, int port_num)
     uint32_t status = port->ISFR;
 
     for (int i = 0; i < 32; i++) {
-        if ((status & (1 << i)) && (port->PCR[i] & PORT_PCR_IRQC_MASK)) {
-            port->ISFR = (1 << i);
+        if ((status & (1u << i)) && (port->PCR[i] & PORT_PCR_IRQC_MASK)) {
+            port->ISFR = (1u << i);
             int ctx = get_ctx(port_num, i);
             isr_ctx[ctx].cb(isr_ctx[ctx].arg);
         }
@@ -347,3 +355,12 @@ void isr_portg(void)
     irq_handler(PORTG, 6);
 }
 #endif /* ISR_PORT_G */
+
+#if defined(PORTB_BASE) && defined(PORTC_BASE)
+/* Combined ISR used in certain KL devices */
+void isr_portb_portc(void)
+{
+    irq_handler(PORTB, 1);
+    irq_handler(PORTC, 2);
+}
+#endif

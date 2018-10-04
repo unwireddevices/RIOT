@@ -1,9 +1,22 @@
 /*
- * Copyright (C) 2016 Unwired Devices
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * Copyright (C) 2016-2018 Unwired Devices LLC <info@unwds.com>
+
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software
+ * is furnished to do so, subject to the following conditions:
+
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  */
 
 /**
@@ -27,7 +40,8 @@ extern "C" {
 #include <stdbool.h>
 #include <string.h>
 
-#include "nvram.h"
+#include "byteorder.h"
+#include "periph/eeprom.h"
 #include "xtimer.h"
 #include "board.h"
 #include "checksum/fletcher16.h"
@@ -65,15 +79,13 @@ static uint32_t enabled_bitmap[8];
 /**
  * NVRAM config.
  */
-static nvram_t *nvram = NULL;
 static uint32_t nvram_config_block_size = 0;
 static uint32_t nvram_config_base_addr = 0;
 
 static uint8_t storage_used[UNWDS_STORAGE_BLOCKS_MAX] = { 0 };
 static uint8_t storage_blocks[UNWDS_STORAGE_BLOCKS_MAX];
 
-void unwds_setup_nvram_config(nvram_t *nvram_ptr, int base_addr, int block_size) {
-	nvram = nvram_ptr;
+void unwds_setup_nvram_config(int base_addr, int block_size) {
 	nvram_config_base_addr = base_addr;
 	nvram_config_block_size = block_size;
 }
@@ -84,16 +96,16 @@ bool unwds_read_nvram_config(unwds_module_id_t module_id, uint8_t *data_out, uin
 	int addr = nvram_config_base_addr + (module_id - 1) * (nvram_config_block_size + 2);
 
 	/* Either max_size bytes or full block */
-	int size = (max_size < nvram_config_block_size) ? max_size : nvram_config_block_size;
+	uint32_t size = (max_size < nvram_config_block_size) ? max_size : nvram_config_block_size;
     
 	/* Read NVRAM block */
-	if (nvram->read(nvram, data_out, addr, size) < 0) {
+	if (eeprom_read(addr, data_out, size) != size) {
         DEBUG("Error reading NVRAM\n");
 		return false;
     }
         
     uint16_t crc16 = 0;
-    if (nvram->read(nvram, (void *)&crc16, addr + size, 2) < 0) {
+    if (eeprom_read(addr + size, (void *)&crc16, 2) != 1) {
         DEBUG("Error reading CRC16\n");
 		return false;
     }
@@ -117,11 +129,11 @@ bool unwds_write_nvram_config(unwds_module_id_t module_id, uint8_t *data, size_t
     uint16_t crc16 = fletcher16(data, data_size);
     
 	/* Write NVRAM block */
-	if (nvram->write(nvram, data, addr, data_size) < 0) {
+	if (eeprom_write(addr, data, data_size) != data_size) {
 		return false;
     }
     
-    if (nvram->write(nvram, (void *)&crc16, addr + data_size, 2) < 0) {
+    if (eeprom_write(addr + data_size, (void *)&crc16, 2) != 2) {
         return false;
     }
 
@@ -197,7 +209,7 @@ static bool unwds_create_storage_block(unwds_module_id_t module_id) {
             DEBUG("Erasing EEPROM\n");
             /* storage size plus 2 bytes CRC16 */
             int addr = unwds_eeprom_layout.config_storage_addr + (unwds_eeprom_layout.config_storage_size + 2)*i;
-            nvram->clearpart(nvram, addr, unwds_eeprom_layout.config_storage_size + 2);
+            eeprom_clear(addr, unwds_eeprom_layout.config_storage_size + 2);
             
             DEBUG("Writing new storage config\n");
             unwds_write_nvram_config(UNWDS_CONFIG_MODULE_ID, storage_blocks, sizeof(storage_blocks));
@@ -209,7 +221,7 @@ static bool unwds_create_storage_block(unwds_module_id_t module_id) {
     return false;
 }
 
-bool unwds_read_nvram_storage(unwds_module_id_t module_id, uint8_t *data_out, uint8_t size) {
+bool unwds_read_nvram_storage(unwds_module_id_t module_id, uint8_t *data_out, size_t size) {
     
     uint32_t addr = 0;
     uint32_t i = 0;
@@ -238,7 +250,7 @@ bool unwds_read_nvram_storage(unwds_module_id_t module_id, uint8_t *data_out, ui
     }
 
     /* Read NVRAM block */
-	if (nvram->read(nvram, data_out, addr, size + 2) < 0)
+	if (eeprom_read(addr, data_out, size + 2) != size + 2)
 		return false;
     
     uint16_t crc16;
@@ -273,11 +285,11 @@ bool unwds_write_nvram_storage(unwds_module_id_t module_id, uint8_t *data, size_
     uint16_t crc16 = fletcher16(data, data_size);
     
     /* Write NVRAM block */
-	if (nvram->write(nvram, data, addr, data_size) < 0) {
+	if (eeprom_write(addr, data, data_size) != data_size) {
 		return false;
     }
     
-    if (nvram->write(nvram, (void *)&crc16, addr + data_size, 2) < 0) {
+    if (eeprom_write(addr + data_size, (void *)&crc16, 2) != 2) {
         return false;
     }
 
@@ -289,7 +301,7 @@ bool unwds_erase_nvram_config(unwds_module_id_t module_id) {
 	int addr = nvram_config_base_addr + module_id * nvram_config_block_size;
 
 	/* Write NVRAM block */
-	if (nvram->clearpart(nvram, addr, nvram_config_block_size) < 0)
+	if (eeprom_clear(addr, nvram_config_block_size) != nvram_config_block_size)
 		return false;
 
 	return true;
@@ -298,14 +310,12 @@ bool unwds_erase_nvram_config(unwds_module_id_t module_id) {
 /**
  * Stacks pool.
  */
-// static uint8_t stack_pool[UNWDS_STACK_POOL_SIZE_BYTES];
-// static uint32_t stack_size_used = 0;
-
-uint8_t *allocate_stack(uint32_t stack_size) {
+uint8_t *allocate_stack_name(uint32_t stack_size, const char* caller_name) {
     uint8_t *address = (uint8_t *)malloc(stack_size);
     
     /* additional check for allocation validity */
     if (address && !cpu_check_address((char *)&address[stack_size - 1])) {
+        printf("[ERROR] Unable to allocate memory for %s\n", caller_name);
         address = NULL;
     }
     
@@ -478,6 +488,69 @@ void int_to_float_str(char *buf, int decimal, uint8_t precision) {
     strcat(format, digits);
     
     snprintf(buf, 50, format, abs(decimal/divider), abs(decimal%divider));
+}
+
+void convert_to_be_sam(void *ptr, size_t size) {
+    switch (size) {
+        case 1: {
+            int8_t v = *(int8_t*)ptr;
+            *(uint8_t*)ptr = ((v + (v >> 7)) ^ (v >> 7)) | (v & (1 << 7));
+            break;
+        }
+        case 2: {
+            int16_t v = *(int16_t*)ptr;
+            *(uint16_t*)ptr = ((v + (v >> 15)) ^ (v >> 15)) | (v & (1 << 15));
+            break;
+        }
+        case 4: {
+            int32_t v = *(int32_t*)ptr;
+            *(uint32_t*)ptr = ((v + (v >> 31)) ^ (v >> 31)) | (v & (1 << 31));
+            break;
+        }
+        case 8: {
+            int64_t v = *(int64_t*)ptr;
+            *(uint64_t*)ptr = ((v + (v >> 63)) ^ (v >> 63)) | (v & (1ULL << 63));
+            break;
+        }
+        default:
+            return;
+    }
+    
+    if (byteorder_is_little_endian()) {
+        byteorder_swap(ptr, size);
+    }
+}
+
+void convert_from_be_sam(void *ptr, size_t size) {
+    if (byteorder_is_little_endian()) {
+        byteorder_swap(ptr, size);
+    }
+    
+    switch (size) {
+        case 1: {
+            int8_t v = *(int8_t*)ptr;
+            *(uint8_t*)ptr = (~(v >> 7) & v) | (((v & 0x80) - v) & (v >> 7));
+            break;
+        }
+        case 2: {
+            int16_t v = *(int16_t*)ptr;
+            *(uint16_t*)ptr = (~(v >> 15) & v) | (((v & 0x8000) - v) & (v >> 15));
+            break;
+        }
+        case 4: {
+            int32_t v = *(int32_t*)ptr;
+            *(uint32_t*)ptr = (~(v >> 31) & v) | (((v & 0x80000000) - v) & (v >> 31));
+            break;
+        }
+        case 8: {
+            int64_t v = *(int64_t*)ptr;
+            *(uint64_t*)ptr = (~(v >> 63) & v) | (((v & (1ULL << 63)) - v) & (v >> 63));
+            break;
+            break;
+        }
+        default:
+            return;
+    }
 }
 
 /* determine EEPROM size to work seamlessly with CC and CB-A MCUs */

@@ -71,9 +71,10 @@ static int _send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
             cc110x_pkt.flags = 0;
     }
 
-    struct iovec vector;
-    vector.iov_base = (char*)&cc110x_pkt;
-    vector.iov_len = sizeof(cc110x_pkt_t);
+    iolist_t iolist = {
+        .iol_base = (char *)&cc110x_pkt,
+        .iol_len = sizeof(cc110x_pkt_t)
+    };
 
     unsigned payload_len = 0;
     uint8_t *pos = cc110x_pkt.data;
@@ -93,18 +94,21 @@ static int _send(gnrc_netif_t *netif, gnrc_pktsnip_t *pkt)
         payload = payload->next;
     }
 
-    /* pkt has been copied into iovec, we're done with it. */
+    /* pkt has been copied into cc110x_pkt, we're done with it. */
     gnrc_pktbuf_release(pkt);
 
     cc110x_pkt.length = (uint8_t) payload_len + CC110X_HEADER_LENGTH;
 
-    DEBUG("gnrc_cc110x: sending packet from %u to %u with payload "
+    DEBUG("gnrc_cc110x: sending packet from %02x to %02x with payload "
             "length %u\n",
             (unsigned)cc110x_pkt.phy_src,
             (unsigned)cc110x_pkt.address,
-            (unsigned)cc110x_pkt.length);
+            (unsigned)payload_len);
+#if defined(MODULE_OD) && ENABLE_DEBUG
+    od_hex_dump(cc110x_pkt.data, payload_len, OD_WIDTH_DEFAULT);
+#endif
 
-    return dev->driver->send(dev, &vector, 1);
+    return dev->driver->send(dev, &iolist);
 }
 
 static gnrc_pktsnip_t *_recv(gnrc_netif_t *netif)

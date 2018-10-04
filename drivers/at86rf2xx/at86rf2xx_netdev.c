@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2015 Freie Universität Berlin
+ * Copyright (C) 2018 Kaspar Schleiser <kaspar@schleiser.de>
+ *               2015 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -17,6 +18,7 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  * @author      Kévin Roussel <Kevin.Roussel@inria.fr>
  * @author      Martine Lenders <mlenders@inf.fu-berlin.de>
+ * @author      Kaspar Schleiser <kaspar@schleiser.de>
  *
  * @}
  */
@@ -24,6 +26,8 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+
+#include "iolist.h"
 
 #include "net/eui64.h"
 #include "net/ieee802154.h"
@@ -40,7 +44,7 @@
 
 #define _MAX_MHR_OVERHEAD   (25)
 
-static int _send(netdev_t *netdev, const struct iovec *vector, unsigned count);
+static int _send(netdev_t *netdev, const iolist_t *iolist);
 static int _recv(netdev_t *netdev, void *buf, size_t len, void *info);
 static int _init(netdev_t *netdev);
 static void _isr(netdev_t *netdev);
@@ -93,18 +97,17 @@ static int _init(netdev_t *netdev)
     return 0;
 }
 
-static int _send(netdev_t *netdev, const struct iovec *vector, unsigned count)
+static int _send(netdev_t *netdev, const iolist_t *iolist)
 {
     at86rf2xx_t *dev = (at86rf2xx_t *)netdev;
-    const struct iovec *ptr = vector;
     size_t len = 0;
 
     at86rf2xx_tx_prepare(dev);
 
     /* load packet data into FIFO */
-    for (unsigned i = 0; i < count; ++i, ++ptr) {
+    for (const iolist_t *iol = iolist; iol; iol = iol->iol_next) {
         /* current packet data + FCS too long */
-        if ((len + ptr->iov_len + 2) > AT86RF2XX_MAX_PKT_LENGTH) {
+        if ((len + iol->iol_len + 2) > AT86RF2XX_MAX_PKT_LENGTH) {
             DEBUG("[at86rf2xx] error: packet too large (%u byte) to be send\n",
                   (unsigned)len + 2);
             return -EOVERFLOW;
@@ -112,7 +115,7 @@ static int _send(netdev_t *netdev, const struct iovec *vector, unsigned count)
 #ifdef MODULE_NETSTATS_L2
         netdev->stats.tx_bytes += len;
 #endif
-        len = at86rf2xx_tx_load(dev, ptr->iov_base, ptr->iov_len, len);
+        len = at86rf2xx_tx_load(dev, iol->iol_base, iol->iol_len, len);
     }
 
     /* send data out directly if pre-loading id disabled */
@@ -150,10 +153,10 @@ static int _recv(netdev_t *netdev, void *buf, size_t len, void *info)
         at86rf2xx_fb_stop(dev);
         return -ENOBUFS;
     }
-    #ifdef MODULE_NETSTATS_L2
-        netdev->stats.rx_count++;
-        netdev->stats.rx_bytes += pkt_len;
-    #endif
+#ifdef MODULE_NETSTATS_L2
+    netdev->stats.rx_count++;
+    netdev->stats.rx_bytes += pkt_len;
+#endif
     /* copy payload */
     at86rf2xx_fb_read(dev, (uint8_t *)buf, pkt_len);
 
@@ -329,7 +332,7 @@ static int _get(netdev_t *netdev, netopt_t opt, void *val, size_t max_len)
     int res;
 
     if (((res = netdev_ieee802154_get((netdev_ieee802154_t *)netdev, opt, val,
-                                       max_len)) >= 0) || (res != -ENOTSUP)) {
+                                      max_len)) >= 0) || (res != -ENOTSUP)) {
         return res;
     }
 
@@ -378,7 +381,7 @@ static int _get(netdev_t *netdev, netopt_t opt, void *val, size_t max_len)
             res = sizeof(int8_t);
             break;
 
-        case NETOPT_AUTOACK :
+        case NETOPT_AUTOACK:
             assert(max_len >= sizeof(netopt_enable_t));
             uint8_t tmp = at86rf2xx_reg_read(dev, AT86RF2XX_REG__CSMA_SEED_1);
             *((netopt_enable_t *)val) = (tmp & AT86RF2XX_CSMA_SEED_1__AACK_DIS_ACK) ? false : true;
@@ -486,6 +489,12 @@ static int _set(netdev_t *netdev, netopt_t opt, const void *val, size_t len)
             res = sizeof(netopt_enable_t);
             break;
 
+        case NETOPT_ACK_PENDING:
+            at86rf2xx_set_option(dev, AT86RF2XX_OPT_ACK_PENDING,
+                                 ((const bool *)val)[0]);
+            res = sizeof(netopt_enable_t);
+            break;
+
         case NETOPT_RETRANS:
             assert(len <= sizeof(uint8_t));
             at86rf2xx_set_max_retries(dev, *((const uint8_t *)val));
@@ -536,8 +545,8 @@ static int _set(netdev_t *netdev, netopt_t opt, const void *val, size_t len)
 
         case NETOPT_CSMA_RETRIES:
             assert(len <= sizeof(uint8_t));
-            if( !(dev->netdev.flags & AT86RF2XX_OPT_CSMA ||
-                (*((uint8_t *)val) > 5)) ) {
+            if (!(dev->netdev.flags & AT86RF2XX_OPT_CSMA) ||
+                (*((uint8_t *)val) > 5)) {
                 /* If CSMA is disabled, don't allow setting retries */
                 res = -EINVAL;
             }

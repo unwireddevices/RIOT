@@ -46,11 +46,11 @@ int lsm303dlhc_init(lsm303dlhc_t *dev, i2c_t i2c, gpio_t acc_pin, gpio_t mag_pin
 
     /* Acquire exclusive access to the bus. */
     i2c_acquire(dev->i2c);
-    i2c_init_master(i2c, I2C_SPEED_NORMAL);
+    i2c_init(dev->i2c);
 
     DEBUG("lsm303dlhc reboot...");
     res = i2c_write_reg(dev->i2c, dev->acc_address,
-                        LSM303DLHC_REG_CTRL5_A, LSM303DLHC_REG_CTRL5_A_BOOT);
+                        LSM303DLHC_REG_CTRL5_A, LSM303DLHC_REG_CTRL5_A_BOOT, 0);
     /* Release the bus for other threads. */
     i2c_release(dev->i2c);
     DEBUG("[OK]\n");
@@ -63,14 +63,14 @@ int lsm303dlhc_init(lsm303dlhc_t *dev, i2c_t i2c, gpio_t acc_pin, gpio_t mag_pin
           | acc_sample_rate);
     i2c_acquire(dev->i2c);
     res += i2c_write_reg(dev->i2c, dev->acc_address,
-                         LSM303DLHC_REG_CTRL1_A, tmp);
+                         LSM303DLHC_REG_CTRL1_A, tmp, 0);
     /* update on read, MSB @ low address, scale and high-resolution */
     tmp = (acc_scale | LSM303DLHC_CTRL4_A_HR);
     res += i2c_write_reg(dev->i2c, dev->acc_address,
-                         LSM303DLHC_REG_CTRL4_A, tmp);
+                         LSM303DLHC_REG_CTRL4_A, tmp, 0);
     /* no interrupt generation */
     res += i2c_write_reg(dev->i2c, dev->acc_address,
-                         LSM303DLHC_REG_CTRL3_A, LSM303DLHC_CTRL3_A_I1_NONE);
+                         LSM303DLHC_REG_CTRL3_A, LSM303DLHC_CTRL3_A_I1_NONE, 0);
     /* configure acc data ready pin */
     gpio_init(acc_pin, GPIO_IN);
 
@@ -78,13 +78,13 @@ int lsm303dlhc_init(lsm303dlhc_t *dev, i2c_t i2c, gpio_t acc_pin, gpio_t mag_pin
     /* enable temperature output and set sample rate */
     tmp = LSM303DLHC_TEMP_EN | mag_sample_rate;
     res += i2c_write_reg(dev->i2c, dev->mag_address,
-                         LSM303DLHC_REG_CRA_M, tmp);
+                         LSM303DLHC_REG_CRA_M, tmp, 0);
     /* configure z-axis gain */
     res += i2c_write_reg(dev->i2c, dev->mag_address,
-                         LSM303DLHC_REG_CRB_M, mag_gain);
+                         LSM303DLHC_REG_CRB_M, mag_gain, 0);
     /* set continuous mode */
     res += i2c_write_reg(dev->i2c, dev->mag_address,
-                         LSM303DLHC_REG_MR_M, LSM303DLHC_MAG_MODE_CONTINUOUS);
+                         LSM303DLHC_REG_MR_M, LSM303DLHC_MAG_MODE_CONTINUOUS, 0);
     i2c_release(dev->i2c);
     /* configure mag data ready pin */
     gpio_init(mag_pin, GPIO_IN);
@@ -98,27 +98,27 @@ int lsm303dlhc_read_acc(const lsm303dlhc_t *dev, lsm303dlhc_3d_data_t *data)
     uint8_t tmp;
 
     i2c_acquire(dev->i2c);
-    i2c_read_reg(dev->i2c, dev->acc_address, LSM303DLHC_REG_STATUS_A, &tmp);
+    i2c_read_reg(dev->i2c, dev->acc_address, LSM303DLHC_REG_STATUS_A, &tmp, 0);
     DEBUG("lsm303dlhc status: %x\n", tmp);
     DEBUG("lsm303dlhc: wait for acc values ... ");
 
     res = i2c_read_reg(dev->i2c, dev->acc_address,
-                       LSM303DLHC_REG_OUT_X_L_A, &tmp);
+                       LSM303DLHC_REG_OUT_X_L_A, &tmp, 0);
     data->x_axis = tmp;
     res += i2c_read_reg(dev->i2c, dev->acc_address,
-                        LSM303DLHC_REG_OUT_X_H_A, &tmp);
+                        LSM303DLHC_REG_OUT_X_H_A, &tmp, 0);
     data->x_axis |= tmp<<8;
     res += i2c_read_reg(dev->i2c, dev->acc_address,
-                       LSM303DLHC_REG_OUT_Y_L_A, &tmp);
+                       LSM303DLHC_REG_OUT_Y_L_A, &tmp, 0);
     data->y_axis = tmp;
     res += i2c_read_reg(dev->i2c, dev->acc_address,
-                        LSM303DLHC_REG_OUT_Y_H_A, &tmp);
+                        LSM303DLHC_REG_OUT_Y_H_A, &tmp, 0);
     data->y_axis |= tmp<<8;
     res += i2c_read_reg(dev->i2c, dev->acc_address,
-                       LSM303DLHC_REG_OUT_Z_L_A, &tmp);
+                       LSM303DLHC_REG_OUT_Z_L_A, &tmp, 0);
     data->z_axis = tmp;
     res += i2c_read_reg(dev->i2c, dev->acc_address,
-                        LSM303DLHC_REG_OUT_Z_H_A, &tmp);
+                        LSM303DLHC_REG_OUT_Z_H_A, &tmp, 0);
     data->z_axis |= tmp<<8;
     i2c_release(dev->i2c);
     DEBUG("read ... ");
@@ -147,7 +147,7 @@ int lsm303dlhc_read_mag(const lsm303dlhc_t *dev, lsm303dlhc_3d_data_t *data)
 
     i2c_acquire(dev->i2c);
     res = i2c_read_regs(dev->i2c, dev->mag_address,
-                        LSM303DLHC_REG_OUT_X_H_M, data, 6);
+                        LSM303DLHC_REG_OUT_X_H_M, data, 6, 0);
     i2c_release(dev->i2c);
 
     if (res < 6) {
@@ -174,7 +174,7 @@ int lsm303dlhc_read_temp(const lsm303dlhc_t *dev, int16_t *value)
     int res;
 
     i2c_acquire(dev->i2c);
-    res = i2c_read_regs(dev->i2c, dev->mag_address, LSM303DLHC_REG_TEMP_OUT_H, value, 2);
+    res = i2c_read_regs(dev->i2c, dev->mag_address, LSM303DLHC_REG_TEMP_OUT_H, value, 2, 0);
     i2c_release(dev->i2c);
 
     if (res < 2) {
@@ -194,11 +194,11 @@ int lsm303dlhc_disable(const lsm303dlhc_t *dev)
 
     i2c_acquire(dev->i2c);
     res = i2c_write_reg(dev->i2c, dev->acc_address,
-                        LSM303DLHC_REG_CTRL1_A, LSM303DLHC_CTRL1_A_POWEROFF);
+                        LSM303DLHC_REG_CTRL1_A, LSM303DLHC_CTRL1_A_POWEROFF, 0);
     res += i2c_write_reg(dev->i2c, dev->mag_address,
-                        LSM303DLHC_REG_MR_M, LSM303DLHC_MAG_MODE_SLEEP);
+                        LSM303DLHC_REG_MR_M, LSM303DLHC_MAG_MODE_SLEEP, 0);
     res += i2c_write_reg(dev->i2c, dev->acc_address,
-                        LSM303DLHC_REG_CRA_M, LSM303DLHC_TEMP_DIS);
+                        LSM303DLHC_REG_CRA_M, LSM303DLHC_TEMP_DIS, 0);
     i2c_release(dev->i2c);
 
     return (res < 3) ? -1 : 0;
@@ -212,21 +212,21 @@ int lsm303dlhc_enable(const lsm303dlhc_t *dev)
                   | LSM303DLHC_CTRL1_A_ZEN
                   | LSM303DLHC_CTRL1_A_N1344HZ_L5376HZ);
     i2c_acquire(dev->i2c);
-    res = i2c_write_reg(dev->i2c, dev->acc_address, LSM303DLHC_REG_CTRL1_A, tmp);
+    res = i2c_write_reg(dev->i2c, dev->acc_address, LSM303DLHC_REG_CTRL1_A, tmp, 0);
 
     tmp = (LSM303DLHC_CTRL4_A_BDU| LSM303DLHC_CTRL4_A_SCALE_2G | LSM303DLHC_CTRL4_A_HR);
-    res += i2c_write_reg(dev->i2c, dev->acc_address, LSM303DLHC_REG_CTRL4_A, tmp);
-    res += i2c_write_reg(dev->i2c, dev->acc_address, LSM303DLHC_REG_CTRL3_A, LSM303DLHC_CTRL3_A_I1_DRDY1);
+    res += i2c_write_reg(dev->i2c, dev->acc_address, LSM303DLHC_REG_CTRL4_A, tmp, 0);
+    res += i2c_write_reg(dev->i2c, dev->acc_address, LSM303DLHC_REG_CTRL3_A, LSM303DLHC_CTRL3_A_I1_DRDY1, 0);
     gpio_init(dev->acc_pin, GPIO_IN);
 
     tmp = LSM303DLHC_TEMP_EN | LSM303DLHC_TEMP_SAMPLE_75HZ;
-    res += i2c_write_reg(dev->i2c, dev->mag_address, LSM303DLHC_REG_CRA_M, tmp);
+    res += i2c_write_reg(dev->i2c, dev->mag_address, LSM303DLHC_REG_CRA_M, tmp, 0);
 
     res += i2c_write_reg(dev->i2c, dev->mag_address,
-                        LSM303DLHC_REG_CRB_M, LSM303DLHC_GAIN_5);
+                        LSM303DLHC_REG_CRB_M, LSM303DLHC_GAIN_5, 0);
 
     res += i2c_write_reg(dev->i2c, dev->mag_address,
-                        LSM303DLHC_REG_MR_M, LSM303DLHC_MAG_MODE_CONTINUOUS);
+                        LSM303DLHC_REG_MR_M, LSM303DLHC_MAG_MODE_CONTINUOUS, 0);
     i2c_release(dev->i2c);
 
     gpio_init(dev->mag_pin, GPIO_IN);

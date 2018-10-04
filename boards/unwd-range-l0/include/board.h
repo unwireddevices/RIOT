@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Unwired Devices
+ * Copyright (C) 2018 Unwired Devices LLC <info@unwds.com>
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
@@ -7,15 +7,15 @@
  */
 
 /**
- * @defgroup    boards_unwd-range-l1-r3
+ * @defgroup    boards_unwd-range-l0
  * @ingroup     boards
- * @brief       Board specific files for the Unwired Range R170115 board.
+ * @brief       Board specific files for the Unwired Range L0 board.
  * @{
  *
  * @file
- * @brief       Board specific definitions for the Unwired Range R170115 board.
+ * @brief       Board specific definitions for the Unwired Range L0 board.
  *
- * @author      Mikhail Churikov
+ * @author      Oleg Artamonov
  */
 
 #ifndef BOARD_H_
@@ -25,15 +25,14 @@
 extern "C" {
 #endif
 
+#include "board_unwd.h"
+
 /**
  * @name SX1276 configuration
  * @{
  */
 #define RF_FREQUENCY                                868900000 // Hz, 868MHz
 #define TX_OUTPUT_POWER                             14        // dBm
-
-
-
 #define LORA_BANDWIDTH                              0         // [0: 125 kHz,
                                                               //  1: 250 kHz,
                                                               //  2: 500 kHz,
@@ -47,18 +46,18 @@ extern "C" {
 #define LORA_SYMBOL_TIMEOUT                         5         // Symbols
 #define LORA_FIX_LENGTH_PAYLOAD_ON                  true
 #define LORA_IQ_INVERSION							false
-
-#define SX127X_DIO0 GPIO_PIN(PORT_A, 12)
-#define SX127X_DIO1 GPIO_PIN(PORT_C, 13)
-#define SX127X_DIO2 GPIO_PIN(PORT_A, 0)
-#define SX127X_DIO3 GPIO_PIN(PORT_B, 6) /* CadDone */
-#define SX127X_DIO4 GPIO_PIN(PORT_B, 7) /* CadDetect */
+ 
+#define SX127X_DIO0 GPIO_PIN(PORT_A, 10)
+#define SX127X_DIO1 GPIO_PIN(PORT_A, 9)
+#define SX127X_DIO2 GPIO_UNDEF
+#define SX127X_DIO3 GPIO_PIN(PORT_A, 8) /* CadDone */
+#define SX127X_DIO4 GPIO_UNDEF /* CadDetect */
 #define SX127X_DIO5 GPIO_UNDEF
 
-#define SX127X_RESET GPIO_PIN(PORT_A, 8)
+#define SX127X_RESET GPIO_PIN(PORT_A, 11)
 
 /** RF on/off switching pin */
-#define SX127X_RFSWITCH                 GPIO_PIN(PORT_A, 11)
+#define SX127X_RFSWITCH                 GPIO_PIN(PORT_B, 4)
 
 #define SX127X_GET_RFSWITCH_ACTIVE_LEVEL() ({\
         int active_level = 1;\
@@ -66,16 +65,25 @@ extern "C" {
     })
 
 /** SX127x SPI */
-#define SX127X_SPI 1
-#define SX127X_SPI_NSS  GPIO_PIN(PORT_B, 12)
+#define SX127X_SPI 0
+#define SX127X_SPI_NSS  GPIO_PIN(PORT_A, 4)
 
 /** "Connect" Button */
-#define UNWD_USE_CONNECT_BTN	1
-#define UNWD_CONNECT_BTN		UNWD_GPIO_1
+#define UNWD_USE_CONNECT_BTN	0
+#define UNWD_CONNECT_BTN		GPIO_UNDEF
 
 /** LEDs */
-#define LED_GREEN   GPIO_PIN(PORT_B, 0)
+#define LED_GREEN   GPIO_PIN(PORT_A, 0)
 #define LED_RED     GPIO_UNDEF
+
+/** @} */
+
+#define UART_STDIO_DEV              UART_DEV(0)
+#define UART_STDIO_BAUDRATE         (115200U)
+#define UART_STDIO_RX_BUFSIZE       (64U)
+
+#define UMDK_UART_DEV 1
+#define UMDK_UART_BAUDRATE_NO 7 /* 115200 */
 
 /** GPIO Ports */
 #define UNWD_GPIO_1 GPIO_PIN(PORT_B, 1)
@@ -94,17 +102,6 @@ extern "C" {
 #define UNWD_GPIO_25 GPIO_PIN(PORT_A, 2)
 #define UNWD_GPIO_24 GPIO_PIN(PORT_A, 1)
 
-/** @} */
-
-#define UART_STDIO_DEV              UART_DEV(0)
-#define UART_STDIO_BAUDRATE         (115200U)
-#define UART_STDIO_RX_BUFSIZE       (64U)
-
-#define GATE_COMM_UART              (UART_DEV(1))
-
-#define UMDK_UART_DEV 1
-#define UMDK_UART_BAUDRATE_NO 7 /* 115200 */
-
 /**
  * @name xtimer configuration
  * @{
@@ -114,11 +111,6 @@ extern "C" {
 #define XTIMER_OVERHEAD     (6)
 #define XTIMER_BACKOFF      (3)
 /** @} */
-
-/**
- * @brief   Initialize board specific hardware, including clock, LEDs and std-IO
- */
-void board_init(void);
 
 #ifdef __cplusplus
 }

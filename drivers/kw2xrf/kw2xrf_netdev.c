@@ -103,7 +103,7 @@ static size_t kw2xrf_tx_load(uint8_t *pkt_buf, uint8_t *buf, size_t len, size_t 
 
 static void kw2xrf_tx_exec(kw2xrf_t *dev)
 {
-    if ((dev->netdev.flags & KW2XRF_OPT_AUTOACK) &&
+    if ((dev->netdev.flags & KW2XRF_OPT_ACK_REQ) &&
         (_send_last_fcf & IEEE802154_FCF_ACK_REQ)) {
         kw2xrf_set_sequence(dev, XCVSEQ_TX_RX);
     }
@@ -138,10 +138,9 @@ static void kw2xrf_wait_idle(kw2xrf_t *dev)
     }
 }
 
-static int _send(netdev_t *netdev, const struct iovec *vector, unsigned count)
+static int _send(netdev_t *netdev, const iolist_t *iolist)
 {
     kw2xrf_t *dev = (kw2xrf_t *)netdev;
-    const struct iovec *ptr = vector;
     uint8_t *pkt_buf = &(dev->buf[1]);
     size_t len = 0;
 
@@ -149,14 +148,14 @@ static int _send(netdev_t *netdev, const struct iovec *vector, unsigned count)
     kw2xrf_wait_idle(dev);
 
     /* load packet data into buffer */
-    for (unsigned i = 0; i < count; i++, ptr++) {
+    for (const iolist_t *iol = iolist; iol; iol = iol->iol_next) {
         /* current packet data + FCS too long */
-        if ((len + ptr->iov_len + IEEE802154_FCS_LEN) > KW2XRF_MAX_PKT_LENGTH) {
+        if ((len + iol->iol_len + IEEE802154_FCS_LEN) > KW2XRF_MAX_PKT_LENGTH) {
             LOG_ERROR("[kw2xrf] packet too large (%u byte) to be send\n",
                   (unsigned)len + IEEE802154_FCS_LEN);
             return -EOVERFLOW;
         }
-        len = kw2xrf_tx_load(pkt_buf, ptr->iov_base, ptr->iov_len, len);
+        len = kw2xrf_tx_load(pkt_buf, iol->iol_base, iol->iol_len, len);
     }
 
     kw2xrf_set_sequence(dev, XCVSEQ_IDLE);
@@ -275,6 +274,16 @@ int _get(netdev_t *netdev, netopt_t opt, void *value, size_t len)
             }
             *((netopt_state_t *)value) = _get_state(dev);
             return sizeof(netopt_state_t);
+
+        case NETOPT_AUTOACK:
+            if (dev->netdev.flags & KW2XRF_OPT_AUTOACK) {
+                *((netopt_enable_t *)value) = NETOPT_ENABLE;
+            }
+            else {
+                *((netopt_enable_t *)value) = NETOPT_DISABLE;
+            }
+            return sizeof(netopt_enable_t);
+
 
         case NETOPT_PRELOADING:
             if (dev->netdev.flags & KW2XRF_OPT_PRELOADING) {
@@ -453,6 +462,7 @@ static int _set(netdev_t *netdev, netopt_t opt, const void *value, size_t len)
             /* Set up HW generated automatic ACK after Receive */
             kw2xrf_set_option(dev, KW2XRF_OPT_AUTOACK,
                               ((bool *)value)[0]);
+            res = sizeof(netopt_enable_t);
             break;
 
         case NETOPT_ACK_REQ:

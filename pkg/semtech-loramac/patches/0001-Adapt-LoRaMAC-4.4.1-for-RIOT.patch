@@ -1,0 +1,404 @@
+From 8223f2c42c9e67ac6a93eee7eef870c3888bfc38 Mon Sep 17 00:00:00 2001
+From: Oleg Artamonov <oleg@unwds.com>
+Date: Mon, 6 Aug 2018 21:42:10 +0300
+Subject: [PATCH 1/2] Adapt LoRaMAC 4.4.1 for RIOT
+
+---
+ src/boards/mcu/utilities.c          | 36 +++++++----------------------
+ src/boards/utilities.h              | 11 ---------
+ src/mac/LoRaMac.c                   | 29 +++++++++--------------
+ src/mac/LoRaMac.h                   |  6 ++---
+ src/mac/LoRaMacCrypto.c             |  2 +-
+ src/mac/region/Region.h             |  2 +-
+ src/mac/region/RegionAS923.c        |  2 +-
+ src/mac/region/RegionAU915.c        |  2 +-
+ src/mac/region/RegionCN470.c        |  2 +-
+ src/mac/region/RegionCN779.c        |  2 +-
+ src/mac/region/RegionCommon.c       |  2 +-
+ src/mac/region/RegionEU433.c        |  2 +-
+ src/mac/region/RegionEU868.c        |  2 +-
+ src/mac/region/RegionIN865.c        |  2 +-
+ src/mac/region/RegionKR920.c        |  2 +-
+ src/mac/region/RegionUS915-Hybrid.c |  2 +-
+ src/mac/region/RegionUS915.c        |  2 +-
+ src/system/crypto/cmac.c            |  2 +-
+ 18 files changed, 36 insertions(+), 74 deletions(-)
+
+diff --git a/src/boards/mcu/utilities.c b/src/boards/mcu/utilities.c
+index d32d573..981ea7f 100644
+--- a/src/boards/mcu/utilities.c
++++ b/src/boards/mcu/utilities.c
+@@ -22,7 +22,9 @@
+  */
+ #include <stdlib.h>
+ #include <stdio.h>
+-#include "utilities.h"
++#include <string.h>
++#include "random.h"
++#include "boards/utilities.h"
+ 
+ /*!
+  * Redefinition of rand() and srand() standard C functions.
+@@ -41,21 +43,18 @@ int32_t rand1( void )
+ 
+ void srand1( uint32_t seed )
+ {
+-    next = seed;
++    (void) seed;
+ }
+ // Standard random functions redefinition end
+ 
+ int32_t randr( int32_t min, int32_t max )
+ {
+-    return ( int32_t )rand1( ) % ( max - min + 1 ) + min;
++    return (int32_t) (random_uint32_range(0,max-min) + min);
+ }
+ 
+ void memcpy1( uint8_t *dst, const uint8_t *src, uint16_t size )
+ {
+-    while( size-- )
+-    {
+-        *dst++ = *src++;
+-    }
++    memcpy(dst, src, size);
+ }
+ 
+ void memcpyr( uint8_t *dst, const uint8_t *src, uint16_t size )
+@@ -69,24 +68,5 @@ void memcpyr( uint8_t *dst, const uint8_t *src, uint16_t size )
+ 
+ void memset1( uint8_t *dst, uint8_t value, uint16_t size )
+ {
+-    while( size-- )
+-    {
+-        *dst++ = value;
+-    }
+-}
+-
+-int8_t Nibble2HexChar( uint8_t a )
+-{
+-    if( a < 10 )
+-    {
+-        return '0' + a;
+-    }
+-    else if( a < 16 )
+-    {
+-        return 'A' + ( a - 10 );
+-    }
+-    else
+-    {
+-        return '?';
+-    }
+-}
++    memset(dst, value, size);
++}
+\ No newline at end of file
+diff --git a/src/boards/utilities.h b/src/boards/utilities.h
+index 8e0b028..9e226d4 100644
+--- a/src/boards/utilities.h
++++ b/src/boards/utilities.h
+@@ -25,17 +25,6 @@
+ 
+ #include <stdint.h>
+ 
+-/*!
+- * Generic definition
+- */
+-#ifndef SUCCESS
+-#define SUCCESS                                     1
+-#endif
+-
+-#ifndef FAIL
+-#define FAIL                                        0
+-#endif
+-
+ /*!
+  * \brief Returns the minimum value between a and b
+  *
+diff --git a/src/mac/LoRaMac.c b/src/mac/LoRaMac.c
+index ca90cd2..5b8c99f 100644
+--- a/src/mac/LoRaMac.c
++++ b/src/mac/LoRaMac.c
+@@ -28,7 +28,7 @@
+  *
+  * \author    Daniel Jaeckle ( STACKFORCE )
+  */
+-#include "utilities.h"
++#include "boards/utilities.h"
+ #include "LoRaMac.h"
+ #include "LoRaMacCrypto.h"
+ #include "LoRaMacTest.h"
+@@ -322,11 +322,6 @@ static LoRaMacPrimitives_t *LoRaMacPrimitives;
+  */
+ static LoRaMacCallback_t *LoRaMacCallbacks;
+ 
+-/*!
+- * Radio events function pointer
+- */
+-static RadioEvents_t RadioEvents;
+-
+ /*!
+  * LoRaMac duty cycle delayed Tx timer
+  */
+@@ -732,8 +727,7 @@ static void PrepareRxDoneAbort( void )
+     LoRaMacFlags.Bits.MacDone = 1;
+ 
+     // Trig OnMacCheckTimerEvent call as soon as possible
+-    TimerSetValue( &MacStateCheckTimer, 1 );
+-    TimerStart( &MacStateCheckTimer );
++    OnMacStateCheckTimerEvent();
+ }
+ 
+ static void OnRadioRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
+@@ -1129,13 +1123,12 @@ static void OnRadioRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t
+     CheckToDisableAckTimeout( NodeAckRequested, LoRaMacDeviceClass, McpsConfirm.AckReceived,
+                                 AckTimeoutRetriesCounter, AckTimeoutRetries );
+ 
+-    if( AckTimeoutTimer.IsRunning == false )
++    if( AckTimeoutTimer.running == false )
+     {// Procedure is completed when the AckTimeoutTimer is not running anymore
+         LoRaMacFlags.Bits.MacDone = 1;
+ 
+         // Trig OnMacCheckTimerEvent call as soon as possible
+-        TimerSetValue( &MacStateCheckTimer, 1 );
+-        TimerStart( &MacStateCheckTimer );
++        OnMacStateCheckTimerEvent();
+     }
+ }
+ 
+@@ -2384,7 +2377,7 @@ LoRaMacStatus_t SetTxContinuousWave1( uint16_t timeout, uint32_t frequency, uint
+     return LORAMAC_STATUS_OK;
+ }
+ 
+-LoRaMacStatus_t LoRaMacInitialization( LoRaMacPrimitives_t *primitives, LoRaMacCallback_t *callbacks, LoRaMacRegion_t region )
++LoRaMacStatus_t LoRaMacInitialization( RadioEvents_t *radio_events, LoRaMacPrimitives_t *primitives, LoRaMacCallback_t *callbacks, LoRaMacRegion_t region )
+ {
+     GetPhyParams_t getPhy;
+     PhyParam_t phyParam;
+@@ -2514,12 +2507,12 @@ LoRaMacStatus_t LoRaMacInitialization( LoRaMacPrimitives_t *primitives, LoRaMacC
+     LoRaMacInitializationTime = TimerGetCurrentTime( );
+ 
+     // Initialize Radio driver
+-    RadioEvents.TxDone = OnRadioTxDone;
+-    RadioEvents.RxDone = OnRadioRxDone;
+-    RadioEvents.RxError = OnRadioRxError;
+-    RadioEvents.TxTimeout = OnRadioTxTimeout;
+-    RadioEvents.RxTimeout = OnRadioRxTimeout;
+-    Radio.Init( &RadioEvents );
++    radio_events->TxDone = OnRadioTxDone;
++    radio_events->RxDone = OnRadioRxDone;
++    radio_events->RxError = OnRadioRxError;
++    radio_events->TxTimeout = OnRadioTxTimeout;
++    radio_events->RxTimeout = OnRadioRxTimeout;
++    Radio.Init( radio_events );
+ 
+     // Random seed initialization
+     srand1( Radio.Random( ) );
+diff --git a/src/mac/LoRaMac.h b/src/mac/LoRaMac.h
+index 7899ac2..8df8f9e 100644
+--- a/src/mac/LoRaMac.h
++++ b/src/mac/LoRaMac.h
+@@ -102,8 +102,8 @@
+ 
+ #include <stdint.h>
+ #include <stdbool.h>
+-#include "timer.h"
+-#include "radio.h"
++#include "semtech-loramac/timer.h"
++#include "radio/radio.h"
+ 
+ /*!
+  * Check the Mac layer state every MAC_STATE_CHECK_TIMEOUT in ms
+@@ -1822,7 +1822,7 @@ static const uint8_t LoRaMacMaxEirpTable[] = { 8, 10, 12, 13, 14, 16, 18, 20, 21
+  *          \ref LORAMAC_STATUS_PARAMETER_INVALID,
+  *          \ref LORAMAC_STATUS_REGION_NOT_SUPPORTED.
+  */
+-LoRaMacStatus_t LoRaMacInitialization( LoRaMacPrimitives_t *primitives, LoRaMacCallback_t *callbacks, LoRaMacRegion_t region );
++LoRaMacStatus_t LoRaMacInitialization( RadioEvents_t *radio_events, LoRaMacPrimitives_t *primitives, LoRaMacCallback_t *callbacks, LoRaMacRegion_t region );
+ 
+ /*!
+  * \brief   Queries the LoRaMAC if it is possible to send the next frame with
+diff --git a/src/mac/LoRaMacCrypto.c b/src/mac/LoRaMacCrypto.c
+index 9669d12..c6837c2 100644
+--- a/src/mac/LoRaMacCrypto.c
++++ b/src/mac/LoRaMacCrypto.c
+@@ -28,7 +28,7 @@
+  *
+  * \author    Daniel Jaeckle ( STACKFORCE )
+  */
+-#include "utilities.h"
++#include "boards/utilities.h"
+ 
+ #include "aes.h"
+ #include "cmac.h"
+diff --git a/src/mac/region/Region.h b/src/mac/region/Region.h
+index fa0fd44..a1a14c3 100644
+--- a/src/mac/region/Region.h
++++ b/src/mac/region/Region.h
+@@ -54,7 +54,7 @@
+ 
+ #include <stdint.h>
+ #include <stdbool.h>
+-#include "timer.h"
++#include "semtech-loramac/timer.h"
+ 
+ /*!
+  * Macro to compute bit of a channel index.
+diff --git a/src/mac/region/RegionAS923.c b/src/mac/region/RegionAS923.c
+index 991b667..28b3d0b 100644
+--- a/src/mac/region/RegionAS923.c
++++ b/src/mac/region/RegionAS923.c
+@@ -28,7 +28,7 @@
+  *
+  * \author    Daniel Jaeckle ( STACKFORCE )
+ */
+-#include "utilities.h"
++#include "boards/utilities.h"
+ 
+ #include "RegionCommon.h"
+ #include "RegionAS923.h"
+diff --git a/src/mac/region/RegionAU915.c b/src/mac/region/RegionAU915.c
+index 067a15d..4916f0c 100644
+--- a/src/mac/region/RegionAU915.c
++++ b/src/mac/region/RegionAU915.c
+@@ -28,7 +28,7 @@
+  *
+  * \author    Daniel Jaeckle ( STACKFORCE )
+ */
+-#include "utilities.h"
++#include "boards/utilities.h"
+ 
+ #include "RegionCommon.h"
+ #include "RegionAU915.h"
+diff --git a/src/mac/region/RegionCN470.c b/src/mac/region/RegionCN470.c
+index 96206ba..b824aca 100644
+--- a/src/mac/region/RegionCN470.c
++++ b/src/mac/region/RegionCN470.c
+@@ -28,7 +28,7 @@
+  *
+  * \author    Daniel Jaeckle ( STACKFORCE )
+ */
+-#include "utilities.h"
++#include "boards/utilities.h"
+ 
+ #include "RegionCommon.h"
+ #include "RegionCN470.h"
+diff --git a/src/mac/region/RegionCN779.c b/src/mac/region/RegionCN779.c
+index affc1c3..7d6c4c0 100644
+--- a/src/mac/region/RegionCN779.c
++++ b/src/mac/region/RegionCN779.c
+@@ -28,7 +28,7 @@
+  *
+  * \author    Daniel Jaeckle ( STACKFORCE )
+ */
+-#include "utilities.h"
++#include "boards/utilities.h"
+ 
+ #include "RegionCommon.h"
+ #include "RegionCN779.h"
+diff --git a/src/mac/region/RegionCommon.c b/src/mac/region/RegionCommon.c
+index 1d204eb..2d44e9d 100644
+--- a/src/mac/region/RegionCommon.c
++++ b/src/mac/region/RegionCommon.c
+@@ -29,7 +29,7 @@
+  * \author    Daniel Jaeckle ( STACKFORCE )
+  */
+ #include <math.h>
+-#include "utilities.h"
++#include "boards/utilities.h"
+ #include "RegionCommon.h"
+ 
+ #define BACKOFF_DC_1_HOUR       100
+diff --git a/src/mac/region/RegionEU433.c b/src/mac/region/RegionEU433.c
+index f9552ea..3f54a3c 100644
+--- a/src/mac/region/RegionEU433.c
++++ b/src/mac/region/RegionEU433.c
+@@ -28,7 +28,7 @@
+  *
+  * \author    Daniel Jaeckle ( STACKFORCE )
+ */
+-#include "utilities.h"
++#include "boards/utilities.h"
+ 
+ #include "RegionCommon.h"
+ #include "RegionEU433.h"
+diff --git a/src/mac/region/RegionEU868.c b/src/mac/region/RegionEU868.c
+index e3fae9f..be5e059 100644
+--- a/src/mac/region/RegionEU868.c
++++ b/src/mac/region/RegionEU868.c
+@@ -28,7 +28,7 @@
+  *
+  * \author    Daniel Jaeckle ( STACKFORCE )
+ */
+-#include "utilities.h"
++#include "boards/utilities.h"
+ 
+ #include "RegionCommon.h"
+ #include "RegionEU868.h"
+diff --git a/src/mac/region/RegionIN865.c b/src/mac/region/RegionIN865.c
+index 0cbeac3..dc3ff01 100644
+--- a/src/mac/region/RegionIN865.c
++++ b/src/mac/region/RegionIN865.c
+@@ -28,7 +28,7 @@
+  *
+  * \author    Daniel Jaeckle ( STACKFORCE )
+ */
+-#include "utilities.h"
++#include "boards/utilities.h"
+ 
+ #include "RegionCommon.h"
+ #include "RegionIN865.h"
+diff --git a/src/mac/region/RegionKR920.c b/src/mac/region/RegionKR920.c
+index 6504663..108f67d 100644
+--- a/src/mac/region/RegionKR920.c
++++ b/src/mac/region/RegionKR920.c
+@@ -28,7 +28,7 @@
+  *
+  * \author    Daniel Jaeckle ( STACKFORCE )
+ */
+-#include "utilities.h"
++#include "boards/utilities.h"
+ 
+ #include "RegionCommon.h"
+ #include "RegionKR920.h"
+diff --git a/src/mac/region/RegionUS915-Hybrid.c b/src/mac/region/RegionUS915-Hybrid.c
+index a9c47cb..898d52b 100644
+--- a/src/mac/region/RegionUS915-Hybrid.c
++++ b/src/mac/region/RegionUS915-Hybrid.c
+@@ -28,7 +28,7 @@
+  *
+  * \author    Daniel Jaeckle ( STACKFORCE )
+ */
+-#include "utilities.h"
++#include "boards/utilities.h"
+ 
+ #include "RegionCommon.h"
+ #include "RegionUS915-Hybrid.h"
+diff --git a/src/mac/region/RegionUS915.c b/src/mac/region/RegionUS915.c
+index 1ff34b3..6d5d7ec 100644
+--- a/src/mac/region/RegionUS915.c
++++ b/src/mac/region/RegionUS915.c
+@@ -28,7 +28,7 @@
+  *
+  * \author    Daniel Jaeckle ( STACKFORCE )
+ */
+-#include "utilities.h"
++#include "boards/utilities.h"
+ 
+ #include "RegionCommon.h"
+ #include "RegionUS915.h"
+diff --git a/src/system/crypto/cmac.c b/src/system/crypto/cmac.c
+index 779b668..c7a52cf 100644
+--- a/src/system/crypto/cmac.c
++++ b/src/system/crypto/cmac.c
+@@ -37,7 +37,7 @@ DEALINGS WITH THE SOFTWARE
+ #include <stdint.h>
+ #include "aes.h"
+ #include "cmac.h"
+-#include "utilities.h"
++#include "boards/utilities.h"
+ 
+ #define LSHIFT(v, r) do {                                       \
+   int32_t i;                                                  \
+-- 
+2.17.1
+

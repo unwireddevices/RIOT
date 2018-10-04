@@ -1,8 +1,8 @@
 include ../Makefile.tests_common
 
-BOARD_INSUFFICIENT_MEMORY := nucleo32-f031
+BOARD_INSUFFICIENT_MEMORY := nucleo-f031k6
 
-BOARD ?= nucleo-l152
+BOARD ?= nucleo-l152re
 
 USEMODULE += od
 USEMODULE += shell
@@ -13,7 +13,7 @@ USEMODULE += xtimer
 DRIVER ?= sx1276
 
 # use SX1276 by default
-USEMODULE += ${DRIVER}
+USEMODULE += $(DRIVER)
 
 FEATURES_REQUIRED ?= periph_spi
 FEATURES_REQUIRED ?= periph_gpio

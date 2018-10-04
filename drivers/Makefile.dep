@@ -6,12 +6,26 @@ ifneq (,$(filter adc%1c,$(USEMODULE)))
   USEMODULE += adcxx1c
 endif
 
+ifneq (,$(filter ads101%,$(USEMODULE)))
+  FEATURES_REQUIRED += periph_gpio
+  FEATURES_REQUIRED += periph_i2c
+  USEMODULE += ads101x
+  USEMODULE += xtimer
+endif
+
 ifneq (,$(filter adxl345,$(USEMODULE)))
   FEATURES_REQUIRED += periph_i2c
 endif
 
 ifneq (,$(filter apa102,$(USEMODULE)))
   FEATURES_REQUIRED += periph_gpio
+endif
+
+ifneq (,$(filter at,$(USEMODULE)))
+  FEATURES_REQUIRED += periph_uart
+  USEMODULE += fmt
+  USEMODULE += xtimer
+  USEMODULE += isrpipe
 endif
 
 ifneq (,$(filter at30tse75x,$(USEMODULE)))
@@ -47,15 +61,20 @@ ifneq (,$(filter bmp180,$(USEMODULE)))
   USEMODULE += xtimer
 endif
 
+ifneq (,$(filter bmx055,$(USEMODULE)))
+  FEATURES_REQUIRED += periph_i2c
+endif
+
 ifneq (,$(filter bm%280,$(USEMODULE)))
   FEATURES_REQUIRED += periph_i2c
   USEMODULE += xtimer
   USEMODULE += bmx280
 endif
 
-ifneq (,$(filter bme280,$(USEMODULE)))
-    FEATURES_REQUIRED += periph_i2c
-    USEMODULE += xtimer
+ifneq (,$(filter bmes680,$(USEMODULE)))
+  FEATURES_REQUIRED += periph_i2c
+  USEMODULE += xtimer
+  USEMODULE += bme680
 endif
 
 ifneq (,$(filter cc110x,$(USEMODULE)))
@@ -113,6 +132,8 @@ ifneq (,$(filter encx24j600,$(USEMODULE)))
 endif
 
 ifneq (,$(filter ethos,$(USEMODULE)))
+  FEATURES_REQUIRED += periph_uart
+  USEMODULE += iolist
   USEMODULE += netdev_eth
   USEMODULE += random
   USEMODULE += tsrb
@@ -120,6 +141,11 @@ endif
 
 ifneq (,$(filter feetech,$(USEMODULE)))
   USEMODULE += uart_half_duplex
+endif
+
+ifneq (,$(filter fxos8700,$(USEMODULE)))
+  USEMODULE += xtimer
+  FEATURES_REQUIRED += periph_i2c
 endif
 
 ifneq (,$(filter grove_ledbar,$(USEMODULE)))
@@ -136,6 +162,11 @@ ifneq (,$(filter hdc1000,$(USEMODULE)))
   FEATURES_REQUIRED += periph_i2c
 endif
 
+ifneq (,$(filter pulse_counter,$(USEMODULE)))
+  USEMODULE += xtimer
+  FEATURES_REQUIRED += periph_gpio
+endif
+
 ifneq (,$(filter hih6130,$(USEMODULE)))
   USEMODULE += xtimer
 endif
@@ -146,7 +177,9 @@ endif
 
 ifneq (,$(filter io1_xplained,$(USEMODULE)))
   FEATURES_REQUIRED += periph_gpio
+  FEATURES_REQUIRED += periph_adc
   USEMODULE += at30tse75x
+  USEMODULE += sdcard_spi
 endif
 
 ifneq (,$(filter jc42,$(USEMODULE)))
@@ -176,6 +209,16 @@ ifneq (,$(filter lis2dh12%,$(USEMODULE)))
   USEMODULE += lis2dh12
 endif
 
+ifneq (,$(filter lis2hh12%,$(USEMODULE)))
+  ifneq (,$(filter lis2hh12_i2c,$(USEMODULE)))
+    FEATURES_REQUIRED += periph_i2c
+    FEATURES_REQUIRED += periph_gpio
+  else
+    FEATURES_REQUIRED += periph_spi
+  endif
+  USEMODULE += lis2hh12
+endif
+
 ifneq (,$(filter lis3dh,$(USEMODULE)))
   FEATURES_REQUIRED += periph_gpio
   FEATURES_REQUIRED += periph_spi
@@ -192,6 +235,12 @@ endif
 
 ifneq (,$(filter lsm6dsl,$(USEMODULE)))
   FEATURES_REQUIRED += periph_i2c
+  USEMODULE += xtimer
+endif
+
+ifneq (,$(filter m24sr,$(USEMODULE)))
+  FEATURES_REQUIRED += periph_i2c
+  FEATURES_REQUIRED += periph_gpio
   USEMODULE += xtimer
 endif
 
@@ -252,6 +301,11 @@ ifneq (,$(filter pcd8544,$(USEMODULE)))
   USEMODULE += xtimer
 endif
 
+ifneq (,$(filter pir,$(USEMODULE)))
+  FEATURES_REQUIRED += periph_gpio
+  USEMODULE += xtimer
+endif
+
 ifneq (,$(filter rgbled,$(USEMODULE)))
   USEMODULE += color
 endif
@@ -267,11 +321,24 @@ endif
 ifneq (,$(filter sdcard_spi,$(USEMODULE)))
   FEATURES_REQUIRED += periph_gpio
   FEATURES_REQUIRED += periph_spi
+  USEMODULE += checksum
   USEMODULE += xtimer
 endif
 
-ifneq (,$(filter sht11,$(USEMODULE)))
+ifneq (,$(filter servo,$(USEMODULE)))
+  FEATURES_REQUIRED += periph_pwm
+endif
+
+ifneq (,$(filter sht1%,$(USEMODULE)))
+  USEMODULE += sht1x
+  FEATURES_REQUIRED += periph_gpio
   USEMODULE += xtimer
+endif
+
+ifneq (,$(filter si114%,$(USEMODULE)))
+  USEMODULE += xtimer
+  FEATURES_REQUIRED += periph_i2c
+  USEMODULE += si114x
 endif
 
 ifneq (,$(filter si70%,$(USEMODULE)))
@@ -303,6 +370,7 @@ ifneq (,$(filter sx127%,$(USEMODULE)))
   FEATURES_REQUIRED += periph_spi
   FEATURES_REQUIRED += periph_rtc
   USEMODULE += rtctimers-millis
+  USEMODULE += iolist
   USEMODULE += xtimer
   USEMODULE += sx127x
   USEMODULE += netif

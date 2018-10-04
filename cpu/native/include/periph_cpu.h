@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup         native_cpu
+ * @ingroup         cpu_native
  * @{
  *
  * @file
@@ -42,6 +42,7 @@ extern "C" {
  * @{
  */
 #define PROVIDES_PM_OFF
+#define PROVIDES_PM_SET_LOWEST
 /** @} */
 
 #ifdef __cplusplus

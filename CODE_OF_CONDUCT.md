@@ -1,5 +1,5 @@
-RIOT Code of Conduct (Unwired version)
-======================================
+RIOT-OS Code of Conduct (Unwired version)
+=========================================
 
 RIOT, like so many other free and open source software projects, is made up of a
 mixed group of professionals and volunteers from all over the world, working on
@@ -70,3 +70,11 @@ Questions?
 
 If you have questions, please re-read this text until you don't have questions anymore.
 If that doesn't answer your questions, feel free to go away.
+
+Code of Conduct, the real one
+-----------------------------
+
+If you finally got tired of useless and meaningless SJW-produced bullshit, please read
+IEEE Software Engineering Code of Ethics - https://www.computer.org/web/education/code-of-ethics
+
+If we ever need the Code of Conduct for real, we use that one. Without modifications.

@@ -4,4 +4,4 @@ APPLICATION = lorawan-public
 # application-specific modules
 USEPKG += semtech-loramac
 
-include ../unwd-common/Makefile.include
+include ../unwds-common/Makefile.include

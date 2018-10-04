@@ -37,6 +37,7 @@ extern "C" {
 #include "ls-config.h"
 
 #include "unwds-common.h"
+#include "umdk-ids.h"
 
 #define ENABLE_DEBUG    (0)
 #include "debug.h"

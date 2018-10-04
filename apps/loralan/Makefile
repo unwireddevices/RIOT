@@ -5,4 +5,4 @@ APPLICATION = loralan-public
 USEMODULE += loralan-mac
 USEMODULE += loralan-device
 
-include ../unwd-common/Makefile.include
+include ../unwds-common/Makefile.include

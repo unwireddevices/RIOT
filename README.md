@@ -45,6 +45,14 @@ indirect business models around the free open-source software platform
 provided by RIOT, e.g. it is possible to link closed-source code with the
 LGPL code.
 
+## SPECIFIC FEATURES BY UNWIRED DEVICES
+
+Unwired Devices provides numerous new drivers, features and improvements to original RIOT OS code,
+as well as complete applications for LoRaWAN and LoRaLAN network stacks with highly modular
+architecture and extensive shell configuration capabilities.
+
+Complete list of added features and improvements can be found in the [CHANGES.md](CHANGES.md) file.
+
 ## FEATURES
 
 RIOT is based on a microkernel architecture, and provides features including,
@@ -63,16 +71,6 @@ but not limited to:
 * RPL (storing mode, P2P mode)
 * CoAP
 * CCN-Lite
-
-## SPECIFIC FEATURES BY UNWIRED DEVICES
-
-* LoRaLAN network stack for small-scale LoRa networks (up to 100 nodes with STM32L1 CPU)
-* set of modules providing support for various sensors and actuators for LoRaLAN endpoint device
-* power management support for STM32L1: STOP, STANDBY, SLEEP and frequency switching
-* watchdog, EEPROM, backup registers support for STM32L1
-* RTC-based timers, including subseconds timer (rtctimers and rtctimers-millis)
-* additional peripheral device drivers
-* support for Unwired Range LoRa modems
 
 ## GETTING STARTED
 * You want to start the RIOT? Just follow our [quickstart guide](http://doc.riot-os.org/index.html#the-quickest-start) or try this [tutorial](https://github.com/RIOT-OS/Tutorials/blob/master/README.md). For specific toolchain installation, follow instructions in the [getting started](http://doc.riot-os.org/getting-started.html) page.

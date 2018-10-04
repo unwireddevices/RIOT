@@ -122,3 +122,10 @@ Some modules are available in commercial firmware only:
 * umdk-m230 - Incotex Mercury M230 electricity meters support (both CAN and RS485)
 * umdk-pacs - i-Button based Physical Access Control System
 * umdk-wiegand - Wiegand PACS interface support
+
+Applications
+------------
+
+* loralan - complete LoRaLAN end-point device firmware application
+* loralan-gateway - complete LoRaLAN gateway device application
+* loralan-wan - complete LoRaWAN end-point device application

@@ -4,6 +4,11 @@ BOARD ?= unwd-range-l1-r3
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../..
 
+# Set default LoRa region
+LORA_REGION ?= RU864
+CFLAGS += -DREGION_$(LORA_REGION)
+CFLAGS += -DLORAMAC_ACTIVE_REGION=LORAMAC_REGION_$(LORA_REGION)
+
 ############ UMDK MODULES USED #####################
 # variables in the list below must match modules'
 # subdirectory name in ../../unwired-modules/

@@ -52,6 +52,7 @@ extern "C" {
 
 #include "fdc1004.h"
 
+#include "umdk-ids.h"
 #include "unwds-common.h"
 #include "umdk-fdc1004.h"
 

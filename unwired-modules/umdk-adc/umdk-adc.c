@@ -50,6 +50,7 @@ extern "C" {
 #include "periph/adc.h"
 #include "board.h"
 
+#include "umdk-ids.h"
 #include "unwds-common.h"
 
 #include "umdk-adc.h"

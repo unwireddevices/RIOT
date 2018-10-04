@@ -52,6 +52,7 @@ extern "C" {
 
 #include "opt3001.h"
 
+#include "umdk-ids.h"
 #include "unwds-common.h"
 #include "umdk-light.h"
 

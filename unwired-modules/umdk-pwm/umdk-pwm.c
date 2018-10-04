@@ -50,6 +50,7 @@ extern "C" {
 #include "board.h"
 #include "periph/gpio.h"
 
+#include "umdk-ids.h"
 #include "unwds-common.h"
 #include "include/umdk-pwm.h"
 

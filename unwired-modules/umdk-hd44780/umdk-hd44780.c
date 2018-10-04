@@ -49,6 +49,7 @@ extern "C" {
 
 #include "umdk-hd44780.h"
 
+#include "umdk-ids.h"
 #include "unwds-common.h"
 
 #include "thread.h"

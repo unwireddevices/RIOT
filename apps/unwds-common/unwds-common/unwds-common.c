@@ -46,11 +46,10 @@ extern "C" {
 #include "board.h"
 #include "checksum/fletcher16.h"
 
-#include "umdk-ids.h"
 #include "unwds-common.h"
+#include "umdk-ids.h"
+#include "umdk-modules.h"
 #include "unwds-gpio.h"
-
-extern unwd_module_t modules[];
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"

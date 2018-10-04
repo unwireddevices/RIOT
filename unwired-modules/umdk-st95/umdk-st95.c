@@ -39,6 +39,7 @@ extern "C" {
 #include "periph/uart.h"
 #include "board.h"
 
+#include "umdk-ids.h"
 #include "unwds-common.h"
 #include "include/umdk-st95.h"
 

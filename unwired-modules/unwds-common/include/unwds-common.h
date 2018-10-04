@@ -39,8 +39,6 @@
 #include "shell_commands.h"
 #include "periph/gpio.h"
 
-#include "unwds-ids.h"
-
 typedef uint8_t unwds_module_id_t;
 
 /**

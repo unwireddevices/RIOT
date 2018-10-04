@@ -46,6 +46,7 @@ extern "C" {
 #include <string.h>
 
 #include "board.h"
+#include "umdk-ids.h"
 #include "unwds-common.h"
 #include "ls-settings.h"
 #include "rtctimers-millis.h"

@@ -48,6 +48,7 @@ extern "C" {
 #include "mt3333.h"
 #include "board.h"
 
+#include "umdk-ids.h"
 #include "unwds-common.h"
 #include "umdk-gps.h"
 

@@ -50,6 +50,7 @@ extern "C" {
 #include "xtimer.h"
 #include "periph/gpio.h"
 
+#include "umdk-ids.h"
 #include "unwds-common.h"
 #include "utils.h"
 #include "include/umdk-irblaster.h"

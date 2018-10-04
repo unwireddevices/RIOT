@@ -62,6 +62,7 @@ extern "C" {
 #include "lsm6ds3.h"
 #include "lsm6ds3_regs.h"
 
+#include "umdk-ids.h"
 #include "unwds-common.h"
 #include "umdk-inclinometer.h"
 

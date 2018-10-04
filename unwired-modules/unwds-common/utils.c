@@ -41,6 +41,7 @@ extern "C" {
 #include "fmt.h"
 #include "utils.h"
 #include "board.h"
+#include "umdk-ids.h"
 #include "unwds-common.h"
 #include "periph/gpio.h"
 #include "rtctimers-millis.h"

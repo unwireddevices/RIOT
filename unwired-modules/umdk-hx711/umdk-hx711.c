@@ -47,6 +47,7 @@ extern "C" {
 #include "umdk-hx711.h"
 #include "periph/gpio.h"
 #include "board.h"
+#include "umdk-ids.h"
 #include "unwds-common.h"
 #include "thread.h"
 #include "rtctimers-millis.h"

@@ -48,6 +48,7 @@ extern "C" {
 #include "periph/gpio.h"
 
 #include "board.h"
+#include "umdk-ids.h"
 #include "unwds-common.h"
 
 #include "umdk-gpio.h"

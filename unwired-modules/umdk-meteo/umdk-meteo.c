@@ -55,6 +55,7 @@ extern "C" {
 #include "lps331ap.h"
 #include "lm75.h"
 
+#include "umdk-ids.h"
 #include "unwds-common.h"
 #include "umdk-meteo.h"
 

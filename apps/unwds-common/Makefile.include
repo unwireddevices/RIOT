@@ -4,6 +4,9 @@ BOARD ?= unwd-range-l1-r3
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../..
 
+# Current firmware version
+CFLAGS += -DFIRMWARE_VERSION=\"1.99\"
+
 # Set default LoRa region
 LORA_REGION ?= RU864
 CFLAGS += -DREGION_$(LORA_REGION)
@@ -42,13 +45,15 @@ umdk-st95	                = 1
 
 define umdk_add_module
 ifeq ($($(UMDK_MODULE_NAME)),1)
-    USEMODULE += $(UMDK_MODULE_NAME)
+    UMDK_MODULES_ENABLED += $(UMDK_MODULE_NAME)
 endif
 endef
 
 $(foreach UMDK_MODULE_NAME, $(filter umdk-%, ${.VARIABLES}), $(eval $(call umdk_add_module, $UMDK_MODULE_NAME)))
 
-UMDK_MODULES_MAKEFILES = $(addsuffix /Makefile.include, $(addprefix ../../unwired-modules/, $(filter umdk-%, ${USEMODULE})))
+UMDK_MODULES_MAKEFILES = $(addsuffix /Makefile.include, $(addprefix $(RIOTBASE)/unwired-modules/, $(UMDK_MODULES_ENABLED)))
+
+export UMDK_MODULES_ENABLED
 
 define umdk_include_makefile
 ifneq ("$(wildcard $(FILE))","")
@@ -57,6 +62,9 @@ endif
 endef
 
 $(foreach FILE, $(UMDK_MODULES_MAKEFILES), $(eval $(call umdk_include_makefile, $FILE)))
+
+DIRS += $(addprefix $(RIOTBASE)/unwired-modules/, $(UMDK_MODULES_ENABLED))
+INCLUDES += $(addprefix -I$(RIOTBASE)/unwired-modules/, $(addsuffix /include, $(UMDK_MODULES_ENABLED)))
 
 ################ Other modules to include ################
 USEMODULE += shell
@@ -80,10 +88,12 @@ USEMODULE += unwds-common
 DIRS += $(RIOTBASE)/apps/unwds-common/loralan-device/
 DIRS += $(RIOTBASE)/apps/unwds-common/loralan-mac/
 DIRS += $(RIOTBASE)/apps/unwds-common/loralan-common/
+DIRS += $(RIOTBASE)/apps/unwds-common/unwds-common/
 
 INCLUDES += -I$(RIOTBASE)/apps/unwds-common/loralan-device/include/
 INCLUDES += -I$(RIOTBASE)/apps/unwds-common/loralan-mac/include/
 INCLUDES += -I$(RIOTBASE)/apps/unwds-common/loralan-common/include/
+INCLUDES += -I$(RIOTBASE)/apps/unwds-common/unwds-common/include/
 
 DIRS += $(RIOTBASE)/unwired-modules/
 INCLUDES += -I$(RIOTBASE)/unwired-modules/unwds-common/include/

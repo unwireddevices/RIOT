@@ -46,6 +46,7 @@ extern "C" {
 #include "board.h"
 #include "checksum/fletcher16.h"
 
+#include "umdk-ids.h"
 #include "unwds-common.h"
 #include "unwds-gpio.h"
 

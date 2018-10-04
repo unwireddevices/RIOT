@@ -47,6 +47,7 @@ extern "C" {
 
 #include "board.h"
 
+#include "umdk-ids.h"
 #include "unwds-common.h"
 #include "include/umdk-mhz19.h"
 

@@ -4,6 +4,7 @@ IMPROVEMENTS BY UNWIRED DEVICES
 This document describes differences between Unwired Devices code and original RIOT OS code.
 
 CPU support
+-----------
 
 * Cortex-M: function to check address validity on any Cortex-M CPU
 * STM32: optimized EEPROM read/write-support (up to 8x faster, 4x lesser wear)
@@ -33,6 +34,7 @@ CPU support
 * STM32L4: STM32L451 ADC support
 
 Device drivers
+--------------
 
 * Fixed ADXL345 driver (completely broken in all RIOT release up to and including at least 2018.07)
 * AD5308/AD5318/AD5328 DAC driver
@@ -54,6 +56,7 @@ Device drivers
 * Ultrasonic rangefinder driver
 
 System services
+---------------
 
 * rtctimers timers module for second-precision RTC timers
 * rtctimers-millis module for millisecond-precision RTC timers
@@ -61,12 +64,14 @@ System services
 * shell_password command for shell access protection
 
 Core functions
+--------------
 
 * byteorder.h: universal function to switch byte order
 * byteorder.h: portable way to check for endianness
 * debug.h: print function name automatically
 
 Other improvements
+------------------
 
 * Improved Semtech LoRaWAN support
 * Unwired Devices LoRaLAN protocol support

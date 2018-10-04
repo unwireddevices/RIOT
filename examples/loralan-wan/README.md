@@ -1,3 +1,4 @@
-examples/lora-star-uni
-================
-Universal, configurable default firmware for end-devices
+examples/loralan-wan
+====================
+Universal modular firmware for LoRaWAN end-point devices
+

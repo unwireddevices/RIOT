@@ -1,3 +1,3 @@
-examples/lora-star-uni
+examples/loralan
 ================
-Universal, configurable default firmware for end-devices
+Universal modular firmware for LoRaLAN end-point devices

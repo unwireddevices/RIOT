@@ -1,3 +1,3 @@
-examples/lora-star-uni-gate
-================
-Universal, configurable default firmware for gates
+examples/loralan-gateway
+========================
+Universal, configurable firmware for LoRaLAN gateway device

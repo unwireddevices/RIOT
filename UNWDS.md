@@ -86,6 +86,10 @@ Unwired Modules are created to be used in user-level modular application
 to provide support for various devices, sensors, and interfaces. Modules
 are used with both LoRaLAN and LoRaWAN applications.
 
+Please note that Unwired Modules are not based on existing RIOT code and
+so is not required to be LGPL licensed. Unwired Modules are distributed
+with more permissive MIT-style license.
+
 * loralan-common - common LoRaLAN functions
 * loralan-device - LoRaLAN MAC for end-point device
 * loralan-gateway - LoRaLAN MAC for gateway device
@@ -115,7 +119,8 @@ are used with both LoRaLAN and LoRaWAN applications.
 * unwd-pawn - PAWN scripting language
 * unwds-common - common functions
 
-Some modules are available in commercial firmware only:
+Modules listed below are available in commercial firmware only. These are not open source.
+
 * umdk-dali - Digital Addressable Lighting Interface support
 * umdk-iec61107 - IEC-61107 electricity meters support (i.e. Energomera meters)
 * umdk-m200 - Incotex Mercury M200 electricity meters support (both CAN and RS485)
@@ -125,6 +130,10 @@ Some modules are available in commercial firmware only:
 
 Applications
 ------------
+
+Please note that Unwired Applications are not based on existing RIOT code and
+so is not required to be LGPL licensed. Unwired Applications are distributed
+with more permissive MIT-style license.
 
 * loralan - complete LoRaLAN end-point device firmware application
 * loralan-gateway - complete LoRaLAN gateway device application

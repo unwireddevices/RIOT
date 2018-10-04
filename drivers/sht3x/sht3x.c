@@ -418,7 +418,7 @@ static int _status (sht3x_dev_t* dev, uint16_t* status)
 }
 
 
-const uint8_t g_polynom = 0x31;
+static const uint8_t g_polynom = 0x31;
 
 static uint8_t _crc8 (uint8_t data[], int len)
 {

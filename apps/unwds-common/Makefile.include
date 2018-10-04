@@ -50,10 +50,10 @@ endif
 endef
 
 $(foreach UMDK_MODULE_NAME, $(filter umdk-%, ${.VARIABLES}), $(eval $(call umdk_add_module, $UMDK_MODULE_NAME)))
+USEMODULE += $(UMDK_MODULES_ENABLED)
+export UMDK_MODULES_ENABLED
 
 UMDK_MODULES_MAKEFILES = $(addsuffix /Makefile.include, $(addprefix $(RIOTBASE)/unwired-modules/, $(UMDK_MODULES_ENABLED)))
-
-export UMDK_MODULES_ENABLED
 
 define umdk_include_makefile
 ifneq ("$(wildcard $(FILE))","")
@@ -62,6 +62,9 @@ endif
 endef
 
 $(foreach FILE, $(UMDK_MODULES_MAKEFILES), $(eval $(call umdk_include_makefile, $FILE)))
+
+DIRS += $(RIOTBASE)/unwired-modules/
+INCLUDES += -I$(RIOTBASE)/unwired-modules/include/
 
 DIRS += $(addprefix $(RIOTBASE)/unwired-modules/, $(UMDK_MODULES_ENABLED))
 INCLUDES += $(addprefix -I$(RIOTBASE)/unwired-modules/, $(addsuffix /include, $(UMDK_MODULES_ENABLED)))
@@ -81,7 +84,6 @@ USEMODULE += rtctimers-millis
 
 USEMODULE += sx127x
 
-# EXTERNAL_MODULE_DIRS += $(RIOTBASE)/unwired-modules/
 USEMODULE += loralan-common
 USEMODULE += unwds-common
 
@@ -94,10 +96,6 @@ INCLUDES += -I$(RIOTBASE)/apps/unwds-common/loralan-device/include/
 INCLUDES += -I$(RIOTBASE)/apps/unwds-common/loralan-mac/include/
 INCLUDES += -I$(RIOTBASE)/apps/unwds-common/loralan-common/include/
 INCLUDES += -I$(RIOTBASE)/apps/unwds-common/unwds-common/include/
-
-DIRS += $(RIOTBASE)/unwired-modules/
-INCLUDES += -I$(RIOTBASE)/unwired-modules/unwds-common/include/
-INCLUDES += -I$(RIOTBASE)/unwired-modules/include/
 
 ####################################################
 

@@ -92,6 +92,8 @@ static inline int ticks_to_per_cent_mille(uint16_t ticks)
 
 static int read_sensor(sht21_t *dev, bool need_rh, int *result) {
     uint8_t config;
+    
+    i2c_acquire(dev->i2c);
     /* Write command somehow hangs I2C if there was NACK before */
     /* So lets do read first */
     i2c_read_reg(dev->i2c, SHT21_ADDRESS, SHT21_USER_REG_READ, (char *)&config, 0);
@@ -101,15 +103,22 @@ static int read_sensor(sht21_t *dev, bool need_rh, int *result) {
     uint8_t cmd = (need_rh) ? SHT21_REG_RH_NACK : SHT21_REG_T_NACK;
     
     i2c_write_byte(dev->i2c, SHT21_ADDRESS, cmd, 0);
-
+    
+    /* release bus until sensor is ready */
+    i2c_release(dev->i2c);
+    
     rtctimers_millis_sleep(100);
     /* Read back measurements: MSB, LSB and checksum byte */
     
+    i2c_acquire(dev->i2c);
     uint16_t data;
     i2c_read_bytes(dev->i2c, SHT21_ADDRESS, (void *)&data, 2, 0);
+    i2c_release(dev->i2c)
 
     /* Compose 16 bit integer */
-    byteorder_swap((void *)&data, sizeof(data));
+    if (byteorder_is_little_endian()) {
+        byteorder_swap((void *)&data, sizeof(data));
+    }
     
     *result = (need_rh) ? ticks_to_per_cent_mille(data) : ticks_to_millicelsius(data);
     
@@ -142,12 +151,8 @@ uint32_t sht21_measure(sht21_t *dev, sht21_measure_t *measure)
     int humidity =  0;
     int result = 0;
 
-    i2c_acquire(dev->i2c);
-
     result = read_sensor(dev, false, &temperature);
     result += read_sensor(dev, true, &humidity);
-
-    i2c_release(dev->i2c);
 
     if (result) {
         return -1;

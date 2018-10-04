@@ -47,7 +47,7 @@ Device drivers
 * LSM6DS3 gyroaccelerometer driver
 * M24SR NFC EEPROM driver
 * MH-Z19 CO2 sensor driver
-* MT3333 GPS driver (Quectel L76, Navia KL3333, Simcom SIM68M)
+* MT3333 GPS driver
 * Generic 1-Wire driver (both UART and bitbanging mode)
 * OPT3001 luminance sensor driver
 * SHT21 temperature and humidity sensor driver (polling mode)
@@ -78,3 +78,47 @@ Other improvements
 * Multiple Unwired Devices modules for various sensors and interfaces
 * LoRaWAN application with support for Unwired Devices modules
 * Support for Unwired Devices boards
+
+Unwired Modules
+---------------
+
+Unwired Modules are created to be used in user-level modular application
+to provide support for various devices, sensors, and interfaces. Modules
+are used with both LoRaLAN and LoRaWAN applications.
+
+* loralan-common - common LoRaLAN functions
+* loralan-device - LoRaLAN MAC for end-point device
+* loralan-gateway - LoRaLAN MAC for gateway device
+* loralan-mac - common LoRaLAN MAC functions and definitions
+* umdk-4btn - pushbutton support
+* umdk-adc - ADC support
+* umdk-config - end-point device remote configuration support
+* umdk-counter - pulse counter, both polling and IRQ modes
+* umdk-fdc1004 - capacitive sensor (alpha)
+* umdk-gpio - GPIO read/write support
+* umdk-gps - MT3333-based GPS device support (Quectel L76, Navia KL3333, Simcom SIM68M)
+* umdk-hd44780 - HD44780 and compatible LCD/OLED displays support
+* umdk-hx711 - HX711 ADC support
+* umdk-ibutton - 1-Wire i-Button support
+* umdk-inclinometer - accelerometer-based inclinometer (ADXL345, LIS2HH12, LSM6DS3 supported)
+* umdk-irblaster - IR blaster (alpha)
+* umdk-light - illuminance sensor (OPT3001 supported)
+* umdk-lmt01 - LMT01 temperature sensor support (up to 4 sensors by default)
+* umdk-meteo - air temperature, humidity and pressure (SHT21, BME280, LPS331, LM75A supported)
+* umdk-mhz19 - MH-Z19 CO2 sensor
+* umdk-modbus - MODBUS RTU support
+* umdk-pir - PIR presense detector (generic Chinese modules)
+* umdk-pwm - GPIO PWM
+* umdk-rssiecho - radio link check
+* umdk-uart - RS232/RS485/UART-over-radio transparent bridge
+* umdk-usound - ultrasound rangefinder (not Chinese modules but our own schematics and firmware)
+* unwd-pawn - PAWN scripting language
+* unwds-common - common functions
+
+Some modules are available in commercial firmware only:
+* umdk-dali - Digital Addressable Lighting Interface support
+* umdk-iec61107 - IEC-61107 electricity meters support (i.e. Energomera meters)
+* umdk-m200 - Incotex Mercury M200 electricity meters support (both CAN and RS485)
+* umdk-m230 - Incotex Mercury M230 electricity meters support (both CAN and RS485)
+* umdk-pacs - i-Button based Physical Access Control System
+* umdk-wiegand - Wiegand PACS interface support

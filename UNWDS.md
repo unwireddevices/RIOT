@@ -90,10 +90,6 @@ Please note that Unwired Modules are not based on existing RIOT code and
 so is not required to be LGPL licensed. Unwired Modules are distributed
 with more permissive MIT-style license.
 
-* loralan-common - common LoRaLAN functions
-* loralan-device - LoRaLAN MAC for end-point device
-* loralan-gateway - LoRaLAN MAC for gateway device
-* loralan-mac - common LoRaLAN MAC functions and definitions
 * umdk-4btn - pushbutton support
 * umdk-adc - ADC support
 * umdk-config - end-point device remote configuration support
@@ -116,8 +112,7 @@ with more permissive MIT-style license.
 * umdk-rssiecho - radio link check
 * umdk-uart - RS232/RS485/UART-over-radio transparent bridge
 * umdk-usound - ultrasound rangefinder (not Chinese modules but our own schematics and firmware)
-* unwd-pawn - PAWN scripting language
-* unwds-common - common functions
+* umdk-pawn - PAWN scripting language
 
 Modules listed below are available in commercial firmware only. These are not open source.
 
@@ -138,3 +133,11 @@ with more permissive MIT-style license.
 * loralan - complete LoRaLAN end-point device firmware application
 * loralan-gateway - complete LoRaLAN gateway device application
 * loralan-wan - complete LoRaWAN end-point device application
+
+Applications are supported by the following modules (apps/unwds-common directory):
+
+* loralan-common - common LoRaLAN-related functions
+* loralan-device - LoRaLAN MAC for end-point device
+* loralan-gateway - LoRaLAN MAC for gateway device
+* loralan-mac - common LoRaLAN MAC functions and definitions
+* unwds-common - various useful functions and utilities not related to LoRa MAC implementation

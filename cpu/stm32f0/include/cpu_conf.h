@@ -64,6 +64,8 @@ extern "C" {
 
 #define FLASHPAGE_NUMOF     (STM32_FLASHSIZE / FLASHPAGE_SIZE)
 
+#define ST_DEV_ID           ((DBGMCU->IDCODE) & DBGMCU_IDCODE_DEV_ID)
+
 /* The minimum block size which can be written is 2B. However, the erase
  * block is always FLASHPAGE_SIZE.
  */

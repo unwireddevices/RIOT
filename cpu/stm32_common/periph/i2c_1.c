@@ -362,17 +362,15 @@ static inline int _start(I2C_TypeDef *i2c, uint16_t address,
     DEBUG("[i2c] start: set address mode\n");
     /* set address mode to 7-bit */
     i2c->CR2 &= ~(I2C_CR2_ADD10);
-
-    DEBUG("[i2c] start: set slave address [0x%04X]\n", address);
+    DEBUG("[i2c] start: set slave address\n");
     /* set slave address */
     i2c->CR2 &= ~(I2C_CR2_SADD);
     i2c->CR2 |= (address << 1);
-
     DEBUG("[i2c] start: set transfert direction\n");
     /* set transfer direction */
     i2c->CR2 &= ~(I2C_CR2_RD_WRN);
     i2c->CR2 |= (rw_flag << I2C_CR2_RD_WRN_Pos);
-
+    DEBUG("[i2c] start: slave address: [0x%04lX]\n", ((i2c->CR2 & 0x3FFU)|rw_flag));
     DEBUG("[i2c] start: set number of bytes [%d]\n", length);
     /* set number of bytes */
     i2c->CR2 &= ~(I2C_CR2_NBYTES);

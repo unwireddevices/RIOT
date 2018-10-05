@@ -52,11 +52,8 @@
 #define M24SR_PWD_LEN                   0x10
 #define NDEF_FILE_LEN_POS               0
 #define NDEF_FILE_LEN_NUM_BYTES         2
-//#define I2C_GPO_INTERRUPT_ALLOWED       (1) //@TODO Don't use. Fix interrupt work
-
-#define I2C_GPO_SYNCHRO_ALLOWED         (1)
-
-
+#define I2C_GPO_INTERRUPT_ALLOWED       (1)
+//#define I2C_GPO_SYNCHRO_ALLOWED         (1)
 
 static cmd_apdu_t cmd;
 static uint8_t data_buffer[0xFF];
@@ -356,16 +353,21 @@ static int m24sr_select_application(m24sr_t *dev) {
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
+
     ret = m24sr_is_answer_rdy(dev);
     if (ret != M24SR_OK) {
+        DEBUG("Answer not ready\n");
         return M24SR_NOBUS;
     }
+
     /* read the response */
     ret = m24sr_rcv_i2c_response(dev, data, num_byte_read);
     if (ret != M24SR_OK) {
+        DEBUG("I2C no response\n");
         return M24SR_NOBUS;
     }
-    status = _m24sr_is_correct_crc_residue(data, num_byte_read); //@TODO Return values not error. Return value is code SW
+
+    status = _m24sr_is_correct_crc_residue(data, num_byte_read);
     DEBUG ("Return SW code 0x%04X\n", status);
     if (status != SW_OK) {
         return M24SR_ERROR;
@@ -414,16 +416,19 @@ static int m24sr_select_capability_container_file(m24sr_t *dev, uint16_t cc_file
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
+
     ret = m24sr_is_answer_rdy(dev);
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
+
     /* read the response */
     ret = m24sr_rcv_i2c_response(dev, data, num_byte_read);
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
-    status = _m24sr_is_correct_crc_residue(data, num_byte_read); //@TODO Return values not error. Return value is code SW
+
+    status = _m24sr_is_correct_crc_residue(data, num_byte_read);
     DEBUG("Return SW code 0x%04X\n", status);
     
     if (status != SW_OK) {
@@ -462,16 +467,19 @@ static int m24sr_select_ndef_file(m24sr_t *dev, uint16_t ndef_file_id) {
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
+
     ret = m24sr_is_answer_rdy(dev);
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
+
     /* read the response */
     ret = m24sr_rcv_i2c_response(dev, data, num_byte_read);
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
-    status = _m24sr_is_correct_crc_residue(data, num_byte_read); //@TODO Return values not error. Return value is code SW
+
+    status = _m24sr_is_correct_crc_residue(data, num_byte_read);
     DEBUG("Return SW code 0x%04X\n", status);
     
     if (status != SW_OK) {
@@ -519,7 +527,7 @@ static int m24sr_select_system_file(m24sr_t *dev, uint16_t sys_file_id) {
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
-    status = _m24sr_is_correct_crc_residue(data, num_byte_read); //@TODO Return values not error. Return value is code SW
+    status = _m24sr_is_correct_crc_residue(data, num_byte_read); 
     DEBUG("Return SW code 0x%04X\n", status);
     
     if (status != SW_OK) {
@@ -563,7 +571,7 @@ static int m24sr_read_binary(m24sr_t *dev, uint16_t offset, uint8_t *dst_data, u
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
-    status = _m24sr_is_correct_crc_residue(data, len + M24SR_STATUS_RESPONSE_NUM_BYTE); //@TODO Return values not error. Return value is code SW
+    status = _m24sr_is_correct_crc_residue(data, len + M24SR_STATUS_RESPONSE_NUM_BYTE);
     memcpy(dst_data, &data[1], len);
     DEBUG("Return SW code 0x%04X\n", status);    
     if (status != SW_OK) {
@@ -618,7 +626,7 @@ static int m24sr_update_binary(m24sr_t *dev, uint16_t offset, uint8_t *src_data,
             status = _m24sr_fwt_extension(dev, data[M24SR_OFFSET_PCB + 1]);
         }
     } else {
-        status = _m24sr_is_correct_crc_residue(data, M24SR_STATUS_RESPONSE_NUM_BYTE); //@TODO Return values not error. Return value is code SW
+        status = _m24sr_is_correct_crc_residue(data, M24SR_STATUS_RESPONSE_NUM_BYTE);
         DEBUG("Return SW code 0x%04X\n", status);    
         if (status != SW_OK) {
             return M24SR_ERROR;
@@ -686,7 +694,7 @@ static int m24sr_verify(m24sr_t *dev, uint16_t pwd_id, uint8_t num_pwd_byte , ui
         return M24SR_NOBUS;
     }
 
-    status = _m24sr_is_correct_crc_residue(data, M24SR_STATUS_RESPONSE_NUM_BYTE); //@TODO Return values not error. Return value is code SW
+    status = _m24sr_is_correct_crc_residue(data, M24SR_STATUS_RESPONSE_NUM_BYTE);
     DEBUG("Return SW code 0x%04X\n", status);
     if (status != SW_OK) {
         return M24SR_ERROR;
@@ -743,9 +751,7 @@ void m24sr_change_reference_data(uint16_t pwd_id, uint8_t *pwd) {
         return M24SR_NOBUS;
     }
     /*check CRC and response code*/
-    status = _m24sr_is_correct_crc_residue(data, M24SR_STATUS_RESPONSE_NUM_BYTE); //@TODO Return values not error. Return value is code SW
-    resp.SW1 = GET_MSB(status);
-    resp.SW2 = GET_LSB(status);
+    status = _m24sr_is_correct_crc_residue(data, M24SR_STATUS_RESPONSE_NUM_BYTE);
     memcpy(resp.data, data, len);
 
     if (status != SW_OK)
@@ -794,7 +800,7 @@ void m24sr_enable_verification_requirement(uint16_t mode_protect) {
     }
 
     /*check CRC and response code*/
-    status = _m24sr_is_correct_crc_residue(data, M24SR_STATUS_RESPONSE_NUM_BYTE); //@TODO Return values not error. Return value is code SW
+    status = _m24sr_is_correct_crc_residue(data, M24SR_STATUS_RESPONSE_NUM_BYTE);
     resp.SW1 = GET_MSB(status);
     resp.SW2 = GET_LSB(status);
     memcpy(resp.data, data, len);
@@ -849,7 +855,7 @@ int m24sr_disable_verification_requirement(m24sr_t dev, uint16_t mode_protect) {
     }
 
     /*check CRC and response code*/
-    status = _m24sr_is_correct_crc_residue(data, M24SR_STATUS_RESPONSE_NUM_BYTE); //@TODO Return values not error. Return value is code SW
+    status = _m24sr_is_correct_crc_residue(data, M24SR_STATUS_RESPONSE_NUM_BYTE);
     resp.SW1 = GET_MSB(status);
     resp.SW2 = GET_LSB(status);
     memcpy(resp.data, data, len);
@@ -885,16 +891,21 @@ static int m24sr_extended_read_binary(m24sr_t *dev, uint16_t offset, uint8_t *ds
     _m24sr_build_iblock_cmd(M24SR_CMD_CATEGORY_2,  cmd, buffer, &num_byte);
 
     ret = m24sr_send_i2c_cmd(dev, buffer, num_byte);
-    if (ret != M24SR_OK)
+    if (ret != M24SR_OK) {
         return M24SR_NOBUS;
-    ret = m24sr_is_answer_rdy(dev);
-    if (ret != M24SR_OK)
-        return M24SR_NOBUS;
-    ret = m24sr_rcv_i2c_response(dev, buffer, len + M24SR_STATUS_NUM_BYTE);
-    if (ret != M24SR_OK)
-        return M24SR_NOBUS;
+    }
 
-    status = _m24sr_is_correct_crc_residue(buffer, len + M24SR_STATUS_RESPONSE_NUM_BYTE); //@TODO Return values not error. Return value is code SW
+    ret = m24sr_is_answer_rdy(dev);
+    if (ret != M24SR_OK) {
+        return M24SR_NOBUS;
+    }
+
+    ret = m24sr_rcv_i2c_response(dev, buffer, len + M24SR_STATUS_NUM_BYTE);
+    if (ret != M24SR_OK) {
+        return M24SR_NOBUS;
+    }
+
+    status = _m24sr_is_correct_crc_residue(buffer, len + M24SR_STATUS_RESPONSE_NUM_BYTE); 
     memcpy(dst_data, buffer, len);
     DEBUG("Return SW code 0x%04X\n", status);    
     if (status != SW_OK) {
@@ -939,7 +950,7 @@ int m24sr_enable_permanent_state(m24sr_t *dev, uint16_t mode_protect) {
     if (ret != M24SR_OK)
         return M24SR_NOBUS;
 
-    status = _m24sr_is_correct_crc_residue(buffer, M24SR_STATUS_RESPONSE_NUM_BYTE); //@TODO Return values not error. Return value is code SW
+    status = _m24sr_is_correct_crc_residue(buffer, M24SR_STATUS_RESPONSE_NUM_BYTE);
     resp.SW1 = GET_MSB(status);
     resp.SW2 = GET_LSB(status);
 
@@ -986,7 +997,7 @@ int m24sr_disable_permanent_state(m24sr_t *dev, uint16_t mode_protect) {
     if (ret != M24SR_OK)
         return M24SR_NOBUS;
 
-    status = _m24sr_is_correct_crc_residue(buffer, M24SR_STATUS_RESPONSE_NUM_BYTE); //@TODO Return values not error. Return value is code SW
+    status = _m24sr_is_correct_crc_residue(buffer, M24SR_STATUS_RESPONSE_NUM_BYTE);
     resp.SW1 = GET_MSB(status);
     resp.SW2 = GET_LSB(status);
 
@@ -1045,14 +1056,14 @@ static int m24sr_update_file_type (m24sr_t *dev, uint8_t file_type) {
         /*check the CRC */
         if ( _m24sr_is_correct_crc_residue(data, M24SR_WATING_TIME_EXT_RESPONSE_NUM_BYTE) != M24SR_WRONG_CRC) {
             /* send the FrameExension response*/
-            status = _m24sr_fwt_extension (dev, data[M24SR_OFFSET_PCB + 1]); //@FIXME
+            status = _m24sr_fwt_extension (dev, data[M24SR_OFFSET_PCB + 1]);
         }
 
     }
     else {
-        status = _m24sr_is_correct_crc_residue(data, M24SR_STATUS_RESPONSE_NUM_BYTE); //@TODO Return values not error. Return value is code SW
+        status = _m24sr_is_correct_crc_residue(data, M24SR_STATUS_RESPONSE_NUM_BYTE);
+        DEBUG("Return SW code 0x%04X\n", status);
         if (status != SW_OK) {
-            //todo Insert DEBUG() 
             return M24SR_ERROR;
         }
     }
@@ -1096,7 +1107,7 @@ static int _m24sr_gpo_send_interrupt (m24sr_t *dev) {
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
-    status = _m24sr_is_correct_crc_residue(buffer, M24SR_STATUS_RESPONSE_NUM_BYTE); //@TODO Return values not error. Return value is code SW
+    status = _m24sr_is_correct_crc_residue(buffer, M24SR_STATUS_RESPONSE_NUM_BYTE); 
     if (status != SW_OK) {
         //@todo insert debug
         return M24SR_ERROR;
@@ -1150,7 +1161,7 @@ static int _m24sr_gpo_state_control (m24sr_t *dev, uint8_t state) {
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
-    status = _m24sr_is_correct_crc_residue(buffer, M24SR_STATUS_RESPONSE_NUM_BYTE); //@TODO Return values not error. Return value is code SW
+    status = _m24sr_is_correct_crc_residue(buffer, M24SR_STATUS_RESPONSE_NUM_BYTE);
     if (status != SW_OK)
         return M24SR_ERROR;
 
@@ -1193,8 +1204,8 @@ static int _m24sr_fwt_extension(m24sr_t *dev, uint8_t fwt_byte)
         return M24SR_NOBUS;
 
     status = _m24sr_is_correct_crc_residue (buffer, M24SR_STATUS_RESPONSE_NUM_BYTE);
+    DEBUG("Return SW code 0x%04X\n", status);
     if (status != SW_OK) {
-        DEBUG("Return SW code 0x%04X\n", status);
         return M24SR_ERROR;
     }
 
@@ -1246,6 +1257,8 @@ static int _m24sr_kill_rf_session (const m24sr_t *dev) {
 static int _m24sr_open_i2c_session (const m24sr_t *dev, m24sr_priority_t priority) {
     int ret = M24SR_OK;
     uint16_t timeout = 1000;
+
+    DEBUG("Open session as %s\n", (priority == I2C_KILL_RF)?"kill rf":"get I2C");
 
     if (priority == I2C_KILL_RF) {
         ret = _m24sr_kill_rf_session(dev);
@@ -1352,8 +1365,8 @@ int m24sr_i2c_init_hw (m24sr_t *dev, const m24sr_params_t *params) {
   */
 uint16_t m24sr_manage_i2c_gpo(m24sr_t *dev, m24sr_gpo_mode_t gpo_i2c_config)
 {
-    uint16_t status;
-    uint8_t gpo_config;
+    uint16_t status = M24SR_OK;
+    uint8_t gpo_config = 0x00;
     uint8_t default_pwd[M24SR_PWD_LEN] = {0x00};
 
     if (gpo_i2c_config > STATE_CONTROL) {
@@ -1365,18 +1378,34 @@ uint16_t m24sr_manage_i2c_gpo(m24sr_t *dev, m24sr_gpo_mode_t gpo_i2c_config)
     /* we must not be in interrupt mode for I2C synchro as we will change GPO purpose */
     m24sr_set_i2c_synchro_mode(dev, M24SR_WAITING_TIME_POLLING);
 
-    m24sr_select_application(dev);
-    m24sr_select_system_file(dev, M24SR_SYS_FILE_ID);
+    status = m24sr_select_application(dev);
+    if(status != M24SR_OK) {
+        return status;
+    }
+    status = m24sr_select_system_file(dev, M24SR_SYS_FILE_ID);
+    if(status != M24SR_OK) {
+        return status;
+    }
     // read system file
-    m24sr_read_binary (dev, 0x0004, &gpo_config, 0x01);
-
+    status = m24sr_read_binary (dev, 0x0004, &gpo_config, 0x01);
+    if(status != M24SR_OK) {
+        return status;
+    }
     /* Update only GPO purpose for I2C */
     gpo_config = (gpo_config & 0xF0) | gpo_i2c_config;
-    m24sr_select_system_file(dev, M24SR_SYS_FILE_ID);
-    m24sr_verify(dev, I2C_PWD , 0x10 , default_pwd);
+    status = m24sr_select_system_file(dev, M24SR_SYS_FILE_ID);
+    if(status != M24SR_OK) {
+        return status;
+    }
+    status = m24sr_verify(dev, I2C_PWD , 0x10 , default_pwd);
+    if(status != M24SR_OK) {
+        return status;
+    }
     //write system file
     status = m24sr_update_binary(dev, 0x0004 , &gpo_config, 0x01);
-
+    if(status != M24SR_OK) {
+        return status;
+    }
     /* if we have set interrupt mode for I2C synchro we can enable interrupt mode */
     if (gpo_i2c_config == I2C_ANSWER_READY && status == M24SR_OK)
 #ifdef I2C_GPO_SYNCHRO_ALLOWED
@@ -1437,7 +1466,7 @@ void m24sr_rf_config(const m24sr_t *dev, uint8_t rf_config) {
   */
 int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
     int status = M24SR_OK;
-    uint8_t trials = 5;   
+      
 
     /* Perform HW initialization */
     status = m24sr_i2c_init_hw (dev, params);
@@ -1449,18 +1478,25 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
     _m24sr_init_structure();
 
 #if defined(I2C_GPO_SYNCHRO_ALLOWED) || defined(I2C_GPO_INTERRUPT_ALLOWED)
-    if (_m24sr_kill_rf_session(dev) == M24SR_OK) {
-        m24sr_manage_i2c_gpo(dev, I2C_ANSWER_READY);
+    if (_m24sr_open_i2c_session(dev, I2C_KILL_RF) == M24SR_OK) {
+        status = m24sr_manage_i2c_gpo(dev, I2C_ANSWER_READY);
+        if(status != M24SR_OK) {
+            m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
+            return M24SR_ERROR;
+        }
         m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
     }
 #endif /* I2C_GPO_SYNCHRO_ALLOWED */
 
     /* Read CC file */
-    status = _m24sr_get_i2c_session(dev);
-    while (status != M24SR_OK && trials) {
-        status = _m24sr_get_i2c_session(dev);
-        trials--;
-    }
+    status = _m24sr_open_i2c_session(dev, I2C_OPEN_SESSION);
+
+    // uint8_t trials = 5; 
+    // status = _m24sr_get_i2c_session(dev);
+    // while (status != M24SR_OK && trials) {
+    //     status = _m24sr_get_i2c_session(dev);
+    //     trials--;
+    // }
     if (status != M24SR_OK) {
         return M24SR_ERROR;
     }
@@ -1493,7 +1529,7 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
         memcpy(dev->memory.uid, sys_file.UID, sizeof(sys_file.UID));
     } else {
         m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
-        return M24SR_OK;
+        return M24SR_ERROR;
     }
 
     /*==================*/
@@ -1508,7 +1544,7 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
 
     /* read the first 15 bytes of the CC file */
     DEBUG("CC FILE size %d\n", sizeof(cc_file));
-    if (m24sr_read_binary(dev, 0x0000, (uint8_t *)&cc_file, sizeof(cc_file)) == M24SR_OK) { //@todo Fix Stack Overflow
+    if (m24sr_read_binary(dev, 0x0000, (uint8_t *)&cc_file, sizeof(cc_file)) == M24SR_OK) {
         PRINTBUFF((uint8_t *)&cc_file, sizeof(cc_file));
         DEBUG("[CC FILE] Len is %d(0x%04X).\n", cc_file.cc_file_len, cc_file.cc_file_len);
         DEBUG("[CC FILE] Version is %d (0x%02X)\n", cc_file.version, cc_file.version); 
@@ -1546,7 +1582,7 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
         return M24SR_OK;
     } else {
         m24sr_close_session(dev, I2C_TOKEN_RELEASE_SW);
-        return M24SR_OK;
+        return M24SR_ERROR;
     }
     return status; 
 }
@@ -2171,7 +2207,3 @@ int m24sr_eeprom_power(m24sr_t *dev, enum m24sr_power_state power) {
 
     return 0;
 }
-
-
-
-    

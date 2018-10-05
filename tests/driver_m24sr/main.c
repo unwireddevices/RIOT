@@ -42,7 +42,7 @@ static uint8_t buf_in[0X100];
  */
 static void print_buffer(const uint8_t * buf, size_t length) {
     static const unsigned int bytes_per_line = 16;
-    static const unsigned int bytes_per_group = 2;
+    static const unsigned int bytes_per_group = 16;
     unsigned long i = 0;
     while (i < length) {
         unsigned int col;
@@ -120,8 +120,6 @@ int main(void)
         return 1;
     }
 
-    m24sr_eeprom_erase_all(&dev);
-
     puts("M24SR memory init done.\n");
 
     puts("!!! This test will erase everything on the M24SR memory !!!");
@@ -129,13 +127,13 @@ int main(void)
     printf("\tWaiting for %ld seconds before continuing...\n", start_delay);
     xtimer_sleep(start_delay);
 
-    puts("\tWriting blockwise to device\n");
-
+    puts("Writing blockwise to device");
     memset(buf_out, 0xff, sizeof(buf_out));
     if (m24sr_eeprom_write(&dev, buf_out, 0, dev.memory.chipsize) != dev.memory.chipsize) {
         puts("[Failed]\n");
         return 1;
     }
+    puts("[OK]");
 
     puts("Reading back blockwise");
     memset(buf_in, 0x00, sizeof(buf_in));
@@ -144,14 +142,13 @@ int main(void)
         return 1;
     }
     puts("[OK]");
+
     puts("Verifying contents...");
     if (memcmp(buf_in, buf_out, dev.memory.chipsize) != 0) {
         puts("[Failed]\n");
         return 1;
     }
     puts("[OK]");
-
-    m24sr_eeprom_erase_all(&dev);
 
     puts("Writing blockwise address complement to device");
     for (i = 0; i < dev.memory.chipsize; ++i) {
@@ -162,8 +159,10 @@ int main(void)
         return 1;
     }
     puts("[OK]");
+
     puts("buf_out:");
     print_buffer(buf_out, sizeof(buf_out));
+
     puts("Reading back blockwise");
     memset(buf_in, 0x00, sizeof(buf_in));
     if (m24sr_eeprom_read(&dev, buf_in, 0, dev.memory.chipsize) != dev.memory.chipsize) {
@@ -171,6 +170,7 @@ int main(void)
         return 1;
     }
     puts("[OK]");
+
     puts("Verifying contents...");
     if (memcmp(buf_in, buf_out, dev.memory.chipsize) != 0) {
         puts("buf_in:");
@@ -179,8 +179,6 @@ int main(void)
         return 1;
     }
     puts("[OK]");
-
-    m24sr_eeprom_erase_all(&dev);
 
     puts("Generating pseudo-random test data...");
 
@@ -205,6 +203,7 @@ int main(void)
         return 1;
     }
     puts("[OK]");
+
     puts("Verifying contents...");
     if (memcmp(buf_in, buf_out, dev.memory.chipsize) != 0) {
         puts("buf_in:");

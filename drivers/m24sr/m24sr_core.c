@@ -94,6 +94,7 @@ static int _read_i2c(const m24sr_t *dev, uint8_t *buffer, uint32_t len)
 
     DEBUG("m24sr: <- ");
     PRINTBUFF(buffer, len);
+    
     return ret;
 }
 
@@ -159,26 +160,28 @@ int m24sr_poll_i2c (const m24sr_t *dev) {
 int m24sr_release_i2c_token(const m24sr_t *dev) {
 
     int status = M24SR_OK;
-    uint8_t data[] = {0x00};
+    uint8_t data = {0x00};
 
-    status = i2c_write_bytes(dev->params.i2c, dev->params.i2c_addr, data, 0, I2C_NOSTOP);
-    if (status != 0)
+    status = i2c_write_bytes(dev->params.i2c, dev->params.i2c_addr, &data, 1, I2C_NOSTOP);
+    if (status != 0) {
         return M24SR_NOBUS;
+    }
     
-    xtimer_usleep(40000);
+    xtimer_usleep(40*1000);
 
-    status = i2c_write_bytes(dev->params.i2c, dev->params.i2c_addr, data, 0, I2C_NOSTART);
-    if (status == 0)
+    status = i2c_write_bytes(dev->params.i2c, dev->params.i2c_addr, &data, 0, I2C_NOSTART);
+    if (status == 0) {
         return M24SR_OK;
-    else
+    } else {
         return M24SR_NOBUS;
+    }
 }
 
 
 /**
-  * @brief  This functions returns M24SR_STATUS_SUCCESS when a response is ready
-  * @retval M24SR_STATUS_SUCCESS : a response of the M24LR is ready
-  * @retval M24SR_ERROR_DEFAULT : the response of the M24LR is not ready
+  * @brief  This functions returns M24SR_OK when a response is ready
+  * @retval M24SR_OK : a response of the M24SR is ready
+  * @retval M24SR_NOBUS : the response of the M24SR is not ready
   */
 int m24sr_is_answer_rdy(m24sr_t *dev) {
     uint32_t retry = 0xFFFFF;
@@ -205,13 +208,13 @@ int m24sr_is_answer_rdy(m24sr_t *dev) {
         case M24SR_INTERRUPT_GPO:
             DEBUG("M24SR_INTERRUPT_GPO\n");
             retry = 0;
+            dev->event_ready = 0;
             /* Check if the GPIO is not already low before calling this function */
             if (gpio_read(dev->params.gpo_pin) == 1) {
                 while (dev->event_ready == 0) {
                     retry ++;
                 }
             }
-            dev->event_ready = 0;
             DEBUG("retry is %ld\n", retry);
             return M24SR_OK;
         default:

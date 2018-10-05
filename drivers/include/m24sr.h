@@ -48,8 +48,6 @@ typedef enum {
 } m24sr_priority_t;
 
 
-
-
 /**
   * @brief  Synchronization Mechanism structure 
   */
@@ -58,6 +56,7 @@ typedef enum{
     M24SR_WAITING_TIME_POLLING,
     M24SR_WAITING_TIME_GPO,
     M24SR_INTERRUPT_GPO,
+    M24SR_WAITING_TIME_MODE_NUM
 } m24sr_wait_mode_t;    
 
 
@@ -75,7 +74,9 @@ typedef struct {
 } m24sr_params_t;
 
 
-
+/**
+ * @brief M24SR memory information
+ */
 typedef struct {
     uint16_t chipsize;
     uint16_t type;
@@ -86,17 +87,12 @@ typedef struct {
 
 
 /**
- * @brief   M24SR alert callback
- */
-typedef void (*m24sr_cb_t)(void *);
-
-
-/**
  * @brief  M24SR power states
  */
 enum m24sr_power_state {
-    M24SR_POWER_UP = 0,    /**< Power up */
-    M24SR_POWER_DOWN,  /**< Power down */
+    M24SR_POWER_UP = 0,     /**< Power up */
+    M24SR_POWER_DOWN,       /**< Power down */
+    M24SR_POWER_STATE_NUM 
 };
 
 /**
@@ -105,11 +101,9 @@ enum m24sr_power_state {
 typedef struct {
     m24sr_params_t params;              /**< device configuration */
     m24sr_memory_t memory;              /**< device memory parameters */
-    // m24sr_cb_t cb;                      /**< alert callback */
-    // void *arg;                          /**< alert callback param */
-    m24sr_wait_mode_t synchro_mode;        // @TODO static m24sr_waiting_time_mode_t synchro_mode = M24SR_WAITING_TIME_POLLING;
-    uint8_t event_ready;                 /**< check if an event was received */
-    // mutex_t event_lock;                     /**< mutex for waiting for event */
+    m24sr_wait_mode_t synchro_mode;     /**<  synchro_mode */
+    volatile uint8_t event_ready;       /**< check if an event was received */
+    // mutex_t event_lock;              /**< mutex for waiting for event */
 } m24sr_t;
 
 
@@ -127,11 +121,66 @@ enum {
     M24SR_WRONG_CRC = -5,
 };
 
+
+/**
+ * @brief [brief description]
+ * @details [long description]
+ * 
+ * @param dev [description]
+ * @param params [description]
+ * 
+ * @return [description]
+ */
 int m24sr_eeprom_init(m24sr_t *dev, const m24sr_params_t *params);
+/**
+ * @brief [brief description]
+ * @details [long description]
+ * 
+ * @param dev [description]
+ * @param dest [description]
+ * @param addr [description]
+ * @param size [description]
+ * @return [description]
+ */
 int m24sr_eeprom_read(m24sr_t *dev, void *dest, uint16_t addr, uint16_t size);
+/**
+ * @brief [brief description]
+ * @details [long description]
+ * 
+ * @param dev [description]
+ * @param src [description]
+ * @param addr [description]
+ * @param size [description]
+ * @return [description]
+ */
 int m24sr_eeprom_write(m24sr_t *dev, void *src, uint16_t addr, uint16_t size);
+/**
+ * @brief [brief description]
+ * @details [long description]
+ * 
+ * @param dev [description]
+ * @param addr [description]
+ * @param size [description]
+ * @return [description]
+ */
 int m24sr_eeprom_erase(m24sr_t *dev, uint16_t addr, uint16_t size);
+/**
+ * @brief [brief description]
+ * @details [long description]
+ * 
+ * @param dev [description]
+ * @return [description]
+ */
 int m24sr_eeprom_erase_all(m24sr_t *dev);
+/**
+ * @brief [brief description]
+ * @details [long description]
+ * 
+ * @param dev [description]
+ * @param power [description]
+ * 
+ * @return [description]
+ */
 int m24sr_eeprom_power(m24sr_t *dev, uint8_t power);
 
 #ifdef __cplusplus

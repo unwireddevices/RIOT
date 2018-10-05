@@ -549,6 +549,9 @@ int rtc_millis_get_time(uint32_t *millis)
     return 0;
 }
 
+/* in F0 series only F07x and F09x support periodic wakeup */
+#if !defined(CPU_FAM_STM32F0) || defined(CPU_LINE_STM32F070xB) || \
+    defined (CPU_LINE_STM32F072xB) || defined(CPU_LINE_STM32F091xC)
 int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg)
 {
     /* Enable write access to RTC registers */
@@ -604,6 +607,7 @@ void rtc_disable_wakeup(void)
     RTC->CR &= ~(RTC_CR_WUTE);
     rtc_lock();
 }
+#endif
 
 int rtc_save_backup(uint32_t data, uint8_t reg_num) {    
     __IO uint32_t tmp = 0;
@@ -664,18 +668,21 @@ void ISR_NAME(void)
         EXTI->PR |= EXTI_PR_BIT;
     }
 #endif
-    
+
+#if !defined(CPU_FAM_STM32F0) || defined(CPU_LINE_STM32F070xB) || \
+    defined (CPU_LINE_STM32F072xB) || defined(CPU_LINE_STM32F091xC)    
     if (RTC->ISR & RTC_ISR_WUTF) {
         RTC->ISR &= ~RTC_ISR_WUTF;
         if (isr_ctx.cb_wkup != NULL) {
             isr_ctx.cb_wkup(isr_ctx.arg_wkup);
         }
-#if defined(CPU_FAM_STM32L4)
+    #if defined(CPU_FAM_STM32L4)
         EXTI->PR |= EXTI_PR1_PIF20;
-#else
+    #else
         EXTI->PR |= EXTI_PR_PR20;
-#endif
+    #endif
     }
+#endif
     
     cortexm_isr_end();
     

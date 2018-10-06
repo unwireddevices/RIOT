@@ -70,4 +70,6 @@ void cpu_init(void)
 #endif
     /* trigger static peripheral initialization */
     periph_init();
+    
+    cpu_init_status();
 }

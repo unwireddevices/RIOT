@@ -23,7 +23,9 @@
 #include "periph/init.h"
 #include <string.h>
 
-uint32_t get_cpu_category(void) {
+static cpu_status_t cpu_status;
+
+static uint32_t get_cpu_category(void) {
 #if defined(CPU_FAM_STM32L0)
     switch (ST_DEV_ID) {
         case STM32L0_DEV_ID_CAT1:
@@ -114,7 +116,7 @@ static char get_cpu_memory_code(uint32_t memory_size) {
     return 'x';
 }
 
-uint32_t get_cpu_name(char *name) {
+static uint32_t get_cpu_name(char *name) {
 int series = 0;
 
 #if defined(CPU_FAM_STM32L0)
@@ -255,4 +257,89 @@ int series = 0;
 #else
 #error unexpected MCU
 #endif
+}
+
+static size_t cpu_find_memory_size(char *base, uint32_t block, uint32_t maxsize) {
+    char *address = base;
+    do {
+        address += block;
+        if (!cpu_check_address(address)) {
+            break;
+        }
+    } while ((size_t)(address - base) < maxsize);
+
+    return (size_t)(address - base);
+}
+
+static size_t get_cpu_ram_size(void) {
+#if defined(CPU_FAM_STM32L0)
+    return cpu_find_memory_size((char *)SRAM_BASE, 1024, 20*1024);
+#elif defined(CPU_FAM_STM32L1)
+    return cpu_find_memory_size((char *)SRAM_BASE, 1024, 80*1024);
+#elif defined(CPU_FAM_STM32F0)
+    return cpu_find_memory_size((char *)SRAM_BASE, 1024, 32*1024);
+#elif defined(CPU_FAM_STM32F1)
+    return cpu_find_memory_size((char *)SRAM_BASE, 1024, 96*1024);
+#elif defined(CPU_FAM_STM32F2)
+    return cpu_find_memory_size((char *)SRAM_BASE, 1024, 128*1024);
+#elif defined(CPU_FAM_STM32F3)
+    return cpu_find_memory_size((char *)SRAM_BASE, 1024, 80*1024);
+#elif defined(CPU_FAM_STM32F4)
+    return cpu_find_memory_size((char *)SRAM_BASE, 1024, 384*1024);
+#elif defined(CPU_FAM_STM32F7)
+    return cpu_find_memory_size((char *)SRAM_BASE, 1024, 512*1024);
+#else
+#error unexpected MCU
+#endif
+}
+
+static size_t get_cpu_flash_size(void) {
+#if defined(CPU_FAM_STM32L0)
+    return cpu_find_memory_size((char *)FLASH_BASE, 1024, 192*1024);
+#elif defined(CPU_FAM_STM32L1)
+    return cpu_find_memory_size((char *)FLASH_BASE, 1024, 512*1024);
+#elif defined(CPU_FAM_STM32F0)
+    return cpu_find_memory_size((char *)FLASH_BASE, 1024, 256*1024);
+#elif defined(CPU_FAM_STM32F1)
+    return cpu_find_memory_size((char *)FLASH_BASE, 1024, 1024*1024);
+#elif defined(CPU_FAM_STM32F2)
+    return cpu_find_memory_size((char *)FLASH_BASE, 1024, 1024*1024);
+#elif defined(CPU_FAM_STM32F3)
+    return cpu_find_memory_size((char *)FLASH_BASE, 1024, 512*1024);
+#elif defined(CPU_FAM_STM32F4)
+    return cpu_find_memory_size((char *)FLASH_BASE, 1024, 2048*1024);
+#elif defined(CPU_FAM_STM32F7)
+    return cpu_find_memory_size((char *)FLASH_BASE, 1024, 2048*1024);
+#else
+#error unexpected MCU
+#endif
+}
+
+static size_t get_cpu_eeprom_size(void) {
+#if defined(CPU_FAM_STM32L0)
+    return cpu_find_memory_size((char *)DATA_EEPROM_BASE, 512, 6*1024);
+#elif defined(CPU_FAM_STM32L1)
+    return cpu_find_memory_size((char *)EEPROM_BASE, 2*1024, 16*1024);
+#else
+    return 0;
+#endif
+}
+
+void cpu_init_status(void) {
+    cpu_status.ram_size = get_cpu_ram_size();
+    cpu_status.flash_size = get_cpu_flash_size();
+    cpu_status.eeprom_size = get_cpu_eeprom_size();
+    cpu_status.core_clock = cpu_clock_global;
+    cpu_status.flashpage_size = FLASHPAGE_SIZE;
+    cpu_status.flashpage_num = FLASHPAGE_NUMOF;
+    cpu_status.vdd_voltage = INT16_MIN;
+    cpu_status.vdda_voltage = INT16_MIN;
+    cpu_status.vbat_voltage = INT16_MIN;
+    cpu_status.core_temp = INT16_MIN;
+    get_cpu_name(cpu_status.name);
+    cpu_status.category = get_cpu_category();
+}
+
+cpu_status_t cpu_get_status(void) {
+    return cpu_status;
 }

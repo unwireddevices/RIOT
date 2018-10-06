@@ -58,6 +58,33 @@ extern "C" {
  */
 #define PROVIDES_PM_SET_LOWEST
 
+# define CPU_NAME_MAX_SIZE      20
+
+typedef struct {
+    size_t      ram_size;           /**< CPU RAM size, bytes */
+    size_t      flash_size;         /**< CPU FLASH size, bytes */
+    size_t      eeprom_size;        /**< CPU EEPROM size, bytes */
+    uint32_t    core_clock;         /**< CPU core clock, Hz */
+    uint32_t    flashpage_size;     /**< flashpage size, bytes */
+    uint32_t    flashpage_num;      /**< total number of flash pages */
+    int16_t     vdd_voltage;        /**< CPU VDD voltage, mV (INT16_MIN if not available) */
+    int16_t     vdda_voltage;       /**< CPU VDDA voltage, mV (INT16_MIN if not available) */
+    int16_t     vbat_voltage;       /**< CPU VBAT voltage, mV (INT16_MIN if not available) */
+    int16_t     core_temp;          /**< CPU core temperature, C (INT16_MIN if not available) */
+    char        name[CPU_NAME_MAX_SIZE];    /**< CPU name and model */
+    uint8_t     category;           /**< CPU category (0 if not applicable) */
+} cpu_status_t;
+
+/**
+ * @brief   Returns CPU status info
+ */
+cpu_status_t cpu_get_status(void);
+
+/**
+ * @brief   Initializes CPU status info
+ */
+void cpu_init_status(void);
+
 /**
  * @brief   Initialization of the CPU
  */

@@ -162,4 +162,7 @@ void convert_from_be_sam(void *ptr, size_t size);
 bool unwds_read_nvram_storage(unwds_module_id_t module_id, uint8_t *data_out, size_t size);
 bool unwds_write_nvram_storage(unwds_module_id_t module_id, uint8_t *data, size_t data_size);
 
+void blink_led(gpio_t led);
+void print_logo(void);
+
 #endif /* UNWDS_COMMON_H_ */

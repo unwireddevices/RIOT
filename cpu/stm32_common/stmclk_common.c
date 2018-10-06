@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2017 Freie Universität Berlin
  *               2017 OTA keys S.A.
+ *               2018 Unwired Devices LLC <info@unwds.com>
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -16,6 +17,7 @@
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  * @author      Vincent Dupont <vincent@otakeys.com>
+ * @author      Oleg Artamonov <oleg@unwds.com>
  * @}
  */
 
@@ -100,4 +102,70 @@ void stmclk_dbp_unlock(void)
 void stmclk_dbp_lock(void)
 {
     PWR->REG_PWR_CR &= ~(BIT_CR_DBP);
+}
+
+static uint32_t cpu_find_memory_size(char *base, uint32_t block, uint32_t maxsize) {
+    char *address = base;
+    do {
+        address += block;
+        if (!cpu_check_address(address)) {
+            break;
+        }
+    } while ((uint32_t)(address - base) < maxsize);
+
+    return (uint32_t)(address - base);
+}
+
+uint32_t get_cpu_ram_size(void) {
+#if defined(CPU_FAM_STM32L0)
+    return cpu_find_memory_size((char *)SRAM_BASE, 1024, 20*1024);
+#elif defined(CPU_FAM_STM32L1)
+    return cpu_find_memory_size((char *)SRAM_BASE, 1024, 80*1024);
+#elif defined(CPU_FAM_STM32F0)
+    return cpu_find_memory_size((char *)SRAM_BASE, 1024, 32*1024);
+#elif defined(CPU_FAM_STM32F1)
+    return cpu_find_memory_size((char *)SRAM_BASE, 1024, 96*1024);
+#elif defined(CPU_FAM_STM32F2)
+    return cpu_find_memory_size((char *)SRAM_BASE, 1024, 128*1024);
+#elif defined(CPU_FAM_STM32F3)
+    return cpu_find_memory_size((char *)SRAM_BASE, 1024, 80*1024);
+#elif defined(CPU_FAM_STM32F4)
+    return cpu_find_memory_size((char *)SRAM_BASE, 1024, 384*1024);
+#elif defined(CPU_FAM_STM32F7)
+    return cpu_find_memory_size((char *)SRAM_BASE, 1024, 512*1024);
+#else
+#error unexpected MCU
+#endif
+}
+
+uint32_t get_cpu_flash_size(void) {
+#if defined(CPU_FAM_STM32L0)
+    return cpu_find_memory_size((char *)FLASH_BASE, 1024, 192*1024);
+#elif defined(CPU_FAM_STM32L1)
+    return cpu_find_memory_size((char *)FLASH_BASE, 1024, 512*1024);
+#elif defined(CPU_FAM_STM32F0)
+    return cpu_find_memory_size((char *)FLASH_BASE, 1024, 256*1024);
+#elif defined(CPU_FAM_STM32F1)
+    return cpu_find_memory_size((char *)FLASH_BASE, 1024, 1024*1024);
+#elif defined(CPU_FAM_STM32F2)
+    return cpu_find_memory_size((char *)FLASH_BASE, 1024, 1024*1024);
+#elif defined(CPU_FAM_STM32F3)
+    return cpu_find_memory_size((char *)FLASH_BASE, 1024, 512*1024);
+#elif defined(CPU_FAM_STM32F4)
+    return cpu_find_memory_size((char *)FLASH_BASE, 1024, 2048*1024);
+#elif defined(CPU_FAM_STM32F7)
+    return cpu_find_memory_size((char *)FLASH_BASE, 1024, 2048*1024);
+#else
+#error unexpected MCU
+#endif
+}
+
+uint32_t get_cpu_eeprom_size(void) {
+#if defined(CPU_FAM_STM32L0)
+    return cpu_find_memory_size((char *)DATA_EEPROM_BASE, 512, 6*1024);
+#elif defined(CPU_FAM_STM32L1)
+    return cpu_find_memory_size((char *)EEPROM_BASE, 2*1024, 16*1024);
+#else
+    return 0;
+#endif
 }

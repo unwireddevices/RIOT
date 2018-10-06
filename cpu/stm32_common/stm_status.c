@@ -11,7 +11,7 @@
  * @{
  *
  * @file
- * @brief       Implementation of STM32 CPU identification
+ * @brief       Implementation of STM32 CPU identification and status data
  *
  * @author      Oleg Artamonov <oleg@unwds.com>
  *
@@ -19,8 +19,6 @@
  */
 
 #include "cpu.h"
-#include "periph_conf.h"
-#include "periph/init.h"
 #include <string.h>
 
 static cpu_status_t cpu_status;
@@ -178,9 +176,9 @@ int series = 0;
     char model = get_cpu_memory_code(memory);
     
     if (ST_DEV_ID == STM32L1_DEV_ID_CAT2) {
-        sprintf(name, "STM32L%03dx%c-A", series, model);
+        snprintf(name, CPU_NAME_MAX_SIZE, "STM32L%03dx%c-A", series, model);
     } else {
-        sprintf(name, "STM32L%03dx%c", series, model);
+        snprintf(name, CPU_NAME_MAX_SIZE, "STM32L%03dx%c", series, model);
     }
     return 0;
 #elif defined(CPU_FAM_STM32F0)
@@ -222,7 +220,7 @@ int series = 0;
 
     uint32_t memory = get_cpu_flash_size();
     char model = get_cpu_memory_code(memory);
-    sprintf(name, "STM32F%03dx%c", series, model);
+    snprintf(name, CPU_NAME_MAX_SIZE, "STM32F%03dx%c", series, model);
 
     return 0;
 #elif defined(CPU_FAM_STM32F1)
@@ -243,7 +241,7 @@ int series = 0;
         
     uint32_t memory = get_cpu_flash_size();
     char model = get_cpu_memory_code(memory);
-    sprintf(name, "STM32F%03dx%c", series, model);
+    snprintf(name, CPU_NAME_MAX_SIZE, "STM32F%03dx%c", series, model);
 
     return 0;
 #elif defined(CPU_FAM_STM32F2)

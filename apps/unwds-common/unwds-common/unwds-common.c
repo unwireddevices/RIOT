@@ -42,7 +42,7 @@ extern "C" {
 
 #include "byteorder.h"
 #include "periph/eeprom.h"
-#include "xtimer.h"
+#include "rtctimers-millis.h"
 #include "board.h"
 #include "checksum/fletcher16.h"
 
@@ -592,7 +592,7 @@ void print_logo(void)
 	puts("*****************************************");
     printf("Version: %s (%s %s)\n", FIRMWARE_VERSION, __DATE__, __TIME__);
     char cpu_model[20];
-    get_cpu_name(model);
+    get_cpu_name(cpu_model);
 
     printf("%s %lu MHz (%s clock)\n", cpu_model,
                                       cpu_clock_global/1000000,

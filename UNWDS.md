@@ -20,13 +20,13 @@ CPU support
 * STM32: UART support for on-the-fly bandwidth change
 * STM32: ADC conversion to millivolts using factory calibration values
 * STM32: ADC VDD and temperature calculation using factory calibration values
+* STM32: CPU model identification (full model code except package variant and temperature range, e.g. STM32L072xB)
 * STM32L0: watchdog support
 * STM32L1: automatic fallback to HSI on startup if HSE is not available
 * STM32L1: fixed flash clock and latency settings
 * STM32L1: MSI clock support
 * STM32L1: on-the-fly switching to MSI clock source
 * STM32L1: automatic memory (flash, RAM, EEPROM) size calculation
-* STM32L1: CPU category and model determination
 * STM32L1: STOP mode power optimization
 * STM32L1: watchdog support
 * STM32L1: fixed CPUID support

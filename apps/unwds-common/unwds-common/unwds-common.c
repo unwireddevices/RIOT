@@ -592,17 +592,8 @@ void print_logo(void)
 	puts("*****************************************");
     printf("Version: %s (%s %s)\n", FIRMWARE_VERSION, __DATE__, __TIME__);
     char cpu_model[20];
-    switch (get_cpu_category()) {
-        case 1:
-            snprintf(cpu_model, 20, "STM32L151CB");
-            break;
-        case 2:
-            snprintf(cpu_model, 20, "STM32L151CB-A");
-            break;
-        case 3:
-            snprintf(cpu_model, 20, "STM32L151CC");
-            break;
-    }
+    get_cpu_name(model);
+
     printf("%s %lu MHz (%s clock)\n", cpu_model,
                                       cpu_clock_global/1000000,
                                       cpu_clock_source);

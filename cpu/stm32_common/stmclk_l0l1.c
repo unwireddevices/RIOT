@@ -352,7 +352,6 @@ void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider) {
     cpu_clock_global = 65536 * (1 << (msi_range >> 13));
 }
 
-#if defined(CPU_FAM_STM32L1)
 static uint32_t cpu_find_memory_size(char *base, uint32_t block, uint32_t maxsize) {
     char *address = base;
     do {
@@ -364,21 +363,12 @@ static uint32_t cpu_find_memory_size(char *base, uint32_t block, uint32_t maxsiz
 
     return (uint32_t)(address - base);
 }
-#endif
 
 uint32_t get_cpu_ram_size(void) {
 #if defined(CPU_FAM_STM32L0)
-    switch (ST_DEV_ID) {
-        case STM32L0_DEV_ID_CAT3:
-            return 8*1024;
-            break;
-        case STM32L0_DEV_ID_CAT5:
-            return 20*1024;
-            break;
-    }
-    return 0;
+    return cpu_find_memory_size((char *)SRAM_BASE, 2*1024, 20*1024);
 #elif defined(CPU_FAM_STM32L1)
-    return cpu_find_memory_size((char *)SRAM_BASE, 4096, 81920);
+    return cpu_find_memory_size((char *)SRAM_BASE, 4*1024, 80*1024);
 #else
 #error unexpected MCU
 #endif
@@ -386,17 +376,9 @@ uint32_t get_cpu_ram_size(void) {
 
 uint32_t get_cpu_flash_size(void) {
 #if defined(CPU_FAM_STM32L0)
-    switch (ST_DEV_ID) {
-        case STM32L0_DEV_ID_CAT3:
-            return 64*1024;
-            break;
-        case STM32L0_DEV_ID_CAT5:
-            return 128*1024;
-            break;
-    }
-    return 0;
+    return cpu_find_memory_size((char *)FLASH_BASE, 8*1024, 192*1024);
 #elif defined(CPU_FAM_STM32L1)
-    return cpu_find_memory_size((char *)FLASH_BASE, 32768, 524288);
+    return cpu_find_memory_size((char *)FLASH_BASE, 32*1024, 512*1024);
 #else
 #error unexpected MCU
 #endif
@@ -404,17 +386,9 @@ uint32_t get_cpu_flash_size(void) {
 
 uint32_t get_cpu_eeprom_size(void) {
 #if defined(CPU_FAM_STM32L0)
-    switch (ST_DEV_ID) {
-        case STM32L0_DEV_ID_CAT3:
-            return 2*1024;
-            break;
-        case STM32L0_DEV_ID_CAT5:
-            return 6*1024;
-            break;
-    }
-    return 0;
+    return cpu_find_memory_size((char *)DATA_EEPROM_BASE, 512, 6*1024);
 #elif defined(CPU_FAM_STM32L1)
-    return cpu_find_memory_size((char *)EEPROM_BASE, 2048, 16384);
+    return cpu_find_memory_size((char *)EEPROM_BASE, 2*1024, 16*1024);
 #else
 #error unexpected MCU
 #endif
@@ -423,31 +397,32 @@ uint32_t get_cpu_eeprom_size(void) {
 uint32_t get_cpu_category(void) {
 #if defined(CPU_FAM_STM32L0)
     switch (ST_DEV_ID) {
+        case STM32L0_DEV_ID_CAT1:
+            return 1;
+        case STM32L0_DEV_ID_CAT2:
+            return 2;
         case STM32L0_DEV_ID_CAT3:
             return 3;
-            break;
         case STM32L0_DEV_ID_CAT5:
             return 5;
-            break;
+        default:
+            return 0;
     }
     return 0;
 #elif defined(CPU_FAM_STM32L1)
     switch (ST_DEV_ID) {
         case STM32L1_DEV_ID_CAT1:
             return 1;
-            break;
         case STM32L1_DEV_ID_CAT2:
             return 2;
-            break;
         case STM32L1_DEV_ID_CAT3:
             return 3;
-            break;
         case STM32L1_DEV_ID_CAT4:
             return 4;
-            break;
         case STM32L1_DEV_ID_CAT56:
             return 5;
-            break;
+        default:
+            return 0;
     }
     return 0;
 #else
@@ -456,33 +431,126 @@ uint32_t get_cpu_category(void) {
 }
 
 uint32_t get_cpu_name(char *name) {
+int series = 0;
+
 #if defined(CPU_FAM_STM32L0)
-    switch (ST_DEV_ID) {
-        case STM32L0_DEV_ID_CAT3:
-            sprintf(name, "STM32L052xx");
+    #if defined(AES_BASE)
+        if (cpu_check_address((char *)AES->CR)) {
+            series += 10;
+        }
+    #endif
+
+    /* STM32L0x1 series doesn't have DAC */
+    #if defined(DAC_BASE)
+        if (cpu_check_address((char *)DAC->CR)) {
+            /* STM32L0x2 or STM32L0x3 */
+            series += 1;
+        }
+    #endif
+    /* STM32L0x3 series with LCD interface */
+    #if defined(LCD_BASE)
+        if (cpu_check_address((char *)LCD->CR)) {
+            /* STM32L0x3 */
+            series += 1;
+        }
+    #endif
+    
+    uint32_t memory = get_cpu_flash_size()/1024;
+    char model = 'x';
+    switch (memory) {
+        case (8):
+            model = '3';
             break;
-        case STM32L0_DEV_ID_CAT5:
-            sprintf(name, "STM32L072xx");
+        case (16):
+            model = '4';
+            break;
+        case (32):
+            model = '6';
+            break;
+        case (64):
+            model = '8';
+            break;
+        case (128):
+            model = 'B';
+            break;
+        case (192):
+            model = 'Z';
             break;
     }
+    
+    switch (ST_DEV_ID) {
+        case STM32L0_DEV_ID_CAT1:
+            series += 11;
+            break;
+        case STM32L0_DEV_ID_CAT2:
+            series += 31;
+            break;
+        case STM32L0_DEV_ID_CAT3:
+            series += 51;
+            break;
+        case STM32L0_DEV_ID_CAT5:
+            series += 71;
+            break;
+    }
+
+    sprintf(name, "STM32L%03dx%c", series, model);
+    
     return 0;
 #elif defined(CPU_FAM_STM32L1)
-    switch (ST_DEV_ID) {
-        case STM32L1_DEV_ID_CAT1:
-            sprintf(name, "STM32L1xxxB");
+    /* STM32L100xx as default value */
+    series = 100;
+    
+    /* only STM32L16x has AES */
+    #if defined(AES_BASE)
+        if (cpu_check_address((char *)AES->CR)) {
+            /* STM32L16x */
+            series += 10;
+        }
+    #endif
+
+    /* STM32L100 series doesn't have comparators */
+    #if defined(COMP_BASE)
+        if (cpu_check_address((char *)COMP->CSR)) {
+            /* STM32L15x or STM32L16x */
+            series += 51;
+        }
+    #endif
+    
+    /* only STM32L1x2 series has LCD */
+    #if defined(LCD_BASE)
+        if (cpu_check_address((char *)LCD->CR)) {
+            /* STM32L1x2 */
+            series += 1;
+        }
+    #endif
+    
+    uint32_t memory = get_cpu_flash_size()/1024;
+    char model = 'x';
+    switch (memory) {
+        case (32):
+            model = '6';
             break;
-        case STM32L1_DEV_ID_CAT2:
-            sprintf(name, "STM32L1xxxB-A");
+        case (64):
+            model = '8';
             break;
-        case STM32L1_DEV_ID_CAT3:
-            sprintf(name, "STM32L1xxxC");
+        case (128):
+            model = 'B';
             break;
-        case STM32L1_DEV_ID_CAT4:
-            sprintf(name, "STM32L1xxxD");
+        case (256):
+            model = 'C';
             break;
-        case STM32L1_DEV_ID_CAT56:
-            sprintf(name, "STM32L1xxxE");
+        case (384):
+            model = 'D';
             break;
+        case (512):
+            model = 'E';
+            break;
+    }
+    
+    if (ST_DEV_ID == STM32L1_DEV_ID_CAT2) {
+        sprintf(name, "STM32L%03dx%c-A", series, model);
+    } else {
+        sprintf(name, "STM32L%03dx%c", series, model);
     }
     return 0;
 #else

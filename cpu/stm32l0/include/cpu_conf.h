@@ -42,6 +42,8 @@
 extern "C" {
 #endif
 
+#define STM32L0_DEV_ID_CAT1             0x457
+#define STM32L0_DEV_ID_CAT2             0x425
 #define STM32L0_DEV_ID_CAT3             0x417
 #define STM32L0_DEV_ID_CAT5             0x447
 

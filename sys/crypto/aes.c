@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Freie Universität Berlin, Computer Systems & Telematics
+ *           (C) 2018 Unwired Devices LLC <info@unwds.com>
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -17,8 +18,6 @@
  * @author      Nicolai Schmittberger <nicolai.schmittberger@fu-berlin.de>
  * @author      Fabrice Bellard
  * @author      Zakaria Kasmi <zkasmi@inf.fu-berlin.de>
- *
- * @author      Unwired Devices LLC
  * @author      Oleg Artamonov <oleg@unwds.com>
  *
  * @note        Integrated in QEMU by Fabrice Bellard from the OpenSSL project.
@@ -399,6 +398,7 @@ static const u32 Te4[256] = {
 };
 #endif /* AES_CALCULATE_TABLES */
 
+#if !defined(AES_NO_DECRYPTION)
 static const u32 Td0[256] = {
     0x51f4a750U, 0x7e416553U, 0x1a17a4c3U, 0x3a275e96U,
     0x3bab6bcbU, 0x1f9d45f1U, 0xacfa58abU, 0x4be30393U,
@@ -780,6 +780,7 @@ static const u32 Td4[256] = {
     0x55555555U, 0x21212121U, 0x0c0c0c0cU, 0x7d7d7d7dU,
 };
 #endif /* AES_CALCULATE_TABLES */
+#endif /* AES_NO_DECRYPTION */
 
 /* for 128-bit blocks, Rijndael never uses more than 10 rcon values */
 static const u32 rcon[] = {
@@ -937,6 +938,7 @@ static int aes_set_encrypt_key(const unsigned char *userKey, const int bits,
 /**
  * Expand the cipher key into the decryption key schedule.
  */
+#if !defined(AES_NO_DECRYPTION)
 static int aes_set_decrypt_key(const unsigned char *userKey, const int bits,
                                AES_KEY *key)
 {
@@ -1009,6 +1011,7 @@ static int aes_set_decrypt_key(const unsigned char *userKey, const int bits,
 
     return 0;
 }
+#endif /* AES_NO_DECRYPTION */
 
 #ifndef AES_ASM
 /*
@@ -1277,6 +1280,12 @@ int aes_encrypt(const cipher_context_t *context, const uint8_t *plainBlock,
 int aes_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock,
                 uint8_t *plainBlock)
 {
+#if defined(AES_NO_DECRYPTION)
+    (void)context;
+    (void)cipherBlock;
+    (void)plainBlock;
+    return -1;
+#else
     /* setup AES_KEY */
     int res;
     AES_KEY aeskey;
@@ -1528,6 +1537,7 @@ int aes_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock,
         rk[3];
     PUTU32(plainBlock + 12, s3);
     return 1;
+#endif /* !AES_NO_DECRYPTION */
 }
 
 #endif /* AES_ASM */

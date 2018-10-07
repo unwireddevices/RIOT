@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 # If no BOARD is found in the environment, use this default:
 BOARD ?= unwd-range-l1-r3
 
@@ -46,6 +48,9 @@ umdk-st95	                = 1
 
 ####### UMDK MODULES defines and Makefile.include inclusion ############
 
+export UMDK_MODULES_ENABLED
+export UMDK_INCLUDES
+
 define umdk_add_module
 ifeq ($($(UMDK_MODULE_NAME)),1)
     UMDK_MODULES_ENABLED += $(UMDK_MODULE_NAME)
@@ -54,7 +59,6 @@ endef
 
 $(foreach UMDK_MODULE_NAME, $(filter umdk-%, ${.VARIABLES}), $(eval $(call umdk_add_module, $UMDK_MODULE_NAME)))
 USEMODULE += $(UMDK_MODULES_ENABLED)
-export UMDK_MODULES_ENABLED
 
 UMDK_MODULES_MAKEFILES = $(addsuffix /Makefile.include, $(addprefix $(RIOTBASE)/unwired-modules/, $(UMDK_MODULES_ENABLED)))
 
@@ -72,38 +76,48 @@ INCLUDES += -I$(RIOTBASE)/unwired-modules/include/
 DIRS += $(addprefix $(RIOTBASE)/unwired-modules/, $(UMDK_MODULES_ENABLED))
 INCLUDES += $(addprefix -I$(RIOTBASE)/unwired-modules/, $(addsuffix /include, $(UMDK_MODULES_ENABLED)))
 
-SHELL := /bin/bash
-UMDK-MODULES-LIST = $(RIOTBASE)/unwired-modules/include/umdk-modules.h
-UMDK-INCLUDES = $(wildcard $(addsuffix /include, $(UMDK_MODULES_ENABLED)))
+UMDK_MODULES_LIST = $(RIOTBASE)/unwired-modules/include/umdk-modules.h
 
 all: create_module_list
 
 # shell script to build a list and write it to umdk-modules.h
 create_module_list:
-	@modlist=(`echo $(UMDK-INCLUDES)`); \
-	echo "/* DO NOT EDIT! FILE IS AUTO GENERATED */" > $(UMDK-MODULES-LIST); \
-	echo "#ifndef UMDK_MODULES_H_" >> $(UMDK-MODULES-LIST); \
-	echo -e "#define UMDK_MODULES_H_\n" >> $(UMDK-MODULES-LIST); \
+	@echo -n "Generating umdk-modules.h"; \
+    modlist=(`echo $(UMDK_MODULES_ENABLED)`); \
+	echo "/* DO NOT EDIT! FILE IS AUTO GENERATED */" > $(UMDK_MODULES_LIST); \
+	echo "#ifndef UMDK_MODULES_H_" >> $(UMDK_MODULES_LIST); \
+	echo -e "#define UMDK_MODULES_H_\n" >> $(UMDK_MODULES_LIST); \
 	for i in "$${modlist[@]}"; do \
-	for k in `find ./$$i -type f -printf "%f\n"`; do echo "#include <$$k>" >> $(UMDK-MODULES-LIST); done; \
+        [ ! -z "$(RIOTBASE)/unwired-modules/$$i/include/$$i.h" ] &&  echo "#include <$$i.h>" >> $(UMDK_MODULES_LIST); \
 	done; \
-	printf "\nstatic const unwd_module_t modules[] = {\n" >> $(UMDK-MODULES-LIST); \
+	printf "\nstatic const unwd_module_t modules[] = {\n" >> $(UMDK_MODULES_LIST); \
 	for k in "$${modlist[@]}"; do \
-	name=`echo $$k | sed -e "s/^umdk-//" | sed -e "s/\/include$$//"`; \
-	name_up=`echo $$name | tr '[:lower:]' '[:upper:]'`; \
-	printf "{ UNWDS_$${name_up}_MODULE_ID, \"$${name}\", " >> $(UMDK-MODULES-LIST); \
-	if grep -q "umdk_$${name}_init" $$k/*; then printf "umdk_$${name}_init, "  >> $(UMDK-MODULES-LIST); \
-	else printf "NULL, " >> $(UMDK-MODULES-LIST); fi; \
-	if grep -q "umdk_$${name}_cmd" $$k/*; then printf "umdk_$${name}_cmd, " >> $(UMDK-MODULES-LIST); \
-	else printf "NULL, "  >> $(UMDK-MODULES-LIST); fi; \
-	if grep -q "umdk_$${name}_broadcast" $$k/*; then printf "umdk_$${name}_broadcast"  >> $(UMDK-MODULES-LIST); \
-	else printf "NULL"  >> $(UMDK-MODULES-LIST); fi; \
-	printf "},\n"  >> $(UMDK-MODULES-LIST); \
-	sed -i "s/#define _UMDK_MID_.*/#define _UMDK_MID_ UNWDS_$${name_up}_MODULE_ID/" umdk-$${name}/*.c; \
-    sed -i "s/#define _UMDK_NAME_.*/#define _UMDK_NAME_ \"$${name}\"/" umdk-$${name}/*.c; \
+        echo -n "."; \
+        name=`echo $$k | sed -e "s/^umdk-//"`; \
+        name_up=`echo $$name | tr '[:lower:]' '[:upper:]'`; \
+        printf "{ UNWDS_$${name_up}_MODULE_ID, \"$${name}\", " >> $(UMDK_MODULES_LIST); \
+        if      \
+            grep -q "umdk_$${name}_init" $(RIOTBASE)/unwired-modules/$$k/*.c; then printf "umdk_$${name}_init, "  >> $(UMDK_MODULES_LIST); \
+        else    \
+            printf "NULL, " >> $(UMDK_MODULES_LIST); \
+        fi; \
+        if      \
+            grep -q "umdk_$${name}_cmd" $(RIOTBASE)/unwired-modules/$$k/*.c; then printf "umdk_$${name}_cmd, " >> $(UMDK_MODULES_LIST); \
+        else    \
+            printf "NULL, "  >> $(UMDK_MODULES_LIST); \
+        fi; \
+        if      \
+            grep -q "umdk_$${name}_broadcast" $(RIOTBASE)/unwired-modules/$$k/*.c; then printf "umdk_$${name}_broadcast"  >> $(UMDK_MODULES_LIST); \
+        else    \
+            printf "NULL"  >> $(UMDK_MODULES_LIST);\
+        fi; \
+        printf "},\n"  >> $(UMDK_MODULES_LIST); \
+        sed -i "s/#define _UMDK_MID_.*/#define _UMDK_MID_ UNWDS_$${name_up}_MODULE_ID/" $(RIOTBASE)/unwired-modules/$$k/*.c; \
+        sed -i "s/#define _UMDK_NAME_.*/#define _UMDK_NAME_ \"$${name}\"/" $(RIOTBASE)/unwired-modules/$$k/*.c; \
 	done; \
-	printf "{ 0, \"\", NULL, NULL, NULL } };\n" >> $(UMDK-MODULES-LIST); \
-	echo -e "\n#endif" >> $(UMDK-MODULES-LIST);
+	printf "{ 0, \"\", NULL, NULL, NULL } };\n" >> $(UMDK_MODULES_LIST); \
+	echo -e "\n#endif" >> $(UMDK_MODULES_LIST); \
+	echo " done."
 
 ################ Other modules to include ################
 USEMODULE += shell

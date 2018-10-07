@@ -7,6 +7,7 @@ CPU support
 -----------
 
 * Cortex-M: function to check address validity on any Cortex-M CPU
+* STM32: globally available structure with basic processor information
 * STM32: optimized EEPROM read/write-support (up to 8x faster, 4x lesser wear)
 * STM32: proper GPIO_UNDEF support
 * STM32: safer GPIO IRQ support
@@ -61,6 +62,7 @@ System services
 * rtctimers timers module for second-precision RTC timers
 * rtctimers-millis module for millisecond-precision RTC timers
 * Improved AES algorithm with 8KB smaller flash footprint
+* Semtech LoRaMAC adapted to RIOT AES implementation (faster, no conflicts if some other module needs AES)
 * shell_password command for shell access protection
 
 Core functions

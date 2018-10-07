@@ -37,8 +37,12 @@ extern void _lock(void);
 extern void _unlock(void);
 extern void _wait_for_pending_operations(void);
 
-#ifndef EEPROM_START_ADDR
-#error "periph/eeprom: EEPROM_START_ADDR is not defined"
+#if defined(CPU_FAM_STM32L0)
+    uint32_t eeprom_start_addr = DATA_EEPROM_BASE;
+#elif defined(CPU_FAM_STM32L1)
+    uint32_t eeprom_start_addr = EEPROM_BASE;
+#else
+    #error "periph/eeprom: EEPROM_BASE is not defined"
 #endif
 
 static union {
@@ -48,39 +52,39 @@ static union {
 
 static void _eeprom_write_byte(uint32_t pos, uint8_t byte)
 {
-    assert(pos < EEPROM_SIZE);
+    assert(pos < cpu_status.eeprom.size);
     
     _wait_for_pending_operations();
-    *(__IO uint8_t *)(EEPROM_START_ADDR + pos) = byte;
+    *(__IO uint8_t *)(eeprom_start_addr + pos) = byte;
 }
 
 static void _eeprom_write_word(uint32_t pos, uint32_t word)
 {
-    assert(pos <= EEPROM_SIZE - sizeof(uint32_t));
+    assert(pos <= cpu_status.eeprom.size - sizeof(uint32_t));
     
     _wait_for_pending_operations();
-    *(__IO uint32_t *)(EEPROM_START_ADDR + pos) = word;
+    *(__IO uint32_t *)(eeprom_start_addr + pos) = word;
 }
 
 static uint8_t _eeprom_read_byte(uint32_t pos)
 {
-    assert(pos < EEPROM_SIZE);
+    assert(pos < cpu_status.eeprom.size);
     
     _wait_for_pending_operations();
-    return *(__IO uint8_t *)(EEPROM_START_ADDR + pos);
+    return *(__IO uint8_t *)(eeprom_start_addr + pos);
 }
 
 static uint32_t _eeprom_read_word(uint32_t pos)
 {
-    assert(pos <= EEPROM_SIZE - sizeof(uint32_t));
+    assert(pos <= cpu_status.eeprom.size - sizeof(uint32_t));
     
     _wait_for_pending_operations();
-    return *(__IO uint32_t *)(EEPROM_START_ADDR + pos);
+    return *(__IO uint32_t *)(eeprom_start_addr + pos);
 }
 
 void eeprom_write_byte(uint32_t pos, uint8_t data)
 {
-    assert(pos < EEPROM_SIZE);
+    assert(pos < cpu_status.eeprom.size);
 
     DEBUG("Writing data '%c' to EEPROM at pos %" PRIu32 "\n", data, pos);
     _unlock();
@@ -90,7 +94,7 @@ void eeprom_write_byte(uint32_t pos, uint8_t data)
 
 size_t eeprom_write(uint32_t pos, const uint8_t *data, size_t len)
 {
-    assert((pos + len) <= EEPROM_SIZE);
+    assert((pos + len) <= cpu_status.eeprom.size);
 
     DEBUG("[EEPROM] write %d bytes\n", len);
     _unlock();
@@ -149,7 +153,7 @@ size_t eeprom_write(uint32_t pos, const uint8_t *data, size_t len)
 
 uint8_t eeprom_read_byte(uint32_t pos)
 {
-    assert(pos < EEPROM_SIZE);
+    assert(pos < cpu_status.eeprom.size);
 
     DEBUG("Reading data from EEPROM at pos %" PRIu32 "\n", pos);
     _unlock();
@@ -161,7 +165,7 @@ uint8_t eeprom_read_byte(uint32_t pos)
 
 size_t eeprom_read(uint32_t pos, uint8_t *data, size_t len)
 {
-    assert((pos + len) <= EEPROM_SIZE);
+    assert((pos + len) <= cpu_status.eeprom.size);
     
     DEBUG("[EEPROM] read %d bytes\n", len);
     _unlock();
@@ -204,7 +208,7 @@ size_t eeprom_read(uint32_t pos, uint8_t *data, size_t len)
 
 size_t eeprom_clear_all(void)
 {
-    return eeprom_write(0, NULL, EEPROM_SIZE);
+    return eeprom_write(0, NULL, cpu_status.eeprom.size);
 }
 
 size_t eeprom_clear(uint32_t pos, size_t len)

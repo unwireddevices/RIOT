@@ -47,39 +47,12 @@ extern "C" {
 #endif
 /** @} */
 
-/**
- * @brief   Flash page configuration
- *
- * STM32F03x, STM32F04x, STM32F05x: up to 64 pages of 1K
- * STM32F07x, STM32F09x: up to 128 pages of 2K
- *
- * @{
- */
-#if defined(CPU_LINE_STM32F091xC) || defined(CPU_LINE_STM32F072xB)
-#define FLASHPAGE_SIZE      (2048U)
-#elif defined(CPU_LINE_STM32F051x8) || defined(CPU_LINE_STM32F042x6) \
-   || defined(CPU_LINE_STM32F070xB) || defined(CPU_LINE_STM32F030x8)
-#define FLASHPAGE_SIZE      (1024U)
-#endif
-
-#define FLASHPAGE_NUMOF     (STM32_FLASHSIZE / FLASHPAGE_SIZE)
-
 #define STM32F0_DEV_ID_CAT3     0x444
 #define STM32F0_DEV_ID_CAT4     0x445
 #define STM32F0_DEV_ID_CAT5     0x440
 #define STM32F0_DEV_ID_CAT7     0x448
 #define STM32F0_DEV_ID_CAT9     0x442
 #define ST_DEV_ID           ((DBGMCU->IDCODE) & DBGMCU_IDCODE_DEV_ID)
-
-/* The minimum block size which can be written is 2B. However, the erase
- * block is always FLASHPAGE_SIZE.
- */
-#define FLASHPAGE_RAW_BLOCKSIZE    (2U)
-/* Writing should be always 4 bytes aligned */
-#define FLASHPAGE_RAW_ALIGNMENT    (4U)
-/** @} */
-
-
 
 /**
  * @brief   Initizliaze clocks (switch to default clock)

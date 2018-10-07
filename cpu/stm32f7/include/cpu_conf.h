@@ -45,6 +45,12 @@ extern "C" {
 #endif
 /** @} */
 
+#define STM32F4_DEV_ID_CAT1     0x452 /* STM32F72xxx/73xxx */
+#define STM32F4_DEV_ID_CAT2     0x449 /* STM32F74xxx/75xxx */
+#define STM32F4_DEV_ID_CAT3     0x451 /* STM32F76xxx/77xxx */
+#define STM32F4_DEV_ID_CAT4     0x450 /* STM32H74xxx/75xxx */
+#define ST_DEV_ID           ((DBGMCU->IDCODE) & DBGMCU_IDCODE_DEV_ID)
+
 #ifdef __cplusplus
 }
 #endif

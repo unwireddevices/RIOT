@@ -58,27 +58,58 @@ extern "C" {
  */
 #define PROVIDES_PM_SET_LOWEST
 
-# define CPU_NAME_MAX_SIZE      20
+#define CPU_NAME_MAX_SIZE           20
+#define CPU_CLOCK_SOURCE_MAX_SIZE   9
 
 typedef struct {
-    size_t      ram_size;           /**< CPU RAM size, bytes */
-    size_t      flash_size;         /**< CPU FLASH size, bytes */
-    size_t      eeprom_size;        /**< CPU EEPROM size, bytes */
-    uint32_t    core_clock;         /**< CPU core clock, Hz */
-    uint32_t    flashpage_size;     /**< flashpage size, bytes */
-    uint32_t    flashpage_num;      /**< total number of flash pages */
-    int16_t     vdd_voltage;        /**< CPU VDD voltage, mV (INT16_MIN if not available) */
-    int16_t     vdda_voltage;       /**< CPU VDDA voltage, mV (INT16_MIN if not available) */
-    int16_t     vbat_voltage;       /**< CPU VBAT voltage, mV (INT16_MIN if not available) */
-    int16_t     core_temp;          /**< CPU core temperature, C (INT16_MIN if not available) */
-    char        name[CPU_NAME_MAX_SIZE];    /**< CPU name and model */
-    uint8_t     category;           /**< CPU category (0 if not applicable) */
+    size_t      size;
+    uint32_t    pages;
+    uint32_t    pagesize;
+    uint8_t     alignment;
+} cpu_flash_t;
+
+typedef struct {
+    size_t      size;
+    uint8_t     alignment;
+} cpu_ram_t;
+
+typedef struct {
+    size_t      size;
+    uint8_t     alignment;
+} cpu_eeprom_t;
+
+typedef struct {
+    int16_t         vdd;        /**< CPU VDD voltage, mV (INT16_MIN if not available)  */
+    int16_t         vdda;       /**< CPU VDDA voltage, mV (INT16_MIN if not available) */
+    int16_t         vbat;       /**< CPU VBAT voltage, mV (INT16_MIN if not available) */
+} cpu_voltage_t;
+
+typedef struct {
+    int16_t         core_temp;          /**< CPU core temperature, C (INT16_MIN if not available) */
+} cpu_temp_t;
+
+typedef struct {
+    uint32_t        coreclock;          /**< CPU core clock     */
+    char            source[CPU_CLOCK_SOURCE_MAX_SIZE + 1];         /**< CPU clock source   */
+} cpu_clock_t;
+
+typedef struct {
+    cpu_ram_t       ram;                /**< CPU RAM data */
+    cpu_flash_t     flash;              /**< CPU flash data */
+    cpu_eeprom_t    eeprom;             /**< CPU EEPROM data */
+    cpu_voltage_t   voltage;            /**< CPU voltages */
+    cpu_clock_t     clock;              /**< CPU clocks */
+    cpu_temp_t      temp;               /**< CPU core temperatures */
+    char            model[CPU_NAME_MAX_SIZE];    /**< CPU name and model */
+    uint8_t         category;           /**< CPU category (0 if not applicable) */
 } cpu_status_t;
 
+extern cpu_status_t cpu_status;
+
 /**
- * @brief   Returns CPU status info
+ * @brief   Updates CPU status info
  */
-cpu_status_t cpu_get_status(void);
+void cpu_update_status(void);
 
 /**
  * @brief   Initializes CPU status info
@@ -164,19 +195,15 @@ static inline void cortexm_isr_end(void) {
 bool cpu_check_address(volatile const char *address);
 
 /**
- * @brief   Holds current CPU clock frequency
+ * @brief   Determine CPU memory size
+ *
+ * This function can be used to calculate memory size in runtime
+ * 
+ * @param[in]	base     Address to start
+ * @param[in]   block    Default increment
+ * @param[in]   maxsize  Maximum possible memory size
  */
-extern volatile uint32_t cpu_clock_global;
-
-/**
- * @brief   Holds current CPU clock source name
- */
-extern char cpu_clock_source[10];
-
-/**
- * @brief   Number of GPIO ports available
- */
-extern volatile uint32_t cpu_ports_number;
+size_t cpu_find_memory_size(char *base, uint32_t block, uint32_t maxsize);
 
 #ifdef __cplusplus
 }

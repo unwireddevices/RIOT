@@ -69,6 +69,18 @@ void cortexm_init(void)
 #endif
 }
 
+size_t cpu_find_memory_size(char *base, uint32_t block, uint32_t maxsize) {
+    char *address = base;
+    do {
+        address += block;
+        if (!cpu_check_address(address)) {
+            break;
+        }
+    } while ((size_t)(address - base) < maxsize);
+
+    return (size_t)(address - base);
+}
+
 bool cpu_check_address(volatile const char *address)
 {
 #if defined(CPU_ARCH_CORTEX_M3) || defined(CPU_ARCH_CORTEX_M4) || \

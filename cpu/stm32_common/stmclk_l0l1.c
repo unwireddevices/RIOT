@@ -89,9 +89,6 @@
 #endif
 
 static volatile uint32_t clock_source_rdy = 0;
-volatile uint32_t cpu_clock_global;
-volatile uint32_t cpu_ports_number = 3;
-char cpu_clock_source[10] = { 0 };
 
 /**
  * @brief Configure the controllers clock system
@@ -278,32 +275,35 @@ void stmclk_init_sysclk(void)
     RCC->CR &= ~(CLOCK_DISABLE_OTHERS);
 #endif
     
-    cpu_clock_global = CLOCK_CORECLOCK;
-    
+    cpu_status.clock.coreclock = CLOCK_CORECLOCK;
+
 #if CLOCK_MSI
-    memcpy(cpu_clock_source, "MSI", 3);   
+    strncpy(cpu_status.clock.source, "MSI", CPU_CLOCK_SOURCE_MAX_SIZE);   
 #elif defined(CLOCK_HS_MULTI)
-    uint32_t n = 0;
-    if (CLOCK_USE_PLL) {
-        memcpy(cpu_clock_source, "PLL", 3);
-        n += 3;
-    }
     if (clock_source_rdy == RCC_CR_HSERDY) {
-        memcpy(cpu_clock_source + n, "/HSE", 4);
+        if (CLOCK_USE_PLL) {
+            strncpy(cpu_status.clock.source, "PLL/HSE", CPU_CLOCK_SOURCE_MAX_SIZE);
+        } else {
+            strncpy(cpu_status.clock.source, "HSE", CPU_CLOCK_SOURCE_MAX_SIZE);
+        }
     } else {
-        memcpy(cpu_clock_source + n, "/HSI", 4);
+        if (CLOCK_USE_PLL) {
+            strncpy(cpu_status.clock.source, "PLL/HSI", CPU_CLOCK_SOURCE_MAX_SIZE);
+        } else {
+            strncpy(cpu_status.clock.source, "HSI", CPU_CLOCK_SOURCE_MAX_SIZE);
+        }
     }
 #elif defined(CLOCK_HSI)
     #if CLOCK_USE_PLL
-        memcpy(cpu_clock_source, "PLL/HSI", 7);
+        strncpy(cpu_status.clock.source, "PLL/HSI", CPU_CLOCK_SOURCE_MAX_SIZE);
     #elif
-        memcpy(cpu_clock_source, "HSI", 3);
+        strncpy(cpu_status.clock.source, "HSI", CPU_CLOCK_SOURCE_MAX_SIZE);
     #endif
 #elif defined(CLOCK_HSE)
     #if CLOCK_USE_PLL
-        memcpy(cpu_clock_source, "PLL/HSE", 7);
+        strncpy(cpu_status.clock.source, "PLL/HSE", CPU_CLOCK_SOURCE_MAX_SIZE);
     #elif
-        memcpy(cpu_clock_source, "HSE", 3);
+        strncpy(cpu_status.clock.source, "HSE", CPU_CLOCK_SOURCE_MAX_SIZE);
     #endif
 #endif
 }
@@ -351,7 +351,8 @@ void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider) {
     tmpreg &= ~(RCC_CR_HSEBYP | RCC_CR_CSSON | RCC_CR_PLLON);
     RCC->CR = tmpreg;
     
-    cpu_clock_global = 65536 * (1 << (msi_range >> 13));
+    strncpy(cpu_status.clock.source, "MSI", CPU_CLOCK_SOURCE_MAX_SIZE);
+    cpu_status.clock.coreclock = 65536 * (1 << (msi_range >> 13));
 }
 
 #endif /* defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L1) */

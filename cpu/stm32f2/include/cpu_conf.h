@@ -38,6 +38,9 @@ extern "C" {
 #define CPU_FLASH_BASE                  FLASH_BASE
 /** @} */
 
+#define STM32F2_DEV_ID     0x411
+#define ST_DEV_ID           ((DBGMCU->IDCODE) & DBGMCU_IDCODE_DEV_ID
+
 #ifdef __cplusplus
 }
 #endif

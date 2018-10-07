@@ -555,7 +555,7 @@ void convert_from_be_sam(void *ptr, size_t size) {
 
 /* determine EEPROM size to work seamlessly with CC and CB-A MCUs */
 void unwds_init(void) {
-    unwds_eeprom_layout.eeprom_size = get_cpu_eeprom_size();
+    unwds_eeprom_layout.eeprom_size = cpu_status.eeprom.size;
     
     if (unwds_eeprom_layout.eeprom_size == 8192) {
         unwds_eeprom_layout.config_storage_size = 256;
@@ -591,15 +591,13 @@ void print_logo(void)
 #endif
 	puts("*****************************************");
     printf("Version: %s (%s %s)\n", FIRMWARE_VERSION, __DATE__, __TIME__);
-    char cpu_model[20];
-    get_cpu_name(cpu_model);
 
-    printf("%s %lu MHz (%s clock)\n", cpu_model,
-                                      cpu_clock_global/1000000,
-                                      cpu_clock_source);
-    printf("%lu KB RAM, %lu KB flash, %lu KB EEPROM\n\n", get_cpu_ram_size()/1024,
-                                                          get_cpu_flash_size()/1024,
-                                                          get_cpu_eeprom_size()/1024);
+    printf("%s %lu MHz (%s clock)\n", cpu_status.model,
+                                      cpu_status.clock.coreclock/1000000,
+                                      cpu_status.clock.source);
+    printf("%u KB RAM, %u KB flash, %u KB EEPROM\n\n", cpu_status.ram.size/1024,
+                                                       cpu_status.flash.size/1024,
+                                                       cpu_status.eeprom.size/1024);
 }
 
 #ifdef __cplusplus

@@ -190,7 +190,7 @@ int adc_sample(adc_t line,  adc_res_t res)
     int cal_vref, cal_ts1, cal_ts2;
     /* In case of VREF channel calculate and return actual VDD, not Vref */
 	if (adc_config[line].chan == ADC_VREF_CHANNEL) {
-        if (get_cpu_category() < 3) {
+        if (cpu_status.category < 3) {
             /* low-end devices doesn't provide calibration values, see errata */
             cal_vref = 1672;
         } else {
@@ -229,7 +229,7 @@ int adc_sample(adc_t line,  adc_res_t res)
         ADC1 -> SR &= ~ADC_SR_STRT;
         
         /* calibrate temperature data */
-        if (get_cpu_category() < 3) {
+        if (cpu_status.category < 3) {
             /* low-end devices doesn't provide calibration values, see errata */
             /* values according to STM32L151x6/8/B-A datasheet, tables 17 and 59 */
             cal_ts1   = 680;

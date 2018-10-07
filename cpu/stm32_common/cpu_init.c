@@ -54,7 +54,7 @@ void cpu_init(void)
     /* switch all GPIOs to AIN mode to minimize power consumption */
     uint8_t i;
     GPIO_TypeDef *port;
-    for (i = 0; i < cpu_ports_number; i++) {
+    for (i = 0; i < 12; i++) {
         port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
         if (cpu_check_address((char *)port)) {
             port->MODER = 0xffffffff;

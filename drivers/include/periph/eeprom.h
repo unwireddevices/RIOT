@@ -30,10 +30,6 @@
 extern "C" {
 #endif
 
-#ifndef EEPROM_SIZE
-#error "periph/eeprom: EEPROM_SIZE is not defined"
-#endif
-
 /**
  * @brief   Read a byte at the given position in eeprom
  *

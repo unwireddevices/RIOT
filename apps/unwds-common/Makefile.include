@@ -31,7 +31,10 @@ umdk-light     				= 1
 umdk-meteo     				= 1
 umdk-config    				= 1
 umdk-mhz19     				= 1
-umdk-usound    				= 0
+# for a while, umdk-usound supports STM32L1 only
+ifneq (,$(findstring unwd-range-l1,$(BOARD)))
+umdk-usound    				= 1
+endif
 umdk-hd44780   				= 1
 umdk-ibutton   				= 1
 umdk-irblaster 		        = 1

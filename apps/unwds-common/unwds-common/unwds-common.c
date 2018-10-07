@@ -58,11 +58,11 @@ extern "C" {
  * EEPROM settings to adjust atomatically to MCUs with different EEPROM size
  */
 struct {
-    uint32_t eeprom_size;
-    uint32_t config_storage_size;
-    uint32_t storage_blocks;
-    uint32_t min_clean_blocks;
     uint32_t config_storage_addr;
+    uint32_t eeprom_size;
+    uint16_t config_storage_size;
+    uint8_t storage_blocks;
+    uint8_t min_clean_blocks;
 } unwds_eeprom_layout;
 
 /**
@@ -118,7 +118,7 @@ bool unwds_write_nvram_config(unwds_module_id_t module_id, uint8_t *data, size_t
 		return false;
 
 	/* All configuration blocks has the same size, plus 2 bytes of CRC16 */
-	int addr = nvram_config_base_addr + (module_id - 1) * (nvram_config_block_size + 2);
+	uint32_t addr = nvram_config_base_addr + (module_id - 1) * (nvram_config_block_size + 2);
 
     uint16_t crc16 = fletcher16(data, data_size);
     

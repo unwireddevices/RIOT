@@ -58,7 +58,7 @@ typedef enum {
 #define UMDK_GPIO_ACT_MASK ~UMDK_GPIO_PIN_MASK
 #define UMDK_GPIO_ACT_SHIFT 5
 
-void umdk_gpio_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
+void umdk_gpio_init(uwnds_cb_t *event_callback);
 bool umdk_gpio_broadcast(module_data_t *cmd, module_data_t *reply);
 bool umdk_gpio_cmd(module_data_t *cmd, module_data_t *reply);
 

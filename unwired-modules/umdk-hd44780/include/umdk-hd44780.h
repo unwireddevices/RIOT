@@ -63,7 +63,7 @@ typedef enum {
 	UMDK_HD44780_CMD_PRINT = 0,
 } umdk_hd44780_cmd_t;
 
-void umdk_hd44780_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
+void umdk_hd44780_init(uwnds_cb_t *event_callback);
 bool umdk_hd44780_cmd(module_data_t *data, module_data_t *reply);
 
 #endif /* UMDK_HD44780_H */

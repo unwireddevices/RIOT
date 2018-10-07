@@ -161,9 +161,8 @@ static void detect_handler(void *arg)
     rtctimers_millis_set(&detect_timer, UMDK_IBUTTON_POLLING_PERIOD_MS);
 }
 
-void umdk_ibutton_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
+void umdk_ibutton_init(uwnds_cb_t *event_callback)
 {
-    (void) non_gpio_pin_map;
 
     callback = event_callback;
     

@@ -125,9 +125,8 @@ int umdk_gpio_shell_cmd(int argc, char **argv) {
     return 1;
 }
 
-void umdk_gpio_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
+void umdk_gpio_init(uwnds_cb_t *event_callback)
 {
-    (void) non_gpio_pin_map;
     (void) event_callback;
     
     unwds_add_shell_command(_UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_gpio_shell_cmd);
@@ -142,12 +141,6 @@ static inline void do_reply(module_data_t *reply, umdk_gpio_reply_t reply_code)
 
 static bool check_pin(module_data_t *reply, int pin)
 {
-    /* Is pin is occupied by other module */
-    if (unwds_is_pin_occupied(pin)) {
-        do_reply(reply, UMDK_GPIO_REPLY_ERR_PIN);
-        return false;
-    }
-
     /* Gpio pin not in range */
     if (pin < 0 || unwds_gpio_pin(pin) == 0) {
         do_reply(reply, UMDK_GPIO_REPLY_ERR_PIN);

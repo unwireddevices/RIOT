@@ -63,9 +63,8 @@ static void umdk_config_reset_system(void *arg) {
     NVIC_SystemReset();
 }
 
-void umdk_config_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
+void umdk_config_init(uwnds_cb_t *event_callback)
 {
-    (void) non_gpio_pin_map;
     (void) event_callback;
     
     /* Create handler thread */

@@ -66,11 +66,6 @@ struct {
 } unwds_eeprom_layout;
 
 /**
- * @brief Bitmap of occupied pins that cannot be used as gpio in-out
- */
-static uint32_t non_gpio_pin_map;
-
-/**
  * @brief Bitmap of enabled modules
  */
 static uint32_t enabled_bitmap[8];
@@ -331,7 +326,7 @@ void unwds_init_modules(uwnds_cb_t *event_callback)
     while (modules[i].init_cb != NULL && modules[i].cmd_cb != NULL) {
     	if (enabled_bitmap[modules[i].module_id / 32] & (1 << (modules[i].module_id % 32))) {	/* Module enabled */
     		printf("[unwds] initializing \"%s\" module...\n", modules[i].name);
-            modules[i].init_cb(&non_gpio_pin_map, event_callback);
+            modules[i].init_cb(event_callback);
     	}
         i++;
     }
@@ -417,11 +412,6 @@ int unwds_send_to_module(unwds_module_id_t modid, module_data_t *data, module_da
     
 	unwd_module_t *module = find_module(modid);
 	return module->cmd_cb(data, reply);
-}
-
-bool unwds_is_pin_occupied(uint32_t pin)
-{
-    return ((non_gpio_pin_map >> pin) & 0x1);
 }
 
 uint32_t * unwds_get_enabled(void)

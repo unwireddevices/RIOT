@@ -44,7 +44,7 @@ typedef enum {
     UMDK_SET_CLASS = 2,
 } umdk_config_action_t;
 
-void umdk_config_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
+void umdk_config_init(uwnds_cb_t *event_callback);
 bool umdk_config_cmd(module_data_t *cmd, module_data_t *reply);
 
 #endif /* UMDK_CONFIG_H */

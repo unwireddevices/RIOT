@@ -52,7 +52,7 @@ typedef enum {
     UMDK_HX711_DATA_ERROR,
 } umdk_hx711_data_t;
 
-void umdk_hx711_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
+void umdk_hx711_init(uwnds_cb_t *event_callback);
 bool umdk_hx711_cmd(module_data_t *data, module_data_t *reply);
 
 #endif /* UMDK_HX711_H */

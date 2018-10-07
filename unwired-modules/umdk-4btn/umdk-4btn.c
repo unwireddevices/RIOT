@@ -24,7 +24,7 @@
  * @ingroup     
  * @brief       
  * @{
- * @file		umdk-4btn.c
+ * @file        umdk-4btn.c
  * @brief       umdk-4btn module implementation
  * @author      Eugene Ponomarev
  */
@@ -85,11 +85,11 @@ static void *handler(void *arg) {
         callback(&data);
     }
 
-	return NULL;
+    return NULL;
 }
 
 static void btn_pressed_int(void *arg) {
-	int btn_num = (int) arg;
+    int btn_num = (int) arg;
     
     gpio_irq_disable(buttons[btn_num]);
     
@@ -128,35 +128,33 @@ static void btn_pressed_int(void *arg) {
         printf("[umdk-" _UMDK_NAME_ "] Pressed: %d\n", btn_num + 1);
     }
 
-	msg_send_int(&msg, handler_pid);
+    msg_send_int(&msg, handler_pid);
     
     gpio_irq_enable(buttons[btn_num]);
 }
 
-void umdk_4btn_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
-	(void) non_gpio_pin_map;
+void umdk_4btn_init(uwnds_cb_t *event_callback) {
+    callback = event_callback;
 
-	callback = event_callback;
-
-	/* Initialize interrupts */
+    /* Initialize interrupts */
     int i = 0;
     for (i = 0; i < UMDK_4BTN_NUM_BUTTONS; i++) {
         gpio_init_int(buttons[i], GPIO_IN_PU, GPIO_BOTH, btn_pressed_int, (void *) i);
     }
 
-	/* Create handler thread */
-	char *stack = (char *) allocate_stack(UMDK_4BTN_STACK_SIZE);
-	if (!stack) {
-		return;
-	}
+    /* Create handler thread */
+    char *stack = (char *) allocate_stack(UMDK_4BTN_STACK_SIZE);
+    if (!stack) {
+        return;
+    }
 
-	handler_pid = thread_create(stack, UMDK_4BTN_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, handler, NULL, "4btn thread");
+    handler_pid = thread_create(stack, UMDK_4BTN_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, handler, NULL, "4btn thread");
 }
 
 bool umdk_4btn_cmd(module_data_t *data, module_data_t *reply) {
     (void)data;
     (void)reply;
-	return false;
+    return false;
 }
 
 #ifdef __cplusplus

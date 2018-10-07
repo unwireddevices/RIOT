@@ -100,9 +100,8 @@ static umdk_pwm_dev_t pwm_devs[UMDK_PWM_NUM_DEVS] = {
 
 static uwnds_cb_t *callback;
 
-void umdk_pwm_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
+void umdk_pwm_init(uwnds_cb_t *event_callback)
 {
-    (void)non_gpio_pin_map;
 
     callback = event_callback;
 

@@ -248,9 +248,8 @@ int umdk_uart_shell_cmd(int argc, char **argv) {
     return 1;
 }
 
-void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
+void umdk_uart_init(uwnds_cb_t *event_callback)
 {
-    (void) non_gpio_pin_map;
     callback = event_callback;
 
     init_config();

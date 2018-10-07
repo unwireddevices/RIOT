@@ -45,7 +45,7 @@ typedef enum {
 	UMDK_FDC1004_CMD_SET_I2C = 2,
 } umdk_fdc1004_cmd_t;
 
-void umdk_fdc1004_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
+void umdk_fdc1004_init(uwnds_cb_t *event_callback);
 bool umdk_fdc1004_cmd(module_data_t *data, module_data_t *reply);
 
 #endif /* UMDK_FDC1004_H */

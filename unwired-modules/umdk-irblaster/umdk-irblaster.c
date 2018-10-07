@@ -277,9 +277,8 @@ bool umdk_irblaster_cmd(module_data_t *cmd, module_data_t *reply)
 
 static uwnds_cb_t *callback;
 
-void umdk_irblaster_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
+void umdk_irblaster_init(uwnds_cb_t *event_callback)
 {
-    (void)non_gpio_pin_map;
 
     callback = event_callback;
     

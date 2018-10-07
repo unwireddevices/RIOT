@@ -39,7 +39,7 @@
 
 #define UMDK_PIR_DEBOUNCE_TIME_MS 150
 
-void umdk_pir_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
+void umdk_pir_init(uwnds_cb_t *event_callback);
 bool umdk_pir_cmd(module_data_t *data, module_data_t *reply);
 
 #endif /* UMDK_PIR_H */

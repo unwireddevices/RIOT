@@ -46,7 +46,7 @@ typedef enum {
     UMDK_LIGHT_CMD_FAIL = 0xFF,
 } umdk_light_cmd_t;
 
-void umdk_light_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
+void umdk_light_init(uwnds_cb_t *event_callback);
 bool umdk_light_cmd(module_data_t *data, module_data_t *reply);
 
 #endif /* UMDK_LIGHT_H */

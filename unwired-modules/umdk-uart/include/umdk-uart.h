@@ -64,7 +64,7 @@ typedef enum {
 	UMDK_UART_ERR = 255,
 } umdk_uart_reply_t;
 
-void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
+void umdk_uart_init(uwnds_cb_t *event_callback);
 bool umdk_uart_cmd(module_data_t *data, module_data_t *reply);
 
 #endif /* UMDK_UART_H */

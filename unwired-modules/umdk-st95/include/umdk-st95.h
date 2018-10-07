@@ -160,7 +160,7 @@ typedef struct {
     uint8_t protocol;
  } umdk_st95_config_t;
 
-void umdk_st95_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
+void umdk_st95_init(uwnds_cb_t *event_callback);
 bool umdk_st95_cmd(module_data_t *data, module_data_t *reply);
 
 #endif /* UMDK_ST95_H */

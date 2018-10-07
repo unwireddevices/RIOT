@@ -850,10 +850,8 @@ static void init_config(void) {
 }
 
 
-void umdk_st95_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
+void umdk_st95_init(uwnds_cb_t *event_callback)
 {
-    (void)non_gpio_pin_map;
-
     (void)event_callback;
     // callback = event_callback;
 

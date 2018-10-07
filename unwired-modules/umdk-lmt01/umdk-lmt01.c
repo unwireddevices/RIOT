@@ -232,8 +232,7 @@ static void btn_connect(void* arg) {
     msg_send(&timer_msg, timer_pid);
 }
 
-void umdk_lmt01_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
-	(void) non_gpio_pin_map;
+void umdk_lmt01_init(uwnds_cb_t *event_callback) {
 
 	callback = event_callback;
 	init_config();

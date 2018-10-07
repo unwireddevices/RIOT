@@ -58,9 +58,8 @@ extern "C" {
 
 static uwnds_cb_t *callback;
 
-void umdk_rssiecho_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
+void umdk_rssiecho_init(uwnds_cb_t *event_callback)
 {
-    (void) non_gpio_pin_map;
     callback = event_callback;
 }
 

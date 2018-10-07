@@ -48,7 +48,7 @@ typedef enum {
 	UMDK_GPS_REPLY_ERROR = 0xFF,
 } umdk_gps_cmd_t;
 
-void umdk_gps_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
+void umdk_gps_init(uwnds_cb_t *event_callback);
 bool umdk_gps_cmd(module_data_t *data, module_data_t *reply);
 
 #endif /* UMDK_GPS_H */

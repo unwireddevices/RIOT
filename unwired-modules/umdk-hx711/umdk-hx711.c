@@ -271,9 +271,8 @@ static void *timer_thread(void *arg) {
     return NULL;
 }
 
-void umdk_hx711_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
+void umdk_hx711_init(uwnds_cb_t *event_callback)
 {
-    (void) non_gpio_pin_map;
 
     callback = event_callback;
     

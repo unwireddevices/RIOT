@@ -90,8 +90,7 @@ int umdk_hd44780_shell_cmd(int argc, char **argv) {
     return 1;
 }
 
-void umdk_hd44780_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
-	(void) non_gpio_pin_map;
+void umdk_hd44780_init(uwnds_cb_t *event_callback) {
 	callback = event_callback;
 
     unwds_add_shell_command(_UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_hd44780_shell_cmd);

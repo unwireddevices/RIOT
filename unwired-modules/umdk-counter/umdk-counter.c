@@ -241,9 +241,8 @@ int umdk_counter_shell_cmd(int argc, char **argv) {
     return 1;
 }
 
-void umdk_counter_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
+void umdk_counter_init(uwnds_cb_t *event_callback)
 {
-    (void) non_gpio_pin_map;
 
     conf_counter.publish_period = UMDK_COUNTER_PUBLISH_PERIOD_MIN;
 

@@ -72,7 +72,7 @@ typedef enum {
     UMDK_COUNTER_REPLY_ERR = 0xFF,
 } umdk_counter_reply_t;
 
-void umdk_counter_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
+void umdk_counter_init(uwnds_cb_t *event_callback);
 bool umdk_counter_cmd(module_data_t *data, module_data_t *reply);
 
 #endif /* UMDK_COUNTER_H */

@@ -37,7 +37,7 @@ typedef enum {
 	UMDK_RSSIECHO_CMD_ECHO = 0,
 } umdk_rssiecho_cmd_t;
 
-void umdk_rssiecho_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
+void umdk_rssiecho_init(uwnds_cb_t *event_callback);
 bool umdk_rssiecho_cmd(module_data_t *data, module_data_t *reply);
 
 #endif /* UMDK_RSSIECHO_H */

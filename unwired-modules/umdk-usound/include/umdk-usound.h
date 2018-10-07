@@ -56,7 +56,7 @@ typedef enum {
     UMDK_SOUND_MODE_THRESHOLD = 1,
 } umdk_sound_mode_t;
 
-void umdk_usound_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
+void umdk_usound_init(uwnds_cb_t *event_callback);
 bool umdk_usound_cmd(module_data_t *data, module_data_t *reply);
 
 #endif /* UMDK_USOUND_H */

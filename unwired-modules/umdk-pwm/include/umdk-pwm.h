@@ -97,7 +97,7 @@ typedef enum {
     UMDK_PWM_CMD_SET = 0, /**< Sets frequency and duty cycle for specified PWM channel  */
 } umdk_pwm_cmd_t;
 
-void umdk_pwm_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
+void umdk_pwm_init(uwnds_cb_t *event_callback);
 bool umdk_pwm_cmd(module_data_t *data, module_data_t *reply);
 
 #endif /* UMDK_PWM_H */

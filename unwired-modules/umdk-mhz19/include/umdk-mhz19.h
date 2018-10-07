@@ -56,7 +56,7 @@ typedef enum {
 	UMDK_MHZ19_ERR = 255,
 } umdk_mhz19_reply_t;
 
-void umdk_mhz19_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
+void umdk_mhz19_init(uwnds_cb_t *event_callback);
 bool umdk_mhz19_cmd(module_data_t *data, module_data_t *reply);
 
 #endif /* UMDK_MHZ19_H */

@@ -215,9 +215,8 @@ int umdk_gps_shell_cmd(int argc, char **argv) {
     return 1;
 }
 
-void umdk_gps_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
+void umdk_gps_init(uwnds_cb_t *event_callback)
 {
-    (void) non_gpio_pin_map;
 
     callback = event_callback;
     

@@ -119,7 +119,7 @@ typedef void (uwnds_cb_t)(module_data_t *msg);
 typedef struct {
 	unwds_module_id_t module_id;
 	char name[UNWDS_MAX_MODULE_NAME];
-	void (*init_cb)(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
+	void (*init_cb)(uwnds_cb_t *event_callback);
 	bool (*cmd_cb)(module_data_t *data, module_data_t *reply);
 
 	bool (*cmb_broadcast_cb)(module_data_t *data, module_data_t *reply);
@@ -138,7 +138,6 @@ char *unwds_get_module_name(unwds_module_id_t modid);
 
 void unwds_list_modules(uint32_t *ability, bool enabled_only);
 
-bool unwds_is_pin_occupied(uint32_t pin);
 bool unwds_is_module_exists(unwds_module_id_t modid);
 bool unwds_is_module_enabled(unwds_module_id_t modid);
 

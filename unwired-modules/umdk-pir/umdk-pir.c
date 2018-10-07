@@ -104,8 +104,7 @@ static void pir_int_cb(void *arg) {
 	msg_send_int(&pir, handler_pid);
 }
 
-void umdk_pir_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
-	(void) non_gpio_pin_map;
+void umdk_pir_init(uwnds_cb_t *event_callback) {
 
 	callback = event_callback;
 

@@ -75,7 +75,6 @@ USEMODULE += shell_commands
 USEMODULE += ps
 USEMODULE += od
 USEMODULE += xtimer
-USEMODULE += crypto
 USEMODULE += cipher_modes
 USEMODULE += random
 USEMODULE += hashes
@@ -86,6 +85,12 @@ USEMODULE += sx127x
 
 USEMODULE += loralan-common
 USEMODULE += unwds-common
+
+ifeq (,$(findstring semtech-loramac,$(USEPKG)))
+	USEMODULE += crypto
+	CFLAGS += -DAES_NO_DECRYPTION
+	CFLAGS += -DCRYPTO_AES
+endif
 
 DIRS += $(RIOTBASE)/apps/unwds-common/loralan-device/
 DIRS += $(RIOTBASE)/apps/unwds-common/loralan-mac/
@@ -118,9 +123,6 @@ CFLAGS += -DDEVELHELP
 CFLAGS += -DNO_RIOT_BANNER
 
 ####################################################
-
-CFLAGS += -DAES_NO_DECRYPTION
-CFLAGS += -DCRYPTO_AES
 
 FEATURES_OPTIONAL += config
 FEATURES_OPTIONAL += periph_rtc

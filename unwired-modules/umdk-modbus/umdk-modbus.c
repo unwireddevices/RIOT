@@ -232,7 +232,7 @@ static void _check_respose(uint32_t min_delay, uint32_t time_response)
     return;    
 }
 
-void *radio_send(void *arg) {
+static void *radio_send(void *arg) {
     (void)arg;
     
     msg_t msg;
@@ -322,7 +322,7 @@ void *radio_send(void *arg) {
     return NULL;
 }
 
-void umdk_modbus_handler(void *arg, uint8_t data)
+static void umdk_modbus_handler(void *arg, uint8_t data)
 {
     (void)arg;
     /* if allow receiving data*/

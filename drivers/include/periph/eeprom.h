@@ -84,7 +84,7 @@ size_t eeprom_clear(uint32_t pos, size_t len);
  *
  * @return the number of bytes cleared
  */
-size_t eeprom_clear_all(void);
+size_t eeprom_erase(void);
 
 #ifdef __cplusplus
 }

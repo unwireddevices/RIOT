@@ -151,7 +151,7 @@ static int cmd_clear(int argc, char **argv)
         
     printf("Clearing EEPROM... ");
     if (strcmp(argv[1], "all") == 0) {
-        eeprom_clear_all();
+        eeprom_erase();
     } else {
         uint32_t pos = atoi(argv[1]);
         uint32_t count = atoi(argv[2]);

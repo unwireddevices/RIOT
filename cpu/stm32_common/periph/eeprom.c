@@ -206,7 +206,7 @@ size_t eeprom_read(uint32_t pos, uint8_t *data, size_t len)
     return bytes;
 }
 
-size_t eeprom_clear_all(void)
+size_t eeprom_erase(void)
 {
     return eeprom_write(0, NULL, cpu_status.eeprom.size);
 }

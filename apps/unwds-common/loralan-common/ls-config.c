@@ -151,7 +151,7 @@ bool save_config_nvram(void)
 
 bool clear_nvram(void)
 {
-    eeprom_clear_all();
+    eeprom_erase();
     
     return true;
 }

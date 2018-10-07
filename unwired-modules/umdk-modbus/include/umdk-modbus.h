@@ -24,7 +24,7 @@
  * @ingroup     
  * @brief       
  * @{
- * @file		umdk-modbus.h
+ * @file        umdk-modbus.h
  * @brief       umdk-modbus module definitions
  * @author      Mikhail Perkov
  */
@@ -77,7 +77,7 @@
  */
 typedef enum {
     UMDK_MODBUS_MSG_RADIO           = 0,
-	UMDK_MODBUS_MSG_OVERFLOW        = 1,
+    UMDK_MODBUS_MSG_OVERFLOW        = 1,
     UMDK_MODBUS_MSG_NO_RESPONSE     = 2,
 } modbus_msg_t;
 
@@ -85,11 +85,11 @@ typedef enum {
  * @brief Reply messages values
  */
 typedef enum {
-	UMDK_MODBUS_OK_REPLY 			= 0x00,
-	UMDK_MODBUS_ERROR_REPLY			= 0x01,
-	UMDK_MODBUS_NO_RESPONSE_REPLY   = 0x02,
-	UMDK_MODBUS_OVERFLOW_REPLY   	= 0x03,
-	UMDK_MODBUS_INVALID_FORMAT   	= 0x04,
+    UMDK_MODBUS_OK_REPLY             = 0x00,
+    UMDK_MODBUS_ERROR_REPLY            = 0x01,
+    UMDK_MODBUS_NO_RESPONSE_REPLY   = 0x02,
+    UMDK_MODBUS_OVERFLOW_REPLY       = 0x03,
+    UMDK_MODBUS_INVALID_FORMAT       = 0x04,
     UMDK_MODBUS_INVALID_CMD_REPLY   = 0xFF,
 } umdk_modbus_reply_t;
 
@@ -97,8 +97,8 @@ typedef enum {
  * @brief Modbus configurations structure
  */
 typedef struct {
-	uint8_t uart_dev;
-	uint32_t baudrate;
+    uint8_t uart_dev;
+    uint32_t baudrate;
     uint8_t databits;
     uint8_t parity;
     uint8_t stopbits;
@@ -108,24 +108,24 @@ typedef struct {
  * @brief Modbus package configurations structure
  */
 typedef struct {
-	volatile uint8_t flag_rx;
-	volatile uint8_t rx_allow;
-	volatile uint8_t radio;
-	uint8_t response;
+    volatile uint8_t flag_rx;
+    volatile uint8_t rx_allow;
+    volatile uint8_t radio;
+    uint8_t response;
     
     bool is_true;
-	
-	uint8_t length_rx;
-	uint8_t length_tx;
+    
+    uint8_t length_rx;
+    uint8_t length_tx;
 } umdk_modbus_config_pack_t;
 
 /**
  * @brief Commands list
  */
 typedef enum {
-	UMDK_MODBUS_SET_PARAMS 	= 0xFF,
-	UMDK_MODBUS_SET_DEVICE	= 0xFE,
-	MODBUS_MAX_CMD			= 0x7F,
+    UMDK_MODBUS_SET_PARAMS     = 0xFF,
+    UMDK_MODBUS_SET_DEVICE    = 0xFE,
+    MODBUS_MAX_CMD            = 0x7F,
 
 } umdk_modbus_cmd_t;
 

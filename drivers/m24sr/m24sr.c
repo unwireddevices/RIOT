@@ -2017,7 +2017,7 @@ int m24sr_eeprom_read(m24sr_t *dev, void *dst, uint16_t addr, uint16_t size) {
     if (status != M24SR_OK) {
         return M24SR_ERROR;
     }
-    /**/
+    /*Select */
     m24sr_select_capability_container_file(dev, M24SR_CC_FILE_ID);
     m24sr_read_binary(dev, 0x0000, (uint8_t * )&cc_file, sizeof(cc_file));
     
@@ -2140,7 +2140,7 @@ int m24sr_eeprom_erase(m24sr_t *dev, uint16_t addr, uint16_t size) {
 
     m24sr_close_session(dev, dev->params.token_mode);
 
-    return 0;
+    return M24SR_OK;
 }
 
 

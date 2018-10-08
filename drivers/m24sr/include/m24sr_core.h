@@ -146,15 +146,14 @@ typedef enum {
 
 /**
  * @brief [brief description]
- * @details [long description]
  * 
  * @param dev [description]
  * @return [description]
  */
 int m24sr_release_i2c_token(const m24sr_t *dev);
+
 /**
  * @brief [brief description]
- * @details [long description]
  * 
  * @param dev [description]
  * @param buffer [description]
@@ -162,25 +161,25 @@ int m24sr_release_i2c_token(const m24sr_t *dev);
  * @return [description]
  */
 int m24sr_send_i2c_cmd(const m24sr_t *dev, uint8_t *buffer, uint8_t len);
+
 /**
  * @brief [brief description]
- * @details [long description]
  * 
  * @param dev [description]
  * @return [description]
  */
 int m24sr_is_answer_rdy(m24sr_t *dev);
+
 /**
  * @brief [brief description]
- * @details [long description]
  * 
  * @param dev [description]
  * @return [description]
  */
 int m24sr_poll_i2c (const m24sr_t *dev);
+
 /**
  * @brief [brief description]
- * @details [long description]
  * 
  * @param dev [description]
  * @param buffer [description]

@@ -33,29 +33,29 @@ extern "C" {
  * @brief Type token release
  */
 typedef enum {
-  I2C_TOKEN_RELEASE_HW = 0,
-  I2C_TOKEN_RELEASE_SW,
-  I2C_TOKEN_RELEASE_NUM
+  I2C_TOKEN_RELEASE_HW = 0,             /**< Hardware release token */
+  I2C_TOKEN_RELEASE_SW,                 /**< Software release token */
+  I2C_TOKEN_RELEASE_NUM                 /**< Number of token release types */
 } m24sr_token_mode_t;
 
 /**
  * @brief Type open session
  */
 typedef enum {
-  I2C_OPEN_SESSION = 0,
-  I2C_KILL_RF,
-  I2C_PRIORITY_NUM
-} m24sr_priority_t;
+  I2C_OPEN_SESSION = 0,                 /**< Get I2C session*/
+  I2C_KILL_RF,                          /**< Kill RF session */
+  I2C_PRIORITY_NUM                      /**< Number of session open types */
+} m24sr_priority_t;                    
 
 
 /**
   * @brief  Synchronization Mechanism structure 
   */
 typedef enum{
-    M24SR_WAITING_TIME_UNKNOWN = 0,
-    M24SR_WAITING_TIME_POLLING,
-    M24SR_WAITING_TIME_GPO,
-    M24SR_INTERRUPT_GPO,
+    M24SR_WAITING_TIME_UNKNOWN = 0,     /**< */
+    M24SR_WAITING_TIME_POLLING,         /**< */
+    M24SR_WAITING_TIME_GPO,             /**< */
+    M24SR_INTERRUPT_GPO,                /**< */
     M24SR_WAITING_TIME_MODE_NUM
 } m24sr_wait_mode_t;    
 
@@ -64,13 +64,13 @@ typedef enum{
  * @brief   M24SR configuration parameters
  */
 typedef struct {
-    i2c_t   i2c;                /**< I2C device   */
-    uint8_t i2c_addr;           /**< I2C address */
-    gpio_t  gpo_pin;            /**< Interrupt GPO   */
-    gpio_t  rfdisable_pin;      /**< GPIO to switch RF on/off */
-    gpio_t  pwr_en_pin;         /**< GPIO to switch power on/off*/
-    m24sr_priority_t priority;             /**<*/
-    m24sr_token_mode_t token_mode;      /**<*/
+    i2c_t   i2c;                        /**< I2C device  */
+    uint8_t i2c_addr;                   /**< I2C address */
+    gpio_t  gpo_pin;                    /**< Interrupt GPO */
+    gpio_t  rfdisable_pin;              /**< GPIO to switch RF on/off */
+    gpio_t  pwr_en_pin;                 /**< GPIO to switch power on/off */
+    m24sr_priority_t priority;          /**< Type open session */
+    m24sr_token_mode_t token_mode;      /**< Type token release */
 } m24sr_params_t;
 
 
@@ -78,11 +78,11 @@ typedef struct {
  * @brief M24SR memory information
  */
 typedef struct {
-    uint16_t chipsize;
-    uint16_t type;
-    uint16_t max_read_byte;
-    uint16_t max_write_byte;
-    uint8_t uid[7];
+    uint16_t chipsize;                  /**< Size of memory */
+    uint16_t type;                      /**< Type of memory */
+    uint16_t max_read_byte;             /**< The maximum number of read bytes */
+    uint16_t max_write_byte;            /**< The maximum number of write bytes */
+    uint8_t uid[7];                     /**< Unique identification number */
 } m24sr_memory_t;
 
 
@@ -90,8 +90,8 @@ typedef struct {
  * @brief  M24SR power states
  */
 enum m24sr_power_state {
-    M24SR_POWER_UP = 0,     /**< Power up */
-    M24SR_POWER_DOWN,       /**< Power down */
+    M24SR_POWER_UP = 0,                 /**< Power up */
+    M24SR_POWER_DOWN,                   /**< Power down */
     M24SR_POWER_STATE_NUM 
 };
 
@@ -103,7 +103,6 @@ typedef struct {
     m24sr_memory_t memory;              /**< device memory parameters */
     m24sr_wait_mode_t synchro_mode;     /**<  synchro_mode */
     volatile uint8_t event_ready;       /**< check if an event was received */
-    // mutex_t event_lock;              /**< mutex for waiting for event */
 } m24sr_t;
 
 
@@ -113,75 +112,78 @@ typedef struct {
  * @brief   Status and error return codes
  */
 enum {
-    M24SR_OK      =  0,             /**< everything was fine */
-    M24SR_NOBUS   = -1,             /**< bus interface error */
-    M24SR_NODEV   = -2,             /**< unable to talk to device */
-    M24SR_ERROR   = -3,             /**< any error memory */
-    M24SR_ERROR_PARAM = -4,         /**< error parameter */
-    M24SR_WRONG_CRC = -5,
+    M24SR_OK          =  0,             /**< everything was fine */
+    M24SR_NOBUS       = -1,             /**< bus interface error */
+    M24SR_NODEV       = -2,             /**< unable to talk to device */
+    M24SR_ERROR       = -3,             /**< any error memory */
+    M24SR_ERROR_PARAM = -4,             /**< error parameter */
+    M24SR_WRONG_CRC   = -5,
 };
 
 
 /**
- * @brief [brief description]
- * @details [long description]
+ * @brief   Initialize the given M24SR NFC eeprom
  * 
- * @param dev [description]
- * @param params [description]
+ * @param[out] dev      Pointer to M24SR NFC eeprom device descriptor
+ * @param[in]  params   Pointer to static device configuration
  * 
- * @return [description]
+ * @return  Error code
  */
 int m24sr_eeprom_init(m24sr_t *dev, const m24sr_params_t *params);
+
 /**
- * @brief [brief description]
- * @details [long description]
+ * @brief Copy data from M24SR NFC eeprom to system memory.
  * 
- * @param dev [description]
- * @param dest [description]
- * @param addr [description]
- * @param size [description]
- * @return [description]
+ * @param[in]  dev    Pointer to M24SR NFC eeprom device descriptor
+ * @param[out] dest   Pointer to the first byte in the system memory address space
+ * @param[in]  addr   Starting address in the M24SR NFC eeprom device address space
+ * @param[in]  size   Number of bytes to copy
+ * 
+ * @return Number of bytes read or error code
  */
 int m24sr_eeprom_read(m24sr_t *dev, void *dest, uint16_t addr, uint16_t size);
+
 /**
- * @brief [brief description]
- * @details [long description]
+ * @brief Copy data from system memory to M24SR NFC eeprom.
  * 
- * @param dev [description]
- * @param src [description]
- * @param addr [description]
- * @param size [description]
- * @return [description]
+ * @param[in]  dev    Pointer to M24SR NFC eeprom device descriptor
+ * @param[in]  src    Pointer to the first byte in the system memory address space
+ * @param[in]  addr   Starting address in the M24SR NFC eeprom device address space
+ * @param[in]  size   Number of bytes to copy
+ *
+ * @return Number of bytes written or error code
  */
 int m24sr_eeprom_write(m24sr_t *dev, void *src, uint16_t addr, uint16_t size);
+
 /**
- * @brief [brief description]
- * @details [long description]
+ * @brief Erase M24SR NFC eeprom
  * 
- * @param dev [description]
- * @param addr [description]
- * @param size [description]
- * @return [description]
+ * @param[in]  dev    Pointer to M24SR NFC eeprom device descriptor
+ * @param[in]  addr   Starting address in the M24SR NFC eeprom device address space
+ * @param[in]  size   Number of bytes to erase
+ * 
+ * @return Error code
  */
 int m24sr_eeprom_erase(m24sr_t *dev, uint16_t addr, uint16_t size);
+
 /**
- * @brief [brief description]
- * @details [long description]
+ * @brief Fully erase data from M24SR NFC eeprom
  * 
- * @param dev [description]
- * @return [description]
+ * @param[in]  dev    Pointer to M24SR NFC eeprom device descriptor
+ * 
+ * @return Error code
  */
 int m24sr_eeprom_erase_all(m24sr_t *dev);
+
 /**
- * @brief [brief description]
- * @details [long description]
+ * @brief Control power of  M24SR NFC eeprom
  * 
- * @param dev [description]
- * @param power [description]
+ * @param[in] dev     Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] power   Power state to apply
  * 
- * @return [description]
+ * @return Error code
  */
-int m24sr_eeprom_power(m24sr_t *dev, uint8_t power);
+int m24sr_eeprom_power(m24sr_t *dev, enum m24sr_power_state power);
 
 #ifdef __cplusplus
 }

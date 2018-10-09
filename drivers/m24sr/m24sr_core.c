@@ -53,13 +53,12 @@
 
 
 /**
- * @brief [brief description]
- * @details [long description]
+ * @brief This function for writing buffer onto the device
  * 
- * @param dev [description]
- * @param buffer [description]
- * @param len [description]
- * @return [description]
+ * @param[in] dev    Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] buffer Pointer to the buffer to send to the M24SR
+ * @param[in] len    Number of byte to send
+ * @return Error code
  */
 static int _write_i2c(const m24sr_t *dev, uint8_t *buffer, uint32_t len)
 {
@@ -76,13 +75,12 @@ static int _write_i2c(const m24sr_t *dev, uint8_t *buffer, uint32_t len)
 }
 
 /**
- * @brief [brief description]
- * @details [long description]
+ * @brief This function for reading buffer from a device
  * 
- * @param dev [description]
- * @param buffer [description]
- * @param len [description]
- * @return [description]
+ * @param dev    Pointer to M24SR NFC eeprom device descriptor
+ * @param buffer Pointer to the buffer to read from the M24SR
+ * @param len    Number of byte to read
+ * @return Error code
  */
 static int _read_i2c(const m24sr_t *dev, uint8_t *buffer, uint32_t len)
 {
@@ -99,38 +97,17 @@ static int _read_i2c(const m24sr_t *dev, uint8_t *buffer, uint32_t len)
 }
 
 
- /**
-  * @brief This functions sends the command buffer
-  * 
-  * @param dev [description]
-  * @param buffer pointer to the buffer to send to the M24SR
-  * @param len Number of byte to send
-  * @return Error (M24SR_STATUS_SUCCESS or M24SR_ERROR_I2CTIMEOUT)
-  */ 
-
 int m24sr_send_i2c_cmd(const m24sr_t *dev, uint8_t *buffer, uint8_t len) {
     int ret = (_write_i2c(dev, buffer, len) == 0) ? (M24SR_OK) : (M24SR_NOBUS);
     return ret;
 }
 
-/**
- * @brief This functions reads a response of the M24SR device
- * 
- * @param[in] dev - 
- * @param[out] buffer - Pointer on the buffer to retrieve M24SR response
- * @param[in] len - Number of byte to read (shall be >= 5)
- * @return Status (M24SR_STATUS_SUCCESS : The function is succesful, M24SR_ERROR_I2CTIMEOUT : The I2C timeout occured.) 
- */
+
 int m24sr_rcv_i2c_response(const m24sr_t *dev, uint8_t *buffer, uint8_t len) {
     int ret = (_read_i2c(dev, buffer, len) == 0) ? (M24SR_OK) : (M24SR_NOBUS);
     return ret;
 }
 
-/**
-  * @brief  This functions polls the I2C interface
-  * @retval M24SR_STATUS_SUCCESS : the function is succesful
-  * @retval M24SR_ERROR_I2CTIMEOUT : The I2C timeout occured.
-  */
 int m24sr_poll_i2c (const m24sr_t *dev) {
 
     int ret = M24SR_OK;
@@ -156,7 +133,6 @@ int m24sr_poll_i2c (const m24sr_t *dev) {
     return ret;
 }
 
-
 int m24sr_release_i2c_token(const m24sr_t *dev) {
 
     int status = M24SR_OK;
@@ -177,12 +153,6 @@ int m24sr_release_i2c_token(const m24sr_t *dev) {
     }
 }
 
-
-/**
-  * @brief  This functions returns M24SR_OK when a response is ready
-  * @retval M24SR_OK : a response of the M24SR is ready
-  * @retval M24SR_NOBUS : the response of the M24SR is not ready
-  */
 int m24sr_is_answer_rdy(m24sr_t *dev) {
     uint32_t retry = 0xFFFFF;
     uint8_t stable = 0;
@@ -212,10 +182,9 @@ int m24sr_is_answer_rdy(m24sr_t *dev) {
             /* Check if the GPIO is not already low before calling this function */
             if (gpio_read(dev->params.gpo_pin) == 1) {
                 while (dev->event_ready == 0) {
-                    retry ++;
+                    //do nothing
                 }
             }
-            DEBUG("retry is %ld\n", retry);
             return M24SR_OK;
         default:
             return M24SR_ERROR;

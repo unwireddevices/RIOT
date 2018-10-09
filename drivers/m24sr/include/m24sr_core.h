@@ -32,19 +32,19 @@ extern "C" {
 
 /** @brief Get Most Significant Byte
   * @param  val: number where MSB must be extracted
-  * @retval MSB
+  * @return MSB
   */ 
 #define GET_MSB(val)                                         ( (uint8_t) ((val & 0xFF00 )>>8)) 
 
 /** @brief Get Least Significant Byte
   * @param  val: number where LSB must be extracted
-  * @retval LSB
+  * @return LSB
   */ 
 #define GET_LSB(val)                                         ( (uint8_t) (val & 0x00FF )) 
 
 /** @brief Used to toggle the block number by adding 0 or 1 to default block number value
   * @param  val: number to know if incrementation is needed
-  * @retval  0 or 1 if incrementation needed
+  * @return  0 or 1 if incrementation needed
   */
 #define TOGGLE(val)                                         ((val != 0x00)? 0x00 : 0x01)
 
@@ -72,8 +72,8 @@ typedef struct {
   * @brief  APDU Command structure 
   */
 typedef struct {
-    cmd_apdu_header_t header;
-    cmd_apdu_body_t   body;
+    cmd_apdu_header_t header;               /**< APDU-Header */
+    cmd_apdu_body_t   body;                 /**< APDU-Body */
 } __attribute__((packed)) cmd_apdu_t;
 
 /**
@@ -88,19 +88,19 @@ typedef struct {
 
 
 /**
-  * @brief CC File structure
+  * @brief Capability Container File structure
   */
 typedef struct {
-        uint16_t cc_file_len;
-        uint8_t  version;
-        uint16_t max_read_byte;
-        uint16_t max_write_byte;
-        uint8_t  t_field;
-        uint8_t  l_field;
-        uint16_t ndef_file_id;
-        uint16_t ndef_file_max_size;
-        uint8_t  read_access;
-        uint8_t  write_access;
+        uint16_t cc_file_len;               /**< Number of bytes of CC file */
+        uint8_t  version;                   /**< Mapping version */
+        uint16_t max_read_byte;             /**< Maximum number of bytes that can be read */
+        uint16_t max_write_byte;            /**< Maximum number of bytes that can be written*/
+        uint8_t  t_field;                   /**< NDEF file control TLV: T field */
+        uint8_t  l_field;                   /**< NDEF file control TLV: L field */
+        uint16_t ndef_file_id;              /**< NDEF file control TLV: FileID */
+        uint16_t ndef_file_max_size;        /**< NDEF file control TLV: Maximum NDEF file size */
+        uint8_t  read_access;               /**< NDEF file control TLV: Read access */
+        uint8_t  write_access;              /**< NDEF file control TLV: Write access */
 }  __attribute__((packed)) cc_file_info_t;
 
 
@@ -109,85 +109,87 @@ typedef struct {
   * @brief System file structure
   */
 typedef struct {
-        uint16_t sys_file_len;
-        uint8_t  i2c_protect;
-        uint8_t  i2c_watchdog;
-        uint8_t  gpo;
-        uint8_t  reserved;
-        uint8_t  rf_enable;
-        uint8_t  ndef_file_num;
-        uint8_t  UID[7];
-        uint16_t memory_size;
-        uint8_t  prod_code;
+        uint16_t sys_file_len;              /**< Length system file */
+        uint8_t  i2c_protect;               /**< I2C protect */
+        uint8_t  i2c_watchdog;              /**< I2C watchdog*/
+        uint8_t  gpo;                       /**< GPO */
+        uint8_t  reserved;                  /**< ST reserved */
+        uint8_t  rf_enable;                 /**< RF enable */
+        uint8_t  ndef_file_num;             /**< NDEF File number (RFU)*/
+        uint8_t  UID[7];                    /**< UID: 0x02 0x82 0xZZ 0xZZ 0xZZ 0xZZ 0xZZ*/
+        uint16_t memory_size;               /**< Memory Size */
+        uint8_t  prod_code;                 /**< Product Code */
 }  __attribute__((packed)) sys_file_info_t;
 
 
 /**
-  * @brief  GPO mode structure 
+  * @brief  GPO mode enumeration
   */
 typedef enum {
-    RF_GPO = 0,
-    I2C_GPO
+    RF_GPO = 0,                             /**< GPO mode RF*/
+    I2C_GPO,                                /**< GPO mode I2C*/
+    GPO_HW_MODE_NUM                         /**< Number of GPO mode types */
 } m24sr_gpo_hw_mode_t;
 
 /**
-  * @brief  GPO state
+  * @brief  GPO configuration enumeration
   */
 typedef enum {
-    HIGH_IMPEDANCE = 0,
-    SESSION_OPENED,
-    WIP,
-    I2C_ANSWER_READY,
-    INTERRUPT,
-    STATE_CONTROL
-} m24sr_gpo_mode_t;
+    HIGH_IMPEDANCE = 0,                     /**< High impedance */
+    SESSION_OPENED,                         /**< Session open*/
+    WIP,                                    /**< Writing in progress*/
+    I2C_ANSWER_READY,                       /**< I2C ready response*/
+    INTERRUPT,                              /**< Interrupt */
+    STATE_CONTROL,                          /**< State Control */
+    RF_BUSY,                                /**< RF busy */
+    GPO_CONFIG_NUM                          /**< Number of GPO configuration types */
+} m24sr_gpo_config_t;
 
 
 
 /**
- * @brief [brief description]
+ * @brief  This function generates an I2C Token release
  * 
- * @param dev [description]
- * @return [description]
+ * @param[in] dev Pointer to M24SR NFC eeprom device descriptor
+ * @return Error code 
  */
 int m24sr_release_i2c_token(const m24sr_t *dev);
 
 /**
- * @brief [brief description]
+ * @brief This functions sends the command buffer
  * 
- * @param dev [description]
- * @param buffer [description]
- * @param len [description]
- * @return [description]
- */
+ * @param[in] dev    Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] buffer Pointer to the buffer to send to the M24SR
+ * @param[in] len    Number of byte to send
+ * @return Error code 
+ */ 
 int m24sr_send_i2c_cmd(const m24sr_t *dev, uint8_t *buffer, uint8_t len);
 
 /**
- * @brief [brief description]
+ * @brief This functions returns M24SR_OK when a response is ready
  * 
- * @param dev [description]
- * @return [description]
+ * @param[in] dev Pointer to M24SR NFC eeprom device descriptor
+ * @return Error code
  */
 int m24sr_is_answer_rdy(m24sr_t *dev);
 
 /**
- * @brief [brief description]
+ * @brief This functions polls the I2C interface
  * 
- * @param dev [description]
- * @return [description]
+ * @param[in] dev Pointer to M24SR NFC eeprom device descriptor
+ * @return Error code
  */
 int m24sr_poll_i2c (const m24sr_t *dev);
 
 /**
- * @brief [brief description]
+ * @brief This functions reads a response of the M24SR device
  * 
- * @param dev [description]
- * @param buffer [description]
- * @param len [description]
- * @return [description]
+ * @param[in]  dev    Pointer to M24SR NFC eeprom device descriptor
+ * @param[out] buffer Pointer on the buffer to retrieve M24SR response
+ * @param[in]  len    Number of byte to read (shall be >= 5)
+ * @return Error code 
  */
 int m24sr_rcv_i2c_response(const m24sr_t *dev, uint8_t *buffer, uint8_t len);
-
 
 #ifdef __cplusplus
 }

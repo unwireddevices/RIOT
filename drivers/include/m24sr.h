@@ -30,7 +30,7 @@ extern "C" {
 
 
 /**
- * @brief Type token release
+ * @brief Type token release enumeration
  */
 typedef enum {
   I2C_TOKEN_RELEASE_HW = 0,             /**< Hardware release token */
@@ -39,7 +39,7 @@ typedef enum {
 } m24sr_token_mode_t;
 
 /**
- * @brief Type open session
+ * @brief Type open session enumeration
  */
 typedef enum {
   I2C_OPEN_SESSION = 0,                 /**< Get I2C session*/
@@ -49,14 +49,14 @@ typedef enum {
 
 
 /**
-  * @brief  Synchronization Mechanism structure 
+  * @brief  Synchronization Mechanism enumeration 
   */
 typedef enum{
-    M24SR_WAITING_TIME_UNKNOWN = 0,     /**< */
-    M24SR_WAITING_TIME_POLLING,         /**< */
-    M24SR_WAITING_TIME_GPO,             /**< */
-    M24SR_INTERRUPT_GPO,                /**< */
-    M24SR_WAITING_TIME_MODE_NUM
+    M24SR_WAITING_TIME_UNKNOWN = 0,     /**< Unknown synchronization mechanism */
+    M24SR_WAITING_TIME_POLLING,         /**< I2C polling synchronization mechanism */
+    M24SR_WAITING_TIME_GPO,             /**< GPO pin polling synchronization mechanism */
+    M24SR_INTERRUPT_GPO,                /**< GPO pin interrupt synchronization mechanism */
+    M24SR_WAITING_TIME_MODE_NUM         /**< Number of Synchronization Mechanism types */
 } m24sr_wait_mode_t;    
 
 
@@ -87,7 +87,7 @@ typedef struct {
 
 
 /**
- * @brief  M24SR power states
+ * @brief  M24SR power states enumeration
  */
 enum m24sr_power_state {
     M24SR_POWER_UP = 0,                 /**< Power up */
@@ -99,25 +99,25 @@ enum m24sr_power_state {
  * @brief   M24SR device descriptor
  */
 typedef struct {
-    m24sr_params_t params;              /**< device configuration */
-    m24sr_memory_t memory;              /**< device memory parameters */
-    m24sr_wait_mode_t synchro_mode;     /**<  synchro_mode */
-    volatile uint8_t event_ready;       /**< check if an event was received */
+    m24sr_params_t params;              /**< Вevice configuration */
+    m24sr_memory_t memory;              /**< Вevice memory parameters */
+    m24sr_wait_mode_t synchro_mode;     /**< Type synchronization mechanism */
+    volatile uint8_t event_ready;       /**< Ready to send response flag */
 } m24sr_t;
 
 
 
 
 /**
- * @brief   Status and error return codes
+ * @brief   Status and error return codes enumeration
  */
 enum {
-    M24SR_OK          =  0,             /**< everything was fine */
-    M24SR_NOBUS       = -1,             /**< bus interface error */
-    M24SR_NODEV       = -2,             /**< unable to talk to device */
-    M24SR_ERROR       = -3,             /**< any error memory */
-    M24SR_ERROR_PARAM = -4,             /**< error parameter */
-    M24SR_WRONG_CRC   = -5,
+    M24SR_OK          =  0,             /**< Everything was fine */
+    M24SR_NOBUS       = -1,             /**< Bus interface error */
+    M24SR_NODEV       = -2,             /**< Unable to talk to device */
+    M24SR_ERROR       = -3,             /**< Any error memory */
+    M24SR_ERROR_PARAM = -4,             /**< Error parameter */
+    M24SR_WRONG_CRC   = -5,             /**< Wrong CRC */
 };
 
 

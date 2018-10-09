@@ -49,18 +49,10 @@
     #define PRINTBUFF(...)
 #endif
 
-#define M24SR_PWD_LEN                   0x10
-#define NDEF_FILE_LEN_POS               0
-#define NDEF_FILE_LEN_NUM_BYTES         2
-#define I2C_GPO_INTERRUPT_ALLOWED       (1)
-//#define I2C_GPO_SYNCHRO_ALLOWED         (1)
-
 static cmd_apdu_t cmd;
 static uint8_t data_buffer[0xFF];
 static uint8_t cmd_data[0xFF];
-
 static uint8_t device_id_byte = 0x00;
-
 
 /**
   * @brief  Initialize the command and response structure
@@ -69,50 +61,211 @@ static uint8_t device_id_byte = 0x00;
   * @retval None
   */
 static void _m24sr_init_structure (void);
+
+/**
+ * @brief this functions configure I2C synchronization mode
+ * 
+ * @param[in] dev  Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] mode Type synchronization mechanism
+ * @retval None
+ */
 static void m24sr_set_i2c_synchro_mode(m24sr_t *dev, m24sr_wait_mode_t mode);
+
+/**
+ * @brief  This function updates the CRC
+ * 
+ * @param[in]  ch  One bytes data
+ * @param[out] crc CRC16
+ * 
+ * @return [description]
+ */
 static uint16_t _m24sr_update_crc (uint8_t ch, uint16_t *crc);
+
+/**
+ * @brief  This function returns the CRC16-CCITT
+ * 
+ * @param[in] data   Pointer to the data 
+ * @param[in] length Number of bytes data
+ * 
+ * @return CRC16-CCITT
+ */
 static uint16_t _m24sr_compute_crc (uint8_t *data, uint8_t length);
+
+/**
+ * @brief This function computes the CRC16 residue as defined by CRC ISO/IEC 13239
+ * 
+ * @param[in] data   Pointer to the input data
+ * @param[in] length Number of bytes data
+ * 
+ * @return Status (SW1&SW2) (CRC16 residue is correct) or error wrong crc (CRC16 residue is false)
+ */
 static int _m24sr_is_correct_crc_residue (uint8_t *data, uint8_t length);
+
+/**
+ * @brief  This functions creates an I-block command according to the structures CommandStructure and Command.
+ * 
+ * @param[in]  category Block formation parameters
+ * @param[in]  cmd      Structue which contains the field of the different parameter
+ * @param[out] iblock   Pointer of the block created
+ * @param[out] numByte  Number of byte of the block
+ * @return None
+ */
 static void _m24sr_build_iblock_cmd (uint16_t category, cmd_apdu_t cmd, uint8_t *iblock, uint16_t *numByte);
 
 #if 0
+/**
+ * @brief This function return M24SR_OK if the buffer is an I-block
+ * 
+ * @param[in] buffer Pointer of the data
+ * @return Error code
+ */
 static int _is_iblock(uint8_t *buffer);
+
+/**
+ * @brief This function return M24SR_OK if the buffer is an R-block
+ * 
+ * @param[in] buffer Pointer of the data
+ * @return Error code
+ */
 static int _is_rblock(uint8_t *buffer);
 #endif
 
+/**
+ * @brief This function return M24SR_OK if the buffer is an S-block
+ * 
+ * @param[in] buffer Pointer of the data
+ * @return Error code
+ */
 static int _is_sblock(uint8_t *buffer);
 
+
+/**
+ * @brief This function sends the SelectApplication command
+ * 
+ * @param[in] dev Pointer to M24SR NFC eeprom device descriptor
+ * @return Error code
+ */
 static int m24sr_select_application(m24sr_t *dev);
+
+/**
+ * @brief This function sends the SelectCCFile command
+ * 
+ * @param[in] dev        Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] cc_file_id ID capabilitycontainer file
+ * @return Error code
+ */
 static int m24sr_select_capability_container_file(m24sr_t *dev, uint16_t cc_file_id);
+
+/**
+ * @brief  This function sends the SelectNDEFfile command
+ * 
+ * @param[in] dev          Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] ndef_file_id ID NDEF file
+ * @return Error code
+ */
 static int m24sr_select_ndef_file(m24sr_t *dev, uint16_t ndef_file_id);
+
+/**
+ * @brief This function sends the SelectSystemFile command
+ * 
+ * @param[in] dev         Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] sys_file_id ID system file
+ * @return Error code
+ */
 static int m24sr_select_system_file(m24sr_t *dev, uint16_t sys_file_id);
+
+/**
+ * @brief [brief description]
+ * 
+ * @param[in]  dev      [description]
+ * @param[in]  offset   [description]
+ * @param[out] dst_data [description]
+ * @param[in] len       [description]
+ * @return Error code
+ */
 static int m24sr_read_binary(m24sr_t *dev, uint16_t offset, uint8_t *dst_data, uint16_t len);
+
+/**
+ * @brief [brief description]
+ * 
+ * @param[in] dev      [description]
+ * @param[in] offset   [description]
+ * @param[in] src_data [description]
+ * @param[in] len      [description]
+ * @return Error code
+ */
 static int m24sr_update_binary(m24sr_t *dev, uint16_t offset, uint8_t *src_data, uint16_t len);
+
+/**
+ * @brief [brief description]
+ * 
+ * @param[in] dev          [description]
+ * @param[in] pwd_id       [description]
+ * @param[in] num_pwd_byte [description]
+ * @param[in] pwd          [description]
+ * @return Error code
+ */
 static int m24sr_verify(m24sr_t *dev, uint16_t pwd_id, uint8_t num_pwd_byte , uint8_t *pwd);
 
+/**
+ * @brief [brief description]
+ * 
+ * @param[in] dev      [description]
+ * @param[in] offset   [description]
+ * @param[in] dst_data [description]
+ * @param[in] len      [description]
+ * @return Error code
+ */
 static int m24sr_extended_read_binary(m24sr_t *dev, uint16_t offset, uint8_t *dst_data, uint32_t len);
 
 
+/**
+ * @brief [brief description]
+ * 
+ * @param[in] dev            [description]
+ * @param[in] gpo_i2c_config [description]
+ * @return Error code
+ */
+uint16_t m24sr_manage_i2c_gpo(m24sr_t *dev, m24sr_gpo_config_t gpo_i2c_config);
 
-uint16_t m24sr_manage_i2c_gpo(m24sr_t *dev, m24sr_gpo_mode_t gpo_i2c_config);
-
-
+/**
+ * @brief [brief description]
+ * 
+ * @param[in] dev      [description]
+ * @param[in] fwt_byte [description]
+ * @return Error code
+ */
 static int _m24sr_fwt_extension(m24sr_t *dev, uint8_t fwt_byte);
 
 
-
+/**
+ * @brief [brief description]
+ * @details [long description]
+ * 
+ * @param dev [description]
+ * @param offset [description]
+ * @param dst [description]
+ * @param size [description]
+ * @return [description]
+ */
 uint16_t m24sr_read_data (m24sr_t *dev, uint16_t offset, uint8_t *dst, uint16_t size);
+
+/**
+ * @brief [brief description]
+ * @details [long description]
+ * 
+ * @param dev [description]
+ * @param offset [description]
+ * @param src [description]
+ * @param size [description]
+ * @return [description]
+ */
 uint16_t m24sr_write_data (m24sr_t *dev, uint16_t offset, uint8_t *src, uint16_t size);
 
 
 
-/////////////////////////////////////////////////////////////////////////////////////////
-/**
-  * @brief  this functions configure I2C synchronization mode
-  * @param  mode : interruption or polling
-  * @retval None
-  */
-void m24sr_set_i2c_synchro_mode(m24sr_t *dev, m24sr_wait_mode_t mode) {
+/***************************** Implementation private function *****************************************/
+static void m24sr_set_i2c_synchro_mode(m24sr_t *dev, m24sr_wait_mode_t mode) {
 #if defined(I2C_GPO_SYNCHRO_ALLOWED) || defined(I2C_GPO_INTERRUPT_ALLOWED)
     dev->synchro_mode = mode;
 #else
@@ -123,9 +276,7 @@ void m24sr_set_i2c_synchro_mode(m24sr_t *dev, m24sr_wait_mode_t mode) {
 #endif /*  I2C_GPO_SYNCHRO_ALLOWED */
 }
 
-
-static void _m24sr_init_structure (void) 
-{
+static void _m24sr_init_structure (void) {
     /* build the command */
     cmd.header.CLA = 0x00;
     cmd.header.INS = 0x00;
@@ -139,8 +290,7 @@ static void _m24sr_init_structure (void)
     cmd.body.data = cmd_data;
 }
 
-static uint16_t _m24sr_update_crc (uint8_t ch, uint16_t *crc)
-{
+static uint16_t _m24sr_update_crc (uint8_t ch, uint16_t *crc) {
     ch = (ch ^ (uint8_t)((*crc) & 0x00FF));
     ch = (ch ^ (ch << 4));
     *crc = (*crc >> 8) ^ ((uint16_t)ch << 8) ^ ((uint16_t)ch << 3) ^ ((uint16_t)ch >> 4);
@@ -148,9 +298,7 @@ static uint16_t _m24sr_update_crc (uint8_t ch, uint16_t *crc)
     return (*crc);
 }
 
-
-static uint16_t _m24sr_compute_crc (uint8_t *data, uint8_t length)
-{
+static uint16_t _m24sr_compute_crc (uint8_t *data, uint8_t length) {
     uint8_t block;
     uint16_t crc;
 
@@ -165,16 +313,7 @@ static uint16_t _m24sr_compute_crc (uint8_t *data, uint8_t length)
     return crc ;
 }
 
-
-/**
-* @brief    This function computes the CRC16 residue as defined by CRC ISO/IEC 13239
-* @param    DataIn      :   input to data
-* @param        Length      :   Number of bits of DataIn
-* @retval   Status (SW1&SW2)    :   CRC16 residue is correct
-* @retval   M24SR_ERROR_CRC     :  CRC16 residue is false
-*/
-static int _m24sr_is_correct_crc_residue (uint8_t *data, uint8_t length)
-{
+static int _m24sr_is_correct_crc_residue (uint8_t *data, uint8_t length) {
     uint16_t res_crc = 0;
 
     /* check the CRC16 Residue */
@@ -186,7 +325,7 @@ static int _m24sr_is_correct_crc_residue (uint8_t *data, uint8_t length)
         return (uint16_t)(((data[length - UB_STATUS_OFFSET] << 8) & 0xFF00) | (data[length - LB_STATUS_OFFSET] & 0x00FF));
     } else {
         res_crc = 0;
-        res_crc = _m24sr_compute_crc (data, 5);
+        res_crc = _m24sr_compute_crc (data, M24SR_STATUS_RESPONSE_NUM_BYTE);
         if (res_crc != 0x0000) {
             /* Bad CRC */
             return M24SR_WRONG_CRC;
@@ -197,16 +336,6 @@ static int _m24sr_is_correct_crc_residue (uint8_t *data, uint8_t length)
     }
 }
 
-
-/**
-  * @brief This functions creates an I block command according to the structure and category APDU Command.
-  * 
-  * @param[in]  category - block formation parameters
-  * @param[in]  cmd - structue which contains the field of the different parameter
-  * @param[out] iblock - pointer of the block created
-  * @param[out] numByte - number of byte of the block
-  * @retval     None
-  */
 static void _m24sr_build_iblock_cmd (uint16_t category, cmd_apdu_t cmd, uint8_t *iblock, uint16_t *numByte) {
     uint16_t crc16;
     static uint8_t block_num = 0x01;
@@ -217,12 +346,12 @@ static void _m24sr_build_iblock_cmd (uint16_t category, cmd_apdu_t cmd, uint8_t 
     if ((category & M24SR_PCB_NEEDED) != 0) {
         /* toggle the block number */
         block_num = TOGGLE (block_num);
-        /* Add the I block byte */
+        /* Add the I-block byte */
         iblock[(*numByte)++] = 0x02|block_num;
     }
     /* add the DID byte */
     if ((block_num & M24SR_DEV_ID_NEEDED) != 0) {
-        /* Add the I block byte */
+        /* Add the I-block byte */
         iblock[(*numByte)++] = device_id_byte;
     }
     /* add the Class byte */
@@ -265,13 +394,6 @@ static void _m24sr_build_iblock_cmd (uint16_t category, cmd_apdu_t cmd, uint8_t 
 
 
 #if 0
-
-/**
-* @brief    This function return M24SR_STATUS_SUCCESS if the pBuffer is an I-block
-* @param    pBuffer     :   pointer of the data
-* @retval   M24SR_STATUS_SUCCESS  :  the data is a I-Block
-* @retval   M24SR_ERROR_DEFAULT     :  the data is not a I-Block
-*/
 static int _is_iblock (uint8_t *buffer) {
     if ((buffer[M24SR_OFFSET_PCB] & M24SR_MASK_BLOCK) == M24SR_MASK_IBLOCK) {
         return M24SR_OK;
@@ -280,12 +402,6 @@ static int _is_iblock (uint8_t *buffer) {
     }
 }
 
-/**
-* @brief    This function return M24SR_STATUS_SUCCESS if the pBuffer is an R-block
-* @param    pBuffer     :   pointer of the data
-* @retval   M24SR_STATUS_SUCCESS  :  the data is a R-Block
-* @retval   M24SR_ERROR_DEFAULT     :  the data is not a R-Block
-*/
 static int _is_rblock (uint8_t *buffer) {
     if ((buffer[M24SR_OFFSET_PCB] & M24SR_MASK_BLOCK) == M24SR_MASK_RBLOCK) {
         return M24SR_OK;
@@ -295,12 +411,6 @@ static int _is_rblock (uint8_t *buffer) {
 }
 #endif
 
-/**
-* @brief    This function return M24SR_STATUS_SUCCESS if the pBuffer is an s-block
-* @param    pBuffer     :   pointer of the data
-* @retval   M24SR_STATUS_SUCCESS  :  the data is a S-Block
-* @retval   M24SR_ERROR_DEFAULT     :  the data is not a S-Block
-*/
 static int _is_sblock (uint8_t *buffer) {
     if ((buffer[M24SR_OFFSET_PCB] & M24SR_MASK_BLOCK) == M24SR_MASK_SBLOCK) {
         return M24SR_OK;
@@ -309,16 +419,8 @@ static int _is_sblock (uint8_t *buffer) {
     }
 }
 
-// Standart cmd set
-/**
- * @brief [brief description]
- * @details [long description]
- * 
- * @param t [description]
- * @param data [description]
- * @param len [description]
- * @return [description]
- */
+
+/******************************************** Standart cmd set *****************************************/
 static int m24sr_select_application(m24sr_t *dev) {
     /* CLA  | INS  |  P1  |  P2  |  Lc  |  Data            | Le   */
     /* 0x00 | 0xA4 | 0x04 | 0x00 | 0x07 | 0xD2760000850101 | 0x00 */
@@ -353,7 +455,7 @@ static int m24sr_select_application(m24sr_t *dev) {
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
-
+    /* waiting for answer */
     ret = m24sr_is_answer_rdy(dev);
     if (ret != M24SR_OK) {
         DEBUG("Answer not ready\n");
@@ -366,7 +468,7 @@ static int m24sr_select_application(m24sr_t *dev) {
         DEBUG("I2C no response\n");
         return M24SR_NOBUS;
     }
-
+    /* check crc*/
     status = _m24sr_is_correct_crc_residue(data, num_byte_read);
     DEBUG ("Return SW code 0x%04X\n", status);
     if (status != SW_OK) {
@@ -375,17 +477,6 @@ static int m24sr_select_application(m24sr_t *dev) {
     return ret;
 }
 
-/**
- * @brief [brief description]
- * @details [long description]
- * 
- * @param dev [description]
- * @param cmd [description]
- * @param resp [description]
- * @param data [description]
- * @param len [description]
- * @return [description]
- */
 static int m24sr_select_capability_container_file(m24sr_t *dev, uint16_t cc_file_id) {
     /* CLA  | INS  | P1   | P2   | Lc   | Data   | Le */
     /* 0x00 | 0xA4 | 0x00 | 0x0C | 0x02 | 0xE103 | -  */
@@ -416,7 +507,7 @@ static int m24sr_select_capability_container_file(m24sr_t *dev, uint16_t cc_file
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
-
+    /* waiting for answer */
     ret = m24sr_is_answer_rdy(dev);
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
@@ -427,7 +518,7 @@ static int m24sr_select_capability_container_file(m24sr_t *dev, uint16_t cc_file
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
-
+    /*check crc*/
     status = _m24sr_is_correct_crc_residue(data, num_byte_read);
     DEBUG("Return SW code 0x%04X\n", status);
     
@@ -467,7 +558,7 @@ static int m24sr_select_ndef_file(m24sr_t *dev, uint16_t ndef_file_id) {
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
-
+    /* waiting for answer */
     ret = m24sr_is_answer_rdy(dev);
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
@@ -478,7 +569,7 @@ static int m24sr_select_ndef_file(m24sr_t *dev, uint16_t ndef_file_id) {
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
-
+    /*check crc*/
     status = _m24sr_is_correct_crc_residue(data, num_byte_read);
     DEBUG("Return SW code 0x%04X\n", status);
     
@@ -518,6 +609,7 @@ static int m24sr_select_system_file(m24sr_t *dev, uint16_t sys_file_id) {
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
+    /* waiting for answer */
     ret = m24sr_is_answer_rdy(dev);
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
@@ -527,6 +619,7 @@ static int m24sr_select_system_file(m24sr_t *dev, uint16_t sys_file_id) {
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
+    /* check crc */
     status = _m24sr_is_correct_crc_residue(data, num_byte_read); 
     DEBUG("Return SW code 0x%04X\n", status);
     
@@ -562,6 +655,7 @@ static int m24sr_read_binary(m24sr_t *dev, uint16_t offset, uint8_t *dst_data, u
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
+    /* waiting for answer */
     ret = m24sr_is_answer_rdy(dev);
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
@@ -571,6 +665,7 @@ static int m24sr_read_binary(m24sr_t *dev, uint16_t offset, uint8_t *dst_data, u
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
+    /* check crc */
     status = _m24sr_is_correct_crc_residue(data, len + M24SR_STATUS_RESPONSE_NUM_BYTE);
     memcpy(dst_data, &data[1], len);
     DEBUG("Return SW code 0x%04X\n", status);    
@@ -609,6 +704,7 @@ static int m24sr_update_binary(m24sr_t *dev, uint16_t offset, uint8_t *src_data,
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
+    /* waiting for answer */
     ret = m24sr_is_answer_rdy(dev);
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
@@ -626,6 +722,7 @@ static int m24sr_update_binary(m24sr_t *dev, uint16_t offset, uint8_t *src_data,
             status = _m24sr_fwt_extension(dev, data[M24SR_OFFSET_PCB + 1]);
         }
     } else {
+        /* check crc */
         status = _m24sr_is_correct_crc_residue(data, M24SR_STATUS_RESPONSE_NUM_BYTE);
         DEBUG("Return SW code 0x%04X\n", status);    
         if (status != SW_OK) {
@@ -693,7 +790,7 @@ static int m24sr_verify(m24sr_t *dev, uint16_t pwd_id, uint8_t num_pwd_byte , ui
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
-
+    /* check crc */
     status = _m24sr_is_correct_crc_residue(data, M24SR_STATUS_RESPONSE_NUM_BYTE);
     DEBUG("Return SW code 0x%04X\n", status);
     if (status != SW_OK) {
@@ -704,6 +801,7 @@ static int m24sr_verify(m24sr_t *dev, uint16_t pwd_id, uint8_t num_pwd_byte , ui
 }
 
 #if 0
+//@FIXME
 void m24sr_change_reference_data(uint16_t pwd_id, uint8_t *pwd) {
     /* CLA  | INS  | P1 P2  | Lc   | Data         | Le */
     /* 0x00 | 0x24 | 0x000X | 0xX0 | PWD Lc Bytes | -  */
@@ -1197,12 +1295,13 @@ static int _m24sr_fwt_extension(m24sr_t *dev, uint8_t fwt_byte)
     /* send the request */
     if (m24sr_send_i2c_cmd (dev, buffer, num_byte) != M24SR_OK)
         return M24SR_NOBUS;
+    /* waiting for answer */
     if(m24sr_is_answer_rdy (dev ) != M24SR_OK)
         return M24SR_NOBUS;
     /* read the response */
     if(m24sr_rcv_i2c_response (dev, buffer, M24SR_STATUS_RESPONSE_NUM_BYTE) != M24SR_OK)
         return M24SR_NOBUS;
-
+    /* check CRC*/
     status = _m24sr_is_correct_crc_residue (buffer, M24SR_STATUS_RESPONSE_NUM_BYTE);
     DEBUG("Return SW code 0x%04X\n", status);
     if (status != SW_OK) {
@@ -1284,9 +1383,6 @@ void m24sr_close_session(const m24sr_t *dev, m24sr_token_mode_t type) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-
-
-
 /**
   * @brief  This function enable or disable RF communication
   * @param  OnOffChoice: GPO configuration to set
@@ -1363,17 +1459,17 @@ int m24sr_i2c_init_hw (m24sr_t *dev, const m24sr_params_t *params) {
   * @param    GPO_I2Cconfig: GPO configuration to set
   * @retval Status (SW1&SW2) : Status of the operation to complete.
   */
-uint16_t m24sr_manage_i2c_gpo(m24sr_t *dev, m24sr_gpo_mode_t gpo_i2c_config)
+uint16_t m24sr_manage_i2c_gpo(m24sr_t *dev, m24sr_gpo_config_t gpo_i2c_config)
 {
     uint16_t status = M24SR_OK;
     uint8_t gpo_config = 0x00;
-    uint8_t default_pwd[M24SR_PWD_LEN] = {0x00};
+    uint8_t default_pwd[M24SR_PASSWORD_NUM_BYTE] = {0x00};
 
     if (gpo_i2c_config > STATE_CONTROL) {
         return M24SR_ERROR_PARAM;
     }
 
-    memset(default_pwd, 0x00, M24SR_PWD_LEN);
+    memset(default_pwd, 0x00, M24SR_PASSWORD_NUM_BYTE);
 
     /* we must not be in interrupt mode for I2C synchro as we will change GPO purpose */
     m24sr_set_i2c_synchro_mode(dev, M24SR_WAITING_TIME_POLLING);
@@ -1422,11 +1518,11 @@ uint16_t m24sr_manage_i2c_gpo(m24sr_t *dev, m24sr_gpo_mode_t gpo_i2c_config)
     * @param    GPO_RFconfig: GPO configuration to set
   * @retval Status (SW1&SW2) : Status of the operation to complete.
   */
-uint16_t m24sr_manage_rf_gpo(m24sr_t *dev, m24sr_gpo_mode_t gpo_rf_config)
+uint16_t m24sr_manage_rf_gpo(m24sr_t *dev, m24sr_gpo_config_t gpo_rf_config)
 {
     uint16_t status;
     uint8_t gpo_config;
-    uint8_t default_pwd[M24SR_PWD_LEN] = {0x00};
+    uint8_t default_pwd[M24SR_PASSWORD_NUM_BYTE] = {0x00};
 
     if (gpo_rf_config > STATE_CONTROL)
     {
@@ -1440,7 +1536,7 @@ uint16_t m24sr_manage_rf_gpo(m24sr_t *dev, m24sr_gpo_mode_t gpo_rf_config)
     /* Update only GPO purpose for I2C */
     gpo_config = (gpo_config & 0x0F) | (gpo_rf_config << 4);
     m24sr_select_system_file(dev, M24SR_SYS_FILE_ID);
-    m24sr_verify(dev, I2C_PWD , M24SR_PWD_LEN , default_pwd);
+    m24sr_verify(dev, I2C_PWD , M24SR_PASSWORD_NUM_BYTE , default_pwd);
     status = m24sr_update_binary(dev, 0x0004, &gpo_config, 0x01);
 
     return status;
@@ -1683,7 +1779,7 @@ uint16_t m24sr_write_data (m24sr_t *dev, uint16_t offset, uint8_t *src, uint16_t
   * @param  mode: select RF or I2C, GPO config to update
   * @retval Status : Status of the operation.
   */
-uint16_t m24sr_manage_gpo(m24sr_t *dev, m24sr_gpo_mode_t gpo_config, uint8_t mode) {
+uint16_t m24sr_manage_gpo(m24sr_t *dev, m24sr_gpo_config_t gpo_config, uint8_t mode) {
     uint16_t status;
 
     if (mode == RF_GPO) {

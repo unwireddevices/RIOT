@@ -32,18 +32,21 @@ extern "C" {
 
 /** @brief Get Most Significant Byte
   * @param  val: number where MSB must be extracted
+  * 
   * @return MSB
   */ 
 #define GET_MSB(val)                                         ( (uint8_t) ((val & 0xFF00 )>>8)) 
 
 /** @brief Get Least Significant Byte
   * @param  val: number where LSB must be extracted
+  * 
   * @return LSB
   */ 
 #define GET_LSB(val)                                         ( (uint8_t) (val & 0x00FF )) 
 
 /** @brief Used to toggle the block number by adding 0 or 1 to default block number value
   * @param  val: number to know if incrementation is needed
+  * 
   * @return  0 or 1 if incrementation needed
   */
 #define TOGGLE(val)                                         ((val != 0x00)? 0x00 : 0x01)
@@ -151,6 +154,7 @@ typedef enum {
  * @brief  This function generates an I2C Token release
  * 
  * @param[in] dev Pointer to M24SR NFC eeprom device descriptor
+ * 
  * @return Error code 
  */
 int m24sr_release_i2c_token(const m24sr_t *dev);
@@ -161,6 +165,7 @@ int m24sr_release_i2c_token(const m24sr_t *dev);
  * @param[in] dev    Pointer to M24SR NFC eeprom device descriptor
  * @param[in] buffer Pointer to the buffer to send to the M24SR
  * @param[in] len    Number of byte to send
+ * 
  * @return Error code 
  */ 
 int m24sr_send_i2c_cmd(const m24sr_t *dev, uint8_t *buffer, uint8_t len);
@@ -169,6 +174,7 @@ int m24sr_send_i2c_cmd(const m24sr_t *dev, uint8_t *buffer, uint8_t len);
  * @brief This functions returns M24SR_OK when a response is ready
  * 
  * @param[in] dev Pointer to M24SR NFC eeprom device descriptor
+ * 
  * @return Error code
  */
 int m24sr_is_answer_rdy(m24sr_t *dev);
@@ -177,6 +183,7 @@ int m24sr_is_answer_rdy(m24sr_t *dev);
  * @brief This functions polls the I2C interface
  * 
  * @param[in] dev Pointer to M24SR NFC eeprom device descriptor
+ * 
  * @return Error code
  */
 int m24sr_poll_i2c (const m24sr_t *dev);
@@ -187,6 +194,7 @@ int m24sr_poll_i2c (const m24sr_t *dev);
  * @param[in]  dev    Pointer to M24SR NFC eeprom device descriptor
  * @param[out] buffer Pointer on the buffer to retrieve M24SR response
  * @param[in]  len    Number of byte to read (shall be >= 5)
+ * 
  * @return Error code 
  */
 int m24sr_rcv_i2c_response(const m24sr_t *dev, uint8_t *buffer, uint8_t len);

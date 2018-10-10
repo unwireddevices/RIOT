@@ -58,6 +58,7 @@
  * @param[in] dev    Pointer to M24SR NFC eeprom device descriptor
  * @param[in] buffer Pointer to the buffer to send to the M24SR
  * @param[in] len    Number of byte to send
+ * 
  * @return Error code
  */
 static int _write_i2c(const m24sr_t *dev, uint8_t *buffer, uint32_t len)
@@ -80,6 +81,7 @@ static int _write_i2c(const m24sr_t *dev, uint8_t *buffer, uint32_t len)
  * @param dev    Pointer to M24SR NFC eeprom device descriptor
  * @param buffer Pointer to the buffer to read from the M24SR
  * @param len    Number of byte to read
+ * 
  * @return Error code
  */
 static int _read_i2c(const m24sr_t *dev, uint8_t *buffer, uint32_t len)

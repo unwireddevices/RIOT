@@ -58,7 +58,8 @@ static uint8_t device_id_byte = 0x00;
   * @brief  Initialize the command and response structure
   * 
   * @param  None
-  * @retval None
+  * 
+  * @return None
   */
 static void _m24sr_init_structure (void);
 
@@ -67,7 +68,8 @@ static void _m24sr_init_structure (void);
  * 
  * @param[in] dev  Pointer to M24SR NFC eeprom device descriptor
  * @param[in] mode Type synchronization mechanism
- * @retval None
+ * 
+ * @return None
  */
 static void m24sr_set_i2c_synchro_mode(m24sr_t *dev, m24sr_wait_mode_t mode);
 
@@ -108,6 +110,7 @@ static int _m24sr_is_correct_crc_residue (uint8_t *data, uint8_t length);
  * @param[in]  cmd      Structue which contains the field of the different parameter
  * @param[out] iblock   Pointer of the block created
  * @param[out] numByte  Number of byte of the block
+ * 
  * @return None
  */
 static void _m24sr_build_iblock_cmd (uint16_t category, cmd_apdu_t cmd, uint8_t *iblock, uint16_t *numByte);
@@ -117,6 +120,7 @@ static void _m24sr_build_iblock_cmd (uint16_t category, cmd_apdu_t cmd, uint8_t 
  * @brief This function return M24SR_OK if the buffer is an I-block
  * 
  * @param[in] buffer Pointer of the data
+ *
  * @return Error code
  */
 static int _is_iblock(uint8_t *buffer);
@@ -125,6 +129,7 @@ static int _is_iblock(uint8_t *buffer);
  * @brief This function return M24SR_OK if the buffer is an R-block
  * 
  * @param[in] buffer Pointer of the data
+ *
  * @return Error code
  */
 static int _is_rblock(uint8_t *buffer);
@@ -134,6 +139,7 @@ static int _is_rblock(uint8_t *buffer);
  * @brief This function return M24SR_OK if the buffer is an S-block
  * 
  * @param[in] buffer Pointer of the data
+ * 
  * @return Error code
  */
 static int _is_sblock(uint8_t *buffer);
@@ -143,6 +149,7 @@ static int _is_sblock(uint8_t *buffer);
  * @brief This function sends the SelectApplication command
  * 
  * @param[in] dev Pointer to M24SR NFC eeprom device descriptor
+ * 
  * @return Error code
  */
 static int m24sr_select_application(m24sr_t *dev);
@@ -152,6 +159,7 @@ static int m24sr_select_application(m24sr_t *dev);
  * 
  * @param[in] dev        Pointer to M24SR NFC eeprom device descriptor
  * @param[in] cc_file_id ID capabilitycontainer file
+ * 
  * @return Error code
  */
 static int m24sr_select_capability_container_file(m24sr_t *dev, uint16_t cc_file_id);
@@ -161,6 +169,7 @@ static int m24sr_select_capability_container_file(m24sr_t *dev, uint16_t cc_file
  * 
  * @param[in] dev          Pointer to M24SR NFC eeprom device descriptor
  * @param[in] ndef_file_id ID NDEF file
+ * 
  * @return Error code
  */
 static int m24sr_select_ndef_file(m24sr_t *dev, uint16_t ndef_file_id);
@@ -170,97 +179,303 @@ static int m24sr_select_ndef_file(m24sr_t *dev, uint16_t ndef_file_id);
  * 
  * @param[in] dev         Pointer to M24SR NFC eeprom device descriptor
  * @param[in] sys_file_id ID system file
+ * 
  * @return Error code
  */
 static int m24sr_select_system_file(m24sr_t *dev, uint16_t sys_file_id);
 
 /**
- * @brief [brief description]
+ * @brief This function sends a ReadBinary command
  * 
- * @param[in]  dev      [description]
- * @param[in]  offset   [description]
- * @param[out] dst_data [description]
- * @param[in] len       [description]
+ * @param[in]  dev      Pointer to M24SR NFC eeprom device descriptor
+ * @param[in]  offset   First byte to read
+ * @param[out] dst_data Pointer of the buffer read from the M24SR device
+ * @param[in]  len      Number of byte to read
+ * 
  * @return Error code
  */
 static int m24sr_read_binary(m24sr_t *dev, uint16_t offset, uint8_t *dst_data, uint16_t len);
 
 /**
- * @brief [brief description]
+ * @brief This function sends a UpdateBinary command
  * 
- * @param[in] dev      [description]
- * @param[in] offset   [description]
- * @param[in] src_data [description]
- * @param[in] len      [description]
+ * @param[in] dev      Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] offset   First byte to write
+ * @param[in] src_data Pointer of the buffer write to the M24SR device
+ * @param[in] len      Number of byte to write
+ * 
  * @return Error code
  */
 static int m24sr_update_binary(m24sr_t *dev, uint16_t offset, uint8_t *src_data, uint16_t len);
 
 /**
- * @brief [brief description]
+ * @brief This function sends the Verify command
  * 
- * @param[in] dev          [description]
- * @param[in] pwd_id       [description]
- * @param[in] num_pwd_byte [description]
- * @param[in] pwd          [description]
+ * @param[in] dev          Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] pwd_id       PasswordId ( 0x0001 : Read NDEF pwd or 0x0002 : Write NDEF pwd or 0x0003 : I2C pwd)
+ * @param[in] num_pwd_byte Number of byte ( 0x00 or 0x10)
+ * @param[in] pwd          Pointer on the password
+ * 
  * @return Error code
  */
 static int m24sr_verify(m24sr_t *dev, uint16_t pwd_id, uint8_t num_pwd_byte , uint8_t *pwd);
 
 /**
- * @brief [brief description]
+ * @brief  This function sends a ST ReadBinary command (no error if access is not inside NDEF file)
  * 
- * @param[in] dev      [description]
- * @param[in] offset   [description]
- * @param[in] dst_data [description]
- * @param[in] len      [description]
+ * @param[in] dev      Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] offset   First byte to read
+ * @param[in] dst_data Pointer of the buffer read from the M24SR device
+ * @param[in] len      Number of byte to read
  * @return Error code
  */
 static int m24sr_extended_read_binary(m24sr_t *dev, uint16_t offset, uint8_t *dst_data, uint32_t len);
 
-
+#if 0 //RFU
 /**
  * @brief [brief description]
  * 
- * @param[in] dev            [description]
- * @param[in] gpo_i2c_config [description]
+ * @param[in] dev    Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] pwd_id PasswordId ( 0x0001 : Read NDEF pwd or 0x0002 : Write NDEF pwd or 0x0003 : I2C pwd)
+ * @param[in] pwd    Pointer on the password
+ *
  * @return Error code
  */
-uint16_t m24sr_manage_i2c_gpo(m24sr_t *dev, m24sr_gpo_config_t gpo_i2c_config);
+static int m24sr_change_reference_data(m24sr_t *dev, uint16_t pwd_id, uint8_t *pwd); 
 
 /**
- * @brief [brief description]
+ * @brief This function sends the EnableVerificationRequirement command
  * 
- * @param[in] dev      [description]
- * @param[in] fwt_byte [description]
+ * @param[in] dev          Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] mode_protect Enable the read or write protection ( 0x0001 : Read or 0x0002 : Write)
+ * 
+ * @return Error code
+ */
+static int m24sr_enable_verification_requirement(m24sr_t *dev, uint16_t mode_protect);
+
+/**
+ * @brief This function sends the DisableVerificationRequirement command
+ * 
+ * @param[in] dev          Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] mode_protect Disable the read or write protection ( 0x0001 : Read or 0x0002 : Write)
+ * 
+ * @return Error code
+ */
+static int m24sr_disable_verification_requirement(m24sr_t dev, uint16_t mode_protect);
+
+/**
+ * @brief This function sends the EnablePermananentState command
+ * 
+ * @param[in] dev          Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] mode_protect Enable the read or write protection ( 0x0001 : Read or 0x0002 : Write)
+ * 
+ * @return Error code
+ */
+static int m24sr_enable_permanent_state(m24sr_t *dev, uint16_t mode_protect);
+
+/**
+ * @brief This function sends the DisablePermanentState command
+ * 
+ * @param[in] dev          Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] mode_protect Disable the read or write protection ( 0x0001 : Read or 0x0002 : Write)
+ * 
+ * @return Error code
+ */
+static int m24sr_disable_permanent_state(m24sr_t *dev, uint16_t mode_protect)
+#endif
+
+#if defined(M24SR_UPDATE_FILE_TYPE)
+/**
+ * @brief This function sends the UpdateFileType command
+ * 
+ * @param[in] dev       Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] file_type File type (0x05 : proprietary file or 0x04 : NDEF file)
+ * 
+ * @return Error code
+ */
+static int m24sr_update_file_type (m24sr_t *dev, uint8_t file_type); 
+#endif
+
+#if 0
+/**
+ * @brief This function generates a interrupt on GPO pin
+ * 
+ * @param[in] dev Pointer to M24SR NFC eeprom device descriptor
+ *
+ * @return Error code
+ */
+static int _m24sr_gpo_send_interrupt (m24sr_t *dev);
+
+/**
+ * @brief This function force GPO pin to low state or high Z
+ * 
+ * @param[in] dev   Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] state Select if GPO must be low (reset) or HiZ
+ * 
+ * @return Error code
+ */
+static int _m24sr_gpo_state_control (m24sr_t *dev, uint8_t state)
+#endif
+
+/**
+ * @brief This function configure GPO purpose for I2C session
+ * 
+ * @param[in] dev            Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] gpo_i2c_config GPO configuration to set
+ * 
+ * @return Error code
+ */
+static uint16_t m24sr_manage_i2c_gpo(m24sr_t *dev, m24sr_gpo_config_t gpo_i2c_config);
+
+/**
+ * @brief This function configure GPO purpose for RF session
+ * 
+ * @param[in] dev            Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] gpo_i2c_config GPO configuration to set
+ * 
+ * @return Error code
+ */
+static uint16_t m24sr_manage_rf_gpo(m24sr_t *dev, m24sr_gpo_config_t gpo_rf_config);
+
+/**
+ * @brief This function sends the FWT extension command (S-Block format)
+ * 
+ * @param[in] dev      Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] fwt_byte FWT value
+ * 
  * @return Error code
  */
 static int _m24sr_fwt_extension(m24sr_t *dev, uint8_t fwt_byte);
 
+/**
+ * @brief This function sends the GetSession command to the M24SR device
+ * 
+ * @param[in] dev Pointer to M24SR NFC eeprom device descriptor
+ * 
+ * @return Error code
+ */
+static int _m24sr_get_i2c_session (const m24sr_t *dev);
+
 
 /**
- * @brief [brief description]
- * @details [long description]
+ * @brief This function sends the KillSession command to the M24SR device
  * 
- * @param dev [description]
- * @param offset [description]
- * @param dst [description]
- * @param size [description]
- * @return [description]
+ * @param[in] dev Pointer to M24SR NFC eeprom device descriptor
+ * 
+ * @return Error code
  */
-uint16_t m24sr_read_data (m24sr_t *dev, uint16_t offset, uint8_t *dst, uint16_t size);
+static int _m24sr_kill_rf_session (const m24sr_t *dev); 
 
 /**
- * @brief [brief description]
- * @details [long description]
+ * @brief This function configure the M24SR to access I2C
  * 
- * @param dev [description]
- * @param offset [description]
- * @param src [description]
- * @param size [description]
- * @return [description]
+ * @param[in] dev      Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] priority Type open session
+ * 
+ * @return Error code
  */
-uint16_t m24sr_write_data (m24sr_t *dev, uint16_t offset, uint8_t *src, uint16_t size);
+static int _m24sr_open_i2c_session (const m24sr_t *dev, m24sr_priority_t priority); 
+
+
+/**
+ * @brief This function close session
+ * 
+ * @param[in] dev  Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] type Type token release
+ * 
+ * @return None
+ */
+static void m24sr_close_session(const m24sr_t *dev, m24sr_token_mode_t type);
+
+
+#if 0
+/**
+ * @brief This function enable or disable RF communication
+ * 
+ * @param dev   Pointer to M24SR NFC eeprom device descriptor
+ * @param state GPO configuration to set
+ * 
+ * @retutrn None
+ */
+static void m24sr_rf_config_hw(const m24sr_t *dev, uint8_t state);
+#endif
+
+/**
+ * @briefThis function initializes the M24SR I2C interface
+ * 
+ * @param[out] dev      Pointer to M24SR NFC eeprom device descriptor
+ * @param[in]  params   Pointer to static device configuration
+ * 
+ * @return  Error code
+ */
+static int m24sr_i2c_init_hw (m24sr_t *dev, const m24sr_params_t *params);
+
+/**
+ * @brief This function initialize the M24SR
+ * 
+ * @param[out] dev      Pointer to M24SR NFC eeprom device descriptor
+ * @param[in]  params   Pointer to static device configuration
+ * 
+ * @return  Error code
+ */
+int m24sr_init(m24sr_t *dev, const m24sr_params_t *params);
+
+
+/**
+  * @brief  This fonction read the data stored in M24SR at defined offset
+  * @param  Offset : Offset in the NDEF file in M24SR
+  * @param  DataSize : Number of byte to read
+  * @param  pData : pointer on buffer to store read data
+  * @retval Status (SW1&SW2) : Status of the operation.
+  */
+
+
+/**
+ * @brief This function read the data stored in M24SR at defined offset
+ * 
+ * @param[in]  dev    Pointer to M24SR NFC eeprom device descriptor
+ * @param[in]  offset Offset in the NDEF file in M24SR
+ * @param[out] dst    Pointer on buffer to store read data
+ * @param[in]  size   Number of byte to read
+ * 
+ * @return  Error code
+ */
+static uint16_t m24sr_read_data (m24sr_t *dev, uint16_t offset, uint8_t *dst, uint16_t size);
+
+/**
+ * @brief  This function read the data stored in M24SR at defined offset without NDEF concideration
+ * 
+ * @param[in]  dev    Pointer to M24SR NFC eeprom device descriptor
+ * @param[in]  offset Offset in the NDEF file in M24SR
+ * @param[out] dst    Pointer on buffer to store read data
+ * @param[in]  size   Number of byte to read
+ * 
+ * @return  Error code
+ */
+static uint16_t m24sr_force_read_data(m24sr_t *dev, uint16_t offset, uint8_t *dst, uint16_t size);
+
+/**
+ * @brief This function write data in M24SR at defined offset
+ * 
+ * @param[in] dev    Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] offset Offset in the NDEF file in M24SR
+ * @param[in] src    Pointer on buffer to copy in M24SR
+ * @param[in] size   Number of byte to write
+ * 
+ * @return  Error code
+ */
+static uint16_t m24sr_write_data(m24sr_t *dev, uint16_t offset, uint8_t *src, uint16_t size);
+
+/**
+ * @brief This function configure GPO purpose for RF session
+ * 
+ * @param[in] dev        Pointer to M24SR NFC eeprom device descriptor
+ * @param[in] gpo_config GPO configuration to set
+ * @param[in] mode       Select RF or I2C, GPO config to update
+ * 
+ * @return  Error code
+ */
+static uint16_t m24sr_manage_gpo(m24sr_t *dev, m24sr_gpo_config_t gpo_config, uint8_t mode);
 
 
 
@@ -801,8 +1016,7 @@ static int m24sr_verify(m24sr_t *dev, uint16_t pwd_id, uint8_t num_pwd_byte , ui
 }
 
 #if 0
-//@FIXME
-void m24sr_change_reference_data(uint16_t pwd_id, uint8_t *pwd) {
+static int m24sr_change_reference_data(m24sr_t *dev, uint16_t pwd_id, uint8_t *pwd) {
     /* CLA  | INS  | P1 P2  | Lc   | Data         | Le */
     /* 0x00 | 0x24 | 0x000X | 0xX0 | PWD Lc Bytes | -  */
     /*               0x0001 - Read NDEF PWD XMIT       */
@@ -810,10 +1024,12 @@ void m24sr_change_reference_data(uint16_t pwd_id, uint8_t *pwd) {
     /*               0x0003 - I2C PWD XMIT             */
     /*                        0x00 - No PWD            */
     /*                        0x10 - PWD Enable        */
-
-    uint8_t   *pBuffer = uM24SRbuffer;
-    uint16_t  status ;
-    uint16_t  NbByte;
+    
+    int ret = M24SR_OK;
+    uint16_t status;
+    
+    uint8_t   *data = data_buffer;
+    uint16_t  len = 0;
 
     /*check the parameters */
     if (pwd_id > 0x0003)
@@ -832,9 +1048,9 @@ void m24sr_change_reference_data(uint16_t pwd_id, uint8_t *pwd) {
     /* copy the password */
     memcpy(cmd.body.data, pwd, M24SR_PASSWORD_NUM_BYTE);
     /* build the I2C command */
-    _m24sr_build_iblock_cmd(M24SR_CMD_CATEGORY_1, cmd, pBuffer, &NbByte);
+    _m24sr_build_iblock_cmd(M24SR_CMD_CATEGORY_1, cmd, data, &len);
     /* send the request */
-    ret = m24sr_send_i2c_cmd(dev, pBuffer, NbByte);
+    ret = m24sr_send_i2c_cmd(dev, data, len);
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
@@ -850,23 +1066,25 @@ void m24sr_change_reference_data(uint16_t pwd_id, uint8_t *pwd) {
     }
     /*check CRC and response code*/
     status = _m24sr_is_correct_crc_residue(data, M24SR_STATUS_RESPONSE_NUM_BYTE);
-    memcpy(resp.data, data, len);
-
-    if (status != SW_OK)
+    DEBUG("Return SW code 0x%04X\n", status);
+    if (status != SW_OK) {
         return M24SR_ERROR;
+    }
     
     return ret;
 }
 
-void m24sr_enable_verification_requirement(uint16_t mode_protect) {
+static int m24sr_enable_verification_requirement(m24sr_t *dev, uint16_t mode_protect) {
     /* CLA  | INS  | P1 P2  | Lc | Data | Le */
     /* 0x00 | 0x28 | 0x000X | -  | -    | -  */
     /*               0x0001 - ENA Read Protect NDEF  */
     /*               0x0002 - ENA Write Protect NDEF */
-    uint8_t buffer[16] ={0};
-
+    
+    int ret = M24SR_OK;
     uint16_t status;
-    uint16_t num_byte = 0x0000;
+
+    uint8_t   *data = data_buffer;
+    uint16_t  len = 0;
 
     /* check the parameters */
     if((mode_protect != 0x0001) && (mode_protect != 0x0002)) {
@@ -880,9 +1098,9 @@ void m24sr_enable_verification_requirement(uint16_t mode_protect) {
     cmd.header.P1 = GET_MSB(mode_protect);
     cmd.header.P2 = GET_LSB(mode_protect);
     /* build the I2C command */
-    _m24sr_build_iblock_cmd(M24SR_CMD_CATEGORY_4, cmd, buffer, &num_byte);
+    _m24sr_build_iblock_cmd(M24SR_CMD_CATEGORY_4, cmd, data, &len);
     /* send the request */
-    ret = m24sr_send_i2c_cmd(buffer, num_byte);
+    ret = m24sr_send_i2c_cmd(data, len);
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
@@ -899,30 +1117,26 @@ void m24sr_enable_verification_requirement(uint16_t mode_protect) {
 
     /*check CRC and response code*/
     status = _m24sr_is_correct_crc_residue(data, M24SR_STATUS_RESPONSE_NUM_BYTE);
-    resp.SW1 = GET_MSB(status);
-    resp.SW2 = GET_LSB(status);
-    memcpy(resp.data, data, len);
-
-    if (status != SW_OK)
+    DEBUG("Return SW code 0x%04X\n", status);
+    if (status != SW_OK) {
         return M24SR_ERROR;
+    }
     
     return ret;
-
-
 }
 
 
-int m24sr_disable_verification_requirement(m24sr_t dev, uint16_t mode_protect) {
+static int m24sr_disable_verification_requirement(m24sr_t dev, uint16_t mode_protect) {
     /* CLA  | INS  | P1 P2  | Lc | Data | Le */
     /* 0x00 | 0x26 | 0x000X | -  | -    | -  */
     /*               0x0001 - DIS Read Protect NDEF  */
     /*               0x0002 - DIS Write Protect NDEF */
-    int ret = MS24SR_OK;
-
-    uint8_t buffer[] = {};
-
+    
+    int ret = M24SR_OK;
     uint16_t status;
-    uint16_t num_byte;
+
+    uint8_t   *data = data_buffer;
+    uint16_t  len = 0;
 
     if ((mode_protect != 0x0001) && (mode_protect != 0x0002)) {
         return M24SR_ERROR_PARAM;
@@ -935,9 +1149,9 @@ int m24sr_disable_verification_requirement(m24sr_t dev, uint16_t mode_protect) {
     cmd.header.P1 = GET_MSB(mode_protect);
     cmd.header.P2 = GET_LSB(mode_protect);
     /* build the I2C command */
-    _m24sr_build_iblock_cmd(M24SR_CMD_CATEGORY_4, cmd, buffer, &num_byte);
+    _m24sr_build_iblock_cmd(M24SR_CMD_CATEGORY_4, cmd, data, &len);
     /* send request */
-    ret = m24sr_send_i2c_cmd(buffer, num_byte);
+    ret = m24sr_send_i2c_cmd(data, len);
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
@@ -954,19 +1168,18 @@ int m24sr_disable_verification_requirement(m24sr_t dev, uint16_t mode_protect) {
 
     /*check CRC and response code*/
     status = _m24sr_is_correct_crc_residue(data, M24SR_STATUS_RESPONSE_NUM_BYTE);
-    resp.SW1 = GET_MSB(status);
-    resp.SW2 = GET_LSB(status);
-    memcpy(resp.data, data, len);
-
-    if (status != SW_OK)
+    DEBUG("Return SW code 0x%04X\n", status);
+    if (status != SW_OK) {
         return M24SR_ERROR;
+    }
     
     return ret;
-
 }
 #endif
 
-// Proprietary STM cmd set
+
+
+/******************************************** Proprietary STM cmd set *****************************************/
 static int m24sr_extended_read_binary(m24sr_t *dev, uint16_t offset, uint8_t *dst_data, uint32_t len) {
     /* CLA  | INS  | P1 P2  | Lc | Data  | Le */
     /* 0xA2 | 0xB0 | Offset |  - |   -   | Len  */
@@ -985,24 +1198,24 @@ static int m24sr_extended_read_binary(m24sr_t *dev, uint16_t offset, uint8_t *ds
     cmd.header.P2 = GET_LSB(offset);
     /* copy the number of byte to read */
     cmd.body.LE = len;
-
+    /* build the I2C command */
     _m24sr_build_iblock_cmd(M24SR_CMD_CATEGORY_2,  cmd, buffer, &num_byte);
-
+    /* send request */
     ret = m24sr_send_i2c_cmd(dev, buffer, num_byte);
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
-
+    /* wait for answer ready */
     ret = m24sr_is_answer_rdy(dev);
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
-
+    /* read the response */
     ret = m24sr_rcv_i2c_response(dev, buffer, len + M24SR_STATUS_NUM_BYTE);
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
-
+    /* check CRC */
     status = _m24sr_is_correct_crc_residue(buffer, len + M24SR_STATUS_RESPONSE_NUM_BYTE); 
     memcpy(dst_data, buffer, len);
     DEBUG("Return SW code 0x%04X\n", status);    
@@ -1013,20 +1226,20 @@ static int m24sr_extended_read_binary(m24sr_t *dev, uint16_t offset, uint8_t *ds
 }
 
 #if 0
-int m24sr_enable_permanent_state(m24sr_t *dev, uint16_t mode_protect) {
+static int m24sr_enable_permanent_state(m24sr_t *dev, uint16_t mode_protect) {
     /* CLA  | INS  | P1 P2  | Lc | Data | Le */
     /* 0xA2 | 0x28 | 0x000X | -  | -    | -  */
     /*               0x0001 - ENA Read Protect NDEF  */
     /*               0x0002 - ENA Write Protect NDEF */
     int ret = M24SR_OK;
-
-    uint8_t buffer[] = {0};
-    uint16_t status;
     uint16_t num_byte;
+    uint16_t status;
+    uint8_t *buffer = data_buffer;
 
     /* check the parameters */
-    if ((mode_protect != 0x0001) && (mode_protect != 0x0002))
+    if ((mode_protect != 0x0001) && (mode_protect != 0x0002)) {
         return M24SR_ERROR_PARAM;
+    }
     /* build the command */
     cmd.header.CLA = CLA_STM;
     cmd.header.INS = INS_ENABLE_VERIFY_REQ;
@@ -1034,46 +1247,47 @@ int m24sr_enable_permanent_state(m24sr_t *dev, uint16_t mode_protect) {
     cmd.header.P1 = GET_MSB(mode_protect);
     cmd.header.P2 = GET_LSB(mode_protect);
     /* build the I2C command */
-    _m24sr_build_iblock_cmd(M24SR_CMD_CATEGORY_, cmd, buffer, &num_byte);
-
+    _m24sr_build_iblock_cmd(M24SR_CMD_CATEGORY_4, cmd, buffer, &num_byte);
     /* send the request */
     ret = m24sr_send_i2c_cmd(buffer, num_byte);
-    if (ret != M24SR_OK)
+    if (ret != M24SR_OK) {
         return M24SR_NOBUS;
+    }
+    /* wait for answer ready */
     ret = m24sr_is_answer_rdy(dev);
-    if (ret != M24SR_OK)
+    if (ret != M24SR_OK) {
         return M24SR_NOBUS;
+    }
     /* read the response */
     ret = m24sr_rcv_i2c_response(dev, buffer, M24SR_STATUS_RESPONSE_NUM_BYTE);
-    if (ret != M24SR_OK)
+    if (ret != M24SR_OK) {
         return M24SR_NOBUS;
-
+    }
+    /* check CRC */
     status = _m24sr_is_correct_crc_residue(buffer, M24SR_STATUS_RESPONSE_NUM_BYTE);
-    resp.SW1 = GET_MSB(status);
-    resp.SW2 = GET_LSB(status);
-
-    if (status != SW_OK)
+    DEBUG("Return SW code 0x%04X\n", status);
+    if (status != SW_OK) {
         return M24SR_ERROR;
-
+    }
 
     return ret;
 }
 
 
-int m24sr_disable_permanent_state(m24sr_t *dev, uint16_t mode_protect) {
+static int m24sr_disable_permanent_state(m24sr_t *dev, uint16_t mode_protect) {
     /* CLA  | INS  | P1 P2  | Lc | Data | Le */
     /* 0xA2 | 0x26 | 0x000X | -  | -    | -  */
     /*               0x0001 - DIS Read Protect NDEF  */
     /*               0x0002 - DIS Write Protect NDEF */
     int ret = M24SR_OK;
-
-    uint8_t buffer[] = {0};
-    uint16_t status;
     uint16_t num_byte;
+    uint16_t status;
+    uint8_t *buffer = data_buffer;
 
     /* check the parameters */
-    if ((mode_protect != 0x0001) && (mode_protect != 0x0002))
+    if ((mode_protect != 0x0001) && (mode_protect != 0x0002)) {
         return M24SR_ERROR_PARAM;
+    }
     /* build the command */
     cmd.header.CLA = CLA_STM;
     cmd.header.INS = INS_DISABLE_VERIFY_REQ;
@@ -1081,27 +1295,28 @@ int m24sr_disable_permanent_state(m24sr_t *dev, uint16_t mode_protect) {
     cmd.header.P1 = GET_MSB(mode_protect);
     cmd.header.P2 = GET_LSB(mode_protect);
     /* build the I2C command */
-    _m24sr_build_iblock_cmd(M24SR_CMD_CATEGORY_, cmd, buffer, &num_byte);
-
+    _m24sr_build_iblock_cmd(M24SR_CMD_CATEGORY_4, cmd, buffer, &num_byte);
     /* send the request */
     ret = m24sr_send_i2c_cmd(buffer, num_byte);
-    if (ret != M24SR_OK)
+    if (ret != M24SR_OK) {
         return M24SR_NOBUS;
+    }
+    /* wait for answer ready */
     ret = m24sr_is_answer_rdy(dev);
-    if (ret != M24SR_OK)
+    if (ret != M24SR_OK) {
         return M24SR_NOBUS;
+    }
     /* read the response */
     ret = m24sr_rcv_i2c_response(dev, buffer, M24SR_STATUS_RESPONSE_NUM_BYTE);
-    if (ret != M24SR_OK)
+    if (ret != M24SR_OK) {
         return M24SR_NOBUS;
-
+    }
+    /* check CRC */
     status = _m24sr_is_correct_crc_residue(buffer, M24SR_STATUS_RESPONSE_NUM_BYTE);
-    resp.SW1 = GET_MSB(status);
-    resp.SW2 = GET_LSB(status);
-
-    if (status != SW_OK)
+    DEBUG("Return SW code 0x%04X\n", status);
+    if (status != SW_OK) {
         return M24SR_ERROR;
-
+    }
 
     return ret;
 }
@@ -1140,6 +1355,7 @@ static int m24sr_update_file_type (m24sr_t *dev, uint8_t file_type) {
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
+    /* wait for answer ready */
     ret = m24sr_is_answer_rdy(dev);
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
@@ -1159,6 +1375,7 @@ static int m24sr_update_file_type (m24sr_t *dev, uint8_t file_type) {
 
     }
     else {
+        /* check CRC */
         status = _m24sr_is_correct_crc_residue(data, M24SR_STATUS_RESPONSE_NUM_BYTE);
         DEBUG("Return SW code 0x%04X\n", status);
         if (status != SW_OK) {
@@ -1196,6 +1413,7 @@ static int _m24sr_gpo_send_interrupt (m24sr_t *dev) {
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
+    /* wait for answer ready */
     ret = m24sr_is_answer_rdy (dev);
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
@@ -1205,9 +1423,10 @@ static int _m24sr_gpo_send_interrupt (m24sr_t *dev) {
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
+    /* check CRC */
     status = _m24sr_is_correct_crc_residue(buffer, M24SR_STATUS_RESPONSE_NUM_BYTE); 
+    DEBUG("Return SW code 0x%04X\n", status);
     if (status != SW_OK) {
-        //@todo insert debug
         return M24SR_ERROR;
     }
 
@@ -1250,6 +1469,7 @@ static int _m24sr_gpo_state_control (m24sr_t *dev, uint8_t state) {
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
+    /* wait for answer ready */
     ret = m24sr_is_answer_rdy (dev);
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
@@ -1259,7 +1479,9 @@ static int _m24sr_gpo_state_control (m24sr_t *dev, uint8_t state) {
     if (ret != M24SR_OK) {
         return M24SR_NOBUS;
     }
+    /* check CRC */
     status = _m24sr_is_correct_crc_residue(buffer, M24SR_STATUS_RESPONSE_NUM_BYTE);
+    DEBUG("Return SW code 0x%04X\n", status);
     if (status != SW_OK)
         return M24SR_ERROR;
 
@@ -1267,12 +1489,6 @@ static int _m24sr_gpo_state_control (m24sr_t *dev, uint8_t state) {
 }
 #endif
 
-/**
-  * @brief  This function sends the FWT extension command (S-Block format)
-    * @param    FWTbyte : FWT value
-  * @retval Status (SW1&SW2) : Status of the operation to complete.
-    * @retval M24SR_ERROR_I2CTIMEOUT : The I2C timeout occured.
-  */
 static int _m24sr_fwt_extension(m24sr_t *dev, uint8_t fwt_byte)
 {
     int ret = M24SR_OK;
@@ -1311,12 +1527,6 @@ static int _m24sr_fwt_extension(m24sr_t *dev, uint8_t fwt_byte)
     return ret;
 }
 
-/**
- * @brief This function sends the GetSession command to the M24SR device
- * 
- * @param[in] dev - Device descriptor of M24SR device to read from
- * @return Сommand result
- */
 static int _m24sr_get_i2c_session (const m24sr_t *dev) {
     /* CLA | INS  | P1 | P2 | Lc | Data | Le */
     /*  -  | 0x26 | -  | -  |  - |  --  |  - */
@@ -1330,12 +1540,6 @@ static int _m24sr_get_i2c_session (const m24sr_t *dev) {
     return ret;
 }
 
-/**
- * @brief This function sends the KillSession command to the M24SR device
- * 
- * @param[in] dev - Device descriptor of M24SR device to read from
- * @return Сommand result
- */
 static int _m24sr_kill_rf_session (const m24sr_t *dev) {
     /* CLA | INS  | P1 | P2 | Lc | Data | Le */
     /*  -  | 0x52 | -  | -  |  - |  --  |  - */
@@ -1372,7 +1576,7 @@ static int _m24sr_open_i2c_session (const m24sr_t *dev, m24sr_priority_t priorit
     return ret;
 }
 
-void m24sr_close_session(const m24sr_t *dev, m24sr_token_mode_t type) {
+static void m24sr_close_session(const m24sr_t *dev, m24sr_token_mode_t type) {
     DEBUG("Close session %s\n", (type == I2C_TOKEN_RELEASE_SW)?"software":"not software");
     if ((type == I2C_TOKEN_RELEASE_HW) && (dev->params.pwr_en_pin != GPIO_UNDEF)) {
         gpio_clear(dev->params.pwr_en_pin);
@@ -1381,13 +1585,8 @@ void m24sr_close_session(const m24sr_t *dev, m24sr_token_mode_t type) {
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
-/**
-  * @brief  This function enable or disable RF communication
-  * @param  OnOffChoice: GPO configuration to set
-  */
-void m24sr_rf_config_hw(const m24sr_t *dev, uint8_t state)
+#if 0
+static void m24sr_rf_config_hw(const m24sr_t *dev, uint8_t state)
 {
     /* Disable RF */
     if ( state != 0 ) {
@@ -1396,6 +1595,7 @@ void m24sr_rf_config_hw(const m24sr_t *dev, uint8_t state)
         gpio_set(dev->params.rfdisable_pin);
     }
 }
+#endif
 
 #if defined(I2C_GPO_INTERRUPT_ALLOWED)
 static void _irq_handler(void *arg) {
@@ -1404,11 +1604,7 @@ static void _irq_handler(void *arg) {
 }
 #endif
 
-/**
-  * @brief  This function initializes the M24SR_I2C interface
-  * @retval None
-  */
-int m24sr_i2c_init_hw (m24sr_t *dev, const m24sr_params_t *params) {
+static int m24sr_i2c_init_hw (m24sr_t *dev, const m24sr_params_t *params) {
     int retval = M24SR_OK;
 
     dev->params = *params;
@@ -1451,15 +1647,7 @@ int m24sr_i2c_init_hw (m24sr_t *dev, const m24sr_params_t *params) {
     return retval;  
 }
 
-
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/**
-  * @brief  This function configure GPO purpose for I2C session
-  * @param    GPO_I2Cconfig: GPO configuration to set
-  * @retval Status (SW1&SW2) : Status of the operation to complete.
-  */
-uint16_t m24sr_manage_i2c_gpo(m24sr_t *dev, m24sr_gpo_config_t gpo_i2c_config)
+static uint16_t m24sr_manage_i2c_gpo(m24sr_t *dev, m24sr_gpo_config_t gpo_i2c_config)
 {
     uint16_t status = M24SR_OK;
     uint8_t gpo_config = 0x00;
@@ -1512,13 +1700,7 @@ uint16_t m24sr_manage_i2c_gpo(m24sr_t *dev, m24sr_gpo_config_t gpo_i2c_config)
     return status;
 }
 
-
-/**
-  * @brief  This function configure GPO purpose for RF session
-    * @param    GPO_RFconfig: GPO configuration to set
-  * @retval Status (SW1&SW2) : Status of the operation to complete.
-  */
-uint16_t m24sr_manage_rf_gpo(m24sr_t *dev, m24sr_gpo_config_t gpo_rf_config)
+static uint16_t m24sr_manage_rf_gpo(m24sr_t *dev, m24sr_gpo_config_t gpo_rf_config)
 {
     uint16_t status;
     uint8_t gpo_config;
@@ -1542,24 +1724,6 @@ uint16_t m24sr_manage_rf_gpo(m24sr_t *dev, m24sr_gpo_config_t gpo_rf_config)
     return status;
 }
 
-
-/**
-  * @brief  This function enable or disable RF communication
-    * @param    OnOffChoice: GPO configuration to set
-  * @retval Status (SW1&SW2) : Status of the operation to complete.
-  */
-void m24sr_rf_config(const m24sr_t *dev, uint8_t rf_config) {
-    m24sr_rf_config_hw(dev, rf_config);
-}
-
-
-/**
-  * @brief  This fonction initialize the M24SR
-  * @param  CCBuffer : pointer on the buffer to store CC file
-  * @param  size : number of byte of data to read
-  * @retval SUCCESS : Initalization done
-  * @retval ERROR : Not able to Initialize.
-  */
 int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
     int status = M24SR_OK;
       
@@ -1584,22 +1748,13 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
     }
 #endif /* I2C_GPO_SYNCHRO_ALLOWED */
 
-    /* Read CC file */
+    /* Open I2C session */
     status = _m24sr_open_i2c_session(dev, I2C_OPEN_SESSION);
-
-    // uint8_t trials = 5; 
-    // status = _m24sr_get_i2c_session(dev);
-    // while (status != M24SR_OK && trials) {
-    //     status = _m24sr_get_i2c_session(dev);
-    //     trials--;
-    // }
     if (status != M24SR_OK) {
         return M24SR_ERROR;
     }
 
-    /*===================================*/
     /* Select the NFC type 4 application */
-    /*===================================*/
     DEBUG("Select the NFC type 4 application\n");
     status = m24sr_select_application(dev);
     if (status != M24SR_OK) {
@@ -1607,9 +1762,7 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
         return M24SR_ERROR;
     }
 
-    /*===================*/
     /* select a SYS file */
-    /*===================*/
     sys_file_info_t sys_file;
 
     status = m24sr_select_system_file(dev, M24SR_SYS_FILE_ID);
@@ -1628,9 +1781,7 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
         return M24SR_ERROR;
     }
 
-    /*==================*/
     /* select a CC file */
-    /*==================*/
     cc_file_info_t cc_file;
 
     status = m24sr_select_capability_container_file(dev, M24SR_CC_FILE_ID);
@@ -1652,18 +1803,11 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
         DEBUG("[CC FILE] ndef_file_max_size is %d (0x%04X)\n", cc_file.ndef_file_max_size, cc_file.ndef_file_max_size);
         DEBUG("[CC FILE] read_access is %d (0x%02X)\n", cc_file.read_access, cc_file.read_access);
         DEBUG("[CC FILE] write_access is %d (0x%02X)\n", cc_file.write_access, cc_file.write_access);
-        
-
-
-        DEBUG("[CC FILE] ndef_file_max_size %d(0x%04X)\n", cc_file.ndef_file_max_size, cc_file.ndef_file_max_size);
-        DEBUG("[CC FILE] max_read_byte %d(0x%04X)\n", cc_file.max_read_byte, cc_file.max_read_byte);
-        DEBUG("[CC FILE] max_write_byte %d(0x%04X)\n", cc_file.max_write_byte, cc_file.max_write_byte);
 
         dev->memory.chipsize       = cc_file.ndef_file_max_size;
         dev->memory.max_read_byte  = cc_file.max_read_byte;
         dev->memory.max_write_byte = cc_file.max_write_byte;
          
-
         byteorder_swap((void *)&dev->memory.chipsize, sizeof(dev->memory.chipsize));
         byteorder_swap((void *)&dev->memory.max_read_byte, sizeof(dev->memory.max_read_byte));
         byteorder_swap((void *)&dev->memory.max_write_byte, sizeof(dev->memory.max_write_byte));
@@ -1683,15 +1827,7 @@ int m24sr_init(m24sr_t *dev, const m24sr_params_t *params) {
     return status; 
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/**
-  * @brief  This fonction read the data stored in M24SR at defined offset
-  * @param  Offset : Offset in the NDEF file in M24SR
-  * @param  DataSize : Number of byte to read
-  * @param  pData : pointer on buffer to store read data
-  * @retval Status (SW1&SW2) : Status of the operation.
-  */
-uint16_t m24sr_read_data (m24sr_t *dev, uint16_t offset, uint8_t *dst, uint16_t size) {
+static uint16_t m24sr_read_data(m24sr_t *dev, uint16_t offset, uint8_t *dst, uint16_t size) {
     uint16_t status;
     uint16_t max_read_byte = dev->memory.max_read_byte;
 
@@ -1715,14 +1851,7 @@ uint16_t m24sr_read_data (m24sr_t *dev, uint16_t offset, uint8_t *dst, uint16_t 
     return status;
 }
 
-/**
-  * @brief  This fonction read the data stored in M24SR at defined offset without NDEF concideration
-  * @param  Offset : Offset in the NDEF file in M24SR
-  * @param  DataSize : Number of byte to read
-  * @param  pData : pointer on buffer to store read data
-  * @retval Status (SW1&SW2) : Status of the operation.
-  */
-uint16_t m24sr_force_read_data(m24sr_t *dev, uint16_t offset, uint8_t *dst, uint16_t size) {
+static uint16_t m24sr_force_read_data(m24sr_t *dev, uint16_t offset, uint8_t *dst, uint16_t size) {
     uint16_t status;
     uint16_t max_read_byte = dev->memory.max_read_byte;
 
@@ -1746,10 +1875,7 @@ uint16_t m24sr_force_read_data(m24sr_t *dev, uint16_t offset, uint8_t *dst, uint
     return status;
 }
 
-
-
-
-uint16_t m24sr_write_data (m24sr_t *dev, uint16_t offset, uint8_t *src, uint16_t size)
+static uint16_t m24sr_write_data (m24sr_t *dev, uint16_t offset, uint8_t *src, uint16_t size)
 {
     uint16_t status;
     uint16_t max_write_byte = dev->memory.max_write_byte;
@@ -1773,13 +1899,8 @@ uint16_t m24sr_write_data (m24sr_t *dev, uint16_t offset, uint8_t *src, uint16_t
 
     return status;
 }
-/**
-  * @brief  This function configure GPO purpose for RF session
-  * @param  GPO_config: GPO configuration to set
-  * @param  mode: select RF or I2C, GPO config to update
-  * @retval Status : Status of the operation.
-  */
-uint16_t m24sr_manage_gpo(m24sr_t *dev, m24sr_gpo_config_t gpo_config, uint8_t mode) {
+
+static uint16_t m24sr_manage_gpo(m24sr_t *dev, m24sr_gpo_config_t gpo_config, uint8_t mode) {
     uint16_t status;
 
     if (mode == RF_GPO) {
@@ -1790,9 +1911,8 @@ uint16_t m24sr_manage_gpo(m24sr_t *dev, m24sr_gpo_config_t gpo_config, uint8_t m
     return status;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
-//This global function for NDEF
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/***************************** Implementation global function for NDEF *****************************************/
 int m24sr_ndef_init(m24sr_t *dev, const m24sr_params_t *params) {
     int ret = M24SR_OK;
 
@@ -1863,9 +1983,6 @@ int m24sr_ndef_read(m24sr_t *dev, void *dst, uint16_t addr, uint16_t size) {
     }
 
     m24sr_close_session(dev, dev->params.token_mode);
-    // if (status != M24SR_OK) {
-    //     return M24SR_ERROR;
-    // }
 
     return size;
 }
@@ -2076,9 +2193,9 @@ int m24sr_ndef_erase_all(m24sr_t *dev) {
     return 0;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
-//This global function for emmulatiom I2C eeprom
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+/***************************** Implementation global function for emmulatiom I2C eeprom*******************************/
 int m24sr_eeprom_init(m24sr_t *dev, const m24sr_params_t *params) {
     int ret = M24SR_OK;
 
@@ -2134,9 +2251,6 @@ int m24sr_eeprom_read(m24sr_t *dev, void *dst, uint16_t addr, uint16_t size) {
     }
 
     m24sr_close_session(dev, dev->params.token_mode);
-    // if (status != M24SR_OK) {
-    //     return M24SR_ERROR;
-    // }
 
     return size;
 }

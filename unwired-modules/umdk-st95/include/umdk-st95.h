@@ -35,13 +35,13 @@
 #define UMDK_ST95_UART_TIME_RX_USEC     500
 #define UMDK_ST95_SPI_CLK               SPI_CLK_1MHZ
 
-#define ST95_RAMP_UP_TIME_MS            10
-#define ST95_HFO_SETUP_TIME_MS          10
+#define ST95_RAMP_UP_TIME_MS            9
+#define ST95_HFO_SETUP_TIME_MS          9
 #define ST95_ECHO_WAIT_TIME_MS          10
 
 #define ST95_MAX_DATA_BYTES             254
 #define UMDK_ST95_DETECT_MS             1000
-#define UMDK_ST95_NO_RESPONSE_TIME_MS   2000
+#define UMDK_ST95_NO_RESPONSE_TIME_MS   2500
 
 #define ST95_TX_RATE_106                0
 #define ST95_RX_RATE_106                0

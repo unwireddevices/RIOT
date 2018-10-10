@@ -47,7 +47,7 @@ extern "C" {
 #include "xtimer.h"
 #include "rtctimers-millis.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 static msg_t msg_rx;
@@ -83,11 +83,7 @@ static uint8_t protocol = 0;
 static volatile st95_pack_state_t current_state = UMDK_ST95_PACK_ERROR;
 static volatile st95_rx_state_t flag_rx = UMDK_ST95_NOT_RECIEVED;
 
-    uint8_t send_1a[2] = {0x26, 0x07};
-    uint8_t send_2a[3] = {0x93, 0x20, 0x08};
-    // uint8_t send_2a[3] = {0x93, 0x70, 0x28};
-
-    uint8_t send_data[10] = {0x80, 0x08, 0x90, 0xAB, 0x85, 0xD7, 0x69, 0x28, 0x00, 0x00 };
+// uint8_t send_data[10] = {0x80, 0x08, 0x90, 0xAB, 0x85, 0xD7, 0x69, 0x28, 0x00, 0x00 };
 
 static uint8_t st95_select_iface(uint8_t iface);
 
@@ -112,10 +108,28 @@ static uint8_t st95_select_iso14443a(void);
 static uint8_t st95_select_iso14443b(void);
 static uint8_t st95_select_iso18092(void);
 
-static uint8_t st95_cmd_send_receive(uint8_t * data, uint8_t length);
-void st95_send_irqin_negative_pulse(void);
+static void st95_cmd_send_receive(uint8_t *data, uint8_t size, uint8_t topaz, uint8_t splitFrame, uint8_t crc, uint8_t sigBits);
+static void st95_send_irqin_negative_pulse(void);
 
 static bool st95_check_pack(uint8_t length);
+
+static void send_reqa(void);
+static void send_anticol_1(void);
+
+#if ENABLE_DEBUG
+    #define PRINTBUFF _printbuff
+    static void _printbuff(uint8_t *buff, unsigned len)
+    {
+        while (len) {
+            len--;
+            printf("%02X ", *buff++);
+        }
+        printf("\n");
+    }
+#else
+    #define PRINTBUFF(...)
+#endif
+
 
 static void detect_handler(void *arg)
 {
@@ -162,17 +176,45 @@ static uint8_t st95_cmd_select_protocol(void)
     return 1;
 }
 
-static uint8_t st95_cmd_send_receive(uint8_t * data, uint8_t length)
+static void send_reqa(void)
 {
+	uint8_t data = 0x26;
+	/* 1 byte data, Not used topaz format, not SplitFrame, Not aapend CRC, 7 significant bits in last byte */
+	st95_cmd_send_receive(&data, 1, 0, 0, 0, 7);
+}
+
+static void send_anticol_1(void)
+{
+	uint8_t data[2] = { 0x93, 0x20 };
+	/* 2 byte data, Not used topaz format, not SplitFrame, Not aapend CRC, 8 significant bits in last byte */
+	st95_cmd_send_receive(data, 2, 0, 0, 0, 8);
+}
+
+static void send_anticol_2(void)
+{
+	uint8_t data[2] = { 0x93, 0x20 };
+	/* 2 byte data, Not used topaz format, not SplitFrame, Not aapend CRC, 8 significant bits in last byte */
+	st95_cmd_send_receive(data, 2, 0, 0, 0, 8);
+}
+
+static void st95_cmd_send_receive(uint8_t *data, uint8_t size, uint8_t topaz, uint8_t splitFrame, uint8_t crc, uint8_t sigBits) 
+{
+	uint8_t length = 0;
     current_cmd = ST95_CMD_SEND_RECV;
 
     txbuf[0] = ST95_CMD_SEND_RECV;
-    txbuf[1] = length;
-    memcpy(txbuf + 2, data, length);
-
-    send_pack(2 + length);
-
-    return 1;
+    txbuf[1] = size + 1;
+	
+	memcpy(txbuf + 2, data, size);
+	length = size + 2;
+	
+	txbuf[length] = (topaz << 7) | (splitFrame << 6) | (crc << 5) | sigBits;
+	length++;
+    
+		DEBUG("		Send: ");
+		PRINTBUFF(txbuf, length);
+	
+	send_pack(length);
 }
 
 static uint8_t st95_cmd_idle(void)
@@ -349,13 +391,11 @@ static uint8_t st95_select_iso14443b(void)
 
 static uint8_t send_pack(uint8_t len)
 {
-    // printf("SEND[%d] -> ", len);
-    // for(uint8_t i = 0; i < len; i++) {
-        // if(i == 1) printf("  [ ");
-        // printf(" %02X", txbuf[i]);
-        // if(i == 1) printf(" ]   ");
-    // }
-    // printf("\n");
+	
+	// if(msg_rx.type != UMDK_ST95_MSG_CALIBR) {
+		// DEBUG("TX: ");
+		// PRINTBUFF(txbuf, len);
+	// }
 
     current_state = UMDK_ST95_PACK_ERROR;
     flag_rx = UMDK_ST95_NOT_RECIEVED;
@@ -408,17 +448,11 @@ static void *radio_send(void *arg)
 
         st95_msg_t  msg_type = (st95_msg_t)msg.type;
 
-#if ENABLE_DEBUG
-
-        if(msg_type != UMDK_ST95_MSG_CALIBR){
-        DEBUG("        %d:RX data[%d]: ", (uint8_t)msg_type, num_bytes_rx);
-        for(uint32_t i = 0; i < num_bytes_rx; i++) {
-                DEBUG(" %02X", rxbuf[i]);
-        }
-        DEBUG("\n");
-        }
-#endif
-
+		if(msg_rx.type != UMDK_ST95_MSG_CALIBR) {
+		DEBUG("RX data ");
+		PRINTBUFF(rxbuf, num_bytes_rx);
+		}
+		
         switch(msg_type) {
             case UMDK_ST95_MSG_RADIO: {
                     // puts("\n    [ MSG RADIO ]\n");
@@ -445,7 +479,6 @@ static void *radio_send(void *arg)
             }
 
             case UMDK_ST95_MSG_IDLE: {
-
                 if(st95_check_pack(num_bytes_rx)) {
                     if(rxbuf[2] == 0x02) {
                         current_state = UMDK_ST95_PACK_OK;
@@ -478,10 +511,11 @@ static void *radio_send(void *arg)
                         current_state = UMDK_ST95_PACK_OK;
                         if(umdk_st95_config.mode == ST95_MODE_READER) {
                             msg_rx.type = UMDK_ST95_MSG_UID;
-                            st95_cmd_send_receive(send_1a, 2);
+                            // st95_cmd_send_receive(send_1a, 2);
+							send_reqa();
                         }
                         else if(umdk_st95_config.mode == ST95_MODE_WRITER) {
-                            st95_cmd_send_receive(send_data, 10);
+                            // st95_cmd_send_receive(send_data, 10);
                         }
 
                     }
@@ -505,6 +539,8 @@ static void *radio_send(void *arg)
                     printf("    -> UID: ");
                         printf(" %02X %02X %02X %02X", rxbuf[2], rxbuf[3], rxbuf[4], rxbuf[5]);
                     printf(" ->  %"PRIu32"\n", uid);
+					
+					
                 }
                 else {
                     puts("[ NOT VALID ANTICOL DATA ]");
@@ -522,7 +558,8 @@ static void *radio_send(void *arg)
                     current_state = UMDK_ST95_PACK_OK;
                     msg_rx.type = UMDK_ST95_MSG_ANTICOL;
 
-                    st95_cmd_send_receive(send_2a, 3);
+                    // st95_cmd_send_receive(send_2a, 3);
+					send_anticol_1();
                 }
                 else {
                     puts("[ NOT VALID UID DATA ]");
@@ -953,7 +990,7 @@ bool umdk_st95_cmd(module_data_t *cmd, module_data_t *reply)
     st95_select_iso15693();
     rtctimers_millis_set(&detect_timer, UMDK_ST95_DETECT_MS);
 
-
+st95_send_irqin_negative_pulse();
 
     reply->as_ack = true;
     reply->length = 1;

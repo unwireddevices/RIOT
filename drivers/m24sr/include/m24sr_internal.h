@@ -286,6 +286,7 @@ extern "C" {
 /* If both of this two flags are disabled, then the I2C polling will be used */
 #define I2C_GPO_INTERRUPT_ALLOWED       (1)     /**< allow tu use GPO interrupt as I2C synchronization */
 //#define I2C_GPO_SYNCHRO_ALLOWED         (1)     /**< allow tu use GPO polling as I2C synchronization */
+#define RFU                             (1)     /**< Reserved  for Future  Use*/
 /**
  * @}
  */

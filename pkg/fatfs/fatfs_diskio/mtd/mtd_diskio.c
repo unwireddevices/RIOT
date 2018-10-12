@@ -90,7 +90,7 @@ DSTATUS disk_initialize(BYTE pdrv)
  */
 DRESULT disk_read(BYTE pdrv, BYTE *buff, DWORD sector, UINT count)
 {
-    DEBUG("disk_read: %d, %lu, %d\n", pdrv, sector, count);
+    DEBUG("disk_read: %d, %" PRIu32 ", %d\n", pdrv, sector, count);
     if ((pdrv >= FF_VOLUMES) || (fatfs_mtd_devs[pdrv]->driver == NULL)) {
         return RES_PARERR;
     }
@@ -121,7 +121,7 @@ DRESULT disk_read(BYTE pdrv, BYTE *buff, DWORD sector, UINT count)
  */
 DRESULT disk_write(BYTE pdrv, const BYTE *buff, DWORD sector, UINT count)
 {
-    DEBUG("disk_write: %d, %lu, %d\n", pdrv, sector, count);
+    DEBUG("disk_write: %d, %" PRIu32 ", %d\n", pdrv, sector, count);
     if ((pdrv >= FF_VOLUMES) || (fatfs_mtd_devs[pdrv]->driver == NULL)) {
         return RES_PARERR;
     }

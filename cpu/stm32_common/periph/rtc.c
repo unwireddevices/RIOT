@@ -447,7 +447,7 @@ int rtc_millis_set_alarm(uint32_t milliseconds, rtc_alarm_cb_t cb, void *arg)
     uint32_t msec = milliseconds % 1000;
     uint32_t alarm_millis_time = PRE_SYNC - (msec*1000)/RTC_SSR_TO_US;
     
-    DEBUG("%s: next alarm at %lud %lu:%lu:%lu.%lu\n", __FUNCTION__, days, hours, minutes, seconds, msec);
+    DEBUG("%s: next alarm at %" PRIu32 "d %" PRIu32 ":%" PRIu32 ":%" PRIu32 ".%" PRIu32 "\n", __FUNCTION__, days, hours, minutes, seconds, msec);
        
     /* set up subseconds alarm */
     uint32_t regalarm = RTC->RTC_MILLIS_SSREG;
@@ -535,7 +535,7 @@ int rtc_millis_get_time(uint32_t *millis)
     uint32_t minutes  = bcd2val(tr, RTC_TR_MNU_Pos, TR_M_MASK);
     uint32_t seconds  = bcd2val(tr, RTC_TR_SU_Pos, TR_S_MASK);
     
-    DEBUG("%s: now is %lud %lu:%lu:%lu.%lu\n", __FUNCTION__, days, hours, minutes, seconds, milliseconds);
+    DEBUG("%s: now is %" PRIu32 "d %" PRIu32 ":%" PRIu32 ":%" PRIu32 ".%" PRIu32 "\n", __FUNCTION__, days, hours, minutes, seconds, milliseconds);
     
     /* Monday is 1 on STM32 and Sunday is 7, there's no Day 0 */
     if (days == 7) {
@@ -650,7 +650,7 @@ void ISR_NAME(void)
     if (RTC->ISR & RTC_ISR_ALRAF) {
         DEBUG("%s: alarm A interrupt\n", __FUNCTION__);
         if (isr_ctx.cb_a != NULL) {
-            DEBUG("%s: alarm A callback %08lx\n", __FUNCTION__, (uint32_t)isr_ctx.cb_a);
+            DEBUG("%s: alarm A callback %08" PRIx32 "\n", __FUNCTION__, (uint32_t)isr_ctx.cb_a);
             isr_ctx.cb_a(isr_ctx.arg_a);
         }
         RTC->ISR &= ~RTC_ISR_ALRAF;
@@ -661,7 +661,7 @@ void ISR_NAME(void)
     if (RTC->ISR & RTC_ISR_ALRBF) {
         DEBUG("%s: alarm B interrupt\n", __FUNCTION__);
         if (isr_ctx.cb_b) {
-            DEBUG("%s: alarm B callback %08lx\n", __FUNCTION__, (uint32_t)isr_ctx.cb_b);
+            DEBUG("%s: alarm B callback %08" PRIx32 "\n", __FUNCTION__, (uint32_t)isr_ctx.cb_b);
             isr_ctx.cb_b(isr_ctx.arg_b);
         }
         RTC->ISR &= ~RTC_ISR_ALRBF;

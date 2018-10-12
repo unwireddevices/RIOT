@@ -28,7 +28,7 @@
 static inline uint8_t sector_read(unsigned char *read_buf, unsigned long sector, unsigned long length, unsigned long offset)
 {
     if (mci_read(read_buf, sector, 1) == DISKIO_RES_OK) {
-        printf("[disk] Read sector %lu (%lu):\n", sector, offset);
+        printf("[disk] Read sector %" PRIu32 " (%" PRIu32 "):\n", sector, offset);
 
         for (unsigned long i = offset + 1; i <= offset + length; i++) {
             printf(" %u", read_buf[i - 1]);
@@ -70,7 +70,7 @@ int _get_blocksize(int argc, char **argv)
 
     unsigned long bsize;
     if (mci_ioctl(GET_BLOCK_SIZE, &bsize) == DISKIO_RES_OK) {
-        printf("[disk] block size is %lu\n", bsize);
+        printf("[disk] block size is %" PRIu32 "\n", bsize);
 
         return 0;
     }
@@ -88,7 +88,7 @@ int _get_sectorcount(int argc, char **argv)
 
     unsigned long scount;
     if (mci_ioctl(GET_SECTOR_COUNT, &scount) == DISKIO_RES_OK) {
-        printf("[disk] sector count is %lu\n", scount);
+        printf("[disk] sector count is %" PRIu32 "\n", scount);
 
         return 0;
     }
@@ -115,7 +115,7 @@ int _read_sector(int argc, char **argv)
             }
         }
 
-        printf("[disk] Error while reading sector %lu\n", sectornr);
+        printf("[disk] Error while reading sector %" PRIu32 "\n", sectornr);
         return 1;
     }
     else {
@@ -169,7 +169,7 @@ int _read_bytes(int argc, char **argv)
         } /* length < (ssize - offset) */
     } /* ioctl */
 
-    printf("[disk] Error while reading sector %lu\n", sector);
+    printf("[disk] Error while reading sector %" PRIu32 "\n", sector);
     return 1;
 
 }

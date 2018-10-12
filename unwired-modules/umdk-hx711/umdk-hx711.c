@@ -142,7 +142,7 @@ static void prepare_result(module_data_t *data) {
         weight /= hx711_config.hx711_cal;
     }
     
-    printf("[umdk-" _UMDK_NAME_ "] Weight: %lu g\n", weight);
+    printf("[umdk-" _UMDK_NAME_ "] Weight: %" PRIu32 " g\n", weight);
 
     if (data) {
         data->length = 2 + sizeof(weight) + sizeof(raw);
@@ -215,9 +215,9 @@ int umdk_hx711_shell_cmd(int argc, char **argv) {
         if (hx711_config.hx711_cal != 0) {
             uint32_t zero_grams = hx711_config.zero * 10;
             zero_grams /= hx711_config.hx711_cal;
-            printf("[umdk-" _UMDK_NAME_ "] Zero set to %lu g\n", zero_grams);
+            printf("[umdk-" _UMDK_NAME_ "] Zero set to %" PRIu32 " g\n", zero_grams);
         } else {
-            printf("[umdk-" _UMDK_NAME_ "] Zero set to %lu units\n", hx711_config.zero);
+            printf("[umdk-" _UMDK_NAME_ "] Zero set to %" PRIu32 " units\n", hx711_config.zero);
         }
         
         save_config();

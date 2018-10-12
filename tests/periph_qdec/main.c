@@ -55,7 +55,7 @@ int main(void)
     while (1) {
         for (i = 0; i < QDEC_NUMOF; i++) {
             value = qdec_read_and_reset(QDEC_DEV(i));
-            printf("QDEC %lu = %ld\n", (unsigned long int)i, (long int)value);
+            printf("QDEC %" PRIu32 " = %ld\n", (unsigned long int)i, (long int)value);
         }
         xtimer_sleep(1);
     }

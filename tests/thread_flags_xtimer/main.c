@@ -42,7 +42,7 @@ int main(void)
 
     puts("Test setting thread flags from (x)timer callback");
     printf("You should see the message '+++ timeout XX +++' printed to the \n"
-           "screen %u times, once every %lu milliseconds\n\n",
+           "screen %u times, once every %" PRIu32 " milliseconds\n\n",
             REPEAT, (TIMEOUT / US_PER_MS));
 
     for (unsigned i = 1; i <= REPEAT; i++) {

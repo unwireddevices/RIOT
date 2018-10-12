@@ -193,13 +193,15 @@ static inline void reply_error(module_data_t *reply)
     reply->data[1] = 0;
 }
 
-static inline void reply_ok(module_data_t *reply) 
+/*
+static void reply_ok(module_data_t *reply) 
 {
     reply->as_ack = true;
     reply->length = 2;
     reply->data[0] = _UMDK_MID_;
     reply->data[1] = 1;;
 }
+*/
 
 bool umdk_ibutton_cmd(module_data_t *cmd, module_data_t *reply)
 {

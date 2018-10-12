@@ -409,7 +409,7 @@ static void print_regions(void)
 
     uint32_t i;
     for (i = 0; i < LS_UNI_NUM_REGIONS; i++) {
-        printf("%lu. %s [", i, regions[i].region);
+        printf("%" PRIu32 ". %s [", i, regions[i].region);
         uint32_t j;
         for (j = 0; j < regions[i].num_channels; j++) {
             printf("%d", (unsigned) regions[i].channels[j]);

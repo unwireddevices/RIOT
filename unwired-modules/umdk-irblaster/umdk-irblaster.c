@@ -223,6 +223,7 @@ static void set_pwm_value(umdk_irblaster_dev_t *dev, umdk_irblaster_ch_t *ch, ui
     }
 }
 
+#if 0
 static inline void umdk_irblaster_turn_off_pin(gpio_t pin)
 {
 	GPIO_TypeDef *port = (GPIO_TypeDef *)( pin & ~(0x0F));
@@ -234,7 +235,9 @@ static inline void umdk_irblaster_turn_off_pin(gpio_t pin)
 	port->MODER &= ~(0x3 << (2 * pin_num));
 	port->MODER |= (0x3 << (2 * pin_num));
 }
+#endif
 
+#if 0
 static inline void reply_error(module_data_t *reply) 
 {
 	reply->as_ack = true;
@@ -242,6 +245,7 @@ static inline void reply_error(module_data_t *reply)
 	reply->data[0] = _UMDK_MID_;
 	reply->data[1] = 1;
 }
+#endif
 
 static inline void reply_ok(module_data_t *reply)
 {

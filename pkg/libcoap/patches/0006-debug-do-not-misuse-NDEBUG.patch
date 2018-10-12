@@ -259,7 +259,7 @@ index d683419..37d4e20 100644
      if (coap_uri_hash(COAP_RESOURCE(node)->uri) == key) {
 -#ifndef NDEBUG
 +#ifdef DEBUG_ENABLED
-       debug("removed key %lu (%s)\n",key,COAP_RESOURCE(node)->uri->path.s);
+       debug("removed key %" PRIu32 " (%s)\n",key,COAP_RESOURCE(node)->uri->path.s);
  #endif
        if (!prev)
 -- 

@@ -120,7 +120,7 @@ static int cmd_test(int argc, char **argv)
     start = xtimer_now_usec();
     eeprom_write(0, bytes, TEST_BUFFER_SIZE);
     stop = xtimer_now_usec();
-    printf("%lu usec\n", stop-start);
+    printf("%" PRIu32 " usec\n", stop-start);
     
     for (uint32_t i = 0; i < TEST_BUFFER_SIZE; i ++) {
         bytes[i] = TEST_BUFFER_SIZE-i;
@@ -130,13 +130,13 @@ static int cmd_test(int argc, char **argv)
     start = xtimer_now_usec();
     eeprom_write(0, bytes, TEST_BUFFER_SIZE);
     stop = xtimer_now_usec();
-    printf("%lu usec\n", stop-start);
+    printf("%" PRIu32 " usec\n", stop-start);
     
     printf("Reading %d bytes from EEPROM: ", TEST_BUFFER_SIZE);
     start = xtimer_now_usec();
     eeprom_read(0, bytes, TEST_BUFFER_SIZE);
     stop = xtimer_now_usec();
-    printf("%lu usec\n", stop-start);
+    printf("%" PRIu32 " usec\n", stop-start);
     
     return 0;
 }

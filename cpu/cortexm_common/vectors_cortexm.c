@@ -165,6 +165,7 @@ __attribute__((naked)) void hard_fault_default(void)
     /* Get stack pointer where exception stack frame lies */
     __asm__ volatile
     (
+        ".syntax unified                    \n"
         /* Check that msp is valid first because we want to stack all the
          * r4-r11 registers so that we can use r0, r1, r2, r3 for other things. */
         "mov r0, sp                         \n" /* r0 = msp                   */
@@ -199,7 +200,7 @@ __attribute__((naked)) void hard_fault_default(void)
         "cmp     r1, r2                     \n" /* compare with 2nd magic number */
         "bne     regular_handler            \n" /* no magic -> handle as usual   */
         "ldr     r1, [r0, #0x18]            \n" /* read PC from the stack        */
-        "add     r1, r1, #2                 \n" /* move to the next instruction  */
+        "adds    r1, r1, #2                 \n" /* move to the next instruction  */
         "str     r1, [r0, #0x18]            \n" /* modify PC in the stack        */
         "ldr     r5, =0                     \n" /* set R5 to indicate HardFault  */
         "bx      lr                         \n" /* exit the exception handler    */

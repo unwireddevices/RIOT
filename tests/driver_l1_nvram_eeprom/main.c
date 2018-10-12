@@ -49,7 +49,7 @@ static void print_buffer(const uint8_t *buf, size_t length)
         for (col = 0; col < bytes_per_line; ++col) {
             /* Print hex data */
             if (col == 0) {
-                printf("\n%08lx: ", i);
+                printf("\n%08" PRIx32 ": ", i);
             }
             else if ((col % bytes_per_group) == 0) {
                 putchar(' ');
@@ -117,7 +117,7 @@ int main(void)
         }
         if (buf_out[i] != 0xff) {
             puts("nvram_spi_write modified *src!");
-            printf(" i = %08lx\n", (unsigned long) i);
+            printf(" i = %08" PRIx32 "\n", (unsigned long) i);
             puts("[Failed]\n");
             return 1;
         }

@@ -147,7 +147,7 @@ int adc_init(adc_t line)
     }
     
     /* Wait for ADC to become ready */
-	while ((ADC1->SR & ADC_SR_ADONS) == 0);
+	while ((ADC1->SR & ADC_SR_ADONS) == 0) {};
 
     /* free the device again */
     done();

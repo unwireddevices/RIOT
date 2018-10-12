@@ -267,7 +267,7 @@ void rn2xx3_mac_set_rx2_dr(rn2xx3_t *dev, loramac_dr_idx_t dr)
     dev->loramac.rx2_freq = rn2xx3_mac_get_rx2_freq(dev);
 
     size_t p = snprintf(dev->cmd_buf, sizeof(dev->cmd_buf) - 1,
-                        "%s %s %s %d %lu",
+                        "%s %s %s %d %" PRIu32 "",
                         mac, set, "rx2", dr,
                         (unsigned long)dev->loramac.rx2_freq);
     dev->cmd_buf[p] = 0;
@@ -294,7 +294,7 @@ void rn2xx3_mac_set_rx2_freq(rn2xx3_t *dev, uint32_t freq)
     dev->loramac.rx2_dr = rn2xx3_mac_get_rx2_dr(dev);
 
     size_t p = snprintf(dev->cmd_buf, sizeof(dev->cmd_buf) - 1,
-                        "%s %s %s %d %lu",
+                        "%s %s %s %d %" PRIu32 "",
                         mac, set, "rx2", dev->loramac.rx2_dr,
                         (unsigned long)freq);
     dev->cmd_buf[p] = 0;

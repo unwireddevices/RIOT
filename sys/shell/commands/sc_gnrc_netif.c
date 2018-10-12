@@ -631,7 +631,7 @@ static int _netif_set_u32(kernel_pid_t iface, netopt_t opt, uint32_t context,
         printf("0x%04lx\n", res);
     }
     else {
-        printf("%lu\n", res);
+        printf("%" PRIu32 "\n", res);
     }
 
     return 0;
@@ -741,7 +741,7 @@ static int _netif_set_u16(kernel_pid_t iface, netopt_t opt, uint16_t context,
         printf("0x%04lx\n", res);
     }
     else {
-        printf("%lu\n", res);
+        printf("%" PRIu32 "\n", res);
     }
 
     return 0;

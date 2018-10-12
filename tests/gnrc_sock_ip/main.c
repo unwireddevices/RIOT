@@ -223,7 +223,7 @@ static void test_sock_ip_recv__ETIMEDOUT(void)
     assert(-ETIMEDOUT == sock_ip_recv(&_sock, _test_buffer,
                                       sizeof(_test_buffer), _TEST_TIMEOUT,
                                       NULL));
-    printf(" * (timed out with timeout %lu)\n", (long unsigned)_TEST_TIMEOUT);
+    printf(" * (timed out with timeout %" PRIu32 ")\n", (long unsigned)_TEST_TIMEOUT);
 }
 
 static void test_sock_ip_recv__socketed(void)

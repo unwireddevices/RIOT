@@ -45,9 +45,9 @@ USEMODULE += rtctimers-millis
 SHELL := /bin/bash
 UMDK_MODULES_LIST = $(RIOTBASE)/unwired-modules/include/umdk-modules.h
 
-all: create_module_list
+all: create_empty_module_list
 
-create_module_list:
+create_empty_module_list:
 	@echo "/* DO NOT EDIT! FILE IS AUTO GENERATED */" > $(UMDK_MODULES_LIST); \
 	echo "#ifndef UMDK_MODULES_H_" >> $(UMDK_MODULES_LIST); \
 	echo -e "#define UMDK_MODULES_H_\n" >> $(UMDK_MODULES_LIST); \

@@ -33,23 +33,40 @@
 
 #include "unwds-common.h"
 #include "periph/gpio.h"
-#include "periph/i2c.h"
 #include "hd44780.h"
+
+#if defined(HD44780_PCF8574)
+#include "periph/i2c.h"
+#endif
 
 /* umdk-16x2 board uses PCF8574 I2C GPIO expander */ 
 /* so below are not MCU GPIOs but PCF8574 GPIO numbers */
-#define UMDK_HD44780_PARAMS {    \
-    .cols   = 16,       \
-    .rows   = 2,        \
-    .rs     = 4,        \
-    .rw     = 5,        \
-    .enable = 6,        \
-    .data   = {0, 1, 2, 3,     \
-               HD44780_RW_OFF, HD44780_RW_OFF, HD44780_RW_OFF, HD44780_RW_OFF}, \
-    .backlight = 7,     \
-    .i2c_dev = 1,       \
-    .i2c_address = 0x20 \
-}
+#if defined(HD44780_PCF8574)
+    #define UMDK_HD44780_PARAMS {    \
+        .cols   = 16,       \
+        .rows   = 2,        \
+        .rs     = 4,        \
+        .rw     = 5,        \
+        .enable = 6,        \
+        .data   = {0, 1, 2, 3,     \
+                   HD44780_RW_OFF, HD44780_RW_OFF, HD44780_RW_OFF, HD44780_RW_OFF}, \
+        .backlight = 7,     \
+        .i2c_dev = 1,       \
+        .i2c_address = 0x20 \
+    }
+#else
+    #define UMDK_HD44780_PARAMS {    \
+        .cols   = 16,       \
+        .rows   = 2,        \
+        .rs     = 4,        \
+        .rw     = 5,        \
+        .enable = 6,        \
+        .data   = {0, 1, 2, 3,     \
+                   HD44780_RW_OFF, HD44780_RW_OFF, HD44780_RW_OFF, HD44780_RW_OFF}, \
+        .backlight = 7,     \
+    }
+#endif
+
 
 static const hd44780_params_t umdk_hd44780_params[] =
 {

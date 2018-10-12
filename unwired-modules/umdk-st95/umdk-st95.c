@@ -190,12 +190,14 @@ static void send_anticol_1(void)
 	st95_cmd_send_receive(data, 2, 0, 0, 0, 8);
 }
 
+#if 0
 static void send_anticol_2(void)
 {
 	uint8_t data[2] = { 0x93, 0x20 };
 	/* 2 byte data, Not used topaz format, not SplitFrame, Not aapend CRC, 8 significant bits in last byte */
 	st95_cmd_send_receive(data, 2, 0, 0, 0, 8);
 }
+#endif
 
 static void st95_cmd_send_receive(uint8_t *data, uint8_t size, uint8_t topaz, uint8_t splitFrame, uint8_t crc, uint8_t sigBits) 
 {
@@ -970,7 +972,7 @@ bool umdk_st95_cmd(module_data_t *cmd, module_data_t *reply)
             puts("WRITER mode");
         }
         else if(cmd->data[1] == ST95_MODE_READER) {
-            umdk_st95_config.iface = ST95_MODE_READER;
+            umdk_st95_config.mode = ST95_MODE_READER;
             puts("READER mode");
         }
                 save_config();

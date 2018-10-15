@@ -74,9 +74,13 @@ static uint8_t dac_data_l = 0x00;
 static volatile uint8_t num_bytes_rx = 0;
 static volatile uint8_t uart_rx = 0;
 
+static uint8_t uid_full[15];
+static uint8_t uid_size = 0;
+
 static uint8_t current_cmd = 0;
 
-static uint8_t (*st95_iface)(uint8_t) = NULL;
+static uint8_t (*st95_send)(uint8_t) = NULL;
+// static uint8_t (*st95_handler)(uint8_t) = NULL;
 
 static uint8_t protocol = 0;
 
@@ -84,6 +88,8 @@ static volatile st95_pack_state_t current_state = UMDK_ST95_PACK_ERROR;
 static volatile st95_rx_state_t flag_rx = UMDK_ST95_NOT_RECIEVED;
 
 // uint8_t send_data[10] = {0x80, 0x08, 0x90, 0xAB, 0x85, 0xD7, 0x69, 0x28, 0x00, 0x00 };
+
+static void _check_respose(void);
 
 static uint8_t st95_select_iface(uint8_t iface);
 
@@ -113,8 +119,19 @@ static void st95_send_irqin_negative_pulse(void);
 
 static bool st95_check_pack(uint8_t length);
 
-static void send_reqa(void);
-static void send_anticol_1(void);
+static void _send_reqa(void);
+static uint8_t _get_uidsize(uint8_t uid_byte);
+
+static void _anticollision_1(void);
+static void _anticollision_2(void);
+static void _anticollision_3(void);
+static void _select_1(uint8_t num, uint8_t * uid_sel);
+static void _select_2(uint8_t num, uint8_t * uid_sel);
+static void _select_3(uint8_t num, uint8_t * uid_sel);
+
+static bool _check_bcc(uint8_t length, uint8_t * data, uint8_t bcc);
+// static bool _check_crc(uint8_t length, uint8_t * buf);
+
 
 #if ENABLE_DEBUG
     #define PRINTBUFF _printbuff
@@ -130,6 +147,21 @@ static void send_anticol_1(void);
     #define PRINTBUFF(...)
 #endif
 
+static bool _check_bcc(uint8_t length, uint8_t * data, uint8_t bcc)
+{
+    uint8_t bcc_tmp = 0;
+
+	for (uint8_t i = 0; i < length; i++) {
+        bcc_tmp	^= data[i];
+    }
+	
+	if((bcc_tmp ^ bcc) == 0) {
+		return true;
+    }
+	else {
+		return false;
+    }
+}
 
 static void detect_handler(void *arg)
 {
@@ -176,28 +208,113 @@ static uint8_t st95_cmd_select_protocol(void)
     return 1;
 }
 
-static void send_reqa(void)
+static void _send_reqa(void)
 {
 	uint8_t data = 0x26;
+    
+    msg_rx.type = UMDK_ST95_MSG_GET_UID;
+    msg_rx.content.value = ISO14443A_REQA_MSG;
+    
 	/* 1 byte data, Not used topaz format, not SplitFrame, Not aapend CRC, 7 significant bits in last byte */
 	st95_cmd_send_receive(&data, 1, 0, 0, 0, 7);
 }
 
-static void send_anticol_1(void)
+static void _anticollision_1(void)
 {
-	uint8_t data[2] = { 0x93, 0x20 };
+	uint8_t data[2] = { ISO14443A_SELECT_LVL1, 0x20 };
+    
+    msg_rx.type = UMDK_ST95_MSG_GET_UID;
+    msg_rx.content.value = ISO14443A_ANTICOL_1_MSG;
+    
 	/* 2 byte data, Not used topaz format, not SplitFrame, Not aapend CRC, 8 significant bits in last byte */
 	st95_cmd_send_receive(data, 2, 0, 0, 0, 8);
 }
 
-static void send_anticol_2(void)
+static void _anticollision_2(void)
 {
-	uint8_t data[2] = { 0x93, 0x20 };
+	uint8_t data[2] = { ISO14443A_SELECT_LVL2, 0x20 };
+    
+    msg_rx.type = UMDK_ST95_MSG_GET_UID;
+    msg_rx.content.value = ISO14443A_ANTICOL_2_MSG;
+    
 	/* 2 byte data, Not used topaz format, not SplitFrame, Not aapend CRC, 8 significant bits in last byte */
 	st95_cmd_send_receive(data, 2, 0, 0, 0, 8);
 }
 
-static void st95_cmd_send_receive(uint8_t *data, uint8_t size, uint8_t topaz, uint8_t splitFrame, uint8_t crc, uint8_t sigBits) 
+static void _anticollision_3(void)
+{
+	uint8_t data[2] = { ISO14443A_SELECT_LVL3, 0x20 };
+    
+    msg_rx.type = UMDK_ST95_MSG_GET_UID;
+    msg_rx.content.value = ISO14443A_ANTICOL_3_MSG;
+    
+	/* 2 byte data, Not used topaz format, not SplitFrame, Not aapend CRC, 8 significant bits in last byte */
+	st95_cmd_send_receive(data, 2, 0, 0, 0, 8);
+}
+
+static void _select_1(uint8_t num, uint8_t * uid_sel)
+{
+	uint8_t data[16] = { 0 };
+    
+    msg_rx.type = UMDK_ST95_MSG_GET_UID;
+    msg_rx.content.value = ISO14443A_SELECT_1_MSG;
+	
+	data[0] = ISO14443A_SELECT_LVL1;
+	data[1] = 0x70;
+	memcpy(data + 2, uid_sel, num);
+	
+	/* 2 byte data, Not used topaz format, not SplitFrame, Append CRC, 8 significant bits in last byte */
+	st95_cmd_send_receive(data, num + 2, 0, 0, 1, 8);
+}
+
+static void _select_2(uint8_t num, uint8_t * uid_sel)
+{
+	uint8_t data[16] = { 0 };
+    
+    msg_rx.type = UMDK_ST95_MSG_GET_UID;
+    msg_rx.content.value = ISO14443A_SELECT_2_MSG;
+	
+	data[0] = ISO14443A_SELECT_LVL2;
+	data[1] = 0x70;
+	memcpy(data + 2, uid_sel, num);
+	
+	/* 2 byte data, Not used topaz format, not SplitFrame, Append CRC, 8 significant bits in last byte */
+	st95_cmd_send_receive(data, num + 2, 0, 0, 1, 8);
+}
+
+static void _select_3(uint8_t num, uint8_t * uid_sel)
+{
+	uint8_t data[16] = { 0 };
+    
+    msg_rx.type = UMDK_ST95_MSG_GET_UID;
+    msg_rx.content.value = ISO14443A_SELECT_3_MSG;
+	
+	data[0] = ISO14443A_SELECT_LVL3;
+	data[1] = 0x70;
+	memcpy(data + 2, uid_sel, num);
+	
+	/* 2 byte data, Not used topaz format, not SplitFrame, Append CRC, 8 significant bits in last byte */
+	st95_cmd_send_receive(data, num + 2, 0, 0, 1, 8);
+}
+
+static uint8_t _get_uidsize(uint8_t uid_byte)
+{
+	uint8_t size = 0;
+	
+	size = (uid_byte >> 6) & 0x03;
+	return size;
+}
+
+static uint8_t _is_uid_complete(uint8_t sak_byte)
+{
+	if ((sak_byte & 0x04) == 0x04)
+		return 0;
+	else 
+		return 1; 
+}
+
+
+static void st95_cmd_send_receive(uint8_t *data, uint8_t size, uint8_t topaz, uint8_t split_frame, uint8_t crc, uint8_t sign_bits) 
 {
 	uint8_t length = 0;
     current_cmd = ST95_CMD_SEND_RECV;
@@ -208,11 +325,11 @@ static void st95_cmd_send_receive(uint8_t *data, uint8_t size, uint8_t topaz, ui
 	memcpy(txbuf + 2, data, size);
 	length = size + 2;
 	
-	txbuf[length] = (topaz << 7) | (splitFrame << 6) | (crc << 5) | sigBits;
+	txbuf[length] = (topaz << 7) | (split_frame << 6) | (crc << 5) | sign_bits;
 	length++;
     
-		DEBUG("		Send: ");
-		PRINTBUFF(txbuf, length);
+		// DEBUG("		Send: ");
+		// PRINTBUFF(txbuf, length);
 	
 	send_pack(length);
 }
@@ -288,13 +405,13 @@ static uint8_t st95_cmd_idn(void)
     txbuf[1] = 0x00;
 
     send_pack(2);
-
+	
     return 1;
 }
 
 static uint8_t st95_select_field_off(void)
 {
-    msg_rx.type = UMDK_ST95_MSG_PROTOCOL;
+    msg_rx.type = UMDK_ST95_MSG_RF_OFF;
 
     txbuf[0] = ST95_CMD_PROTOCOL;
     txbuf[1] = 2;
@@ -402,9 +519,27 @@ static uint8_t send_pack(uint8_t len)
     memset(rxbuf, 0x00, sizeof(rxbuf));
     num_bytes_rx = 0;
 
-    return ((*st95_iface)(len));
+    return ((*st95_send)(len));
 }
 
+static void _check_respose(void)
+{
+	uint32_t time_begin = rtctimers_millis_now();
+    uint32_t time_end = 0;
+    uint32_t time_delta = 0;
+	
+	while(flag_rx != UMDK_ST95_RECIEVED) {
+		time_end = rtctimers_millis_now();
+		time_delta = time_end - time_begin;
+		if(time_delta > UMDK_ST95_NO_RESPONSE_TIME_MS) {
+			current_state = UMDK_ST95_PACK_ERROR;
+			puts("No response");
+			// msg_send(&msg_rx, radio_pid);
+			// break;
+			return;
+		}
+	}
+}
 
 static uint8_t st95_cmd_echo(void)
 {
@@ -412,27 +547,15 @@ static uint8_t st95_cmd_echo(void)
     flag_rx = UMDK_ST95_NOT_RECIEVED;
     current_state = UMDK_ST95_PACK_ERROR;
 
-    uint32_t time_begin = rtctimers_millis_now();
-    uint32_t time_end = 0;
-    uint32_t time_delta = 0;
-
     txbuf[0] = ST95_CMD_ECHO;
 
     msg_rx.type = UMDK_ST95_MSG_ECHO;
     send_pack(1);
 
-    rtctimers_millis_sleep(ST95_ECHO_WAIT_TIME_MS);
+    // rtctimers_millis_sleep(ST95_ECHO_WAIT_TIME_MS);
 
-    while(flag_rx != UMDK_ST95_RECIEVED) {
-        time_end = rtctimers_millis_now();
-        time_delta = time_end - time_begin;
-        if(time_delta > UMDK_ST95_NO_RESPONSE_TIME_MS) {
-            current_state = UMDK_ST95_PACK_ERROR;
-            msg_send(&msg_rx, radio_pid);
-            break;
-        }
-    }
-
+	_check_respose();
+	
     return (uint8_t)current_state;
 }
 
@@ -448,12 +571,114 @@ static void *radio_send(void *arg)
 
         st95_msg_t  msg_type = (st95_msg_t)msg.type;
 
-		if(msg_rx.type != UMDK_ST95_MSG_CALIBR) {
-		DEBUG("RX data ");
-		PRINTBUFF(rxbuf, num_bytes_rx);
-		}
+		// if(msg_rx.type != UMDK_ST95_MSG_CALIBR) {
+			// DEBUG("RX data ");
+			// PRINTBUFF(rxbuf, num_bytes_rx);
+		// }
 		
         switch(msg_type) {
+			case UMDK_ST95_MSG_GET_UID: {
+                   iso14443a_msg_t state = msg.content.value;
+				   switch(state) {
+					   case ISO14443A_REQA_MSG: {
+                           // UIDsize : (2 bits) value: 0 for single, 1 for double,  2 for triple and 3 for RFU
+                            uid_size = _get_uidsize(rxbuf[2]);
+                           
+                           // === Select cascade level 1 ===
+                            _anticollision_1();
+                           
+                           break;
+                       }
+                       case ISO14443A_ANTICOL_1_MSG: {                         
+                           //  Check BCC
+                           if(!_check_bcc(4, rxbuf + 2, rxbuf[2 + 4])) {
+                               break;
+                           }
+                            // copy UID from CR95Hf response
+                            if (uid_size == ISO14443A_ATQA_SINGLE) {
+                                memcpy(uid_full,&rxbuf[2],ISO14443A_UID_SINGLE );
+                            }
+                            else {
+                                memcpy(uid_full,&rxbuf[2 + 1],ISO14443A_UID_SINGLE - 1 );
+                            }
+                            
+                            _select_1(5, &rxbuf[2]);
+                           break;
+                       }
+                        case ISO14443A_SELECT_1_MSG: {
+                            if(_is_uid_complete(rxbuf[2]) == 1) {
+                                printf("UID Completed -> Single SAK: %02X\n", rxbuf[2]);
+                                DEBUG("UID:  ");
+                                PRINTBUFF(uid_full, ISO14443A_UID_SINGLE);
+                            }
+                            else {
+                                 // === Select cascade level 2 ===
+                                _anticollision_2();
+                            }
+                           break;
+                       }
+                       case ISO14443A_ANTICOL_2_MSG: {
+                            //  Check BCC
+                           if(!_check_bcc(4, rxbuf + 2, rxbuf[2 + 4])) {
+                               break;
+                           }
+	
+                            // copy UID from CR95Hf response
+                            if (uid_size == ISO14443A_ATQA_DOUBLE)
+                                memcpy(&uid_full[ISO14443A_UID_SINGLE - 1], &rxbuf[2], ISO14443A_UID_SINGLE );
+                            else 
+                                memcpy(&uid_full[ISO14443A_UID_SINGLE - 1], &rxbuf[2], ISO14443A_UID_SINGLE - 1);
+                            
+                            //Send Select command	
+                            _select_2(5, &rxbuf[2]);
+                           break;
+                       }
+                       case ISO14443A_SELECT_2_MSG: {
+                           if(_is_uid_complete(rxbuf[2]) == 1) {
+                                printf("UID Completed -> Double SAK: %02X\n", rxbuf[2]);
+                                DEBUG("UID:  ");
+                                PRINTBUFF(uid_full, ISO14443A_UID_DOUBLE);
+                            }
+                            else {
+                                 // === Select cascade level 2 ===
+                                _anticollision_3();
+                            }
+                           break;
+                       }
+                       case ISO14443A_ANTICOL_3_MSG: {
+                           //  Check BCC
+                           if(!_check_bcc(4, rxbuf + 2, rxbuf[2 + 4])) {
+                               break;
+                           }
+	
+                            // copy UID from CR95Hf response
+                            if (uid_size == ISO14443A_ATQA_TRIPLE)
+                                memcpy(&uid_full[ISO14443A_UID_DOUBLE - 1], &rxbuf[2], ISO14443A_UID_DOUBLE );
+                            
+                            //Send Select command	
+                            _select_3(5, &rxbuf[2]);
+                           break;
+                       }
+                       case ISO14443A_SELECT_3_MSG: {
+                           
+                           if(_is_uid_complete(rxbuf[2]) == 1) {
+                                printf("UID Completed -> Triple SAK: %02X\n", rxbuf[2]);
+                                DEBUG("UID:  ");
+                                PRINTBUFF(uid_full, ISO14443A_UID_DOUBLE);
+                            }
+                            else {
+                                puts("RFU - not support");
+                            }
+                           break;
+                       }
+                       
+						default:
+							break;
+				   }
+				   
+                break;
+            }
+			
             case UMDK_ST95_MSG_RADIO: {
                     // puts("\n    [ MSG RADIO ]\n");
                 break;
@@ -461,9 +686,9 @@ static void *radio_send(void *arg)
 
             case UMDK_ST95_MSG_ECHO: {
                 current_cmd = 0;
+				flag_rx = UMDK_ST95_RECIEVED;
                 if(rxbuf[0] == ST95_CMD_ECHO) {
                     current_state = UMDK_ST95_PACK_OK;
-                    flag_rx = UMDK_ST95_RECIEVED;
                     st95_cmd_idn();
                 }
                 else {
@@ -471,7 +696,6 @@ static void *radio_send(void *arg)
                     puts("[umdk-" _UMDK_NAME_ "] Device: not found");
                 }
 
-                flag_rx = UMDK_ST95_RECIEVED;
                 rxbuf[0] = 0x00;
                 rxbuf[1] = 0x00;
                 num_bytes_rx = 0;
@@ -502,22 +726,39 @@ static void *radio_send(void *arg)
                 // printf("TIME: %ld\n", t2-t1);
                 break;
             }
+            
+            case UMDK_ST95_MSG_RF_OFF: {
+                current_cmd = 0x0;
+                 if(st95_check_pack(num_bytes_rx)) {
+                      if((rxbuf[0] == 0x00) && (rxbuf[1] == 0x00)) {
+                           current_state = UMDK_ST95_PACK_OK;
+                            dac_data_h = 0x00;
+                            dac_data_l = 0x00;
+                            st95_calibration();
+                      }
+                      else {
+                        current_state = UMDK_ST95_PACK_ERROR; 
+                    }
+                 }
+                 else {
+                    current_state = UMDK_ST95_PACK_ERROR;
+                }
+                num_bytes_rx = 0;
+                flag_rx = UMDK_ST95_RECIEVED;
+                break;
+            }
 
             case UMDK_ST95_MSG_PROTOCOL: {
-                // printf("        MSG PROTOCOL\n");
                 current_cmd = 0x0;
                 if(st95_check_pack(num_bytes_rx)) {
                     if((rxbuf[0] == 0x00) && (rxbuf[1] == 0x00)) {
                         current_state = UMDK_ST95_PACK_OK;
                         if(umdk_st95_config.mode == ST95_MODE_READER) {
-                            msg_rx.type = UMDK_ST95_MSG_UID;
-                            // st95_cmd_send_receive(send_1a, 2);
-							send_reqa();
+							_send_reqa();
                         }
                         else if(umdk_st95_config.mode == ST95_MODE_WRITER) {
                             // st95_cmd_send_receive(send_data, 10);
                         }
-
                     }
                     else {
                         current_state = UMDK_ST95_PACK_ERROR;
@@ -557,9 +798,7 @@ static void *radio_send(void *arg)
                 if(rxbuf[0] == 0x80) {
                     current_state = UMDK_ST95_PACK_OK;
                     msg_rx.type = UMDK_ST95_MSG_ANTICOL;
-
-                    // st95_cmd_send_receive(send_2a, 3);
-					send_anticol_1();
+					_anticollision_1();
                 }
                 else {
                     puts("[ NOT VALID UID DATA ]");
@@ -575,7 +814,6 @@ static void *radio_send(void *arg)
                     if(rxbuf[0] == 0x00) {
                         current_state = UMDK_ST95_PACK_OK;
                         flag_rx = UMDK_ST95_RECIEVED;
-                        // puts("[umdk-" _UMDK_NAME_ "] Device: found");
 
                         printf("[umdk-" _UMDK_NAME_ "] Device: ");
                         for(uint32_t i = 2; i < 14; i++ ) {
@@ -585,8 +823,8 @@ static void *radio_send(void *arg)
 
                         dac_data_h = 0x00;
                         dac_data_l = 0x00;
-
-                        st95_calibration();
+                        st95_select_field_off();
+                        // st95_calibration();
                     }
                     else {
                         current_state = UMDK_ST95_PACK_ERROR;
@@ -682,7 +920,7 @@ static bool st95_check_pack(uint8_t length)
 {
     if((length - 2) != rxbuf[1]) {
         puts("Wrong pack length");
-
+           printf("Current msg: %02X\n", msg_rx.type);
         return false;
     }
 
@@ -695,6 +933,7 @@ static uint8_t st95_send_uart(uint8_t length)
 
     return 1;
 }
+
 
 
 static void st95_spi_rx(void* arg)
@@ -769,7 +1008,7 @@ static uint8_t st95_select_iface(uint8_t iface)
             printf("[umdk-" _UMDK_NAME_ "] Init UART interface: %02d \n", st95_params.uart);
         }
 
-        st95_iface = &st95_send_uart;
+        st95_send = &st95_send_uart;
 
         uart_rx = 1;
     }
@@ -797,7 +1036,7 @@ static uint8_t st95_select_iface(uint8_t iface)
         gpio_irq_disable(st95_params.irq_out);
 
         // gpio_set(UMDK_ST95_SSI_0);
-        st95_iface = &st95_send_spi;
+        st95_send = &st95_send_spi;
 
         uart_rx = 0;
     }
@@ -853,7 +1092,7 @@ static uint8_t st95_calibration(void)
 }
 
 static void reset_config(void) {
-    umdk_st95_config.iface = ST95_IFACE_UART;
+    umdk_st95_config.iface = ST95_IFACE_SPI;
     umdk_st95_config.mode = ST95_MODE_READER;
     umdk_st95_config.protocol = ISO14443A_SELECT;
 }
@@ -916,10 +1155,8 @@ void umdk_st95_init(uwnds_cb_t *event_callback)
     memset(txbuf, 0x00, 30);
     memset(rxbuf, 0x00, 30);
 
-            // rtctimers_millis_sleep(950);
-
     st95_cmd_echo();
-
+	
     protocol = umdk_st95_config.protocol;
 
      /* Configure periodic wakeup */
@@ -984,7 +1221,7 @@ bool umdk_st95_cmd(module_data_t *cmd, module_data_t *reply)
 
     st95_cmd_idn();
     st95_select_field_off();
-
+// _get_uid();
     st95_select_iso14443a();
     st95_select_iso14443b();
     st95_select_iso15693();

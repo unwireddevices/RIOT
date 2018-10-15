@@ -52,6 +52,20 @@
 #define ST95_TX_RATE_14443A             ST95_TX_RATE_106
 #define ST95_RX_RATE_14443A             ST95_RX_RATE_106
 
+/* Anticollison levels (commands) */
+#define ISO14443A_SELECT_LVL1					0x93
+#define ISO14443A_SELECT_LVL2					0x95
+#define ISO14443A_SELECT_LVL3					0x97
+
+
+/* ATQ FLAG */
+#define ISO14443A_ATQA_SINGLE					0
+#define	ISO14443A_ATQA_DOUBLE					1
+#define ISO14443A_ATQA_TRIPLE					2
+/* UID Sizes */
+#define ISO14443A_UID_SINGLE						4
+#define ISO14443A_UID_DOUBLE						7
+#define ISO14443A_UID_TRIPLE						10
 
 /**
  * @brief Thread messages values
@@ -65,7 +79,22 @@ typedef enum {
     UMDK_ST95_MSG_ANTICOL   = 5,
     UMDK_ST95_MSG_IDLE      = 6,
     UMDK_ST95_MSG_PROTOCOL  = 7,
+	UMDK_ST95_MSG_GET_UID  = 8,
+    UMDK_ST95_MSG_RF_OFF = 9,
 } st95_msg_t;
+
+/**
+ * @brief Thread messages values
+ */
+typedef enum {
+    ISO14443A_REQA_MSG     = 0,
+	ISO14443A_ANTICOL_1_MSG     = 1,
+	ISO14443A_SELECT_1_MSG     = 2,
+	ISO14443A_ANTICOL_2_MSG     = 3,
+	ISO14443A_SELECT_2_MSG     = 4,
+	ISO14443A_ANTICOL_3_MSG     = 5,
+	ISO14443A_SELECT_3_MSG     = 6,
+} iso14443a_msg_t;
 
 /**
  * @brief Pack RX state values

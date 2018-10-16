@@ -402,7 +402,7 @@ static void m24sr_rf_config_hw(const m24sr_t *dev, uint8_t state);
 #endif
 
 /**
- * @briefThis function initializes the M24SR I2C interface
+ * @brief This function initializes the M24SR I2C interface
  * 
  * @param[out] dev      Pointer to M24SR NFC eeprom device descriptor
  * @param[in]  params   Pointer to static device configuration

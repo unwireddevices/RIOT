@@ -40,11 +40,11 @@
 
 
 /**
- * @brief This function for writing buffer onto the device
+ * @brief This function for writing register onto the device
  * 
- * @param[in] dev    Pointer to M24SR NFC eeprom device descriptor
- * @param[in] buffer Pointer to the buffer to send to the M24SR
- * @param[in] len    Number of byte to send
+ * @param[in] dev   Pointer to LMP91000 device descriptor
+ * @param[in] reg   Register address to write
+ * @param[in] value Data in byte to write
  * 
  * @return Error code
  */
@@ -52,18 +52,43 @@ static int _write_i2c(const lmp91000_t *dev, uint8_t reg, uint8_t value);
 
 
 /**
- * @brief This function for reading buffer from a device
+ * @brief This function for reading register from a device
  * 
- * @param dev    Pointer to M24SR NFC eeprom device descriptor
- * @param buffer Pointer to the buffer to read from the M24SR
- * @param len    Number of byte to read
+ * @param dev   Pointer to LMP91000 device descriptor
+ * @param reg   Register address to read
+ * @param value Memory location to store received data
  * 
  * @return Error code
  */
 static int _read_i2c(const lmp91000_t *dev, uint8_t reg, uint8_t *value);
 
 
+/**
+ * @brief The function of checking the readiness of the LMP91000 for data exchange over I2C
+ * 
+ * @param dev Pointer to LMP91000 device descriptor
+ * 
+ * @return Error code
+ */
+static int _lmp91000_is_ready(lmp91000_t *dev);
 
+/**
+ * @brief TIACN and REFCN write lock function
+ * 
+ * @param dev Pointer to LMP91000 device descriptor
+ * 
+ * @return Error code
+ */
+static int _lmp91000_lock(lmp91000_t *dev);
+
+/**
+ * @brief TIACN and REFCN write unlock function
+ * 
+ * @param dev Pointer to LMP91000 device descriptor
+ * 
+ * @return Error code
+ */
+static int _lmp91000_unlock(lmp91000_t *dev);
 
 
 static int _write_i2c(const lmp91000_t *dev, uint8_t reg, uint8_t value) {
@@ -73,7 +98,7 @@ static int _write_i2c(const lmp91000_t *dev, uint8_t reg, uint8_t value) {
     PRINTBUFF(buffer, len);
 
     i2c_acquire(dev->params.i2c);
-    ret = i2c_write_bytes(dev->params.i2c, dev->params.i2c_addr, buffer, len, 0);
+    ret = i2c_write_reg(dev->params.i2c, dev->params.i2c_addr, reg, &value);
     i2c_release(dev->params.i2c);
 
     return ret;
@@ -83,7 +108,7 @@ static int _read_i2c(const lmp91000_t *dev, uint8_t reg, uint8_t *value) {
     int ret = -1;
 
     i2c_acquire(dev->params.i2c);
-    ret = i2c_read_bytes(dev->params.i2c, dev->params.i2c_addr, buffer, len, 0);
+    ret = i2c_read_reg(dev->params.i2c, dev->params.i2c_addr, reg, value);
     i2c_release(dev->params.i2c);
 
     DEBUG("m24sr: <- ");
@@ -92,45 +117,103 @@ static int _read_i2c(const lmp91000_t *dev, uint8_t reg, uint8_t *value) {
     return ret;
 }
 
-static int _lmp91000_status(lmp91000_t *dev);
-static int _lmp91000_lock(lmp91000_t *dev);
-static int _lmp91000_unlock(lmp91000_t *dev);
+static int _lmp91000_is_ready(lmp91000_t *dev) {
+    int ret = LMP91000_OK;
+    uint8_t value = 0x00;
 
-
-
-
-
-static int write(const lmp91000_t *dev, uint8_t reg, uint8_t value) {
-
-}
-
-static int read(const lmp91000_t *dev, uint8_t reg, uint8_t *value) {
-
-} 
-
-
-static int _lmp91000_status(lmp91000_t *dev) {
-
+    ret = _read_i2c(dev, LMP91000_STATUS, &value);
+    if (ret < 0) {
+        ret = LMP91000_NOBUS;
+    } else {
+        if (value == LMP91000_READY) {
+            ret = LMP91000_OK;
+        } else {
+            ret = LMP91000_ERROR;
+        }
+    }
+    return ret;
 }
 
 static int _lmp91000_lock(lmp91000_t *dev) {
-
+    int ret = LMP91000_OK;
+    
+    ret = _read_i2c(dev, LMP91000_LOCK, LMP91000_READ_ONLY_MODE);
+    if (ret < 0) {
+        ret = LMP91000_NOBUS;
+    }
+    return ret; 
 }
 
 static int _lmp91000_unlock(lmp91000_t *dev) {
-
+    int ret = LMP91000_OK;
+    
+    ret = _read_i2c(dev, LMP91000_LOCK, LMP91000_WRITE_MODE);
+    if (ret < 0) {
+        ret = LMP91000_NOBUS;
+    }
+    return ret; 
 }
-
-
-
 
 int lmp91000_init_hw(lmp91000_t *dev, const lmp91000_params_t params) {
+    int ret = LMP91000_OK;
+    
+    dev->params = *params;
+
+    /* Configure GPIO pins for Module Enable*/
+    if (dev->params.module_en_pin != GPIO_UNDEF) {
+        ret = gpio_init(dev->params.module_en_pin, GPIO_OUT);
+        if (ret < 0){
+            DEBUG("[lmp91000] ERROR: failed to initialize MODULE EN pin\n");
+            return LMP91000_ERROR;
+        }
+    } else {
+        ret = LMP91000_ERROR_PARAM;
+    }
+
+    return ret;
 }
 
-int lmp91000_get_configure(lmp91000_t *dev, uint8_t _tiacn, uint8_t _refcn, uint8_t _modecn) {
+int lmp91000_set_configure(lmp91000_t *dev, lmp91000_config_t reg_config) {
+    int ret = LMP91000_OK;
+    uint8_t tmp = 0x00;
 
-}
+    gpio_reset(dev->params.module_en_pin);
 
-int lmp91000_set_configure(lmp91000_t *dev, uint8_t _tiacn, uint8_t _refcn, uint8_t _modecn) {
-
+    if (_lmp91000_is_ready(dev) == LMP91000_OK) {
+        ret = _lmp91000_unlock(dev);
+        if (ret != LMP91000_OK) {
+            gpio_set(dev->params.module_en_pin);
+            return LMP91000_NOBUS;
+        }
+        tmp = (reg_config.tiacn.tia_gain << 2)|(reg_config.tiacn.r_load);
+        ret =  _write_i2c(dev, LMP91000_TIACN, tmp);
+        if (ret != LMP91000_OK) {
+            gpio_set(dev->params.module_en_pin);
+            return LMP91000_NOBUS;
+        }
+        tmp = 0x00;
+        tmp = (reg_config.refcn.ref_source << 7)|(reg_config.refcn.int_z << 5)|
+              (reg_config.refcn.bias_sign << 4)|(reg_config.refcn.bias);
+        ret = _write_i2c(dev, LMP91000_REFCN, tmp);
+        if (ret != LMP91000_OK) {
+            gpio_set(dev->params.module_en_pin);
+            return LMP91000_NOBUS;
+        }
+        tmp = 0x00;
+        tmp = (reg_config.modecn.fet_short << 7)|(reg_config.modecn.op_mode);
+        ret = _write_i2c(dev, LMP91000_MODECN, tmp);
+        if (ret != LMP91000_OK) {
+            gpio_set(dev->params.module_en_pin);
+            return LMP91000_NOBUS;
+        }       
+        ret = _lmp91000_lock(dev);
+        if (ret != LMP91000_OK) {
+            gpio_set(dev->params.module_en_pin);
+            return LMP91000_NOBUS;
+        }
+    } else {
+        ret = LMP91000_NODEV;
+    }
+    gpio_set(dev->params.module_en_pin);
+    return ret;
 }

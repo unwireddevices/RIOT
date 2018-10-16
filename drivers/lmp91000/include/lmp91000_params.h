@@ -55,7 +55,7 @@ extern "C" {
 /**@}*/
 
 /**
- * @brief    M24SRxx configuration
+ * @brief    LMP91000 configuration
  */
 static const lmp91000_params_t lmp91000_params[] =
 {

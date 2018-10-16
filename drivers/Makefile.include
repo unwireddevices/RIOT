@@ -154,6 +154,10 @@ ifneq (,$(filter lis3mdl,$(USEMODULE)))
   USEMODULE_INCLUDES += $(RIOTBASE)/drivers/lis3mdl/include
 endif
 
+ifneq (,$(filter lmp91000,$(USEMODULE)))
+  USEMODULE_INCLUDES += $(RIOTBASE)/drivers/lmp91000/include
+endif
+
 ifneq (,$(filter lpd8808,$(USEMODULE)))
   USEMODULE_INCLUDES += $(RIOTBASE)/drivers/lpd8808/include
 endif

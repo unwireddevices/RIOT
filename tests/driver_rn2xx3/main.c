@@ -78,7 +78,7 @@ int rn2xx3_sys_cmd(int argc, char **argv) {
             return -1;
         }
 
-        printf("Success: device is in sleep mode during %lus\n",
+        printf("Success: device is in sleep mode during %" PRIu32 "s\n",
                (unsigned long)rn2xx3_dev.sleep / MS_PER_SEC);
     }
     else if (strcmp(argv[1], "factoryRESET") == 0) {
@@ -317,7 +317,7 @@ int rn2xx3_mac_cmd(int argc, char **argv) {
         }
         else if (strcmp(argv[2], "rx2freq") == 0) {
             uint32_t rx2_freq = rn2xx3_mac_get_rx2_freq(&rn2xx3_dev);
-            printf("rx2 freq: %lu\n", (unsigned long)rx2_freq);
+            printf("rx2 freq: %" PRIu32 "\n", (unsigned long)rx2_freq);
         }
         else {
             _print_mac_get_usage();

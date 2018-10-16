@@ -280,7 +280,7 @@ index 8fb1717a..c1504726 100644
  //#include <string.h>
  
 @@ -494,7 +494,7 @@ random_interval(clock_time_t i_min, uint8_t d)
-   VERBOSE_PRINTF("ROLL TM: Random [%lu, %lu)\n", (unsigned long)min,
+   VERBOSE_PRINTF("ROLL TM: Random [%" PRIu32 ", %" PRIu32 ")\n", (unsigned long)min,
                   (unsigned long)(TRICKLE_TIME(i_min, d)));
  
 -  return min + (random_rand() % (TRICKLE_TIME(i_min, d) - 1 - min));

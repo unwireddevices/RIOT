@@ -305,7 +305,7 @@ void umdk_uart_init(uwnds_cb_t *event_callback)
             break;
     }
     
-    printf("[umdk-" _UMDK_NAME_ "] Mode: %lu-%u%c%u\n", umdk_uart_config.baudrate, databits, parity, stopbits);
+    printf("[umdk-" _UMDK_NAME_ "] Mode: %" PRIu32 "-%u%c%u\n", umdk_uart_config.baudrate, databits, parity, stopbits);
 
     uart_params_t uart_params;
     uart_params.baudrate = umdk_uart_config.baudrate;
@@ -399,7 +399,7 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             
             uart_params_t uart_params;
             
-            if (sscanf((char *)&data->data[1], "%lu-%d%c%d", &baud, &databits, &parity, &stopbits) != 4) {
+            if (sscanf((char *)&data->data[1], "%" PRIu32 "-%d%c%d", &baud, &databits, &parity, &stopbits) != 4) {
                 do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
                 printf("umdk-" _UMDK_NAME_ ": error parsing parameters string: %s\n", (char *)&data->data[1]);
                 return true;
@@ -462,7 +462,7 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             umdk_uart_config.parity = parity;
             umdk_uart_config.stopbits = stopbits;
             
-            printf("[umdk-" _UMDK_NAME_ "] Mode: %lu-%d%c%d\n", baud, databits, parity, stopbits);
+            printf("[umdk-" _UMDK_NAME_ "] Mode: %" PRIu32 "-%d%c%d\n", baud, databits, parity, stopbits);
             save_config();
 
             gpio_set(RE_PIN);

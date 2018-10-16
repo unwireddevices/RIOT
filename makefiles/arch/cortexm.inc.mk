@@ -17,7 +17,13 @@ endif
 
 export CFLAGS_LINK  = -ffunction-sections -fdata-sections -fno-builtin -fshort-enums
 export CFLAGS_DBG  ?= -ggdb -g3
-export CFLAGS_OPT  ?= -Os
+
+# Clang supports -Os, but -Oz makes code smaller
+ifeq (llvm,$(TOOLCHAIN))
+    export CFLAGS_OPT  ?= -Oz
+else
+    export CFLAGS_OPT  ?= -Os
+endif
 
 export CFLAGS += $(CFLAGS_CPU) $(CFLAGS_LINK) $(CFLAGS_DBG) $(CFLAGS_OPT)
 

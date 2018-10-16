@@ -1062,9 +1062,9 @@ int _tftp_decode_options(tftp_context_t *ctxt, gnrc_pktsnip_t *buf, uint32_t sta
     size_t offset = start;
 
     DEBUG("tftp: decode options\n");
-    DEBUG("tftp:   buffer size = %lu\n", (unsigned long)buf->size);
+    DEBUG("tftp:   buffer size = %" PRIu32 "\n", (unsigned long)buf->size);
     while ((offset + sizeof(uint16_t)) < (buf->size)) {
-        DEBUG("tftp:   offset = %lu\n", (unsigned long)offset);
+        DEBUG("tftp:   offset = %" PRIu32 "\n", (unsigned long)offset);
         /* get the option name */
         const char *name = (const char *)(pkt->data + offset);
         offset += strlen(name) + 1;
@@ -1102,7 +1102,7 @@ int _tftp_decode_options(tftp_context_t *ctxt, gnrc_pktsnip_t *buf, uint32_t sta
         }
     }
 
-    DEBUG("tftp:   return %lu\n", (unsigned long)offset);
+    DEBUG("tftp:   return %" PRIu32 "\n", (unsigned long)offset);
     return offset;
 }
 

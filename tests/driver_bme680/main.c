@@ -65,7 +65,7 @@ int main(void)
 
     bme680_get_profile_dur(&dev, &duration);
     duration += dev.gas_sett.heatr_dur * US_PER_MS;
-    printf("measurement duration %lu [ms]\n", duration / 1000 );
+    printf("measurement duration %" PRIu32 " [ms]\n", duration / 1000 );
     bme680_set_sensor_settings(&dev, BME680_OST_SEL | BME680_OSP_SEL | 
                                BME680_OSH_SEL | BME680_GAS_SENSOR_SEL);
     printf("Prepare measurement...\n");
@@ -77,11 +77,11 @@ int main(void)
         printf("[Error] fail retrieve value:%d", result);
     }
 
-    printf("Temperature:%d.%d[°C]\nHumidity:%lu[%%]\nPressure:%lu[Pa]\n",
+    printf("Temperature:%d.%d[°C]\nHumidity:%" PRIu32 "[%%]\nPressure:%" PRIu32 "[Pa]\n",
            data.temperature / 100, data.temperature % 100 ,data.humidity / 1000,
            data.pressure);
 
-    printf("Gas:%lu[Ohms]\n\n", data.gas_resistance);
+    printf("Gas:%" PRIu32 "[Ohms]\n\n", data.gas_resistance);
     xtimer_usleep(MAINLOOP_DELAY);
     }
   

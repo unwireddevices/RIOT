@@ -241,7 +241,12 @@ static void _anticollision_2(void)
 	st95_cmd_send_receive(data, 2, 0, 0, 0, 8);
 }
 
+<<<<<<< HEAD
 static void _anticollision_3(void)
+=======
+#if 0
+static void send_anticol_2(void)
+>>>>>>> d6eaa13d8e35895d43d3e58e26b918ca8121deea
 {
 	uint8_t data[2] = { ISO14443A_SELECT_LVL3, 0x20 };
     
@@ -251,6 +256,7 @@ static void _anticollision_3(void)
 	/* 2 byte data, Not used topaz format, not SplitFrame, Not aapend CRC, 8 significant bits in last byte */
 	st95_cmd_send_receive(data, 2, 0, 0, 0, 8);
 }
+#endif
 
 static void _select_1(uint8_t num, uint8_t * uid_sel)
 {
@@ -1207,7 +1213,7 @@ bool umdk_st95_cmd(module_data_t *cmd, module_data_t *reply)
             puts("WRITER mode");
         }
         else if(cmd->data[1] == ST95_MODE_READER) {
-            umdk_st95_config.iface = ST95_MODE_READER;
+            umdk_st95_config.mode = ST95_MODE_READER;
             puts("READER mode");
         }
                 save_config();

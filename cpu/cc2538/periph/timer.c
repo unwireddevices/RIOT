@@ -103,7 +103,7 @@ static inline cc2538_gptimer_t *dev(tim_t tim)
  */
 int timer_init(tim_t tim, unsigned long freq, timer_cb_t cb, void *arg)
 {
-    DEBUG("%s(%u, %lu, %p, %p)\n", __FUNCTION__, tim, freq, cb, arg);
+    DEBUG("%s(%u, %" PRIu32 ", %p, %p)\n", __FUNCTION__, tim, freq, cb, arg);
 
     if (tim >= TIMER_NUMOF) {
         return -1;

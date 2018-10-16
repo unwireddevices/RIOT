@@ -446,7 +446,7 @@ void umdk_modbus_init(uwnds_cb_t *event_callback)
         return;
     }
     else {
-        printf("[umdk-" _UMDK_NAME_ "] Device: %02d Mode: %lu-%u%c%u\n", device, baudrate, databits, parity, stopbits);
+        printf("[umdk-" _UMDK_NAME_ "] Device: %02d Mode: %" PRIu32 "-%u%c%u\n", device, baudrate, databits, parity, stopbits);
     }
     
     
@@ -551,7 +551,7 @@ bool umdk_modbus_cmd(module_data_t *cmd, module_data_t *reply)
                 return true;
             }
 
-            if (sscanf((char *)&cmd->data[1], "%lu-%d%c%d", &modbus_params.baudrate, &databits, &parity, &stopbits) != 4) {
+            if (sscanf((char *)&cmd->data[1], "%" PRIu32 "-%d%c%d", &modbus_params.baudrate, &databits, &parity, &stopbits) != 4) {
                 puts("[umdk-" _UMDK_NAME_ "] Error parsing parameters");
                 reply_code(reply, UMDK_MODBUS_ERROR_REPLY);
                 return true;
@@ -629,7 +629,7 @@ bool umdk_modbus_cmd(module_data_t *cmd, module_data_t *reply)
                 break;
         }
             
-        printf("[umdk-" _UMDK_NAME_ "] Device: %02d Mode: %lu-%d%c%d\n", umdk_modbus_config.uart_dev, modbus_params.baudrate, 8, parity, stopbits);
+        printf("[umdk-" _UMDK_NAME_ "] Device: %02d Mode: %" PRIu32 "-%d%c%d\n", umdk_modbus_config.uart_dev, modbus_params.baudrate, 8, parity, stopbits);
         save_config();
         
         if(modbus_params.baudrate > UMDK_MODBUS_BAUDRATE_DEF) {

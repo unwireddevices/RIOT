@@ -32,7 +32,7 @@
 static void _usage(char *cmd)
 {
     printf("Usage: %s <server addr>[%%<interface>] [<timeout in us>]\n", cmd);
-    printf("default: timeout = %lu\n", _DEFAULT_TIMEOUT);
+    printf("default: timeout = %" PRIu32 "\n", _DEFAULT_TIMEOUT);
 }
 
 int _ntpdate(int argc, char **argv)

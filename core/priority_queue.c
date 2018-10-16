@@ -77,12 +77,12 @@ void priority_queue_print(priority_queue_t *root)
     printf("queue:\n");
 
     for (priority_queue_node_t *node = root->first; node; node = node->next) {
-        printf("Data: %u Priority: %lu\n", node->data, (unsigned long) node->priority);
+        printf("Data: %u Priority: %" PRIu32 "\n", node->data, (unsigned long) node->priority);
     }
 }
 
 void priority_queue_print_node(priority_queue_node_t *node)
 {
-    printf("Data: %u Priority: %lu Next: %u\n", (unsigned int) node->data, (unsigned long) node->priority, (unsigned int)node->next);
+    printf("Data: %u Priority: %" PRIu32 " Next: %u\n", (unsigned int) node->data, (unsigned long) node->priority, (unsigned int)node->next);
 }
 #endif

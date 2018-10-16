@@ -87,7 +87,7 @@ int main(void)
         humidity = bme280_read_humidity(&dev);
 
         printf("Temperature [°C]: %d.%d\n"
-               "Pressure [Pa]: %lu\n"
+               "Pressure [Pa]: %" PRIu32 "\n"
                "Humidity [%%rH]: %u.%02u\n"
                "\n+-------------------------------------+\n",
                temperature / 100, (temperature % 100) / 10,

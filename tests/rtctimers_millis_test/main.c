@@ -49,7 +49,7 @@ static void *timer1_thread(void *arg) {
         msg_receive(&msg);
         
         volatile uint32_t now = xtimer_now_usec()/1000;
-        printf("Timer1: %lu ms\n", now - timer1_prev);
+        printf("Timer1: %" PRIu32 " ms\n", now - timer1_prev);
         timer1_prev = now;
         
         rtctimers_millis_set_msg(&timer1, TIMER1_PERIOD, &timer1_msg, timer1_pid);
@@ -74,7 +74,7 @@ static void *timer2_thread(void *arg) {
         msg_receive(&msg);
         
         volatile uint32_t now = xtimer_now_usec()/1000;
-        printf("Timer2: %lu ms\n", now - timer2_prev);
+        printf("Timer2: %" PRIu32 " ms\n", now - timer2_prev);
         timer2_prev = now;
         
         rtctimers_millis_set_msg(&timer2, TIMER2_PERIOD, &timer2_msg, timer2_pid);

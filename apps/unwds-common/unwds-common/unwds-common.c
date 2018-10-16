@@ -164,7 +164,7 @@ static bool unwds_storage_cleanup(void) {
             for (k = 0; k < unwds_eeprom_layout.storage_blocks; k++) {
                 if (storage_blocks[i] == storage_used[k]) {
                     block_in_use = true;
-                    DEBUG("Block %lu is in use by module %d\n", i, storage_used[k]);
+                    DEBUG("Block %" PRIu32 " is in use by module %d\n", i, storage_used[k]);
                     break;
                 }
             }
@@ -186,7 +186,7 @@ static bool unwds_storage_cleanup(void) {
         return true;
     }
     
-    DEBUG("Done, but only %lu clean blocks\n", clean_blocks);
+    DEBUG("Done, but only %" PRIu32 " clean blocks\n", clean_blocks);
     DEBUG("Writing new storage config\n");
     unwds_write_nvram_config(UNWDS_CONFIG_MODULE_ID, storage_blocks, sizeof(storage_blocks));
     
@@ -474,7 +474,7 @@ void int_to_float_str(char *buf, int decimal, uint8_t precision) {
         divider *= 10;
     }
 
-    snprintf(digits, 3, "%lud", i);
+    snprintf(digits, 3, "%" PRIu32 "d", i);
     strcat(format, digits);
     
     snprintf(buf, 50, format, abs(decimal/divider), abs(decimal%divider));
@@ -582,7 +582,7 @@ void print_logo(void)
 	puts("*****************************************");
     printf("Version: %s (%s %s)\n", FIRMWARE_VERSION, __DATE__, __TIME__);
 
-    printf("%s %lu MHz (%s clock)\n", cpu_status.model,
+    printf("%s %" PRIu32 " MHz (%s clock)\n", cpu_status.model,
                                       cpu_status.clock.coreclock/1000000,
                                       cpu_status.clock.source);
     printf("%u KB RAM, %u KB flash, %u KB EEPROM\n\n", cpu_status.ram.size/1024,

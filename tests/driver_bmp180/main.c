@@ -78,8 +78,8 @@ int main(void)
         int16_t altitude = bmp180_altitude(&dev, pressure_0);
 
         printf("Temperature [°C]: %d.%d\n"
-               "Pressure [hPa]: %lu.%d\n"
-               "Pressure at see level [hPa]: %lu.%d\n"
+               "Pressure [hPa]: %" PRIu32 ".%d\n"
+               "Pressure at see level [hPa]: %" PRIu32 ".%d\n"
               "Altitude [m]: %i\n"
                "\n+-------------------------------------+\n",
                (int)(temperature / 10), (int)(temperature % 10),

@@ -74,15 +74,15 @@ int main(void)
 
     time_diff = time_curr - time_prev - xtimer_delay;
 
-    printf("List walk time: %lu us\n", time_diff);
+    printf("List walk time: %" PRIu32 " us\n", time_diff);
 
     if (time_diff > FAIL_THRESH) {
-        printf("Walk time greater than threshold of %lu us\n", FAIL_THRESH);
+        printf("Walk time greater than threshold of %" PRIu32 " us\n", FAIL_THRESH);
         puts("[FAILURE]");
         return 1;
     }
     else {
-        printf("Walk time less than threshold of %lu us\n", FAIL_THRESH);
+        printf("Walk time less than threshold of %" PRIu32 " us\n", FAIL_THRESH);
         puts("[SUCCESS]");
     }
 

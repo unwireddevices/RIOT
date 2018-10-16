@@ -25,47 +25,83 @@
 extern "C" {
 #endif
 
-/* ---------------------- M24SR properties -----------------------------------*/
-#define M24SR02_NDEF_MAX_SIZE                               0x0100
-#define M24SR04_NDEF_MAX_SIZE                               0x0200
-#define M24SR16_NDEF_MAX_SIZE                               0x0800
-#define M24SR64_NDEF_MAX_SIZE                               0x2000   
-
-#define ASK_FOR_SESSION                                     0x0000
-#define TAKE_SESSION                                        0xFFFF
-#define RELEASE_SESSION                                     0xBABE   
-
-/* M24SR buffer size is 0xF6 can be retrieve dynamicaly in CC file */
-#define M24SR_READ_MAX_NUM_BYTE                             0xF6 
-#define M24SR_WRITE_MAX_NUM_BYTE                            0xF6
-
-
-/* ---------------------- status code ----------------------------------------*/
+/**
+ * @brief M24SR status code
+ * 
+ * @{
+ */
 #define M24SR_ACTION_COMPLETED                              0x9000
 #define UB_STATUS_OFFSET                                    4
 #define LB_STATUS_OFFSET                                    3
 
 #define M24SR_NUM_BYTE_INVALID                              0xFFFE
+/**
+ * @}
+ */
 
-/* ---------------------- file indetifier ------------------------------------*/
+/**
+ * @brief M24SR file indetifier
+ * 
+ * @{
+ */
 #define M24SR_SYS_FILE_ID                                   0xE101   
 #define M24SR_CC_FILE_ID                                    0xE103
 #define M24SR_NDEF_FILE_ID                                  0x0001   
+/**
+ * @}
+ */
 
-    
+/**
+ * @brief M24SR NDEF properties
+ * 
+ * @{
+ */
+#define NDEF_FILE_LEN_POS                                   0
+#define NDEF_FILE_LEN_NUM_BYTES                             2
+/**
+ * @}
+ */
+
+
+/**
+ * @brief M24SR password management
+ * 
+ * @{
+ */    
 #define READ_PWD                                            0x0001
 #define WRITE_PWD                                           0x0002
 #define I2C_PWD                                             0x0003
+/**
+ * @}
+ */
 
-/* special M24SR command -----------------------------------------------------*/    
+
+/**
+ * @brief M24SR special command
+ * 
+ * @{
+ */    
 #define M24SR_OPEN_I2C_SESSION                              0x26
 #define M24SR_KILL_RF_SESSION                               0x52
+/**
+ * @}
+ */
 
-/* APDU Command: class list --------------------------------------------------*/
+/**
+ * @brief M24SR APDU Command: 
+ * 
+ * @{
+ */
+
+/**
+ * @brief Class List
+ */
 #define CLA_DEFAULT                                         0x00
 #define CLA_STM                                             0xA2
-
-/*------------------------ Data Area Management Commands ---------------------*/
+ 
+/**
+ * @brief  Data Area Management Commands
+ */ 
 #define INS_SELECT                                          0xA4
 #define INS_GET_RESPONSE                                    0xC0
 #define INS_UPDATE_BINARY                                   0xD6
@@ -74,13 +110,23 @@ extern "C" {
 #define INS_UPDATE_RECORD                                   0xDC
 #define INS_READ_RECORD                                     0xB2
 
-/*-------------------------- Safety Management Commands ----------------------*/
+/**
+ * @brief Safety Management Commands
+ */
 #define INS_VERIFY                                          0x20
 #define INS_CHANGE_REF_DATA                                 0x24
 #define INS_DISABLE_VERIFY_REQ                              0x26
 #define INS_ENABLE_VERIFY_REQ                               0x28
+/**
+ * @}
+ */
 
-/* error code ----------------------------------------------------------------*/
+
+/**
+ * @brief M24SR error code
+ * 
+ * @{
+ */ 
 #define SW_OK                                               0x9000
 #define SW_FILE_OVERFLOW                                    0x6280
 #define SW_END_OF_FILE                                      0x6282
@@ -101,31 +147,59 @@ extern "C" {
 #define SW_INS_NOT_SUPPORTED                                0x6D00
 #define SW_CLASS_NOT_SUPPORTED                              0x6E00
 #define SW_FAULT                                            0x6F00
+/**
+ * @}
+ */
 
-/*  Length  ------------------------------------------------------------------*/
+
+/**
+ * @brief M24SR Length answer packet
+ * 
+ * @{
+ */ 
 #define M24SR_STATUS_NUM_BYTE                               2
 #define M24SR_CRC_NUM_BYTE                                  2
 #define M24SR_STATUS_RESPONSE_NUM_BYTE                      5
 #define M24SR_DESELECT_REQUEST_NUM_BYTE                     3
 #define M24SR_DESELECT_RESPONSE_NUM_BYTE                    3
 #define M24SR_WATING_TIME_EXT_RESPONSE_NUM_BYTE             4
+/**
+ * @}
+ */
+
+/**
+ * @brief M24SR Length password
+ * 
+ * @{
+ */    
 #define M24SR_PASSWORD_NUM_BYTE                             0x10
+/**
+ * @}
+ */
 
+/**
+ * @brief M24SR Command structure
+ *
+ * @{ 
+ */
 
+/**
+ * @brief Command structure Mask
+ */
+#define M24SR_PCB_NEEDED                                    0x0001      /**< PCB byte present or not */
+#define M24SR_CLA_NEEDED                                    0x0002      /**< CLA byte present or not */
+#define M24SR_INS_NEEDED                                    0x0004      /**< Operation code present or not*/ 
+#define M24SR_P1_NEEDED                                     0x0008      /**< Selection Mode  present or not*/
+#define M24SR_P2_NEEDED                                     0x0010      /**< Selection Option present or not*/
+#define M24SR_LC_NEEDED                                     0x0020      /**< Data field length byte present or not */
+#define M24SR_DATA_NEEDED                                   0x0040      /**< Data present or not */
+#define M24SR_LE_NEEDED                                     0x0080      /**< Expected length present or not */
+#define M24SR_CRC_NEEDED                                    0x0100      /**< 2 CRC bytes present  or not */
+#define M24SR_DEV_ID_NEEDED                                 0x08        /**< Device ID byte present or not */
 
-/*  Command structure Mask -------------------------------------------------------------------*/
-#define M24SR_PCB_NEEDED                                    0x0001      /* PCB byte present or not */
-#define M24SR_CLA_NEEDED                                    0x0002      /* CLA byte present or not */
-#define M24SR_INS_NEEDED                                    0x0004      /* Operation code present or not*/ 
-#define M24SR_P1_NEEDED                                     0x0008      /* Selection Mode  present or not*/
-#define M24SR_P2_NEEDED                                     0x0010      /* Selection Option present or not*/
-#define M24SR_LC_NEEDED                                     0x0020      /* Data field length byte present or not */
-#define M24SR_DATA_NEEDED                                   0x0040      /* Data present or not */
-#define M24SR_LE_NEEDED                                     0x0080      /* Expected length present or not */
-#define M24SR_CRC_NEEDED                                    0x0100      /* 2 CRC bytes present  or not */
-#define M24SR_DEV_ID_NEEDED                                 0x08        /* Device ID byte present or not */
-/*  Command structure   ------------------------------------------------------------------------*/
-
+/**
+ * @brief Command structure
+ */
 #define M24SR_CMD_CATEGORY_0                            (M24SR_PCB_NEEDED  | \
                                                         M24SR_CLA_NEEDED  | \
                                                         M24SR_INS_NEEDED  | \
@@ -168,28 +242,54 @@ extern "C" {
                                                         M24SR_P2_NEEDED   | \
                                                         M24SR_CRC_NEEDED)
 
+/**
+ * @}
+ */
 
-
-/*  Offset  ----------------------------------------------------------------------------------*/
+/**
+ *  @brief M24SR Command Offset
+ *  
+ *  @{
+ */
 #define M24SR_OFFSET_PCB                                    0
 #define M24SR_OFFSET_CLASS                                  1
 #define M24SR_OFFSET_INS                                    2
 #define M24SR_OFFSET_P1                                     3
 #define M24SR_OFFSET_P2                                     4
+/**
+ * @}
+ */
 
-
-/*  mask    ------------------------------------------------------------------------------------*/
+/**
+ * @brief M24SR Mask of various types of blocks
+ *
+ * @{ 
+ */
 #define M24SR_MASK_BLOCK                                    0xC0
 #define M24SR_MASK_IBLOCK                                   0x00
 #define M24SR_MASK_RBLOCK                                   0x80
 #define M24SR_MASK_SBLOCK                                   0xC0
+/**
+ * @}
+ */
 
 
 
-
-#define M24SR_I2C_TIMEOUT       200     /* I2C Time out (ms), this is the maximum time needed by M24SR to complete any command */
-#define M24SR_I2C_POLLING       1       /* In case M24SR will reply ACK failed allow to perform retry before returning error (HAL option not used) */
-#define M24SR_ADDR              0xAC   /*!< M24SR address */
+/**
+ * @brief M24SR Properties
+ *
+ * @{ 
+ */
+#define M24SR_I2C_TIMEOUT               200     /**< I2C Time out (ms), this is the maximum time needed by M24SR to complete any command */
+#define M24SR_I2C_POLLING               1       /**< In case M24SR will reply ACK failed allow to perform retry before returning error*/
+#define M24SR_ADDR                      0xAC    /**< M24SR address */
+/* If both of this two flags are disabled, then the I2C polling will be used */
+#define I2C_GPO_INTERRUPT_ALLOWED       (1)     /**< allow tu use GPO interrupt as I2C synchronization */
+//#define I2C_GPO_SYNCHRO_ALLOWED         (1)     /**< allow tu use GPO polling as I2C synchronization */
+#define RFU                             (1)     /**< Reserved  for Future  Use*/
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

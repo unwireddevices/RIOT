@@ -95,7 +95,7 @@ static bool init_sensor(void) {
 }
 
 static void prepare_result(module_data_t *data) {
-    uint16_t luminocity;
+    uint16_t luminocity = 0;
     
     if (active_sensors & UMDK_LIGHT_OPT3001) {
         opt3001_measure_t measure = {};

@@ -67,6 +67,12 @@
 #define ISO14443A_UID_DOUBLE						7
 #define ISO14443A_UID_TRIPLE						10
 
+#define ST95_RX 1
+#define ST95_NOT_RX 0
+#define ST95_NORESPONSE 2
+#define ST95_OK 1
+#define ST95_ERROR 0
+
 /**
  * @brief Thread messages values
  */

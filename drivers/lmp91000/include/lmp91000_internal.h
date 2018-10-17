@@ -28,11 +28,11 @@ extern "C" {
  * @name    LMP91000 registers map
  * @{
  */
-#define LMP91000_STATUS                     (0x00)      /**< */
-#define LMP91000_LOCK                       (0x01)      /**< */
-#define LMP91000_TIACN                      (0x10)      /**< */
-#define LMP91000_REFCN                      (0x11)      /**< */
-#define LMP91000_MODECN                     (0x12)      /**< */
+#define LMP91000_STATUS                     (0x00)      /**< Status Register (Address 0x00)            */
+#define LMP91000_LOCK                       (0x01)      /**< Protection Register (Address 0x01)        */
+#define LMP91000_TIACN                      (0x10)      /**< TIA Control Register (Address 0x10)       */
+#define LMP91000_REFCN                      (0x11)      /**< Reference Control Register (Address 0x11) */
+#define LMP91000_MODECN                     (0x12)      /**< Mode Control Register (Address 0x12)      */
 /**
  * @}
  */
@@ -41,7 +41,7 @@ extern "C" {
  * @name    LMP91000 masks for register STATUS
  * @{
  */
-#define LMP91000_MASK_STATUS_READY          (0x01)      /**< */
+#define LMP91000_MASK_STATUS_READY          (0x01)      /**< Mask bitfield: Status of Davice */      
 /**
  * @}
  */
@@ -50,7 +50,7 @@ extern "C" {
  * @name    LMP91000 masks for register LOCK
  * @{
  */
-#define LMP91000_MASK_LOCK_PROTECT          (0x01)      /**< */
+#define LMP91000_MASK_LOCK_PROTECT          (0x01)      /**< Mask bitfield: Write protection */      
 /**
  * @}
  */
@@ -59,8 +59,8 @@ extern "C" {
  * @name    LMP91000 masks for register TIACN
  * @{
  */
-#define LMP91000_MASK_TIACN_RLOAD           (0x03)      /**< */
-#define LMP91000_MASK_TIACN_TIA_GAIN        (0x1C)      /**< */
+#define LMP91000_MASK_TIACN_RLOAD           (0x03)      /**< Mask bitfield: Rload selection                     */
+#define LMP91000_MASK_TIACN_TIA_GAIN        (0x1C)      /**< Mask bitfield: TIA feedback resistance selection   */
 /**
  * @}
  */
@@ -70,10 +70,10 @@ extern "C" {
  * @name    LMP91000 masks for register REFCN
  * @{
  */
-#define LMP91000_MASK_REFCN_BIAS            (0x0F)      /**< */
-#define LMP91000_MASK_REFCN_BIAS_SIGN       (0x10)      /**< */
-#define LMP91000_MASK_REFCN_INT_Z           (0x60)      /**< */
-#define LMP91000_MASK_REFCN_REF_SOURCE      (0x80)      /**< */
+#define LMP91000_MASK_REFCN_BIAS            (0x0F)      /**< Mask bitfield: BIAS selection                     */
+#define LMP91000_MASK_REFCN_BIAS_SIGN       (0x10)      /**< Mask bitfield: Selection of the BIAS polarity     */
+#define LMP91000_MASK_REFCN_INT_Z           (0x60)      /**< Mask bitfield: Internal zero selection            */
+#define LMP91000_MASK_REFCN_REF_SOURCE      (0x80)      /**< Mask bitfield: Reference voltage source selection */
 /**
  * @}
  */
@@ -82,8 +82,18 @@ extern "C" {
  * @name    LMP91000 masks for register MODECN 
  * @{
  */
-#define LMP91000_MASK_MODECN_OP_MODE        (0x07)      /**< */
-#define LMP91000_MASK_MODECN_FET_SHORT      (0x80)      /**< */
+#define LMP91000_MASK_MODECN_OP_MODE        (0x07)      /**< Mask bitfield: Mode of Operation selection */
+#define LMP91000_MASK_MODECN_FET_SHORT      (0x80)      /**< Mask bitfield: Shorting FET feature        */
+/**
+ * @}
+ */
+
+/**
+ * @brief  LMP91000 Properties
+ *
+ * @{ 
+ */
+#define LMP91000_I2C_TIMEOUT                (200)     /**< I2C Time out (ms), this is the maximum time needed by LMP91000 to ready state */
 /**
  * @}
  */

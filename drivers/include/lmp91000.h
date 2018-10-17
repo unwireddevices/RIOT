@@ -242,14 +242,27 @@ enum {
 int lmp91000_init_hw(lmp91000_t *dev, const lmp91000_params_t params);
 
 /**
- * @brief This function configure internal registers LMP91000
+ * @brief This function configure full internal registers LMP91000
  * 
  * @param dev        Pointer to LMP91000 device descriptor
- * @param reg_config Internal registers configuretion
+ * @param reg_config Internal registers configuration
  * 
  * @return Error code
  */
 int lmp91000_set_configure(lmp91000_t *dev, lmp91000_config_t reg_config);
+
+/**
+ * @brief This function configure operation mode LMP91000
+ * 
+ * @param dev     Pointer to LMP91000 device descriptor
+ * @param op_mode Operation mode (Deep sleep, 2-lead ground referred galvanic cell
+ *                                Standby, 3-lead amperometric cell, 
+ *                                Temperature measurement (TIA OFF), 
+ *                                Temperature measurement (TIA ON) ) 
+ * 
+ * @return Error code
+ */
+int lmp91000_set_operation_mode(lmp91000_t *dev, uint8_t op_mode);
 
 #ifdef __cplusplus
 }

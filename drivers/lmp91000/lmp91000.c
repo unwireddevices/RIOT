@@ -21,6 +21,8 @@
 #include "lmp91000.h"
 #include "lmp91000_internal.h"
 
+#include "xtimer.h"
+
 #define ENABLE_DEBUG                    (0)
 #include "debug.h"
 
@@ -118,19 +120,25 @@ static int _read_i2c(const lmp91000_t *dev, uint8_t reg, uint8_t *value) {
 }
 
 static int _lmp91000_is_ready(lmp91000_t *dev) {
-    int ret = LMP91000_OK;
-    uint8_t value = 0x00;
+    int ret = LMP91000_NODEV;
+    uint8_t value = LMP91000_NOT_READY;
+    uint32_t current_timestamp = 0;
+    const uint32_t start_timestamp = (xtimer_now_usec() / US_PER_MS);
 
-    ret = _read_i2c(dev, LMP91000_STATUS, &value);
-    if (ret < 0) {
-        ret = LMP91000_NOBUS;
-    } else {
-        if (value == LMP91000_READY) {
-            ret = LMP91000_OK;
-        } else {
-            ret = LMP91000_ERROR;
-        }
+    /* Wait until LMP91000 is not ready or timeout occurs */
+    do {
+        DEBUG("Waiting...\n");
+        ret = _read_i2c(dev, LMP91000_STATUS, &value);
+        current_timestamp = (xtimer_now_usec() / US_PER_MS);
+    } while (((current_timestamp - start_timestamp) < LMP910000_I2C_TIMEOUT) && (value != LMP91000_READY));
+    
+    if (((current_timestamp - start_timestamp) > LMP910000_I2C_TIMEOUT) || (value != LMP91000_READY)) {
+        ret = LMP91000_NODEV;
     }
+    else {
+        ret = LMP91000_OK;
+    }
+    
     return ret;
 }
 
@@ -185,12 +193,14 @@ int lmp91000_set_configure(lmp91000_t *dev, lmp91000_config_t reg_config) {
             gpio_set(dev->params.module_en_pin);
             return LMP91000_NOBUS;
         }
+
         tmp = (reg_config.tiacn.tia_gain << 2)|(reg_config.tiacn.r_load);
         ret =  _write_i2c(dev, LMP91000_TIACN, tmp);
         if (ret != LMP91000_OK) {
             gpio_set(dev->params.module_en_pin);
             return LMP91000_NOBUS;
         }
+
         tmp = 0x00;
         tmp = (reg_config.refcn.ref_source << 7)|(reg_config.refcn.int_z << 5)|
               (reg_config.refcn.bias_sign << 4)|(reg_config.refcn.bias);
@@ -199,6 +209,13 @@ int lmp91000_set_configure(lmp91000_t *dev, lmp91000_config_t reg_config) {
             gpio_set(dev->params.module_en_pin);
             return LMP91000_NOBUS;
         }
+
+        ret = _lmp91000_lock(dev);
+        if (ret != LMP91000_OK) {
+            gpio_set(dev->params.module_en_pin);
+            return LMP91000_NOBUS;
+        }
+
         tmp = 0x00;
         tmp = (reg_config.modecn.fet_short << 7)|(reg_config.modecn.op_mode);
         ret = _write_i2c(dev, LMP91000_MODECN, tmp);
@@ -206,11 +223,37 @@ int lmp91000_set_configure(lmp91000_t *dev, lmp91000_config_t reg_config) {
             gpio_set(dev->params.module_en_pin);
             return LMP91000_NOBUS;
         }       
-        ret = _lmp91000_lock(dev);
+        
+    } else {
+        ret = LMP91000_NODEV;
+    }
+    gpio_set(dev->params.module_en_pin);
+    return ret;
+}
+
+
+int lmp91000_set_operation_mode(lmp91000_t *dev, uint8_t op_mode) {
+    int ret = LMP91000_OK;
+    uint8_t tmp = 0x00;
+
+    gpio_reset(dev->params.module_en_pin);
+
+    if (_lmp91000_is_ready(dev) == LMP91000_OK) {
+        
+        ret = _read_i2c(dev, LMP91000_MODECN, &tmp);
         if (ret != LMP91000_OK) {
             gpio_set(dev->params.module_en_pin);
             return LMP91000_NOBUS;
         }
+
+        tmp &= ~LMP91000_MASK_MODECN_OP_MODE;
+        tmp |= op_mode;
+        ret = _write_i2c(dev, LMP91000_MODECN, tmp);
+        if (ret != LMP91000_OK) {
+            gpio_set(dev->params.module_en_pin);
+            return LMP91000_NOBUS;
+        }       
+        
     } else {
         ret = LMP91000_NODEV;
     }

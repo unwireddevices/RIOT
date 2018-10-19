@@ -44,6 +44,7 @@ Device drivers
 * Improved HD44780 driver, with support for PCF8574 port expander, OLED displays, and cyrillic font on LED displays
 * LIS2HH12 accelerometer driver
 * Improved LM75A temperature sensor driver
+* LMP91000 electrochemical sensor AFE support
 * LMT01 temperature sensor driver
 * LSM6DS3 gyroaccelerometer driver
 * M24SR NFC EEPROM driver
@@ -52,7 +53,7 @@ Device drivers
 * Generic 1-Wire driver (both UART and bitbanging mode)
 * OPT3001 luminance sensor driver
 * SHT21 temperature and humidity sensor driver (polling mode)
-* Improved SX127x LoRa transciever driver
+* Improved SX127x LoRa transceiver driver
 * TIC33 LCD display driver
 * Ultrasonic rangefinder driver
 
@@ -77,7 +78,7 @@ Other improvements
 
 * Improved Semtech LoRaWAN support
 * Unwired Devices LoRaLAN protocol support
-* Multiple Unwired Devices modules for various sensors and interfaces
+* Multiple Unwired Modules for various sensors and interfaces
 * LoRaWAN application with support for Unwired Devices modules
 * Support for Unwired Devices boards
 

@@ -109,20 +109,25 @@ with more permissive MIT-style license.
 * umdk-meteo - air temperature, humidity and pressure (SHT21, BME280, LPS331, LM75A supported)
 * umdk-mhz19 - MH-Z19 CO2 sensor
 * umdk-modbus - MODBUS RTU support
+* umdk-pawn - PAWN scripting language (experimental, not included in firmwares)
 * umdk-pir - PIR presense detector (generic Chinese modules)
 * umdk-pwm - GPIO PWM
 * umdk-rssiecho - radio link check
+* umdk-st95 - NFC card reader and emulator
 * umdk-uart - RS232/RS485/UART-over-radio transparent bridge
 * umdk-usound - ultrasound rangefinder (not Chinese modules but our own schematics and firmware)
-* umdk-pawn - PAWN scripting language
 
 Modules listed below are available in commercial firmware only. These are not open source.
 
+* umdk-cl420 - 4-20 mA current loop using integrated ADC and external analog front-end
 * umdk-dali - Digital Addressable Lighting Interface support
 * umdk-iec61107 - IEC-61107 electricity meters support (i.e. Energomera meters)
 * umdk-m200 - Incotex Mercury M200 electricity meters support (both CAN and RS485)
 * umdk-m230 - Incotex Mercury M230 electricity meters support (both CAN and RS485)
 * umdk-pacs - i-Button based Physical Access Control System
+* umdk-parking - vehicle detection sensor based on ST LIS3MDL magnetometer
+* umdk-pulse - water/electricity/etc. meters with pulse output support
+* umdk-switch - on/off detection module for dry contacts sensors
 * umdk-wiegand - Wiegand PACS interface support
 
 Applications

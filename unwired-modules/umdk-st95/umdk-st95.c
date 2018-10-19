@@ -60,7 +60,7 @@ extern "C" {
 #include "xtimer.h"
 #include "rtctimers-millis.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 static msg_t msg_rx;

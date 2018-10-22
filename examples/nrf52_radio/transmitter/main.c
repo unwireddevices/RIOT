@@ -225,6 +225,34 @@ static void send_packet(uint8_t *payload, uint8_t length)
     }
 }
 
+#define WAKEUP_PIN                 13
+void SystemOFF_active(void)
+{
+	/* Настройка события пробуждения: от внешнего прерывания */	
+	NRF_POWER->RESETREAS 		=  POWER_RESETREAS_OFF_Detected;
+
+	/* Настройка активных блоков RAM */	
+	// NRF_POWER->RAMON 		=  POWER_RAMON_OFFRAM0_RAM0Off;
+
+	/* Настройка ножки P0.13 в качестве приемника внешних событий*/		
+	NRF_P0->PIN_CNF[WAKEUP_PIN] =  
+		(GPIO_PIN_CNF_DIR_Input 	<< GPIO_PIN_CNF_DIR_Pos)  |
+		(GPIO_PIN_CNF_PULL_Pullup   << GPIO_PIN_CNF_PULL_Pos) |
+		(GPIO_PIN_CNF_SENSE_Low 	<< GPIO_PIN_CNF_SENSE_Pos)|
+		(GPIO_PIN_CNF_INPUT_Connect << GPIO_PIN_CNF_INPUT_Pos);
+
+	/* Настройка мониторинга событий на ножке P0.13*/	
+	NRF_GPIOTE->CONFIG[0] = 
+		(GPIOTE_CONFIG_MODE_Event 		<< GPIOTE_CONFIG_MODE_Pos)|
+		(WAKEUP_PIN 					<< GPIOTE_CONFIG_PSEL_Pos)|
+		(GPIOTE_CONFIG_POLARITY_LoToHi	<< GPIOTE_CONFIG_POLARITY_Pos);
+
+	/* Вход в режим SystemOFF*/	
+	NRF_POWER->SYSTEMOFF = 1;
+	__WFI();
+}
+
+
 int main(void)
 {
     puts("Radio transmitter example started.");
@@ -237,9 +265,11 @@ int main(void)
 
 	send_packet(packet, 126);
 	
+	
 	while(1)
 	{
-		//
+		SystemOFF_active();
+		send_packet(packet, 126);
 	}
 	
     return 0;

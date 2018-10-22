@@ -90,7 +90,7 @@ extern "C" {
 /**
  * @brief   Default transmission power used
  */
-#define NRFMIN_TXPOWER_DEFAULT      (0)                 /* 0dBm */
+#define NRFMIN_TXPOWER_DEFAULT      (RADIO_TXPOWER_TXPOWER_Pos4dBm)                 /* 4dBm */
 
 /**
  * @brief   Export the default nrfmin broadcast address

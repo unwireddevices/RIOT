@@ -270,7 +270,7 @@ void nrfmin_set_txpower(int16_t power)
         NRF_RADIO->TXPOWER = RADIO_TXPOWER_TXPOWER_Neg20dBm;
     }
     else {
-        NRF_RADIO->TXPOWER = RADIO_TXPOWER_TXPOWER_Neg30dBm;
+        NRF_RADIO->TXPOWER = RADIO_TXPOWER_TXPOWER_Neg40dBm;
     }
 }
 
@@ -315,7 +315,7 @@ void isr_radio(void)
                 return;
             }
             rx_lock = 0;
-            nrfmin_dev.event_callback(&nrfmin_dev, NETDEV_EVENT_ISR);
+            nrfmin_dev.event_callback(&nrfmin_dev, NETDEV_EVENT_ISR, NULL);
         }
         else if (state == STATE_TX) {
             goto_target_state();
@@ -456,8 +456,10 @@ static int nrfmin_init(netdev_t *dev)
 
 static void nrfmin_isr(netdev_t *dev)
 {
+	(void)dev;
+	
     if (nrfmin_dev.event_callback) {
-        nrfmin_dev.event_callback(dev, NETDEV_EVENT_RX_COMPLETE);
+        nrfmin_dev.event_callback(dev, NETDEV_EVENT_RX_COMPLETE, NULL);
     }
 }
 

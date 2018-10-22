@@ -296,7 +296,8 @@ int series = 0;
 #elif defined(CPU_FAM_STM32L1)
     /* STM32L100xx as default value */
     series = 100;
-    
+
+#if 0 /* somehow this doesn't work */
     /* only STM32L16x has AES */
     #if defined(AES_BASE)
         if (cpu_check_address((char *)AES->CR)) {
@@ -304,6 +305,7 @@ int series = 0;
             series += 10;
         }
     #endif
+#endif
 
     /* STM32L100 series doesn't have comparators */
     #if defined(COMP_BASE)
@@ -320,7 +322,7 @@ int series = 0;
             series += 1;
         }
     #endif
-    
+
     uint32_t memory = get_cpu_flash_size();
     char model = get_cpu_memory_code(memory);
     

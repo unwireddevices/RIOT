@@ -314,7 +314,8 @@ int series = 0;
             series += 51;
         }
     #endif
-    
+
+#if 0 /* somehow this doesn't work */    
     /* only STM32L1x2 series has LCD */
     #if defined(LCD_BASE)
         if (cpu_check_address((char *)LCD->CR)) {
@@ -322,6 +323,7 @@ int series = 0;
             series += 1;
         }
     #endif
+#endif
 
     uint32_t memory = get_cpu_flash_size();
     char model = get_cpu_memory_code(memory);

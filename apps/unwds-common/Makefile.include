@@ -24,6 +24,7 @@ umdk-adc	   				= 1
 umdk-config    				= 1
 umdk-counter   				= 1
 umdk-fdc1004        		= 1
+umdk-gassensor              = 1
 umdk-gpio	        		= 1
 umdk-gps	        		= 1
 umdk-hd44780   				= 1

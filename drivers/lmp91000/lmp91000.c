@@ -100,7 +100,7 @@ static int _write_i2c(const lmp91000_t *dev, uint8_t reg, uint8_t value) {
     PRINTBUFF(buffer, len);
 
     i2c_acquire(dev->params.i2c);
-    ret = i2c_write_reg(dev->params.i2c, dev->params.i2c_addr, reg, &value);
+    ret = i2c_write_reg(dev->params.i2c, dev->params.i2c_addr, reg, value, 0);
     i2c_release(dev->params.i2c);
 
     return ret;
@@ -110,7 +110,7 @@ static int _read_i2c(const lmp91000_t *dev, uint8_t reg, uint8_t *value) {
     int ret = -1;
 
     i2c_acquire(dev->params.i2c);
-    ret = i2c_read_reg(dev->params.i2c, dev->params.i2c_addr, reg, value);
+    ret = i2c_read_reg(dev->params.i2c, dev->params.i2c_addr, reg, value, 0);
     i2c_release(dev->params.i2c);
 
     DEBUG("m24sr: <- ");
@@ -130,9 +130,9 @@ static int _lmp91000_is_ready(lmp91000_t *dev) {
         DEBUG("Waiting...\n");
         ret = _read_i2c(dev, LMP91000_STATUS, &value);
         current_timestamp = (xtimer_now_usec() / US_PER_MS);
-    } while (((current_timestamp - start_timestamp) < LMP910000_I2C_TIMEOUT) && (value != LMP91000_READY));
+    } while (((current_timestamp - start_timestamp) < LMP91000_I2C_TIMEOUT) && (value != LMP91000_READY));
     
-    if (((current_timestamp - start_timestamp) > LMP910000_I2C_TIMEOUT) || (value != LMP91000_READY)) {
+    if (((current_timestamp - start_timestamp) > LMP91000_I2C_TIMEOUT) || (value != LMP91000_READY)) {
         ret = LMP91000_NODEV;
     }
     else {
@@ -145,7 +145,7 @@ static int _lmp91000_is_ready(lmp91000_t *dev) {
 static int _lmp91000_lock(lmp91000_t *dev) {
     int ret = LMP91000_OK;
     
-    ret = _read_i2c(dev, LMP91000_LOCK, LMP91000_READ_ONLY_MODE);
+    ret = _write_i2c(dev, LMP91000_LOCK, LMP91000_READ_ONLY_MODE);
     if (ret < 0) {
         ret = LMP91000_NOBUS;
     }
@@ -155,7 +155,7 @@ static int _lmp91000_lock(lmp91000_t *dev) {
 static int _lmp91000_unlock(lmp91000_t *dev) {
     int ret = LMP91000_OK;
     
-    ret = _read_i2c(dev, LMP91000_LOCK, LMP91000_WRITE_MODE);
+    ret = _write_i2c(dev, LMP91000_LOCK, LMP91000_WRITE_MODE);
     if (ret < 0) {
         ret = LMP91000_NOBUS;
     }
@@ -165,7 +165,7 @@ static int _lmp91000_unlock(lmp91000_t *dev) {
 int lmp91000_init_hw(lmp91000_t *dev, const lmp91000_params_t params) {
     int ret = LMP91000_OK;
     
-    dev->params = *params;
+    dev->params = params;
 
     /* Configure GPIO pins for Module Enable*/
     if (dev->params.module_en_pin != GPIO_UNDEF) {
@@ -185,7 +185,7 @@ int lmp91000_set_configure(lmp91000_t *dev, lmp91000_config_t reg_config) {
     int ret = LMP91000_OK;
     uint8_t tmp = 0x00;
 
-    gpio_reset(dev->params.module_en_pin);
+    gpio_clear(dev->params.module_en_pin);
 
     if (_lmp91000_is_ready(dev) == LMP91000_OK) {
         ret = _lmp91000_unlock(dev);
@@ -236,7 +236,7 @@ int lmp91000_set_operation_mode(lmp91000_t *dev, uint8_t op_mode) {
     int ret = LMP91000_OK;
     uint8_t tmp = 0x00;
 
-    gpio_reset(dev->params.module_en_pin);
+    gpio_clear(dev->params.module_en_pin);
 
     if (_lmp91000_is_ready(dev) == LMP91000_OK) {
         

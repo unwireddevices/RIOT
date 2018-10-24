@@ -52,7 +52,7 @@ extern "C" {
 #include "umdk-ids.h"
 #include "unwds-common.h"
 
-#include "umdk-adc.h"
+#include "umdk-gassensor.h"
 
 #include "thread.h"
 #include "rtctimers-millis.h"

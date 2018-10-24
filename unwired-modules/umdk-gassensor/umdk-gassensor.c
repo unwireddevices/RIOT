@@ -69,10 +69,13 @@ static bool is_polled = false;
 static struct {
 	uint8_t                     publish_period_sec;
     umdk_gassensor_sensor_t     sensor_type;
+    uint32_t                    sensor_code;
 } gassensor_config;
 
 static void reset_config(void) {
 	gassensor_config.publish_period_sec = UMDK_GASSENSOR_PUBLISH_PERIOD_MIN;
+    gassensor_config.sensor_type = UMDK_GASSENSOR_UNKNOWN;
+    gassensor_config.sensor_code = 0;
 }
 
 static void init_config(void) {
@@ -92,6 +95,7 @@ static inline void save_config(void) {
 static void init_gassensor(void)
 {
     /* code here */
+    adc_init(ADC_LINE(3));
 }
 
 static void prepare_result(module_data_t *buf)
@@ -154,7 +158,8 @@ int umdk_gassensor_shell_cmd(int argc, char **argv) {
         puts (_UMDK_NAME_ " get - get results now");
         puts (_UMDK_NAME_ " send - get and send results now");
         puts (_UMDK_NAME_ " period <N> - set period to N minutes");
-        puts (_UMDK_NAME_ " sensor <type> - set sensor type (H2S, CO, O3, NO2, SO2");
+        puts (_UMDK_NAME_ " sensor <type> - set sensor type (H2S, CO, O3, NO2, SO2)");
+        puts (_UMDK_NAME_ " code <value> - set sensor sensitivity code pA/ppm");
         puts (_UMDK_NAME_ " reset - reset settings to default");
         return 0;
     }
@@ -182,6 +187,31 @@ int umdk_gassensor_shell_cmd(int argc, char **argv) {
     
     if (strcmp(cmd, "sensor") == 0) {
         /* code here */
+        char *val = argv[2];
+        if (strcmp(val, "H2S") == 0) {
+            gassensor_config.sensor_type = UMDK_GASSENSOR_H2S;
+        } else if (strcmp(val, "CO") == 0) {
+            gassensor_config.sensor_type = UMDK_GASSENSOR_CO;
+        } else if (strcmp(val, "O3") == 0) {
+            gassensor_config.sensor_type = UMDK_GASSENSOR_O3;
+        } else if (strcmp(val, "NO2") == 0) {
+            gassensor_config.sensor_type = UMDK_GASSENSOR_NO2;
+        } else if (strcmp(val, "SO2") == 0) {
+            gassensor_config.sensor_type = UMDK_GASSENSOR_SO2;
+        } else {
+            gassensor_config.sensor_type = UMDK_GASSENSOR_UNKNOWN;
+        }
+        if (gassensor_config.sensor_type != UMDK_GASSENSOR_UNKNOWN) {
+            save_config();
+        } else {
+            puts("Set sensor type is unknown");
+        }
+    }
+
+    if (strcmp(cmd, "code") == 0) {
+        /* insert code here */
+        char *val = argv[2];
+        gassensor_config.sensor_code = atoi(val);
         save_config();
     }
     

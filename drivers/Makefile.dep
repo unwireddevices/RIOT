@@ -380,6 +380,7 @@ ifneq (,$(filter st95,$(USEMODULE)))
   FEATURES_REQUIRED += periph_spi
   FEATURES_REQUIRED += periph_rtc
   USEMODULE += rtctimers-millis
+  USEMODULE += xtimer
 endif
 
 ifneq (,$(filter sx127%,$(USEMODULE)))

@@ -47,10 +47,7 @@ extern "C" {
 #include <string.h>
 #include <limits.h>
 
-#include "periph/gpio.h"
-#include "periph/spi.h"
 #include "board.h"
-
 
 #include "st95.h"
 
@@ -59,32 +56,21 @@ extern "C" {
 #include "include/umdk-st95.h"
 
 #include "thread.h"
-#include "xtimer.h"
 #include "rtctimers-millis.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
-// static msg_t msg_rx;
+static msg_t msg_rx;
 
 static kernel_pid_t radio_pid;
-// static uwnds_cb_t *callback;
-static rtctimers_millis_t detect_timer;
+static uwnds_cb_t *callback;
 
-// static xtimer_t rx_timer;
+static uint8_t length_uid = 0;
+static uint8_t uid_full[255];
+static uint8_t sak = 0;
 
-static uint8_t rxbuf[30];
-static uint8_t txbuf[30];
-
-// static uint8_t uid_full[15];
-// static uint8_t uid_size = 0;
-
-// static uint8_t st95_select_iso15693(void);
-// static uint8_t st95_select_field_off(void);
-// static uint8_t st95_select_iso14443b(void);
-// static uint8_t st95_select_iso18092(void);
-
-static void st95_send_irqin_negative_pulse(void);
+static void umdk_st95_get_uid(void);
 
 #if ENABLE_DEBUG
     #define PRINTBUFF _printbuff
@@ -101,246 +87,69 @@ static void st95_send_irqin_negative_pulse(void);
 #endif
 
 
-static void detect_handler(void *arg)
-{
-    (void) arg;
-
-    // t1 = xtimer_now_usec();
-
-    memset(rxbuf, 0x00, sizeof(rxbuf));
-
-    // st95_idle();
-}
-
-// static void st95_reset_spi(void)
-// {
-    // spi_acquire(SPI_DEV(st95_params.spi), st95_params.cs_spi, SPI_MODE_0, SPI_CLK_1MHZ);
-        /*Send Reset*/
-    // tx_spi = 0x01;
-    // spi_transfer_bytes(SPI_DEV(st95_params.spi), st95_params.cs_spi, false, &tx_spi, &rx_reset, 1);
-
-    // spi_release(SPI_DEV(st95_params.spi));
-
-    // rtctimers_millis_sleep(20);
-    // st95_send_irqin_negative_pulse();
-// }
-
-void st95_send_irqin_negative_pulse(void)
-{
-    // gpio_init(UMDK_ST95_IRQ_IN, GPIO_OUT);
-    gpio_set(UMDK_ST95_IRQ_IN);
-    xtimer_usleep(1000);
-    gpio_clear(UMDK_ST95_IRQ_IN);
-    xtimer_usleep(1000);
-    gpio_set(UMDK_ST95_IRQ_IN);
-    // gpio_init_af(UMDK_ST95_IRQ_IN, GPIO_AF7);
-}
-
-// static uint8_t st95_select_field_off(void)
-// {
-    // txbuf[0] = ST95_CMD_PROTOCOL;
-    // txbuf[1] = 2;
-    // txbuf[2] = FIELD_OFF;
-    // txbuf[3] = 0x00;
-
-    // send_pack(4);
-
-    // return 1;
-// }
-
-// static uint8_t st95_select_iso18092(void)
-// {
-    // uint8_t length  = 0;
-
-    // txbuf[0] = ST95_CMD_PROTOCOL;
-    // txbuf[1] = 2;    // Data Length
-
-    // txbuf[2] = ISO_18092;
-
-    // txbuf[3] = 0x00 | (ST95_TX_RATE_14443A << 6) | (ST95_RX_RATE_14443A << 4);
-
-    // txbuf[3] = 0x51;
-    // length = 4;
-
-    // txbuf[4] = 0x00;    // PP (Optioanal)                                                             // 00
-    // txbuf[5] = 0x00;    // MM (Optioanal)                                                            // 01
-    // txbuf[6] = 0x00;    // DD (Optioanal)                                                            // 80
-    // txbuf[7] = 0x00;    // ST Reserved (Optioanal)
-    // txbuf[8] = 0x00;    // ST Reserved (Optioanal)
-
-    // send_pack(length);
-
-    // return 4;
-
-    // return 0;
-// }
-
-// static uint8_t st95_select_iso15693(void)
-// {
-    // txbuf[0] = 0x00;
-
-    // txbuf[1] = ST95_CMD_PROTOCOL;
-    // txbuf[2] = 2;// Length
-
-    // txbuf[3] = ISO_15693;
-    // txbuf[4] = 0x05;
-
-    // return 5;
-// }
-
-
-// static uint8_t st95_select_iso14443b(void)
-// {
-    // txbuf[0] = 0x00;
-
-    // txbuf[1] = ST95_CMD_PROTOCOL;
-    // txbuf[2] = 2;// Length
-
-    // txbuf[3] = ISO_14443B;
-   // txbuf[4] = 0x00 | (ST95_TX_RATE_106 << 6) | (ST95_RX_RATE_106 << 4);    // (TX_RATE << 6) | (RX_RATE << 4) // 02
-    // txbuf[4] = 0x01;
-
-
-    // txbuf[5] = 0x00;    // PP (Optioanal)                                                             // 00
-    // txbuf[6] = 0x00;    // MM (Optioanal)                                                            // 01
-    // txbuf[7] = 0x00;    // DD (Optioanal)                                                            // 80
-    // txbuf[8] = 0x00;    // ST Reserved (Optioanal)
-    // txbuf[9] = 0x00;    // ST Reserved (Optioanal)
-
-    // return 5;
-// }
-
-
-/*static uint8_t get_uid_14443a(uint8_t * length_uid, uint8_t * uid, uint8_t * sak)
-{
- 
-    _send_reqa();
-    
-    // UIDsize : (2 bits) value: 0 for single, 1 for double,  2 for triple and 3 for RFU
-    uint8_t uid_size = _get_uidsize(rxbuf[2]);
-    
-    // === Select cascade level 1 ===
-    _anticollision_1();
-    //  Check BCC
-   if(!_check_bcc(4, rxbuf + 2, rxbuf[2 + 4])) {
-       return ST95_ERROR;
-   }
-    // copy UID from CR95Hf response
-    if (uid_size == ISO14443A_ATQA_SINGLE) 
-        memcpy(uid,&rxbuf[2],ISO14443A_UID_SINGLE );
-    else 
-        memcpy(uid,&rxbuf[2 + 1],ISO14443A_UID_SINGLE - 1 );
-    
-    _select_1(5, &rxbuf[2]);
-    
-    if(_is_uid_complete(rxbuf[2]) == 1) {
-        *sak = rxbuf[2];
-        *length_uid = ISO14443A_UID_SINGLE;
-        printf("UID Completed -> Single SAK: %02X\n", rxbuf[2]);
-        DEBUG("UID:  ");
-        PRINTBUFF(uid, ISO14443A_UID_SINGLE);
-        return ST95_OK;
-    }
-    
-         // === Select cascade level 2 ===
-        _anticollision_2();
- //  Check BCC
-       if(!_check_bcc(4, rxbuf + 2, rxbuf[2 + 4])) {
-           return ST95_ERROR;
-       }
-
-        // copy UID from CR95Hf response
-        if (uid_size == ISO14443A_ATQA_DOUBLE)
-            memcpy(&uid[ISO14443A_UID_SINGLE - 1], &rxbuf[2], ISO14443A_UID_SINGLE );
-        else 
-            memcpy(&uid[ISO14443A_UID_SINGLE - 1], &rxbuf[2], ISO14443A_UID_SINGLE - 1);
-        
-        //Send Select command	
-        _select_2(5, &rxbuf[2]);  
-
-    if(_is_uid_complete(rxbuf[2]) == 1) {
-        *sak = rxbuf[2];
-        *length_uid = ISO14443A_UID_DOUBLE;
-        printf("UID Completed -> Double SAK: %02X\n", rxbuf[2]);
-        DEBUG("UID:  ");
-        PRINTBUFF(uid, ISO14443A_UID_DOUBLE);
-        return ST95_OK;
-    }
-
-    // === Select cascade level 2 ===
-    _anticollision_3();
-                            
- //  Check BCC
-   if(!_check_bcc(4, rxbuf + 2, rxbuf[2 + 4])) {
-       return ST95_ERROR;
-   }
-
-    // copy UID from CR95Hf response
-    if (uid_size == ISO14443A_ATQA_TRIPLE)
-        memcpy(&uid[ISO14443A_UID_DOUBLE - 1], &rxbuf[2], ISO14443A_UID_DOUBLE );
-    
-    //Send Select command	
-    _select_3(5, &rxbuf[2]);  
-
-    if(_is_uid_complete(rxbuf[2]) == 1) {
-        *sak = rxbuf[2];
-        *length_uid = ISO14443A_UID_TRIPLE;
-        printf("UID Completed -> Triple SAK: %02X\n", rxbuf[2]);
-        DEBUG("UID:  ");
-        PRINTBUFF(uid, ISO14443A_UID_TRIPLE);
-        return ST95_OK;
-    }
-    
-    return ST95_ERROR;
-}*/
-
 static void *radio_send(void *arg)
 {
     (void) arg;
-    // msg_t msg;
-    // msg_t msg_queue[16];
-    // msg_init_queue(msg_queue, 16);
+    msg_t msg;
+    msg_t msg_queue[4];
+    msg_init_queue(msg_queue, 4);
+      
+    while (1) {
+        msg_receive(&msg);
+        
+        module_data_t data;
+        data.as_ack = true;
+        data.data[0] = _UMDK_MID_;
+        data.length = 1;
 
-    // while (1) {
-        // msg_receive(&msg);
 
-        // st95_msg_t  msg_type = (st95_msg_t)msg.type;
-		
-        // switch(msg_type) {
-
-            // case UMDK_ST95_MSG_RADIO: {
-                    // puts("\n    [ MSG RADIO ]\n");
-                // break;
-            // }
-
-            // default:
-                // break;
-        // }
-
-    // }
+        if(msg.type == UMDK_ST95_UID_OK) {
+            DEBUG("Sak: %02X -> UID[%d]: ", sak, length_uid);
+            _printbuff(uid_full, length_uid);
+           
+            memcpy(data.data, uid_full, length_uid);
+            data.length += length_uid;
+        }
+        else {
+            DEBUG("[Invalid UID] Sak: %02X -> UID[%d]: ", sak, length_uid);
+            _printbuff(uid_full, length_uid);
+            
+            data.data[1] = 0;
+            data.length = 2;
+        }
+        
+        DEBUG("RADIO: ");
+        _printbuff(data.data, data.length);
+        
+        callback(&data);
+        rtctimers_millis_sleep(UMDK_ST95_DELAY_DETECT_MS);
+        umdk_st95_get_uid();       
+    }
     return NULL;
 }
 
- static void _printbuff(uint8_t *buff, unsigned len)
-    {
-        while (len) {
-            len--;
-            printf("%02X ", *buff++);
-        }
-        printf("\n");
+static void umdk_st95_get_uid(void)
+{
+    if(st95_get_uid(&length_uid, uid_full, &sak) == ST95_OK) {
+        msg_rx.type = UMDK_ST95_UID_OK;        
     }
+    else {
+        msg_rx.type = UMDK_ST95_UID_ERROR;
+    }
+    
+    msg_try_send(&msg_rx, radio_pid);
+}
+
 
 void umdk_st95_init(uwnds_cb_t *event_callback)
 {
     (void)event_callback;
-    // callback = event_callback;
-    
-  st95_params_t st95_params = { .spi = UMDK_ST95_SPI_DEV, .cs_spi = UMDK_ST95_SPI_CS, 
-                                     .irq_in = UMDK_ST95_IRQ_IN, .irq_out = UMDK_ST95_IRQ_OUT, 
-                                     .ssi_0 = UMDK_ST95_SSI_0, .ssi_1 = UMDK_ST95_SSI_1 };
+    callback = event_callback;
+
+    st95_params_t st95_params = { .spi = UMDK_ST95_SPI_DEV, .cs_spi = UMDK_ST95_SPI_CS, 
+                                    .irq_in = UMDK_ST95_IRQ_IN, .irq_out = UMDK_ST95_IRQ_OUT, 
+                                    .ssi_0 = UMDK_ST95_SSI_0, .ssi_1 = UMDK_ST95_SSI_1 };
                                                                    
-    
-    
      /* Create handler thread */
     char *stack = (char *) allocate_stack(UMDK_ST95_STACK_SIZE);
     if (!stack) {
@@ -349,62 +158,17 @@ void umdk_st95_init(uwnds_cb_t *event_callback)
 
     radio_pid = thread_create(stack, UMDK_ST95_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, radio_send, NULL, "st95 thread");
                                      
-   if(st95_init(&st95_params) == ST95_ERROR){
+    if(st95_init(&st95_params) == ST95_ERROR){
         puts("[umdk-" _UMDK_NAME_ "] st95 driver initialization error");
-   }
-   else {
-    
-    uint8_t idn[20];
-    uint8_t len = 0;
-    if(st95_idn(idn, &len) == ST95_OK) {
-    printf("IDN: ");
-    _printbuff(idn, len - 3);
     }
-    
-    uint8_t length_uid = 0;
-    uint8_t uid_full[255];
-    uint8_t sak = 0;
-    
-    if(st95_get_uid(&length_uid, uid_full, &sak) == ST95_OK) {
-        printf("Sak: %02X -> UID[%d]: ", sak, length_uid);
-        for(uint32_t i = 0; i < length_uid; i++) {
-            printf(" %02X", uid_full[i]);
-        }
-        printf("\n");
+    else {   
+        umdk_st95_get_uid();
     }
-    else {
-        puts("Error - invalid UID");
-    }
-   }
-     /* Configure periodic wakeup */
-    detect_timer.callback = &detect_handler;
 }
 
-
-// static inline void reply_code(module_data_t *reply, st95_reply_t code)
-// {
-    // reply->as_ack = true;
-    // reply->length = 2;
-    // reply->data[0] = _UMDK_MID_;
-    // reply->data[1] = code;
-// }
-
-
 bool umdk_st95_cmd(module_data_t *cmd, module_data_t *reply)
-{
-    memset(txbuf, 0x00, 30);
-    memset(rxbuf, 0x00, 30);
-
-    
-    
+{      
     return false;
-
-    // st95_select_field_off();
-    // st95_select_iso14443b();
-    // st95_select_iso15693();
-    rtctimers_millis_set(&detect_timer, 1000);
-
-st95_send_irqin_negative_pulse();
 
     reply->as_ack = true;
     reply->length = 1;

@@ -46,19 +46,10 @@
 
 #define ST95_MAX_DATA_BYTES             254
 
+#define UMDK_ST95_UID_OK 1
+#define UMDK_ST95_UID_ERROR 0
 
-/**
- * @brief   Mask Protocols select
- */
-typedef enum {
-    NO_SELECT_PROTOCOL  = 0x00,
-    ISO14443A_SELECT    = 0x01,
-    ISO14443B_SELECT    = 0x02,
-    ISO15693_SELECT     = 0x04,
-    ISO18092_SELECT     = 0x08,
-    SELECT_ALL_PROTOCOL = 0x0F,
-} umdk_st95_select_protocol_t;
-
+#define UMDK_ST95_DELAY_DETECT_MS 50
 
 void umdk_st95_init(uwnds_cb_t *event_callback);
 bool umdk_st95_cmd(module_data_t *data, module_data_t *reply);

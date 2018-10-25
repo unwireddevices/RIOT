@@ -25,11 +25,10 @@ extern "C" {
 #endif
 #define ST95_SPI_CLK               SPI_CLK_1MHZ
 
-#define ST95_RAMP_UP_TIME_MS            9
+#define ST95_PULSE_NEGATIVE_USEC        1000
 #define ST95_HFO_SETUP_TIME_MS          10
-#define ST95_ECHO_WAIT_TIME_MS          10
 
-#define ST95_NO_RESPONSE_TIME_MS   3000
+#define ST95_NO_RESPONSE_TIME_MS   2000
 
 /**
  * @brief   ST95 commands list

@@ -20,6 +20,7 @@
 #include <string.h>
 #include <limits.h>
 
+#include "xtimer.h"
 #include "rtctimers-millis.h"
 #include "board.h"
 
@@ -31,6 +32,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+static mutex_t detect;
 
 static st95_params_t st95_device;
 
@@ -45,14 +48,110 @@ static volatile bool timeout = 0;
 
 static void _wait_ready_data(void);
 
- static void _printbuff(uint8_t *buff, unsigned len)
-    {
-        while (len) {
-            len--;
-            printf("%02X ", *buff++);
-        }
-        printf("\n");
-    }
+ // static void _printbuff(uint8_t *buff, unsigned len)
+    // {
+        // while (len) {
+            // len--;
+            // printf("%02X ", *buff++);
+        // }
+        // printf("\n");
+    // }
+    
+static void st95_send_irqin_negative_pulse(void)
+{
+    gpio_set(st95_device.irq_in);
+    xtimer_spin(xtimer_ticks_from_usec(ST95_PULSE_NEGATIVE_USEC));
+    gpio_clear(st95_device.irq_in);
+    xtimer_spin(xtimer_ticks_from_usec(ST95_PULSE_NEGATIVE_USEC));
+    gpio_set(st95_device.irq_in);
+}
+
+// static void st95_reset_spi(void)
+// {
+    // spi_acquire(SPI_DEV(st95_params.spi), st95_params.cs_spi, SPI_MODE_0, SPI_CLK_1MHZ);
+        /*Send Reset*/
+    // tx_spi = 0x01;
+    // spi_transfer_bytes(SPI_DEV(st95_params.spi), st95_params.cs_spi, false, &tx_spi, &rx_reset, 1);
+
+    // spi_release(SPI_DEV(st95_params.spi));
+
+    // rtctimers_millis_sleep(20);
+    // st95_send_irqin_negative_pulse();
+// }
+
+// static uint8_t st95_select_field_off(void)
+// {
+    // txbuf[0] = ST95_CMD_PROTOCOL;
+    // txbuf[1] = 2;
+    // txbuf[2] = FIELD_OFF;
+    // txbuf[3] = 0x00;
+
+    // send_pack(4);
+
+    // return 1;
+// }
+
+// static uint8_t st95_select_iso18092(void)
+// {
+    // uint8_t length  = 0;
+
+    // txbuf[0] = ST95_CMD_PROTOCOL;
+    // txbuf[1] = 2;    // Data Length
+
+    // txbuf[2] = ISO_18092;
+
+    // txbuf[3] = 0x00 | (ST95_TX_RATE_14443A << 6) | (ST95_RX_RATE_14443A << 4);
+
+    // txbuf[3] = 0x51;
+    // length = 4;
+
+    // txbuf[4] = 0x00;    // PP (Optioanal)                                                             // 00
+    // txbuf[5] = 0x00;    // MM (Optioanal)                                                            // 01
+    // txbuf[6] = 0x00;    // DD (Optioanal)                                                            // 80
+    // txbuf[7] = 0x00;    // ST Reserved (Optioanal)
+    // txbuf[8] = 0x00;    // ST Reserved (Optioanal)
+
+    // send_pack(length);
+
+    // return 4;
+
+    // return 0;
+// }
+
+// static uint8_t st95_select_iso15693(void)
+// {
+    // txbuf[0] = 0x00;
+
+    // txbuf[1] = ST95_CMD_PROTOCOL;
+    // txbuf[2] = 2;// Length
+
+    // txbuf[3] = ISO_15693;
+    // txbuf[4] = 0x05;
+
+    // return 5;
+// }
+
+
+// static uint8_t st95_select_iso14443b(void)
+// {
+    // txbuf[0] = 0x00;
+
+    // txbuf[1] = ST95_CMD_PROTOCOL;
+    // txbuf[2] = 2;// Length
+
+    // txbuf[3] = ISO_14443B;
+   // txbuf[4] = 0x00 | (ST95_TX_RATE_106 << 6) | (ST95_RX_RATE_106 << 4);    // (TX_RATE << 6) | (RX_RATE << 4) // 02
+    // txbuf[4] = 0x01;
+
+
+    // txbuf[5] = 0x00;    // PP (Optioanal)                                                             // 00
+    // txbuf[6] = 0x00;    // MM (Optioanal)                                                            // 01
+    // txbuf[7] = 0x00;    // DD (Optioanal)                                                            // 80
+    // txbuf[8] = 0x00;    // ST Reserved (Optioanal)
+    // txbuf[9] = 0x00;    // ST Reserved (Optioanal)
+
+    // return 5;
+// }
 
 uint8_t st95_send(uint8_t length_tx)
 {
@@ -110,14 +209,12 @@ static void _wait_ready_data(void)
     uint32_t time_begin = rtctimers_millis_now();
     uint32_t time_end = 0;
     uint32_t time_delta = 0;
-	
     timeout = false;
     
 	while((data_rx == false) && (timeout == false)) {
 		time_end = rtctimers_millis_now();
 		time_delta = time_end - time_begin;
 		if(time_delta > ST95_NO_RESPONSE_TIME_MS) {
-            printf("Timeout: %ld\n", time_delta);
             timeout = true;
 		}
 	}
@@ -129,7 +226,7 @@ static void st95_spi_rx(void* arg)
     (void) arg;
     
     data_rx = true;
-
+    mutex_unlock(&detect);
     return;
 }
 
@@ -159,9 +256,7 @@ int st95_idn(uint8_t * idn, uint8_t * length)
     
     if(st95_receive(st95_rxbuf) == ST95_OK) {
         memcpy(idn, (st95_rxbuf + 2), st95_rxbuf[1]);
-        *length = (st95_rxbuf[1] + 2);
-        _printbuff(st95_rxbuf, *length);
-        
+        *length = (st95_rxbuf[1] + 2);       
         return ST95_OK;      
     }   	
     return ST95_ERROR;
@@ -216,7 +311,7 @@ uint8_t st95_calibration(void)
             if(st95_rxbuf[2] == 0x02) {
                 dac_data_l = st95_txbuf[13];
                 dac_data_h = 0xFC;
-                puts(" Calibration done");
+                // puts(" Calibration done");
                 return ST95_OK;
             }
             else if(st95_rxbuf[2] == 0x01){
@@ -267,8 +362,13 @@ uint8_t st95_idle(void)
 
     st95_send(16);
     
-    while(data_rx == false){}
+    // mutex_lock(&detect);
+    while(data_rx == false){
+        // mutex_lock(&detect);
+        rtctimers_millis_sleep(10);
+    }
     
+    // mutex_unlock(&detect);
     if(st95_receive(st95_rxbuf) == ST95_OK) {
         if(st95_rxbuf[2] == 0x02) {
             return ST95_OK;
@@ -354,24 +454,17 @@ int st95_init(st95_params_t *device)
     gpio_init(st95_device.irq_in, GPIO_OUT);
     gpio_clear(st95_device.irq_in);
     
-
-    // TODO: Set "power on" ST95HF
-
     /* Select SPI iface */
     gpio_set(st95_device.ssi_0);
     
+    // TODO: Set "power on" ST95HF
+    st95_send_irqin_negative_pulse();
     
-        /* Set low level IRQ_IN */
-    // gpio_set(st95_device.irq_in);
-    // rtctimers_millis_sleep(ST95_RAMP_UP_TIME_MS);
-    gpio_clear(st95_device.irq_in);
-    rtctimers_millis_sleep(ST95_RAMP_UP_TIME_MS);
-
         /* Initialize SPI */
     spi_init(SPI_DEV(st95_device.spi));
         /* Initialize CS SPI */
     if(spi_init_cs(SPI_DEV(st95_device.spi), st95_device.cs_spi) != SPI_OK) {
-        puts("Error init SPI interface");
+        // puts("Error init SPI interface");
         return ST95_ERROR;
     }
 
@@ -380,14 +473,13 @@ int st95_init(st95_params_t *device)
     
     rtctimers_millis_sleep(ST95_HFO_SETUP_TIME_MS);
     
-    
     if(st95_echo() != ST95_OK)
         return ST95_ERROR;
-           
+
     if(st95_calibration() == ST95_OK) {
         return ST95_OK;
     }
- 
+
     return ST95_ERROR;
 }
 

@@ -375,6 +375,13 @@ ifneq (,$(filter srf08,$(USEMODULE)))
   USEMODULE += xtimer
 endif
 
+ifneq (,$(filter st95,$(USEMODULE)))
+  FEATURES_REQUIRED += periph_gpio
+  FEATURES_REQUIRED += periph_spi
+  FEATURES_REQUIRED += periph_rtc
+  USEMODULE += rtctimers-millis
+endif
+
 ifneq (,$(filter sx127%,$(USEMODULE)))
   FEATURES_REQUIRED += periph_gpio
   FEATURES_REQUIRED += periph_spi

@@ -24,7 +24,7 @@
  * @ingroup     
  * @brief       
  * @{
- * @file		umdk-gassensor.h
+ * @file        umdk-gassensor.h
  * @brief       LMP91000-based gas sensor module
  * @author      
  */
@@ -40,18 +40,29 @@
 #define UMDK_GASSENSOR_ADC_RESOLUTION               ADC_RES_12BIT
 #define UMDK_GASSENSOR_CONVERT_TO_MILLIVOLTS        1
 
+#define UMDK_GASSENSOR_I2C                         (I2C_DEV(1))
+#define UMDK_GASSENSOR_I2C_ADDR                    (0x48)
+#define UMDK_GASSENSOR_MODULE_EN_PIN               (UNWD_GPIO_5)
+
+#define GASSENSOR_PARAMS_BOARD                         \
+    {                                                  \
+        .i2c           = UMDK_GASSENSOR_I2C,           \
+        .i2c_addr      = UMDK_GASSENSOR_I2C_ADDR,      \
+        .module_en_pin = UMDK_GASSENSOR_MODULE_EN_PIN  \
+    }
+
 typedef enum {
     UMDK_GASSENSOR_DATA        = 0,
-	UMDK_GASSENSOR_CMD_COMMAND = 1,
-	UMDK_GASSENSOR_CMD_POLL    = 2,
+    UMDK_GASSENSOR_CMD_COMMAND = 1,
+    UMDK_GASSENSOR_CMD_POLL    = 2,
     UMDK_GASSENSOR_FAIL        = 0xFF,
 } umdk_gassensor_cmd_t;
 
 typedef enum {
     UMDK_GASSENSOR_UNKNOWN = 0,
     UMDK_GASSENSOR_CO      = 1,
-	UMDK_GASSENSOR_H2S     = 2,
-	UMDK_GASSENSOR_NO2     = 3,
+    UMDK_GASSENSOR_H2S     = 2,
+    UMDK_GASSENSOR_NO2     = 3,
     UMDK_GASSENSOR_SO2     = 4,
     UMDK_GASSENSOR_O3      = 5,
 } umdk_gassensor_sensor_t;

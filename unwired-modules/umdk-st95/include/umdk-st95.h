@@ -49,7 +49,7 @@
 #define UMDK_ST95_UID_OK 1
 #define UMDK_ST95_UID_ERROR 0
 
-#define UMDK_ST95_DELAY_DETECT_MS 50
+#define UMDK_ST95_DELAY_DETECT_MS 500
 
 void umdk_st95_init(uwnds_cb_t *event_callback);
 bool umdk_st95_cmd(module_data_t *data, module_data_t *reply);

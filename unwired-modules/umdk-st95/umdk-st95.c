@@ -130,6 +130,10 @@ static void *radio_send(void *arg)
 
 static void umdk_st95_get_uid(void)
 {
+    length_uid = 0;
+    sak = 0;
+    memset(uid_full, 0x00, sizeof(uid_full));
+    
     if(st95_get_uid(&length_uid, uid_full, &sak) == ST95_OK) {
         msg_rx.type = UMDK_ST95_UID_OK;        
     }

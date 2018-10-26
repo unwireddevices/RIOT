@@ -125,6 +125,7 @@ int get_uid_14443a(uint8_t * length_uid, uint8_t * uid, uint8_t * sak)
     
     _14443a_reqa();
     
+      // _wait_ready_data();  
     if(st95_receive(rxbuf) != ST95_OK) {
         return ST95_ERROR;
     }
@@ -134,6 +135,7 @@ int get_uid_14443a(uint8_t * length_uid, uint8_t * uid, uint8_t * sak)
     
     // === Select cascade level 1 ===
     _anticollision_1();
+        // _wait_ready_data();  
      if(st95_receive(rxbuf) != ST95_OK) {
         return ST95_ERROR;
     }
@@ -150,6 +152,7 @@ int get_uid_14443a(uint8_t * length_uid, uint8_t * uid, uint8_t * sak)
         memcpy(uid,&rxbuf[2 + 1],ISO14443A_UID_SINGLE - 1 );
     }
     _select_1(5, &rxbuf[2]);   
+        // _wait_ready_data();  
     if(st95_receive(rxbuf) != ST95_OK) {
         return ST95_ERROR;
     }
@@ -162,6 +165,7 @@ int get_uid_14443a(uint8_t * length_uid, uint8_t * uid, uint8_t * sak)
     
          // === Select cascade level 2 ===
         _anticollision_2();
+            // _wait_ready_data();  
         if(st95_receive(rxbuf) != ST95_OK) {
         return ST95_ERROR;
     }
@@ -178,6 +182,7 @@ int get_uid_14443a(uint8_t * length_uid, uint8_t * uid, uint8_t * sak)
         
         //Send Select command	
         _select_2(5, &rxbuf[2]);  
+            // _wait_ready_data();  
         if(st95_receive(rxbuf) != ST95_OK) {
         return ST95_ERROR;
     }
@@ -190,6 +195,7 @@ int get_uid_14443a(uint8_t * length_uid, uint8_t * uid, uint8_t * sak)
 
     // === Select cascade level 2 ===
     _anticollision_3();
+        // _wait_ready_data();  
     if(st95_receive(rxbuf) != ST95_OK) {
         return ST95_ERROR;
     }                     
@@ -204,6 +210,7 @@ int get_uid_14443a(uint8_t * length_uid, uint8_t * uid, uint8_t * sak)
     
     //Send Select command	
     _select_3(5, &rxbuf[2]);  
+        // _wait_ready_data();  
 if(st95_receive(rxbuf) != ST95_OK) {
         return ST95_ERROR;
     }

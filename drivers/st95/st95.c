@@ -33,8 +33,6 @@
 extern "C" {
 #endif
 
-static mutex_t detect;
-
 static st95_params_t st95_device;
 
 static uint8_t st95_txbuf[255] = { 0x00 };
@@ -46,6 +44,9 @@ static uint8_t dac_data_l = 0;
 static volatile bool data_rx = 0;
 static volatile bool timeout = 0;
 
+static volatile uint8_t state = 0;
+static volatile uint8_t is_wake_up = 0;
+static int wake_up(void);
 static void _wait_ready_data(void);
 
  // static void _printbuff(uint8_t *buff, unsigned len)
@@ -176,7 +177,7 @@ uint8_t st95_receive(uint8_t * rxbuff)
     uint8_t rx_spi = 0x02;
     uint16_t length_rx = 0;
     
-    _wait_ready_data();     
+    // _wait_ready_data();     
     
     gpio_irq_disable(st95_device.irq_out);
     
@@ -226,7 +227,10 @@ static void st95_spi_rx(void* arg)
     (void) arg;
     
     data_rx = true;
-    mutex_unlock(&detect);
+    if(state == 1) {
+        wake_up();
+    }
+    
     return;
 }
 
@@ -235,6 +239,7 @@ int st95_echo(void)
     st95_txbuf[0] = ST95_CMD_ECHO;
     
     st95_send(1);
+        _wait_ready_data();  
 	if(st95_receive(st95_rxbuf) == ST95_OK) {
         if(st95_rxbuf[0] == ST95_CMD_ECHO) {
             return ST95_OK;
@@ -253,7 +258,7 @@ int st95_idn(uint8_t * idn, uint8_t * length)
     st95_txbuf[1] = 0x00;
     
     st95_send(2);
-    
+        _wait_ready_data();  
     if(st95_receive(st95_rxbuf) == ST95_OK) {
         memcpy(idn, (st95_rxbuf + 2), st95_rxbuf[1]);
         *length = (st95_rxbuf[1] + 2);       
@@ -295,7 +300,7 @@ uint8_t st95_calibration(void)
     st95_txbuf[15] = 0x01;            // This value must be set to 0x01 during tag detection calibration
 
     st95_send(16);
-    
+        _wait_ready_data();  
     if(st95_receive(st95_rxbuf) == ST95_OK) {
         if(st95_rxbuf[2] == 0x02) {
             st95_txbuf[13] = 0xFC;
@@ -307,6 +312,7 @@ uint8_t st95_calibration(void)
     }
     
     while(st95_txbuf[13] > 0x02) {
+            _wait_ready_data();  
         if(st95_receive(st95_rxbuf) == ST95_OK) {
             if(st95_rxbuf[2] == 0x02) {
                 dac_data_l = st95_txbuf[13];
@@ -359,23 +365,29 @@ uint8_t st95_idle(void)
     st95_txbuf[14] = 0x3F;            // Recommendeded value 0x3F
         /* Max Sleep */
     st95_txbuf[15] = 0x08;            // Typical value 0x28
-
+    
     st95_send(16);
     
-    // mutex_lock(&detect);
-    while(data_rx == false){
-        // mutex_lock(&detect);
-        rtctimers_millis_sleep(10);
-    }
+    // while(data_rx == false){
+        // rtctimers_millis_sleep(100);
+    // }
+    state = 1;
     
-    // mutex_unlock(&detect);
+   
+    return ST95_OK;
+}
+
+static int wake_up(void)
+{
+    state = 0;
+    is_wake_up = 0;
     if(st95_receive(st95_rxbuf) == ST95_OK) {
         if(st95_rxbuf[2] == 0x02) {
+            is_wake_up = 1;
             return ST95_OK;
         }
     }
-   
-    return ST95_ERROR;;
+    return ST95_ERROR;
 }
 
 int st95_select_iso14443a(void)
@@ -392,7 +404,7 @@ int st95_select_iso14443a(void)
     st95_txbuf[8] = 0x00;    // ST Reserved (Optioanal)
     
     st95_send(4);
-    
+        _wait_ready_data();  
     if(st95_receive(st95_rxbuf) == ST95_OK) {       
         if((st95_rxbuf[0] == 0x00) && (st95_rxbuf[1] == 0x00))
             return ST95_OK;
@@ -419,15 +431,18 @@ void st95_send_receive(uint8_t *data, uint8_t size, uint8_t topaz, uint8_t split
 
 int st95_get_uid(uint8_t * length_uid, uint8_t * uid, uint8_t * sak)
 {
-    if(st95_idle() == ST95_ERROR) 
-        return ST95_ERROR;
-    
-     if(st95_select_iso14443a() == ST95_ERROR) 
-        return ST95_ERROR;
-    
-    if(get_uid_14443a(length_uid, uid, sak) == ST95_OK)
-        return ST95_OK;
-   
+    if(st95_idle() == ST95_OK){ 
+        if(is_wake_up == 0) {
+            return ST95_ERROR;
+        }       
+        else if(is_wake_up == 1) {
+            if(st95_select_iso14443a() == ST95_ERROR)
+                return ST95_ERROR;
+        
+            if(get_uid_14443a(length_uid, uid, sak) == ST95_OK)
+                return ST95_OK;
+        }
+    }
     
     return ST95_ERROR;
 }
@@ -454,6 +469,7 @@ int st95_init(st95_params_t *device)
     gpio_init(st95_device.irq_in, GPIO_OUT);
     gpio_clear(st95_device.irq_in);
     
+    // rtctimers_millis_sleep(ST95_RAMP_UP_TIME_MS);
     /* Select SPI iface */
     gpio_set(st95_device.ssi_0);
     
@@ -469,18 +485,19 @@ int st95_init(st95_params_t *device)
     }
 
     gpio_init_int(st95_device.irq_out, GPIO_IN_PU, GPIO_FALLING, st95_spi_rx, NULL);
-    gpio_irq_disable(st95_device.irq_out);
+    // gpio_irq_disable(st95_device.irq_out);
     
     rtctimers_millis_sleep(ST95_HFO_SETUP_TIME_MS);
     
-    if(st95_echo() != ST95_OK)
+    if(st95_echo() != ST95_OK){
         return ST95_ERROR;
-
-    if(st95_calibration() == ST95_OK) {
-        return ST95_OK;
     }
 
-    return ST95_ERROR;
+    if(st95_calibration() != ST95_OK) {
+        return ST95_ERROR;
+    }
+    
+    return ST95_OK;
 }
 
 #ifdef __cplusplus

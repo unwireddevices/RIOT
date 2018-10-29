@@ -101,7 +101,7 @@ static void init_gassensor(void) {
     lmp91000_config_t lmp91000_config;
     
     /* Initialize ACD */
-    if (adc_init(ADC_LINE(3)) == 0) {
+    if (adc_init(UMDK_GASSENSOR_ADC_LINE) == 0) {
         puts("[umdk-" _UMDK_NAME_ "] Internal ADC initialized");
     }
 
@@ -181,6 +181,58 @@ static void prepare_result(module_data_t *buf)
 {
     uint32_t ppm;
     /* obtain data */
+    // int32_t calib_factor;
+
+
+    // uint16_t samples = adc_sample(UMDK_GASSENSOR_ADC_LINE, UMDK_GASSENSOR_ADC_RESOLUTION);
+
+    // /* VDD scaling */
+    // if (UMDK_GASSENSOR_CONVERT_TO_MILLIVOLTS) {
+    //     uint16_t v_ref = adc_sample(ADC_LINE(ADC_VREF_INDEX), UMDK_GASSENSOR_ADC_RESOLUTION);
+    // }
+
+    // if (UMDK_ADC_CONVERT_TO_MILLIVOLTS) {
+    //     /* Calculate Vdd */
+    //     uint32_t full_scale = 0;
+        
+    //     switch (UMDK_GASSENSOR_ADC_RESOLUTION) {
+    //         case ADC_RES_12BIT:
+    //             full_scale = 4095;
+    //             break;
+    //         case ADC_RES_10BIT:
+    //             full_scale = 1023;
+    //             break;
+    //         case ADC_RES_8BIT:
+    //             full_scale = 255;
+    //             break;
+    //         case ADC_RES_6BIT:
+    //             full_scale = 63;
+    //             break;
+    //         default:
+    //             puts("[umdk-" _UMDK_NAME_ "] Unsupported ADC resolution, aborting.");
+    //             return;
+    //             break; 
+    //     }
+
+    //     samples = (uint32_t)(samples * v_ref) / full_scale;
+    // }
+    
+    // printf("[umdk-" _UMDK_NAME_ "] Reading line #%d: %d", UMDK_GASSENSOR_ADC_LINE, samples);
+    // if (UMDK_ADC_CONVERT_TO_MILLIVOLTS) {
+    //     if (i == ADC_TEMPERATURE_INDEX) {
+    //         puts(" C");
+    //     }
+    //     else {
+    //         puts(" mV");
+    //     }
+    // }
+    // else {
+    //     puts(" ");
+    // }
+    
+    // convert_to_be_sam((void *)&samples[i], sizeof(samples[i]));
+
+
 
     if (buf) {
         buf->data[0] = _UMDK_MID_;

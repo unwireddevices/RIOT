@@ -37,6 +37,7 @@
 
 #define UMDK_GASSENSOR_STACK_SIZE                   1024
 
+#define UMDK_GASSENSOR_ADC_LINE                     ADC_LINE(3)
 #define UMDK_GASSENSOR_ADC_RESOLUTION               ADC_RES_12BIT
 #define UMDK_GASSENSOR_CONVERT_TO_MILLIVOLTS        1
 

@@ -531,6 +531,7 @@ void rtctimers_millis_set_timebase(struct tm *new_time) {
     
 	if (timer_list_head) {
 		/* Shift hardware alarm to new time base */
+        /* int is ok here as maximum actual target value is 7*24*60*60*1000 = 604 800 000 */
 		int diff = timer_list_head->target - prev_ts;
 		DEBUG("[RTC] Head timer is %d seconds far\n", diff);
 		_lltimer_set(new_ts + diff);

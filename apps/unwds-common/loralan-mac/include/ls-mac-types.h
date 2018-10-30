@@ -206,7 +206,6 @@ typedef struct {
  */
 typedef struct {
 	time_t gate_time;    /**< Current time on a gateway on a moment of request */
-	uint64_t rfu1;      /**< Reserved */
 } ls_time_req_ack_t;
 
 #endif /* UNWIRED_MODULES_LORALAN_MAC_TYPES_H_ */

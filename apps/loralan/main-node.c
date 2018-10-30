@@ -161,11 +161,12 @@ void joined_cb(void)
     
     /* Synchronize time if necessary */
     if (unwds_get_node_settings().req_time) {
-    	ls_ed_req_time(&ls);
+        ls_ed_req_time(&ls);
     }
 }
 
 static void time_req_ack_cb(time_t time) {
+    puts("ls: received time");
 	struct tm *t;
 	t = localtime(&time);
 
@@ -313,6 +314,7 @@ int ls_set_cmd(int argc, char **argv)
         puts("\tdr <0-6> -- sets device data rate [0 - slowest, 3 - average, 6 - fastest]");
         puts("\tmaxretr <0-255> -- sets maximum number of retransmissions of confirmed app. data [5 is recommended]");
         puts("\tclass <A/B/C> -- sets device class");
+        puts("\time -- request network time");
     }
 
     char *key = argv[1];
@@ -355,7 +357,7 @@ int ls_set_cmd(int argc, char **argv)
         char v = value[0];
 
         if (v != 'A' && v != 'B' && v != 'C') {
-            puts("set сlass: A, B or C");
+            puts("set class: A, B or C");
             return 1;
         }
 
@@ -455,6 +457,8 @@ static void print_config(void)
     printf("DATARATE = %d\n", unwds_get_node_settings().dr);
     
     printf("CONFIRMED = %s\n", (unwds_get_node_settings().confirmation) ? "yes" : "no");
+    
+    printf("TIME SYNC = %s\n", (unwds_get_node_settings().req_time) ? "yes" : "no");
 
     char nodeclass = 'A'; // unwds_get_node_settings().nodeclass == LS_ED_CLASS_A
     if (unwds_get_node_settings().nodeclass == LS_ED_CLASS_B) {
@@ -612,6 +616,14 @@ static int ls_join_cmd(int argc, char **argv) {
     return 0;
 }
 
+static int ls_get_time(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
+    
+    ls_ed_req_time(&ls);
+    return 0;
+}
+
 shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX] = {
     { "set", "<config> <value> -- set value for the configuration entry", ls_set_cmd },
     { "lscfg", "-- print out current configuration", ls_printc_cmd },
@@ -621,6 +633,7 @@ shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX] = {
     { "cmd", "<modid> <cmdhex> -- send command to another UNWDS device", ls_cmd_cmd },
     { "safe", " -- reboot in safe mode", ls_safe_cmd },
     { "join", " -- join now", ls_join_cmd },
+    { "time", " -- get network time", ls_get_time },
     { NULL, NULL, NULL },
 };
 

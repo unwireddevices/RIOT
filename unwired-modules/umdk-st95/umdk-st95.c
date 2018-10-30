@@ -61,10 +61,17 @@ extern "C" {
 #define ENABLE_DEBUG (1)
 #include "debug.h"
 
-static msg_t msg_rx;
+static msg_t msg_wu = { .type = UMDK_ST95_MSG_WAKE_UP, };
+static msg_t msg_rx = { .type = UMDK_ST95_MSG_UID, };
 
 static kernel_pid_t radio_pid;
 static uwnds_cb_t *callback;
+
+static st95_t dev;
+
+static st95_params_t st95_params = { .spi = UMDK_ST95_SPI_DEV, .cs_spi = UMDK_ST95_SPI_CS, 
+                                .irq_in = UMDK_ST95_IRQ_IN, .irq_out = UMDK_ST95_IRQ_OUT, 
+                                .ssi_0 = UMDK_ST95_SSI_0, .ssi_1 = UMDK_ST95_SSI_1 };
 
 static uint8_t length_uid = 0;
 static uint8_t uid_full[255];
@@ -102,28 +109,40 @@ static void *radio_send(void *arg)
         data.data[0] = _UMDK_MID_;
         data.length = 1;
 
-
-        if(msg.type == UMDK_ST95_UID_OK) {
-            DEBUG("Sak: %02X -> UID[%d]: ", sak, length_uid);
-            _printbuff(uid_full, length_uid);
-           
-            memcpy(data.data, uid_full, length_uid);
-            data.length += length_uid;
+        switch(msg.type) {
+            case UMDK_ST95_MSG_WAKE_UP: {
+                if(st95_is_wake_up(&dev)) {
+                    umdk_st95_get_uid(); 
+                }
+                             
+                break;
+            }
+            case UMDK_ST95_MSG_UID: {
+                if(msg.type == UMDK_ST95_UID_OK) {
+                    DEBUG("Sak: %02X -> UID[%d]: ", sak, length_uid);
+                    _printbuff(uid_full, length_uid);
+                   
+                    memcpy(data.data + 1, uid_full, length_uid);
+                    data.length += length_uid;
+                }
+                else {
+                    DEBUG("[Invalid UID] Sak: %02X -> UID[%d]: ", sak, length_uid);
+                    _printbuff(uid_full, length_uid);
+                    
+                    data.data[1] = 0;
+                    data.length = 2;
+                }
+                
+                DEBUG("RADIO: ");
+                _printbuff(data.data, data.length);
+                
+                callback(&data);
+                rtctimers_millis_sleep(UMDK_ST95_DELAY_DETECT_MS);
+                st95_sleep(&dev);  
+            }
+            default: 
+            break;            
         }
-        else {
-            DEBUG("[Invalid UID] Sak: %02X -> UID[%d]: ", sak, length_uid);
-            _printbuff(uid_full, length_uid);
-            
-            data.data[1] = 0;
-            data.length = 2;
-        }
-        
-        DEBUG("RADIO: ");
-        _printbuff(data.data, data.length);
-        
-        callback(&data);
-        rtctimers_millis_sleep(UMDK_ST95_DELAY_DETECT_MS);
-        umdk_st95_get_uid();       
     }
     return NULL;
 }
@@ -134,25 +153,28 @@ static void umdk_st95_get_uid(void)
     sak = 0;
     memset(uid_full, 0x00, sizeof(uid_full));
     
-    if(st95_get_uid(&length_uid, uid_full, &sak) == ST95_OK) {
-        msg_rx.type = UMDK_ST95_UID_OK;        
+    if(st95_get_uid(&dev, &length_uid, uid_full, &sak) == ST95_OK) {
+        msg_rx.content.value = UMDK_ST95_UID_OK;        
     }
     else {
-        msg_rx.type = UMDK_ST95_UID_ERROR;
+        msg_rx.content.value = UMDK_ST95_UID_ERROR;
     }
     
     msg_try_send(&msg_rx, radio_pid);
 }
 
+static void wake_up_cb(void * arg)
+{
+    (void) arg;
+    msg_try_send(&msg_wu, radio_pid);
+}
 
 void umdk_st95_init(uwnds_cb_t *event_callback)
 {
     (void)event_callback;
     callback = event_callback;
-
-    st95_params_t st95_params = { .spi = UMDK_ST95_SPI_DEV, .cs_spi = UMDK_ST95_SPI_CS, 
-                                    .irq_in = UMDK_ST95_IRQ_IN, .irq_out = UMDK_ST95_IRQ_OUT, 
-                                    .ssi_0 = UMDK_ST95_SSI_0, .ssi_1 = UMDK_ST95_SSI_1 };
+    
+    dev.cb = wake_up_cb;
                                                                    
      /* Create handler thread */
     char *stack = (char *) allocate_stack(UMDK_ST95_STACK_SIZE);
@@ -161,12 +183,12 @@ void umdk_st95_init(uwnds_cb_t *event_callback)
     }
 
     radio_pid = thread_create(stack, UMDK_ST95_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, radio_send, NULL, "st95 thread");
-                                     
-    if(st95_init(&st95_params) == ST95_ERROR){
+    
+    if(st95_init(&dev, &st95_params) == ST95_ERROR){
         puts("[umdk-" _UMDK_NAME_ "] st95 driver initialization error");
     }
     else {   
-        umdk_st95_get_uid();
+        st95_sleep(&dev);
     }
 }
 

@@ -47,7 +47,7 @@ extern "C" {
 #define ISO14443A_UID_TRIPLE	10
 
 
-int get_uid_14443a(uint8_t * length_uid, uint8_t * uid, uint8_t * sak);
+int get_uid_14443a(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_t * sak);
 
 #ifdef __cplusplus
 }

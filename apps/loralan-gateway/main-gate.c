@@ -594,7 +594,12 @@ void init_normal(shell_command_t *commands)
         radio_init();
         
         ls_setup(&ls);
-        ls_gate_init(&ls);
+        if (ls_gate_init(&ls) != LS_GATE_OK) {
+            puts("ls: error initializing gateway");
+            gpio_set(LED_GREEN);
+            rtctimers_millis_sleep(5000);
+            NVIC_SystemReset();
+        }
         
         unwds_setup_nvram_config(UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
 

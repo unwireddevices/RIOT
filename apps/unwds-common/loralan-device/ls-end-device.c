@@ -1043,7 +1043,9 @@ int ls_ed_init(ls_ed_t *ls)
 
     DEBUG("[LoRa] init SX127X\n");
     /* Initialize the transceiver */
-    ls->_internal.device->driver->init(ls->_internal.device);
+    if (ls->_internal.device->driver->init(ls->_internal.device) < 0) {
+        return -LS_INIT_E_SX127X_DEVICE;
+    }
     
     /* Setup event callback and stack state as it's argument */
     ls->_internal.device->event_callback = sx127x_handler;

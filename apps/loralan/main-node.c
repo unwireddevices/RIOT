@@ -711,7 +711,12 @@ void init_normal(shell_command_t *commands)
 
         radio_init();
         ls_setup(&ls);
-        ls_ed_init(&ls);
+        if (ls_ed_init(&ls) != LS_OK) {
+            puts("ls: error initializing device");
+            gpio_set(LED_GREEN);
+            rtctimers_millis_sleep(5000);
+            NVIC_SystemReset();
+        }
 
         unwds_set_enabled(unwds_get_node_settings().enabled_mods);
         memcpy(ls.settings.ability, unwds_get_node_settings().enabled_mods, sizeof(ls.settings.ability));

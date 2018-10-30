@@ -118,12 +118,12 @@ typedef enum {
  */
 typedef enum {
 	LS_INIT_E_SX127X_THREAD = 1,	/**< Unable to start sx127x event handler thread */
+    LS_INIT_E_SX127X_DEVICE,        /**< Unable to initialize SX127x device */
 	LS_INIT_E_FQ_THREAD,			/**< Unable to start uplink frame queue handler thread */
 	LS_INIT_E_TIM_THREAD,			/**< Unable to start rx window timing handler thread */
 	LS_SEND_E_FQ_OVERFLOW,			/**< Uplink frame queue is overflowed */
 	LS_SEND_E_NOT_JOINED,			/**< Not joined to the network */
     LS_SEND_E_FIFO_ERROR,
-
 	LS_OK,							/**< Initialized successfully */
 
 } ls_init_status_t;

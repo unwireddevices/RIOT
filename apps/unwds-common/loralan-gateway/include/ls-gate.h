@@ -24,7 +24,7 @@
  * @ingroup     
  * @brief       
  * @{
- * @file		ls-gate.h
+ * @file        ls-gate.h
  * @brief       LoRaLAN gateway device definitions
  * @author      Eugene Ponomarev
  * @author      Oleg Artamonov
@@ -86,18 +86,18 @@
  * @brief LoRa-Star stack status.
  */
 typedef enum {
-	LS_GATE_SLEEP = 0,
+    LS_GATE_SLEEP = 0,
 
-	LS_GATE_TRANSMITTING,
-	LS_GATE_LISTENING,
+    LS_GATE_TRANSMITTING,
+    LS_GATE_LISTENING,
 
-	LS_GATE_FAULT,
+    LS_GATE_FAULT,
 } ls_gate_status_t;
 
 typedef enum {
-	LS_GATE_PING = 0,
+    LS_GATE_PING = 0,
 
-	LS_GATE_RX1_EXPIRED,
+    LS_GATE_RX1_EXPIRED,
 } ls_gate_tim_cmd_t;
 
 /**
@@ -105,13 +105,15 @@ typedef enum {
  *
  */
 typedef enum {
-	LS_INIT_E_SX1276_THREAD = 1,		/**< Unable to start sx1276 event handler thread */
-	LS_INIT_E_TIM_THREAD = 2,			/**< Unable to start timeout handler thread */
-	LS_GATE_E_NODEV = 3,				/**< Unable to send frame - device with address specified is not joined */
-	LS_E_PQ_OVERFLOW = 4,				/**< Unable to queue frame for sending - queue is overflowed */
-	LS_INIT_E_UQ_THREAD = 5,			/**< Unable to create uplink queue handler thread */
+    LS_INIT_E_SX1276_THREAD = 1,        /**< Unable to start sx1276 event handler thread */
+    LS_INIT_E_SX127X_DEVICE,            /**< Unable to initialize SX127x device */
+    LS_GATE_E_INIT,                     /**< Gate initialization error */
+    LS_INIT_E_TIM_THREAD,               /**< Unable to start timeout handler thread */
+    LS_GATE_E_NODEV,                    /**< Unable to send frame - device with address specified is not joined */
+    LS_E_PQ_OVERFLOW,                   /**< Unable to queue frame for sending - queue is overflowed */
+    LS_INIT_E_UQ_THREAD,                /**< Unable to create uplink queue handler thread */
 
-	LS_GATE_OK,							/**< Initialized successfully */
+    LS_GATE_OK,                         /**< Initialized successfully */
 } ls_gate_init_status_t;
 
 /**
@@ -120,31 +122,31 @@ typedef enum {
  * Could be stored in non-volatile memory
  */
 typedef struct {
-	uint64_t gate_id;				/**< Unique node ID */
-	uint8_t *join_key;				/**< Join MIC key */
+    uint64_t gate_id;                /**< Unique node ID */
+    uint8_t *join_key;               /**< Join MIC key */
 
-	uint32_t keepalive_period_ms;	/**< Period of calling `keepalive_cb` [milliseconds] */
+    uint32_t keepalive_period_ms;    /**< Period of calling `keepalive_cb` [milliseconds] */
 } ls_gate_settings_t;
 
 /**
  * @brief Holds internal channel-related data such as transceiver handler, thread stack, etc.
  */
 typedef struct {
-	netdev_t *device;			/**< Transceiver instance for this channel */
-	void *gate;					/**< Gate instance pointer */
+    netdev_t *device;            /**< Transceiver instance for this channel */
+    void *gate;                    /**< Gate instance pointer */
 
-	ls_frame_t current_frame;	/**< Memory for current frame */
-	mutex_t channel_mutex;		/**< Mutex on the channel */
+    ls_frame_t current_frame;    /**< Memory for current frame */
+    mutex_t channel_mutex;        /**< Mutex on the channel */
 
-	ls_frame_fifo_t ul_fifo;	/**< Uplink frame queue */
+    ls_frame_fifo_t ul_fifo;    /**< Uplink frame queue */
 
-	xtimer_t	rx_window1;		/**< First receive window timer */
+    xtimer_t    rx_window1;        /**< First receive window timer */
 } ls_channel_internal_t;
 
 typedef enum {
-	LS_GATE_CHANNEL_STATE_IDLE = 0,
-	LS_GATE_CHANNEL_STATE_RX,
-	LS_GATE_CHANNEL_STATE_TX,
+    LS_GATE_CHANNEL_STATE_IDLE = 0,
+    LS_GATE_CHANNEL_STATE_RX,
+    LS_GATE_CHANNEL_STATE_TX,
 } ls_channel_state_t;
 
 /**
@@ -153,29 +155,29 @@ typedef enum {
  * One sx1276 transceiver per channel
  */
 typedef struct {
-	ls_datarate_t dr;					/**< Data rate for this channel */
-	uint32_t frequency;					/**< LoRa frequency */
+    ls_datarate_t dr;                    /**< Data rate for this channel */
+    uint32_t frequency;                    /**< LoRa frequency */
 
-	int16_t	last_rssi;					/**< RSSI of last received packet on this channel */
+    int16_t    last_rssi;                    /**< RSSI of last received packet on this channel */
 
-	ls_channel_state_t state;			/**< State of the channel */
+    ls_channel_state_t state;            /**< State of the channel */
 
-	ls_channel_internal_t _internal;	/**< Internal channel-specific data */
+    ls_channel_internal_t _internal;    /**< Internal channel-specific data */
 } ls_gate_channel_t;
 
-#define LS_UQ_HANDLER_STACKSIZE			(2048)
+#define LS_UQ_HANDLER_STACKSIZE            (2048)
 #define LS_UQ_MSG_QUEUE_SIZE 8
 
-#define LS_TIM_HANDLER_STACKSIZE		(2048)
+#define LS_TIM_HANDLER_STACKSIZE        (2048)
 #define LS_TIM_MSG_QUEUE_SIZE 8
 
 /**
  * @brief Lora-Star gate stack internal data.
  */
 typedef struct {
-    uint32_t ping_count;				/**< Ping count, increments every PING_TIMEOUT us */
-    xtimer_t ping_timer;				/**< Timer for periodic ping count increment */
-    xtimer_t keepalive_timer;			/**< Timer for periodic keepalive callback calls */
+    uint32_t ping_count;                /**< Ping count, increments every PING_TIMEOUT us */
+    xtimer_t ping_timer;                /**< Timer for periodic ping count increment */
+    xtimer_t keepalive_timer;            /**< Timer for periodic keepalive callback calls */
 
     /* Timeout message handler data */
     kernel_pid_t tim_thread_pid;
@@ -191,32 +193,32 @@ typedef struct {
  * @briefLoRa-Star gate stack state.
  */
 typedef struct {
-	ls_gate_settings_t settings;		/**< Network settings, could be stored in NVRAM */
-	ls_gate_status_t status;			/**< Current LS stack status */
+    ls_gate_settings_t settings;        /**< Network settings, could be stored in NVRAM */
+    ls_gate_status_t status;            /**< Current LS stack status */
 
-	ls_gate_channel_t *channels;		/**< Array of channels used by this gate */
-	size_t num_channels;				/**< Number of channels available */
+    ls_gate_channel_t *channels;        /**< Array of channels used by this gate */
+    size_t num_channels;                /**< Number of channels available */
 
-	/* Callback functions */
-	bool (*accept_node_join_cb)(uint64_t dev_id, uint64_t app_id);
-	uint32_t (*node_joined_cb) (ls_gate_node_t *node);
-	void (*node_kicked_cb) (ls_gate_node_t *node);
-	void (*app_data_received_cb) (ls_gate_node_t *node, ls_gate_channel_t *ch, uint8_t *buf, size_t bufsize, uint8_t status);
+    /* Callback functions */
+    bool (*accept_node_join_cb)(uint64_t dev_id, uint64_t app_id);
+    uint32_t (*node_joined_cb) (ls_gate_node_t *node);
+    void (*node_kicked_cb) (ls_gate_node_t *node);
+    void (*app_data_received_cb) (ls_gate_node_t *node, ls_gate_channel_t *ch, uint8_t *buf, size_t bufsize, uint8_t status);
 
-	void (*app_data_ack_cb)(ls_gate_node_t *node, ls_gate_channel_t *ch);
+    void (*app_data_ack_cb)(ls_gate_node_t *node, ls_gate_channel_t *ch);
 
-	/* Gate will call this callback periodically to make sure that watchdog timer (if used) is reset in time  */
-	void (*keepalive_cb)(void);
+    /* Gate will call this callback periodically to make sure that watchdog timer (if used) is reset in time  */
+    void (*keepalive_cb)(void);
 
-	/*
-	 * Request for pending frames for specified node.
-	 * This function will be called when node has pending frames and within it's receive window
-	 */
-	void (*pending_frames_req) (ls_gate_node_t *node);
+    /*
+     * Request for pending frames for specified node.
+     * This function will be called when node has pending frames and within it's receive window
+     */
+    void (*pending_frames_req) (ls_gate_node_t *node);
 
-	ls_gate_devices_t devices;		/**< Devices list */
+    ls_gate_devices_t devices;        /**< Devices list */
 
-	ls_gate_internal_t _internal;
+    ls_gate_internal_t _internal;
 } ls_gate_t;
 
 /**

@@ -819,7 +819,9 @@ static bool open_channel(ls_gate_channel_t *ch)
     
     DEBUG("[LoRa] open_channel: init SX127X\n");
     /* Initialize the transceiver */
-    ch->_internal.device->driver->init(ch->_internal.device);
+    if (ch->_internal.device->driver->init(ch->_internal.device) < 0) {
+        return false;
+    }
 
     /* Setup callbacks */
     ch->_internal.device->event_callback = sx127x_handler;
@@ -880,7 +882,9 @@ int ls_gate_init(ls_gate_t *ls)
     xtimer_set_msg(&ls->_internal.ping_timer, LS_PING_TIMEOUT, &msg_ping, ls->_internal.tim_thread_pid);
     
     ls_devlist_init(&ls->devices);
-    initialize_channels(ls);
+    if (!initialize_channels(ls)) {
+        return -LS_GATE_E_INIT;
+    }
 
     return LS_GATE_OK;
 }

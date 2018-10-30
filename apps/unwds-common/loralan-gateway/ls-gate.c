@@ -38,6 +38,8 @@ extern "C" {
 #include "assert.h"
 #include "thread.h"
 
+#include "periph/rtc.h"
+
 #include "ls-init-device.h"
 #include "ls-mac-types.h"
 #include "ls-mac.h"
@@ -495,7 +497,10 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
 
             DEBUG("ls-gate: time request received\n");
 
-            ls_time_req_ack_t ack = { .gate_time = rtctimers_millis_now() };
+            ls_time_req_ack_t ack;
+            struct tm current_time;
+            rtc_get_time(&current_time);
+            ack.gate_time = mktime(&current_time);
 
             enqueue_frame(ch, frame->header.dev_addr, LS_DL_TIME_ACK, (uint8_t *) &ack, sizeof(ls_time_req_ack_t));
 

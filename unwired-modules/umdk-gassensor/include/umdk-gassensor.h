@@ -41,9 +41,11 @@
 #define UMDK_GASSENSOR_ADC_RESOLUTION               ADC_RES_12BIT
 #define UMDK_GASSENSOR_CONVERT_TO_MILLIVOLTS        1
 
-#define UMDK_GASSENSOR_I2C                         (I2C_DEV(1))
-#define UMDK_GASSENSOR_I2C_ADDR                    (0x48)
-#define UMDK_GASSENSOR_MODULE_EN_PIN               (UNWD_GPIO_5)
+#define UMDK_GASSENSOR_I2C                          (I2C_DEV(1))
+#define UMDK_GASSENSOR_I2C_ADDR                     (0x48)
+#define UMDK_GASSENSOR_MODULE_EN_PIN                (UNWD_GPIO_5)
+
+#define UMDK_GASSENSOR_EXT_GAIN                     (499000U)
 
 #define GASSENSOR_PARAMS_BOARD                         \
     {                                                  \

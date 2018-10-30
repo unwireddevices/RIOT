@@ -26,7 +26,8 @@
  * @{
  * @file        umdk-gassensor.c
  * @brief       LMP91000-based gas sensor module
- * @author      
+ * @author 
+ * @todo        To realize a temperature compensation of concentration of gas     
  */
 
 #ifdef __cplusplus
@@ -74,7 +75,46 @@ static struct {
     uint32_t                    sensor_code;
 } gassensor_config;
 
-static lmp91000_t    lmp91000;
+static lmp91000_t        lmp91000;
+static lmp91000_config_t lmp91000_config;
+
+
+static uint32_t _tia_gain_calc(lmp91000_config_t config, uint32_t ext_gain) {
+    uint32_t tia_gain = 0;
+
+    switch(config.tiacn.tia_gain) {
+        case LMP91000_TIA_GAIN_EXT:
+            tia_gain = (ext_gain);
+            break;
+        case LMP91000_TIA_GAIN_2KOHM7:
+            tia_gain = (2700 * ext_gain) / (2700 + ext_gain);
+            break;
+        case LMP91000_TIA_GAIN_3KOHM5:
+            tia_gain = (3500 * ext_gain) / (3500 + ext_gain);
+            break;
+        case LMP91000_TIA_GAIN_7KOHM:
+            tia_gain = (7000 * ext_gain) / (7000 + ext_gain);
+            break;
+        case LMP91000_TIA_GAIN_14KOHM:
+            tia_gain = (14000 * ext_gain) / (14000 + ext_gain);
+            break;
+        case LMP91000_TIA_GAIN_35KOHM:
+            tia_gain = (35000 * ext_gain) / (35000 + ext_gain);
+            break;
+        case LMP91000_TIA_GAIN_120KOHM:
+            tia_gain = (120000 * ext_gain) / (120000 + ext_gain);
+            break;
+        case LMP91000_TIA_GAIN_350KOHM:
+            tia_gain = (350000 * ext_gain) / (350000 + ext_gain);
+            break;
+        default:
+            tia_gain = ext_gain;
+            break;
+    }
+    return tia_gain;
+}
+
+
 
 static void reset_config(void) {
     gassensor_config.publish_period_sec = UMDK_GASSENSOR_PUBLISH_PERIOD_MIN;
@@ -98,7 +138,7 @@ static inline void save_config(void) {
 
 static void init_gassensor(void) {
     lmp91000_params_t lmp91000_params[] = { GASSENSOR_PARAMS_BOARD };
-    lmp91000_config_t lmp91000_config;
+    
     
     /* Initialize ACD */
     if (adc_init(UMDK_GASSENSOR_ADC_LINE) == 0) {
@@ -181,64 +221,61 @@ static void prepare_result(module_data_t *buf)
 {
     uint32_t ppm;
     /* obtain data */
-    // int32_t calib_factor;
+    int32_t calib_factor;
+    uint16_t v_ref;
 
 
-    // uint16_t samples = adc_sample(UMDK_GASSENSOR_ADC_LINE, UMDK_GASSENSOR_ADC_RESOLUTION);
+    uint16_t sample = adc_sample(UMDK_GASSENSOR_ADC_LINE, UMDK_GASSENSOR_ADC_RESOLUTION);
 
-    // /* VDD scaling */
-    // if (UMDK_GASSENSOR_CONVERT_TO_MILLIVOLTS) {
-    //     uint16_t v_ref = adc_sample(ADC_LINE(ADC_VREF_INDEX), UMDK_GASSENSOR_ADC_RESOLUTION);
-    // }
+    /* VDD scaling */
+    if (UMDK_GASSENSOR_CONVERT_TO_MILLIVOLTS) {
+        v_ref = adc_sample(ADC_LINE(ADC_VREF_INDEX), UMDK_GASSENSOR_ADC_RESOLUTION);
+    }
 
-    // if (UMDK_ADC_CONVERT_TO_MILLIVOLTS) {
-    //     /* Calculate Vdd */
-    //     uint32_t full_scale = 0;
+    if (UMDK_GASSENSOR_CONVERT_TO_MILLIVOLTS) {
+        /* Calculate Vdd */
+        uint32_t full_scale = 0;
         
-    //     switch (UMDK_GASSENSOR_ADC_RESOLUTION) {
-    //         case ADC_RES_12BIT:
-    //             full_scale = 4095;
-    //             break;
-    //         case ADC_RES_10BIT:
-    //             full_scale = 1023;
-    //             break;
-    //         case ADC_RES_8BIT:
-    //             full_scale = 255;
-    //             break;
-    //         case ADC_RES_6BIT:
-    //             full_scale = 63;
-    //             break;
-    //         default:
-    //             puts("[umdk-" _UMDK_NAME_ "] Unsupported ADC resolution, aborting.");
-    //             return;
-    //             break; 
-    //     }
-
-    //     samples = (uint32_t)(samples * v_ref) / full_scale;
-    // }
+        switch (UMDK_GASSENSOR_ADC_RESOLUTION) {
+            case ADC_RES_12BIT:
+                full_scale = 4095;
+                break;
+            case ADC_RES_10BIT:
+                full_scale = 1023;
+                break;
+            case ADC_RES_8BIT:
+                full_scale = 255;
+                break;
+            case ADC_RES_6BIT:
+                full_scale = 63;
+                break;
+            default:
+                puts("[umdk-" _UMDK_NAME_ "] Unsupported ADC resolution, aborting.");
+                return;
+                break; 
+        }
+        sample = (uint32_t)(sample * v_ref) / full_scale;
+    }
     
-    // printf("[umdk-" _UMDK_NAME_ "] Reading line #%d: %d", UMDK_GASSENSOR_ADC_LINE, samples);
-    // if (UMDK_ADC_CONVERT_TO_MILLIVOLTS) {
-    //     if (i == ADC_TEMPERATURE_INDEX) {
-    //         puts(" C");
-    //     }
-    //     else {
-    //         puts(" mV");
-    //     }
-    // }
-    // else {
-    //     puts(" ");
-    // }
+    printf("[umdk-" _UMDK_NAME_ "] Reading line #%d: %d", UMDK_GASSENSOR_ADC_LINE, sample);
     
-    // convert_to_be_sam((void *)&samples[i], sizeof(samples[i]));
+    convert_to_be_sam((void *)&sample, sizeof(sample));
+    /* Calculate M */
+    /* M(V/ppm) = SensCode(pA/ppm)*TIA_Gain(V/A)*10^-12(A/pA) */
+    uint32_t gain =_tia_gain_calc(lmp91000_config, UMDK_GASSENSOR_EXT_GAIN);                
+    gain /= 1000;
+    calib_factor = (gassensor_config.sensor_code * gain) / 1000000000;
+    printf("M = %ld", calib_factor);
+    ppm = ((1 / calib_factor) * (sample - v_ref)) / 1000; 
 
-
+    convert_to_be_sam((void *)&ppm, sizeof(ppm));
 
     if (buf) {
         buf->data[0] = _UMDK_MID_;
         buf->data[1] = UMDK_GASSENSOR_DATA;
         memcpy(buf->data + 2, (void *)&ppm, sizeof(ppm));
-        buf->length = sizeof(ppm) + 2;
+        memcpy(buf->data + 2 + sizeof(ppm), (void *)&sample, sizeof(sample));
+        buf->length = sizeof(ppm) + 2 + sizeof(sample);
     }
 }
 

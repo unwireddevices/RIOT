@@ -73,7 +73,7 @@ void rtctimers_millis_init(void)
     /* initialize low-level timer */
     rtc_init();
 
-    /* register initial overflow 60-seconds tick */
+    /* register initial overflow weekly tick */
     _lltimer_set(RTCTIMERS_MILLIS_OVERFLOW_VALUE);
 }
 

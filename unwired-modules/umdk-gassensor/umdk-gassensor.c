@@ -145,7 +145,9 @@ static void init_config(void) {
 }
 
 static inline void save_config(void) {
-    unwds_write_nvram_config(_UMDK_MID_, (uint8_t *) &gassensor_config, sizeof(gassensor_config));
+    bool tmpBool;
+    tmpBool = unwds_write_nvram_config(_UMDK_MID_, (uint8_t *) &gassensor_config, sizeof(gassensor_config));
+    printf("tmpBool is %s", (tmpBool == false)?"FALSE":"TRUE");
 }
 
 static void init_gassensor(void) {
@@ -236,8 +238,6 @@ static void init_gassensor(void) {
 
 static void prepare_result(module_data_t *buf)
 {
-    
-
     if ((gassensor_config.sensor_type != UMDK_GASSENSOR_UNKNOWN) && (gassensor_config.sensor_code != 0)) { 
         uint32_t ppm;
         /* obtain data */

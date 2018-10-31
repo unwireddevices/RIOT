@@ -51,7 +51,7 @@ extern "C" {
 #include "umdk-modules.h"
 #include "unwds-gpio.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 /**
@@ -99,7 +99,7 @@ bool unwds_read_nvram_config(unwds_module_id_t module_id, uint8_t *data_out, uin
     }
         
     uint16_t crc16 = 0;
-    if (eeprom_read(addr + size, (void *)&crc16, 2) != 1) {
+    if (eeprom_read(addr + size, (void *)&crc16, 2) != 2) {
         DEBUG("Error reading CRC16\n");
 		return false;
     }

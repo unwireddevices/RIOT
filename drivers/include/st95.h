@@ -29,12 +29,18 @@
 #define ST95_IDLE_STATE 0
 #define ST95_READY_STATE 1
 
+/* Offset definitions for global buffers */
+#define ST95_COMMAND_OFFSET						0
+#define ST95_LENGTH_OFFSET						1
+#define ST95_DATA_OFFSET						2
+
 /**
  * @brief ST95 return codes
 */
-#define ST95_OK			1
-#define ST95_ERROR		0
-#define ST95_NO_DEVICE	0
+#define ST95_OK			0
+#define ST95_WAKE_UP ST95_OK
+#define ST95_ERROR		1
+#define ST95_NO_DEVICE	2
 
 /**
  * @brief   ST95 hardware and global parameters.
@@ -49,7 +55,7 @@ typedef struct {
 } st95_params_t;
 
 /**
- * @brief   ADCxx1C alert callback
+ * @brief   ST95 wake up callback
  */
 typedef void (*st95_cb_t)(void *);
 
@@ -78,7 +84,5 @@ int st95_idn(const st95_t * dev, uint8_t * idn, uint8_t * length);
 
 int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_t * sak);
 
-int st95_send_receive(const st95_t * dev, uint8_t *data, uint8_t size, uint8_t topaz, uint8_t split_frame, uint8_t crc, uint8_t sign_bits);
-// uint8_t st95_receive(uint8_t * rxbuff);
-
+int _st95_cmd_send_receive(const st95_t * dev, uint8_t *data_tx, uint8_t size, uint8_t params, uint8_t * rxbuff);
 #endif /* ST95_H_ */

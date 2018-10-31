@@ -55,7 +55,7 @@ enum {
  */
 enum {
     LMP91000_TIA_GAIN_EXT     = 0x00,       /**< External resistance (default)    */
-    LMP91000_TIA_GAIN_2KOHM7  = 0x01,       /**< Intertnal resistance is 2.75kOhm */
+    LMP91000_TIA_GAIN_2KOHM75 = 0x01,       /**< Intertnal resistance is 2.75kOhm */
     LMP91000_TIA_GAIN_3KOHM5  = 0x02,       /**< Intertnal resistance is 3.5kOhm  */
     LMP91000_TIA_GAIN_7KOHM   = 0x03,       /**< Intertnal resistance is 7kOhm    */
     LMP91000_TIA_GAIN_14KOHM  = 0x04,       /**< Intertnal resistance is 14kOhm   */

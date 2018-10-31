@@ -72,40 +72,53 @@ static bool is_polled = false;
 static struct {
     uint8_t                     publish_period_sec;
     umdk_gassensor_sensor_t     sensor_type;
-    uint32_t                    sensor_code;
+    int32_t                     sensor_code;
 } gassensor_config;
 
 static lmp91000_t        lmp91000;
 static lmp91000_config_t lmp91000_config;
 
 
-static uint32_t _tia_gain_calc(lmp91000_config_t config, uint32_t ext_gain) {
+static int32_t _tia_gain_calc(lmp91000_config_t config, uint32_t ext_gain) {
     uint32_t tia_gain = 0;
+
+    if (ext_gain > 1000000)
+        return -1;
 
     switch(config.tiacn.tia_gain) {
         case LMP91000_TIA_GAIN_EXT:
             tia_gain = (ext_gain);
             break;
-        case LMP91000_TIA_GAIN_2KOHM7:
-            tia_gain = (2700 * ext_gain) / (2700 + ext_gain);
+        case LMP91000_TIA_GAIN_2KOHM75:
+            tia_gain = (2750 * ext_gain) / (2750 + ext_gain);
             break;
         case LMP91000_TIA_GAIN_3KOHM5:
             tia_gain = (3500 * ext_gain) / (3500 + ext_gain);
             break;
         case LMP91000_TIA_GAIN_7KOHM:
-            tia_gain = (7000 * ext_gain) / (7000 + ext_gain);
+            ext_gain /= 1000;
+            tia_gain = ((7 * ext_gain) / (7 + ext_gain)) * 1000;
+            tia_gain += (((7 * ext_gain) % (7 + ext_gain)) * 1000) / (7 + ext_gain);
             break;
         case LMP91000_TIA_GAIN_14KOHM:
-            tia_gain = (14000 * ext_gain) / (14000 + ext_gain);
+            ext_gain /= 1000;
+            tia_gain = ((14 * ext_gain) / (14 + ext_gain)) * 1000;
+            tia_gain += (((14 * ext_gain) % (14 + ext_gain)) * 1000) / (14 + ext_gain);
             break;
         case LMP91000_TIA_GAIN_35KOHM:
-            tia_gain = (35000 * ext_gain) / (35000 + ext_gain);
+            ext_gain /= 1000;
+            tia_gain = ((35 * ext_gain) / (35 + ext_gain)) * 1000;
+            tia_gain += ((35 * ext_gain) % (35 + ext_gain)*1000)/(35 + ext_gain);
             break;
         case LMP91000_TIA_GAIN_120KOHM:
-            tia_gain = (120000 * ext_gain) / (120000 + ext_gain);
+            ext_gain /= 1000;
+            tia_gain = ((120 * ext_gain) / (120 + ext_gain)) * 1000;
+            tia_gain += (((120 * ext_gain) % (120 + ext_gain)) * 1000) / (120 + ext_gain);
             break;
         case LMP91000_TIA_GAIN_350KOHM:
-            tia_gain = (350000 * ext_gain) / (350000 + ext_gain);
+            ext_gain /= 1000;
+            tia_gain = ((350 * ext_gain) / (350 + ext_gain)) * 1000;
+            tia_gain += (((350 * ext_gain) % (350 + ext_gain)) * 1000) / (350 + ext_gain);
             break;
         default:
             tia_gain = ext_gain;
@@ -113,8 +126,6 @@ static uint32_t _tia_gain_calc(lmp91000_config_t config, uint32_t ext_gain) {
     }
     return tia_gain;
 }
-
-
 
 static void reset_config(void) {
     gassensor_config.publish_period_sec = UMDK_GASSENSOR_PUBLISH_PERIOD_MIN;
@@ -126,6 +137,7 @@ static void init_config(void) {
     reset_config();
 
     if (!unwds_read_nvram_config(_UMDK_MID_, (uint8_t *) &gassensor_config, sizeof(gassensor_config))) {
+        puts("Resetting config... Not read nwram");
         reset_config();
     }
         
@@ -162,7 +174,8 @@ static void init_gassensor(void) {
             lmp91000_config.refcn.ref_source = LMP91000_REF_SOURCE_INT;
             lmp91000_config.modecn.op_mode   = LMP91000_OP_MODE_3_LEAD_AMP_CELL;
             lmp91000_config.modecn.fet_short = LMP91000_FET_SHORT_DISABLED;
-            lmp91000_set_configure(&lmp91000, lmp91000_config);
+            if (lmp91000_set_configure(&lmp91000, lmp91000_config) != LMP91000_OK)
+                puts("[umdk-" _UMDK_NAME_ "] lmp91000 not found");
             break;
         case UMDK_GASSENSOR_H2S:
             lmp91000_config.tiacn.tia_gain   = LMP91000_TIA_GAIN_EXT;
@@ -173,7 +186,8 @@ static void init_gassensor(void) {
             lmp91000_config.refcn.ref_source = LMP91000_REF_SOURCE_INT;
             lmp91000_config.modecn.op_mode   = LMP91000_OP_MODE_3_LEAD_AMP_CELL;
             lmp91000_config.modecn.fet_short = LMP91000_FET_SHORT_DISABLED;
-            lmp91000_set_configure(&lmp91000, lmp91000_config);
+            if (lmp91000_set_configure(&lmp91000, lmp91000_config) != LMP91000_OK)
+                puts("[umdk-" _UMDK_NAME_ "] lmp91000 not found");
             break;
         case UMDK_GASSENSOR_NO2:
             lmp91000_config.tiacn.tia_gain   = LMP91000_TIA_GAIN_EXT;
@@ -184,7 +198,8 @@ static void init_gassensor(void) {
             lmp91000_config.refcn.ref_source = LMP91000_REF_SOURCE_INT;
             lmp91000_config.modecn.op_mode   = LMP91000_OP_MODE_3_LEAD_AMP_CELL;
             lmp91000_config.modecn.fet_short = LMP91000_FET_SHORT_DISABLED;
-            lmp91000_set_configure(&lmp91000, lmp91000_config);
+            if (lmp91000_set_configure(&lmp91000, lmp91000_config) != LMP91000_OK)
+                puts("[umdk-" _UMDK_NAME_ "] lmp91000 not found");
             break;
         case UMDK_GASSENSOR_SO2:
             lmp91000_config.tiacn.tia_gain   = LMP91000_TIA_GAIN_EXT;
@@ -195,8 +210,8 @@ static void init_gassensor(void) {
             lmp91000_config.refcn.ref_source = LMP91000_REF_SOURCE_INT;
             lmp91000_config.modecn.op_mode   = LMP91000_OP_MODE_3_LEAD_AMP_CELL;
             lmp91000_config.modecn.fet_short = LMP91000_FET_SHORT_DISABLED;
-            lmp91000_set_configure(&lmp91000, lmp91000_config);
-            break;
+            if (lmp91000_set_configure(&lmp91000, lmp91000_config) != LMP91000_OK)
+                puts("[umdk-" _UMDK_NAME_ "] lmp91000 not found");
         case UMDK_GASSENSOR_O3:
             lmp91000_config.tiacn.tia_gain   = LMP91000_TIA_GAIN_EXT;
             lmp91000_config.tiacn.r_load     = LMP91000_RLOAD_10OHM;
@@ -206,9 +221,11 @@ static void init_gassensor(void) {
             lmp91000_config.refcn.ref_source = LMP91000_REF_SOURCE_INT;
             lmp91000_config.modecn.op_mode   = LMP91000_OP_MODE_3_LEAD_AMP_CELL;
             lmp91000_config.modecn.fet_short = LMP91000_FET_SHORT_DISABLED;
-            lmp91000_set_configure(&lmp91000, lmp91000_config);
+            if (lmp91000_set_configure(&lmp91000, lmp91000_config) != LMP91000_OK)
+                puts("[umdk-" _UMDK_NAME_ "] lmp91000 not found");
             break;
         case UMDK_GASSENSOR_UNKNOWN:
+            puts("[umdk-" _UMDK_NAME_ "] Unknown sensor type");
             /* do Nothing */
             break;
         default:
@@ -219,63 +236,76 @@ static void init_gassensor(void) {
 
 static void prepare_result(module_data_t *buf)
 {
-    uint32_t ppm;
-    /* obtain data */
-    int32_t calib_factor;
-    uint16_t v_ref;
+    
 
+    if ((gassensor_config.sensor_type != UMDK_GASSENSOR_UNKNOWN) && (gassensor_config.sensor_code != 0)) { 
+        uint32_t ppm;
+        /* obtain data */
+        int32_t calib_factor;
+        uint16_t v_ref;
 
-    uint16_t sample = adc_sample(UMDK_GASSENSOR_ADC_LINE, UMDK_GASSENSOR_ADC_RESOLUTION);
+        uint16_t sample = adc_sample(UMDK_GASSENSOR_ADC_LINE, UMDK_GASSENSOR_ADC_RESOLUTION);
 
-    /* VDD scaling */
-    if (UMDK_GASSENSOR_CONVERT_TO_MILLIVOLTS) {
-        v_ref = adc_sample(ADC_LINE(ADC_VREF_INDEX), UMDK_GASSENSOR_ADC_RESOLUTION);
-    }
-
-    if (UMDK_GASSENSOR_CONVERT_TO_MILLIVOLTS) {
-        /* Calculate Vdd */
-        uint32_t full_scale = 0;
-        
-        switch (UMDK_GASSENSOR_ADC_RESOLUTION) {
-            case ADC_RES_12BIT:
-                full_scale = 4095;
-                break;
-            case ADC_RES_10BIT:
-                full_scale = 1023;
-                break;
-            case ADC_RES_8BIT:
-                full_scale = 255;
-                break;
-            case ADC_RES_6BIT:
-                full_scale = 63;
-                break;
-            default:
-                puts("[umdk-" _UMDK_NAME_ "] Unsupported ADC resolution, aborting.");
-                return;
-                break; 
+        /* VDD scaling */
+        if (UMDK_GASSENSOR_CONVERT_TO_MILLIVOLTS) {
+            v_ref = adc_sample(ADC_LINE(ADC_VREF_INDEX), UMDK_GASSENSOR_ADC_RESOLUTION);
+            printf("[umdk-" _UMDK_NAME_ "] VREF line #%d: %d\n", ADC_VREF_INDEX, v_ref);
         }
-        sample = (uint32_t)(sample * v_ref) / full_scale;
-    }
-    
-    printf("[umdk-" _UMDK_NAME_ "] Reading line #%d: %d", UMDK_GASSENSOR_ADC_LINE, sample);
-    
-    convert_to_be_sam((void *)&sample, sizeof(sample));
-    /* Calculate M */
-    /* M(V/ppm) = SensCode(pA/ppm)*TIA_Gain(V/A)*10^-12(A/pA) */
-    uint32_t gain =_tia_gain_calc(lmp91000_config, UMDK_GASSENSOR_EXT_GAIN);                
-    gain /= 1000;
-    calib_factor = (gassensor_config.sensor_code * gain) / 1000000000;
-    printf("M = %ld", calib_factor);
-    ppm = ((1 / calib_factor) * (sample - v_ref)) / 1000; 
 
-    convert_to_be_sam((void *)&ppm, sizeof(ppm));
+        if (UMDK_GASSENSOR_CONVERT_TO_MILLIVOLTS) {
+            /* Calculate Vdd */
+            uint32_t full_scale = 0;
+            
+            switch (UMDK_GASSENSOR_ADC_RESOLUTION) {
+                case ADC_RES_12BIT:
+                    full_scale = 4095;
+                    break;
+                case ADC_RES_10BIT:
+                    full_scale = 1023;
+                    break;
+                case ADC_RES_8BIT:
+                    full_scale = 255;
+                    break;
+                case ADC_RES_6BIT:
+                    full_scale = 63;
+                    break;
+                default:
+                    puts("[umdk-" _UMDK_NAME_ "] Unsupported ADC resolution, aborting.");
+                    return;
+                    break; 
+            }
+            sample = (uint32_t)(sample * v_ref) / full_scale;
+        }
+        
+        printf("[umdk-" _UMDK_NAME_ "] Reading line #%d: %d\n", UMDK_GASSENSOR_ADC_LINE, sample);
+        
+        convert_to_be_sam((void *)&sample, sizeof(sample));
+        /* Calculate M */
+        /* M(V/ppm) = SensCode(pA/ppm)*TIA_Gain(V/A)*10^-12(A/pA) */
+        int32_t gain =_tia_gain_calc(lmp91000_config, UMDK_GASSENSOR_EXT_GAIN);                
+        if (gain != -1) {
+            gain /= 1000;
+            calib_factor = (gassensor_config.sensor_code * gain) / 1000000000;
+            printf("M = %ld\n", calib_factor);
+            ppm = ((1 / calib_factor) * (sample - v_ref)) / 1000; 
+        }
 
-    if (buf) {
-        buf->data[0] = _UMDK_MID_;
-        buf->data[1] = UMDK_GASSENSOR_DATA;
-        memcpy(buf->data + 2, (void *)&ppm, sizeof(ppm));
-        memcpy(buf->data + 2 + sizeof(ppm), (void *)&sample, sizeof(sample));
-        buf->length = sizeof(ppm) + 2 + sizeof(sample);
+        convert_to_be_sam((void *)&ppm, sizeof(ppm));
+
+        if (buf) {
+            buf->data[0] = _UMDK_MID_;
+            buf->data[1] = UMDK_GASSENSOR_DATA;
+            memcpy(buf->data + 2, (void *)&ppm, sizeof(ppm));
+            memcpy(buf->data + 2 + sizeof(ppm), (void *)&sample, sizeof(sample));
+            buf->length = sizeof(ppm) + 2 + sizeof(sample);
+        }
+    } else {
+        puts("[umdk-" _UMDK_NAME_ "] Unknown sensor type");
+        if (buf) {
+            buf->data[0] = _UMDK_MID_;
+            buf->data[1] = UMDK_GASSENSOR_FAIL;
+            buf->length = 2;
+        }
     }
 }
 
@@ -356,26 +386,32 @@ int umdk_gassensor_shell_cmd(int argc, char **argv) {
     if (strcmp(cmd, "sensor") == 0) {
         char *val = argv[2];
 
-        if (strcmp(val, "H2S") == 0) {
-            gassensor_config.sensor_type = UMDK_GASSENSOR_H2S;
-        } else if (strcmp(val, "CO") == 0) {
-            gassensor_config.sensor_type = UMDK_GASSENSOR_CO;
-        } else if (strcmp(val, "O3") == 0) {
-            gassensor_config.sensor_type = UMDK_GASSENSOR_O3;
-        } else if (strcmp(val, "NO2") == 0) {
-            gassensor_config.sensor_type = UMDK_GASSENSOR_NO2;
-        } else if (strcmp(val, "SO2") == 0) {
-            gassensor_config.sensor_type = UMDK_GASSENSOR_SO2;
-        } else {
-            gassensor_config.sensor_type = UMDK_GASSENSOR_UNKNOWN;
-        }
+        printf("%s\n", argv[2]);
 
-        if (gassensor_config.sensor_type != UMDK_GASSENSOR_UNKNOWN) {
+        if (strcmp(val, "H2S") == 0) {
+            puts("Set sensor type is H2S");
+            gassensor_config.sensor_type = UMDK_GASSENSOR_H2S;
+            save_config();
+        } else if (strcmp(val, "CO") == 0) {
+            puts("Set sensor type is CO");
+            gassensor_config.sensor_type = UMDK_GASSENSOR_CO;
+            save_config();
+        } else if (strcmp(val, "O3") == 0) {
+            puts("Set sensor type is O3");
+            gassensor_config.sensor_type = UMDK_GASSENSOR_O3;
+            save_config();
+        } else if (strcmp(val, "NO2") == 0) {
+            puts("Set sensor type is NO2");
+            gassensor_config.sensor_type = UMDK_GASSENSOR_NO2;
+            save_config();
+        } else if (strcmp(val, "SO2") == 0) {
+            puts("Set sensor type is SO2");
+            gassensor_config.sensor_type = UMDK_GASSENSOR_SO2;
             save_config();
         } else {
+            puts("Set sensor type is unknown");
             gassensor_config.sensor_type = UMDK_GASSENSOR_UNKNOWN;
             save_config();
-            puts("Set sensor type is unknown");
         }
     }
 

@@ -51,7 +51,7 @@ extern "C" {
 #include "umdk-modules.h"
 #include "unwds-gpio.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 /**

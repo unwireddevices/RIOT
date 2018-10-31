@@ -111,7 +111,7 @@ static void *radio_send(void *arg)
 
         switch(msg.type) {
             case UMDK_ST95_MSG_WAKE_UP: {
-                if(st95_is_wake_up(&dev)) {
+                if(st95_is_wake_up(&dev) == ST95_WAKE_UP) {
                     umdk_st95_get_uid(); 
                 }
                              
@@ -184,7 +184,7 @@ void umdk_st95_init(uwnds_cb_t *event_callback)
 
     radio_pid = thread_create(stack, UMDK_ST95_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, radio_send, NULL, "st95 thread");
     
-    if(st95_init(&dev, &st95_params) == ST95_ERROR){
+    if(st95_init(&dev, &st95_params) != ST95_OK){
         puts("[umdk-" _UMDK_NAME_ "] st95 driver initialization error");
     }
     else {   

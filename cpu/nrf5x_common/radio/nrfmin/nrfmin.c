@@ -51,23 +51,23 @@
 #define CONF_ENDIAN             RADIO_PCNF1_ENDIAN_Big
 #define CONF_WHITENING          RADIO_PCNF1_WHITEEN_Disabled
 #define CONF_CRC_LEN            (2U)
-#define CONF_CRC_POLY           (0x11021)
-#define CONF_CRC_INIT           (0xf0f0f0)
+#define CONF_CRC_POLY           (0x00011021)
+#define CONF_CRC_INIT           (0x00F0F0F0)
 /** @} */
 
 /**
  * @brief   Driver specific address configuration
  * @{
  */
-#define CONF_ADDR_PREFIX0       (0xe7e7e7e7)
-#define CONF_ADDR_BASE          (0xe7e70000)
+#define CONF_ADDR_PREFIX0       (0xe7E7E7E7)
+#define CONF_ADDR_BASE          (0xe7E70000)
 #define CONF_ADDR_BCAST         (CONF_ADDR_BASE | NRFMIN_ADDR_BCAST)
 /** @} */
 
 /**
  * @brief   We define a pseudo NID for compliance to 6LoWPAN
  */
-#define CONF_PSEUDO_NID         (0xaffe)
+#define CONF_PSEUDO_NID         (0xAFFE)
 
 /**
  * @brief   Driver specific (interrupt) events (not all of them used currently)
@@ -198,14 +198,19 @@ void nrfmin_get_pseudo_long_addr(uint16_t *addr)
 void nrfmin_get_iid(uint16_t *iid)
 {
     iid[0] = 0;
-    iid[1] = 0xff00;
-    iid[2] = 0x00fe;
+    iid[1] = 0xFF00;
+    iid[2] = 0x00FE;
     iid[3] = my_addr;
 }
 
 uint16_t nrfmin_get_channel(void)
 {
     return (uint16_t)(NRF_RADIO->FREQUENCY >> 2);
+}
+
+uint32_t nrfmin_get_frequency(void)
+{
+	return (uint32_t)(2400 + NRF_RADIO->FREQUENCY);
 }
 
 netopt_state_t nrfmin_get_state(void)
@@ -223,7 +228,7 @@ int16_t nrfmin_get_txpower(void)
 {
     int8_t p = (int8_t)NRF_RADIO->TXPOWER;
     if (p < 0) {
-        return (int16_t)(0xff00 | p);
+        return (int16_t)(0xFF00 | p);
     }
     return (int16_t)p;
 }
@@ -353,6 +358,14 @@ static int nrfmin_send(netdev_t *dev, const iolist_t *iolist)
 
     /* trigger the actual transmission */
     DEBUG("[nrfmin] send: putting %i byte into the ether\n", (int)hdr->len);
+#if ENABLE_DEBUG
+	DEBUG("[nrfmin] pack: ");
+	for(uint8_t i = 0; i < hdr->len; i++)
+	{
+		printf("%x ", rx_buf.raw[i]);
+	}
+	printf("\n");
+#endif
     state = STATE_TX;
     NRF_RADIO->TASKS_TXEN = 1;
 
@@ -384,7 +397,16 @@ static int nrfmin_recv(netdev_t *dev, void *buf, size_t len, void *info)
     }
     else {
         DEBUG("[nrfmin] recv: reading packet of length %i\n", pktlen);
-
+		
+#if ENABLE_DEBUG
+		DEBUG("[nrfmin] pack: ");
+		for(uint8_t i = 0; i < pktlen; i++)
+		{
+			printf("%x ", rx_buf.raw[i]);
+		}
+		printf("\n");
+#endif
+		
         pktlen = (len < pktlen) ? len : pktlen;
         memcpy(buf, rx_buf.raw, pktlen);
         rx_buf.pkt.hdr.len = 0;
@@ -473,6 +495,10 @@ static int nrfmin_get(netdev_t *dev, netopt_t opt, void *val, size_t max_len)
             assert(max_len >= sizeof(uint16_t));
             *((uint16_t *)val) = nrfmin_get_channel();
             return sizeof(uint16_t);
+        case NETOPT_CHANNEL_FREQUENCY:
+            assert(max_len >= sizeof(uint32_t));
+            *((uint32_t *)val) = nrfmin_get_frequency();
+            return sizeof(uint32_t);	
         case NETOPT_ADDRESS:
             assert(max_len >= sizeof(uint16_t));
             *((uint16_t *)val) = nrfmin_get_addr();
@@ -500,6 +526,10 @@ static int nrfmin_get(netdev_t *dev, netopt_t opt, void *val, size_t max_len)
         case NETOPT_NID:
             assert(max_len >= sizeof(uint16_t));
             *((uint16_t*)val) = CONF_PSEUDO_NID;
+            return sizeof(uint16_t);	
+		case NETOPT_SRC_LEN:
+            assert(max_len >= sizeof(uint16_t));
+            *((uint16_t*)val) = 2;
             return sizeof(uint16_t);
 #ifdef MODULE_GNRC_SIXLOWPAN
         case NETOPT_PROTO:

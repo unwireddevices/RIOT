@@ -187,6 +187,13 @@ void nrfmin_get_iid(uint16_t *iid);
 uint16_t nrfmin_get_channel(void);
 
 /**
+ * @brief   Get the current frequency
+ *
+ * @return  currently active frequency
+ */
+uint32_t nrfmin_get_frequency(void);
+
+/**
  * @brief   Set the active channel
  *
  * @param[in] chan      targeted channel [0-31]

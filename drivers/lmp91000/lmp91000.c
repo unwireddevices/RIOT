@@ -96,8 +96,8 @@ static int _lmp91000_unlock(lmp91000_t *dev);
 static int _write_i2c(const lmp91000_t *dev, uint8_t reg, uint8_t value) {
     int ret = -1;
 
-    DEBUG("m24sr: -> ");
-    PRINTBUFF(buffer, len);
+    DEBUG("LMP91000 [REG %02X]: -> ", reg);
+    PRINTBUFF(&value, 1);
 
     i2c_acquire(dev->params.i2c);
     ret = i2c_write_reg(dev->params.i2c, dev->params.i2c_addr, reg, value, 0);
@@ -113,8 +113,8 @@ static int _read_i2c(const lmp91000_t *dev, uint8_t reg, uint8_t *value) {
     ret = i2c_read_reg(dev->params.i2c, dev->params.i2c_addr, reg, value, 0);
     i2c_release(dev->params.i2c);
 
-    DEBUG("m24sr: <- ");
-    PRINTBUFF(buffer, len);
+    DEBUG("LMP91000 [REG %02X]: <- ", reg);
+    PRINTBUFF(value, 1);
     
     return ret;
 }

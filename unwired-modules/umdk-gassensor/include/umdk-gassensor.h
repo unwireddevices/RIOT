@@ -45,7 +45,9 @@
 #define UMDK_GASSENSOR_I2C_ADDR                     (0x48)
 #define UMDK_GASSENSOR_MODULE_EN_PIN                (UNWD_GPIO_5)
 
-#define UMDK_GASSENSOR_EXT_GAIN                     (499000U)
+#define UMDK_GASSENSOR_EXT_GAIN                     (499000U)           //Ohm
+#define UMDK_LMP_TEMP_OFFSET                        (1560)              //mV
+#define UMDK_LMP_TEMP_SENSITIVITY                   (8200)              //C/uV
 
 #define GASSENSOR_PARAMS_BOARD                         \
     {                                                  \

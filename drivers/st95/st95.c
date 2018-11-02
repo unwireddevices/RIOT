@@ -137,8 +137,7 @@ static uint8_t _st95_cmd_idle(const st95_t * dev);
     // return 5;
 // }
 
-
-// static uint8_t st95_select_iso14443b(void)
+// static uint8_t _st95_select_iso14443b(const st95_t * dev)
 // {
     // txbuf[0] = 0x00;
 
@@ -155,8 +154,16 @@ static uint8_t _st95_cmd_idle(const st95_t * dev);
     // txbuf[7] = 0x00;    // DD (Optioanal)                                                            // 80
     // txbuf[8] = 0x00;    // ST Reserved (Optioanal)
     // txbuf[9] = 0x00;    // ST Reserved (Optioanal)
+    
+    // _st95_spi_send(dev, 4);
+    // _st95_wait_ready_data();  
 
-    // return 5;
+    // if(_st95_spi_receive(dev, st95_rxbuf) == ST95_OK) {       
+        // if((st95_rxbuf[0] == 0x00) && (st95_rxbuf[1] == 0x00))
+            // return ST95_OK;
+    // }
+
+    // return ST95_ERROR;
 // }
 
 uint8_t _st95_spi_send(const st95_t * dev, uint8_t length_tx)
@@ -217,12 +224,15 @@ static void _st95_wait_ready_data(void)
     uint32_t time_delta = 0;
     st95_timeout = false;
     
+    xtimer_spin(xtimer_ticks_from_usec(50));
+    
 	while((st95_data_rx == false) && (st95_timeout == false)) {
 		time_end = rtctimers_millis_now();
 		time_delta = time_end - time_begin;
 		if(time_delta > ST95_NO_RESPONSE_TIME_MS) {
             st95_timeout = true;
 		}
+        xtimer_spin(xtimer_ticks_from_usec(50));
 	}
     return;
 }
@@ -231,7 +241,7 @@ static void _st95_spi_rx(void* arg)
 {
     st95_t *dev = arg;
     
-    st95_data_rx = true;
+    st95_data_rx = true;    
 
     if(state == ST95_IDLE_STATE) {
         if (dev->cb) {
@@ -329,7 +339,6 @@ static uint8_t _st95_calibration(const st95_t * dev)
             if(st95_rxbuf[2] == 0x02) {
                 dac_data_l = st95_txbuf[13];
                 dac_data_h = 0xFC;
-                // puts(" Calibration done");
                 return ST95_OK;
             }
             else if(st95_rxbuf[2] == 0x01){
@@ -341,7 +350,7 @@ static uint8_t _st95_calibration(const st95_t * dev)
             }
         }
         else {
-            printf("[ %02X ]\n", st95_txbuf[13]);
+            printf("RX: %d Timeout: %d [ %02X ]\n",st95_data_rx, st95_timeout, st95_txbuf[13]);
              return ST95_ERROR;
         }        
     }   	
@@ -476,25 +485,29 @@ int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_
 int st95_init(st95_t * dev, st95_params_t * params)
 {      
     dev->params = *params;
-    
+      
     gpio_init(dev->params.ssi_0, GPIO_OUT);
-    gpio_init(dev->params.irq_in, GPIO_OUT);
-    gpio_clear(dev->params.irq_in);
-       
     /* Select SPI iface */
     gpio_set(dev->params.ssi_0);
+        
+    gpio_init(dev->params.irq_in, GPIO_OUT);
+    gpio_set(dev->params.irq_in); 
     
     // TODO: Set "power on" ST95HF
+    rtctimers_millis_sleep(ST95_DELAY_POWER_ON_MS);
+    gpio_init(dev->params.vcc, GPIO_OUT);
+    gpio_clear(dev->params.vcc);
+    rtctimers_millis_sleep(ST95_RAMP_UP_TIME_MS);
+    
     // st95_send_irqin_negative_pulse();
     
      /* Send negative pulse IRQ_IN*/
-    gpio_set(dev->params.irq_in);
-        rtctimers_millis_sleep(ST95_RAMP_UP_TIME_MS);
+    gpio_set(dev->params.irq_in);      
     xtimer_spin(xtimer_ticks_from_usec(ST95_PULSE_NEGATIVE_USEC));
-    gpio_clear(dev->params.irq_in);
+    gpio_clear(dev->params.irq_in);  
     xtimer_spin(xtimer_ticks_from_usec(ST95_PULSE_NEGATIVE_USEC));
     gpio_set(dev->params.irq_in);
-    
+       
         /* Initialize SPI */
     spi_init(SPI_DEV(dev->params.spi));
         /* Initialize CS SPI */
@@ -509,12 +522,11 @@ int st95_init(st95_t * dev, st95_params_t * params)
     rtctimers_millis_sleep(ST95_HFO_SETUP_TIME_MS);
 
     if(_st95_cmd_echo(dev) != ST95_OK){
-        // puts("NO ECHO");
+        puts("NO ECHO");
         return ST95_ERROR;
     }
 
     if(_st95_calibration(dev) != ST95_OK) {
-        // puts("ERROR Calibration");
         return ST95_ERROR;
     }
     

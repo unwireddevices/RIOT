@@ -36,12 +36,6 @@ extern "C" {
 #define ISO14443A_MASK_UID_SIZE						    0x03
 
 /* Protocol select parameters 	*/
-#define ST95_TX_RATE_106                0
-#define ST95_RX_RATE_106                0
-#define ST95_TX_RATE_212                1
-#define ST95_RX_RATE_212                1
-#define ST95_TX_RATE_424                2
-#define ST95_RX_RATE_424                2
 #define ST95_TX_RATE_14443A             ST95_TX_RATE_106
 #define ST95_RX_RATE_14443A             ST95_RX_RATE_106
 

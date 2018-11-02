@@ -71,7 +71,8 @@ static st95_t dev;
 
 static st95_params_t st95_params = { .spi = UMDK_ST95_SPI_DEV, .cs_spi = UMDK_ST95_SPI_CS, 
                                 .irq_in = UMDK_ST95_IRQ_IN, .irq_out = UMDK_ST95_IRQ_OUT, 
-                                .ssi_0 = UMDK_ST95_SSI_0, .ssi_1 = UMDK_ST95_SSI_1 };
+                                .ssi_0 = UMDK_ST95_SSI_0, .ssi_1 = UMDK_ST95_SSI_1,
+                                .vcc = UMDK_ST95_VCC_ENABLE };
 
 static uint8_t length_uid = 0;
 static uint8_t uid_full[255];
@@ -173,7 +174,7 @@ void umdk_st95_init(uwnds_cb_t *event_callback)
 {
     (void)event_callback;
     callback = event_callback;
-    
+   
     dev.cb = wake_up_cb;
                                                                    
      /* Create handler thread */
@@ -188,6 +189,7 @@ void umdk_st95_init(uwnds_cb_t *event_callback)
         puts("[umdk-" _UMDK_NAME_ "] st95 driver initialization error");
     }
     else {   
+        puts("[umdk-" _UMDK_NAME_ "] st95 driver initialization success");
         st95_sleep(&dev);
     }
 }

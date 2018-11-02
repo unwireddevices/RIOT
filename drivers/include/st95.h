@@ -34,6 +34,15 @@
 #define ST95_LENGTH_OFFSET						1
 #define ST95_DATA_OFFSET						2
 
+#define ST95_TX_RATE_106                0
+#define ST95_RX_RATE_106                0
+#define ST95_TX_RATE_212                1
+#define ST95_RX_RATE_212                1
+#define ST95_TX_RATE_424                2
+#define ST95_RX_RATE_424                2
+#define ST95_TX_RATE_848                3
+#define ST95_RX_RATE_848                3
+
 /**
  * @brief ST95 return codes
 */
@@ -52,6 +61,7 @@ typedef struct {
     gpio_t irq_out;     /**< Interrupt output */
     gpio_t ssi_0;       /**< Select serial communication interface */
     gpio_t ssi_1;       /**< Select serial communication interface */
+    gpio_t vcc;         /**< Vcc enable */
 } st95_params_t;
 
 /**

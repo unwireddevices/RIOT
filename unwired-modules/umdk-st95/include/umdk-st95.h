@@ -38,11 +38,11 @@
 
 #define UMDK_ST95_SPI_DEV               0
 #define UMDK_ST95_SPI_CS                UNWD_GPIO_4
-#define UMDK_ST95_UART_DEV              1
 #define UMDK_ST95_IRQ_IN                UNWD_GPIO_25
 #define UMDK_ST95_IRQ_OUT               UNWD_GPIO_26
-#define UMDK_ST95_SSI_0                 UNWD_GPIO_24
+#define UMDK_ST95_SSI_0                 UNWD_GPIO_6
 #define UMDK_ST95_SSI_1                 GPIO_UNDEF
+#define UMDK_ST95_VCC_ENABLE            UNWD_GPIO_24
 
 #define ST95_MAX_DATA_BYTES             254
 

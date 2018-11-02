@@ -187,7 +187,8 @@ int iso14443a_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, u
     else {
         memcpy(uid, &iso_rxbuf[ST95_DATA_OFFSET + 1], ISO14443A_UID_SINGLE - 1 );
     }
-    _iso14443a_select_1(dev, ISO14443A_NUM_BYTE_SELECT, &iso_rxbuf[ISO14443A_OFFSET_UID_SELECT], iso_rxbuf);   
+    if(_iso14443a_select_1(dev, ISO14443A_NUM_BYTE_SELECT, &iso_rxbuf[ISO14443A_OFFSET_UID_SELECT], iso_rxbuf) != ST95_OK)
+        return ST95_ERROR;
 
     if(_iso14443a_is_uid_complete(iso_rxbuf[ISO14443A_OFFSET_SAK_BYTE]) == ST95_OK) {
         *sak = iso_rxbuf[ISO14443A_OFFSET_SAK_BYTE];
@@ -196,7 +197,8 @@ int iso14443a_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, u
     }
     
          // === Select cascade level 2 ===
-        _iso14443a_anticollision_2(dev, iso_rxbuf);
+        if(_iso14443a_anticollision_2(dev, iso_rxbuf) != ST95_OK)
+            return ST95_ERROR;
 
  //  Check BCC
        if(!_iso14443a_check_bcc(4, iso_rxbuf + ST95_DATA_OFFSET, iso_rxbuf[ST95_DATA_OFFSET + 4])) {
@@ -210,7 +212,8 @@ int iso14443a_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, u
             memcpy(&uid[ISO14443A_UID_SINGLE - 1], &iso_rxbuf[ST95_DATA_OFFSET], ISO14443A_UID_SINGLE - 1);
         
         //Send Select command	
-        _iso14443a_select_2(dev, ISO14443A_NUM_BYTE_SELECT, &iso_rxbuf[ISO14443A_OFFSET_UID_SELECT], iso_rxbuf);  
+        if(_iso14443a_select_2(dev, ISO14443A_NUM_BYTE_SELECT, &iso_rxbuf[ISO14443A_OFFSET_UID_SELECT], iso_rxbuf) != ST95_OK)
+            return ST95_ERROR;
 
     if(_iso14443a_is_uid_complete(iso_rxbuf[ISO14443A_OFFSET_SAK_BYTE]) == ST95_OK) {
         *sak = iso_rxbuf[ISO14443A_OFFSET_SAK_BYTE];
@@ -219,7 +222,8 @@ int iso14443a_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, u
     }
 
     // === Select cascade level 2 ===
-    _iso14443a_anticollision_3(dev, iso_rxbuf);
+    if(_iso14443a_anticollision_3(dev, iso_rxbuf) != ST95_OK)
+        return ST95_ERROR;
                     
  //  Check BCC
    if(!_iso14443a_check_bcc(4, iso_rxbuf + ST95_DATA_OFFSET, iso_rxbuf[ST95_DATA_OFFSET + 4])) {
@@ -231,7 +235,8 @@ int iso14443a_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, u
         memcpy(&uid[ISO14443A_UID_DOUBLE - 1], &iso_rxbuf[ST95_DATA_OFFSET], ISO14443A_UID_DOUBLE );
     
     //Send Select command	
-    _iso14443a_select_3(dev, ISO14443A_NUM_BYTE_SELECT, &iso_rxbuf[ISO14443A_OFFSET_UID_SELECT], iso_rxbuf); 
+    if(_iso14443a_select_3(dev, ISO14443A_NUM_BYTE_SELECT, &iso_rxbuf[ISO14443A_OFFSET_UID_SELECT], iso_rxbuf) != ST95_OK)
+        return ST95_ERROR;
 
     if(_iso14443a_is_uid_complete(iso_rxbuf[ISO14443A_OFFSET_SAK_BYTE]) == ST95_OK) {
         *sak = iso_rxbuf[ISO14443A_OFFSET_SAK_BYTE];

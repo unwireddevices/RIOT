@@ -28,6 +28,8 @@
 #include "st95_params.h"
 #include "iso14443a.h"
 
+#define ENABLE_DEBUG (0)
+#include "debug.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -350,7 +352,6 @@ static uint8_t _st95_calibration(const st95_t * dev)
             }
         }
         else {
-            printf("RX: %d Timeout: %d [ %02X ]\n",st95_data_rx, st95_timeout, st95_txbuf[13]);
              return ST95_ERROR;
         }        
     }   	
@@ -476,31 +477,36 @@ int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_
 /**
  * @brief ST95 driver initialization routine
  *
- * @param[in] SPI interface to be used for 1-Wire
- * @param[in] GPIO to be used for 1-Wire
+ * @param[in] SPI interface to be used for ST95
+ * @param[in] GPIO to be used for ST95
  *
- * @return 1 if initialization succeeded
- * @return <0 in case of an error
+ * @return 0 if initialization succeeded
+ * @return >0 in case of an error
  */
 int st95_init(st95_t * dev, st95_params_t * params)
 {      
     dev->params = *params;
-      
-    gpio_init(dev->params.ssi_0, GPIO_OUT);
-    /* Select SPI iface */
-    gpio_set(dev->params.ssi_0);
-        
-    gpio_init(dev->params.irq_in, GPIO_OUT);
-    gpio_set(dev->params.irq_in); 
-    
-    // TODO: Set "power on" ST95HF
-    rtctimers_millis_sleep(ST95_DELAY_POWER_ON_MS);
+        /* Init SSI_0 pin */
+    gpio_init(dev->params.ssi_0, GPIO_OD_PU);
+        /* Init IRQ_IN pin */
+    gpio_init(dev->params.irq_in, GPIO_OD_PU);    
+        /* Init VCC_ENABLE pin -> after init st95 is power on! */
     gpio_init(dev->params.vcc, GPIO_OUT);
+       
+        /* ST95 Power Off */
+    gpio_set(dev->params.vcc);
+    
+        /* Select SPI iface */
+    gpio_set(dev->params.ssi_0);
+    gpio_set(dev->params.irq_in);
+    
+    rtctimers_millis_sleep(ST95_DELAY_POWER_ON_MS);
+        
+        /* ST95 Power On */
     gpio_clear(dev->params.vcc);
+        /* Ramp-up time from 0V to Vps */
     rtctimers_millis_sleep(ST95_RAMP_UP_TIME_MS);
-    
-    // st95_send_irqin_negative_pulse();
-    
+        
      /* Send negative pulse IRQ_IN*/
     gpio_set(dev->params.irq_in);      
     xtimer_spin(xtimer_ticks_from_usec(ST95_PULSE_NEGATIVE_USEC));
@@ -512,21 +518,26 @@ int st95_init(st95_t * dev, st95_params_t * params)
     spi_init(SPI_DEV(dev->params.spi));
         /* Initialize CS SPI */
     if(spi_init_cs(SPI_DEV(dev->params.spi), dev->params.cs_spi) != SPI_OK) {
-        // puts("Error init SPI interface");
+        DEBUG("[ST95]: Error init SPI interface\n");
         return ST95_ERROR;
     }
     
+        /* Init Interrupt */
     gpio_init_int(dev->params.irq_out, GPIO_IN_PU, GPIO_FALLING, _st95_spi_rx, dev);
     gpio_irq_disable(dev->params.irq_out);
     
+        /* HFO setup time */
     rtctimers_millis_sleep(ST95_HFO_SETUP_TIME_MS);
 
+        /* Send ECHO cmd (check response fron st95) */
     if(_st95_cmd_echo(dev) != ST95_OK){
-        puts("NO ECHO");
+        DEBUG("[ST95]: No ECHO\n");
         return ST95_ERROR;
     }
 
+        /* Calibration process */
     if(_st95_calibration(dev) != ST95_OK) {
+        DEBUG("[ST95]: Calibration error\n");
         return ST95_ERROR;
     }
     

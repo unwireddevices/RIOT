@@ -27,7 +27,7 @@
  * @file        umdk-gassensor.c
  * @brief       LMP91000-based gas sensor module
  * @author 
- * @todo        To realize a temperature compensation of concentration of gas     
+ * @todo        To realize a temperature compensation of concentration of gas (Zero Shifting)    
  */
 
 #ifdef __cplusplus
@@ -180,6 +180,132 @@ static uint16_t _recalculation_v_ref (lmp91000_config_t config, uint16_t v_ref) 
     return (uint16_t)value;
 }
 
+static uint8_t _bias_calculation(const uint32_t bias_mV, const uint32_t v_ref_mV) {
+
+    uint8_t bias_to_ref_pct = (uint8_t)((bias_mV * 100 * 2 + v_ref_mV) / (2 * v_ref_mV));
+    
+    if (bias_to_ref_pct == 0) {
+        return LMP91000_BIAS_00PCT; // default
+    } else if (bias_to_ref_pct == 1) {
+        return LMP91000_BIAS_01PCT;
+    } else if (bias_to_ref_pct == 2) {
+        return LMP91000_BIAS_02PCT;
+    } else if (bias_to_ref_pct <= 4) {
+        return LMP91000_BIAS_04PCT;
+    } else if (bias_to_ref_pct <= 6) {
+        return LMP91000_BIAS_06PCT;
+    } else if (bias_to_ref_pct <= 8) {
+        return LMP91000_BIAS_08PCT;
+    } else if (bias_to_ref_pct <= 10) {
+        return LMP91000_BIAS_10PCT;
+    } else if (bias_to_ref_pct <= 12) {
+        return LMP91000_BIAS_12PCT;
+    } else if (bias_to_ref_pct <= 14) {
+        return LMP91000_BIAS_14PCT;
+    } else if (bias_to_ref_pct <= 16) {
+        return LMP91000_BIAS_16PCT;
+    } else if (bias_to_ref_pct <= 18) {
+        return LMP91000_BIAS_18PCT;
+    } else if (bias_to_ref_pct <= 20) {
+        return LMP91000_BIAS_20PCT;
+    } else if (bias_to_ref_pct <= 22) {
+        return LMP91000_BIAS_22PCT;
+    } else {
+        // if (bias_to_ref_pct > 22%) --> assign maximum possible value 
+        return LMP91000_BIAS_24PCT;
+    }
+}
+
+static int32_t _concentration_calc_ppb(lmp91000_config_t config, uint16_t v_ref_mV, uint16_t v_gas_mV, int16_t temp) {
+        int32_t ppb = 0;
+        int32_t sigma = 0;
+        /* Calculate M */
+        /* M(V/ppm) = SensCode(pA/ppm)*TIA_Gain(V/A)*10^-12(A/pA) */
+        int32_t gain =_tia_gain_calc(config, UMDK_GASSENSOR_EXT_GAIN);
+        DEBUG("gain = %ld\n", gain);
+        
+        uint16_t v_ref = _recalculation_v_ref(config, v_ref_mV); 
+        DEBUG("v_ref = %d\n mV", v_ref);
+        
+        if (gain != -1) {
+            
+            gain /= 1000;
+            uint32_t calib_factor = (gassensor_config.sensor_code * gain);
+            DEBUG("gassensor_config.sensor_code * gain = %ld\n", calib_factor);
+            calib_factor = 1000000000 / calib_factor;
+            DEBUG("1/M = %ld\n", calib_factor);
+            DEBUG("v_gas = %d\n mV", v_gas_mV);
+            DEBUG("(v_gas - v_ref) = %d\n mV", (v_gas_mV - v_ref));
+            ppb = (calib_factor * (v_gas_mV - v_ref));
+            DEBUG("ppb = %ld\n", ppb); 
+        }
+
+        switch(gassensor_config.sensor_type) {
+            case UMDK_GASSENSOR_CO:
+                if ((temp < 10) && (temp > -21)) {
+                    sigma = (ppb * UMDK_GASSENSOR_CO_SPAN_LO * (temp - 20)) / 1000;
+                    DEBUG("sigma = %ld\n", sigma);
+                } else if ((temp >= 10) && (temp <= 40)) {
+                    sigma = (ppb * UMDK_GASSENSOR_CO_SPAN_HI * (temp - 20)) / 1000;
+                    DEBUG("sigma = %ld\n", sigma);
+                } else {
+                    sigma = 0;
+                    DEBUG("sigma = %ld\n", sigma);
+                }
+            break;
+        case UMDK_GASSENSOR_H2S:
+            if ((temp < 20) && (temp > -21)) {
+                    sigma = (ppb * UMDK_GASSENSOR_H2S_SPAN_LO * (temp - 20)) / 10000;
+                    DEBUG("sigma = %ld\n", sigma);
+                } else if ((temp >= 20) && (temp < 41)) {
+                    sigma = (ppb * UMDK_GASSENSOR_H2S_SPAN_HI * (temp - 20)) / 10000;
+                    DEBUG("sigma = %ld\n", sigma);
+                } else {
+                    sigma = 0;
+                    DEBUG("sigma = %ld\n", sigma);
+                }
+            break;
+        case UMDK_GASSENSOR_NO2:
+            if ((temp < 51) && (temp > -21)) {
+                    sigma = (ppb * UMDK_GASSENSOR_NO2_SPAN * (temp - 20)) / 1000;
+                    DEBUG("sigma = %ld\n", sigma);
+                } else {
+                    sigma = 0;
+                    DEBUG("sigma = %ld\n", sigma);
+                }
+            break;
+        case UMDK_GASSENSOR_SO2:
+            if ((temp < 20) && (temp > -21)) {
+                    sigma = (ppb * UMDK_GASSENSOR_SO2_SPAN_LO * (temp - 20)) / 10000;
+                    DEBUG("sigma = %ld\n", sigma);
+                } else if ((temp >= 20) && (temp < 41)) {
+                    sigma = (ppb * UMDK_GASSENSOR_SO2_SPAN_HI * (temp - 20)) / 10000;
+                    DEBUG("sigma = %ld\n", sigma);
+                } else {
+                    sigma = 0;
+                    DEBUG("sigma = %ld\n", sigma);
+                }
+                break;
+        case UMDK_GASSENSOR_O3:
+            if ((temp < 51) && (temp > -21)) {
+                    sigma = (ppb * UMDK_GASSENSOR_O3_SPAN * (temp - 20)) / 1000;
+                    DEBUG("sigma = %ld\n", sigma);
+                } else {
+                    sigma = 0;
+                    DEBUG("sigma = %ld\n", sigma);
+                }
+            break;
+        case UMDK_GASSENSOR_UNKNOWN:
+            /* do Nothing */
+            break;
+        default:
+            /* do Nothing */
+            break;
+    }
+
+    return (int32_t)(ppb -= sigma);
+} 
+
 static void reset_config(void) {
     gassensor_config.publish_period_sec = UMDK_GASSENSOR_PUBLISH_PERIOD_MIN;
     gassensor_config.sensor_type        = UMDK_GASSENSOR_UNKNOWN;
@@ -223,7 +349,7 @@ static void init_gassensor(void) {
         case UMDK_GASSENSOR_CO:
             lmp91000_config.tiacn.tia_gain   = LMP91000_TIA_GAIN_EXT;
             lmp91000_config.tiacn.r_load     = LMP91000_RLOAD_10OHM;
-            lmp91000_config.refcn.bias       = LMP91000_BIAS_01PCT;
+            lmp91000_config.refcn.bias       = _bias_calculation(UMDK_GASSENSOR_CO_BIAS, UMDK_GASSENSOR_VOLTAGE_REF);
             lmp91000_config.refcn.bias_sign  = LMP91000_BIAS_SIGN_POS;
             lmp91000_config.refcn.int_z      = LMP91000_INT_Z_20PCT;
             lmp91000_config.refcn.ref_source = LMP91000_REF_SOURCE_INT;
@@ -236,7 +362,7 @@ static void init_gassensor(void) {
         case UMDK_GASSENSOR_H2S:
             lmp91000_config.tiacn.tia_gain   = LMP91000_TIA_GAIN_EXT;
             lmp91000_config.tiacn.r_load     = LMP91000_RLOAD_10OHM;
-            lmp91000_config.refcn.bias       = LMP91000_BIAS_00PCT;
+            lmp91000_config.refcn.bias       = _bias_calculation(UMDK_GASSENSOR_H2S_BIAS, UMDK_GASSENSOR_VOLTAGE_REF);
             lmp91000_config.refcn.bias_sign  = LMP91000_BIAS_SIGN_POS;
             lmp91000_config.refcn.int_z      = LMP91000_INT_Z_20PCT;
             lmp91000_config.refcn.ref_source = LMP91000_REF_SOURCE_INT;
@@ -249,7 +375,7 @@ static void init_gassensor(void) {
         case UMDK_GASSENSOR_NO2:
             lmp91000_config.tiacn.tia_gain   = LMP91000_TIA_GAIN_EXT;
             lmp91000_config.tiacn.r_load     = LMP91000_RLOAD_10OHM;
-            lmp91000_config.refcn.bias       = LMP91000_BIAS_06PCT;                 //@todo LMP91000_BIAS_10PCT;
+            lmp91000_config.refcn.bias       = _bias_calculation(UMDK_GASSENSOR_NO2_BIAS, UMDK_GASSENSOR_VOLTAGE_REF);
             lmp91000_config.refcn.bias_sign  = LMP91000_BIAS_SIGN_NEG;
             lmp91000_config.refcn.int_z      = LMP91000_INT_Z_50PCT;
             lmp91000_config.refcn.ref_source = LMP91000_REF_SOURCE_INT;
@@ -262,7 +388,7 @@ static void init_gassensor(void) {
         case UMDK_GASSENSOR_SO2:
             lmp91000_config.tiacn.tia_gain   = LMP91000_TIA_GAIN_EXT;
             lmp91000_config.tiacn.r_load     = LMP91000_RLOAD_10OHM;
-            lmp91000_config.refcn.bias       = LMP91000_BIAS_06PCT;                 //@todo LMP91000_BIAS_10PCT;
+            lmp91000_config.refcn.bias       = _bias_calculation(UMDK_GASSENSOR_SO2_BIAS, UMDK_GASSENSOR_VOLTAGE_REF);            
             lmp91000_config.refcn.bias_sign  = LMP91000_BIAS_SIGN_POS;
             lmp91000_config.refcn.int_z      = LMP91000_INT_Z_50PCT;
             lmp91000_config.refcn.ref_source = LMP91000_REF_SOURCE_INT;
@@ -271,10 +397,11 @@ static void init_gassensor(void) {
             if (lmp91000_set_configure(&lmp91000, lmp91000_config) != LMP91000_OK)
                 puts("[umdk-" _UMDK_NAME_ "] lmp91000 not found");
             puts("[umdk-" _UMDK_NAME_ "] lmp91000 initialized and configured");
+            break;
         case UMDK_GASSENSOR_O3:
             lmp91000_config.tiacn.tia_gain   = LMP91000_TIA_GAIN_EXT;
             lmp91000_config.tiacn.r_load     = LMP91000_RLOAD_10OHM;
-            lmp91000_config.refcn.bias       = LMP91000_BIAS_01PCT;
+            lmp91000_config.refcn.bias       = _bias_calculation(UMDK_GASSENSOR_O3_BIAS, UMDK_GASSENSOR_VOLTAGE_REF);
             lmp91000_config.refcn.bias_sign  = LMP91000_BIAS_SIGN_NEG;
             lmp91000_config.refcn.int_z      = LMP91000_INT_Z_50PCT;
             lmp91000_config.refcn.ref_source = LMP91000_REF_SOURCE_INT;
@@ -298,65 +425,25 @@ static void init_gassensor(void) {
 static void prepare_result(module_data_t *buf)
 {
     if ((gassensor_config.sensor_type != UMDK_GASSENSOR_UNKNOWN) && (gassensor_config.sensor_code != 0)) { 
-        uint32_t ppb;
-        /* obtain data */
-        int32_t calib_factor;
         uint16_t v_ref;
 
-        
-
-        /* VDD scaling */
-        if (UMDK_GASSENSOR_CONVERT_TO_MILLIVOLTS) {
-            v_ref = adc_sample(ADC_LINE(ADC_VREF_INDEX), UMDK_GASSENSOR_ADC_RESOLUTION);
-            DEBUG("[umdk-" _UMDK_NAME_ "] VREF line #%d: %d mV\n", ADC_VREF_INDEX, v_ref);
-        }
-        /* Temp MCU */
-        uint16_t temp_mcu = adc_sample(ADC_LINE(ADC_TEMPERATURE_INDEX), UMDK_GASSENSOR_ADC_RESOLUTION);
-        DEBUG("[umdk-" _UMDK_NAME_ "] Reading line #%d: %d C\n", ADC_TEMPERATURE_INDEX, temp_mcu);
-
-
         /* Measure voltage internal temp sensor */
-        lmp91000_set_operation_mode(&lmp91000, LMP91000_OP_MODE_TEMP_MEAS_TIA_OFF);
+        lmp91000_set_operation_mode(&lmp91000, LMP91000_OP_MODE_TEMP_MEAS_TIA_ON);
         rtctimers_millis_sleep(1000);
         uint16_t temp = adc_sample(UMDK_GASSENSOR_ADC_LINE, UMDK_GASSENSOR_ADC_RESOLUTION);
-
-
-        if (UMDK_GASSENSOR_CONVERT_TO_MILLIVOLTS) {
-            /* Calculate Vdd */
-            uint32_t full_scale = 0;
-            
-            switch (UMDK_GASSENSOR_ADC_RESOLUTION) {
-                case ADC_RES_12BIT:
-                    full_scale = 4095;
-                    break;
-                case ADC_RES_10BIT:
-                    full_scale = 1023;
-                    break;
-                case ADC_RES_8BIT:
-                    full_scale = 255;
-                    break;
-                case ADC_RES_6BIT:
-                    full_scale = 63;
-                    break;
-                default:
-                    puts("[umdk-" _UMDK_NAME_ "] Unsupported ADC resolution, aborting.");
-                    return;
-                    break; 
-            }
-            temp = (uint32_t)(temp * v_ref) / full_scale;
-        }
-        
-        DEBUG("[umdk-" _UMDK_NAME_ "] Reading line #%d: %d mV\n", UMDK_GASSENSOR_ADC_LINE, temp);
-
-        int32_t temp_lmp = ((temp - UMDK_LMP_TEMP_OFFSET) * 1000)/ (-UMDK_LMP_TEMP_SENSITIVITY);
-
-        printf("[umdk-" _UMDK_NAME_ "] LMP91000 temperature measured %ld C\n", temp_lmp);
-
+        DEBUG("[umdk-" _UMDK_NAME_ "] Reading line #%d: %d\n", UMDK_GASSENSOR_ADC_LINE, temp);
 
         /* Measure voltage gas sensor */
         lmp91000_set_operation_mode(&lmp91000, LMP91000_OP_MODE_3_LEAD_AMP_CELL);
         rtctimers_millis_sleep(1000);
         uint16_t sample = adc_sample(UMDK_GASSENSOR_ADC_LINE, UMDK_GASSENSOR_ADC_RESOLUTION);
+        DEBUG("[umdk-" _UMDK_NAME_ "] Reading line #%d: %d\n", UMDK_GASSENSOR_ADC_LINE, sample);
+        
+        /* VDD scaling */
+        if (UMDK_GASSENSOR_CONVERT_TO_MILLIVOLTS) {
+            v_ref = adc_sample(ADC_LINE(ADC_VREF_INDEX), UMDK_GASSENSOR_ADC_RESOLUTION);
+            DEBUG("[umdk-" _UMDK_NAME_ "] VREF line #%d: %d mV\n", ADC_VREF_INDEX, v_ref);
+        }
 
         if (UMDK_GASSENSOR_CONVERT_TO_MILLIVOLTS) {
             /* Calculate Vdd */
@@ -381,28 +468,16 @@ static void prepare_result(module_data_t *buf)
                     break; 
             }
             sample = (uint32_t)(sample * v_ref) / full_scale;
-        }
-        
-        DEBUG("[umdk-" _UMDK_NAME_ "] Reading line #%d: %d mV\n", UMDK_GASSENSOR_ADC_LINE, sample);
-        
-        
-        /* Calculate M */
-        /* M(V/ppm) = SensCode(pA/ppm)*TIA_Gain(V/A)*10^-12(A/pA) */
-        int32_t gain =_tia_gain_calc(lmp91000_config, UMDK_GASSENSOR_EXT_GAIN);
-        v_ref = _recalculation_v_ref(lmp91000_config, v_ref); 
-        DEBUG("v_ref = %d\n mV", v_ref);
-        if (gain != -1) {
-            gain /= 1000;
-            calib_factor = (gassensor_config.sensor_code * gain);
-            DEBUG("gassensor_config.sensor_code * gain = %ld\n", calib_factor);
-            calib_factor = 1000000000 / calib_factor;
-            DEBUG("1/M = %ld\n", calib_factor);
-            DEBUG("sample = %d\n mV", sample);
-            DEBUG("(sample - v_ref) = %d\n mV", (sample - v_ref));
-            ppb = (calib_factor * (sample - v_ref));
-            DEBUG("ppb = %ld\n", ppb); 
-        }
+            temp = (uint32_t)(temp * v_ref) / full_scale;
+            DEBUG("[umdk-" _UMDK_NAME_ "] Reading line #%d: %d mV\n", UMDK_GASSENSOR_ADC_LINE, sample);
+            DEBUG("[umdk-" _UMDK_NAME_ "] Reading line #%d: %d mV\n", UMDK_GASSENSOR_ADC_LINE, temp);
+        }        
 
+        int32_t temp_lmp = ((temp - UMDK_LMP_TEMP_OFFSET) * 1000)/ (-UMDK_LMP_TEMP_SENSITIVITY);
+        
+        int32_t ppb = _concentration_calc_ppb(lmp91000_config, v_ref, sample, temp_lmp);
+
+        printf("[umdk-" _UMDK_NAME_ "] LMP91000 temperature measured %ld C\n", temp_lmp);
         printf("[umdk-" _UMDK_NAME_ "] %s concentration measured %ld ppb\n", _check_sensor_type(gassensor_config.sensor_type), ppb);
         
 

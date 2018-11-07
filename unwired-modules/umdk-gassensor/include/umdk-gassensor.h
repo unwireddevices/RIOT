@@ -45,9 +45,33 @@
 #define UMDK_GASSENSOR_I2C_ADDR                     (0x48)
 #define UMDK_GASSENSOR_MODULE_EN_PIN                (UNWD_GPIO_5)
 
+/* Presettings LMP91000 */
 #define UMDK_GASSENSOR_EXT_GAIN                     (499000U)           //Ohm
 #define UMDK_LMP_TEMP_OFFSET                        (1560)              //mV
 #define UMDK_LMP_TEMP_SENSITIVITY                   (8200)              //C/uV
+
+/* Recommended Bias */
+#define UMDK_GASSENSOR_CO_BIAS                      (20.5)              //mV
+#define UMDK_GASSENSOR_H2S_BIAS                     (0)                 //mV     
+#define UMDK_GASSENSOR_NO2_BIAS                     (205)               //mV     
+#define UMDK_GASSENSOR_SO2_BIAS                     (205)               //mV     
+#define UMDK_GASSENSOR_O3_BIAS                      (20.5)              //mV
+#define UMDK_GASSENSOR_VOLTAGE_REF                  (3300)              //mV      
+
+/* Temperature Coefficient of Span [%/°C] * 10 */
+#define UMDK_GASSENSOR_CO_SPAN_HI                   (3)                 //  10°C to 40 °C
+#define UMDK_GASSENSOR_CO_SPAN_LO                   (9)                 // -20°C to 10 °C
+/* Temperature Coefficient of Span [%/°C] * 100 */
+#define UMDK_GASSENSOR_H2S_SPAN_HI                  (5)                 //  20 °C to 40 °C
+#define UMDK_GASSENSOR_H2S_SPAN_LO                  (-33)               // -20 °C to 20 °C
+/* Temperature Coefficient of Span [%/°C] * 10 */
+#define UMDK_GASSENSOR_NO2_SPAN                     (3)                 // -20 °C to 50 °C 
+/* Temperature Coefficient of Span [%/°C] * 100 */
+#define UMDK_GASSENSOR_SO2_SPAN_HI                  (26)                // 20 °C to 40 °C 
+#define UMDK_GASSENSOR_SO2_SPAN_LO                  (-33)               // -20 °C to 20 °C
+/* Temperature Coefficient of Span [%/°C] * 10 */
+#define UMDK_GASSENSOR_O3_SPAN                      (3)                 // -20 °C to 50 °C
+
 
 #define GASSENSOR_PARAMS_BOARD                         \
     {                                                  \

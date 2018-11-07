@@ -35,7 +35,6 @@
 extern "C" {
 #endif
 
-
 static uint8_t st95_txbuf[255] = { 0x00 };
 static uint8_t st95_rxbuf[255] = { 0x00 };
 
@@ -191,13 +190,10 @@ uint8_t _st95_spi_receive(const st95_t * dev, uint8_t * rxbuff)
 { 
     uint8_t rx_spi = 0x02;
     uint16_t length_rx = 0;
-       
-    // _st95_wait_ready_data();
-       
+             
     gpio_irq_disable(dev->params.irq_out);
     
     if(st95_timeout == true) {
-        // puts("Timeout");
         return ST95_NO_DEVICE;
 	}
       
@@ -225,7 +221,7 @@ static void _st95_wait_ready_data(void)
     uint32_t time_end = 0;
     uint32_t time_delta = 0;
     st95_timeout = false;
-    
+        
     xtimer_spin(xtimer_ticks_from_usec(50));
     
 	while((st95_data_rx == false) && (st95_timeout == false)) {
@@ -259,9 +255,9 @@ static int _st95_cmd_echo(const st95_t * dev)
     st95_txbuf[0] = ST95_CMD_ECHO;
     
     _st95_spi_send(dev, 1);
-    
+
     _st95_wait_ready_data();
-	
+
     if(_st95_spi_receive(dev, st95_rxbuf) == ST95_OK) {
         if(st95_rxbuf[0] == ST95_CMD_ECHO) {
             return ST95_OK;
@@ -270,6 +266,7 @@ static int _st95_cmd_echo(const st95_t * dev)
             return ST95_NO_DEVICE;
         }
     }
+
     return ST95_ERROR;
 }
 
@@ -396,6 +393,14 @@ static uint8_t _st95_cmd_idle(const st95_t * dev)
     return ST95_OK;
 }
 
+/**
+ * @brief This function check wake-up state
+ * 
+ * @param[in]   dev Pointer to ST95 device descriptor
+ * 
+ * @return 0 if device wake-up
+ * @return >0 in case of an error
+ */
 int st95_is_wake_up(const st95_t * dev)
 {
     state = ST95_READY_STATE;
@@ -409,11 +414,26 @@ int st95_is_wake_up(const st95_t * dev)
     return ST95_ERROR;
 }
 
+/**
+ * @brief This function set st95 in sleep mode
+ * 
+ * @param[in]   dev Pointer to ST95 device descriptor
+ * 
+ * @return None
+ */
 void st95_sleep(st95_t * dev)
 {
     _st95_cmd_idle(dev);
 }
 
+/**
+ * @brief This function select ISO 14443A protocol
+ * 
+ * @param[in]   dev Pointer to ST95 device descriptor
+ * 
+ * @return 0 if selecting success
+ * @return >0 in case of an error
+ */
 int _st95_select_iso14443a(const st95_t * dev)
 {
     st95_txbuf[0] = ST95_CMD_PROTOCOL;
@@ -463,6 +483,18 @@ int _st95_cmd_send_receive(const st95_t * dev, uint8_t *data_tx, uint8_t size, u
     return ST95_ERROR;
 }
 
+
+/**
+ * @brief This function get UID card
+ * 
+ * @param[in]   dev Pointer to ST95 device descriptor
+ * @param[out]  length_uid UID length
+ * @param[out]  uid Card UID
+ * @param[out]  sak Card SAK(Select ACK)
+ * 
+ * @return 0 if Valid UID 
+ * @return >0 in case of an error
+ */
 int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_t * sak)
 {
     if(_st95_select_iso14443a(dev) == ST95_ERROR)
@@ -477,8 +509,8 @@ int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_
 /**
  * @brief ST95 driver initialization routine
  *
- * @param[in] SPI interface to be used for ST95
- * @param[in] GPIO to be used for ST95
+ * @param[in]   dev Pointer to ST95 device descriptor
+ * @param[in]   params Pointer to static ST95 device configuration
  *
  * @return 0 if initialization succeeded
  * @return >0 in case of an error
@@ -489,52 +521,60 @@ int st95_init(st95_t * dev, st95_params_t * params)
         /* Init SSI_0 pin */
     gpio_init(dev->params.ssi_0, GPIO_OD_PU);
         /* Init IRQ_IN pin */
-    gpio_init(dev->params.irq_in, GPIO_OD_PU);    
+    gpio_init(dev->params.irq_in, GPIO_OD_PU);
         /* Init VCC_ENABLE pin -> after init st95 is power on! */
     gpio_init(dev->params.vcc, GPIO_OUT);
-       
-        /* ST95 Power Off */
-    gpio_set(dev->params.vcc);
+        /* Number of initializations */
+    uint8_t cnt_init = 0;
     
-        /* Select SPI iface */
-    gpio_set(dev->params.ssi_0);
-    gpio_set(dev->params.irq_in);
-    
-    rtctimers_millis_sleep(ST95_DELAY_POWER_ON_MS);
-        
-        /* ST95 Power On */
-    gpio_clear(dev->params.vcc);
-        /* Ramp-up time from 0V to Vps */
-    rtctimers_millis_sleep(ST95_RAMP_UP_TIME_MS);
-        
-     /* Send negative pulse IRQ_IN*/
-    gpio_set(dev->params.irq_in);      
-    xtimer_spin(xtimer_ticks_from_usec(ST95_PULSE_NEGATIVE_USEC));
-    gpio_clear(dev->params.irq_in);  
-    xtimer_spin(xtimer_ticks_from_usec(ST95_PULSE_NEGATIVE_USEC));
-    gpio_set(dev->params.irq_in);
-       
-        /* Initialize SPI */
-    spi_init(SPI_DEV(dev->params.spi));
-        /* Initialize CS SPI */
-    if(spi_init_cs(SPI_DEV(dev->params.spi), dev->params.cs_spi) != SPI_OK) {
-        DEBUG("[ST95]: Error init SPI interface\n");
-        return ST95_ERROR;
+    do {      
+            /* ST95 Power Off */
+        gpio_set(dev->params.vcc);
+
+            /* Select SPI iface */
+        gpio_set(dev->params.ssi_0);
+        gpio_set(dev->params.irq_in);
+
+        rtctimers_millis_sleep(ST95_DELAY_POWER_ON_MS);
+            
+            /* ST95 Power On */
+        gpio_clear(dev->params.vcc);
+            /* Ramp-up time from 0V to Vps */
+        rtctimers_millis_sleep(ST95_RAMP_UP_TIME_MS);
+            
+         /* Send negative pulse IRQ_IN*/
+        gpio_set(dev->params.irq_in);      
+        xtimer_spin(xtimer_ticks_from_usec(ST95_PULSE_NEGATIVE_USEC));
+        gpio_clear(dev->params.irq_in);  
+        xtimer_spin(xtimer_ticks_from_usec(ST95_PULSE_NEGATIVE_USEC));
+        gpio_set(dev->params.irq_in);
+           
+            /* Initialize SPI */
+        spi_init(SPI_DEV(dev->params.spi));
+            /* Initialize CS SPI */
+        if(spi_init_cs(SPI_DEV(dev->params.spi), dev->params.cs_spi) != SPI_OK) {
+            DEBUG("[ST95]: Error init SPI interface\n");
+            return ST95_ERROR;
+        }
+
+            /* Init Interrupt */
+        gpio_init_int(dev->params.irq_out, GPIO_IN_PU, GPIO_FALLING, _st95_spi_rx, dev);
+        gpio_irq_disable(dev->params.irq_out);
+
+            /* HFO setup time */
+        rtctimers_millis_sleep(ST95_HFO_SETUP_TIME_MS);
+
+        /* Increase number of init */
+        cnt_init++;
+        DEBUG("[ST95]: Init: [%d / %d]\n", cnt_init, ST95_NUMB_TRY_INIT); 
+        /* Send ECHO cmd (check response from st95) */
+    } while((_st95_cmd_echo(dev) != ST95_OK) && (cnt_init < ST95_NUMB_TRY_INIT));
+                 
+    if(cnt_init >= ST95_NUMB_TRY_INIT) {
+            DEBUG("[ST95]: No ECHO\n");
+            return ST95_ERROR;
     }
     
-        /* Init Interrupt */
-    gpio_init_int(dev->params.irq_out, GPIO_IN_PU, GPIO_FALLING, _st95_spi_rx, dev);
-    gpio_irq_disable(dev->params.irq_out);
-    
-        /* HFO setup time */
-    rtctimers_millis_sleep(ST95_HFO_SETUP_TIME_MS);
-
-        /* Send ECHO cmd (check response fron st95) */
-    if(_st95_cmd_echo(dev) != ST95_OK){
-        DEBUG("[ST95]: No ECHO\n");
-        return ST95_ERROR;
-    }
-
         /* Calibration process */
     if(_st95_calibration(dev) != ST95_OK) {
         DEBUG("[ST95]: Calibration error\n");

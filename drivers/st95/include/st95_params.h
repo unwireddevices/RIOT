@@ -32,6 +32,8 @@ extern "C" {
 
 #define ST95_NO_RESPONSE_TIME_MS   2000
 
+#define ST95_NUMB_TRY_INIT 5
+
 /**
  * @brief   ST95 commands list
  */

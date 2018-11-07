@@ -76,13 +76,15 @@ typedef struct {
     st95_params_t params;
     st95_cb_t cb;
 } st95_t;
+
 /**
- * @brief ST95 bus driver initialization routine
+ * @brief ST95 driver initialization routine
  *
- * @param[in] Device (SPI) to be used for ST95 communication
+ * @param[in]   dev Pointer to ST95 device descriptor
+ * @param[in]   params Pointer to static ST95 device configuration
  *
- * @return 1 if initialization succeeded
- * @return <0 in case of an error
+ * @return 0 if initialization succeeded
+ * @return >0 in case of an error
  */
 int st95_init(st95_t *dev, st95_params_t * params);
 

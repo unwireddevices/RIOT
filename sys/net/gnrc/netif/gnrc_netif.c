@@ -845,6 +845,13 @@ int gnrc_netif_ipv6_get_iid(gnrc_netif_t *netif, eui64_t *eui64)
                 _create_iid_from_short(netif, eui64);
                 return 0;
 #endif
+#if defined(MODULE_NRFMAX)
+            case NETDEV_TYPE_NRFMAX:
+				assert(netif->l2addr_len == sizeof(eui64_t));
+                memcpy(eui64, netif->l2addr, sizeof(eui64_t));
+				eui64->uint8[0] ^= 0x02;
+                return 0;
+#endif
             default:
                 (void)eui64;
                 break;

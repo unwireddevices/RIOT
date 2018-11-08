@@ -26,7 +26,7 @@
  * @{
  * @file        umdk-gassensor.c
  * @brief       LMP91000-based gas sensor module
- * @author 
+ * @author      Alexander Ugorelov <alex_u@unwds.com>
  * @todo        To realize a temperature compensation of concentration of gas (Zero Shifting)    
  */
 
@@ -302,8 +302,14 @@ static int32_t _concentration_calc_ppb(lmp91000_config_t config, uint16_t v_ref_
             /* do Nothing */
             break;
     }
+    
+    (ppb -= sigma);
+    
+    if (ppb < 0) {
+        ppb = 0;
+    } 
 
-    return (int32_t)(ppb -= sigma);
+    return (int32_t)(ppb);
 } 
 
 static void reset_config(void) {

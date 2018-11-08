@@ -26,7 +26,7 @@
  * @{
  * @file        umdk-gassensor.h
  * @brief       LMP91000-based gas sensor module
- * @author      
+ * @author      Alexander Ugorelov <alex_u@unwds.com>
  */
 #ifndef UMDK_GASSENSOR_H
 #define UMDK_GASSENSOR_H

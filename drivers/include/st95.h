@@ -29,6 +29,12 @@
 #define ST95_IDLE_STATE 0
 #define ST95_READY_STATE 1
 
+#define ST95_RESULT_CODE_OK 0x80
+#define ST95_RESULT_CODE_ACK 0x90
+#define ST95_BYTE_ACK 0x0A
+#define ST95_BYTE_NACK 0x00
+#define ST95_RESULT_BYTE 0x24
+
 /* Offset definitions for global buffers */
 #define ST95_COMMAND_OFFSET						0
 #define ST95_LENGTH_OFFSET						1

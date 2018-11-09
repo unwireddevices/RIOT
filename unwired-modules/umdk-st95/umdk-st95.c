@@ -99,8 +99,8 @@ static void *radio_send(void *arg)
 {
     (void) arg;
     msg_t msg;
-    msg_t msg_queue[4];
-    msg_init_queue(msg_queue, 4);
+    msg_t msg_queue[16];
+    msg_init_queue(msg_queue, 16);
       
     while (1) {
         msg_receive(&msg);
@@ -119,7 +119,7 @@ static void *radio_send(void *arg)
                 break;
             }
             case UMDK_ST95_MSG_UID: {
-                if(msg.type == UMDK_ST95_UID_OK) {
+                if(msg.content.value == UMDK_ST95_UID_OK) {
                     DEBUG("Sak: %02X -> UID[%d]: ", sak, length_uid);
                     _printbuff(uid_full, length_uid);
                    

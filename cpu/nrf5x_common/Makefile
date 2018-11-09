@@ -5,8 +5,13 @@ DIRS = periph
 ifneq (,$(filter nrfble,$(USEMODULE)))
   DIRS += radio/nrfble
 endif
+
 ifneq (,$(filter nrfmin,$(USEMODULE)))
   DIRS += radio/nrfmin
+endif
+
+ifneq (,$(filter nrfmax,$(USEMODULE)))
+  DIRS += radio/nrfmax
 endif
 
 include $(RIOTBASE)/Makefile.base

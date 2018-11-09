@@ -167,6 +167,24 @@ ifneq (,$(filter ieee802154 nrfmin,$(USEMODULE)))
   endif
 endif
 
+ifneq (,$(filter ieee802154 nrfmax,$(USEMODULE)))
+  ifneq (,$(filter gnrc_ipv6, $(USEMODULE)))
+    USEMODULE += gnrc_sixlowpan
+  endif
+  ifneq (,$(filter gnrc_ipv6_router, $(USEMODULE)))
+    USEMODULE += gnrc_sixlowpan_router
+  endif
+  ifneq (,$(filter gnrc_ipv6_default, $(USEMODULE)))
+    USEMODULE += gnrc_sixlowpan_default
+  endif
+  ifneq (,$(filter gnrc_ipv6_router_default, $(USEMODULE)))
+    USEMODULE += gnrc_sixlowpan_router_default
+  endif
+  ifneq (,$(filter lwip%, $(USEMODULE)))
+    USEMODULE += lwip_sixlowpan
+  endif
+endif
+
 ifneq (,$(filter gnrc_sixlowpan_default,$(USEMODULE)))
   USEMODULE += gnrc_ipv6_default
   USEMODULE += gnrc_ipv6_nib_6ln

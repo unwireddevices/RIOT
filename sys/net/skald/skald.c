@@ -91,10 +91,11 @@ static void _on_adv_evt(void *arg)
     }
 }
 
-static void _on_radio_evt(netdev_t *netdev, netdev_event_t event)
+static void _on_radio_evt(netdev_t *netdev, netdev_event_t event, void *arg)
 {
     (void)netdev;
-
+	(void) arg;
+	
     if (event == NETDEV_EVENT_TX_COMPLETE) {
         skald_ctx_t *ctx = _radio->context;
         _stop_radio();

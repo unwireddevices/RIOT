@@ -36,7 +36,7 @@
 #include "net/gnrc/nettype.h"
 #endif
 
-#define ENABLE_DEBUG            (1)
+#define ENABLE_DEBUG            (0)
 #include "debug.h"
 
 /**
@@ -177,7 +177,7 @@ void nrfmax_setup(void)
     nrfmax_dev.event_callback = NULL;
     nrfmax_dev.context = NULL;
 #ifdef MODULE_NETSTATS_L2
-    memset(&nrfmax_dev.stats, 0, sizeof(netstats_t));;
+    memset(&nrfmax_dev.stats, 0, sizeof(netstats_t));
 #endif
 }
 

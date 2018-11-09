@@ -45,6 +45,7 @@ extern "C" {
 #define ISO14443A_APPEND_CRC					0x20
 
 #define ISO14443A_CMD_MAX_BYTE							16
+#define ISO14443A_ANSWER_MAX_BYTE						32
 
 /* Anticollison levels (commands) */
 #define ISO14443A_SELECT_LVL1   0x93

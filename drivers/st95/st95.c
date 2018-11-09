@@ -35,8 +35,8 @@
 extern "C" {
 #endif
 
-static uint8_t st95_txbuf[255] = { 0x00 };
-static uint8_t st95_rxbuf[255] = { 0x00 };
+static uint8_t st95_txbuf[ST95_MAX_BYTE_BUFF] = { 0x00 };
+static uint8_t st95_rxbuf[ST95_MAX_BYTE_BUFF] = { 0x00 };
 
 static uint8_t dac_data_h = 0;
 static uint8_t dac_data_l = 0;
@@ -51,6 +51,11 @@ static void _st95_wait_ready_data(void);
 static int _st95_cmd_echo(const st95_t * dev);
 static uint8_t _st95_calibration(const st95_t * dev);
 static uint8_t _st95_cmd_idle(const st95_t * dev);
+
+static uint8_t _st95_cmd_write_reg(const st95_t * dev, uint8_t size_tx, uint8_t addr, uint8_t flag, uint8_t * data_tx);
+static uint8_t _st95_read_reg(const st95_t * dev, uint8_t * rxbuff);
+static uint8_t _st95_modify_modulation_gain(const st95_t * dev, uint8_t modul, uint8_t gain);
+
 
  // static void _printbuff(uint8_t *buff, unsigned len)
     // {
@@ -159,7 +164,7 @@ static uint8_t _st95_cmd_idle(const st95_t * dev);
     // _st95_spi_send(dev, 4);
     // _st95_wait_ready_data();  
 
-    // if(_st95_spi_receive(dev, st95_rxbuf) == ST95_OK) {       
+    // if(_st95_spi_receive(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF) == ST95_OK) {       
         // if((st95_rxbuf[0] == 0x00) && (st95_rxbuf[1] == 0x00))
             // return ST95_OK;
     // }
@@ -169,7 +174,7 @@ static uint8_t _st95_cmd_idle(const st95_t * dev);
 
 uint8_t _st95_spi_send(const st95_t * dev, uint8_t length_tx)
 {
-    uint8_t tx_spi = 0x00;
+    uint8_t tx_spi = ST95_CTRT_SPI_SEND;
 
     spi_acquire(SPI_DEV(dev->params.spi), dev->params.cs_spi, SPI_MODE_0, ST95_SPI_CLK);
 
@@ -186,9 +191,9 @@ uint8_t _st95_spi_send(const st95_t * dev, uint8_t length_tx)
     return ST95_OK;
 }
 
-uint8_t _st95_spi_receive(const st95_t * dev, uint8_t * rxbuff)
+uint8_t _st95_spi_receive(const st95_t * dev, uint8_t * rxbuff, uint16_t size_rx_buff)
 { 
-    uint8_t rx_spi = 0x02;
+    uint8_t rx_spi = ST95_CTRT_SPI_READ;
     uint16_t length_rx = 0;
              
     gpio_irq_disable(dev->params.irq_out);
@@ -198,7 +203,7 @@ uint8_t _st95_spi_receive(const st95_t * dev, uint8_t * rxbuff)
 	}
       
     spi_transfer_bytes(SPI_DEV(dev->params.spi), dev->params.cs_spi, true, &rx_spi, NULL, 1);
-    spi_transfer_bytes(SPI_DEV(dev->params.spi), dev->params.cs_spi, false, NULL, rxbuff, sizeof(st95_rxbuf));
+    spi_transfer_bytes(SPI_DEV(dev->params.spi), dev->params.cs_spi, false, NULL, rxbuff, size_rx_buff);
 
     spi_release(SPI_DEV(dev->params.spi));
 
@@ -222,7 +227,7 @@ static void _st95_wait_ready_data(void)
     uint32_t time_delta = 0;
     st95_timeout = false;
         
-    xtimer_spin(xtimer_ticks_from_usec(50));
+    xtimer_spin(xtimer_ticks_from_usec(ST95_NO_RESPONSE_TIME_MIN_MS));
     
 	while((st95_data_rx == false) && (st95_timeout == false)) {
 		time_end = rtctimers_millis_now();
@@ -230,7 +235,7 @@ static void _st95_wait_ready_data(void)
 		if(time_delta > ST95_NO_RESPONSE_TIME_MS) {
             st95_timeout = true;
 		}
-        xtimer_spin(xtimer_ticks_from_usec(50));
+        xtimer_spin(xtimer_ticks_from_usec(ST95_NO_RESPONSE_TIME_MIN_MS));
 	}
     return;
 }
@@ -258,7 +263,7 @@ static int _st95_cmd_echo(const st95_t * dev)
 
     _st95_wait_ready_data();
 
-    if(_st95_spi_receive(dev, st95_rxbuf) == ST95_OK) {
+    if(_st95_spi_receive(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF) == ST95_OK) {
         if(st95_rxbuf[0] == ST95_CMD_ECHO) {
             return ST95_OK;
         }
@@ -270,15 +275,91 @@ static int _st95_cmd_echo(const st95_t * dev)
     return ST95_ERROR;
 }
 
-int st95_cmd_idn(const st95_t * dev, uint8_t * idn, uint8_t * length)
-{ 
+static uint8_t _st95_read_reg(const st95_t * dev, uint8_t * rxbuff)
+{    
+    st95_txbuf[0] = ST95_CMD_READ_REG;
+    st95_txbuf[1] = 3;
+    st95_txbuf[2] = ST95_READ_ADDR_1;
+    st95_txbuf[3] = ST95_REG_SIZE;
+    st95_txbuf[4] = ST95_ST_RESERVED;
     
+    _st95_spi_send(dev, 5);
+    _st95_wait_ready_data();
+
+    if(_st95_spi_receive(dev, rxbuff, ST95_MAX_BYTE_BUFF) == ST95_OK) {     
+        // printf("Code: %02X Len: %02X  ARC_B: %02X %02X\n", rxbuff[0], rxbuff[1], rxbuff[2], rxbuff[3]);
+        return ST95_OK;
+    }
+    
+    return ST95_ERROR;  
+}
+
+static uint8_t _st95_modify_modulation_gain(const st95_t * dev, uint8_t modul, uint8_t gain)
+{  
+    uint8_t data[2] = { 0 };
+    data[0] = ST95_WR_PTR_MODUL_GAIN;
+    data[1] = (modul << 4) | gain;
+        
+    if(_st95_cmd_write_reg(dev, 4, ST95_WR_ARC_ADDR, ST95_WR_FLAG_INC, data) == ST95_OK) {
+        return ST95_OK;
+    }
+
+    return ST95_ERROR;
+}
+
+static uint8_t _st95_read_modulation_gain(const st95_t * dev, uint8_t * modul, uint8_t * gain)
+{
+    uint8_t data = 0x01;
+    if(_st95_cmd_write_reg(dev, 3, ST95_WR_ARC_ADDR, ST95_WR_FLAG_NOT_INC, &data) == ST95_OK) {
+        if(_st95_read_reg(dev, st95_rxbuf) == ST95_OK)
+        {
+            *modul = (st95_rxbuf[2] >> 4) & 0x0F;;
+            *gain = st95_rxbuf[2] & 0x0F;
+            DEBUG("Modulation: 0x%02X  Gain: 0x%02X\n", *modul, *gain);
+            return ST95_OK;
+        }
+    }
+
+    return ST95_ERROR; 
+}
+
+static uint8_t _st95_cmd_write_reg(const st95_t * dev, uint8_t size_tx, uint8_t addr, uint8_t flag, uint8_t * data_tx)
+{   
+    if((size_tx < 3) || (size_tx > 4)) {
+        return ST95_ERROR;
+    }
+    
+    st95_txbuf[0] = ST95_CMD_WRITE_REG;
+    st95_txbuf[1] = size_tx;
+    st95_txbuf[2] = addr;
+    st95_txbuf[3] = flag;
+    
+    st95_txbuf[4] = *data_tx;
+    
+    if(size_tx == 4) {
+        st95_txbuf[5] = *(data_tx + 1);
+    }
+        
+    _st95_spi_send(dev, size_tx + 2);
+    _st95_wait_ready_data();  
+
+    if(_st95_spi_receive(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF) == ST95_OK) {   
+        if((st95_rxbuf[0] == 0x00) && (st95_rxbuf[1] == 0x00)) {
+            return ST95_OK;
+        }
+    }
+    
+    return ST95_ERROR;
+}
+
+int st95_cmd_idn(const st95_t * dev, uint8_t * idn, uint8_t * length)
+{   
     st95_txbuf[0] = ST95_CMD_IDN;
     st95_txbuf[1] = 0x00;
     
     _st95_spi_send(dev, 2);
         _st95_wait_ready_data();  
-    if(_st95_spi_receive(dev, st95_rxbuf) == ST95_OK) {
+    if(_st95_spi_receive(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF) == ST95_OK) {
         memcpy(idn, (st95_rxbuf + 2), st95_rxbuf[1]);
         *length = (st95_rxbuf[1] + 2);       
         return ST95_OK;      
@@ -322,7 +403,7 @@ static uint8_t _st95_calibration(const st95_t * dev)
     
     _st95_wait_ready_data();  
         
-    if(_st95_spi_receive(dev, st95_rxbuf) == ST95_OK) {
+    if(_st95_spi_receive(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF) == ST95_OK) {
         if(st95_rxbuf[2] == 0x02) {
             st95_txbuf[13] = 0xFC;
             _st95_spi_send(dev, 16);
@@ -334,7 +415,7 @@ static uint8_t _st95_calibration(const st95_t * dev)
     
     while(st95_txbuf[13] > 0x02) {
         _st95_wait_ready_data();  
-        if(_st95_spi_receive(dev, st95_rxbuf) == ST95_OK) {
+        if(_st95_spi_receive(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF) == ST95_OK) {
             if(st95_rxbuf[2] == 0x02) {
                 dac_data_l = st95_txbuf[13];
                 dac_data_h = 0xFC;
@@ -405,7 +486,7 @@ int st95_is_wake_up(const st95_t * dev)
 {
     state = ST95_READY_STATE;
 
-    if(_st95_spi_receive(dev, st95_rxbuf) == ST95_OK) {
+    if(_st95_spi_receive(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF) == ST95_OK) {
         if(st95_rxbuf[2] == 0x02) {
             return ST95_WAKE_UP;
         }
@@ -450,34 +531,42 @@ int _st95_select_iso14443a(const st95_t * dev)
     _st95_spi_send(dev, 4);
     _st95_wait_ready_data();  
     
-    if(_st95_spi_receive(dev, st95_rxbuf) == ST95_OK) {       
-        if((st95_rxbuf[0] == 0x00) && (st95_rxbuf[1] == 0x00))
+    if(_st95_spi_receive(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF) == ST95_OK) {       
+        if((st95_rxbuf[0] == 0x00) && (st95_rxbuf[1] == 0x00)) {
             return ST95_OK;
+        }
     }
 
     return ST95_ERROR;
 }
 
-int _st95_cmd_send_receive(const st95_t * dev, uint8_t *data_tx, uint8_t size, uint8_t params, uint8_t * rxbuff) 
+int _st95_cmd_send_receive(const st95_t * dev, uint8_t *data_tx, uint8_t size_tx, uint8_t params, uint8_t * rxbuff, uint16_t size_rx_buff) 
 {
 	uint8_t length = 0;
 
     st95_txbuf[0] = ST95_CMD_SEND_RECV;
-    st95_txbuf[1] = size + 1;
+    st95_txbuf[1] = size_tx + 1;
 	
-	memcpy(st95_txbuf + 2, data_tx, size);
-	length = size + 2;
+	memcpy(st95_txbuf + 2, data_tx, size_tx);
+	length = size_tx + 2;
     
 	st95_txbuf[length] = params;
-	// st95_txbuf[length] = (topaz << 7) | (split_frame << 6) | (crc << 5) | sign_bits;
 	length++;
     	
 	_st95_spi_send(dev, length);
     
-      _st95_wait_ready_data();  
+      _st95_wait_ready_data();
     
-    if(_st95_spi_receive(dev, rxbuff) == ST95_OK) {             
-            return ST95_OK;
+    if(_st95_spi_receive(dev, rxbuff, size_rx_buff) == ST95_OK) {
+
+        uint16_t len = rxbuff[1] + 2;
+        printf("RX: ");
+        for(uint32_t i = 0; i < len ;i++) {
+            printf(" %02X", rxbuff[i]);
+        }
+        printf("\n");
+        
+        return ST95_OK;
     }
 
     return ST95_ERROR;
@@ -497,11 +586,25 @@ int _st95_cmd_send_receive(const st95_t * dev, uint8_t *data_tx, uint8_t size, u
  */
 int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_t * sak)
 {
-    if(_st95_select_iso14443a(dev) == ST95_ERROR)
-                return ST95_ERROR;
-            
-     if(iso14443a_get_uid(dev, length_uid, uid, sak) == ST95_OK)
-                return ST95_OK;       
+ 
+    uint8_t modul = 0;
+    uint8_t gain = 0;
+ 
+    if(_st95_select_iso14443a(dev) == ST95_ERROR) {
+        return ST95_ERROR;
+    }
+    
+    if(_st95_read_modulation_gain(dev, &modul, &gain) == ST95_ERROR) {
+        return ST95_ERROR;
+    }
+    
+    if(_st95_modify_modulation_gain(dev, ST95_WR_MODULATION_95, ST95_WR_GAIN_32_DB) == ST95_ERROR) {
+        return ST95_ERROR;
+    }
+                
+     if(iso14443a_get_uid(dev, length_uid, uid, sak) == ST95_OK) {
+        return ST95_OK;       
+     }
        
     return ST95_ERROR;
 }

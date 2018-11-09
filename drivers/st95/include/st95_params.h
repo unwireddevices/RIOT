@@ -31,8 +31,22 @@ extern "C" {
 #define ST95_DELAY_POWER_ON_MS          100
 
 #define ST95_NO_RESPONSE_TIME_MS   2000
+#define ST95_NO_RESPONSE_TIME_MIN_MS   50
 
 #define ST95_NUMB_TRY_INIT 5
+
+#define ST95_MAX_BYTE_BUFF 255
+
+
+/**
+ * @brief   ST95 SPI control communincation bytes */
+typedef enum {
+    ST95_CTRT_SPI_SEND      = 0x00,
+    ST95_CTRT_SPI_RESET     = 0x01,
+    ST95_CTRT_SPI_READ      = 0x02,
+    ST95_CTRT_SPI_POLL      = 0x03,
+} st95_spi_ctrl_t;
+
 
 /**
  * @brief   ST95 commands list
@@ -57,6 +71,10 @@ typedef enum {
     ISO_14443A          = 0x02,
     ISO_14443B          = 0x03,
     ISO_18092           = 0x04,
+    
+    CARD_ISO14443A      = 0x12,
+    CARD_ISO14443B      = 0x13, // ST Reserved
+    CARD_ISO18092       = 0x14, // ST Reserved
 } st95_protocol_t;
 
 

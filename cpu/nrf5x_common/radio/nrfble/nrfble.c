@@ -75,6 +75,42 @@ static netdev_ble_ctx_t *_ctx = NULL;
 /* allocate the netdev device descriptor */
 netdev_t _nrfble_dev;
 
+#if ENABLE_DEBUG
+static void print_nrf_radio(void)
+{
+	printf("\n");
+	DEBUG("[nrf radio] SHORTS: 0x%08lx\n", NRF_RADIO->SHORTS);
+	DEBUG("[nrf radio] INTENSET: 0x%08lx\n", NRF_RADIO->INTENSET);
+	DEBUG("[nrf radio] INTENCLR: 0x%08lx\n", NRF_RADIO->INTENCLR);
+	DEBUG("[nrf radio] CRCSTATUS: 0x%08lx\n", NRF_RADIO->CRCSTATUS);
+	DEBUG("[nrf radio] RXMATCH: 0x%08lx\n", NRF_RADIO->RXMATCH);
+	DEBUG("[nrf radio] RXCRC: 0x%08lx\n", NRF_RADIO->RXCRC);
+	DEBUG("[nrf radio] DAI: 0x%08lx\n", NRF_RADIO->DAI);
+	DEBUG("[nrf radio] PACKETPTR: 0x%08lx\n", NRF_RADIO->PACKETPTR);
+	DEBUG("[nrf radio] FREQUENCY: 0x%08lx\n", NRF_RADIO->FREQUENCY);
+	DEBUG("[nrf radio] TXPOWER: 0x%08lx\n", NRF_RADIO->TXPOWER);
+	DEBUG("[nrf radio] MODE: 0x%08lx\n", NRF_RADIO->MODE);
+	DEBUG("[nrf radio] PCNF0: 0x%08lx\n", NRF_RADIO->PCNF0);
+	DEBUG("[nrf radio] PCNF1: 0x%08lx\n", NRF_RADIO->PCNF1);
+	DEBUG("[nrf radio] BASE0: 0x%08lx\n", NRF_RADIO->BASE0);
+	DEBUG("[nrf radio] BASE1: 0x%08lx\n", NRF_RADIO->BASE1);
+	DEBUG("[nrf radio] PREFIX0: 0x%08lx\n", NRF_RADIO->PREFIX0);
+	DEBUG("[nrf radio] PREFIX1: 0x%08lx\n", NRF_RADIO->PREFIX1);
+	DEBUG("[nrf radio] TXADDRESS: 0x%08lx\n", NRF_RADIO->TXADDRESS);
+	DEBUG("[nrf radio] RXADDRESSES: 0x%08lx\n", NRF_RADIO->RXADDRESSES);
+	DEBUG("[nrf radio] CRCCNF: 0x%08lx\n", NRF_RADIO->CRCCNF);
+	DEBUG("[nrf radio] CRCPOLY: 0x%08lx\n", NRF_RADIO->CRCPOLY);
+	DEBUG("[nrf radio] CRCINIT: 0x%08lx\n", NRF_RADIO->CRCINIT);
+	DEBUG("[nrf radio] TIFS: 0x%08lx\n", NRF_RADIO->TIFS);
+	DEBUG("[nrf radio] RSSISAMPLE: 0x%08lx\n", NRF_RADIO->RSSISAMPLE);
+	DEBUG("[nrf radio] STATE: 0x%08lx\n", NRF_RADIO->STATE);
+	DEBUG("[nrf radio] DATAWHITEIV: 0x%08lx\n", NRF_RADIO->DATAWHITEIV);
+	DEBUG("[nrf radio] BCC: 0x%08lx\n", NRF_RADIO->BCC);
+	DEBUG("[nrf radio] MODECNF0: 0x%08lx\n", NRF_RADIO->MODECNF0);
+	DEBUG("[nrf radio] POWER: 0x%08lx\n", NRF_RADIO->POWER);
+}
+#endif
+
 /* map logical BLE channel values to actual radio frequencies */
 static const uint8_t _ble_chan_map[40] = {
     [ 0] = 4,
@@ -189,7 +225,7 @@ static void _nrfble_set_txpower(int16_t power)
         NRF_RADIO->TXPOWER = RADIO_TXPOWER_TXPOWER_Neg20dBm;
     }
     else {
-        NRF_RADIO->TXPOWER = RADIO_TXPOWER_TXPOWER_Neg30dBm;
+        NRF_RADIO->TXPOWER = RADIO_TXPOWER_TXPOWER_Neg40dBm;
     }
 }
 
@@ -285,6 +321,17 @@ static int _nrfble_send(netdev_t *dev, const iolist_t *data)
         _state = STATE_TX;
         NRF_RADIO->EVENTS_DISABLED = 0;
         NRF_RADIO->INTENSET = INT_EN;
+		
+#if ENABLE_DEBUG
+		print_nrf_radio();
+		DEBUG("[nrfble] sending package: ");
+		for(uint8_t i = 0; i < data->iol_len; i++)
+		{
+			printf("%x ", ((uint8_t*)(data->iol_base))[i]);  
+		}
+		printf("\n");
+#endif
+
         NRF_RADIO->TASKS_TXEN = 1;
     }
 

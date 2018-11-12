@@ -176,6 +176,17 @@ static uint8_t _st95_read_modulation_gain(const st95_t * dev, uint8_t * modul, u
     // return ST95_ERROR;
 // }
 
+
+/**
+ * @brief   This function send data over SPI bus
+ * 
+ * @param[in]   dev:            Pointer to ST95 device descriptor
+ * @param[out]  rxbuff:         Pointer to the transmit buffer
+ * @param[out]  size_rx_buff:   Size of the transmit buffer
+ * 
+ * @return  0:  data has been successfully transmitted
+ * @return  >0: in case of an error
+ */
 uint8_t _st95_spi_send(const st95_t * dev, uint8_t length_tx)
 {
     uint8_t tx_spi = ST95_CTRT_SPI_SEND;
@@ -195,6 +206,16 @@ uint8_t _st95_spi_send(const st95_t * dev, uint8_t length_tx)
     return ST95_OK;
 }
 
+/**
+ * @brief   This function receive data over SPI bus
+ * 
+ * @param[in]   dev:            Pointer to ST95 device descriptor
+ * @param[out]  rxbuff:         Pointer to the receive buffer
+ * @param[out]  size_rx_buff:   Size of the receive buffer
+ * 
+ * @return  0:  data has been successfully received
+ * @return  >0: in case of an error
+ */
 uint8_t _st95_spi_receive(const st95_t * dev, uint8_t * rxbuff, uint16_t size_rx_buff)
 { 
     uint8_t rx_spi = ST95_CTRT_SPI_READ;
@@ -224,6 +245,11 @@ uint8_t _st95_spi_receive(const st95_t * dev, uint8_t * rxbuff, uint16_t size_rx
     return ST95_OK;
 }
 
+/**
+ * @brief   This function wait the data from device
+ * 
+ * @return  None
+ */
 static void _st95_wait_ready_data(void)
 {
     uint32_t time_begin = rtctimers_millis_now();
@@ -244,6 +270,11 @@ static void _st95_wait_ready_data(void)
     return;
 }
 
+/**
+ * @brief   Callback
+ * 
+ * @return  None
+ */
 static void _st95_spi_rx(void* arg)
 {
     st95_t *dev = arg;
@@ -259,10 +290,18 @@ static void _st95_spi_rx(void* arg)
     return;
 }
 
+/**
+ * @brief   This function verifies the response from device
+ * 
+ * @param[in]   dev:    Pointer to ST95 device descriptor
+ * 
+ * @return  0:  if is response
+ * @return  >0: in case of an error
+ */
 static int _st95_cmd_echo(const st95_t * dev)
 {   
     st95_txbuf[0] = ST95_CMD_ECHO;
-    
+   
     _st95_spi_send(dev, 1);
 
     _st95_wait_ready_data();
@@ -357,7 +396,16 @@ static uint8_t _st95_read_modulation_gain(const st95_t * dev, uint8_t * modul, u
 }
 #endif
 
-
+/**
+ * @brief   This function gives brief information about the ST95HF and its revision
+ * 
+ * @param[in]   dev:        Pointer to ST95 device descriptor
+ * @param[out]  idn:        Pointer to the receive buffer of the info
+ * @param[out]  length:     Pointer to length of the info
+ * 
+ * @return  0:  Valid information
+ * @return  1:  in case of an error
+ */
 int st95_cmd_idn(const st95_t * dev, uint8_t * idn, uint8_t * length)
 {   
     st95_txbuf[0] = ST95_CMD_IDN;
@@ -373,10 +421,18 @@ int st95_cmd_idn(const st95_t * dev, uint8_t * idn, uint8_t * length)
     return ST95_ERROR;
 }
 
+/**
+ * @brief   This function execute the calibration process
+ * 
+ * @param[in]   dev:    Pointer to ST95 device descriptor
+ * 
+ * @return  0:  calibration done
+ * @return  1:  in case of an error
+ */
 static uint8_t _st95_calibration(const st95_t * dev)
 {   
     st95_txbuf[0] = ST95_CMD_IDLE;    // Command
-    st95_txbuf[1] = 14;                // Data Length
+    st95_txbuf[1] = 14;               // Data Length
     /* Idle params */
         /* Wake Up Source */
     st95_txbuf[2] = 0x03;            // Tag Detection + Time out
@@ -443,6 +499,13 @@ static uint8_t _st95_calibration(const st95_t * dev)
     return  ST95_ERROR;
 }
 
+/**
+ * @brief   This function send IDLE command
+ * 
+ * @param[in]   dev:    Pointer to ST95 device descriptor
+ * 
+ * @return  0:  the command has been successfully executed
+ */
 static uint8_t _st95_cmd_idle(const st95_t * dev)
 {    
     st95_txbuf[0] = ST95_CMD_IDLE;    // Command
@@ -483,10 +546,10 @@ static uint8_t _st95_cmd_idle(const st95_t * dev)
 /**
  * @brief This function check wake-up state
  * 
- * @param[in]   dev Pointer to ST95 device descriptor
+ * @param[in]   dev:    Pointer to ST95 device descriptor
  * 
- * @return 0 if device wake-up
- * @return >0 in case of an error
+ * @return 0:   if device wake-up
+ * @return 1:   in case of an error
  */
 int st95_is_wake_up(const st95_t * dev)
 {
@@ -504,7 +567,7 @@ int st95_is_wake_up(const st95_t * dev)
 /**
  * @brief This function set st95 in sleep mode
  * 
- * @param[in]   dev Pointer to ST95 device descriptor
+ * @param[in]   dev:    Pointer to ST95 device descriptor
  * 
  * @return None
  */
@@ -516,10 +579,10 @@ void st95_sleep(st95_t * dev)
 /**
  * @brief This function select ISO 14443A protocol
  * 
- * @param[in]   dev Pointer to ST95 device descriptor
+ * @param[in]   dev:    Pointer to ST95 device descriptor
  * 
- * @return 0 if selecting success
- * @return >0 in case of an error
+ * @return 0:   if selecting success
+ * @return 1:   in case of an error
  */
 int _st95_select_iso14443a(const st95_t * dev)
 {
@@ -546,6 +609,19 @@ int _st95_select_iso14443a(const st95_t * dev)
     return ST95_ERROR;
 }
 
+/**
+ * @brief   This function send SEND_RECEIVE command
+ * 
+ * @param[in]   dev:            Pointer to ST95 device descriptor
+ * @param[in]   data_tx:        Pointer to the transmit buffer
+ * @param[in]   size_tx:        Size of the transmit buffer
+ * @param[in]   params:         Command parameters 
+ * @param[out]  rxbuff:         Pointer to the receive buffer
+ * @param[out]  size_rx_buff:   Size of the receive buffer
+ * 
+ * @return  0:  the command has been successfully executed
+ * @return  1:  in case of an error
+ */
 int _st95_cmd_send_receive(const st95_t * dev, uint8_t *data_tx, uint8_t size_tx, uint8_t params, uint8_t * rxbuff, uint16_t size_rx_buff) 
 {
 	uint8_t length = 0;
@@ -581,15 +657,15 @@ int _st95_cmd_send_receive(const st95_t * dev, uint8_t *data_tx, uint8_t size_tx
 
 
 /**
- * @brief This function get UID card
+ * @brief   This function get UID card
  * 
- * @param[in]   dev Pointer to ST95 device descriptor
- * @param[out]  length_uid UID length
- * @param[out]  uid Card UID
- * @param[out]  sak Card SAK(Select ACK)
+ * @param[in]   dev:            Pointer to ST95 device descriptor
+ * @param[out]  length_uid:     Pointer to the length UID
+ * @param[out]  uid:            Pointer to the card UID
+ * @param[out]  sak:            Pointer to the card SAK(Select ACK) byte
  * 
- * @return 0 if Valid UID 
- * @return >0 in case of an error
+ * @return  0:  the command has been successfully executed
+ * @return  1:  in case of an error
  */
 int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_t * sak)
 {
@@ -621,11 +697,11 @@ int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_
 /**
  * @brief ST95 driver initialization routine
  *
- * @param[in]   dev Pointer to ST95 device descriptor
- * @param[in]   params Pointer to static ST95 device configuration
+ * @param[in]   dev:    Pointer to ST95 device descriptor
+ * @param[in]   params: Pointer to static ST95 device configuration
  *
- * @return 0 if initialization succeeded
- * @return >0 in case of an error
+ * @return 0:   if initialization succeeded
+ * @return >0:  in case of an error
  */
 int st95_init(st95_t * dev, st95_params_t * params)
 {      

@@ -26,68 +26,68 @@
 #include "periph/gpio.h"
 #include "periph/spi.h"
 
-#define ST95_IDLE_STATE 0
-#define ST95_READY_STATE 1
+#define ST95_IDLE_STATE         0
+#define ST95_READY_STATE        1
 
-#define ST95_RESULT_CODE_OK 0x80
-#define ST95_RESULT_CODE_ACK 0x90
-#define ST95_BYTE_ACK 0x0A
-#define ST95_BYTE_NACK 0x00
-#define ST95_RESULT_BYTE 0x24
+#define ST95_RESULT_CODE_OK     0x80
+#define ST95_RESULT_CODE_ACK    0x90
+#define ST95_BYTE_ACK           0x0A
+#define ST95_BYTE_NACK          0x00
+#define ST95_RESULT_BYTE        0x24
 
 /* Offset definitions for global buffers */
-#define ST95_COMMAND_OFFSET						0
-#define ST95_LENGTH_OFFSET						1
-#define ST95_DATA_OFFSET						2
+#define ST95_COMMAND_OFFSET		0
+#define ST95_LENGTH_OFFSET		1
+#define ST95_DATA_OFFSET		2
 
-#define ST95_TX_RATE_106                0
-#define ST95_RX_RATE_106                0
-#define ST95_TX_RATE_212                1
-#define ST95_RX_RATE_212                1
-#define ST95_TX_RATE_424                2
-#define ST95_RX_RATE_424                2
-#define ST95_TX_RATE_848                3
-#define ST95_RX_RATE_848                3
+#define ST95_TX_RATE_106         0
+#define ST95_RX_RATE_106         0
+#define ST95_TX_RATE_212         1
+#define ST95_RX_RATE_212         1
+#define ST95_TX_RATE_424         2
+#define ST95_RX_RATE_424         2
+#define ST95_TX_RATE_848         3
+#define ST95_RX_RATE_848         3
 
 /* Read/Write(RR/WR) Register parameters */
-#define ST95_READ_ADDR_1 0x69 // Register address
-#define ST95_READ_ADDR_2 0x62 // Register address
-#define ST95_REG_SIZE 0x01// Register size
-#define ST95_ST_RESERVED 0x00 // ST Reserved
+#define ST95_READ_ADDR_1        0x69        // Register address
+#define ST95_READ_ADDR_2        0x62        // Register address
+#define ST95_REG_SIZE           0x01        // Register size
+#define ST95_ST_RESERVED        0x00        // ST Reserved
 
-#define ST95_WR_ARC_ADDR 0x68          // Analog Register Configuration address index
-#define ST95_WR_TIMER_WINDOW 0x3A      // Timer Window value
-#define ST95_WR_AUTODETECT 0x0A        // AutoDetect filter control value
+#define ST95_WR_ARC_ADDR        0x68        // Analog Register Configuration address index
+#define ST95_WR_TIMER_WINDOW    0x3A        // Timer Window value
+#define ST95_WR_AUTODETECT      0x0A        // AutoDetect filter control value
 
-#define ST95_WR_FLAG_INC 0x01 // Flag Increment address after Write command
-#define ST95_WR_FLAG_NOT_INC 0x00 // Flag not Increment address after Write command
+#define ST95_WR_FLAG_INC        0x01        // Flag Increment address after Write command
+#define ST95_WR_FLAG_NOT_INC    0x00        // Flag not Increment address after Write command
 
-#define ST95_WR_PTR_MODUL_GAIN 0x01 // Index pointing to the Modulation and Gain in ARC_B
+#define ST95_WR_PTR_MODUL_GAIN  0x01        // Index pointing to the Modulation and Gain in ARC_B
 
 /* Possible Modulation index values [%] */
-#define ST95_WR_MODULATION_10 0x01      // 10%
-#define ST95_WR_MODULATION_17 0x02      // 17%
-#define ST95_WR_MODULATION_25 0x03      // 25%
-#define ST95_WR_MODULATION_30 0x04      // 30%
-#define ST95_WR_MODULATION_33 0x05      // 33%
-#define ST95_WR_MODULATION_36 0x06      // 36%
-#define ST95_WR_MODULATION_95 0x0D      // 95%
+#define ST95_WR_MODULATION_10   0x01        // 10%
+#define ST95_WR_MODULATION_17   0x02        // 17%
+#define ST95_WR_MODULATION_25   0x03        // 25%
+#define ST95_WR_MODULATION_30   0x04        // 30%
+#define ST95_WR_MODULATION_33   0x05        // 33%
+#define ST95_WR_MODULATION_36   0x06        // 36%
+#define ST95_WR_MODULATION_95   0x0D        // 95%
 /* Possible receiver Gain values [dB] */
-#define ST95_WR_GAIN_34_DB 0x00      // 34 Db
-#define ST95_WR_GAIN_32_DB 0x01      // 32 Db
-#define ST95_WR_GAIN_27_DB 0x03      // 27 Db
-#define ST95_WR_GAIN_20_DB 0x07      // 20 Db
-#define ST95_WR_GAIN_8_DB  0x0F      // 8 Db
+#define ST95_WR_GAIN_34_DB      0x00        // 34 Db
+#define ST95_WR_GAIN_32_DB      0x01        // 32 Db
+#define ST95_WR_GAIN_27_DB      0x03        // 27 Db
+#define ST95_WR_GAIN_20_DB      0x07        // 20 Db
+#define ST95_WR_GAIN_8_DB       0x0F        // 8 Db
 
 
 
 /**
  * @brief ST95 return codes
 */
-#define ST95_OK			0
-#define ST95_WAKE_UP ST95_OK
-#define ST95_ERROR		1
-#define ST95_NO_DEVICE	2
+#define ST95_OK			        0
+#define ST95_WAKE_UP            ST95_OK
+#define ST95_ERROR		        1
+#define ST95_NO_DEVICE	        2
 
 /**
  * @brief   ST95 hardware and global parameters.
@@ -111,8 +111,9 @@ typedef void (*st95_cb_t)(void *);
  * @brief   ST95 device descriptor
  */
 typedef struct {
-    st95_params_t params;
-    st95_cb_t cb;
+    st95_params_t params;   /**< device driver configuration */
+    st95_cb_t cb;           /**< callback */
+    void *arg;              /**< callback param */
 } st95_t;
 
 /**

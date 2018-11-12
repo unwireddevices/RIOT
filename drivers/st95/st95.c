@@ -31,7 +31,7 @@
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-#define ST95_ENABLE_GAIN (1)
+#define ST95_ENABLE_GAIN (0)
 
 #ifdef __cplusplus
 extern "C" {
@@ -252,7 +252,7 @@ static void _st95_spi_rx(void* arg)
 
     if(state == ST95_IDLE_STATE) {
         if (dev->cb) {
-            dev->cb(NULL);
+            dev->cb(dev->arg);
         }
     }
          
@@ -630,6 +630,7 @@ int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_
 int st95_init(st95_t * dev, st95_params_t * params)
 {      
     dev->params = *params;
+    dev->arg = NULL;
         /* Init SSI_0 pin */
     gpio_init(dev->params.ssi_0, GPIO_OD_PU);
         /* Init IRQ_IN pin */

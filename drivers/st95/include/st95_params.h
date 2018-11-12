@@ -23,19 +23,19 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define ST95_SPI_CLK               SPI_CLK_1MHZ
+#define ST95_SPI_CLK                    SPI_CLK_1MHZ
 
 #define ST95_PULSE_NEGATIVE_USEC        1000
 #define ST95_HFO_SETUP_TIME_MS          10
 #define ST95_RAMP_UP_TIME_MS            10
 #define ST95_DELAY_POWER_ON_MS          100
 
-#define ST95_NO_RESPONSE_TIME_MS   2000
-#define ST95_NO_RESPONSE_TIME_MIN_MS   50
+#define ST95_NO_RESPONSE_TIME_MS        2000
+#define ST95_NO_RESPONSE_TIME_MIN_MS    50
 
-#define ST95_NUMB_TRY_INIT 5
+#define ST95_NUMB_TRY_INIT              5
 
-#define ST95_MAX_BYTE_BUFF 255
+#define ST95_MAX_BYTE_BUFF              255
 
 
 /**
@@ -52,14 +52,19 @@ typedef enum {
  * @brief   ST95 commands list
  */
 typedef enum {
-    ST95_CMD_IDN            = 0x01,
-    ST95_CMD_PROTOCOL       = 0x02,
-    ST95_CMD_SEND_RECV      = 0x04,
-    ST95_CMD_IDLE           = 0x07,
-    ST95_CMD_READ_REG       = 0x08,
-    ST95_CMD_WRITE_REG      = 0x09,
-    ST95_CMD_BAUDRATE       = 0x0A,
-    ST95_CMD_ECHO           = 0x55,
+    ST95_CMD_IDN                = 0x01,
+    ST95_CMD_PROTOCOL           = 0x02,
+    ST95_CMD_POLL_FIELD         = 0x03,     // Only ST95 (Card Emulation mode)
+    ST95_CMD_SEND_RECV          = 0x04,
+    ST95_CMD_LISTEN             = 0x05,     // Only ST95(Card Emulation mode)
+    ST95_CMD_SEND               = 0x06,     // Only ST95(Card Emulation mode)
+    ST95_CMD_IDLE               = 0x07,
+    ST95_CMD_READ_REG           = 0x08,
+    ST95_CMD_WRITE_REG          = 0x09,
+    ST95_CMD_BAUDRATE           = 0x0A,     // Only CR95 (UART baudrate)
+    ST95_CMD_SUBFREQ            = 0x0B,     // Only ST95 (iso18092)
+    ST95_CMD_ANTICOL_FILTER     = 0x0D,     // Only ST95 (iso14443A)
+    ST95_CMD_ECHO               = 0x55,
 } st95_cmd_t;
 
 /**

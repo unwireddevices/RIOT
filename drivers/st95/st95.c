@@ -245,12 +245,6 @@ static uint8_t _st95_spi_receive(const st95_t * dev, uint8_t * rxbuff, uint16_t 
         }
     }     
     
-    // printf("SPI RX: ");
-    // for(uint32_t i = 0; i < length_rx; i++)
-    // {
-        // printf(" %02X", rxbuff[i]);
-    // }
-    // printf("\n");
     return ST95_OK;
 }
 
@@ -312,7 +306,6 @@ static int _st95_cmd_echo(const st95_t * dev)
     st95_txbuf[0] = ST95_CMD_ECHO;
    
     _st95_spi_send(dev, st95_txbuf, 1);
-
     _st95_wait_ready_data();
 
     if(_st95_spi_receive(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF) == ST95_OK) {
@@ -421,7 +414,8 @@ int st95_cmd_idn(const st95_t * dev, uint8_t * idn, uint8_t * length)
     st95_txbuf[1] = 0x00;
     
     _st95_spi_send(dev, st95_txbuf, 2);
-        _st95_wait_ready_data();  
+    _st95_wait_ready_data(); 
+    
     if(_st95_spi_receive(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF) == ST95_OK) {
         memcpy(idn, (st95_rxbuf + 2), st95_rxbuf[1]);
         *length = (st95_rxbuf[1] + 2);       
@@ -509,7 +503,6 @@ static uint8_t _st95_calibration(st95_t * dev)
             if(st95_rxbuf[2] == 0x02) {              
                 dev->params.dac_l = dac_h;
                 dev->params.dac_h = 0xFC;
-                // printf("Done: %02X / %02X\n", dev->params.dac_l, dev->params.dac_h);
                 return ST95_OK;
             }
             else if(st95_rxbuf[2] == 0x01){
@@ -666,8 +659,7 @@ int _st95_cmd_send_receive(const st95_t * dev, uint8_t *data_tx, uint8_t size_tx
 	st95_txbuf[length] = params;
 	length++;
     	
-	_st95_spi_send(dev, st95_txbuf, length);
-    
+	_st95_spi_send(dev, st95_txbuf, length);   
     _st95_wait_ready_data();
 
     if(_st95_spi_receive(dev, rxbuff, size_rx_buff) == ST95_OK) {
@@ -797,9 +789,7 @@ int st95_init(st95_t * dev, st95_params_t * params)
             DEBUG("[ST95]: No ECHO\n");
             return ST95_ERROR;
     }
-    
-    
-    
+        
         /* Calibration process */
     if(_st95_calibration(dev) != ST95_OK) {
         DEBUG("[ST95]: Calibration error\n");

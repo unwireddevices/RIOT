@@ -46,11 +46,11 @@
 
 #define ST95_MAX_DATA_BYTES             254
 
-#define UMDK_ST95_MSG_WAKE_UP 0
-#define UMDK_ST95_MSG_UID 1
+#define UMDK_ST95_MSG_WAKE_UP   0
+#define UMDK_ST95_MSG_UID       1
 
-#define UMDK_ST95_UID_OK 1
-#define UMDK_ST95_UID_ERROR 0
+#define UMDK_ST95_UID_OK        1
+#define UMDK_ST95_UID_ERROR     0
 
 #define UMDK_ST95_DELAY_DETECT_MS 500
 

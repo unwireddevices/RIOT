@@ -127,7 +127,7 @@ static void *radio_send(void *arg)
                     data.length += length_uid;
                 }
                 else {
-                    DEBUG("[Invalid UID] Sak: %02X -> UID[%d]: ", sak, length_uid);
+                    DEBUG("[ERROR]: Invalid UID\n");
                     _printbuff(uid_full, length_uid);
                     
                     data.data[1] = 0;

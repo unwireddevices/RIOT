@@ -26,9 +26,6 @@
 #include "periph/gpio.h"
 #include "periph/spi.h"
 
-#define ST95_IDLE_STATE         0
-#define ST95_READY_STATE        1
-
 #define ST95_RESULT_CODE_OK     0x80
 #define ST95_RESULT_CODE_ACK    0x90
 #define ST95_BYTE_ACK           0x0A
@@ -80,7 +77,6 @@
 #define ST95_WR_GAIN_8_DB       0x0F        // 8 Db
 
 
-
 /**
  * @brief ST95 return codes
 */
@@ -100,6 +96,9 @@ typedef struct {
     gpio_t ssi_0;       /**< Select serial communication interface */
     gpio_t ssi_1;       /**< Select serial communication interface */
     gpio_t vcc;         /**< Vcc enable */
+    
+    uint8_t dac_l;      /**< DacDataL value (Lower compare value for tag detection) */
+    uint8_t dac_h;      /**< DacDataH value (Higher compare value for tag detection) */
 } st95_params_t;
 
 /**

@@ -99,7 +99,7 @@ static uint8_t _iso14443a_reqa(const st95_t * dev, uint8_t * rxbuff, uint16_t si
     if(_st95_cmd_send_receive(dev, &data, sizeof(data), ctrl_byte, rxbuff, size_rx_buff) == ST95_OK) {
         return ST95_OK;
     }
-    
+
     return ST95_ERROR;
 }
 
@@ -123,9 +123,8 @@ static uint8_t _iso14443a_anticollision_1(const st95_t * dev, uint8_t * rxbuff, 
     if(_st95_cmd_send_receive(dev, data, sizeof(data), ctrl_byte, rxbuff, size_rx_buff) == ST95_OK) {
         return ST95_OK;
     }
-    
-    return ST95_ERROR;
-    
+
+    return ST95_ERROR;    
 }
 
 /**

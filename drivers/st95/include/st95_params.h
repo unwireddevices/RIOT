@@ -37,6 +37,17 @@ extern "C" {
 
 #define ST95_MAX_BYTE_BUFF              255
 
+#define ST95_SLEEP_MODE                 0
+#define ST95_READY_MODE                 1
+
+/**
+ * @brief   ST95 device communincation states
+ */
+typedef struct {
+    volatile bool data_rx;      /**< Flag interrupt */
+    volatile bool timeout;      /**< Response timeout */
+    volatile uint8_t mode;      /**< Sleep mode */
+} st95_state_t;
 
 /**
  * @brief   ST95 SPI control communincation bytes */

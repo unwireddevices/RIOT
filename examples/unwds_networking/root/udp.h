@@ -75,7 +75,10 @@ kernel_pid_t unwds_udp_server_init(void);
  */
 void start_unwds_udp_server(void);
 
-
+/**
+ * @brief   Stop listening for incoming packets on ‭61616‬ port
+ */
+void stop_unwds_udp_server(void);
 
 #ifdef __cplusplus
 }

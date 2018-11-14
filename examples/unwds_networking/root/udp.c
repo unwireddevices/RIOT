@@ -212,9 +212,6 @@ kernel_pid_t unwds_udp_server_init(void)
     return unwds_udp_server_pid;
 }
 
-// static gnrc_netreg_entry_t server = GNRC_NETREG_ENTRY_INIT_PID(GNRC_NETREG_DEMUX_CTX_ALL,
-                                                               // KERNEL_PID_UNDEF);
-
 static void send(char *addr_str, char *port_str, char *data, unsigned int num,
                  unsigned int delay)
 {
@@ -287,25 +284,12 @@ static void send(char *addr_str, char *port_str, char *data, unsigned int num,
 
 void start_unwds_udp_server(void)
 {
-    // uint16_t port;
-
-    // /* check if server is already running */
-    // if (server.target.pid != KERNEL_PID_UNDEF) {
-        // printf("Error: server already running on port %" PRIu32 "\n",
-               // server.demux_ctx);
-        // return;
-    // }
-    // /* parse port */
-    // port = atoi(port_str);
-    // if (port == 0) {
-        // puts("Error: invalid port specified");
-        // return;
-    // }
-    // /* start server (which means registering pktdump for the chosen port) */
-    // server.target.pid = gnrc_pktdump_pid;
-    // server.demux_ctx = (uint32_t)port;
-    // gnrc_netreg_register(GNRC_NETTYPE_UDP, &server);
-    // printf("Success: started UDP server on port %" PRIu16 "\n", port);
+    /* check if server is already running */
+    if (server.target.pid != KERNEL_PID_UNDEF) {
+        printf("Error: server already running on port %" PRIu32 "\n",
+               server.demux_ctx);
+        return;
+    }
 	
 	/* start server (which means registering pktdump for the chosen port) */
     server.target.pid = unwds_udp_server_pid;
@@ -314,7 +298,7 @@ void start_unwds_udp_server(void)
     printf("Success: started UDP server on port %" PRIu16 "\n", UNWDS_UDP_SERVER_PORT);
 }
 
-static void stop_server(void)
+void stop_unwds_udp_server(void)
 {
     /* check if server is running at all */
     if (server.target.pid == KERNEL_PID_UNDEF) {
@@ -363,7 +347,7 @@ int udp_cmd(int argc, char **argv)
             // start_server(argv[3]);
         }
         else if (strcmp(argv[2], "stop") == 0) {
-            stop_server();
+            // stop_server();
         }
         else {
             puts("error: invalid command");

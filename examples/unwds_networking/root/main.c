@@ -23,7 +23,6 @@
 
 #include "shell.h"
 #include "msg.h"
-// #include "net/ipv6/addr.h"
 #include "net/gnrc/netif.h"
 #include "net/gnrc/rpl.h"
 
@@ -48,9 +47,9 @@ int main(void)
 	printf("Init unwds udp server: %i\n", unwds_udp_server_init());	
 	start_unwds_udp_server();
 	
-	// ifconfig 7 add 2001:db8::1 
 	uint16_t flags = GNRC_NETIF_IPV6_ADDRS_FLAGS_STATE_VALID | (64 << 8);
 	ipv6_addr_t addr;
+	uint8_t instance_id = 1;
 	
 	addr.u8[0] = 0x20;
 	addr.u8[1] = 0x01;
@@ -69,24 +68,24 @@ int main(void)
 	addr.u8[14] = 0x00;
 	addr.u8[15] = 0x01;
 	
+	// ifconfig 7 add 2001:db8::1 
 	if(gnrc_netapi_set( 7, NETOPT_IPV6_ADDR, flags, &addr,
 						sizeof(addr)) < 0) 
 	{
-		printf("error: unable to add IPv6 address\n");
+		printf("Error: unable to add IPv6 address\n");
 		return -1;
 	}
-	    printf("success: added root IPv6 address to interface 7\n");
+	    printf("Success: added root IPv6 address to interface 7\n");
 	
 	// rpl init 7
 	// rpl root 1 2001:db8::1
-	uint8_t instance_id = 1;
 	gnrc_rpl_instance_t *inst = gnrc_rpl_root_init(instance_id, &addr, false, false);
     if (inst == NULL) {
-        printf("error: could not add DODAG to instance 1\n");
-        return 1;
+        printf("Error: could not add DODAG to instance 1\n");
+        return -1;
     }
 
-    printf("successfully added a new RPL DODAG\n");
+    printf("Successfully added a new RPL DODAG\n");
 	
 	
     /* start shell */

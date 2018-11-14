@@ -314,7 +314,7 @@ void stop_unwds_udp_server(void)
 int udp_cmd(int argc, char **argv)
 {
     if (argc < 2) {
-        printf("usage: %s [send|server]\n", argv[0]);
+        printf("Usage: %s [send|server]\n", argv[0]);
         return 1;
     }
 
@@ -322,7 +322,7 @@ int udp_cmd(int argc, char **argv)
         uint32_t num = 1;
         uint32_t delay = 1000000;
         if (argc < 5) {
-            printf("usage: %s send <addr> <port> <data> [<num> [<delay in us>]]\n",
+            printf("Usage: %s send <addr> <port> <data> [<num> [<delay in us>]]\n",
                    argv[0]);
             return 1;
         }
@@ -336,25 +336,21 @@ int udp_cmd(int argc, char **argv)
     }
     else if (strcmp(argv[1], "server") == 0) {
         if (argc < 3) {
-            printf("usage: %s server [start|stop]\n", argv[0]);
+            printf("Usage: %s server [start|stop]\n", argv[0]);
             return 1;
         }
         if (strcmp(argv[2], "start") == 0) {
-            if (argc < 4) {
-                printf("usage %s server start <port>\n", argv[0]);
-                return 1;
-            }
-            // start_server(argv[3]);
+            start_unwds_udp_server();
         }
         else if (strcmp(argv[2], "stop") == 0) {
-            // stop_server();
+            stop_unwds_udp_server();
         }
         else {
-            puts("error: invalid command");
+            puts("Error: invalid command");
         }
     }
     else {
-        puts("error: invalid command");
+        puts("Error: invalid command");
     }
     return 0;
 }

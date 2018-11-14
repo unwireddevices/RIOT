@@ -19,6 +19,7 @@
  * @}
  */
 
+#include "udp.h"
 #include <stdio.h>
 #include <inttypes.h>
 
@@ -32,8 +33,187 @@
 #include "utlist.h"
 #include "xtimer.h"
 
+
+#include <errno.h>
+#include "byteorder.h"
+#include "thread.h"
+#include "net/icmpv6.h"
+#include "net/ipv6/addr.h"
+#include "net/tcp.h"
+#include "net/sixlowpan.h"
+#include "od.h"
+
+/**
+ * @brief   Stack for the pktdump thread
+ */
+static char _stack[UNWDS_UDP_SERVER_STACKSIZE];
+
+/**
+ * @brief   The PID of the UNWDS_UDP_SERVER thread
+ */
+kernel_pid_t unwds_udp_server_pid = KERNEL_PID_UNDEF;
+
+/**
+ * @brief   gnrc_netreg_entry_t
+ */
 static gnrc_netreg_entry_t server = GNRC_NETREG_ENTRY_INIT_PID(GNRC_NETREG_DEMUX_CTX_ALL,
                                                                KERNEL_PID_UNDEF);
+
+static void _dump_snip(gnrc_pktsnip_t *pkt)
+{
+    size_t hdr_len = pkt->size;
+
+    switch (pkt->type) {
+        case GNRC_NETTYPE_UNDEF:
+            printf("NETTYPE_UNDEF (%i)\n", pkt->type);
+            od_hex_dump(pkt->data, pkt->size, OD_WIDTH_DEFAULT);
+            break;
+#ifdef MODULE_GNRC_NETIF
+        case GNRC_NETTYPE_NETIF:
+            printf("NETTYPE_NETIF (%i)\n", pkt->type);
+            gnrc_netif_hdr_print(pkt->data);
+            break;
+#endif
+#ifdef MODULE_GNRC_SIXLOWPAN
+        case GNRC_NETTYPE_SIXLOWPAN:
+            printf("NETTYPE_SIXLOWPAN (%i)\n", pkt->type);
+            sixlowpan_print(pkt->data, pkt->size);
+            break;
+#endif
+#ifdef MODULE_GNRC_IPV6
+        case GNRC_NETTYPE_IPV6:
+            printf("NETTYPE_IPV6 (%i)\n", pkt->type);
+            ipv6_hdr_print(pkt->data);
+            hdr_len = sizeof(ipv6_hdr_t);
+            break;
+#endif
+#ifdef MODULE_GNRC_ICMPV6
+        case GNRC_NETTYPE_ICMPV6:
+            printf("NETTYPE_ICMPV6 (%i)\n", pkt->type);
+            icmpv6_hdr_print(pkt->data);
+            hdr_len = sizeof(icmpv6_hdr_t);
+            break;
+#endif
+#ifdef MODULE_GNRC_TCP
+        case GNRC_NETTYPE_TCP:
+            printf("NETTYPE_TCP (%i)\n", pkt->type);
+            tcp_hdr_print(pkt->data);
+            hdr_len = sizeof(tcp_hdr_t);
+            break;
+#endif
+#ifdef MODULE_GNRC_UDP
+        case GNRC_NETTYPE_UDP:
+            printf("NETTYPE_UDP (%i)\n", pkt->type);
+            udp_hdr_print(pkt->data);
+            hdr_len = sizeof(udp_hdr_t);
+            break;
+#endif
+#ifdef MODULE_CCN_LITE_UTILS
+        case GNRC_NETTYPE_CCN_CHUNK:
+            printf("GNRC_NETTYPE_CCN_CHUNK (%i)\n", pkt->type);
+            printf("Content is: %.*s\n", (int)pkt->size, (char*)pkt->data);
+            break;
+#endif
+#ifdef MODULE_NDN_RIOT
+    case GNRC_NETTYPE_NDN:
+            printf("NETTYPE_NDN (%i)\n", pkt->type);
+            od_hex_dump(pkt->data, pkt->size, OD_WIDTH_DEFAULT);
+        break;
+#endif
+#ifdef TEST_SUITES
+        case GNRC_NETTYPE_TEST:
+            printf("NETTYPE_TEST (%i)\n", pkt->type);
+            od_hex_dump(pkt->data, pkt->size, OD_WIDTH_DEFAULT);
+            break;
+#endif
+        default:
+            printf("NETTYPE_UNKNOWN (%i)\n", pkt->type);
+            od_hex_dump(pkt->data, pkt->size, OD_WIDTH_DEFAULT);
+            break;
+    }
+    if (hdr_len < pkt->size) {
+        size_t size = pkt->size - hdr_len;
+
+        od_hex_dump(((uint8_t *)pkt->data) + hdr_len, size, OD_WIDTH_DEFAULT);
+    }
+}
+
+static void _dump(gnrc_pktsnip_t *pkt)
+{
+    int snips = 0;
+    int size = 0;
+    gnrc_pktsnip_t *snip = pkt;
+
+    while (snip != NULL) {
+        printf("~~ SNIP %2i - size: %3u byte, type: ", snips,
+               (unsigned int)snip->size);
+        _dump_snip(snip);
+        ++snips;
+        size += snip->size;
+        snip = snip->next;
+    }
+
+    printf("~~ PKT    - %2i snips, total size: %3i byte\n", snips, size);
+    gnrc_pktbuf_release(pkt);
+}
+
+static void *_eventloop(void *arg)
+{
+    (void)arg;
+    msg_t msg, reply;
+    msg_t msg_queue[UNWDS_UDP_SERVER_MSG_QUEUE_SIZE];
+
+    /* setup the message queue */
+    msg_init_queue(msg_queue, UNWDS_UDP_SERVER_MSG_QUEUE_SIZE);
+
+    reply.content.value = (uint32_t)(-ENOTSUP);
+    reply.type = GNRC_NETAPI_MSG_TYPE_ACK;
+
+    while (1) {
+        msg_receive(&msg);
+
+        switch (msg.type) {
+            case GNRC_NETAPI_MSG_TYPE_RCV:
+                puts("PKTDUMP: data received:");
+                _dump(msg.content.ptr);
+                break;
+            case GNRC_NETAPI_MSG_TYPE_SND:
+                puts("PKTDUMP: data to send:");
+                _dump(msg.content.ptr);
+                break;
+            case GNRC_NETAPI_MSG_TYPE_GET:
+            case GNRC_NETAPI_MSG_TYPE_SET:
+                msg_reply(&msg, &reply);
+                break;
+            default:
+                puts("PKTDUMP: received something unexpected");
+                break;
+        }
+    }
+
+    /* never reached */
+    return NULL;
+}
+
+/**
+ * @brief   Start unwds udp server thread and listening for incoming packets
+ *
+ * @return  PID of the UNWDS_UDP_SERVER thread
+ * @return  negative value on error
+ */
+kernel_pid_t unwds_udp_server_init(void)
+{
+    if (unwds_udp_server_pid == KERNEL_PID_UNDEF) {
+        unwds_udp_server_pid = thread_create(_stack, sizeof(_stack), UNWDS_UDP_SERVER_PRIO,
+                             THREAD_CREATE_STACKTEST,
+                             _eventloop, NULL, "unwds udp server");
+    }
+	
+    return unwds_udp_server_pid;
+}
+
+// static gnrc_netreg_entry_t server = GNRC_NETREG_ENTRY_INIT_PID(GNRC_NETREG_DEMUX_CTX_ALL,
+                                                               // KERNEL_PID_UNDEF);
 
 static void send(char *addr_str, char *port_str, char *data, unsigned int num,
                  unsigned int delay)
@@ -105,27 +285,33 @@ static void send(char *addr_str, char *port_str, char *data, unsigned int num,
     }
 }
 
-static void start_server(char *port_str)
+void start_unwds_udp_server(void)
 {
-    uint16_t port;
+    // uint16_t port;
 
-    /* check if server is already running */
-    if (server.target.pid != KERNEL_PID_UNDEF) {
-        printf("Error: server already running on port %" PRIu32 "\n",
-               server.demux_ctx);
-        return;
-    }
-    /* parse port */
-    port = atoi(port_str);
-    if (port == 0) {
-        puts("Error: invalid port specified");
-        return;
-    }
-    /* start server (which means registering pktdump for the chosen port) */
-    server.target.pid = gnrc_pktdump_pid;
-    server.demux_ctx = (uint32_t)port;
+    // /* check if server is already running */
+    // if (server.target.pid != KERNEL_PID_UNDEF) {
+        // printf("Error: server already running on port %" PRIu32 "\n",
+               // server.demux_ctx);
+        // return;
+    // }
+    // /* parse port */
+    // port = atoi(port_str);
+    // if (port == 0) {
+        // puts("Error: invalid port specified");
+        // return;
+    // }
+    // /* start server (which means registering pktdump for the chosen port) */
+    // server.target.pid = gnrc_pktdump_pid;
+    // server.demux_ctx = (uint32_t)port;
+    // gnrc_netreg_register(GNRC_NETTYPE_UDP, &server);
+    // printf("Success: started UDP server on port %" PRIu16 "\n", port);
+	
+	/* start server (which means registering pktdump for the chosen port) */
+    server.target.pid = unwds_udp_server_pid;
+    server.demux_ctx = UNWDS_UDP_SERVER_PORT; 
     gnrc_netreg_register(GNRC_NETTYPE_UDP, &server);
-    printf("Success: started UDP server on port %" PRIu16 "\n", port);
+    printf("Success: started UDP server on port %" PRIu16 "\n", UNWDS_UDP_SERVER_PORT);
 }
 
 static void stop_server(void)
@@ -174,7 +360,7 @@ int udp_cmd(int argc, char **argv)
                 printf("usage %s server start <port>\n", argv[0]);
                 return 1;
             }
-            start_server(argv[3]);
+            // start_server(argv[3]);
         }
         else if (strcmp(argv[2], "stop") == 0) {
             stop_server();

@@ -160,9 +160,11 @@ void joined_cb(void)
     blink_led(LED_GREEN);
     
     /* Synchronize time if necessary */
+    /*
     if (unwds_get_node_settings().req_time) {
         ls_ed_req_time(&ls);
     }
+    */
 }
 
 static void time_req_ack_cb(time_t time) {
@@ -375,6 +377,11 @@ int ls_set_cmd(int argc, char **argv)
     	char v = value[0];
 
     	ls.settings.no_join = (v == '1');
+    }
+    else if (strcmp(key, "nojoin") == 0) {
+    	char v = value[0];
+
+    	ls.settings.req_time = (v == '1');
     }
     else if (strcmp(key, "addr") == 0) {
         if (strlen(value) != 8) {

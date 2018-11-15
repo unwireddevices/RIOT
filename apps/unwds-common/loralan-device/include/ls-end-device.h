@@ -155,6 +155,7 @@ typedef struct {
 	bool no_join;								/**< Statically personalized device, no join required */
     bool auto_shutdown;
     bool confirmation;
+    bool req_time;
 } ls_ed_settings_t;
 
 typedef struct {

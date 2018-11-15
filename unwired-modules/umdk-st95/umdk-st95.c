@@ -138,8 +138,8 @@ static void *radio_send(void *arg)
                 _printbuff(data.data, data.length);
                 
                 callback(&data);
-                rtctimers_millis_sleep(UMDK_ST95_DELAY_DETECT_MS);
-                st95_sleep(&dev);  
+                rtctimers_millis_sleep(UMDK_ST95_DELAY_DETECT_MS);                
+                st95_sleep(&dev);      
             }
             default: 
             break;            

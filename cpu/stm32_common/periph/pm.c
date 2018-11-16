@@ -91,13 +91,19 @@ static inline void _pm_before(void) {
     }
 
     /* specifically set GPIOs used for external SPI devices */
-    /* MOSI = 0, SCK = 0, MISO = AIN */
-    /* MOSI = 0, SCK = 0, MISO = AIN */
+    /* MOSI = 0, SCK = 0, MISO = AIN for SPI Mode 0 & 1 (CPOL = 0) */
+    /* MOSI = 0, SCK = 1, MISO = AIN for SPI Mode 2 & 3 (CPOL = 1) */
     for (i = 0; i < SPI_NUMOF; i++) {
         /* check if SPI is in use */
         if (is_periph_clk(spi_config[i].apbbus, spi_config[i].rccmask) == 1) {
+            /* SPI CLK polarity */
+            if (spi_config[i].dev->CR1 & (1<<1)) {
+                gpio_init(spi_config[i].sclk_pin, GPIO_IN_PU);
+            } else {
+                gpio_init(spi_config[i].sclk_pin, GPIO_IN_PD);
+            }
+
             gpio_init(spi_config[i].mosi_pin, GPIO_IN_PD);
-            gpio_init(spi_config[i].sclk_pin, GPIO_IN_PD);
             gpio_init(spi_config[i].miso_pin, GPIO_AIN);
         }
      }

@@ -220,7 +220,7 @@
 #include <net/sock.h>
 #include <wolfssl/ssl.h>
 
-#ifndef SOCK_TLS_H_
+#ifndef SOCK_TLS_H
 #define SOCK_TLS_H
 #ifdef __cplusplus
 extern "C" {

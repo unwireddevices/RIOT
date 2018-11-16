@@ -164,8 +164,6 @@ int main(void)
         }
 
         /* Write our reply into buff */
-        (void)buff;
-        memset(buff, 0, sizeof(buff));
         strncpy(buff, "I hear ya fa shizzle!\n", sizeof(buff) - 1);
         len = strnlen(buff, sizeof(buff));
         printf("Sending reply to client, reply reads: %s\n", buff);

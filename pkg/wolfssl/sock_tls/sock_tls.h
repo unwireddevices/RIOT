@@ -5,7 +5,7 @@
  * How To Use
  * ----------
  * First you need to @ref including-modules "include" a module that implements
- * this API in your application's Makefile. 
+ * this API in your application's Makefile.
  *
  * The `sock_tls` module requires the `wolfssl` package.
  *
@@ -24,34 +24,34 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ {.c}
  * #include <wolfssl/ssl.h>
  * #include <sock_tls.h>
- * 
+ *
  * #include <stdio.h>
  * #include <inttypes.h>
- * 
+ *
  * #include <net/sock/udp.h>
- * 
+ *
  * #include <stdio.h>
  * #include <stdlib.h>
  * #include <string.h>
- * 
+ *
  * #define SERVER_PORT 11111
  * #define DEBUG 1
  * extern const unsigned char server_cert[788];
  * extern const unsigned char server_key[121];
  * extern unsigned int server_cert_len;
  * extern unsigned int server_key_len;
- * 
- * static sock_tls_t skv; 
+ *
+ * static sock_tls_t skv;
  * static sock_tls_t *sk = &skv;
-* static const char Test_dtls_string[] = "DTLS OK!";
- * 
+ * static const char Test_dtls_string[] = "DTLS OK!";
+ *
  * int main(void)
  * {
  *     char buf[64];
  *     int ret;
  *     sock_udp_ep_t local = SOCK_IPV6_EP_ANY;
  *     local.port = SERVER_PORT;
- *     
+ *
  *     if (sock_dtls_create(sk, &local, NULL, 0, wolfDTLSv1_2_server_method()) != 0) {
  *         printf("Failed to create DTLS socket context\r\n");
  *         return -1;
@@ -62,7 +62,7 @@
  *         printf("Failed to load certificate from memory.\r\n");
  *         return -1;
  *     }
- * 
+ *
  *     if (wolfSSL_CTX_use_PrivateKey_buffer(sk->ctx, server_key,
  *                 server_key_len, SSL_FILETYPE_ASN1 ) != SSL_SUCCESS)
  *     {
@@ -102,7 +102,7 @@
  * @ref including-modules "include" the IPv6 module of your networking
  * implementation (e.g. `gnrc_ipv6_default` for @ref net_gnrc GNRC) and at least
  * one network device.
- * A separate file should define the buffers used as certificate and private key, 
+ * A separate file should define the buffers used as certificate and private key,
  * in the variables `server_cert`, `private_key` respectively.
  *
  * After including all the needed header files, we use a global object to store
@@ -115,14 +115,14 @@
  * A constant test string is used later as a reply to incoming connections.
  *
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ {.c}
- * static sock_tls_t skv; 
+ * static sock_tls_t skv;
  * static sock_tls_t *sk = &skv;
- * 
+ *
  * static const char Test_dtls_string[] = "DTLS OK!";
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
- * In the same way as a normal @ref net_sock_udp "UDP socket", in order to be able to 
- * listen for incoming packets, we bind the `sock` by setting a local endpoint with 
+ * In the same way as a normal @ref net_sock_udp "UDP socket", in order to be able to
+ * listen for incoming packets, we bind the `sock` by setting a local endpoint with
  * a port (`11111` in this case).
  *
  * We then proceed to create the `sock`. It is bound to `local` and thus listens
@@ -142,10 +142,10 @@
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
  * By default, all sock_tls operations in a DTLS context are blocking for a
- * limited amount of time, which depends on the DTLS session timeout. To modify 
+ * limited amount of time, which depends on the DTLS session timeout. To modify
  * the timeout, use `wolfSSL_dtls_set_timeout_init(sk->ssl)`.
  *
- * Certificate and private key for the server context are loaded from a previously 
+ * Certificate and private key for the server context are loaded from a previously
  * initialized section in memory:
  *
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ {.c}
@@ -164,13 +164,13 @@
  * }
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *
- * Once the context is configured, the SSL session can be initialized. 
+ * Once the context is configured, the SSL session can be initialized.
  *
  * The listening sock automatically takes care of the DTLS handshake.
  * When the session is established, `wolfSSL_accept()` will finally return
  * `SSL_SUCCESS`.
  *
- * 
+ *
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ {.c}
  * ret = sock_dtls_session_create(sk);
  * if (ret < 0)
@@ -188,7 +188,7 @@
  *
  * At this point, the session is established, and encrypted data can be exchanged
  * using `wolfSSL_read()` and `wolfSSL_write()`:
- * 
+ *
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ {.c}
  *    ret = wolfSSL_read(sk->ssl, buf, 64);
  *    if (ret > 0) {
@@ -220,8 +220,11 @@
 #include <net/sock.h>
 #include <wolfssl/ssl.h>
 
-#ifndef SOCK_TLS_INCLUDED
-#define SOCK_TLS_INCLUDED
+#ifndef SOCK_TLS_H_
+#define SOCK_TLS_H
+#ifdef __cplusplus
+extern "C" {
+#endif
 #define MODE_TLS 0
 #define MODE_DTLS 1
 
@@ -253,11 +256,11 @@
  * @param[in] flags     Flags for the sock object. See also
  *                      [sock flags](@ref net_sock_flags).
  *                      May be 0.
- * @param[in] method    Defines the SSL or TLS protocol for the client or server to use. 
- *                      There are several options for selecting the desired protocol. 
- *                      wolfSSL currently supports DTLS 1.0, and DTLS 1.2. Each of these 
+ * @param[in] method    Defines the SSL or TLS protocol for the client or server to use.
+ *                      There are several options for selecting the desired protocol.
+ *                      wolfSSL currently supports DTLS 1.0, and DTLS 1.2. Each of these
  *                      protocols have a corresponding function that can be used as last
- *                      argument to `sock_dtls_create`. The possible client and server 
+ *                      argument to `sock_dtls_create`. The possible client and server
  *                      protocol options are: `wolfDTLSv1_client_method()`, `wolfDTLSv1_server_method()`,
  *                      `wolfDTLSv1_2_client_method()` and `wolfDTLSv1_server_method`.
  *
@@ -295,7 +298,7 @@ void sock_dtls_set_endpoint(sock_tls_t *sk, const sock_udp_ep_t *addr);
  *
  * @pre `(sk != NULL)`
  *
- * @param[in] sock      The sock object previously created using @ref sock_dtls_create 
+ * @param[in] sock      The sock object previously created using @ref sock_dtls_create
  *
  * @return  0 on success.
  * @return  -EINVAL, if @sock is null or the SSL context is not initialized yet.
@@ -329,4 +332,8 @@ void sock_dtls_close(sock_tls_t *sk);
 /* TODO */
 #endif
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif /* SOCK_TLS_H */

@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA 
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
  */
 
 /**
@@ -164,6 +164,7 @@ int main(void)
         }
 
         /* Write our reply into buff */
+        (void)buff;
         memset(buff, 0, sizeof(buff));
         strncpy(buff, "I hear ya fa shizzle!\n", sizeof(buff) - 1);
         len = strnlen(buff, sizeof(buff));

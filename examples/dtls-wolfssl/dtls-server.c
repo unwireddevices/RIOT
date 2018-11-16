@@ -60,7 +60,7 @@ extern const unsigned char server_key[121];
 extern unsigned int server_cert_len;
 extern unsigned int server_key_len;
 
-static sock_tls_t skv; 
+static sock_tls_t skv;
 static sock_tls_t *sk = &skv;
 
 static const char Test_dtls_string[] = "DTLS OK!";
@@ -74,7 +74,7 @@ int dtls_server(int argc, char **argv)
 
     (void)argc;
     (void)argv;
-    
+
     if (sock_dtls_create(sk, &local, NULL, 0, wolfDTLSv1_2_server_method()) != 0) {
         printf("ERROR: Unable to create DTLS sock\r\n");
         return -1;
@@ -95,7 +95,7 @@ int dtls_server(int argc, char **argv)
         printf("Failed to load private key from memory.\r\n");
         return -1;
     }
-    
+
     /* Create the DTLS session */
     ret = sock_dtls_session_create(sk);
     if (ret < 0)
@@ -120,7 +120,7 @@ int dtls_server(int argc, char **argv)
             buf[ret] = (char)0;
             printf("Received '%s'\r\n", buf);
         }
-        
+
         /* Send reply */
         printf("Sending 'DTLS OK'...\r\n");
         wolfSSL_write(sk->ssl, Test_dtls_string, sizeof(Test_dtls_string));
@@ -129,7 +129,7 @@ int dtls_server(int argc, char **argv)
         printf("Closing connection.\r\n");
         sock_dtls_session_destroy(sk);
         sock_dtls_close(sk);
-		break;
+        break;
     }
     return 0;
 }

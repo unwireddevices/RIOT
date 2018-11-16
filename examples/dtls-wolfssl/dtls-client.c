@@ -43,7 +43,7 @@
 extern const unsigned char server_cert[788];
 extern const unsigned long server_cert_len;
 
-static sock_tls_t skv; 
+static sock_tls_t skv;
 static sock_tls_t *sk = &skv;
 
 int dtls_client(int argc, char **argv)
@@ -110,7 +110,7 @@ int dtls_client(int argc, char **argv)
     sock_dtls_set_endpoint(sk, &remote);
 
     /* send the hello message */
-    wolfSSL_write(sk->ssl, buf, strlen(buf)); 
+    wolfSSL_write(sk->ssl, buf, strlen(buf));
 
     /* wait for a reply, indefinitely */
     do {

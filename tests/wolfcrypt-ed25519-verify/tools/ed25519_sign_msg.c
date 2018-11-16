@@ -77,13 +77,13 @@ int main(void)
     }
 
     outlen = ED25519_KEY_SIZE;
-    wc_ed25519_export_private_only(&key, priv, &outlen); 
+    wc_ed25519_export_private_only(&key, priv, &outlen);
     printf("const uint8_t ed_private_key[ED25519_KEY_SIZE] = {\n");
     print_key(priv);
     printf("};\n\n");
-    
+
     outlen = ED25519_KEY_SIZE;
-    wc_ed25519_export_public(&key, pub, &outlen); 
+    wc_ed25519_export_public(&key, pub, &outlen);
     printf("const uint8_t ed_public_key[ED25519_KEY_SIZE] = {\n");
     print_key(pub);
     printf("};\n\n");
@@ -96,4 +96,3 @@ int main(void)
     printf("};\n\n");
     exit(0);
 }
-

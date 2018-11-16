@@ -54,6 +54,11 @@ void cpu_init(void)
     /* switch all GPIOs to AIN mode to minimize power consumption */
     uint8_t i;
     GPIO_TypeDef *port;
+    
+    /* enable GPIO clock */
+    uint32_t ahb_gpio_clocks = RCC->AHBENR & 0xFF;
+    periph_clk_en(AHB, 0xFF);
+    
     for (i = 0; i < 12; i++) {
         port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
         if (cpu_check_address((char *)port)) {
@@ -62,6 +67,12 @@ void cpu_init(void)
             break;
         }
     }
+    
+    /* restore GPIO clock */
+    uint32_t tmpreg = RCC->AHBENR;
+    tmpreg &= ~((uint32_t)0xFF);
+    tmpreg |= ahb_gpio_clocks;
+    periph_clk_en(AHB, tmpreg);
 #endif
 
 #ifdef MODULE_PERIPH_DMA

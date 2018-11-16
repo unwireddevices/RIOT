@@ -64,22 +64,30 @@ static const adc_conf_t adc_config[] = {};
  */
 static mutex_t lock = MUTEX_INIT;
 
+static bool hsi_enabled = true;
+
 static inline void prep(void)
 {
     mutex_lock(&lock);
     /* ADC clock is always HSI clock */
     if (!(RCC->CR & RCC_CR_HSION)) {
+        hsi_enabled = false;
         RCC->CR |= RCC_CR_HSION;
         /* Wait for HSI to become ready */
-        while (!(RCC->CR & RCC_CR_HSION)) {}
+        while (!(RCC->CR & RCC_CR_HSIRDY)) {}
     }
 
     periph_clk_en(APB2, RCC_APB2ENR_ADC1EN);
 }
 
 static inline void done(void)
-{
+{   
+    ADC1->CR2 &= ~ADC_CR2_ADON;
     periph_clk_dis(APB2, RCC_APB2ENR_ADC1EN);
+    
+    if (!hsi_enabled) {
+        RCC->CR &= ~RCC_CR_HSION;
+    }
 
     mutex_unlock(&lock);
 }

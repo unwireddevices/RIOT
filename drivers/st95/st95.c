@@ -59,6 +59,24 @@ static uint8_t _st95_modify_modulation_gain(const st95_t * dev, uint8_t modul, u
 static uint8_t _st95_read_modulation_gain(const st95_t * dev, uint8_t * modul, uint8_t * gain);
 #endif
 
+static void _st95_send_irqin_low_pulse(st95_t * dev);
+
+/**
+ * @brief   This function send low pulse on IRQ_IN pin
+ * 
+ * @param[in]   dev:            Pointer to ST95 device descriptor
+ * 
+ * @return  None
+ */
+static void _st95_send_irqin_low_pulse(st95_t * dev)
+{    
+    gpio_set(dev->params.irq_in);      
+    xtimer_spin(xtimer_ticks_from_usec(ST95_PULSE_NEGATIVE_USEC));
+    gpio_clear(dev->params.irq_in);  
+    xtimer_spin(xtimer_ticks_from_usec(ST95_PULSE_NEGATIVE_USEC));
+    gpio_set(dev->params.irq_in);
+}
+
  // static void _printbuff(uint8_t *buff, unsigned len)
     // {
         // while (len) {
@@ -68,17 +86,10 @@ static uint8_t _st95_read_modulation_gain(const st95_t * dev, uint8_t * modul, u
         // printf("\n");
     // }
     
-    
-// static void st95_send_irqin_negative_pulse(void)
+// static uint8_t get_uid_apdu(void)
 // {
-    // gpio_set(st95_device.irq_in);
-    // xtimer_spin(xtimer_ticks_from_usec(ST95_PULSE_NEGATIVE_USEC));
-    // gpio_clear(st95_device.irq_in);
-    // xtimer_spin(xtimer_ticks_from_usec(ST95_PULSE_NEGATIVE_USEC));
-    // gpio_set(st95_device.irq_in);
-// }
-
-
+    
+// }    
 
 // static void st95_reset_spi(void)
 // {
@@ -758,12 +769,7 @@ int st95_init(st95_t * dev, st95_params_t * params)
         rtctimers_millis_sleep(ST95_RAMP_UP_TIME_MS);
             
          /* Send negative pulse IRQ_IN*/
-        gpio_set(dev->params.irq_in);      
-        xtimer_spin(xtimer_ticks_from_usec(ST95_PULSE_NEGATIVE_USEC));
-        gpio_clear(dev->params.irq_in);  
-        xtimer_spin(xtimer_ticks_from_usec(ST95_PULSE_NEGATIVE_USEC));
-        gpio_set(dev->params.irq_in);
-           
+        _st95_send_irqin_low_pulse(dev);
             /* Initialize SPI */
         spi_init(SPI_DEV(dev->params.spi));
             /* Initialize CS SPI */
@@ -786,8 +792,8 @@ int st95_init(st95_t * dev, st95_params_t * params)
     } while((_st95_cmd_echo(dev) != ST95_OK) && (cnt_init < ST95_NUMB_TRY_INIT));
                  
     if(cnt_init >= ST95_NUMB_TRY_INIT) {
-            DEBUG("[ST95]: No ECHO\n");
-            return ST95_ERROR;
+        DEBUG("[ST95]: No ECHO\n");
+        return ST95_ERROR;
     }
         
         /* Calibration process */

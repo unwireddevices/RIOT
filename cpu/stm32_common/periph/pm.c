@@ -70,6 +70,9 @@ static inline void _pm_before(void) {
             lpm_gpio_moder[i] = port->MODER;
             lpm_gpio_pupdr[i] = port->PUPDR;
             lpm_gpio_otyper[i] = (uint16_t)(port->OTYPER & 0xFFFF);
+            #if defined (STM32L1XX_HD) || defined (STM32L1XX_XL)
+                lpm_gpio_brr[i] = (uint16_t)(port->BRR & 0xFFFF);
+            #endif
         } else {
             break;
         }
@@ -112,6 +115,9 @@ static inline void _pm_after(void) {
             port->PUPDR = lpm_gpio_pupdr[i];
             port->OTYPER = lpm_gpio_otyper[i];
             port->MODER = lpm_gpio_moder[i];
+            #if defined (STM32L1XX_HD) || defined (STM32L1XX_XL)
+                port->BRR = lpm_gpio_brr[i];
+            #endif
         } else {
             break;
         }

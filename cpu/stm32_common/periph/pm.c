@@ -26,10 +26,12 @@
  */
 
 #include "irq.h"
-#include "periph/pm.h"
-
 #include "stmclk.h"
 #include "periph_cpu_common.h"
+
+#include "periph/pm.h"
+#include "periph/uart.h"
+#include "periph/gpio.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -46,6 +48,82 @@
 #define PM_STOP_CONFIG (PWR_CR_LPDS | PWR_CR_FPDS)
 #endif
 #endif
+
+static uint32_t lpm_gpio_moder[8];
+static uint32_t lpm_gpio_pupdr[8];
+static uint16_t lpm_gpio_otyper[8];
+static uint8_t lpm_usart[UART_NUMOF];
+
+#if defined (STM32L1XX_HD) || defined (STM32L1XX_XL)
+static uint16_t lpm_gpio_brr[8];
+#endif
+
+static inline void _pm_before(void) {
+	uint32_t i;
+    GPIO_TypeDef *port;
+	
+	for (i = 0; i < 8; i++) {
+        port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
+
+        if (cpu_check_address((char *)port)) {
+            /* save GPIO registers values */
+            lpm_gpio_moder[i] = port->MODER;
+            lpm_gpio_pupdr[i] = port->PUPDR;
+            lpm_gpio_otyper[i] = (uint16_t)(port->OTYPER & 0xFFFF);
+        } else {
+            break;
+        }
+	}
+	
+    /* Disable all USART interfaces in use */
+    /* without it, RX will receive some garbage when MODER is changed */
+    for (i = 0; i < UART_NUMOF; i++) {
+        if (uart_config[i].dev->CR1 & USART_CR1_UE) {
+            uart_config[i].dev->CR1 &= ~USART_CR1_UE;
+            gpio_init(uart_config[i].tx_pin, GPIO_IN_PU);
+            lpm_usart[i] = 1;
+        } else {
+            lpm_usart[i] = 0;
+        }
+    }
+
+    /* specifically set GPIOs used for external SPI devices */
+    /* MOSI = 0, SCK = 0, MISO = AIN */
+    /* MOSI = 0, SCK = 0, MISO = AIN */
+    for (i = 0; i < SPI_NUMOF; i++) {
+        /* check if SPI is in use */
+        if (is_periph_clk(spi_config[i].apbbus, spi_config[i].rccmask) == 1) {
+            gpio_init(spi_config[i].mosi_pin, GPIO_IN_PD);
+            gpio_init(spi_config[i].sclk_pin, GPIO_IN_PD);
+            gpio_init(spi_config[i].miso_pin, GPIO_AIN);
+        }
+     }
+}
+
+static inline void _pm_after(void) {
+    uint32_t i;
+    GPIO_TypeDef *port;
+      
+    /* restore GPIO settings */
+    for (i = 0; i < 8; i++) {
+        port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
+        
+        if (cpu_check_address((char *)port)) {
+            port->PUPDR = lpm_gpio_pupdr[i];
+            port->OTYPER = lpm_gpio_otyper[i];
+            port->MODER = lpm_gpio_moder[i];
+        } else {
+            break;
+        }
+    }
+
+    /* restore USART clocks */
+    for (i = 0; i < UART_NUMOF; i++) {
+        if (lpm_usart[i]) {
+            uart_config[i].dev->CR1 |= USART_CR1_UE;
+        }
+    }
+}
 
 static inline uint32_t _ewup_config(void)
 {
@@ -175,9 +253,24 @@ enum pm_mode pm_set(enum pm_mode mode)
             PWR->CR |= PM_STOP_CONFIG;
 #endif
             /* Set SLEEPDEEP bit of system control block */
-            deep = 1;
+            SCB->SCR |=  (SCB_SCR_SLEEPDEEP_Msk);
             
-            cortexm_sleep(deep);
+            unsigned state = irq_disable();            
+            _pm_before();
+            
+            #if defined (__CC_ARM)
+                __force_stores();
+            #endif
+
+            __DSB();
+            __WFI();
+            
+            /* Re-init clock after STOP */
+            stmclk_init_sysclk();
+            
+            _pm_after();
+            
+            irq_restore(state);
             break;
         case PM_IDLE:
             break;

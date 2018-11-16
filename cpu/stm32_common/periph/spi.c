@@ -68,7 +68,8 @@ void spi_init(spi_t bus)
 #else
     dev(bus)->CR2 = 0;
 #endif
-    periph_clk_dis(spi_config[bus].apbbus, spi_config[bus].rccmask);
+    /* Do not disable SPI clock to allow PM function to determine if SPI is in use */
+    /* periph_clk_dis(spi_config[bus].apbbus, spi_config[bus].rccmask); */
 }
 
 void spi_init_pins(spi_t bus)
@@ -144,7 +145,8 @@ void spi_release(spi_t bus)
     /* disable device and release lock */
     dev(bus)->CR1 = 0;
     dev(bus)->CR2 &= ~(SPI_CR2_SSOE);
-    periph_clk_dis(spi_config[bus].apbbus, spi_config[bus].rccmask);
+    /* Do not disable SPI clock to allow PM function to determine if SPI is in use */
+    /* periph_clk_dis(spi_config[bus].apbbus, spi_config[bus].rccmask); */
 #if defined(STM32_PM_STOP) && defined(STM32_PM_BLOCK_SPI)
     /* unblock STOP mode */
     pm_unblock(STM32_PM_STOP);

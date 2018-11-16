@@ -1,5 +1,4 @@
-wolfCrypt Ed25519 verify routine test
-============
+# wolfCrypt Ed25519 verify routine test
 
 This is a demo of a signature verification using wolfCrypt.
 

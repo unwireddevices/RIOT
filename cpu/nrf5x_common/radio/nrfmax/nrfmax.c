@@ -36,7 +36,7 @@
 #include "net/gnrc/nettype.h"
 #endif
 
-#define ENABLE_DEBUG            (0)
+#define ENABLE_DEBUG            (1)
 #include "debug.h"
 
 /**
@@ -485,9 +485,9 @@ static int nrfmax_set(netdev_t *dev, netopt_t opt, const void *val, size_t len)
                 return -EAFNOSUPPORT;
             }
             return sizeof(uint16_t);
-        case NETOPT_STATE:
-            assert(len == sizeof(netopt_state_t));
-            return nrfmax_set_state(*((const netopt_state_t *)val));
+        // case NETOPT_STATE:
+            // assert(len == sizeof(netopt_state_t));
+            // return nrfmax_set_state(*((const netopt_state_t *)val));
         case NETOPT_TX_POWER:
             assert(len == sizeof(int16_t));
             nrfmax_set_txpower(*((const int16_t *)val));

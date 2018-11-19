@@ -18,10 +18,13 @@
  * @}
  */
 
+#include "udp.h"
 #include <stdio.h>
 
 #include "shell.h"
 #include "msg.h"
+#include "net/gnrc/netif.h"
+#include "net/gnrc/rpl.h"
 
 #define MAIN_QUEUE_SIZE     (8)
 static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
@@ -29,7 +32,7 @@ static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 extern int udp_cmd(int argc, char **argv);
 
 static const shell_command_t shell_commands[] = {
-    { "udp", "send data over UDP and listen on UDP ports", udp_cmd },
+    { "unwds_udp", "send data over UDP and listen on UDP ports", udp_cmd },
     { NULL, NULL, NULL }
 };
 
@@ -39,6 +42,9 @@ int main(void)
      * receive potentially fast incoming networking packets */
     msg_init_queue(_main_msg_queue, MAIN_QUEUE_SIZE);
     puts("RIOT network stack example application");
+	
+	printf("Init unwds udp server: %i\n", unwds_udp_server_init());	
+	start_unwds_udp_server();
 	
     /* start shell */
     puts("All up, running the shell now");

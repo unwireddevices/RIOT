@@ -88,6 +88,35 @@ int main(void)
     printf("Successfully added a new RPL DODAG\n");
 	
 	
+	ipv6_addr_t addr_dag;
+	
+	addr_dag.u8[0] = 0xFE;
+	addr_dag.u8[1] = 0x80;
+	addr_dag.u8[2] = 0x00;
+	addr_dag.u8[3] = 0x00;
+	addr_dag.u8[4] = 0x00;
+	addr_dag.u8[5] = 0x00;
+	addr_dag.u8[6] = 0x00;
+	addr_dag.u8[7] = 0x00;
+	addr_dag.u8[8] = 0x1D;
+	addr_dag.u8[9] = 0x9A;
+	addr_dag.u8[10] = 0x5E;
+	addr_dag.u8[11] = 0x49;
+	addr_dag.u8[12] = 0x41;
+	addr_dag.u8[13] = 0x5B;
+	addr_dag.u8[14] = 0x29;
+	addr_dag.u8[15] = 0xA4;
+	
+	uint16_t len = 16;
+	uint16_t port = 61616;
+	
+	uint8_t data[len];
+	
+	for(uint8_t i = 0; i < len; i++)
+		data[i] = i;
+	
+	udp_send(&addr_dag, port, data, len);
+	
     /* start shell */
     puts("All up, running the shell now");
     char line_buf[SHELL_DEFAULT_BUFSIZE];

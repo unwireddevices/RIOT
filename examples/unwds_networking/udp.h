@@ -19,10 +19,11 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  */
 
-#ifndef NET_GNRC_PKTDUMP_H
-#define NET_GNRC_PKTDUMP_H
+#ifndef UNWDS_UDP_H
+#define UNWDS_UDP_H
 
 #include "kernel_types.h"
+#include "protocol.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -53,7 +54,7 @@ extern "C" {
  * @brief   Port of UNWDS_UDP_SERVER
  */
 #ifndef UNWDS_UDP_SERVER_PORT
-#define UNWDS_UDP_SERVER_PORT          		(0xF0B0) //‭61616‬
+#define UNWDS_UDP_SERVER_PORT          		(UDP_DATA_PORT) /* ‭61616‬ */
 #endif
 
 
@@ -80,9 +81,22 @@ void start_unwds_udp_server(void);
  */
 void stop_unwds_udp_server(void);
 
+/**
+ * @brief udp_send
+ *
+ * @param[in]		addr	Address 
+ * @param[in]       port	Port
+ * @param[in]       data	Data
+ * @param[in]       len		Len
+ */
+void udp_send ( ipv6_addr_t *addr, 
+				uint16_t port, 
+				uint8_t  *data, 
+				uint16_t len);
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* NET_GNRC_PKTDUMP_H */
+#endif /* UNWDS_UDP_H */
 /** @} */

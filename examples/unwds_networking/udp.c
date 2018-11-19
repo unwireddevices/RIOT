@@ -43,6 +43,9 @@
 #include "net/sixlowpan.h"
 #include "od.h"
 
+#define ENABLE_DEBUG            (0)
+#include "debug.h"
+
 /**
  * @brief   Stack for the pktdump thread
  */
@@ -58,7 +61,17 @@ kernel_pid_t unwds_udp_server_pid = KERNEL_PID_UNDEF;
  */
 static gnrc_netreg_entry_t server = GNRC_NETREG_ENTRY_INIT_PID(GNRC_NETREG_DEMUX_CTX_ALL,
                                                                KERNEL_PID_UNDEF);
+															   
+#if UNWDS_ROOT
+extern void unwds_root_server(gnrc_pktsnip_t *pkt);
+#endif /* UNWDS_ROOT */
 
+#if UNWDS_DAG
+extern void unwds_dag_server(gnrc_pktsnip_t *pkt);
+#endif /* UNWDS_DAG */
+
+
+#if ENABLE_DEBUG
 static void _dump_snip(gnrc_pktsnip_t *pkt)
 {
     size_t hdr_len = pkt->size;
@@ -68,69 +81,80 @@ static void _dump_snip(gnrc_pktsnip_t *pkt)
             printf("NETTYPE_UNDEF (%i)\n", pkt->type);
             od_hex_dump(pkt->data, pkt->size, OD_WIDTH_DEFAULT);
             break;
+			
 #ifdef MODULE_GNRC_NETIF
         case GNRC_NETTYPE_NETIF:
             printf("NETTYPE_NETIF (%i)\n", pkt->type);
             gnrc_netif_hdr_print(pkt->data);
             break;
-#endif
+#endif /* MODULE_GNRC_NETIF */
+
 #ifdef MODULE_GNRC_SIXLOWPAN
         case GNRC_NETTYPE_SIXLOWPAN:
             printf("NETTYPE_SIXLOWPAN (%i)\n", pkt->type);
             sixlowpan_print(pkt->data, pkt->size);
             break;
-#endif
+#endif /* MODULE_GNRC_SIXLOWPAN */
+
 #ifdef MODULE_GNRC_IPV6
         case GNRC_NETTYPE_IPV6:
             printf("NETTYPE_IPV6 (%i)\n", pkt->type);
             ipv6_hdr_print(pkt->data);
             hdr_len = sizeof(ipv6_hdr_t);
             break;
-#endif
+#endif /* MODULE_GNRC_IPV6 */
+
 #ifdef MODULE_GNRC_ICMPV6
         case GNRC_NETTYPE_ICMPV6:
             printf("NETTYPE_ICMPV6 (%i)\n", pkt->type);
             icmpv6_hdr_print(pkt->data);
             hdr_len = sizeof(icmpv6_hdr_t);
             break;
-#endif
+#endif /* MODULE_GNRC_ICMPV6 */
+
 #ifdef MODULE_GNRC_TCP
         case GNRC_NETTYPE_TCP:
             printf("NETTYPE_TCP (%i)\n", pkt->type);
             tcp_hdr_print(pkt->data);
             hdr_len = sizeof(tcp_hdr_t);
             break;
-#endif
+#endif /* MODULE_GNRC_TCP */
+
 #ifdef MODULE_GNRC_UDP
         case GNRC_NETTYPE_UDP:
             printf("NETTYPE_UDP (%i)\n", pkt->type);
             udp_hdr_print(pkt->data);
             hdr_len = sizeof(udp_hdr_t);
             break;
-#endif
+#endif /* MODULE_GNRC_UDP */
+
 #ifdef MODULE_CCN_LITE_UTILS
         case GNRC_NETTYPE_CCN_CHUNK:
             printf("GNRC_NETTYPE_CCN_CHUNK (%i)\n", pkt->type);
             printf("Content is: %.*s\n", (int)pkt->size, (char*)pkt->data);
             break;
-#endif
+#endif /* MODULE_CCN_LITE_UTILS */
+
 #ifdef MODULE_NDN_RIOT
     case GNRC_NETTYPE_NDN:
             printf("NETTYPE_NDN (%i)\n", pkt->type);
             od_hex_dump(pkt->data, pkt->size, OD_WIDTH_DEFAULT);
         break;
-#endif
+#endif /* MODULE_NDN_RIOT */
+
 #ifdef TEST_SUITES
         case GNRC_NETTYPE_TEST:
             printf("NETTYPE_TEST (%i)\n", pkt->type);
             od_hex_dump(pkt->data, pkt->size, OD_WIDTH_DEFAULT);
             break;
-#endif
+#endif /* TEST_SUITES */
+
         default:
             printf("NETTYPE_UNKNOWN (%i)\n", pkt->type);
             od_hex_dump(pkt->data, pkt->size, OD_WIDTH_DEFAULT);
             break;
     }
+	
     if (hdr_len < pkt->size) {
         size_t size = pkt->size - hdr_len;
 
@@ -154,8 +178,9 @@ static void _dump(gnrc_pktsnip_t *pkt)
     }
 
     printf("~~ PKT    - %2i snips, total size: %3i byte\n", snips, size);
-    gnrc_pktbuf_release(pkt);
+    // gnrc_pktbuf_release(pkt);
 }
+#endif /* ENABLE_DEBUG */
 
 static void *_eventloop(void *arg)
 {
@@ -174,19 +199,29 @@ static void *_eventloop(void *arg)
 
         switch (msg.type) {
             case GNRC_NETAPI_MSG_TYPE_RCV:
-                puts("PKTDUMP: data received:");
+                DEBUG("UNWDS_UDP: data received:\n");
+#if ENABLE_DEBUG
                 _dump(msg.content.ptr);
+#endif /* ENABLE_DEBUG */
+#if UNWDS_ROOT
+				unwds_root_server(msg.content.ptr);
+#endif /* UNWDS_ROOT */
+#if UNWDS_DAG
+				unwds_dag_server(msg.content.ptr);
+#endif /* UNWDS_DAG */
                 break;
             case GNRC_NETAPI_MSG_TYPE_SND:
-                puts("PKTDUMP: data to send:");
+                DEBUG("UNWDS_UDP: data to send:\n");
+#if ENABLE_DEBUG
                 _dump(msg.content.ptr);
+#endif /* ENABLE_DEBUG */
                 break;
             case GNRC_NETAPI_MSG_TYPE_GET:
             case GNRC_NETAPI_MSG_TYPE_SET:
                 msg_reply(&msg, &reply);
                 break;
             default:
-                puts("PKTDUMP: received something unexpected");
+                DEBUG("UNWDS_UDP: received something unexpected\n");
                 break;
         }
     }
@@ -212,7 +247,7 @@ kernel_pid_t unwds_udp_server_init(void)
     return unwds_udp_server_pid;
 }
 
-static void send(char *addr_str, char *port_str, char *data, unsigned int num,
+static void udp_shell_send(char *addr_str, char *port_str, char *data, unsigned int num,
                  unsigned int delay)
 {
     int iface;
@@ -282,6 +317,85 @@ static void send(char *addr_str, char *port_str, char *data, unsigned int num,
     }
 }
 
+void udp_send ( ipv6_addr_t *addr, 
+				uint16_t port, 
+				uint8_t  *data, 
+				uint16_t len)
+{	
+    int iface;
+    // uint16_t port;
+    // ipv6_addr_t addr;
+
+    /* get interface, if available */
+    iface = 7;//ipv6_addr_split_iface(addr_str);
+    if ((iface < 0) && (gnrc_netif_numof() == 1)) {
+        iface = gnrc_netif_iter(NULL)->pid;
+    }
+	
+    /* parse destination address */
+    // if (ipv6_addr_from_str(&addr, addr_str) == NULL) {
+        // puts("Error: unable to parse destination address");
+        // return;
+    // }
+	
+    /* parse port */
+    // port = atoi(port_str);
+    // if (port == 0) {
+        // puts("Error: unable to parse destination port");
+        // return;
+    // }
+
+	gnrc_pktsnip_t *payload, *udp, *ip;
+	// unsigned payload_size;
+	
+	/* allocate payload */
+	payload = gnrc_pktbuf_add(NULL, data, len, GNRC_NETTYPE_UNDEF);
+	if (payload == NULL) {
+		puts("Error: unable to copy data to packet buffer");
+		return;
+	}
+	/* store size for output */
+	// payload_size = (unsigned)payload->size;
+	
+	/* allocate UDP header, set source port := destination port */
+	udp = gnrc_udp_hdr_build(payload, port, port);
+	if (udp == NULL) {
+		puts("Error: unable to allocate UDP header");
+		gnrc_pktbuf_release(payload);
+		return;
+	}
+	
+	/* allocate IPv6 header */
+	ip = gnrc_ipv6_hdr_build(udp, NULL, addr);
+	if (ip == NULL) {
+		puts("Error: unable to allocate IPv6 header");
+		gnrc_pktbuf_release(udp);
+		return;
+	}
+	
+	/* add netif header, if interface was given */
+	if (iface > 0) {
+		gnrc_pktsnip_t *netif = gnrc_netif_hdr_build(NULL, 0, NULL, 0);
+
+		((gnrc_netif_hdr_t *)netif->data)->if_pid = (kernel_pid_t)iface;
+		LL_PREPEND(ip, netif);
+	}
+	
+	/* send packet */
+	if (!gnrc_netapi_dispatch_send(GNRC_NETTYPE_UDP, GNRC_NETREG_DEMUX_CTX_ALL, ip)) {
+		puts("Error: unable to locate UDP thread");
+		gnrc_pktbuf_release(ip);
+		return;
+	}
+	/* access to `payload` was implicitly given up with the send operation above
+	 * => use temporary variable for output */
+	 
+	// addr_str[16]
+	// char *gnrc_netif_addr_to_str(const uint8_t *addr, size_t addr_len, char *out);
+	// printf("Success: sent %u byte(s) to [%s]:%u\n", payload_size, addr_str, port);
+	printf("Success: sent\n");
+}
+
 void start_unwds_udp_server(void)
 {
     /* check if server is already running */
@@ -332,7 +446,7 @@ int udp_cmd(int argc, char **argv)
         if (argc > 6) {
             delay = atoi(argv[6]);
         }
-        send(argv[2], argv[3], argv[4], num, delay);
+        udp_shell_send(argv[2], argv[3], argv[4], num, delay);
     }
     else if (strcmp(argv[1], "server") == 0) {
         if (argc < 3) {

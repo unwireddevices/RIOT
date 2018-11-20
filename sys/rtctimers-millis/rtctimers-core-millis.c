@@ -236,6 +236,21 @@ void rtctimers_millis_remove(rtctimers_millis_t *timer)
     irq_restore(state);
 }
 
+void rtctimers_millis_remove_all(void)
+{
+    while (timer_list_head) {
+        timer_list_head = timer_list_head->next;
+    }
+    
+    while (overflow_list_head) {
+        overflow_list_head = overflow_list_head->next;
+    }
+    
+    while (long_list_head) {
+        long_list_head = long_list_head->next;
+    }
+}
+
 static uint32_t _time_left(uint32_t target, uint32_t reference)
 {
     uint32_t now = rtctimers_millis_now();

@@ -70,4 +70,9 @@ void rtctimers_millis_set_msg_absolute(rtctimers_millis_t *timer, msg_t *msg, ke
  */
 void rtctimers_millis_set_timebase(struct tm *new_time);
 
+/**
+ * @brief Removes all timers
+ */
+void rtctimers_millis_remove_all(void);
+
 #endif /* RTC_TIMERS_MILLIS_H_ */

@@ -8,6 +8,9 @@ BOARD ?= nrf52dk
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../../..
 
+# Maximum number of entries in the IPv6 FIB table.
+# CFLAGS += -DGNRC_IPV6_FIB_TABLE_SIZE=200
+
 # Include common files
 INCLUDES += -I../
 DIRS += ../

@@ -35,6 +35,8 @@ void unwds_root_server(gnrc_pktsnip_t *pkt)
 	od_hex_dump(pkt->data, pkt->size, OD_WIDTH_DEFAULT);
 #endif /* ENABLE_DEBUG */
 
+	/*LED ON*/ 
+	
 	/*Отражаем структуру на массив*/ 
 	header_t *header_pack = pkt->data; //(header_t*)&data[HEADER_OFFSET];
 	
@@ -43,8 +45,6 @@ void unwds_root_server(gnrc_pktsnip_t *pkt)
         case UDBP_PROTOCOL_VERSION: 
 			//
 			/*Получаем nonce*/
-					
-			/*CRC16 проверка*/ 
 			
 			/*Защита от атаки повтором*/
 			/*Проверяем счетчик пакетов на валидность данного пакета*/
@@ -81,7 +81,7 @@ void unwds_root_server(gnrc_pktsnip_t *pkt)
 							break;
 					} /* header_pack->data_type */
 					break;
-				case LIT_MEASURE_STATUS:
+				case UNWDS_LIT_MODULE_ID:
 					switch(header_pack->data_type)
 					{
 						case LIT_MEASURE_STATUS:
@@ -110,7 +110,9 @@ void unwds_root_server(gnrc_pktsnip_t *pkt)
             printf("Unknown protocol version!\n");
 			break;
     } /* header_pack->protocol_version */
-
+	
+	/*LED OFF*/ 
+	
     gnrc_pktbuf_release(pkt);
     return;
 }

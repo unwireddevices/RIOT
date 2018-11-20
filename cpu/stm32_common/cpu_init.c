@@ -59,7 +59,7 @@ void cpu_init(void)
     uint32_t ahb_gpio_clocks = RCC->AHBENR & 0xFF;
     periph_clk_en(AHB, 0xFF);
     
-    for (i = 0; i < 12; i++) {
+    for (i = 0; i < 8; i++) {
         port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
         if (cpu_check_address((char *)port)) {
             port->MODER = 0xffffffff;

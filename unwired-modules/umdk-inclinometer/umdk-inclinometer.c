@@ -312,11 +312,9 @@ static void *publish_thread(void *arg) {
 
     while (1) {
         msg_receive(&msg);
-
-        if ((last_publish_time < (rtctimers_millis_now() - (1000 * inclinometer_config.publish_period_sec) - 100)) &&
-             alarm_was_sent) {
-                 
-            puts("[umdk-" _UMDK_NAME_ "] Ignore alarm message");
+        
+        if ((msg.type == INCLINOMETER_ALARM_MESSAGE) && alarm_was_sent) {
+            puts("[umdk-" _UMDK_NAME_ "] Ignore repeated alarm message");
             continue;
         }
         
@@ -382,7 +380,7 @@ static void *publish_thread(void *arg) {
         phi.min = INT_MAX;
         
         last_publish_time = rtctimers_millis_now();
-
+        
         /* Restart after delay */
         rtctimers_millis_set_msg(&timer, 1000 * inclinometer_config.publish_period_sec, &timer_msg, timer_pid);
     }

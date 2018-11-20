@@ -435,7 +435,7 @@ static int _set(netdev_t *netdev, netopt_t opt, const void *val, size_t len)
             return sizeof(uint32_t);
 
         case NETOPT_TX_POWER:
-            assert(len <= sizeof(int16_t));
+            assert(len == sizeof(int16_t));
             int16_t power = *((const int16_t *)val);
             if ((power < INT8_MIN) || (power > INT8_MAX)) {
                 res = -EINVAL;

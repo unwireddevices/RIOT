@@ -678,9 +678,15 @@ static bool is_connect_button_pressed(void)
 	}
 	
     if (!gpio_init(UNWD_CONNECT_BTN, GPIO_IN_PU)) {
+        #if defined(UNWD_CONNECT_POL)
+        if (gpio_read(UNWD_CONNECT_BTN) == UNWD_CONNECT_POL) {
+            return true;
+        }
+        #else
         if (!gpio_read(UNWD_CONNECT_BTN)) {
             return true;
         }
+        #endif
     }
     else {
         puts("Error initializing Connect button\n");

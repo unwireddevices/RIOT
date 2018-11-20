@@ -80,6 +80,7 @@ extern "C" {
 /** "Connect" Button */
 #define UNWD_USE_CONNECT_BTN	1
 #define UNWD_CONNECT_BTN		UNWD_GPIO_1
+#define UNWD_CONNECT_POL        0
 
 /** LEDs */
 #define LED_GREEN   GPIO_PIN(PORT_B, 0)

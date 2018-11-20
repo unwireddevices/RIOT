@@ -27,6 +27,8 @@ extern "C" {
 #define ISO14443A_CMD_REQA                  0x26
 #define ISO14443A_CMD_WUPA					0x52
 #define ISO14443A_CMD_HLTA					0x50
+#define ISO14443A_CMD_RATS  				0xE0
+#define ISO14443A_CMD_PPS					0xD0
 
 #define ISO14443A_OFFSET_UID_SELECT			2
 #define ISO14443A_OFFSET_SAK_BYTE			ST95_DATA_OFFSET

@@ -639,10 +639,6 @@ static void unwds_callback(module_data_t *buf)
 
 static bool is_connect_button_pressed(void)
 {
-	if (!UNWD_USE_CONNECT_BTN) {
-		return false;
-	}
-	
     if (!gpio_init(UNWD_CONNECT_BTN, GPIO_IN_PU)) {
         #if defined(UNWD_CONNECT_POL)
         if (gpio_read(UNWD_CONNECT_BTN) == UNWD_CONNECT_POL) {
@@ -654,10 +650,6 @@ static bool is_connect_button_pressed(void)
         }
         #endif
     }
-    else {
-        puts("Error initializing Connect button\n");
-    }
-
     return false;
 }
 

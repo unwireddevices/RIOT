@@ -78,7 +78,6 @@ extern "C" {
 #define SX127X_SPI_NSS  GPIO_PIN(PORT_B, 12)
 
 /** "Connect" Button */
-#define UNWD_USE_CONNECT_BTN	1
 #define UNWD_CONNECT_BTN		UNWD_GPIO_1
 #define UNWD_CONNECT_POL        0
 

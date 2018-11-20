@@ -93,22 +93,23 @@ static int gnrc_nrfmax_send(gnrc_netif_t *dev, gnrc_pktsnip_t *pkt)
 
     /* Build the nrfmax header from the generic netif header */
     res = hdr_netif_to_nrfmax(&nrfmax_hdr, pkt);
-    if (res < 0) {
+    if (res < 0) 
+	{
         DEBUG("[nrfmax_gnrc] send: failed to build nrfmax header\n");
-        goto out;
     }
+	else
+	{
+		/* Link first entry after netif hdr of the pkt to the nrfmax header */
+		iolist_t iolist = {
+			.iol_next = (iolist_t *)pkt->next,
+			.iol_base = &nrfmax_hdr,
+			.iol_len = NRFMAX_HDR_LEN
+		};
 
-    /* Link first entry after netif hdr of the pkt to the nrfmax header */
-    iolist_t iolist = {
-        .iol_next = (iolist_t *)pkt->next,
-        .iol_base = &nrfmax_hdr,
-        .iol_len = NRFMAX_HDR_LEN
-    };
+		/* And finally send out the data and release the packet */
+		res = dev->dev->driver->send(dev->dev, &iolist);
+	}
 
-    /* And finally send out the data and release the packet */
-    res = dev->dev->driver->send(dev->dev, &iolist);
-
-out:
     gnrc_pktbuf_release(pkt);
 
     return res;

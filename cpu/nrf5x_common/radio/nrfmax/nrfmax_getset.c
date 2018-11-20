@@ -36,7 +36,7 @@
 #include "net/gnrc/nettype.h"
 #endif
 
-#define ENABLE_DEBUG            (0)
+#define ENABLE_DEBUG            (1)
 #include "debug.h"
 
 /**
@@ -188,14 +188,18 @@ int nrfmax_set_state(netopt_state_t val)
     /* Make sure radio is turned on and no transmission is in progress */
     NRF_RADIO->POWER = 1;
 
-    switch (val) {
+    switch(val) 
+	{
         case NETOPT_STATE_OFF:
+			DEBUG("[nrfmax] set NETOPT_STATE: STATE_OFF\n"); 
             nrfmax_target_state = STATE_OFF;
             break;
         case NETOPT_STATE_SLEEP:
+			DEBUG("[nrfmax] set NETOPT_STATE: NETOPT_STATE_SLEEP\n");
             nrfmax_target_state = STATE_IDLE;
             break;
         case NETOPT_STATE_IDLE:
+			DEBUG("[nrfmax] set NETOPT_STATE: NETOPT_STATE_IDLE\n");
             nrfmax_target_state = STATE_RX;
             break;
         default:

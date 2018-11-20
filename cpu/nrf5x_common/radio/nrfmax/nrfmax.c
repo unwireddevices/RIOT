@@ -38,6 +38,7 @@
 
 #define ENABLE_DEBUG            (1)
 #include "debug.h"
+#include "od.h"
 
 /**
  * @brief   Driver specific device configuration
@@ -126,12 +127,12 @@ static volatile uint8_t rx_lock = 0;
  */
 static void go_idle(void)
 {
-    /* set device into basic disabled state */
+    /* Set device into basic disabled state */
     NRF_RADIO->EVENTS_DISABLED = 0;
     NRF_RADIO->TASKS_DISABLE = 1;
     while (NRF_RADIO->EVENTS_DISABLED == 0) {}
 	
-    /* also release any existing lock on the RX buffer */
+    /* Also release any existing lock on the RX buffer */
     rx_lock = 0;
     nrfmax_state = STATE_IDLE;
 }
@@ -146,25 +147,32 @@ static void go_idle(void)
 void nrfmax_goto_target_state(void)
 {
     go_idle();
-
-    if ((nrfmax_target_state == STATE_RX) && (rx_buf.pkt.hdr.len == 0)) {
-        /* set receive buffer and our own address */
-        rx_lock = 1;
-        NRF_RADIO->PACKETPTR = (uint32_t)(&rx_buf);
-		NRF_RADIO->PREFIX0 = (CONF_ADDR_PREFIX0 | nrfmax_eui64.uint8[3]);
-		NRF_RADIO->BASE0 = ((nrfmax_eui64.uint8[4] << 24) |
-							(nrfmax_eui64.uint8[5] << 16) |
-							(nrfmax_eui64.uint8[6] << 8)  |
-							(nrfmax_eui64.uint8[7]));
-				
-        /* goto RX mode */
-        NRF_RADIO->TASKS_RXEN = 1;
-        nrfmax_state = STATE_RX;
-    }
-
-    if (nrfmax_target_state == STATE_OFF) {
-        NRF_RADIO->POWER = 0;
-        nrfmax_state = STATE_OFF;
+	
+	switch(nrfmax_target_state) 
+	{
+        case STATE_RX:  // if ((nrfmax_target_state == STATE_RX) //&& (rx_buf.pkt.hdr.len == 0))
+			/* Set receive buffer and our own address */
+			rx_lock = 1;
+			NRF_RADIO->PACKETPTR = (uint32_t)(&rx_buf);
+			NRF_RADIO->PREFIX0 = (CONF_ADDR_PREFIX0 | nrfmax_eui64.uint8[3]);
+			NRF_RADIO->BASE0 = ((nrfmax_eui64.uint8[4] << 24) |
+								(nrfmax_eui64.uint8[5] << 16) |
+								(nrfmax_eui64.uint8[6] << 8)  |
+								(nrfmax_eui64.uint8[7]));
+					
+			/* Goto RX mode */
+			NRF_RADIO->TASKS_RXEN = 1;
+			nrfmax_state = STATE_RX;
+            break;
+        case STATE_OFF:
+			NRF_RADIO->POWER = 0;
+			nrfmax_state = STATE_OFF;
+            break;
+		case NETOPT_STATE_SLEEP:
+            break;
+        default:
+            printf("ERROR GOTO TARGET STATE\n");
+			break;
     }
 }
 
@@ -186,22 +194,28 @@ void nrfmax_setup(void)
  */
 void isr_radio(void)
 {
-    if (NRF_RADIO->EVENTS_END == 1) {
+    if (NRF_RADIO->EVENTS_END == 1) 
+	{
         NRF_RADIO->EVENTS_END = 0;
 		
         /* Did we just send or receive something? */
-        if (nrfmax_state == STATE_RX) {
+        if (nrfmax_state == STATE_RX) 
+		{
             /* Drop packet on invalid CRC */
-            if ((NRF_RADIO->CRCSTATUS != 1) || !(nrfmax_dev.event_callback)) {
+            if ((NRF_RADIO->CRCSTATUS != 1) || !(nrfmax_dev.event_callback)) 
+			{
                 rx_buf.pkt.hdr.len = 0;
                 NRF_RADIO->TASKS_START = 1;
                 return;
             }
+			
             rx_lock = 0;
             nrfmax_dev.event_callback(&nrfmax_dev, NETDEV_EVENT_ISR, NULL);
         }
+		
 		/* If the transfer is over, then go to the target state.*/
-        else if (nrfmax_state == STATE_TX) {
+        else if (nrfmax_state == STATE_TX) 
+		{
             nrfmax_goto_target_state();
         }
     }
@@ -224,11 +238,14 @@ static int nrfmax_send(netdev_t *dev, const iolist_t *iolist)
 
     /* Copy packet data into the transmit buffer */
     int pos = 0;
-    for (const iolist_t *iol = iolist; iol; iol = iol->iol_next) {
-        if ((pos + iol->iol_len) > NRFMAX_PKT_MAX) {
+    for (const iolist_t *iol = iolist; iol; iol = iol->iol_next) 
+	{
+        if ((pos + iol->iol_len) > NRFMAX_PKT_MAX) 
+		{
             DEBUG("[nrfmax] send: unable to do so, packet is too large!\n");
             return -EOVERFLOW;
         }
+		
         memcpy(&tx_buf.raw[pos], iol->iol_base, iol->iol_len);	
         pos += iol->iol_len;
     }
@@ -242,18 +259,13 @@ static int nrfmax_send(netdev_t *dev, const iolist_t *iolist)
 						(tx_buf.raw[15] << 8)  |
 						(tx_buf.raw[16]));
 
-    /* Trigger the actual transmission */
-    DEBUG("[nrfmax] send: putting %i byte into the ether\n", (int)hdr->len);
-	
 #if ENABLE_DEBUG
-	/* Print sent packet via radio */
-	DEBUG("[nrfmax] send pack: ");
-	for(uint8_t i = 0; i < hdr->len; i++)
-	{
-		printf("%x ", tx_buf.raw[i]);
-	}
-	printf("\n");
-#endif
+    DEBUG("[nrfmax] send: putting %i byte into the ether\n", (int)hdr->len);
+	DEBUG("[nrfmax] data send:\n");
+	od_hex_dump(&tx_buf, hdr->len, OD_WIDTH_DEFAULT);
+#endif /* ENABLE_DEBUG */	
+
+	/* Trigger the actual transmission */
     nrfmax_state = STATE_TX;
     NRF_RADIO->TASKS_TXEN = 1;
 
@@ -273,32 +285,30 @@ static int nrfmax_recv(netdev_t *dev, void *buf, size_t len, void *info)
     unsigned pktlen = rx_buf.pkt.hdr.len;
 
     /* Check if packet data is readable */
-    if (rx_lock || (pktlen == 0)) {
+    if (rx_lock || (pktlen == 0)) 
+	{
         DEBUG("[nrfmax] recv: no packet data available\n");
         return 0;
     }
 
-    if (buf == NULL) {
-        if (len > 0) {
+    if (buf == NULL) 
+	{
+        if (len > 0) 
+		{
             /* Drop packet */
             DEBUG("[nrfmax] recv: dropping packet of length %i\n", pktlen);
             rx_buf.pkt.hdr.len = 0;
             nrfmax_goto_target_state();
         }
     }
-    else {
-        DEBUG("[nrfmax] recv: reading packet of length %i\n", pktlen);
-		
+    else 
+	{     
 #if ENABLE_DEBUG
-		/* Print received packet from radio */
-		DEBUG("[nrfmax] recv pack: ");
-		for(uint8_t i = 0; i < pktlen; i++)
-		{
-			printf("%x ", rx_buf.raw[i]);
-		}
-		printf("\n");
-#endif
-		
+		DEBUG("[nrfmax] recv: reading packet of length %i\n", pktlen);
+		DEBUG("[nrfmax] data received:\n");
+		od_hex_dump(&rx_buf, pktlen, OD_WIDTH_DEFAULT);
+#endif /* ENABLE_DEBUG */
+
         pktlen = (len < pktlen) ? len : pktlen;
         memcpy(buf, rx_buf.raw, pktlen);
         rx_buf.pkt.hdr.len = 0;
@@ -389,7 +399,8 @@ static void nrfmax_isr(netdev_t *dev)
 {
 	(void)dev;
 	
-    if (nrfmax_dev.event_callback) {
+    if (nrfmax_dev.event_callback) 
+	{
         nrfmax_dev.event_callback(dev, NETDEV_EVENT_RX_COMPLETE, NULL);
     }
 }
@@ -485,9 +496,9 @@ static int nrfmax_set(netdev_t *dev, netopt_t opt, const void *val, size_t len)
                 return -EAFNOSUPPORT;
             }
             return sizeof(uint16_t);
-        // case NETOPT_STATE:
-            // assert(len == sizeof(netopt_state_t));
-            // return nrfmax_set_state(*((const netopt_state_t *)val));
+        case NETOPT_STATE:
+            assert(len == sizeof(netopt_state_t));
+            return nrfmax_set_state(*((const netopt_state_t *)val));
         case NETOPT_TX_POWER:
             assert(len == sizeof(int16_t));
             nrfmax_set_txpower(*((const int16_t *)val));

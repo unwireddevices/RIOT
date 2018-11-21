@@ -75,6 +75,7 @@ extern "C" {
 
 #define ISO14443A_MASK_SAK_UID_NOT_COMPLETE 0x04
 #define ISO14443A_SAK_UID_NOT_COMPLETE      0x04
+#define ISO14443A_FLAG_ATS_SUPPORTED		0x20
 
 
 int iso14443a_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_t * sak);

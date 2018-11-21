@@ -159,6 +159,37 @@ static uint8_t _iso14443a_select(const st95_t * dev, uint8_t level, uint8_t num,
     return ST95_ERROR;   
 }
 
+/* TODO */
+bool _iso14443a_support_ats(uint8_t sak) 
+{
+    /* Checks if the RATS command is supported by the card */
+	if(sak & ISO14443A_FLAG_ATS_SUPPORTED)
+	{
+        return true;
+        // TODO: _iso14443a_cfg_fdt_rats();
+        // TODO: RATS cmd
+	}
+    return false;
+}
+
+/* TODO */
+uint8_t _iso14443a_type_tag(uint8_t sak)
+{
+    /* Check the Tag type found */
+    if((sak & 0x60) == 0x00) {
+        // TODO: NFC taf type 2
+        return 2;
+    }
+    else if((sak & 0x20) == 0x20) {
+        // TODO: NFC taf type 4A
+        return 4;
+    }
+    
+    return 0;
+}    
+
+
+
 /**
  * @brief   This function get iso14443A UID card
  * 

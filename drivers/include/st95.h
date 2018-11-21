@@ -126,6 +126,8 @@ typedef struct {
  */
 int st95_init(st95_t *dev, st95_params_t * params);
 
+void st95_spi_reset(const st95_t * dev);
+
 void st95_sleep(st95_t * dev);
 
 int st95_is_wake_up(const st95_t * dev);

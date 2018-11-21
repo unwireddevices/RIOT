@@ -196,13 +196,9 @@ void umdk_st95_init(uwnds_cb_t *event_callback)
 
 bool umdk_st95_cmd(module_data_t *cmd, module_data_t *reply)
 {      
+    (void)cmd;
+    (void)reply;
     return false;
-
-    reply->as_ack = true;
-    reply->length = 1;
-    reply->data[0] = _UMDK_MID_;
-    reply->data[0] = cmd->data[0];
-    return true; /* Allow reply */
 }
 
 

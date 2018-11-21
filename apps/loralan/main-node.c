@@ -673,18 +673,73 @@ static void unwds_callback(module_data_t *buf)
 
 static bool is_connect_button_pressed(void)
 {
-    if (!gpio_init(UNWD_CONNECT_BTN, GPIO_IN_PU)) {
-        #if defined(UNWD_CONNECT_POL)
+#if defined(UNWD_CONNECT_POL)
+    uint8_t state;
+    if (UNWD_CONNECT_POL) {
+        state = GPIO_IN_PD;
+    } else {
+        state = GPIO_IN_PU;
+    }
+    
+    if (!gpio_init(UNWD_CONNECT_BTN, state)) {
         if (gpio_read(UNWD_CONNECT_BTN) == UNWD_CONNECT_POL) {
             return true;
         }
-        #else
-        if (!gpio_read(UNWD_CONNECT_BTN)) {
+    }
+#else
+    if (!gpio_init(UNWD_CONNECT_BTN, GPIO_IN_PU)) {
+        if (gpio_read(UNWD_CONNECT_BTN) == UNWD_CONNECT_POL) {
             return true;
         }
-        #endif
     }
+#endif
+
     return false;
+}
+
+uint32_t connect_btn_last_press = 0;
+bool     board_is_off = false;
+
+static void connect_btn_pressed (void *arg) {
+    (void)arg;
+    
+    /* debounce */
+    if (connect_btn_last_press < rtctimers_millis_now() + 100) {
+        return;
+    }
+    
+    /* button released */
+    if ((gpio_read(UNWD_CONNECT_BTN)) != UNWD_CONNECT_POL) {
+        if (((rtctimers_millis_now() > connect_btn_last_press) && ((rtctimers_millis_now() - connect_btn_last_press) > 1000)) || 
+            ((rtctimers_millis_now() + (UINT32_MAX - connect_btn_last_press)) > 1000)) {
+            /* long press */
+            if (board_is_off) {
+                gpio_set(LED_GREEN);
+                rtctimers_millis_sleep(1000);
+                gpio_clear(LED_GREEN);
+                puts("*** REBOOTING SYSTEM ***");
+                pm_reboot();
+            } else {            
+                board_is_off = true;
+                gpio_set(LED_RED);
+                rtctimers_millis_sleep(1000);
+                gpio_clear(LED_RED);
+                gpio_clear(LED_GREEN);
+                /* stop all activity */
+                rtctimers_millis_remove_all();
+                /* restart watchdog timer */
+                rtctimers_millis_set(&iwdg_timer, 100);
+                pm_unblock(PM_SLEEP);
+                /* put SX1276 to sleep */
+                ls_ed_sleep(&ls);
+                puts("*** SYSTEM HALTED BY USER ***");
+            }
+        } else {
+            /* short press */
+        }
+    }
+    
+    connect_btn_last_press = rtctimers_millis_now();
 }
 
 static void iwdg_reset (void *arg) {
@@ -696,10 +751,24 @@ static void iwdg_reset (void *arg) {
     return;
 }
 
-static void ls_enable_sleep (void *arg) {
+static void ls_delayed_setup (void *arg) {
     (void)arg;
-    pm_unblock(PM_SLEEP);
-    puts("Low-power sleep mode active");
+    
+    if (ls.settings.class == LS_ED_CLASS_A) {
+        pm_unblock(PM_SLEEP);
+        puts("Low-power sleep mode active");
+    }
+    
+#if defined(UNWD_CONNECT_POL)
+    if (UNWD_CONNECT_POL) {
+        gpio_init_int(UNWD_CONNECT_BTN, GPIO_IN_PD, GPIO_RISING, connect_btn_pressed, NULL);
+    } else {
+        gpio_init_int(UNWD_CONNECT_BTN, GPIO_IN_PU, GPIO_FALLING, connect_btn_pressed, NULL);
+    }
+#else
+    gpio_init_int(UNWD_CONNECT_BTN, GPIO_IN_PU, GPIO_FALLING, connect_btn_pressed, NULL);
+#endif
+    
     return;
 }
 
@@ -755,11 +824,9 @@ void init_normal(shell_command_t *commands)
             wdg_reload();
             wdg_enable();
 
-            /* enable sleep for Class A devices only */        
-            if (ls.settings.class == LS_ED_CLASS_A) {
-                pm_enable_timer.callback = ls_enable_sleep;
-                rtctimers_millis_set(&pm_enable_timer, 15000);
-            }
+            /* enable sleep for Class A devices only */
+            pm_enable_timer.callback = ls_delayed_setup;
+            rtctimers_millis_set(&pm_enable_timer, 15000);
             
             blink_led(LED_GREEN);
         }

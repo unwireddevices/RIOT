@@ -223,13 +223,6 @@ int umdk_light_shell_cmd(int argc, char **argv) {
     return 1;
 }
 
-static void btn_connect(void *arg) {
-    (void)arg;
-    
-    is_polled = false;
-    msg_send(&timer_msg, timer_pid);
-}
-
 void umdk_light_init(uwnds_cb_t *event_callback) {
 
 	callback = event_callback;
@@ -250,12 +243,6 @@ void umdk_light_init(uwnds_cb_t *event_callback) {
     
     unwds_add_shell_command( _UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_light_shell_cmd);
 
-#ifdef UNWD_CONNECT_BTN
-    if (UNWD_USE_CONNECT_BTN) {
-        gpio_init_int(UNWD_CONNECT_BTN, GPIO_IN_PU, GPIO_FALLING, btn_connect, NULL);
-    }
-#endif
-    
 	timer_pid = thread_create(stack, UMDK_LIGHT_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "opt3001 thread");
 
     /* Start publishing timer */

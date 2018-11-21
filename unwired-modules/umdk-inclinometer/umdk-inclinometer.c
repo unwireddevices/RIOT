@@ -494,13 +494,6 @@ int umdk_inclinometer_shell_cmd(int argc, char **argv) {
     return 1;
 }
 
-static void btn_connect(void *arg) {
-    (void)arg;
-    
-    is_polled = false;
-    msg_send(&timer_msg, timer_pid);
-}
-
 void umdk_inclinometer_init(uwnds_cb_t *event_callback) {
 
 	callback = event_callback;
@@ -519,12 +512,6 @@ void umdk_inclinometer_init(uwnds_cb_t *event_callback) {
 		puts("[umdk-" _UMDK_NAME_ "] No sensors found");
         return;
 	}
-
-#ifdef UNWD_CONNECT_BTN
-    if (UNWD_USE_CONNECT_BTN) {
-        gpio_init_int(UNWD_CONNECT_BTN, GPIO_IN_PU, GPIO_FALLING, btn_connect, NULL);
-    }
-#endif
 
     /* Create handler thread */
 	char *stack_measure = (char *) allocate_stack(UMDK_INCLINOMETER_STACK_SIZE);

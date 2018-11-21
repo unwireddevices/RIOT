@@ -153,18 +153,6 @@ static void prepare_result(module_data_t *data) {
     }
 }
 
-static volatile uint32_t btn_last_press = 0;
-
-static void btn_connect(void* arg) {
-    (void) arg;
-    if (rtctimers_millis_now() > btn_last_press + 500) {
-        is_polled = false;
-        msg_send(&timer_msg, timer_pid);
-        
-        btn_last_press = rtctimers_millis_now();
-    }
-}
-
 void set_period(int period) {
     hx711_config.publish_period_min = period;
         
@@ -295,12 +283,6 @@ void umdk_hx711_init(uwnds_cb_t *event_callback)
 
     /* Start publishing timer */
 	rtctimers_millis_set_msg(&timer, 60000 * hx711_config.publish_period_min, &timer_msg, timer_pid);
-    
-#ifdef UNWD_CONNECT_BTN
-    if (UNWD_USE_CONNECT_BTN) {
-        gpio_init_int(UNWD_CONNECT_BTN, GPIO_IN_PU, GPIO_FALLING, btn_connect, NULL);
-    }
-#endif
 
     puts("[umdk-" _UMDK_NAME_ "] HX711 ADC ready");
     

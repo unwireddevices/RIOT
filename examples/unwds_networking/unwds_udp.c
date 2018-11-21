@@ -19,7 +19,8 @@
  * @}
  */
 
-#include "udp.h"
+#include "unwds_udp.h"
+
 #include <stdio.h>
 #include <inttypes.h>
 

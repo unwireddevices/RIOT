@@ -126,11 +126,11 @@ typedef struct {
 	uint8_t protocol_version;	/* Текущая версия протокола */ 
     uint8_t device_id;			/* ID устройства */
 	uint8_t data_type;			/* Тип пакета */ 
-	uint8_t rssi;				/* RSSI */ 
+	// uint8_t rssi;			/* RSSI */ 
 	uint8_t temperature;		/* Температура */ 
 	uint8_t voltage;			/* Напряжение */ 
 	u8_u16_t counter;			/* Счетчик пакетов */ 
-	u8_u16_t crc;				/* CRC16 */ 
+	// u8_u16_t crc;			/* CRC16 */ 
 	uint8_t length;				/* Размер пакета */
 } pack header_t; 
 

@@ -2,6 +2,8 @@
 APPLICATION = unwds_dag
 CFLAGS += -DUNWDS_DAG
 
+CFLAGS += -DUMDK_LIT
+
 # If no BOARD is found in the environment, use this default:
 BOARD ?= nrf52dk
 

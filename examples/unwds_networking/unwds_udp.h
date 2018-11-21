@@ -25,6 +25,14 @@
 #include "kernel_types.h"
 #include "protocol.h"
 
+#ifdef UNWDS_ROOT
+	#include "root_node.h"
+#endif /* UNWDS_ROOT */
+
+#ifdef UNWDS_DAG
+	#include "dag_node.h"
+#endif /* UNWDS_DAG */
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -18,7 +18,7 @@
  * @}
  */
 
-#include "udp.h"
+#include "unwds_udp.h"
 #include <stdio.h>
 
 #include "shell.h"
@@ -107,15 +107,11 @@ int main(void)
 	addr_dag.u8[14] = 0x29;
 	addr_dag.u8[15] = 0xA4;
 	
-	uint16_t len = 16;
-	uint16_t port = 61616;
-	
-	uint8_t data[len];
-	
-	for(uint8_t i = 0; i < len; i++)
-		data[i] = i;
-	
-	udp_send(&addr_dag, port, data, len);
+	unwds_pack_sender ( &addr_dag, 
+						UNWDS_LIT_MODULE_ID, 
+						LIT_MEASURE, 
+						LIT_MEASURE_LENGTH, 
+						NULL);
 	
     /* start shell */
     puts("All up, running the shell now");

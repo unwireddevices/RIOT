@@ -18,8 +18,9 @@
  * @}
  */
 
-#include "udp.h"
 #include <stdio.h>
+
+#include "unwds_udp.h"
 
 #include "shell.h"
 #include "msg.h"

@@ -36,7 +36,7 @@
 #include "net/gnrc/nettype.h"
 #endif
 
-#define ENABLE_DEBUG            (1)
+#define ENABLE_DEBUG            (0)
 #include "debug.h"
 #include "od.h"
 
@@ -251,7 +251,7 @@ static int nrfmax_send(netdev_t *dev, const iolist_t *iolist)
     }
 
     /* Set output buffer and destination address */
-    nrfmax_hdr_t *hdr = (nrfmax_hdr_t *)iolist->iol_base;
+    // nrfmax_hdr_t *hdr = (nrfmax_hdr_t *)iolist->iol_base;
     NRF_RADIO->PACKETPTR = (uint32_t)(&tx_buf);
 	NRF_RADIO->PREFIX0 = (CONF_ADDR_PREFIX0 | tx_buf.raw[12]);
 	NRF_RADIO->BASE0 = ((tx_buf.raw[13] << 24) |

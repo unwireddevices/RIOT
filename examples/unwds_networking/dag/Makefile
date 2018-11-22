@@ -1,11 +1,10 @@
 # name of your application
 APPLICATION = unwds_dag
 CFLAGS += -DUNWDS_DAG
-
 CFLAGS += -DUMDK_LIT
 
 # If no BOARD is found in the environment, use this default:
-BOARD ?= nrf52dk
+BOARD ?= unwd-nrf
 
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../../..
@@ -76,3 +75,8 @@ else
     CFLAGS += -DIEEE802154_DEFAULT_CHANNEL=$(DEFAULT_CHANNEL)
   endif
 endif
+
+.PHONY: all
+all: 
+	@echo "File $(APPLICATION).elf copy to ../flasher"
+	@cp $(ELFFILE) ../flasher

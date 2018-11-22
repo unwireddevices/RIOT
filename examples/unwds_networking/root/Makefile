@@ -78,6 +78,7 @@ else
   endif
 endif
 
-# cp bin/nrf52dk/unwds_root.elf ../flasher
-#cp $(BINDIR)/$(APPLICATION).elf ../flasher
-#cp $(ELFFILE) ../flasher
+.PHONY: all
+all: 
+	@echo "File $(APPLICATION).elf copy to ../flasher"
+	@cp $(ELFFILE) ../flasher

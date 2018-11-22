@@ -1,0 +1,26 @@
+ifneq (,$(filter saul_default,$(USEMODULE)))
+  USEMODULE += saul_gpio
+endif
+
+ifneq (,$(filter skald,$(USEMODULE)))
+  USEMODULE += nrfble
+endif
+
+
+# ifeq (,$(filter nrfmin,$(USEMODULE)))
+  # ifneq (,$(filter gnrc_netdev_default,$(USEMODULE)))
+    # USEPKG += nordic_softdevice_ble
+  # endif
+# endif
+
+# ifeq (,$(filter nrfmax,$(USEMODULE)))
+  # ifneq (,$(filter gnrc_netdev_default,$(USEMODULE)))
+    # USEPKG += nordic_softdevice_ble
+  # endif
+# endif
+
+ifeq (,$(filter nordic_softdevice_ble nrfmin,$(USEMODULE)))
+  ifneq (,$(filter gnrc_netdev_default,$(USEMODULE)))
+    USEMODULE += nrfmax
+  endif
+endif

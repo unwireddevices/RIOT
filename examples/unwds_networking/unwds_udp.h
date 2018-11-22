@@ -26,11 +26,11 @@
 #include "protocol.h"
 
 #ifdef UNWDS_ROOT
-	#include "root_node.h"
+	#include "root/root_node.h"
 #endif /* UNWDS_ROOT */
 
 #ifdef UNWDS_DAG
-	#include "dag_node.h"
+	#include "dag/dag_node.h"
 #endif /* UNWDS_DAG */
 
 #ifdef __cplusplus

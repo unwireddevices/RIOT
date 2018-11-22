@@ -3,7 +3,7 @@ APPLICATION = unwds_root
 CFLAGS += -DUNWDS_ROOT
 
 # If no BOARD is found in the environment, use this default:
-BOARD ?= nrf52dk
+BOARD ?= unwd-nrf
 
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../../..
@@ -77,3 +77,7 @@ else
     CFLAGS += -DIEEE802154_DEFAULT_CHANNEL=$(DEFAULT_CHANNEL)
   endif
 endif
+
+# cp bin/nrf52dk/unwds_root.elf ../flasher
+#cp $(BINDIR)/$(APPLICATION).elf ../flasher
+#cp $(ELFFILE) ../flasher

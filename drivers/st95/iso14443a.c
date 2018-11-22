@@ -159,34 +159,96 @@ static uint8_t _iso14443a_select(const st95_t * dev, uint8_t level, uint8_t num,
     return ST95_ERROR;   
 }
 
-/* TODO */
 bool _iso14443a_support_ats(uint8_t sak) 
 {
     /* Checks if the RATS command is supported by the card */
-	if(sak & ISO14443A_FLAG_ATS_SUPPORTED)
-	{
+	if(sak & ISO14443A_FLAG_ATS_SUPPORTED) {
         return true;
-        // TODO: _iso14443a_cfg_fdt_rats();
-        // TODO: RATS cmd
 	}
+    
     return false;
 }
 
-/* TODO */
 uint8_t _iso14443a_type_tag(uint8_t sak)
 {
     /* Check the Tag type found */
     if((sak & 0x60) == 0x00) {
+                puts("[Tag type 2]\n");
         // TODO: NFC taf type 2
         return 2;
     }
     else if((sak & 0x20) == 0x20) {
+        puts("[Tag type 4]\n");
         // TODO: NFC taf type 4A
         return 4;
     }
-    
-    return 0;
+    puts("[Tag type UNKNOWN]\n");
+    return ST95_ERROR;
 }    
+
+uint8_t _cfg_fdt(const st95_t * dev, uint8_t value)
+{
+    uint8_t params[4] = { 0x00 };
+    uint8_t fwi = 4; /*Default value*/
+    params[0] = 0x00 | (ST95_TX_RATE_14443A << 6) | (ST95_RX_RATE_14443A << 4);
+    params[1] = fwi;
+    params[2] = value;
+    params[3] = 0x00;
+
+    if(_st95_select_iso14443a(dev, params, 4) == ST95_ERROR) {
+        return ST95_ERROR;
+    }
+    
+    // #define PCD_TYPEA_TIMERW                    0x5A
+    // #define TIMER_WINDOW_UPDATE_CONFIRM_CMD	    0x04
+    
+    uint8_t params_reg[2] = { 0x5A, 0x04 };
+    if(_st95_cmd_write_reg(dev, 4, 0x3A, 0x00, params_reg) == ST95_ERROR) {
+        return ST95_ERROR;
+    }
+    puts("FDT done");
+    return ST95_OK;   
+}
+
+uint8_t _iso14443a_apdu(const st95_t * dev)
+{
+    uint8_t length_uid = 0;
+    uint8_t uid[10] = { 0x00 }; 
+    uint8_t sak = 0;
+    uint8_t type = 0;
+    
+    if(iso14443a_get_uid(dev, &length_uid, uid, &sak) != ST95_OK) {
+        puts("APDU get uid ERR");
+        return ST95_ERROR;       
+    }
+    printf("\t\t\tSak %02X UID[%d]: ", sak, length_uid);
+    for(uint32_t i = 0; i < length_uid; i++) {
+        printf("%02X ", uid[i]);
+    }
+    printf("\n");
+    
+    if(_iso14443a_support_ats(sak)) {
+        // TODO: _iso14443a_cfg_fdt_rats();
+        // TODO: RATS cmd
+        puts("ATS support");
+        
+    }
+    else {
+        puts("ATS NOT support");
+    }
+    
+    _cfg_fdt(dev, 1);
+    
+    type = _iso14443a_type_tag(sak);
+    if(type) {
+        return ST95_OK;
+    }
+    
+    return ST95_ERROR;
+}
+
+
+
 
 
 

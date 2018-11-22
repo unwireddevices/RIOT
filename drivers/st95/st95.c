@@ -28,12 +28,12 @@
 #include "st95_params.h"
 #include "iso14443a.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
-#define ST95_ENABLE_GAIN (0)
+#define ST95_ENABLE_GAIN (1)
 
-#define ENABLE_DEBUG_ST95 (0)
+#define ENABLE_DEBUG_ST95 (1)
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,10 +56,10 @@ static uint8_t _st95_cmd_calibration(const st95_t * dev, uint8_t dac_l, uint8_t 
 static uint8_t _st95_calibration(st95_t * dev);
 
 static uint8_t _st95_select_field_off(const st95_t * dev);
-static int _st95_select_iso14443a(const st95_t * dev);
+// static int _st95_select_iso14443a(const st95_t * dev, uint8_t * params, uint8_t length_params);
 
 #if ENABLE_GAIN
-static uint8_t _st95_cmd_write_reg(const st95_t * dev, uint8_t size_tx, uint8_t addr, uint8_t flag, uint8_t * data_tx);
+// static uint8_t _st95_cmd_write_reg(const st95_t * dev, uint8_t size_tx, uint8_t addr, uint8_t flag, uint8_t * data_tx);
 static uint8_t _st95_read_reg(const st95_t * dev, uint8_t * rxbuff);
 static uint8_t _st95_modify_modulation_gain(const st95_t * dev, uint8_t modul, uint8_t gain);
 static uint8_t _st95_read_modulation_gain(const st95_t * dev, uint8_t * modul, uint8_t * gain);
@@ -128,23 +128,24 @@ static uint8_t _iso144443a_rats(const st95_t * dev)
     
 static uint8_t get_uid_apdu(const st95_t * dev)
 {
-    uint8_t data[5] = { 0xFF, 0xCA, 0x00, 0x00, 0x00 };
+    uint8_t data[5] = { 0xFF, 0xCA, 0x00, 0x00, 0x04 };
+    // uint8_t data[6] = { 0xFF, 0x00, 0x00, 0x00, 0x02, 0xD4 };
+        uint8_t ctrl_byte = ISO14443A_NUM_SIGN_BIT_8 | ISO14443A_APPEND_CRC;
     st95_state.mode = 0xFF;
     
     
     /* Change the FDT to accept APDU */	
-   // TODO: _iso144443a_cfg_fdt(1);
-
-    
-    uint8_t ctrl_byte = ISO14443A_NUM_SIGN_BIT_8 | ISO14443A_APPEND_CRC;
-    
+    puts("\t\t >>> BEGIN APDU <<<");
+  _iso14443a_apdu(dev);
+   
     if(_st95_cmd_send_receive(dev, data, sizeof(data), ctrl_byte, st95_rxbuf, ST95_MAX_BYTE_BUFF) == ST95_OK) {
-        PRINTSTR("RX APDU: ");       
+        PRINTSTR("\t >>> RX APDU: ");       
        PRINTBUFF(st95_rxbuf, st95_rxbuf[1]);
         st95_state.mode = ST95_READY_MODE;
+        puts("\t\t >>> END APDU <<<");
         return ST95_OK;
     }
-
+puts("\t\t >>> END APDU <<<");
     st95_state.mode = ST95_READY_MODE;
     return ST95_ERROR; 
 }    
@@ -386,7 +387,7 @@ static uint8_t _st95_read_reg(const st95_t * dev, uint8_t * rxbuff)
     return ST95_ERROR;  
 }
 
-static uint8_t _st95_cmd_write_reg(const st95_t * dev, uint8_t size_tx, uint8_t addr, uint8_t flag, uint8_t * data_tx)
+uint8_t _st95_cmd_write_reg(const st95_t * dev, uint8_t size_tx, uint8_t addr, uint8_t flag, uint8_t * data_tx)
 {   
     if((size_tx < 3) || (size_tx > 4)) {
         return ST95_ERROR;
@@ -403,15 +404,18 @@ static uint8_t _st95_cmd_write_reg(const st95_t * dev, uint8_t size_tx, uint8_t 
         st95_txbuf[5] = *(data_tx + 1);
     }
         
+     PRINTSTR("Write Reg: ");
+PRINTBUFF(st95_txbuf, size_tx + 2);     
     _st95_spi_send(dev, st95_txbuf, size_tx + 2, false);
     _st95_wait_ready_data();  
 
     if(_st95_spi_receive(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF, false) == ST95_OK) {   
         if((st95_rxbuf[0] == 0x00) && (st95_rxbuf[1] == 0x00)) {
+            puts("Write register OK");
             return ST95_OK;
         }
     }
-    
+    puts("Write register ERROR");
     return ST95_ERROR;
 }
 
@@ -653,27 +657,39 @@ void st95_sleep(st95_t * dev)
 /**
  * @brief This function select ISO 14443A protocol
  * 
- * @param[in]   dev:    Pointer to ST95 device descriptor
+ * @param[in]   dev:            Pointer to ST95 device descriptor
+ * @param[in]   params:         Pointer to protocol parameters
+ * @param[in]   length_params:  Parameters length (valid value is 1 or 4)
  * 
  * @return 0:   if selecting success
  * @return 1:   in case of an error
  */
-static int _st95_select_iso14443a(const st95_t * dev)
+int _st95_select_iso14443a(const st95_t * dev, uint8_t * params, uint8_t length_params)
 {
     uint8_t length = 0;
     
     st95_txbuf[0] = ST95_CMD_PROTOCOL;
     st95_txbuf[1] = length;    // Data Length
     st95_txbuf[2] = ISO_14443A;
-    st95_txbuf[3] = 0x00 | (ST95_TX_RATE_14443A << 6) | (ST95_RX_RATE_14443A << 4);
-    length = 2;
-    st95_txbuf[4] = 0x00;    // PP (Optioanal)                        // 00
-    st95_txbuf[5] = 0x00;    // MM (Optioanal)                        // 01
-    // length = 4;
-    st95_txbuf[6] = 0x00;    // DD (Optioanal)                        // 80
-    // length = 5;
-    st95_txbuf[7] = 0x00;    // ST Reserved (Optioanal)
-    st95_txbuf[8] = 0x00;    // ST Reserved (Optioanal)
+    if(length_params == 1) {
+        st95_txbuf[3] = 0x00 | (ST95_TX_RATE_14443A << 6) | (ST95_RX_RATE_14443A << 4);
+        length = 2;
+    }
+    else if(length_params == 4){
+        st95_txbuf[3] = *(params);    // TX/RX rate
+        st95_txbuf[4] = *(params + 1);    // PP (Optioanal)
+        st95_txbuf[5] = *(params + 2);    // MM (Optioanal)
+        st95_txbuf[6] = *(params + 3);    // DD (Optioanal) 
+        length = 5;        
+    }
+    else {
+        DEBUG("[st95]: Invalid parameters length\n");
+        return ST95_ERROR;       
+    }
+
+    /* TODO: RFU*/
+    /* st95_txbuf[7] = 0x00;    // ST Reserved (Optioanal)
+    st95_txbuf[8] = 0x00;    // ST Reserved (Optioanal) */
     
     st95_txbuf[1] = length;
     
@@ -759,9 +775,21 @@ int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_
         return ST95_ERROR;
     }
     
-    if(_st95_select_iso14443a(dev) == ST95_ERROR) {
+    if(_st95_select_iso14443a(dev, NULL, 1) == ST95_ERROR) {
         return ST95_ERROR;
     }
+    
+    
+    get_uid_apdu(dev);
+    
+    if(iso14443a_get_uid(dev, length_uid, uid, sak) == ST95_OK) {       
+        // get_uid_apdu(dev);
+        return ST95_OK;       
+    }
+    return ST95_ERROR;
+    
+    
+    
     
 #if ENABLE_DEBUG_ST95   
         if(_iso144443a_rats(dev) == ST95_ERROR) {

@@ -80,6 +80,8 @@ extern "C" {
 
 int iso14443a_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_t * sak);
 
+uint8_t _iso14443a_apdu(const st95_t * dev);
+
 #ifdef __cplusplus
 }
 #endif

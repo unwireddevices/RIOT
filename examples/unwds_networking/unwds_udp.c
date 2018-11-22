@@ -42,10 +42,11 @@
 #include "net/ipv6/addr.h"
 #include "net/tcp.h"
 #include "net/sixlowpan.h"
-#include "od.h"
+
 
 #define ENABLE_DEBUG            (0)
 #include "debug.h"
+#include "od.h"
 
 /**
  * @brief   Stack for the pktdump thread

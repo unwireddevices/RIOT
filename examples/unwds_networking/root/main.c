@@ -26,6 +26,10 @@
 #include "net/gnrc/netif.h"
 #include "net/gnrc/rpl.h"
 
+#define ENABLE_DEBUG		(0)
+#include "debug.h"
+#include "od.h"
+
 #define MAIN_QUEUE_SIZE     (8)
 static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 
@@ -41,10 +45,15 @@ int main(void)
     /* we need a message queue for the thread running the shell in order to
      * receive potentially fast incoming networking packets */
     msg_init_queue(_main_msg_queue, MAIN_QUEUE_SIZE);
-    puts("RIOT network stack example application");
+    puts("RIOT Unwired Devices mesh network.");
 	
+	if(unwds_udp_server_init() < 0)
+	{
+		puts("Error init unwds udp server.");	
+		return -1;
+	}
 	
-	printf("Init unwds udp server: %i\n", unwds_udp_server_init());	
+	puts("Init unwds udp server.");	
 	start_unwds_udp_server();
 	
 	uint16_t flags = GNRC_NETIF_IPV6_ADDRS_FLAGS_STATE_VALID | (64 << 8);
@@ -68,25 +77,31 @@ int main(void)
 	addr.u8[14] = 0x00;
 	addr.u8[15] = 0x01;
 	
-	// ifconfig 7 add 2001:db8::1 
-	if(gnrc_netapi_set( 7, NETOPT_IPV6_ADDR, flags, &addr,
-						sizeof(addr)) < 0) 
+	// ifconfig 7 add 2001:db8::1  
+	printf("Number of network interfaces: %i\n", gnrc_netif_numof()); 
+	gnrc_netif_t *netif = gnrc_netif_iter(NULL);
+	if(netif == NULL)
 	{
-		printf("Error: unable to add IPv6 address\n");
+		puts("Error. No interface");
 		return -1;
 	}
-	    printf("Success: added root IPv6 address to interface 7\n");
+
+	if(gnrc_netapi_set(netif->pid, NETOPT_IPV6_ADDR, flags, &addr, sizeof(addr)) < 0) 
+	{
+		puts("Error: unable to add IPv6 address");
+		return -1;
+	}
+	printf("Success: added root IPv6 address to interface %i\n", netif->pid);
 	
-	// rpl init 7
 	// rpl root 1 2001:db8::1
 	gnrc_rpl_instance_t *inst = gnrc_rpl_root_init(instance_id, &addr, false, false);
     if (inst == NULL) {
-        printf("Error: could not add DODAG to instance 1\n");
+        printf("Error: could not add DODAG to instance %i\n", instance_id);
         return -1;
     }
 
-    printf("Successfully added a new RPL DODAG\n");
-	
+    puts("Successfully added a new RPL DODAG");
+	puts("Unwired Devices mesh network initialization is over\n");
 	
 	ipv6_addr_t addr_dag;
 	
@@ -108,7 +123,7 @@ int main(void)
 	addr_dag.u8[15] = 0xA4;
 	
 	unwds_pack_sender ( &addr_dag, 
-						UNWDS_LIT_MODULE_ID, 
+						UNWDS_OPT3001_MODULE_ID, 
 						LIT_MEASURE, 
 						LIT_MEASURE_LENGTH, 
 						NULL);

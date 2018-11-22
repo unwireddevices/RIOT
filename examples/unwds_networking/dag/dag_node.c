@@ -91,7 +91,7 @@ void unwds_dag_server(gnrc_pktsnip_t *pkt)
 					} /* header_pack->data_type */
 					break;
 #ifdef UMDK_6FET 
-				case UNWDS_6FET_MODULE_ID:
+				case UNWDS_PWM_MODULE_ID:
 					switch(header_pack->data_type)
 					{
 						case PWM_SETTINGS:
@@ -106,7 +106,7 @@ void unwds_dag_server(gnrc_pktsnip_t *pkt)
 #endif /* UMDK_6FET */
 
 #ifdef UMDK_LIT
-				case UNWDS_LIT_MODULE_ID:
+				case UNWDS_OPT3001_MODULE_ID:
 					switch(header_pack->data_type)
 					{
 						case LIT_MEASURE:
@@ -245,7 +245,7 @@ bool lit_measure_dag_sender(void)
 	printf("[UMDK-LIT] Luminocity: %lu lux\n", lit_measure_status_pack.lit_measure_status);
 	
 	/*Отправляем пакет*/	
-	unwds_pack_sender ( UNWDS_LIT_MODULE_ID,					/*ID модуля*/
+	unwds_pack_sender ( UNWDS_OPT3001_MODULE_ID,				/*ID модуля*/
 						LIT_MEASURE_STATUS, 					/*Команда включения канала ШИМ'а*/
 						LIT_MEASURE_STATUS_LENGTH, 				/*Размер payload'а*/
 						(uint8_t*)&lit_measure_status_pack);	/*Payload*/		

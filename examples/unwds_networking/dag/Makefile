@@ -3,6 +3,8 @@ APPLICATION = unwds_dag
 CFLAGS += -DUNWDS_DAG
 CFLAGS += -DUMDK_LIT
 
+CFLAGS += -DNO_RIOT_BANNER
+
 # If no BOARD is found in the environment, use this default:
 BOARD ?= unwd-nrf
 
@@ -19,6 +21,71 @@ BOARD_INSUFFICIENT_MEMORY := calliope-mini chronos hifive1 microbit msb-430 msb-
                              nucleo-f030r8 nucleo-f070rb nucleo-f072rb nucleo-f103rb nucleo-f302r8 \
                              nucleo-f334r8 nucleo-l053r8 spark-core stm32f0discovery telosb \
                              wsn430-v1_3b wsn430-v1_4 z1
+
+
+
+
+							 
+############ UMDK MODULES USED #####################
+# variable in the list below must match modules'
+# subdirectory name in ../../unwired-modules/
+# and no other variable should have umdk-% name
+
+# umdk-gpio	   = 0 
+# umdk-4btn	   = 0 
+# umdk-gps	   = 0 
+# umdk-lm75	   = 0 
+# umdk-lsm6ds3   = 0 
+# umdk-lmt01	   = 0 
+# umdk-uart	   = 0 
+# umdk-sht21	   = 0 
+# umdk-pir	   = 0 
+# umdk-adc	   = 0 
+# umdk-lps331    = 0 
+# umdk-counter   = 0 
+# umdk-rssiecho  = 0 
+# umdk-pwm	   = 0 
+# umdk-opt3001   = 1 
+# umdk-bme280    = 0 
+# umdk-config    = 0 
+# umdk-mhz19     = 0 
+# umdk-usound    = 0 
+# umdk-hd44780   = 0 
+# umdk-ibutton   = 0 
+# umdk-irblaster = 0 
+# umdk-hx711     = 0 
+# umdk-fdc1004   = 0 
+# umdk-adxl345   = 0 
+# umdk-modbus	   = 0 
+
+####### UMDK MODULES defines and Makefile.include inclusion ############
+
+# define umdk_add_module
+# ifeq ($($(UMDK_MODULE_NAME)),1)
+    # USEMODULE += $(UMDK_MODULE_NAME)
+# endif
+# endef
+
+# $(foreach UMDK_MODULE_NAME, $(filter umdk-%, ${.VARIABLES}), $(eval $(call umdk_add_module, $UMDK_MODULE_NAME)))
+
+# UMDK_MODULES_MAKEFILES = $(addsuffix /Makefile.include, $(addprefix ../../../unwired-modules/, $(filter umdk-%, ${USEMODULE})))
+
+# define umdk_include_makefile
+# ifneq ("$(wildcard $(FILE))","")
+	# include $(FILE)
+# endif
+# endef
+
+# $(foreach FILE, $(UMDK_MODULES_MAKEFILES), $(eval $(call umdk_include_makefile, $FILE)))
+
+
+
+
+
+
+
+
+
 
 # Include packages that pull up and auto-init the link layer.
 # NOTE: 6LoWPAN will be included if IEEE802.15.4 devices are present

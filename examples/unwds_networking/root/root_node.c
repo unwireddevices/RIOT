@@ -118,7 +118,7 @@ void unwds_root_server(gnrc_pktsnip_t *pkt)
 							break;
 					} /* header_pack->data_type */
 					break;
-				case UNWDS_LIT_MODULE_ID:
+				case UNWDS_OPT3001_MODULE_ID:
 					switch(header_pack->data_type)
 					{
 						case LIT_MEASURE_STATUS:

@@ -42,9 +42,15 @@ int main(void)
     /* we need a message queue for the thread running the shell in order to
      * receive potentially fast incoming networking packets */
     msg_init_queue(_main_msg_queue, MAIN_QUEUE_SIZE);
-    puts("RIOT network stack example application");
+    puts("RIOT Unwired Devices mesh network.");
 	
-	printf("Init unwds udp server: %i\n", unwds_udp_server_init());	
+	if(unwds_udp_server_init() < 0)
+	{
+		puts("Error init unwds udp server.");	
+		return -1;
+	}
+	
+	puts("Init unwds udp server.");	
 	start_unwds_udp_server();
 	
     /* start shell */

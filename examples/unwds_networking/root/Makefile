@@ -2,6 +2,8 @@
 APPLICATION = unwds_root
 CFLAGS += -DUNWDS_ROOT
 
+CFLAGS += -DNO_RIOT_BANNER
+
 # If no BOARD is found in the environment, use this default:
 BOARD ?= unwd-nrf
 

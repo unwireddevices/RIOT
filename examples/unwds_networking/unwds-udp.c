@@ -252,7 +252,7 @@ kernel_pid_t unwds_udp_server_init(void)
 static void udp_shell_send (char *addr_str, 
                             char *port_str, 
                             char *data, 
-                            unsigned int num,
+                            uint16_t num,
                             unsigned int delay)
 {
     int iface;
@@ -276,48 +276,17 @@ static void udp_shell_send (char *addr_str,
         return;
     }
 
-    for (unsigned int i = 0; i < num; i++) {
-        gnrc_pktsnip_t *payload, *udp, *ip;
-        unsigned payload_size;
-        /* allocate payload */
-        payload = gnrc_pktbuf_add(NULL, data, strlen(data), GNRC_NETTYPE_UNDEF);
-        if (payload == NULL) {
-            puts("Error: unable to copy data to packet buffer");
-            return;
-        }
-        /* store size for output */
-        payload_size = (unsigned)payload->size;
-        /* allocate UDP header, set source port := destination port */
-        udp = gnrc_udp_hdr_build(payload, port, port);
-        if (udp == NULL) {
-            puts("Error: unable to allocate UDP header");
-            gnrc_pktbuf_release(payload);
-            return;
-        }
-        /* allocate IPv6 header */
-        ip = gnrc_ipv6_hdr_build(udp, NULL, &addr);
-        if (ip == NULL) {
-            puts("Error: unable to allocate IPv6 header");
-            gnrc_pktbuf_release(udp);
-            return;
-        }
-        /* add netif header, if interface was given */
-        if (iface > 0) {
-            gnrc_pktsnip_t *netif = gnrc_netif_hdr_build(NULL, 0, NULL, 0);
-
-            ((gnrc_netif_hdr_t *)netif->data)->if_pid = (kernel_pid_t)iface;
-            LL_PREPEND(ip, netif);
-        }
+    for (uint16_t i = 0; i < num; i++) 
+    {
         /* send packet */
-        if (!gnrc_netapi_dispatch_send(GNRC_NETTYPE_UDP, GNRC_NETREG_DEMUX_CTX_ALL, ip)) {
-            puts("Error: unable to locate UDP thread");
-            gnrc_pktbuf_release(ip);
-            return;
-        }
-        /* access to `payload` was implicitly given up with the send operation above
-         * => use temporary variable for output */
+        uint16_t  payload_size = strlen(data);
+        udp_send(&addr, port, (uint8_t*)data, payload_size);
+
+        /* print message */
         printf("Success: sent %u byte(s) to [%s]:%u\n", payload_size, addr_str,
                port);
+        
+        /* delay */
         xtimer_usleep(delay);
     }
 }

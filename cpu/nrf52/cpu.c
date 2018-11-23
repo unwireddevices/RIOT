@@ -16,6 +16,7 @@
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  * @author      Jan Wagner <mail@jwagner.eu>
+ * @author      Manchenko Oleg <man4enkoos@gmail.com>
  *
  * @}
  */

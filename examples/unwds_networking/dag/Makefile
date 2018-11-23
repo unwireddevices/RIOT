@@ -4,6 +4,7 @@ CFLAGS += -DUNWDS_DAG
 CFLAGS += -DUMDK_LIT
 
 CFLAGS += -DNO_RIOT_BANNER
+# CFLAGS += -DCONFIG_GPIO_AS_PINRESET
 
 # If no BOARD is found in the environment, use this default:
 BOARD ?= unwd-nrf

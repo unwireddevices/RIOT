@@ -139,6 +139,24 @@ void cpu_init(void)
         *(volatile uint32_t *) 0x4000173C |= (0x1 << 10);
     }
 	
+	/* Configure GPIO pads as pPin Reset pin if Pin Reset capabilities desired. If CONFIG_GPIO_AS_PINRESET is not
+      defined, pin reset will not be available. One GPIO (see Product Specification to see which one) will then be
+      reserved for PinReset and not available as normal GPIO. */
+    #if defined (CONFIG_GPIO_AS_PINRESET)
+        if (((NRF_UICR->PSELRESET[0] & UICR_PSELRESET_CONNECT_Msk) != (UICR_PSELRESET_CONNECT_Connected << UICR_PSELRESET_CONNECT_Pos)) ||
+            ((NRF_UICR->PSELRESET[1] & UICR_PSELRESET_CONNECT_Msk) != (UICR_PSELRESET_CONNECT_Connected << UICR_PSELRESET_CONNECT_Pos))){
+            NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen << NVMC_CONFIG_WEN_Pos;
+            while (NRF_NVMC->READY == NVMC_READY_READY_Busy){}
+            NRF_UICR->PSELRESET[0] = 21;
+            while (NRF_NVMC->READY == NVMC_READY_READY_Busy){}
+            NRF_UICR->PSELRESET[1] = 21;
+            while (NRF_NVMC->READY == NVMC_READY_READY_Busy){}
+            NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren << NVMC_CONFIG_WEN_Pos;
+            while (NRF_NVMC->READY == NVMC_READY_READY_Busy){}
+            NVIC_SystemReset();
+        }
+    #endif
+	
     /* initialize hf clock */
     clock_init_hf();
 

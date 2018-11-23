@@ -66,6 +66,7 @@ typedef enum {
     UNWDS_CUSTOMER_MODULE_ID = 100,
     /* System module 126 */
     UNWDS_CONFIG_MODULE_ID = 126,
+    UNWDS_6LOWPAN_SYSTEM_MODULE_ID = 127
 } UNWDS_MODULE_IDS_t;
 
 #endif

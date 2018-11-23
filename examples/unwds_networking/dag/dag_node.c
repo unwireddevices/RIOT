@@ -20,8 +20,9 @@
 
 #include <stdio.h>
 
-#include "unwds_udp.h"
+#include "unwds-udp.h"
 #include "dag_node.h"
+#include "system-common.h"
 
 #include "net/gnrc/ipv6.h"
 #include "net/gnrc/netif.h"
@@ -170,7 +171,7 @@ void unwds_pack_sender( uint8_t device_id,
 	header_pack->device_id = device_id;							/*ID устройства*/
 	header_pack->data_type = data_type;							/*Тип пакета*/  
 	// header_pack->rssi = get_parent_rssi();						/*RSSI*/ 
-	// header_pack->temperature = get_temperature();				/*Температура*/ 
+	header_pack->temperature = (int8_t)(nrf_temp_read() >> 2);	/*Температура*/ 
 	// header_pack->voltage = get_voltage();						/*Напряжение*/ 
 	// header_pack->counter.u16 = packet_counter_node.u16;			/*Счетчик пакетов*/ 
 	header_pack->length = payload_len;							/*Размер пакета (незашифрованного)*/
@@ -198,7 +199,10 @@ void unwds_pack_sender( uint8_t device_id,
 	root_addr.u8[15] = 0xAB;
 	
 #if ENABLE_DEBUG
-	DEBUG("UNWDS_UDP: data send:\n");
+	char root_addr_str[IPV6_ADDR_MAX_STR_LEN];
+	ipv6_addr_to_str(root_addr_str, &root_addr, sizeof(root_addr_str));
+	
+	DEBUG("UNWDS_UDP Success: sent %u byte(s) to [%s]:%u\n", (HEADER_LENGTH + payload_len), root_addr_str, UNWDS_UDP_SERVER_PORT);
 	od_hex_dump(udp_buffer, (HEADER_LENGTH + payload_len), OD_WIDTH_DEFAULT);
 #endif /* ENABLE_DEBUG */
 	

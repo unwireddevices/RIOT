@@ -19,7 +19,7 @@
  * @}
  */
 
-#include "unwds_udp.h"
+#include "unwds-udp.h"
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -249,8 +249,11 @@ kernel_pid_t unwds_udp_server_init(void)
     return unwds_udp_server_pid;
 }
 
-static void udp_shell_send(char *addr_str, char *port_str, char *data, unsigned int num,
-                 unsigned int delay)
+static void udp_shell_send (char *addr_str, 
+                            char *port_str, 
+                            char *data, 
+                            unsigned int num,
+                            unsigned int delay)
 {
     int iface;
     uint16_t port;
@@ -324,31 +327,23 @@ void udp_send ( ipv6_addr_t *addr,
 				uint8_t  *data, 
 				uint16_t len)
 {	
-    int iface;
-    // uint16_t port;
-    // ipv6_addr_t addr;
-
     /* get interface, if available */
-    iface = 7;//ipv6_addr_split_iface(addr_str);
-    if ((iface < 0) && (gnrc_netif_numof() == 1)) {
-        iface = gnrc_netif_iter(NULL)->pid;
+    int iface;
+
+    if (gnrc_netif_numof() < 1) {
+        puts("Error. No interface.");
+        return;
     }
-	
-    /* parse destination address */
-    // if (ipv6_addr_from_str(&addr, addr_str) == NULL) {
-        // puts("Error: unable to parse destination address");
-        // return;
-    // }
-	
-    /* parse port */
-    // port = atoi(port_str);
-    // if (port == 0) {
-        // puts("Error: unable to parse destination port");
-        // return;
-    // }
+
+	gnrc_netif_t *netif = gnrc_netif_iter(NULL);
+	if(netif == NULL){
+		puts("Error. No interface.");
+		return;
+	}
+
+    iface = netif->pid;
 
 	gnrc_pktsnip_t *payload, *udp, *ip;
-	// unsigned payload_size;
 	
 	/* allocate payload */
 	payload = gnrc_pktbuf_add(NULL, data, len, GNRC_NETTYPE_UNDEF);
@@ -356,8 +351,6 @@ void udp_send ( ipv6_addr_t *addr,
 		puts("Error: unable to copy data to packet buffer");
 		return;
 	}
-	/* store size for output */
-	// payload_size = (unsigned)payload->size;
 	
 	/* allocate UDP header, set source port := destination port */
 	udp = gnrc_udp_hdr_build(payload, port, port);
@@ -389,13 +382,15 @@ void udp_send ( ipv6_addr_t *addr,
 		gnrc_pktbuf_release(ip);
 		return;
 	}
-	/* access to `payload` was implicitly given up with the send operation above
-	 * => use temporary variable for output */
-	 
-	// addr_str[16]
-	// char *gnrc_netif_addr_to_str(const uint8_t *addr, size_t addr_len, char *out);
-	// printf("Success: sent %u byte(s) to [%s]:%u\n", payload_size, addr_str, port);
-	printf("Success: sent\n");
+
+#if ENABLE_DEBUG
+	char dest_addr_str[IPV6_ADDR_MAX_STR_LEN];
+	ipv6_addr_to_str(dest_addr_str, addr, sizeof(dest_addr_str));
+	
+	DEBUG("UNWDS_UDP Success: sent %u byte(s) to [%s]:%u\n", (HEADER_LENGTH + payload_len), dest_addr_str, UNWDS_UDP_SERVER_PORT);
+	od_hex_dump(udp_buffer, (HEADER_LENGTH + payload_len), OD_WIDTH_DEFAULT);
+#endif /* ENABLE_DEBUG */
+
 }
 
 void start_unwds_udp_server(void)
@@ -434,12 +429,12 @@ int udp_cmd(int argc, char **argv)
         return 1;
     }
 
-    if (strcmp(argv[1], "send") == 0) {
+    if (strcmp(argv[1], "send") == 0) 
+    {
         uint32_t num = 1;
         uint32_t delay = 1000000;
         if (argc < 5) {
-            printf("Usage: %s send <addr> <port> <data> [<num> [<delay in us>]]\n",
-                   argv[0]);
+            printf("Usage: %s send <addr> <port> <data> [<num> [<delay in us>]]\n", argv[0]);
             return 1;
         }
         if (argc > 5) {
@@ -450,7 +445,8 @@ int udp_cmd(int argc, char **argv)
         }
         udp_shell_send(argv[2], argv[3], argv[4], num, delay);
     }
-    else if (strcmp(argv[1], "server") == 0) {
+    else if (strcmp(argv[1], "server") == 0) 
+    {
         if (argc < 3) {
             printf("Usage: %s server [start|stop]\n", argv[0]);
             return 1;

@@ -20,7 +20,7 @@
 
 #include <stdio.h>
 
-#include "unwds_udp.h"
+#include "unwds-udp.h"
 
 #include "shell.h"
 #include "msg.h"

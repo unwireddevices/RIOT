@@ -19,6 +19,10 @@ INCLUDES += -I../
 DIRS += ../
 USEMODULE += unwds_networking_common
 
+CFLAGS += -DCRYPTO_AES
+USEMODULE += crypto
+USEMODULE += cipher_modes
+
 BOARD_INSUFFICIENT_MEMORY := calliope-mini chronos hifive1 microbit msb-430 msb-430h \
                              nucleo-f031k6 nucleo-f042k6 nucleo-f303k8 nucleo-l031k6 \
                              nucleo-f030r8 nucleo-f070rb nucleo-f072rb nucleo-f103rb nucleo-f302r8 \

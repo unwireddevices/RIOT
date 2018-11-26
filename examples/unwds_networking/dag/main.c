@@ -43,15 +43,12 @@ int main(void)
      * receive potentially fast incoming networking packets */
     msg_init_queue(_main_msg_queue, MAIN_QUEUE_SIZE);
     puts("RIOT Unwired Devices mesh network.");
-	
-	if(unwds_udp_server_init() < 0)
-	{
-		puts("Error init unwds udp server.");	
-		return -1;
-	}
-	
-	puts("Init unwds udp server.");	
-	start_unwds_udp_server();
+
+    if(dag_node_init() < 0)
+    {
+        puts("Error DAG node init");
+        return -1;
+    }
 	
     /* start shell */
     puts("All up, running the shell now");

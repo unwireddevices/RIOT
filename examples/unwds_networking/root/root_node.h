@@ -33,6 +33,13 @@ extern "C" {
 #endif
 
 /**
+ * @brief dag_node_init
+ *  
+ * @return 
+ */
+int root_node_init(void);
+
+/**
  * @brief Конструктор пакета
  *
  * @param[in]		dest_addr	dest_addr 

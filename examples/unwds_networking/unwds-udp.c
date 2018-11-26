@@ -382,7 +382,7 @@ void stop_unwds_udp_server(void)
 {
     /* check if server is running at all */
     if (server.target.pid == KERNEL_PID_UNDEF) {
-        printf("Error: server was not running\n");
+        puts("Error: server was not running");
         return;
     }
     /* stop server */

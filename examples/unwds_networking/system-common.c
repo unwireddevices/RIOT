@@ -59,6 +59,26 @@
 #define MASK_SIGN           (0x00000200UL)
 #define MASK_SIGN_EXTENSION (0xFFFFFC00UL)
 
+/* Print IPv6 address */
+void print_ipv6_addr(ipv6_addr_t *addr)
+{
+	char addr_str[IPV6_ADDR_MAX_STR_LEN];
+	printf("[%s] ", ipv6_addr_to_str(addr_str, addr, sizeof(addr_str)));
+}
+
+/* Print Unknown command for UMDK-module! */
+void print_unknown_command_for_umdk(const char *module)
+{
+	printf("Unknown command for UMDK-%s!\n", module);
+}
+
+/* Print Send packet_name packet */
+void print_send_packet(const char *packet_name)
+{
+    printf("Send %s packet\n", packet_name);
+}
+
+
 /**
  * @brief Function for preparing the temp module for temperature measurement.
  *
@@ -79,9 +99,6 @@ void nrf_temp_init(void)
  */
 int32_t nrf_temp_read(void)
 {
-    /**@note Workaround for PAN_028 rev2.0A anomaly 31 - TEMP: Temperature offset value has to be manually loaded to the TEMP module */
-    *(uint32_t *) 0x4000C504 = 0;
-
 	NRF_TEMP->EVENTS_DATARDY = 0;
 	NRF_TEMP->TASKS_START = 1;
 	while (!(NRF_TEMP->EVENTS_DATARDY)) {}

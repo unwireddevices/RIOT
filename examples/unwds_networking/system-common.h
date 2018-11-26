@@ -23,11 +23,21 @@
 #define SYSTEM_COMMON_H
 
 // #include "kernel_types.h"
-// #include "protocol.h"
+#include "protocol.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* Print IPv6 address */
+void print_ipv6_addr(ipv6_addr_t *src_addr);
+
+/* Print Unknown command for UMDK-module! */
+void print_unknown_command_for_umdk(const char *module);
+
+/* Print Send packet_name packet */
+void print_send_packet(const char *packet_name);
+
 
 /**
  * @brief Function for preparing the temp module for temperature measurement.

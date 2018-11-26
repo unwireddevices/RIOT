@@ -170,7 +170,7 @@ typedef struct {
 
 typedef struct {		
     u8_u16_t counter;			/* Счетчик пакетов */ 
-	// u8_u16_t crc;			/* CRC16 */ 
+	u8_u16_t crc;				/* CRC16 */ 
 	uint8_t length;				/* Размер пакета */
 } pack header_down_t;
 
@@ -182,7 +182,7 @@ typedef struct {
 	uint8_t temperature;		/* Температура */ 
 	uint8_t voltage;			/* Напряжение */ 
 	u8_u16_t counter;			/* Счетчик пакетов */ 
-	// u8_u16_t crc;			/* CRC16 */ 
+	u8_u16_t crc;				/* CRC16 */ 
 	uint8_t length;				/* Размер пакета */
 } pack header_t; 
 

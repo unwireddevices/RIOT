@@ -17,6 +17,7 @@ INCLUDES += -I../
 DIRS += ../
 USEMODULE += unwds_networking_common
 
+CFLAGS += -DAES_NO_DECRYPTION
 CFLAGS += -DCRYPTO_AES
 USEMODULE += crypto
 USEMODULE += cipher_modes

@@ -55,6 +55,8 @@ void nrf_temp_init(void);
  */
 int32_t nrf_temp_read(void);
 
+uint8_t iterator_to_byte(uint8_t iterator);
+
 #ifdef __cplusplus
 }
 #endif

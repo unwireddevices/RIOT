@@ -33,6 +33,11 @@
 #include "debug.h"
 #include "od.h"
 
+#define MODE_NORMAL				(0x01)
+#define MODE_NOTROOT			(0x02)
+#define MODE_JOIN_PROGRESS		(0x03)
+#define MODE_NEED_REBOOT		(0x04)
+
 #define AES_KEY_LEN 	(16)
 
 ipv6_addr_t root_addr;
@@ -47,29 +52,21 @@ uint8_t aes_iv[AES_KEY_LEN] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };	/* Вектор инициализации */
 
-cipher_t cipher_aes_128;
+uint8_t nonce_xor_aes_key[AES_KEY_LEN];
 
-/*Первая стадия авторизации*/
+cipher_t cipher_aes_128;
+cipher_t cipher_nonce_xor_aes_128;
+
+u8_u16_t nonce;									/* Nonce */ 
+volatile u8_u16_t packet_counter_node;			/* Счетчик пакетов */
+volatile u8_u16_t packet_counter_root;			/* Счетчик пакетов */
+volatile uint8_t node_mode = MODE_NOTROOT;		/*Режим работы ноды*/
+
+/* Первая стадия авторизации */
 static void join_stage_1_sender(void);
 
-// ipv6_addr_t root_addr.u8[] = {0x20, 0x01, 0x0D, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
-
-// root_addr.u8[0] = 0x20;
-// root_addr.u8[1] = 0x01;
-// root_addr.u8[2] = 0x0D;
-// root_addr.u8[3] = 0xB8;
-// root_addr.u8[4] = 0x00;
-// root_addr.u8[5] = 0x00;
-// root_addr.u8[6] = 0x00;
-// root_addr.u8[7] = 0x00;
-// root_addr.u8[8] = 0x00;
-// root_addr.u8[9] = 0x00;
-// root_addr.u8[10] = 0x00;
-// root_addr.u8[11] = 0x00;
-// root_addr.u8[12] = 0x00;
-// root_addr.u8[13] = 0x00;
-// root_addr.u8[14] = 0x00;
-// root_addr.u8[15] = 0x01;
+/* Третья стадия авторизации */
+static void join_stage_3_sender(uint8_t *data);
 
 void unwds_dag_server(gnrc_pktsnip_t *pkt)
 {
@@ -88,14 +85,55 @@ void unwds_dag_server(gnrc_pktsnip_t *pkt)
 	switch(header_pack->protocol_version) 
 	{
         case UDBP_PROTOCOL_VERSION: 
-			//
-			/* Получаем nonce */
+			/*Проверяем ID модуля и тип пакета*/ 
+			if((header_pack->device_id == UNWDS_6LOWPAN_SYSTEM_MODULE_ID) && (header_pack->data_type == JOIN_STAGE_2))
+			{
+				/*Третья стадия авторизации*/
+				join_stage_3_sender(pkt->data);
+				break;
+			}
 			
-			/* Защита от атаки повтором */
-			/* Проверяем счетчик пакетов на валидность данного пакета */
+			if(node_mode != MODE_NORMAL)
+				return;
+
+			/*Расшифровываем данные*/
+			od_hex_dump(pkt->data, pkt->size, OD_WIDTH_DEFAULT);
+			cipher_encrypt_cbc (&cipher_nonce_xor_aes_128, aes_iv, 
+								&((uint8_t*)(pkt->data))[HEADER_DOWN_OFFSET], 
+								iterator_to_byte(pkt->size - HEADER_UP_LENGTH), 
+								&((uint8_t*)(pkt->data))[HEADER_DOWN_OFFSET]);
+			// aes_cbc_decrypt((uint32_t*)aes_key, (uint32_t*)nonce_key, (uint32_t*)&data[HEADER_DOWN_OFFSET], (uint32_t*)&data[HEADER_DOWN_OFFSET], iterator_to_byte(datalen - HEADER_UP_LENGTH));
+
+			/*Вывод информационного сообщения в консоль*/
+			od_hex_dump(pkt->data, pkt->size, OD_WIDTH_DEFAULT);
+			// printf("DAG Node: UDP no crypto packet received(%"PRIu8"): ", datalen);
+			// for (uint16_t i = 0; i < datalen; i++)	/*Выводим принятый пакет*/ 
+				// printf("%"PRIXX8, data[i]);
+			// printf("\n");
 			
-			/* Вывод принятого пакета микрокомпьютеру */ 
-			//
+			/*CRC16 проверка*/ 
+			// if(header_pack->crc.u16 != crc16_arc((uint8_t*)&data[PAYLOAD_OFFSET], header_pack->length))
+			// {
+			// 	/*Вывод сообщения об ошибке целостности пакета*/
+			// 	printf("[DAG Node] CRC16 Error!\n");
+				
+			// 	led_mode_set(LED_FLASH);	/*Мигаем светодиодом*/
+			// 	return;
+			// }
+			
+			/*Защита от атаки повтором*/
+			/*Проверяем счетчик пакетов на валидность данного пакета*/
+			// if(packet_counter_root.u16 >= header_pack->counter.u16)
+			// {	
+			// 	/*Вывод сообщения об ошибке счетчика пакетов*/
+			// 	printf("[DAG Node] Counter error!\n");
+				
+			// 	led_mode_set(LED_FLASH);	/*Мигаем светодиодом*/
+			// 	return;
+			// }
+			
+			/*Обновляем значение счетчика ROOT'а*/
+			// packet_counter_root.u16 = header_pack->counter.u16;	
 			switch(header_pack->device_id)
 			{
 				case UNWDS_GPIO_MODULE_ID: /* ID: 1 */
@@ -508,10 +546,11 @@ void unwds_dag_server(gnrc_pktsnip_t *pkt)
 				case UNWDS_6LOWPAN_SYSTEM_MODULE_ID: /* ID: 127 */
 					switch(header_pack->data_type)
 					{
-						case JOIN_STAGE_2:
-							break;
-						case JOIN_STAGE_4:
-							break;
+						// case JOIN_STAGE_2:
+						// 	join_stage_3_sender(pkt->data);
+						// 	break;
+						// case JOIN_STAGE_4:
+						// 	break;
 						case PONG:
 							break;
 						default:
@@ -541,12 +580,16 @@ void unwds_pack_sender( uint8_t device_id,
 						uint8_t payload_len, 
 						uint8_t *payload)
 {	
+	if(node_mode != MODE_NORMAL)
+		return;
+
 	/*Проверка на то что передан не нулевой адрес буфера*/
 	if ((payload == NULL) && (payload_len != 0))
 		return;
 	
 	/*Выделяем память под пакет. Общий размер пакета (header + payload)*/
-	uint8_t udp_buffer[HEADER_LENGTH + payload_len];
+	uint8_t crypto_length = iterator_to_byte(HEADER_DOWN_LENGTH + payload_len);
+	uint8_t udp_buffer[HEADER_UP_LENGTH + crypto_length];
 	
 	/*Отражаем структуры на массивы*/ 
 	header_t *header_pack = (header_t*)&udp_buffer[HEADER_OFFSET];
@@ -556,26 +599,47 @@ void unwds_pack_sender( uint8_t device_id,
 	header_pack->protocol_version = UDBP_PROTOCOL_VERSION; 		/*Текущая версия протокола*/ 
 	header_pack->device_id = device_id;							/*ID устройства*/
 	header_pack->data_type = data_type;							/*Тип пакета*/  
-	// header_pack->rssi = get_parent_rssi();						/*RSSI*/ 
 	header_pack->temperature = (int8_t)(nrf_temp_read() >> 2);	/*Температура*/ 
-	// header_pack->voltage = get_voltage();						/*Напряжение*/ 
-	// header_pack->counter.u16 = packet_counter_node.u16;			/*Счетчик пакетов*/ 
+	header_pack->voltage = 0x00;								/*Напряжение*/ 
+	header_pack->counter.u16 = packet_counter_node.u16;			/*Счетчик пакетов*/ 
 	header_pack->length = payload_len;							/*Размер пакета (незашифрованного)*/
 	
 	/*Payload*/ 	
 	/*Заполняем пакет, зашифровываем и отправляем его DAG'у. */ 
-	memcpy(&udp_buffer[PAYLOAD_OFFSET], payload, payload_len);
+	for(uint8_t i = 0; i < (crypto_length - HEADER_DOWN_LENGTH); i++)
+	{
+		if(i < payload_len)
+			udp_buffer[PAYLOAD_OFFSET + i] = payload[i];
+		else
+			udp_buffer[PAYLOAD_OFFSET + i] = 0x00;
+	}
+	// memcpy(&udp_buffer[PAYLOAD_OFFSET], payload, payload_len);
+	// memset(&udp_buffer[PAYLOAD_OFFSET+payload_len], 0x00, crypto_length);
+
+	/*CRC16*/ 
+	// header_pack->crc.u16 = 0;
 	
 #if ENABLE_DEBUG
 	char root_addr_str[IPV6_ADDR_MAX_STR_LEN];
 	ipv6_addr_to_str(root_addr_str, &root_addr, sizeof(root_addr_str));
 	
-	DEBUG("[UNWDS_UDP] Success: sent %u byte(s) to [%s]:%u\n", (HEADER_LENGTH + payload_len), root_addr_str, UNWDS_UDP_SERVER_PORT);
-	od_hex_dump(udp_buffer, (HEADER_LENGTH + payload_len), OD_WIDTH_DEFAULT);
+	DEBUG("[UNWDS_UDP] Success: sent %u byte(s) to [%s]:%u\n", (HEADER_LENGTH + crypto_length), root_addr_str, UNWDS_UDP_SERVER_PORT);
+	od_hex_dump(udp_buffer, (HEADER_LENGTH + crypto_length), OD_WIDTH_DEFAULT);
 #endif /* ENABLE_DEBUG */
 	
+	/*Зашифровываем данные*/
+	od_hex_dump(udp_buffer, (HEADER_UP_LENGTH + crypto_length), OD_WIDTH_DEFAULT);
+	cipher_encrypt_cbc (&cipher_nonce_xor_aes_128, 
+						aes_iv,
+						&udp_buffer[HEADER_DOWN_OFFSET], 
+						crypto_length, 
+						&udp_buffer[HEADER_DOWN_OFFSET]);
+
+	od_hex_dump(udp_buffer, (HEADER_UP_LENGTH + crypto_length), OD_WIDTH_DEFAULT);
+	// aes_cbc_encrypt((uint32_t*)aes_key, (uint32_t*)nonce_key, (uint32_t*)(&udp_buffer[HEADER_DOWN_OFFSET]), (uint32_t*)(&udp_buffer[HEADER_DOWN_OFFSET]), crypto_length);
+
 	/*Отправляем пакет*/ 
-	udp_send(&root_addr, UNWDS_UDP_SERVER_PORT, udp_buffer, (HEADER_LENGTH + payload_len));
+	udp_send(&root_addr, UNWDS_UDP_SERVER_PORT, udp_buffer, (HEADER_LENGTH + crypto_length));
 	/*Инкрементируем счетчик пакетов*/
 }
 
@@ -583,13 +647,13 @@ void unwds_pack_sender( uint8_t device_id,
 /*Передаём свой серийный номер*/
 static void join_stage_1_sender(void)
 {
-	/*Проверка на то что передан существующий адрес*/
-	// if (addr == NULL)
-	// 	return;
+	node_mode = MODE_JOIN_PROGRESS;			/*Режим работы ноды*/
 
-	// uip_ipaddr_t addr;						/*Выделяем память для адреса на который отправится пакет*/
-	// uip_ip6addr_copy(&addr, root_addr);		/*Копируем адрес*/
-	
+	/*Вывод информационного сообщения в консоль*/
+	printf("[DAG Node] Send join packet to DAG-root node: ");
+	char root_addr_str[IPV6_ADDR_MAX_STR_LEN];
+	printf("%s \n", ipv6_addr_to_str(root_addr_str, &root_addr, sizeof(root_addr_str)));
+
 	/*Выделяем память под пакет. Общий размер пакета (header + payload)*/	
 	uint8_t udp_buffer[HEADER_LENGTH + JOIN_STAGE_1_PAYLOAD_LENGTH];
 	
@@ -602,32 +666,94 @@ static void join_stage_1_sender(void)
 	header_pack->protocol_version = UDBP_PROTOCOL_VERSION; 		/*Текущая версия протокола*/ 
 	header_pack->device_id = UNWDS_6LOWPAN_SYSTEM_MODULE_ID;	/*ID устройства*/
 	header_pack->data_type = JOIN_STAGE_1;						/*Тип пакета*/  
-	// header_pack->rssi = get_parent_rssi();					/*RSSI*/ 
 	header_pack->temperature = (int8_t)(nrf_temp_read() >> 2);	/*Температура*/ 
-	// header_pack->voltage = get_voltage();					/*Напряжение*/ 
-	// header_pack->counter.u16 = packet_counter_node.u16;			/*Счетчик пакетов*/ 
+	header_pack->voltage = 0x00;								/*Напряжение*/ 
+	header_pack->counter.u16 = 0x0000;							/*Счетчик пакетов*/ 
 	header_pack->length = JOIN_STAGE_1_LENGTH;					/*Размер пакета*/
 
 	/*Payload*/
-	join_stage_1_pack->module_id = 0;//UNWDS_MODULE_ID;
+	join_stage_1_pack->module_id = 0;	//UNWDS_MODULE_ID;
 	
 	/*CRC16*/ 
 	header_pack->crc.u16 = 0;
 	
-
-	/*Вывод информационного сообщения в консоль*/
-	printf("[DAG Node] Send join packet to DAG-root node: ");
-
-	char root_addr_str[IPV6_ADDR_MAX_STR_LEN];
-	printf("%s \n", ipv6_addr_to_str(root_addr_str, &root_addr, sizeof(root_addr_str)));
-
-#if ENABLE_DEBUG
-	DEBUG("[UNWDS_UDP] Success: sent %u byte(s) to [%s]:%u\n", (HEADER_LENGTH + JOIN_STAGE_1_PAYLOAD_LENGTH), root_addr_str, UNWDS_UDP_SERVER_PORT);
-	od_hex_dump(udp_buffer, (HEADER_LENGTH + JOIN_STAGE_1_PAYLOAD_LENGTH), OD_WIDTH_DEFAULT);
-#endif /* ENABLE_DEBUG */
-	
 	/*Отправляем пакет*/ 
 	udp_send(&root_addr, UNWDS_UDP_SERVER_PORT, udp_buffer, (HEADER_LENGTH + JOIN_STAGE_1_PAYLOAD_LENGTH));
+}
+
+/*Третья стадия авторизации*/
+static void join_stage_3_sender(uint8_t *data) 
+{	
+	/*Вывод информационного сообщения в консоль*/
+	printf("Send join packet stage 3 to DAG-root node: ");
+	char root_addr_str[IPV6_ADDR_MAX_STR_LEN];
+	printf("%s \n", ipv6_addr_to_str(root_addr_str, &root_addr, sizeof(root_addr_str)));
+	
+	/*Выделяем память под пакет. Общий размер пакета (header + payload)*/
+	uint8_t udp_buffer[HEADER_UP_LENGTH + JOIN_STAGE_3_PAYLOAD_LENGTH];	
+	
+	/*Отражаем структуры на массивы*/ 
+	header_t *header_pack = (header_t*)&udp_buffer[HEADER_OFFSET];
+	join_stage_2_t *join_stage_2_pack = (join_stage_2_t*)&data[PAYLOAD_OFFSET];
+	join_stage_3_t *join_stage_3_pack = (join_stage_3_t*)&udp_buffer[PAYLOAD_OFFSET];
+	
+	/*Заполняем пакет*/  
+	/*Header*/ 
+	header_pack->protocol_version = UDBP_PROTOCOL_VERSION; 		/*Текущая версия протокола*/ 
+	header_pack->device_id = UNWDS_6LOWPAN_SYSTEM_MODULE_ID;	/*ID устройства*/
+	header_pack->data_type = JOIN_STAGE_3;						/*Тип пакета*/  
+	header_pack->temperature = (int8_t)(nrf_temp_read() >> 2);	/*Температура*/ 
+	// header_pack->voltage = get_voltage();					/*Напряжение*/ 
+	header_pack->counter.u16 = 0x0000;							/*Счетчик пакетов*/ 
+	header_pack->length = JOIN_STAGE_3_LENGTH;					/*Размер пакета*/
+	
+	/*Payload*/ 
+	/*Расшифровываем данные*/ 
+	// od_hex_dump(data, (HEADER_UP_LENGTH + JOIN_STAGE_2_PAYLOAD_LENGTH), OD_WIDTH_DEFAULT);
+	cipher_encrypt_cbc (&cipher_aes_128,
+						aes_iv, 
+						&data[HEADER_DOWN_OFFSET], 
+						CRYPTO_1_BLOCK_LENGTH, 
+						&data[HEADER_DOWN_OFFSET]);
+	// od_hex_dump(data, (HEADER_UP_LENGTH + JOIN_STAGE_2_PAYLOAD_LENGTH), OD_WIDTH_DEFAULT);
+	
+	//CRC16
+	
+	/*Копируем полученный nonce и используем его в качестве сессионного ключа*/
+	memcpy(nonce_xor_aes_key, aes_key, AES_KEY_LEN);
+	nonce_xor_aes_key[0] ^= nonce.u8[0];
+	nonce_xor_aes_key[1] ^= nonce.u8[1];
+
+	int err = cipher_init(&cipher_nonce_xor_aes_128, CIPHER_AES_128, nonce_xor_aes_key, AES_KEY_LEN);
+	if(!(err))
+	{
+		printf("Error cipher_init(): %i\n", err);
+		return;
+	}
+
+	node_mode = MODE_NORMAL;			/*Режим работы ноды*/
+	
+	/*Отправляем ROOT'у nonce на еденицу больше для того что бы он был уверен что у нас одинаковое шифрование*/ 
+	join_stage_3_pack->nonce.u16 = join_stage_2_pack->nonce.u16 + 1; /*Увеличиваем nonce на единицу: nonce += 1*/	
+	
+	/*Дозаполняем блок для шифрования нулями*/ 
+	for(uint8_t i = JOIN_STAGE_3_LENGTH; i < (JOIN_STAGE_3_PAYLOAD_LENGTH - HEADER_DOWN_LENGTH); i++)
+		udp_buffer[PAYLOAD_OFFSET + i] = 0x00;
+	
+	/*CRC16*/ 
+	// header_pack->crc.u16 = crc16_arc((uint8_t*)&join_stage_3_pack, sizeof(join_stage_3_pack));
+	
+	/*Зашифровываем данные*/
+	// od_hex_dump(udp_buffer, (HEADER_UP_LENGTH + JOIN_STAGE_2_PAYLOAD_LENGTH), OD_WIDTH_DEFAULT);
+	cipher_encrypt_cbc (&cipher_aes_128, 
+						aes_iv, 
+						&udp_buffer[HEADER_DOWN_OFFSET], 
+						CRYPTO_1_BLOCK_LENGTH, 
+						&udp_buffer[HEADER_DOWN_OFFSET]);
+	// od_hex_dump(udp_buffer, (HEADER_UP_LENGTH + JOIN_STAGE_2_PAYLOAD_LENGTH), OD_WIDTH_DEFAULT);
+
+	/*Отправляем пакет*/ 
+	udp_send(&root_addr, UNWDS_UDP_SERVER_PORT, udp_buffer, (HEADER_LENGTH + JOIN_STAGE_3_PAYLOAD_LENGTH));
 }
 
 int dag_node_init(void)
@@ -642,6 +768,9 @@ int dag_node_init(void)
 		printf("Error cipher_init(): %i\n", err);
 		return -1;
 	}
+
+	packet_counter_node.u16 = 0x0000;		/* Счетчик пакетов */
+	packet_counter_root.u16 = 0x0000;		/* Счетчик пакетов */
 	
 	// fe80::2f3a:f0dc:a085:a2ab
 	root_addr.u8[0] = 0xFE;

@@ -106,4 +106,24 @@ int32_t nrf_temp_read(void)
     /**@note Workaround for PAN_028 rev2.0A anomaly 28 - TEMP: Negative measured values are not represented correctly */
     return ((NRF_TEMP->TEMP & MASK_SIGN) != 0) ? (int32_t)(NRF_TEMP->TEMP | MASK_SIGN_EXTENSION) : (NRF_TEMP->TEMP);
 }
-															  
+
+uint8_t iterator_to_byte(uint8_t iterator)
+{
+	if(iterator <= 16)
+		return 16;
+	if((iterator > 16) && (iterator <= 32))
+		return 32;
+	if((iterator > 32) && (iterator <= 48))
+		return 48;
+	if((iterator > 48) && (iterator <= 64))
+		return 64;
+	if((iterator > 64) && (iterator <= 80))
+		return 80;
+	if((iterator > 80) && (iterator <= 96))
+		return 96;
+	if((iterator > 96) && (iterator <= 112))
+		return 112;
+	if((iterator > 112) && (iterator <= 128))
+		return 128;
+	return 0;
+}

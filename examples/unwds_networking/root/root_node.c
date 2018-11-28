@@ -63,7 +63,7 @@ void unwds_pack_sender (ipv6_addr_t *dest_addr,
 						uint8_t payload_len, 
 						uint8_t *payload);
 
-/*Struct for security table*/
+/* Struct for security table */
 typedef struct {
 	ipv6_addr_t addr;		/* addr */
 	u8_u16_t counter;		/* counter */
@@ -122,22 +122,22 @@ void unwds_root_server(gnrc_pktsnip_t *pkt)
 	print_ipv6_addr(&src_addr);
 	
 	/* Отражаем структуру на массив */ 
-	header_t *header_pack = pkt->data; //(header_t*)&data[HEADER_OFFSET];
+	header_t *header_pack = pkt->data; 
 	
 	switch(header_pack->protocol_version) 
 	{
         case UDBP_PROTOCOL_VERSION: 
-			/*Проверяем ID модуля и тип пакета*/ 
+			/* Проверяем ID модуля и тип пакета */ 
 			if((header_pack->device_id == UNWDS_6LOWPAN_SYSTEM_MODULE_ID) && (header_pack->data_type == JOIN_STAGE_1))
 			{
-				/*Вторая стадия авторизации*/			
+				/* Вторая стадия авторизации */			
 				join_stage_2_sender(&src_addr);
 				break;
 			}
 			
 			else if((header_pack->device_id == UNWDS_6LOWPAN_SYSTEM_MODULE_ID) && (header_pack->data_type == JOIN_STAGE_3))
 			{
-				/*Четвертая стадия авторизации*/
+				/* Обработчик третий стадии авторизации */
 				join_stage_3_handler(&src_addr, pkt->data);
 				break;
 			}
@@ -150,7 +150,7 @@ void unwds_root_server(gnrc_pktsnip_t *pkt)
 			u8_u16_t nonce;
 			nonce.u16 = security_table[device].nonce.u16;
 			
-			/*Копируем полученный nonce и используем его в качестве сессионного ключа*/
+			/* Копируем полученный nonce и используем его в качестве сессионного ключа */
 			memcpy(nonce_xor_aes_key, aes_key, AES_KEY_LEN);
 			nonce_xor_aes_key[0] ^= nonce.u8[0];
 			nonce_xor_aes_key[1] ^= nonce.u8[1];
@@ -162,20 +162,26 @@ void unwds_root_server(gnrc_pktsnip_t *pkt)
 				return;
 			}
 
-			/*Расшифровываем данные*/
-			od_hex_dump(pkt->data, pkt->size, OD_WIDTH_DEFAULT);
+			/* Расшифровываем данные */
 			cipher_decrypt_cbc (&cipher_nonce_xor_aes_128, aes_iv, 
 								&((uint8_t*)(pkt->data))[HEADER_DOWN_OFFSET], 
 								iterator_to_byte(pkt->size - HEADER_UP_LENGTH), 
 								&((uint8_t*)(pkt->data))[HEADER_DOWN_OFFSET]);
-			// aes_cbc_decrypt((uint32_t*)aes_key, (uint32_t*)nonce_key, (uint32_t*)&data[HEADER_DOWN_OFFSET], (uint32_t*)&data[HEADER_DOWN_OFFSET], iterator_to_byte(datalen - HEADER_UP_LENGTH));
-			
 
 			/* Защита от атаки повтором */
 			/* Проверяем счетчик пакетов на валидность данного пакета */
+			if(security_table[device].counter.u16 >= header_pack->counter.u16)
+			{	
+				/* Вывод сообщения об ошибке счетчика пакетов */
+				printf("Counter error!\n");
+				break;
+			}
+			/* Обновляем значение счетчика в таблице */
+			security_table[device].counter.u16 = header_pack->counter.u16;
 			
 			/* Вывод принятого пакета микрокомпьютеру */ 
 			// print_cr(&src_addr, pkt->data, (HEADER_LENGTH + header_pack->length));
+
 			switch(header_pack->device_id)
 			{
 				case UNWDS_GPIO_MODULE_ID: /* ID: 1 */
@@ -585,12 +591,6 @@ void unwds_root_server(gnrc_pktsnip_t *pkt)
 				case UNWDS_6LOWPAN_SYSTEM_MODULE_ID: /* ID: 127 */
 					switch(header_pack->data_type)
 					{
-						// case JOIN_STAGE_1:
-						// 	join_stage_2_sender(&src_addr);
-						// 	break;
-						// case JOIN_STAGE_3:
-						// 	join_stage_3_handler(&src_addr, pkt->data);
-						// 	break;
 						case PING:
 							break;
 						case ACK:
@@ -626,33 +626,33 @@ void unwds_pack_sender (ipv6_addr_t *dest_addr,
 						uint8_t payload_len, 
 						uint8_t *payload)
 {
-	/*Проверка на то что передан существующий адрес*/
+	/* Проверка на то что передан существующий адрес */
 	if (dest_addr == NULL)
 		return;
 	
-	/*Проверка на то что передан не нулевой адрес буфера*/
+	/* Проверка на то что передан не нулевой адрес буфера */
 	if ((payload == NULL) && (payload_len != 0))
 		return;
 	
-	/*Выделяем память под пакет. Общий размер пакета (header + payload)*/
+	/* Выделяем память под пакет. Общий размер пакета (header + payload) */
 	uint8_t crypto_length = iterator_to_byte(HEADER_DOWN_LENGTH + payload_len);
 	uint8_t udp_buffer[HEADER_UP_LENGTH + crypto_length];
 	
-	/*Отражаем структуры на массивы*/ 
+	/* Отражаем структуры на массивы */ 
 	header_t *header_pack = (header_t*)&udp_buffer[HEADER_OFFSET];
 	
-	/*Заполняем пакет*/  
-	/*Header*/ 
-	header_pack->protocol_version = UDBP_PROTOCOL_VERSION; 		/*Текущая версия протокола*/ 
-	header_pack->device_id = device_id;							/*ID устройства*/
-	header_pack->data_type = data_type;							/*Тип пакета*/  
-	header_pack->temperature = (int8_t)(nrf_temp_read() >> 2);	/*Температура*/ 
-	header_pack->voltage = 0x00; 								/*Напряжение*/ 
-	header_pack->counter.u16 = packet_counter_root.u16;			/*Счетчик пакетов*/ 
-	header_pack->length = payload_len;							/*Размер пакета (незашифрованного)*/
+	/* Заполняем пакет */  
+	/* Header */ 
+	header_pack->protocol_version = UDBP_PROTOCOL_VERSION; 		/* Текущая версия протокола */ 
+	header_pack->device_id = device_id;							/* ID устройства */
+	header_pack->data_type = data_type;							/* Тип пакета */  
+	header_pack->temperature = (int8_t)(nrf_temp_read() >> 2);	/* Температура */ 
+	header_pack->voltage = 0x00; 								/* Напряжение */ 
+	header_pack->counter.u16 = packet_counter_root.u16;			/* Счетчик пакетов */ 
+	header_pack->length = payload_len;							/* Размер пакета (незашифрованного) */
 	
-	/*Payload*/ 
-	/*Заполняем пакет, зашифровываем и отправляем его DAG'у. */ 
+	/* Payload */ 
+	/* Заполняем пакет, зашифровываем и отправляем его DAG'у */ 
 	// memcpy(&udp_buffer[PAYLOAD_OFFSET], payload, payload_len);
 	for(uint8_t i = 0; i < (crypto_length - HEADER_DOWN_LENGTH); i++)
 	{
@@ -662,7 +662,7 @@ void unwds_pack_sender (ipv6_addr_t *dest_addr,
 			udp_buffer[PAYLOAD_OFFSET + i] = 0x00;
 	}
 	
-	/*CRC16*/ 
+	/* CRC16 */ 
 	// header_pack->crc.u16 = crc16_arc((uint8_t*)&join_stage_2_pack, sizeof(join_stage_2_pack));
 
 #if ENABLE_DEBUG
@@ -681,7 +681,7 @@ void unwds_pack_sender (ipv6_addr_t *dest_addr,
 	u8_u16_t nonce;
 	nonce.u16 = security_table[device].nonce.u16;
 	
-	/*Копируем полученный nonce и используем его в качестве сессионного ключа*/
+	/* Копируем полученный nonce и используем его в качестве сессионного ключа */
 	memcpy(nonce_xor_aes_key, aes_key, AES_KEY_LEN);
 	nonce_xor_aes_key[0] ^= nonce.u8[0];
 	nonce_xor_aes_key[1] ^= nonce.u8[1];
@@ -693,73 +693,69 @@ void unwds_pack_sender (ipv6_addr_t *dest_addr,
 		return;
 	}
 
-	/*Зашифровываем блок*/ 
-	od_hex_dump(udp_buffer, (HEADER_UP_LENGTH + JOIN_STAGE_2_PAYLOAD_LENGTH), OD_WIDTH_DEFAULT);
+	/* Зашифровываем блок */ 
 	cipher_decrypt_cbc (&cipher_nonce_xor_aes_128, 
 						aes_iv, 
 						&udp_buffer[HEADER_DOWN_OFFSET], 
 						crypto_length, 
 						&udp_buffer[HEADER_DOWN_OFFSET]);
-	od_hex_dump(udp_buffer, (HEADER_UP_LENGTH + JOIN_STAGE_2_PAYLOAD_LENGTH), OD_WIDTH_DEFAULT);
 
-	/*Отправляем пакет*/ 
+	/* Отправляем пакет */ 
 	udp_send(dest_addr, UNWDS_UDP_SERVER_PORT, udp_buffer, (HEADER_UP_LENGTH + crypto_length));
-	packet_counter_root.u16++;	/*Инкрементируем счетчик пакетов*/
+	packet_counter_root.u16++;	/* Инкрементируем счетчик пакетов */
 }
 
 static void join_stage_2_sender(ipv6_addr_t *dest_addr)
 {	
-	/*Вывод принятого пакета микрокомпьютеру*/ 
+	/* Вывод принятого пакета микрокомпьютеру */ 
 	// print_cr((uip_ip6addr_t*)dest_addr, (uint8_t*)data, (HEADER_LENGTH + JOIN_STAGE_1_LENGTH));
 
 	puts("Join stage 2");
 	
-	/*Выделяем память под пакет. Общий размер пакета (header + payload)*/
+	/* Выделяем память под пакет. Общий размер пакета (header + payload) */
 	uint8_t udp_buffer[HEADER_UP_LENGTH + JOIN_STAGE_2_PAYLOAD_LENGTH];
 	
-	/*Отражаем структуры на массивы*/ 
+	/* Отражаем структуры на массивы*/ 
 	header_t *header_pack = (header_t*)&udp_buffer[HEADER_OFFSET];
 	join_stage_2_t *join_stage_2_pack = (join_stage_2_t*)&udp_buffer[PAYLOAD_OFFSET];
 	
-	/*Заполняем пакет*/  
-	/*Header*/ 
-	header_pack->protocol_version = UDBP_PROTOCOL_VERSION; 		/*Текущая версия протокола*/ 
-	header_pack->device_id = UNWDS_6LOWPAN_SYSTEM_MODULE_ID;	/*ID устройства*/
-	header_pack->data_type = JOIN_STAGE_2;						/*Тип пакета*/  
-	header_pack->temperature = (int8_t)(nrf_temp_read() >> 2);	/*Температура*/ 
-	header_pack->voltage = 0x00;								/*Напряжение*/ 
-	header_pack->counter.u16 = 0x0000;							/*Счетчик пакетов*/ 
-	header_pack->length = JOIN_STAGE_2_LENGTH;					/*Размер пакета (незашифрованного)*/
+	/* Заполняем пакет */  
+	/* Header */ 
+	header_pack->protocol_version = UDBP_PROTOCOL_VERSION; 		/* Текущая версия протокола */ 
+	header_pack->device_id = UNWDS_6LOWPAN_SYSTEM_MODULE_ID;	/* ID устройства */
+	header_pack->data_type = JOIN_STAGE_2;						/* Тип пакета */  
+	header_pack->temperature = (int8_t)(nrf_temp_read() >> 2);	/* Температура */ 
+	header_pack->voltage = 0x00;								/* Напряжение */ 
+	header_pack->counter.u16 = packet_counter_root.u16;			/* Счетчик пакетов */ 
+	header_pack->length = JOIN_STAGE_2_LENGTH;					/* Размер пакета (незашифрованного) */
 	
-	/*Payload*/ 
+	/* Payload */ 
 	hwrng_read(&(join_stage_2_pack->nonce.u16), 2);
 	
-	/*Добавляем устройство*/ 
-	add_device_security_table ( dest_addr,						/*Address*/ 
-	 							join_stage_2_pack->nonce.u16);	/*Nonce*/ 
+	/* Добавляем устройство */ 
+	add_device_security_table ( dest_addr,						/* Address */ 
+	 							join_stage_2_pack->nonce.u16);	/* Nonce */ 
 	
-	/*Дозаполняем блок для шифрования нулями*/ 
+	/* Дозаполняем блок для шифрования нулями */ 
 	for(uint8_t i = JOIN_STAGE_2_LENGTH; i < (JOIN_STAGE_2_PAYLOAD_LENGTH - HEADER_DOWN_LENGTH); i++)
 		udp_buffer[PAYLOAD_OFFSET + i] = 0x00;
 	
-	/*CRC16*/ 
+	/* CRC16 */ 
 	// header_pack->crc.u16 = crc16_arc((uint8_t*)&join_stage_2_pack, sizeof(join_stage_2_pack));
 	
-	/*Зашифровываем блок*/ 
-	// od_hex_dump(udp_buffer, (HEADER_UP_LENGTH + JOIN_STAGE_2_PAYLOAD_LENGTH), OD_WIDTH_DEFAULT);
+	/* Зашифровываем блок */ 
 	cipher_decrypt_cbc (&cipher_aes_128, 
 						aes_iv, 
 						&udp_buffer[HEADER_DOWN_OFFSET], 
 						CRYPTO_1_BLOCK_LENGTH, 
 						&udp_buffer[HEADER_DOWN_OFFSET]);
-	// od_hex_dump(udp_buffer, (HEADER_UP_LENGTH + JOIN_STAGE_2_PAYLOAD_LENGTH), OD_WIDTH_DEFAULT);
 
-	/*Отправляем пакет*/ 
+	/* Отправляем пакет */ 
 	udp_send(dest_addr, UNWDS_UDP_SERVER_PORT, udp_buffer, (HEADER_UP_LENGTH + JOIN_STAGE_2_PAYLOAD_LENGTH));
-	// packet_counter_root.u16++;	/*Инкрементируем счетчик пакетов*/ 
+	packet_counter_root.u16++;	/* Инкрементируем счетчик пакетов */ 
 }
 
-/*Обработчик третий стадии авторизации*/
+/* Обработчик третий стадии авторизации */
 static void join_stage_3_handler(ipv6_addr_t *dest_addr, 
 								uint8_t *data)
 {	
@@ -767,46 +763,60 @@ static void join_stage_3_handler(ipv6_addr_t *dest_addr,
 	if(device < 0)
 		return;
 
-	/*Получаем nonce*/
+	/* Получаем nonce */
 	u8_u16_t nonce;
-	nonce.u16 = security_table[device].nonce.u16; //get_nonce((uip_ip6addr_t*)dest_addr);	
-	
-	/*Копируем полученный nonce и используем его в качестве сессионного ключа (AES128-CBC)*/
-	// for(int i = 0; i < 16; i += 2)
-	// {
-	// 	nonce_key[i] = nonce.u8[1];	
-	// 	nonce_key[i+1] = nonce.u8[0];	
-	// }
+	nonce.u16 = security_table[device].nonce.u16; 
 
-	/*Расшифровываем данные*/
-	// od_hex_dump(data, (HEADER_UP_LENGTH + JOIN_STAGE_2_PAYLOAD_LENGTH), OD_WIDTH_DEFAULT);
+	/* Расшифровываем данные */
 	cipher_decrypt_cbc(&cipher_aes_128, aes_iv, &data[HEADER_DOWN_OFFSET], 16, &data[HEADER_DOWN_OFFSET]);
-	// od_hex_dump(data, (HEADER_UP_LENGTH + JOIN_STAGE_2_PAYLOAD_LENGTH), OD_WIDTH_DEFAULT);
 
-	/*Вывод принятого пакета микрокомпьютеру*/ 
+	/* Вывод принятого пакета микрокомпьютеру */ 
 	// print_cr((uip_ip6addr_t*)dest_addr, (uint8_t*)data, (HEADER_LENGTH + JOIN_STAGE_3_LENGTH));
 	
-	/*Отражаем структуры на массивы*/ 
+	/* Отражаем структуры на массивы */ 
 	join_stage_3_t *join_stage_3_pack = (join_stage_3_t*)&data[PAYLOAD_OFFSET];
 	
-	/*Заполняем payload*/
-	// join_stage_4_t join_stage_4_pack;				/*Создаем структуру*/
-	
-	/*Проверяем одинаковые ли у нас настройки шифрования*/ 
-	// if((get_nonce((uip_ip6addr_t*)dest_addr) + 1) != join_stage_3_pack->nonce.u16)
+	/* Проверяем одинаковые ли у нас настройки шифрования */ 
 	if((nonce.u16 + 1) != join_stage_3_pack->nonce.u16)
 	{
-	 	/*Вывод сообщения об успешной авторизации*/
+	 	/* Вывод сообщения об успешной авторизации */
 	 	printf("Authorization error node\n");
 	}
 	
-	/*Если nonce'ы совпадают, то авторизация прошла успешно, шифрование настроенно правильно*/ 
+	/* Если nonce'ы совпадают, то авторизация прошла успешно, шифрование настроенно правильно */ 
 	else
 	{
-		/*Разрешаем обрабатывать пакеты принятые с авторизированного устройства*/
+		/* Разрешаем обрабатывать пакеты принятые с авторизированного устройства */
 		unlock_device_security_table(dest_addr);
+
+		/* TEST */
+		ipv6_addr_t addr_dag;
+	
+		addr_dag.u8[0] = 0xFE;
+		addr_dag.u8[1] = 0x80;
+		addr_dag.u8[2] = 0x00;
+		addr_dag.u8[3] = 0x00;
+		addr_dag.u8[4] = 0x00;
+		addr_dag.u8[5] = 0x00;
+		addr_dag.u8[6] = 0x00;
+		addr_dag.u8[7] = 0x00;
+		addr_dag.u8[8] = 0x1D;
+		addr_dag.u8[9] = 0x9A;
+		addr_dag.u8[10] = 0x5E;
+		addr_dag.u8[11] = 0x49;
+		addr_dag.u8[12] = 0x41;
+		addr_dag.u8[13] = 0x5B;
+		addr_dag.u8[14] = 0x29;
+		addr_dag.u8[15] = 0xA4;
 		
-		/*Вывод сообщения об успешной авторизации*/
+		unwds_pack_sender ( &addr_dag, 
+							UNWDS_OPT3001_MODULE_ID, 
+							LIT_MEASURE, 
+							LIT_MEASURE_LENGTH, 
+							NULL);
+		/* END TEST */
+
+		/* Вывод сообщения об успешной авторизации */
 		printf("Authorized node\n");		
 	}
 }

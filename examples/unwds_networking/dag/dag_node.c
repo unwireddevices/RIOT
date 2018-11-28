@@ -26,6 +26,7 @@
 
 #include "net/gnrc/ipv6.h"
 #include "net/gnrc/netif.h"
+#include "checksum/ucrc16.h"
 #include "crypto/ciphers.h"
 #include "crypto/modes/cbc.h"
 
@@ -108,15 +109,17 @@ void unwds_dag_server(gnrc_pktsnip_t *pkt)
 				// printf("%"PRIXX8, data[i]);
 			// printf("\n");
 			
-			/* CRC16 проверка */ 
-			// if(header_pack->crc.u16 != crc16_arc((uint8_t*)&data[PAYLOAD_OFFSET], header_pack->length))
-			// {
-			// 	/*Вывод сообщения об ошибке целостности пакета*/
-			// 	printf("[DAG Node] CRC16 Error!\n");
-				
-			// 	led_mode_set(LED_FLASH);	/*Мигаем светодиодом*/
-			// 	return;
-			// }
+			/* CRC16 check */ 
+			uint16_t crc16 = ucrc16_calc_be (&((uint8_t*)(pkt->data))[PAYLOAD_OFFSET], 
+											header_pack->length, 
+											UCRC16_CCITT_POLY_BE, 
+											0xFFFF);
+			if(crc16 != header_pack->crc.u16)
+			{
+				/* Вывод сообщения об ошибке счетчика пакетов */
+				printf("CRC16 Error!\n");
+				break;
+			}
 			
 			/* Защита от атаки повтором */
 			/* Проверяем счетчик пакетов на валидность данного пакета */
@@ -608,7 +611,10 @@ void unwds_pack_sender( uint8_t device_id,
 	// memset(&udp_buffer[PAYLOAD_OFFSET+payload_len], 0x00, crypto_length);
 
 	/* CRC16 */ 
-	// header_pack->crc.u16 = 0;
+	header_pack->crc.u16 = ucrc16_calc_be ((uint8_t*)&udp_buffer[PAYLOAD_OFFSET], 
+											header_pack->length, 
+											UCRC16_CCITT_POLY_BE, 
+											0xFFFF);
 	
 #if ENABLE_DEBUG
 	char root_addr_str[IPV6_ADDR_MAX_STR_LEN];
@@ -663,7 +669,10 @@ static void join_stage_1_sender(void)
 	join_stage_1_pack->module_id = 0;	//UNWDS_MODULE_ID;
 	
 	/* CRC16 */ 
-	header_pack->crc.u16 = 0;
+	header_pack->crc.u16 = ucrc16_calc_be ((uint8_t*)&udp_buffer[PAYLOAD_OFFSET], 
+											header_pack->length, 
+											UCRC16_CCITT_POLY_BE, 
+											0xFFFF);
 	
 	/* Отправляем пакет */ 
 	udp_send(&root_addr, UNWDS_UDP_SERVER_PORT, udp_buffer, (HEADER_LENGTH + JOIN_STAGE_1_PAYLOAD_LENGTH));
@@ -706,8 +715,18 @@ static void join_stage_3_sender(uint8_t *data)
 						&data[HEADER_DOWN_OFFSET]);
 	
 	/* CRC16 check */ 
-	
+	uint16_t crc16 = ucrc16_calc_be(&data[PAYLOAD_OFFSET], 
+									header_root_pack->length, 
+									UCRC16_CCITT_POLY_BE, 
+									0xFFFF);
 
+	if(crc16 != header_root_pack->crc.u16)
+	{
+		/* Вывод сообщения об ошибке счетчика пакетов */
+		printf("CRC16 Error!\n");
+		return;
+	}
+	
 	packet_counter_root.u16 = header_root_pack->counter.u16;
 	
 	/* Копируем полученный nonce и используем его в качестве сессионного ключа */
@@ -733,7 +752,10 @@ static void join_stage_3_sender(uint8_t *data)
 		udp_buffer[PAYLOAD_OFFSET + i] = 0x00;
 	
 	/* CRC16 */ 
-	// header_pack->crc.u16 = crc16_arc((uint8_t*)&join_stage_3_pack, sizeof(join_stage_3_pack));
+	header_pack->crc.u16 = ucrc16_calc_be ((uint8_t*)&udp_buffer[PAYLOAD_OFFSET], 
+											header_pack->length, 
+											UCRC16_CCITT_POLY_BE, 
+											0xFFFF);
 	
 	/* Зашифровываем данные */
 	cipher_encrypt_cbc (&cipher_aes_128, 

@@ -22,6 +22,7 @@ USEMODULE += unwds_networking_common
 CFLAGS += -DCRYPTO_AES
 USEMODULE += crypto
 USEMODULE += cipher_modes
+USEMODULE += checksum
 
 FEATURES_REQUIRED += periph_hwrng
 

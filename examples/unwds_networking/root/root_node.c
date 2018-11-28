@@ -27,6 +27,7 @@
 #include "net/gnrc/ipv6.h"
 #include "net/gnrc/netif.h"
 #include "net/gnrc/rpl.h"
+#include "checksum/ucrc16.h"
 #include "crypto/ciphers.h"
 #include "crypto/modes/cbc.h"
 #include "periph/hwrng.h"
@@ -167,6 +168,18 @@ void unwds_root_server(gnrc_pktsnip_t *pkt)
 								&((uint8_t*)(pkt->data))[HEADER_DOWN_OFFSET], 
 								iterator_to_byte(pkt->size - HEADER_UP_LENGTH), 
 								&((uint8_t*)(pkt->data))[HEADER_DOWN_OFFSET]);
+
+			/* CRC16 check */ 
+			uint16_t crc16 = ucrc16_calc_be (&((uint8_t*)(pkt->data))[PAYLOAD_OFFSET], 
+											header_pack->length, 
+											UCRC16_CCITT_POLY_BE, 
+											0xFFFF);
+			if(crc16 != header_pack->crc.u16)
+			{
+				/* Вывод сообщения об ошибке счетчика пакетов */
+				printf("CRC16 Error!\n");
+				break;
+			}
 
 			/* Защита от атаки повтором */
 			/* Проверяем счетчик пакетов на валидность данного пакета */
@@ -663,7 +676,10 @@ void unwds_pack_sender (ipv6_addr_t *dest_addr,
 	}
 	
 	/* CRC16 */ 
-	// header_pack->crc.u16 = crc16_arc((uint8_t*)&join_stage_2_pack, sizeof(join_stage_2_pack));
+	header_pack->crc.u16 = ucrc16_calc_be ((uint8_t*)&udp_buffer[PAYLOAD_OFFSET], 
+											header_pack->length, 
+											UCRC16_CCITT_POLY_BE, 
+											0xFFFF);
 
 #if ENABLE_DEBUG
 	char dest_addr_str[IPV6_ADDR_MAX_STR_LEN];
@@ -719,6 +735,18 @@ static void join_stage_2_sender(ipv6_addr_t *dest_addr)
 	header_t *header_pack = (header_t*)&udp_buffer[HEADER_OFFSET];
 	join_stage_2_t *join_stage_2_pack = (join_stage_2_t*)&udp_buffer[PAYLOAD_OFFSET];
 	
+	/* CRC16 check */ 
+	// uint16_t crc16 = ucrc16_calc_be (&((uint8_t*)&data[PAYLOAD_OFFSET], 
+	// 								header_root_pack->length, 
+	// 								UCRC16_CCITT_POLY_BE, 
+	// 								0xFFFF);
+	// if(crc16 != header_root_pack->crc)
+	// {
+	// 	/* Вывод сообщения об ошибке счетчика пакетов */
+	// 	printf("CRC16 Error!\n");
+	// 	return;
+	// }
+
 	/* Заполняем пакет */  
 	/* Header */ 
 	header_pack->protocol_version = UDBP_PROTOCOL_VERSION; 		/* Текущая версия протокола */ 
@@ -741,7 +769,10 @@ static void join_stage_2_sender(ipv6_addr_t *dest_addr)
 		udp_buffer[PAYLOAD_OFFSET + i] = 0x00;
 	
 	/* CRC16 */ 
-	// header_pack->crc.u16 = crc16_arc((uint8_t*)&join_stage_2_pack, sizeof(join_stage_2_pack));
+	header_pack->crc.u16 = ucrc16_calc_be ((uint8_t*)&udp_buffer[PAYLOAD_OFFSET], 
+											header_pack->length, 
+											UCRC16_CCITT_POLY_BE, 
+											0xFFFF);
 	
 	/* Зашифровываем блок */ 
 	cipher_decrypt_cbc (&cipher_aes_128, 
@@ -869,6 +900,12 @@ int root_node_init(void)
 	addr.u8[13] = 0x00;
 	addr.u8[14] = 0x00;
 	addr.u8[15] = 0x01;
+
+	// TEST
+	// uint16_t crc16;
+	// crc16 = ucrc16_calc_be((uint8_t*)&addr, 16, UCRC16_CCITT_POLY_BE, 0xFFFF);
+	// printf("CRC16: 0x%08x\n", crc16);
+	// END TEST
 
 	// ifconfig 7 add 2001:db8::1  
 	printf("Number of network interfaces: %i\n", gnrc_netif_numof()); 

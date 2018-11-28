@@ -58,13 +58,14 @@ static uint8_t _st95_calibration(st95_t * dev);
 static uint8_t _st95_select_field_off(const st95_t * dev);
 // static int _st95_select_iso14443a(const st95_t * dev, uint8_t * params, uint8_t length_params);
 
-#if ENABLE_GAIN
+#if ST95_ENABLE_GAIN
 // static uint8_t _st95_cmd_write_reg(const st95_t * dev, uint8_t size_tx, uint8_t addr, uint8_t flag, uint8_t * data_tx);
 static uint8_t _st95_read_reg(const st95_t * dev, uint8_t * rxbuff);
 static uint8_t _st95_modify_modulation_gain(const st95_t * dev, uint8_t modul, uint8_t gain);
 static uint8_t _st95_read_modulation_gain(const st95_t * dev, uint8_t * modul, uint8_t * gain);
 #endif
 
+static uint8_t get_uid_apdu(const st95_t * dev);
 
 /**
  * @brief   This function send low pulse on IRQ_IN pin
@@ -128,26 +129,34 @@ static uint8_t _iso144443a_rats(const st95_t * dev)
     
 static uint8_t get_uid_apdu(const st95_t * dev)
 {
-    uint8_t data[5] = { 0xFF, 0xCA, 0x00, 0x00, 0x04 };
-    // uint8_t data[6] = { 0xFF, 0x00, 0x00, 0x00, 0x02, 0xD4 };
+
+    uint8_t data_read[2] = { 0x30, 0x01};
         uint8_t ctrl_byte = ISO14443A_NUM_SIGN_BIT_8 | ISO14443A_APPEND_CRC;
-    st95_state.mode = 0xFF;
-    
+   
     
     /* Change the FDT to accept APDU */	
     puts("\t\t >>> BEGIN APDU <<<");
+       st95_state.mode = 0xFF;
   _iso14443a_apdu(dev);
+
    
-    if(_st95_cmd_send_receive(dev, data, sizeof(data), ctrl_byte, st95_rxbuf, ST95_MAX_BYTE_BUFF) == ST95_OK) {
+   
+    if(_st95_cmd_send_receive(dev, data_read, sizeof(data_read), ctrl_byte, st95_rxbuf, ST95_MAX_BYTE_BUFF) == ST95_OK) {
         PRINTSTR("\t >>> RX APDU: ");       
-       PRINTBUFF(st95_rxbuf, st95_rxbuf[1]);
-        st95_state.mode = ST95_READY_MODE;
-        puts("\t\t >>> END APDU <<<");
-        return ST95_OK;
+        PRINTBUFF(st95_rxbuf + 2, st95_rxbuf[1]);
+           
     }
+    else {
+        puts("\t\t >>> ERROR READ <<<");
+        puts("\t\t >>> END APDU <<<");
+        st95_state.mode = ST95_READY_MODE;
+        return ST95_ERROR; 
+    }
+    
+    
 puts("\t\t >>> END APDU <<<");
     st95_state.mode = ST95_READY_MODE;
-    return ST95_ERROR; 
+    return ST95_OK; 
 }    
 #endif
 
@@ -161,6 +170,10 @@ puts("\t\t >>> END APDU <<<");
 void st95_spi_reset(const st95_t * dev)
 {
     uint8_t tx_spi = ST95_CTRT_SPI_RESET;
+    puts("RESET DEVICE");
+        // reset the ST95HF data status 
+    st95_state.data_rx = false;
+    st95_state.timeout = false;
     
     spi_acquire(SPI_DEV(dev->params.spi), dev->params.cs_spi, SPI_MODE_0, ST95_SPI_CLK);
          /*Send Reset*/
@@ -168,13 +181,15 @@ void st95_spi_reset(const st95_t * dev)
     
     spi_release(SPI_DEV(dev->params.spi));
 
-    // xtimer_spin(xtimer_ticks_from_usec(3000));
-    rtctimers_millis_sleep(ST95_DELAY_POWER_ON_MS); 
+    xtimer_spin(xtimer_ticks_from_usec(3000));
+    // rtctimers_millis_sleep(ST95_DELAY_POWER_ON_MS); 
     
     /* send a low pulse on IRQ_in to wake-up ST95HF device */
     _st95_send_irqin_low_pulse(dev);
         /* HFO setup time (delay before issuing a new command)*/
     rtctimers_millis_sleep(ST95_HFO_SETUP_TIME_MS);  
+    
+    puts("RESETED DEVICE");
 }
 
 /**
@@ -751,9 +766,10 @@ int _st95_cmd_send_receive(const st95_t * dev, uint8_t *data_tx, uint8_t size_tx
         }
         else {
             DEBUG("[st95]: Error 0x%02X\n", rxbuff[0]);
+            return ST95_ERROR;
         }
     }
-
+    DEBUG("[st95]: Receiving error\n");
     return ST95_ERROR;
 }
 
@@ -771,9 +787,19 @@ int _st95_cmd_send_receive(const st95_t * dev, uint8_t *data_tx, uint8_t size_tx
  */
 int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_t * sak)
 {
-    if(_st95_select_field_off(dev) == ST95_ERROR) {
-        return ST95_ERROR;
-    }
+    // if(_st95_select_field_off(dev) == ST95_ERROR) {
+        // return ST95_ERROR;
+    // }
+            // st95_state.mode = 0xFF;
+// gpio_irq_enable(dev->params.irq_out);
+    // st95_spi_reset(dev);
+    
+    // puts("wait ready");
+     // _st95_wait_ready_data();
+// puts("spi receive");
+    // _st95_spi_receive(dev, st95_rxbuf, sizeof(st95_rxbuf), true);
+        
+    // puts("ISO");
     
     if(_st95_select_iso14443a(dev, NULL, 1) == ST95_ERROR) {
         return ST95_ERROR;
@@ -823,6 +849,10 @@ int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_
         return ST95_OK;       
     }
 #endif    
+
+  if(_st95_select_field_off(dev) == ST95_ERROR) {
+        return ST95_ERROR;
+    }
     
     return ST95_ERROR;
 }

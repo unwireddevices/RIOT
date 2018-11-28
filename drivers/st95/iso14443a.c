@@ -19,6 +19,8 @@
 #include "st95.h"
 #include "iso14443a.h"
 
+uint8_t _mifare_auth(const st95_t * dev, uint8_t block);
+
 /**
  * @brief This function calculate and check BCC
  * 
@@ -189,11 +191,14 @@ uint8_t _iso14443a_type_tag(uint8_t sak)
 uint8_t _cfg_fdt(const st95_t * dev, uint8_t value)
 {
     uint8_t params[4] = { 0x00 };
-    uint8_t fwi = 4; /*Default value*/
-    params[0] = 0x00 | (ST95_TX_RATE_14443A << 6) | (ST95_RX_RATE_14443A << 4);
+    uint8_t fwi = 5; /*Default value*/
+    params[0] = 0x00 ;//| (ST95_TX_RATE_14443A << 6) | (ST95_RX_RATE_14443A << 4);
     params[1] = fwi;
     params[2] = value;
     params[3] = 0x00;
+    
+    uint32_t fdt = (uint32_t)(604*(1 << fwi));
+    printf("FDT = %ld[usec]\n", fdt);
 
     if(_st95_select_iso14443a(dev, params, 4) == ST95_ERROR) {
         return ST95_ERROR;
@@ -202,7 +207,7 @@ uint8_t _cfg_fdt(const st95_t * dev, uint8_t value)
     // #define PCD_TYPEA_TIMERW                    0x5A
     // #define TIMER_WINDOW_UPDATE_CONFIRM_CMD	    0x04
     
-    uint8_t params_reg[2] = { 0x5A, 0x04 };
+    uint8_t params_reg[2] = { 0x58, 0x04 };
     if(_st95_cmd_write_reg(dev, 4, 0x3A, 0x00, params_reg) == ST95_ERROR) {
         return ST95_ERROR;
     }
@@ -230,25 +235,41 @@ uint8_t _iso14443a_apdu(const st95_t * dev)
     if(_iso14443a_support_ats(sak)) {
         // TODO: _iso14443a_cfg_fdt_rats();
         // TODO: RATS cmd
-        puts("ATS support");
+        // puts("ATS support");
         
     }
     else {
-        puts("ATS NOT support");
+        // puts("ATS NOT support");
     }
     
     _cfg_fdt(dev, 1);
     
     type = _iso14443a_type_tag(sak);
     if(type) {
+        // _mifare_auth(dev, 0);
         return ST95_OK;
     }
-    
-    return ST95_ERROR;
+    else {
+        return ST95_ERROR;
+    }
 }
 
 
-
+uint8_t _mifare_auth(const st95_t * dev, uint8_t block)
+{
+    uint8_t data_rx[32];
+    uint8_t data_tmp[2] = {0x40, 0x20};
+    data_tmp[1] = block;
+    
+    uint8_t ctrl_byte = ISO14443A_NUM_SIGN_BIT_8 | ISO14443A_APPEND_CRC;
+    
+    if(_st95_cmd_send_receive(dev, data_tmp, 2, ctrl_byte, data_rx, 32) == ST95_OK) {
+        
+        return ST95_OK;
+    }
+    
+    return ST95_ERROR;   
+}
 
 
 

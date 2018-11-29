@@ -42,6 +42,7 @@ extern "C" {
 
 #include "byteorder.h"
 #include "periph/eeprom.h"
+
 #include "rtctimers-millis.h"
 #include "board.h"
 #include "checksum/fletcher16.h"
@@ -541,24 +542,6 @@ void convert_from_be_sam(void *ptr, size_t size) {
         default:
             return;
     }
-}
-
-/* determine EEPROM size to work seamlessly with CC and CB-A MCUs */
-void unwds_init(void) {
-    unwds_eeprom_layout.eeprom_size = cpu_status.eeprom.size;
-    
-    if (unwds_eeprom_layout.eeprom_size == 8192) {
-        unwds_eeprom_layout.config_storage_size = 256;
-        unwds_eeprom_layout.storage_blocks = 16;
-        unwds_eeprom_layout.min_clean_blocks = 4;    
-    } else {
-        unwds_eeprom_layout.config_storage_size = 128;
-        unwds_eeprom_layout.storage_blocks = 4;
-        unwds_eeprom_layout.min_clean_blocks = 1;  
-    }
-    
-    unwds_eeprom_layout.config_storage_addr = unwds_eeprom_layout.eeprom_size -
-                                              (unwds_eeprom_layout.storage_blocks*unwds_eeprom_layout.config_storage_size);
 }
 
 void blink_led(gpio_t led)

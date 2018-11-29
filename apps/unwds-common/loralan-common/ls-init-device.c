@@ -41,13 +41,13 @@ extern "C" {
 #include "eeprom.h"
 #include "shell.h"
 #include "utils.h"
-#include "ls-config.h"
 
 #include "sx127x.h"
 #include "net/lora.h"
 #include "periph/pm.h"
 #include "pm_layered.h"
 #include "periph/rtc.h"
+#include "periph/wdg.h"
 #include "random.h"
 #include "cpu.h"
 #include "xtimer.h"
@@ -55,8 +55,12 @@ extern "C" {
 #include "unwds-common.h"
 
 #include "ls-settings.h"
+#include "ls-config.h"
 #include "ls-init-device.h"
 #include "ls-mac.h"
+
+#define ENABLE_DEBUG    0
+#include "debug.h"
 
 static void init_common(shell_command_t *commands);
 static void init_config(shell_command_t *commands);
@@ -69,6 +73,9 @@ static uint64_t eui64 = 0;
 static uint64_t appid = 0;
 static uint8_t joinkey[16] = {};
 static uint32_t devnonce = 0;
+
+static rtctimers_millis_t iwdg_timer;
+static rtctimers_millis_t delayed_setup_timer;
 
 /**
  * Data rates table.
@@ -441,6 +448,176 @@ static int init_update_cmd(int argc, char **argv) {
     NVIC_SystemReset();
     
     return 0;
+}
+
+static  uint32_t            connect_btn_last_press = 0;
+static  bool                board_is_off = false;
+static  rtctimers_millis_t  sys_on_off;
+
+static void system_on_off (void *arg) {
+    if (arg) {
+        gpio_clear(LED_RED);
+        gpio_clear(LED_GREEN);
+        /* stop all activity */
+        rtctimers_millis_remove_all();
+        /* restart watchdog timer */
+        rtctimers_millis_set(&iwdg_timer, 100);
+        pm_unblock(PM_SLEEP);
+        void (*board_sleep)(void) = arg;
+        board_sleep();
+        puts("*** SYSTEM HALTED BY USER ***");
+        pm_set(PM_SLEEP);
+    } else {
+        gpio_clear(LED_GREEN);
+        puts("*** REBOOTING SYSTEM ***");
+        pm_reboot();
+    }
+}
+
+static bool is_connect_button_pressed(void)
+{
+#if defined(UNWD_CONNECT_POL)
+    uint8_t state;
+    if (UNWD_CONNECT_POL) {
+        state = GPIO_IN_PD;
+    } else {
+        state = GPIO_IN_PU;
+    }
+    
+    if (!gpio_init(UNWD_CONNECT_BTN, state)) {
+        if (gpio_read(UNWD_CONNECT_BTN) == UNWD_CONNECT_POL) {
+            return true;
+        }
+    }
+#else
+    if (!gpio_init(UNWD_CONNECT_BTN, GPIO_IN_PU)) {
+        if (gpio_read(UNWD_CONNECT_BTN) == UNWD_CONNECT_POL) {
+            return true;
+        }
+    }
+#endif
+
+    return false;
+}
+
+static void connect_btn_pressed (void *arg) {
+    uint32_t ms_now = rtctimers_millis_now();
+    
+    /* debounce */
+    if ((connect_btn_last_press != 0) &&
+        (ms_now < connect_btn_last_press + 100) &&
+        (ms_now >= connect_btn_last_press)) {
+        return;
+    }
+    
+    /* button released */
+    if ((gpio_read(UNWD_CONNECT_BTN)) != UNWD_CONNECT_POL) {
+        if (((ms_now > connect_btn_last_press) && ((ms_now - connect_btn_last_press) > 1000)) || 
+            ((ms_now + (UINT32_MAX - connect_btn_last_press)) > 1000)) {
+            /* long press */
+            sys_on_off.callback = system_on_off;
+            
+            if (board_is_off) {
+                gpio_set(LED_GREEN);
+                sys_on_off.arg = NULL;
+                rtctimers_millis_set(&sys_on_off, 1000);
+            } else {            
+                board_is_off = true;
+                gpio_set(LED_RED);
+                sys_on_off.arg = arg;
+                rtctimers_millis_set(&sys_on_off, 1000);
+            }
+        } else {
+            /* short press */
+        }
+    } else {
+        /* button pressed */
+    }
+    
+    connect_btn_last_press = ms_now;
+}
+
+static void iwdg_reset (void *arg) {
+    (void)arg;
+    
+    wdg_reload();
+    rtctimers_millis_set(&iwdg_timer, 15000);
+    DEBUG("Watchdog reset\n");
+    return;
+}
+
+static void ls_delayed_setup (void *arg) {
+    if (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A) {
+        pm_unblock(PM_SLEEP);
+        puts("Low-power sleep mode active");
+    }
+    
+    gpio_init_int(UNWD_CONNECT_BTN, GPIO_IN_PU, GPIO_BOTH, connect_btn_pressed, arg);
+    
+    return;
+}
+
+void unwds_device_init(void *unwds_callback, void *unwds_init, void *unwds_join, void *unwds_sleep) {
+    if (!unwds_config_load()) {
+        puts("[!] Device is not configured yet. Type \"help\" to see list of possible configuration commands.");
+        puts("[!] Configure the node and type \"reboot\" to reboot and apply settings.");
+    }
+    else {
+        int (*board_init)(void) = unwds_init;
+        
+        if (board_init() != 0) {        
+            puts("ls: error initializing device");
+            gpio_set(LED_GREEN);
+            rtctimers_millis_sleep(5000);
+            NVIC_SystemReset();
+        }
+
+        unwds_set_enabled(unwds_get_node_settings().enabled_mods);
+        
+        //memcpy(ls.settings.ability, unwds_get_node_settings().enabled_mods, sizeof(ls.settings.ability));
+        //ls.settings.class = unwds_get_node_settings().nodeclass;
+
+        unwds_setup_nvram_config(UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
+
+        uint32_t bootmode = rtc_restore_backup(RTC_REGBACKUP_BOOTLOADER);
+        
+        if (is_connect_button_pressed() || (bootmode == UNWDS_BOOT_SAFE_MODE)) {
+            uint32_t bootmode = UNWDS_BOOT_NORMAL_MODE;
+            rtc_save_backup(bootmode, RTC_REGBACKUP_BOOTMODE);
+            
+            puts("[!] Entering Safe Mode, all modules disabled, class C.");
+            blink_led(LED_GREEN);
+            blink_led(LED_GREEN);
+            blink_led(LED_GREEN);
+        }
+        else {
+            unwds_init_modules(unwds_callback);
+            
+            /* reset IWDG timer every 15 seconds */
+            /* NB: unwired-module MUST NOT need more than 3 seconds to finish its job */
+            iwdg_timer.callback = iwdg_reset;
+            rtctimers_millis_set(&iwdg_timer, 15000);
+            
+            /* IWDG period is 18 seconds minimum, 28 seconds typical */
+            wdg_set_prescaler(6);
+            wdg_set_reload(0x0FFF);
+            wdg_reload();
+            wdg_enable();
+
+            /* delayed startup */
+            delayed_setup_timer.callback = ls_delayed_setup;
+            delayed_setup_timer.arg = unwds_sleep;
+            rtctimers_millis_set(&delayed_setup_timer, 15000);
+            
+            blink_led(LED_GREEN);
+        }
+
+        if (!unwds_get_node_settings().no_join) {
+            void (*board_join)(void) = unwds_join;
+            
+        	board_join();
+        }
+    }
 }
 
 #ifdef __cplusplus

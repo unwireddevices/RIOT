@@ -53,6 +53,8 @@ extern "C" {
 #include "xtimer.h"
 #include "rtctimers-millis.h"
 #include "unwds-common.h"
+#include "umdk-ids.h"
+#include "umdk-modules.h"
 
 #include "ls-settings.h"
 #include "ls-config.h"
@@ -466,7 +468,6 @@ static void system_on_off (void *arg) {
         void (*board_sleep)(void) = arg;
         board_sleep();
         puts("*** SYSTEM HALTED BY USER ***");
-        pm_set(PM_SLEEP);
     } else {
         gpio_clear(LED_GREEN);
         puts("*** REBOOTING SYSTEM ***");
@@ -529,6 +530,29 @@ static void connect_btn_pressed (void *arg) {
             }
         } else {
             /* short press */
+            /* invoke send command for all modules enabled */
+            /* must not be executed inside IRQ */
+            /*
+            int i = 0;
+            uint32_t *enabled_mods = unwds_get_node_settings().enabled_mods;
+            while (modules[i].init_cb != NULL && modules[i].cmd_cb != NULL) {
+                bool enabled = (enabled_mods[modules[i].module_id / 32] & (1 << (modules[i].module_id % 32)));
+
+                if (!enabled) {
+                    i++;
+                    continue;
+                }
+                
+                int argc = 2;
+                char arg[UNWDS_MAX_MODULE_NAME];
+                char *argv[2] = { arg, "send\0" };
+                memcpy(arg, modules[i].name, UNWDS_MAX_MODULE_NAME);
+                DEBUG("Executing: %s %s\n", argv[0], argv[1]);
+                shell_call(argc, argv);
+
+                i++;
+            }
+            */
         }
     } else {
         /* button pressed */

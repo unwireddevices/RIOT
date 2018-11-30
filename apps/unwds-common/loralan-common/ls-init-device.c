@@ -492,7 +492,7 @@ static bool is_connect_button_pressed(void)
     }
 #else
     if (!gpio_init(UNWD_CONNECT_BTN, GPIO_IN_PU)) {
-        if (gpio_read(UNWD_CONNECT_BTN) == UNWD_CONNECT_POL) {
+        if (gpio_read(UNWD_CONNECT_BTN) == 0) {
             return true;
         }
     }
@@ -512,7 +512,11 @@ static void connect_btn_pressed (void *arg) {
     }
     
     /* button released */
+#if defined(UNWD_CONNECT_POL)
     if ((gpio_read(UNWD_CONNECT_BTN)) != UNWD_CONNECT_POL) {
+#else
+    if ((gpio_read(UNWD_CONNECT_BTN)) != 0) {
+#endif
         if (((ms_now > connect_btn_last_press) && ((ms_now - connect_btn_last_press) > 1000)) || 
             ((ms_now + (UINT32_MAX - connect_btn_last_press)) > 1000)) {
             /* long press */

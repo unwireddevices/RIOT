@@ -576,7 +576,9 @@ static void ls_delayed_setup (void *arg) {
         puts("Low-power sleep mode active");
     }
     
-    gpio_init_int(UNWD_CONNECT_BTN, GPIO_IN_PU, GPIO_BOTH, connect_btn_pressed, arg);
+    if (!gpio_init_int(UNWD_CONNECT_BTN, GPIO_IN_PU, GPIO_BOTH, connect_btn_pressed, arg)) {
+        puts("Safe/Connect button active");
+    }
     
     return;
 }

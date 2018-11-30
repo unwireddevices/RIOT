@@ -655,11 +655,18 @@ void init_normal(shell_command_t *commands)
     /* should always be 2 */
     main_thread_pid = thread_getpid();
     
-    sender_pid = thread_create(sender_stack, sizeof(sender_stack), THREAD_PRIORITY_MAIN - 2,
-                                   THREAD_CREATE_STACKTEST, sender_thread, &ls,  "LoRa sender thread");
-                                   
+    bool cfg_valid = unwds_config_load();
     print_config();
-    unwds_device_init(unwds_callback, unwds_init, unwds_join, unwds_sleep);
+    
+    if (!cfg_valid) {
+        puts("[!] Device is not configured yet. Type \"help\" to see list of possible configuration commands.");
+        puts("[!] Configure the node and type \"reboot\" to reboot and apply settings.");
+    } else {
+        sender_pid = thread_create(sender_stack, sizeof(sender_stack), THREAD_PRIORITY_MAIN - 2,
+                                   THREAD_CREATE_STACKTEST, sender_thread, &ls,  "LoRa sender thread");
+
+        unwds_device_init(unwds_callback, unwds_init, unwds_join, unwds_sleep);
+    }
     
     /* Add our commands to shell */
     int i = 0;

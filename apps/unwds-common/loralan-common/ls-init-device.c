@@ -584,65 +584,59 @@ static void ls_delayed_setup (void *arg) {
 }
 
 void unwds_device_init(void *unwds_callback, void *unwds_init, void *unwds_join, void *unwds_sleep) {
-    if (!unwds_config_load()) {
-        puts("[!] Device is not configured yet. Type \"help\" to see list of possible configuration commands.");
-        puts("[!] Configure the node and type \"reboot\" to reboot and apply settings.");
+    int (*board_init)(void) = unwds_init;
+    
+    if (board_init() != 0) {        
+        puts("ls: error initializing device");
+        gpio_set(LED_GREEN);
+        rtctimers_millis_sleep(5000);
+        NVIC_SystemReset();
+    }
+
+    unwds_set_enabled(unwds_get_node_settings().enabled_mods);
+    
+    //memcpy(ls.settings.ability, unwds_get_node_settings().enabled_mods, sizeof(ls.settings.ability));
+    //ls.settings.class = unwds_get_node_settings().nodeclass;
+
+    unwds_setup_nvram_config(UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
+
+    uint32_t bootmode = rtc_restore_backup(RTC_REGBACKUP_BOOTLOADER);
+    
+    if (is_connect_button_pressed() || (bootmode == UNWDS_BOOT_SAFE_MODE)) {
+        uint32_t bootmode = UNWDS_BOOT_NORMAL_MODE;
+        rtc_save_backup(bootmode, RTC_REGBACKUP_BOOTMODE);
+        
+        puts("[!] Entering Safe Mode, all modules disabled, class C.");
+        blink_led(LED_GREEN);
+        blink_led(LED_GREEN);
+        blink_led(LED_GREEN);
     }
     else {
-        int (*board_init)(void) = unwds_init;
+        unwds_init_modules(unwds_callback);
         
-        if (board_init() != 0) {        
-            puts("ls: error initializing device");
-            gpio_set(LED_GREEN);
-            rtctimers_millis_sleep(5000);
-            NVIC_SystemReset();
-        }
-
-        unwds_set_enabled(unwds_get_node_settings().enabled_mods);
+        /* reset IWDG timer every 15 seconds */
+        /* NB: unwired-module MUST NOT need more than 3 seconds to finish its job */
+        iwdg_timer.callback = iwdg_reset;
+        rtctimers_millis_set(&iwdg_timer, 15000);
         
-        //memcpy(ls.settings.ability, unwds_get_node_settings().enabled_mods, sizeof(ls.settings.ability));
-        //ls.settings.class = unwds_get_node_settings().nodeclass;
+        /* IWDG period is 18 seconds minimum, 28 seconds typical */
+        wdg_set_prescaler(6);
+        wdg_set_reload(0x0FFF);
+        wdg_reload();
+        wdg_enable();
 
-        unwds_setup_nvram_config(UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
-
-        uint32_t bootmode = rtc_restore_backup(RTC_REGBACKUP_BOOTLOADER);
+        /* delayed startup */
+        delayed_setup_timer.callback = ls_delayed_setup;
+        delayed_setup_timer.arg = unwds_sleep;
+        rtctimers_millis_set(&delayed_setup_timer, 15000);
         
-        if (is_connect_button_pressed() || (bootmode == UNWDS_BOOT_SAFE_MODE)) {
-            uint32_t bootmode = UNWDS_BOOT_NORMAL_MODE;
-            rtc_save_backup(bootmode, RTC_REGBACKUP_BOOTMODE);
-            
-            puts("[!] Entering Safe Mode, all modules disabled, class C.");
-            blink_led(LED_GREEN);
-            blink_led(LED_GREEN);
-            blink_led(LED_GREEN);
-        }
-        else {
-            unwds_init_modules(unwds_callback);
-            
-            /* reset IWDG timer every 15 seconds */
-            /* NB: unwired-module MUST NOT need more than 3 seconds to finish its job */
-            iwdg_timer.callback = iwdg_reset;
-            rtctimers_millis_set(&iwdg_timer, 15000);
-            
-            /* IWDG period is 18 seconds minimum, 28 seconds typical */
-            wdg_set_prescaler(6);
-            wdg_set_reload(0x0FFF);
-            wdg_reload();
-            wdg_enable();
+        blink_led(LED_GREEN);
+    }
 
-            /* delayed startup */
-            delayed_setup_timer.callback = ls_delayed_setup;
-            delayed_setup_timer.arg = unwds_sleep;
-            rtctimers_millis_set(&delayed_setup_timer, 15000);
-            
-            blink_led(LED_GREEN);
-        }
-
-        if (!unwds_get_node_settings().no_join) {
-            void (*board_join)(void) = unwds_join;
-            
-        	board_join();
-        }
+    if (!unwds_get_node_settings().no_join) {
+        void (*board_join)(void) = unwds_join;
+        
+        board_join();
     }
 }
 

@@ -689,8 +689,15 @@ static void unwds_sleep(void) {
 
 void init_normal(shell_command_t *commands)
 {
+    int cfg_valid = unwds_config_load();
     print_config();
-    unwds_device_init(unwds_callback, unwds_init, unwds_join, unwds_sleep);
+    
+    bool (!cfg_valid) {
+        puts("[!] Device is not configured yet. Type \"help\" to see list of possible configuration commands.");
+        puts("[!] Configure the node and type \"reboot\" to reboot and apply settings.");
+    } else {
+        unwds_device_init(unwds_callback, unwds_init, unwds_join, unwds_sleep);
+    }
 
     /* Add our commands to shell */
     int i = 0;

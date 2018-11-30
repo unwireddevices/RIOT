@@ -71,6 +71,7 @@ static inline void prep(void)
     mutex_lock(&lock);
     /* ADC clock is always HSI clock */
     if (!(RCC->CR & RCC_CR_HSION)) {
+        while (RCC->CR & RCC_CR_HSIRDY) {}
         hsi_enabled = false;
         RCC->CR |= RCC_CR_HSION;
         /* Wait for HSI to become ready */
@@ -82,7 +83,6 @@ static inline void prep(void)
 
 static inline void done(void)
 {   
-    ADC1->CR2 &= ~ADC_CR2_ADON;
     periph_clk_dis(APB2, RCC_APB2ENR_ADC1EN);
     
     if (!hsi_enabled) {
@@ -187,7 +187,7 @@ int adc_sample(adc_t line,  adc_res_t res)
     ADC1->SQR5 = adc_config[line].chan;
 
     /* wait for regular channel to be ready*/
-    while (!(ADC1->SR & ADC_SR_RCNR)) {}
+    while (ADC1->SR & ADC_SR_RCNR) {}
     /* start conversion and wait for results */
     ADC1->CR2 |= ADC_CR2_SWSTART;
     while (!(ADC1->SR & ADC_SR_EOC)) {}

@@ -28,7 +28,7 @@
 
 // #include "periph/adc.h" // riot's adc driver is too slow
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 #ifdef __cplusplus

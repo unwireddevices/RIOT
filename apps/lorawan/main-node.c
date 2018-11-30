@@ -172,9 +172,8 @@ static void *sender_thread(void *arg) {
                     unsigned int delay = random_uint32_range(10000 + (current_join_retries - 1)*30000, 30000 + (current_join_retries - 1)*30000);
                     printf("[LoRa] random delay %d s\n", delay/1000);
                     rtctimers_millis_set_msg(&send_retry_timer, delay, &msg_join, sender_pid);
-          
-                    break;
                 }
+                break;
             }
             default:
                 printf("[LoRa] join request: unknown response %d\n", res);

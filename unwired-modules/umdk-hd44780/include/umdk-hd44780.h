@@ -1,9 +1,22 @@
 /*
- * Copyright (C) 2017 Unwired Devices [info@unwds.com]
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * Copyright (C) 2016-2018 Unwired Devices LLC <info@unwds.com>
+
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software
+ * is furnished to do so, subject to the following conditions:
+
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  */
 
 /**
@@ -20,23 +33,40 @@
 
 #include "unwds-common.h"
 #include "periph/gpio.h"
-#include "periph/i2c.h"
 #include "hd44780.h"
+
+#if defined(HD44780_PCF8574)
+#include "periph/i2c.h"
+#endif
 
 /* umdk-16x2 board uses PCF8574 I2C GPIO expander */ 
 /* so below are not MCU GPIOs but PCF8574 GPIO numbers */
-#define UMDK_HD44780_PARAMS {    \
-    .cols   = 16,       \
-    .rows   = 2,        \
-    .rs     = 4,        \
-    .rw     = 5,        \
-    .enable = 6,        \
-    .data   = {0, 1, 2, 3,     \
-               HD44780_RW_OFF, HD44780_RW_OFF, HD44780_RW_OFF, HD44780_RW_OFF}, \
-    .backlight = 7,     \
-    .i2c_dev = 1,       \
-    .i2c_address = 0x20 \
-}
+#if defined(HD44780_PCF8574)
+    #define UMDK_HD44780_PARAMS {    \
+        .cols   = 16,       \
+        .rows   = 2,        \
+        .rs     = 4,        \
+        .rw     = 5,        \
+        .enable = 6,        \
+        .data   = {0, 1, 2, 3,     \
+                   HD44780_RW_OFF, HD44780_RW_OFF, HD44780_RW_OFF, HD44780_RW_OFF}, \
+        .backlight = 7,     \
+        .i2c_dev = 1,       \
+        .i2c_address = 0x20 \
+    }
+#else
+    #define UMDK_HD44780_PARAMS {    \
+        .cols   = 16,       \
+        .rows   = 2,        \
+        .rs     = 4,        \
+        .rw     = 5,        \
+        .enable = 6,        \
+        .data   = {0, 1, 2, 3,     \
+                   HD44780_RW_OFF, HD44780_RW_OFF, HD44780_RW_OFF, HD44780_RW_OFF}, \
+        .backlight = 7,     \
+    }
+#endif
+
 
 static const hd44780_params_t umdk_hd44780_params[] =
 {
@@ -50,7 +80,7 @@ typedef enum {
 	UMDK_HD44780_CMD_PRINT = 0,
 } umdk_hd44780_cmd_t;
 
-void umdk_hd44780_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback);
+void umdk_hd44780_init(uwnds_cb_t *event_callback);
 bool umdk_hd44780_cmd(module_data_t *data, module_data_t *reply);
 
 #endif /* UMDK_HD44780_H */

@@ -1,9 +1,22 @@
 /*
- * Copyright (C) 2016 Unwired Devices [info@unwds.com]
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * Copyright (C) 2016-2018 Unwired Devices LLC <info@unwds.com>
+
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software
+ * is furnished to do so, subject to the following conditions:
+
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  */
 
 /**
@@ -11,7 +24,7 @@
  * @ingroup     
  * @brief       
  * @{
- * @file		umdk-4btn.c
+ * @file        umdk-4btn.c
  * @brief       umdk-4btn module implementation
  * @author      Eugene Ponomarev
  */
@@ -37,6 +50,7 @@ extern "C" {
 
 #include "board.h"
 
+#include "umdk-ids.h"
 #include "unwds-common.h"
 #include "umdk-4btn.h"
 
@@ -62,19 +76,20 @@ static void *handler(void *arg) {
         int btn = msg.type;
 
         module_data_t data;
-        data.length = 3;
+        data.length = 4;
         data.data[0] = _UMDK_MID_;
-        data.data[1] = (btn & 0xFF) + 1;
-        data.data[2] = (btn >> 15);
+        data.data[1] = UMDK_4BTN_DATA;
+        data.data[2] = (btn & 0xFF) + 1;
+        data.data[3] = (btn >> 15);
 
         callback(&data);
     }
 
-	return NULL;
+    return NULL;
 }
 
 static void btn_pressed_int(void *arg) {
-	int btn_num = (int) arg;
+    int btn_num = (int) arg;
     
     gpio_irq_disable(buttons[btn_num]);
     
@@ -113,36 +128,33 @@ static void btn_pressed_int(void *arg) {
         printf("[umdk-" _UMDK_NAME_ "] Pressed: %d\n", btn_num + 1);
     }
 
-	msg_send_int(&msg, handler_pid);
+    msg_send_int(&msg, handler_pid);
     
     gpio_irq_enable(buttons[btn_num]);
 }
 
-void umdk_4btn_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
-	(void) non_gpio_pin_map;
+void umdk_4btn_init(uwnds_cb_t *event_callback) {
+    callback = event_callback;
 
-	callback = event_callback;
-
-	/* Initialize interrupts */
+    /* Initialize interrupts */
     int i = 0;
     for (i = 0; i < UMDK_4BTN_NUM_BUTTONS; i++) {
         gpio_init_int(buttons[i], GPIO_IN_PU, GPIO_BOTH, btn_pressed_int, (void *) i);
     }
 
-	/* Create handler thread */
-	char *stack = (char *) allocate_stack(UMDK_4BTN_STACK_SIZE);
-	if (!stack) {
-		puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Is too many modules enabled?");
-		return;
-	}
+    /* Create handler thread */
+    char *stack = (char *) allocate_stack(UMDK_4BTN_STACK_SIZE);
+    if (!stack) {
+        return;
+    }
 
-	handler_pid = thread_create(stack, UMDK_4BTN_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, handler, NULL, "4btn thread");
+    handler_pid = thread_create(stack, UMDK_4BTN_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, handler, NULL, "4btn thread");
 }
 
 bool umdk_4btn_cmd(module_data_t *data, module_data_t *reply) {
     (void)data;
     (void)reply;
-	return false;
+    return false;
 }
 
 #ifdef __cplusplus

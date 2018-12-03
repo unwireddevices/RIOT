@@ -1,11 +1,10 @@
-/*
- * Copyright (C) 2018 Freie Universität Berlin
+ /*
+ * Copyright (C) 2016-2018 Unwired Devices
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
  * details.
  */
-
 /**
  * @ingroup     drivers_lis2hh12
  * @{
@@ -13,7 +12,8 @@
  * @file
  * @brief       LIS2HH12 accelerometer driver implementation
  *
- * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
+ *@author      Alexander Ugorelov <alex_u@unwds.com>
+ *
  * @}
  */
 
@@ -55,8 +55,6 @@ int lis2hh12_init(lis2hh12_t *dev, const lis2hh12_params_t *params)
     dev->params = *params;
 
     uint8_t tmp;
-
-    puts("Acquire bus");
     
     i2c_acquire(DEV_I2C);
 
@@ -128,7 +126,7 @@ int lis2hh12_read_xyz(const lis2hh12_t *dev, lis2hh12_data_t *data)
     DEBUG("LIS2HH12: LIS2HH12_OUT_Z %d\n", z);
     z = _twos_complement(z);
 
-    int16_t scale = 0;
+    int32_t scale = 0;
     switch (dev->params.scale) {
         case LIS2HH12_SCALE_2G:
             scale = 61;
@@ -144,9 +142,9 @@ int lis2hh12_read_xyz(const lis2hh12_t *dev, lis2hh12_data_t *data)
             break;
     }
 
-    data->x_axis = x * scale / 1000;
-    data->y_axis = y * scale / 1000;
-    data->z_axis = z * scale / 1000;
+    data->x_axis = ((int32_t)x * scale);
+    data->y_axis = ((int32_t)y * scale);
+    data->z_axis = ((int32_t)z * scale);
 
     i2c_release(DEV_I2C);
 

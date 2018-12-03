@@ -31,14 +31,7 @@ extern "C" {
 int lm75_init(lm75_t *dev)
 {
     assert(dev != NULL);
-	
-	/* initialize underlying I2C bus */
-    // if (i2c_init_master(dev->params.i2c, I2C_SPEED_NORMAL) < 0) {
-    //     /* Release the bus for other threads. */
-    //     puts("[lm75] Error initializing I2C bus");
-    //     i2c_release(dev->params.i2c);
-    //     return -1;
-    // }
+    
     i2c_init(dev->params.i2c);
 
 
@@ -55,7 +48,17 @@ int lm75_init(lm75_t *dev)
     if (dev->params.a3) {
         dev->address += 4;
     }
-
+    
+    uint8_t temp;
+    
+    i2c_acquire(dev->params.i2c);
+    
+    if (i2c_read_regs(dev->params.i2c, LM75_ADDRESS, LM75_REG_ADDR_CONF, &temp, 1, 0) != 0) {
+        i2c_release(dev->params.i2c);
+        return -1;
+    }
+    
+    i2c_release(dev->params.i2c);
     return 0;
 }
 
@@ -117,6 +120,36 @@ void lm75_set_hysteresis_temp(lm75_t *dev, int8_t temp)
     
     i2c_acquire(dev->params.i2c);
     i2c_write_regs(dev->params.i2c, LM75_ADDRESS, LM75_REG_ADDR_THYST, (uint8_t *)&temp16, 2, 0);
+    i2c_release(dev->params.i2c);
+}
+
+void lm75_sleep(lm75_t *dev)
+{
+    assert(dev != NULL);
+    
+    uint8_t temp;
+    
+    i2c_acquire(dev->params.i2c);
+    
+    i2c_read_regs(dev->params.i2c, LM75_ADDRESS, LM75_REG_ADDR_CONF, &temp, 1, 0);
+    temp |= 1;
+    i2c_write_regs(dev->params.i2c, LM75_ADDRESS, LM75_REG_ADDR_CONF, &temp, 1, 0);
+    
+    i2c_release(dev->params.i2c);
+}
+
+void lm75_wake(lm75_t *dev)
+{
+    assert(dev != NULL);
+    
+    uint8_t temp;
+    
+    i2c_acquire(dev->params.i2c);
+    
+    i2c_read_regs(dev->params.i2c, LM75_ADDRESS, LM75_REG_ADDR_CONF, &temp, 1, 0);
+    temp &= ~1;
+    i2c_write_regs(dev->params.i2c, LM75_ADDRESS, LM75_REG_ADDR_CONF, &temp, 1, 0);
+    
     i2c_release(dev->params.i2c);
 }
 

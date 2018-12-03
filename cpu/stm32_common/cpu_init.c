@@ -49,10 +49,38 @@ void cpu_init(void)
     periph_clk_en(APB1, BIT_APB_PWREN);
     /* initialize the system clock as configured in the periph_conf.h */
     stmclk_init_sysclk();
+    
+#if defined(CPU_FAM_STM32L1)
+    /* switch all GPIOs to AIN mode to minimize power consumption */
+    uint8_t i;
+    GPIO_TypeDef *port;
+    
+    /* enable GPIO clock */
+    uint32_t ahb_gpio_clocks = RCC->AHBENR & 0xFF;
+    periph_clk_en(AHB, 0xFF);
+    
+    for (i = 0; i < 8; i++) {
+        port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
+        if (cpu_check_address((char *)port)) {
+            port->MODER = 0xffffffff;
+        } else {
+            break;
+        }
+    }
+    
+    /* restore GPIO clock */
+    uint32_t tmpreg = RCC->AHBENR;
+    tmpreg &= ~((uint32_t)0xFF);
+    tmpreg |= ahb_gpio_clocks;
+    periph_clk_en(AHB, tmpreg);
+#endif
+
 #ifdef MODULE_PERIPH_DMA
     /*  initialize DMA streams */
     dma_init();
 #endif
     /* trigger static peripheral initialization */
     periph_init();
+    
+    cpu_init_status();
 }

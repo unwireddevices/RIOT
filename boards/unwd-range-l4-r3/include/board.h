@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Unwired Devices
+ * Copyright (C) 2018 Unwired Devices LLC <info@unwds.com>
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
@@ -7,15 +7,17 @@
  */
 
 /**
- * @defgroup    boards_unwd-range-l1-r3
+ * @defgroup    boards_unwd-range-l4-r3
  * @ingroup     boards
- * @brief       Board specific files for the Unwired Range R170115 board.
+ * @brief       Board specific files for the Unwired Range L4 board.
  * @{
  *
  * @file
- * @brief       Board specific definitions for the Unwired Range R170115 board.
+ * @brief       Board specific definitions for the Unwired Range L4 board.
  *
  * @author      Mikhail Churikov
+ * @author      Oleg Artamonov <oleg@unwds.com>
+ * @author      Alexander Ugorelov <ugorelovan@yandex.ru>
  */
 
 #ifndef BOARD_H_
@@ -24,6 +26,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include "board_unwd.h"
 
 /**
  * @name SX1276 configuration
@@ -120,11 +124,6 @@ extern "C" {
 #define XTIMER_OVERHEAD                             (6)
 #define XTIMER_BACKOFF                              (3)
 /** @} */
-
-/**
- * @brief   Initialize board specific hardware, including clock, LEDs and std-IO
- */
-void board_init(void);
 
 #ifdef __cplusplus
 }

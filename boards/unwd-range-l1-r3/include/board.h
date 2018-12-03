@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Unwired Devices
+ * Copyright (C) 2017-2018 Unwired Devices LLC <info@unwds.com>
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
@@ -9,11 +9,11 @@
 /**
  * @defgroup    boards_unwd-range-l1-r3
  * @ingroup     boards
- * @brief       Board specific files for the Unwired Range R170115 board.
+ * @brief       Board specific files for the Unwired Range L1 R170115 board.
  * @{
  *
  * @file
- * @brief       Board specific definitions for the Unwired Range R170115 board.
+ * @brief       Board specific definitions for the Unwired Range L1 R170115 board.
  *
  * @author      Mikhail Churikov
  */
@@ -24,6 +24,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include "board_unwd.h"
 
 /**
  * @name SX1276 configuration
@@ -76,8 +78,8 @@ extern "C" {
 #define SX127X_SPI_NSS  GPIO_PIN(PORT_B, 12)
 
 /** "Connect" Button */
-#define UNWD_USE_CONNECT_BTN	1
 #define UNWD_CONNECT_BTN		UNWD_GPIO_1
+#define UNWD_CONNECT_POL        0
 
 /** LEDs */
 #define LED_GREEN   GPIO_PIN(PORT_B, 0)
@@ -120,11 +122,6 @@ extern "C" {
 #define XTIMER_OVERHEAD     (6)
 #define XTIMER_BACKOFF      (3)
 /** @} */
-
-/**
- * @brief   Initialize board specific hardware, including clock, LEDs and std-IO
- */
-void board_init(void);
 
 #ifdef __cplusplus
 }

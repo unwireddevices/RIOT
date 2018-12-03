@@ -43,6 +43,13 @@ extern "C" {
 #define CPU_FLASH_BASE                  FLASH_BASE
 /** @} */
 
+#define STM32F3_DEV_ID_CAT1     0x432 /* STM32F373xx/F378xx */
+#define STM32F3_DEV_ID_CAT2     0x422 /* STM32F302xB(C)/F303xB(C)/F358xx */
+#define STM32F3_DEV_ID_CAT3     0x439 /* STM32F301xx/F302x4(6/8)/F318xx */
+#define STM32F3_DEV_ID_CAT4     0x438 /* STM32F303x4(6/8)/F334xx/F328xx */
+#define STM32F3_DEV_ID_CAT5     0x446 /* STM32F302xD(E)/F303xD(E)/F398xx */
+#define ST_DEV_ID           ((DBGMCU->IDCODE) & DBGMCU_IDCODE_DEV_ID)
+
 
 #ifdef __cplusplus
 }

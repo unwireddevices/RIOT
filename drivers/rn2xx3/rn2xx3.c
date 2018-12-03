@@ -222,7 +222,7 @@ int rn2xx3_sys_factory_reset(rn2xx3_t *dev)
 int rn2xx3_sys_sleep(rn2xx3_t *dev)
 {
     size_t p = snprintf(dev->cmd_buf, sizeof(dev->cmd_buf) - 1,
-                        "sys sleep %lu", (unsigned long)dev->sleep);
+                        "sys sleep %" PRIu32 "", (unsigned long)dev->sleep);
     dev->cmd_buf[p] = 0;
     if (rn2xx3_write_cmd_no_wait(dev) == RN2XX3_ERR_INVALID_PARAM) {
         DEBUG("[rn2xx3] sleep: cannot put module in sleep mode\n");

@@ -1,9 +1,22 @@
 /*
- * Copyright (C) 2017 Unwired Devices [info@unwds.com]
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * Copyright (C) 2016-2018 Unwired Devices LLC <info@unwds.com>
+
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software
+ * is furnished to do so, subject to the following conditions:
+
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  */
 
 /**
@@ -37,6 +50,7 @@ extern "C" {
 #include "xtimer.h"
 #include "periph/gpio.h"
 
+#include "umdk-ids.h"
 #include "unwds-common.h"
 #include "utils.h"
 #include "include/umdk-irblaster.h"
@@ -209,6 +223,7 @@ static void set_pwm_value(umdk_irblaster_dev_t *dev, umdk_irblaster_ch_t *ch, ui
     }
 }
 
+#if 0
 static inline void umdk_irblaster_turn_off_pin(gpio_t pin)
 {
 	GPIO_TypeDef *port = (GPIO_TypeDef *)( pin & ~(0x0F));
@@ -220,7 +235,9 @@ static inline void umdk_irblaster_turn_off_pin(gpio_t pin)
 	port->MODER &= ~(0x3 << (2 * pin_num));
 	port->MODER |= (0x3 << (2 * pin_num));
 }
+#endif
 
+#if 0
 static inline void reply_error(module_data_t *reply) 
 {
 	reply->as_ack = true;
@@ -228,6 +245,7 @@ static inline void reply_error(module_data_t *reply)
 	reply->data[0] = _UMDK_MID_;
 	reply->data[1] = 1;
 }
+#endif
 
 static inline void reply_ok(module_data_t *reply)
 {
@@ -263,9 +281,8 @@ bool umdk_irblaster_cmd(module_data_t *cmd, module_data_t *reply)
 
 static uwnds_cb_t *callback;
 
-void umdk_irblaster_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
+void umdk_irblaster_init(uwnds_cb_t *event_callback)
 {
-    (void)non_gpio_pin_map;
 
     callback = event_callback;
     

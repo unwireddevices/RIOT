@@ -1,0 +1,217 @@
+From ed0e3398f2e1b608dd6fb174b751324514b65fb4 Mon Sep 17 00:00:00 2001
+From: Oleg Artamonov <oleg@unwds.com>
+Date: Sun, 7 Oct 2018 19:53:27 +0300
+Subject: [PATCH 3/3] Switch to RIOT AES implementation
+
+---
+ src/mac/LoRaMacCrypto.c  | 37 ++++++++++++++++++++++---------------
+ src/system/crypto/cmac.c | 24 ++++++++++++++----------
+ src/system/crypto/cmac.h |  5 +++--
+ 3 files changed, 39 insertions(+), 27 deletions(-)
+
+diff --git a/src/mac/LoRaMacCrypto.c b/src/mac/LoRaMacCrypto.c
+index c6837c2..2ec35d8 100644
+--- a/src/mac/LoRaMacCrypto.c
++++ b/src/mac/LoRaMacCrypto.c
+@@ -29,8 +29,6 @@
+  * \author    Daniel Jaeckle ( STACKFORCE )
+  */
+ #include "boards/utilities.h"
+-
+-#include "aes.h"
+ #include "cmac.h"
+ 
+ #include "LoRaMacCrypto.h"
+@@ -67,7 +65,7 @@ static uint8_t sBlock[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+ /*!
+  * AES computation context variable
+  */
+-static aes_context AesContext;
++static cipher_context_t AesContext;
+ 
+ /*!
+  * CMAC computation context variable
+@@ -120,8 +118,9 @@ void LoRaMacPayloadEncrypt( const uint8_t *buffer, uint16_t size, const uint8_t
+     uint8_t bufferIndex = 0;
+     uint16_t ctr = 1;
+ 
+-    memset1( AesContext.ksch, '\0', 240 );
+-    aes_set_key( key, 16, &AesContext );
++    //memset1( AesContext.ksch, '\0', 240 );
++    //aes_set_key( key, 16, &AesContext );
++    aes_init(&AesContext, key, 16);
+ 
+     aBlock[5] = dir;
+ 
+@@ -139,7 +138,8 @@ void LoRaMacPayloadEncrypt( const uint8_t *buffer, uint16_t size, const uint8_t
+     {
+         aBlock[15] = ( ( ctr ) & 0xFF );
+         ctr++;
+-        aes_encrypt( aBlock, sBlock, &AesContext );
++        //aes_encrypt( aBlock, sBlock, &AesContext );
++        aes_encrypt(&AesContext, aBlock, sBlock);
+         for( i = 0; i < 16; i++ )
+         {
+             encBuffer[bufferIndex + i] = buffer[bufferIndex + i] ^ sBlock[i];
+@@ -151,7 +151,8 @@ void LoRaMacPayloadEncrypt( const uint8_t *buffer, uint16_t size, const uint8_t
+     if( size > 0 )
+     {
+         aBlock[15] = ( ( ctr ) & 0xFF );
+-        aes_encrypt( aBlock, sBlock, &AesContext );
++        //aes_encrypt( aBlock, sBlock, &AesContext );
++        aes_encrypt(&AesContext, aBlock, sBlock);
+         for( i = 0; i < size; i++ )
+         {
+             encBuffer[bufferIndex + i] = buffer[bufferIndex + i] ^ sBlock[i];
+@@ -179,13 +180,16 @@ void LoRaMacJoinComputeMic( const uint8_t *buffer, uint16_t size, const uint8_t
+ 
+ void LoRaMacJoinDecrypt( const uint8_t *buffer, uint16_t size, const uint8_t *key, uint8_t *decBuffer )
+ {
+-    memset1( AesContext.ksch, '\0', 240 );
+-    aes_set_key( key, 16, &AesContext );
+-    aes_encrypt( buffer, decBuffer, &AesContext );
++    //memset1( AesContext.ksch, '\0', 240 );
++    //aes_set_key( key, 16, &AesContext );
++    aes_init(&AesContext, key, 16);
++    //aes_encrypt( buffer, decBuffer, &AesContext );    
++    aes_encrypt(&AesContext, buffer, decBuffer);
+     // Check if optional CFList is included
+     if( size >= 16 )
+     {
+-        aes_encrypt( buffer + 16, decBuffer + 16, &AesContext );
++        //aes_encrypt( buffer + 16, decBuffer + 16, &AesContext );
++        aes_encrypt(&AesContext, buffer + 16, decBuffer + 16);
+     }
+ }
+ 
+@@ -194,18 +198,21 @@ void LoRaMacJoinComputeSKeys( const uint8_t *key, const uint8_t *appNonce, uint1
+     uint8_t nonce[16];
+     uint8_t *pDevNonce = ( uint8_t * )&devNonce;
+     
+-    memset1( AesContext.ksch, '\0', 240 );
+-    aes_set_key( key, 16, &AesContext );
++    //memset1( AesContext.ksch, '\0', 240 );
++    //aes_set_key( key, 16, &AesContext );
++    aes_init(&AesContext, key, 16);
+ 
+     memset1( nonce, 0, sizeof( nonce ) );
+     nonce[0] = 0x01;
+     memcpy1( nonce + 1, appNonce, 6 );
+     memcpy1( nonce + 7, pDevNonce, 2 );
+-    aes_encrypt( nonce, nwkSKey, &AesContext );
++    //aes_encrypt( nonce, nwkSKey, &AesContext );
++    aes_encrypt(&AesContext, nonce, nwkSKey);
+ 
+     memset1( nonce, 0, sizeof( nonce ) );
+     nonce[0] = 0x02;
+     memcpy1( nonce + 1, appNonce, 6 );
+     memcpy1( nonce + 7, pDevNonce, 2 );
+-    aes_encrypt( nonce, appSKey, &AesContext );
++    //aes_encrypt( nonce, appSKey, &AesContext );
++    aes_encrypt(&AesContext, nonce, appSKey);
+ }
+diff --git a/src/system/crypto/cmac.c b/src/system/crypto/cmac.c
+index c7a52cf..6e06bea 100644
+--- a/src/system/crypto/cmac.c
++++ b/src/system/crypto/cmac.c
+@@ -35,9 +35,8 @@ DEALINGS WITH THE SOFTWARE
+ //#include <sys/param.h>
+ //#include <sys/systm.h> 
+ #include <stdint.h>
+-#include "aes.h"
+ #include "cmac.h"
+-#include "boards/utilities.h"
++#include "boards/utilities.h"
+ 
+ #define LSHIFT(v, r) do {                                       \
+   int32_t i;                                                  \
+@@ -59,19 +58,20 @@ void AES_CMAC_Init(AES_CMAC_CTX *ctx)
+ {
+             memset1(ctx->X, 0, sizeof ctx->X);
+             ctx->M_n = 0;
+-        memset1(ctx->rijndael.ksch, '\0', 240);
++        //memset1(ctx->rijndael.ksch, '\0', 240);
+ }
+     
+ void AES_CMAC_SetKey(AES_CMAC_CTX *ctx, const uint8_t key[AES_CMAC_KEY_LENGTH])
+ {
+            //rijndael_set_key_enc_only(&ctx->rijndael, key, 128);
+-       aes_set_key( key, AES_CMAC_KEY_LENGTH, &ctx->rijndael);
++       // aes_set_key( key, AES_CMAC_KEY_LENGTH, &ctx->rijndael);
++       aes_init(&ctx->rijndael, key, AES_CMAC_KEY_LENGTH);
+ }
+     
+ void AES_CMAC_Update(AES_CMAC_CTX *ctx, const uint8_t *data, uint32_t len)
+ {
+             uint32_t mlen;
+-        uint8_t in[16];
++            uint8_t in[16];
+     
+             if (ctx->M_n > 0) {
+                   mlen = MIN(16 - ctx->M_n, len);
+@@ -81,7 +81,8 @@ void AES_CMAC_Update(AES_CMAC_CTX *ctx, const uint8_t *data, uint32_t len)
+                             return;
+                    XOR(ctx->M_last, ctx->X);
+                     //rijndael_encrypt(&ctx->rijndael, ctx->X, ctx->X);
+-            aes_encrypt( ctx->X, ctx->X, &ctx->rijndael);
++                    aes_encrypt(&ctx->rijndael, ctx->X, ctx->X);
++                    // aes_encrypt( ctx->X, ctx->X, &ctx->rijndael);
+                     data += mlen;
+                     len -= mlen;
+             }
+@@ -91,7 +92,8 @@ void AES_CMAC_Update(AES_CMAC_CTX *ctx, const uint8_t *data, uint32_t len)
+                     //rijndael_encrypt(&ctx->rijndael, ctx->X, ctx->X);
+ 
+                     memcpy1(in, &ctx->X[0], 16); //Bestela ez du ondo iten
+-            aes_encrypt( in, in, &ctx->rijndael);
++                    aes_encrypt(&ctx->rijndael, in, in);
++                    // aes_encrypt( in, in, &ctx->rijndael);
+                     memcpy1(&ctx->X[0], in, 16);
+ 
+                     data += 16;
+@@ -111,7 +113,8 @@ void AES_CMAC_Final(uint8_t digest[AES_CMAC_DIGEST_LENGTH], AES_CMAC_CTX *ctx)
+ 
+             //rijndael_encrypt(&ctx->rijndael, K, K);
+ 
+-            aes_encrypt( K, K, &ctx->rijndael);
++            //aes_encrypt( K, K, &ctx->rijndael);
++            aes_encrypt(&ctx->rijndael, K, K);
+ 
+             if (K[0] & 0x80) {
+                     LSHIFT(K, K);
+@@ -145,8 +148,9 @@ void AES_CMAC_Final(uint8_t digest[AES_CMAC_DIGEST_LENGTH], AES_CMAC_CTX *ctx)
+ 
+            //rijndael_encrypt(&ctx->rijndael, ctx->X, digest);
+ 
+-       memcpy1(in, &ctx->X[0], 16); //Bestela ez du ondo iten
+-       aes_encrypt(in, digest, &ctx->rijndael);
++           memcpy1(in, &ctx->X[0], 16); //Bestela ez du ondo iten
++           aes_encrypt(&ctx->rijndael, in, digest);
++           //aes_encrypt(in, digest, &ctx->rijndael);
+            memset1(K, 0, sizeof K);
+ 
+ }
+diff --git a/src/system/crypto/cmac.h b/src/system/crypto/cmac.h
+index c12e970..7f14e0d 100644
+--- a/src/system/crypto/cmac.h
++++ b/src/system/crypto/cmac.h
+@@ -36,13 +36,14 @@ DEALINGS WITH THE SOFTWARE
+ #ifndef _CMAC_H_
+ #define _CMAC_H_
+ 
+-#include "aes.h" 
++#include "crypto/aes.h"
++#include "crypto/ciphers.h"
+   
+ #define AES_CMAC_KEY_LENGTH     16
+ #define AES_CMAC_DIGEST_LENGTH  16
+  
+ typedef struct _AES_CMAC_CTX {
+-            aes_context    rijndael;
++            cipher_context_t    rijndael;
+             uint8_t        X[16];
+             uint8_t        M_last[16];
+             uint32_t       M_n;
+-- 
+2.17.1
+

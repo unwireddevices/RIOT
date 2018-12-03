@@ -213,7 +213,7 @@ index 7899ac2..8df8f9e 100644
   *          \ref LORAMAC_STATUS_REGION_NOT_SUPPORTED.
   */
 -LoRaMacStatus_t LoRaMacInitialization( LoRaMacPrimitives_t *primitives, LoRaMacCallback_t *callbacks, LoRaMacRegion_t region );
-+LoRaMacStatus_t LoRaMacInitialization( RadioEvents_t *RadioEvents, LoRaMacPrimitives_t *primitives, LoRaMacCallback_t *callbacks, LoRaMacRegion_t region );
++LoRaMacStatus_t LoRaMacInitialization( RadioEvents_t *radio_events, LoRaMacPrimitives_t *primitives, LoRaMacCallback_t *callbacks, LoRaMacRegion_t region );
  
  /*!
   * \brief   Queries the LoRaMAC if it is possible to send the next frame with

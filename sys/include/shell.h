@@ -74,6 +74,18 @@ typedef struct shell_command_t {
  */
 void shell_run(const shell_command_t *commands, char *line_buf, int len) NORETURN;
 
+/**
+ * @brief           Call a command-line tool.
+ *
+ * @param           argc    Number if string in argv. Must be greater or equal to 1.
+ * @param           argv    Array of pointers to string. argv[0] is the name of
+ *                          the command.
+ *
+ * @return          -1 if the command was not found or if argc < 1.
+ * @return          If the command is executed, it's exit code.
+ */
+int shell_call(int argc, char **argv);
+
 #ifdef __cplusplus
 }
 #endif

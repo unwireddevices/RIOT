@@ -98,7 +98,7 @@ static inline gpt_reg_t *dev(tim_t tim)
 
 int timer_init(tim_t tim, unsigned long freq, timer_cb_t cb, void *arg)
 {
-    DEBUG("timer_init(%u, %lu)\n", tim, freq);
+    DEBUG("timer_init(%u, %" PRIu32 ")\n", tim, freq);
     /* make sure given timer is valid */
     if (tim >= TIMER_NUMOF) {
         return -1;

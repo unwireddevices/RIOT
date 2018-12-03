@@ -26,15 +26,13 @@
 #include "sx127x_internal.h"
 #include "sx127x_netdev.h"
 
-#include "semtech-loramac/board.h"
-
 #include "radio/radio.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 #if !defined(US_PER_MS)
-#define US_PER_MS 1000UL
+#define US_PER_MS 1UL
 #endif
 
 extern sx127x_t sx127x;
@@ -133,7 +131,7 @@ void SX127XSetTxConfig(RadioModems_t modem, int8_t power, uint32_t fdev,
     sx127x_set_tx_power(&sx127x, power);
     sx127x_set_preamble_length(&sx127x, preambleLen);
     sx127x_set_rx_single(&sx127x, false);
-    sx127x_set_tx_timeout(&sx127x, timeout * US_PER_MS); /* base unit us, LoRaMAC ms */
+    sx127x_set_tx_timeout(&sx127x, timeout); /* base unit us, LoRaMAC ms */
 }
 
 uint32_t SX127XGetTimeOnAir(RadioModems_t modem, uint8_t pktLen)
@@ -164,7 +162,7 @@ void SX127XSetStby(void)
 
 void SX127XSetRx(uint32_t timeout)
 {
-    sx127x_set_rx_timeout(&sx127x, timeout * US_PER_MS);
+    sx127x_set_rx_timeout(&sx127x, timeout);
     sx127x_set_rx(&sx127x);
 }
 
@@ -238,6 +236,22 @@ uint32_t SX127XGetWakeupTime(void)
     return 1;
 }
 
+void SX127XIrqProcess(void)
+{
+    return;
+}
+void SX127XRxBoosted(uint32_t timeout)
+{
+    (void) timeout;
+    return;
+}
+void SX127XSetRxDutyCycle(uint32_t rx_time, uint32_t sleep_time)
+{
+    (void) rx_time;
+    (void) sleep_time;
+    return;
+}
+
 /**
  * LoRa function callbacks
  */
@@ -267,7 +281,7 @@ const struct Radio_s Radio =
     SX127XSetMaxPayloadLength,
     SX127XSetPublicNetwork,
     SX127XGetWakeupTime,
-    NULL, /* SX126x only */
-    NULL, /* SX126x only */
-    NULL, /* SX126x only */
+    SX127XIrqProcess,       /* SX126x only */
+    SX127XRxBoosted,        /* SX126x only */
+    SX127XSetRxDutyCycle    /* SX126x only */
 };

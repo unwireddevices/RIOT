@@ -1,9 +1,22 @@
 /*
- * Copyright (C) 2016 Unwired Devices [info@unwds.com]
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * Copyright (C) 2016-2018 Unwired Devices LLC <info@unwds.com>
+
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software
+ * is furnished to do so, subject to the following conditions:
+
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  */
 
 /**
@@ -32,132 +45,233 @@ extern "C" {
 #include <stdbool.h>
 #include <string.h>
 
-#include "periph/gpio.h"
 #include "mt3333.h"
 #include "board.h"
 
+#include "umdk-ids.h"
 #include "unwds-common.h"
 #include "umdk-gps.h"
 
 #include "thread.h"
+#include "rtctimers-millis.h"
+
+#define ENABLE_DEBUG    (0)
+#include "debug.h"
 
 static uwnds_cb_t *callback;
 
-static bool has_data;
 static mt3333_gps_data_t last_data;
-
 static mt3333_t gps;
 
-static void make_reply(module_data_t *reply) {
-    printf("[umdk-" _UMDK_NAME_ "]  {\"has_data\":true,\"lat\":\"%s\",\"lon\":\"%s\",\"n\":%s,\"e\":%s,\"date\":\"%s\",\"time\":\"%s\"}\n",
-            last_data.lat, last_data.lon,
-            (last_data.n) ? "true": "false",
-            (last_data.e) ? "true": "false",
-            last_data.date,
-            last_data.time);
+static kernel_pid_t timer_pid;
+static msg_t timer_msg = {};
+static rtctimers_millis_t timer;
 
-    char *num;
-    /* latitude is ggmm.mmmm, max is 90600 -> 14 bits */
-    num = strtok(last_data.lat, ".");
-    int32_t lat = atoi(num);
-    lat = lat << 8;
+static struct {
+	uint8_t publish_period_min;
+} gps_config;
+
+static bool is_polled = false;
+
+static void prepare_result(module_data_t *reply) {
+    char lat[10], lon[10], dir[10];
     
-    num = strtok(NULL, "");
-    /* reduce precision to 2 digits to fit in a byte */
-    if (strlen(num) > 2) {
-        if (num[2] >= '5') {
-            num[1] += 1;
+    int_to_float_str(lat, last_data.lat, 6);
+    int_to_float_str(lon, last_data.lon, 6);
+    int_to_float_str(dir, last_data.direction, 3);
+    
+    printf("[umdk-" _UMDK_NAME_ "] valid: %s, lat: %s, lon: %s, speed: %d mm/s, direction: %s degrees, time: %s\n",
+            (last_data.valid)? "Y":"N", lat, lon, last_data.velocity, dir, ctime(&last_data.time));
+            
+    if (reply) {
+        reply->data[0] = _UMDK_MID_;
+        reply->data[1] = UMDK_GPS_DATA;
+        reply->length = 2;
+        
+        int latitude = last_data.lat;
+        int longitude = last_data.lon;
+        uint16_t velocity = last_data.velocity;
+        uint16_t direction = last_data.direction/10;
+        uint8_t valid = 0;
+        if (last_data.valid) {
+            valid = 1;
         }
-        num[2] = 0;
+        
+        convert_to_be_sam((void *)&latitude, sizeof(latitude));
+        convert_to_be_sam((void *)&longitude, sizeof(longitude));
+        convert_to_be_sam((void *)&velocity, sizeof(velocity));
+        convert_to_be_sam((void *)&direction, sizeof(direction));
+
+        reply->data[reply->length] = valid;
+        reply->length++;
+        
+        memcpy(&reply->data[reply->length], (void *)&latitude, sizeof(latitude));
+        reply->length += sizeof(latitude);
+        
+        memcpy(&reply->data[reply->length], (void *)&longitude, sizeof(longitude));
+        reply->length += sizeof(longitude);
+        
+        memcpy(&reply->data[reply->length], (void *)&velocity, sizeof(velocity));
+        reply->length += sizeof(velocity);
+        
+        memcpy(&reply->data[reply->length], (void *)&direction, sizeof(direction));
+        reply->length += sizeof(direction);
+
+        /*
+        time_t time = last_data.time;
+        convert_to_be_sam((void *)&time, sizeof(time));
+        memcpy(reply->data[reply->length], (void *)&time, sizeof(time));
+        reply->length += sizeof(time);
+        */
+        
+        callback(reply);
     }
-    lat |= atoi(num);
-    
-    /* longitude is gggmm.mmmm, max is 180600 -> 15 bits */
-    num = strtok(last_data.lon, ".");
-    int32_t lon = atoi(num);
-    lon = lon << 8;
-    
-    num = strtok(NULL, "");
-    /* reduce precision to 2 digits to fit in a byte */
-    if (strlen(num) > 2) {
-        if (num[2] >= '5') {
-            num[1] += 1;
-        }
-        num[2] = 0;
-    }
-    lon |= atoi(num);
-
-    /* Negative latitude and longitude */
-    uint8_t lat_neg = (last_data.n) ? 0 : 1;
-    uint8_t lon_neg = (last_data.e) ? 0 : 1;
-
-    uint8_t coords[6] = {}; /* 6*8 bits = 48 */
-
-    /* Pad 2 int32_t to 6 8uint_t, skipping the last byte (x >> 24) */
-    coords[0] = lat;
-    coords[1] = lat >> 8;
-    coords[2] = lat >> 16;
-
-    coords[3] = lon;
-    coords[4] = lon >> 8;
-    coords[5] = lon >> 16;
-
-    reply->data[0] = _UMDK_MID_;
-    reply->data[1] = UMDK_GPS_REPLY_GPS_DATA | (lat_neg << 5) | (lon_neg << 6); /* Bits 5 and 6 is markers of lat and lon sign */
-    memcpy(reply->data + 2, coords, sizeof(coords)); /* Copy 48 bit GPS data */
-
-    reply->length = 1 + 1 + sizeof(coords); /* [module ID] + [reply byte] + [48 bit GPS data] */
 }
 
 void gps_cb(mt3333_gps_data_t data)
 {
-    has_data = true;
     last_data = data;
 }
 
-void umdk_gps_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
+static void *timer_thread(void *arg) {
+    (void)arg;
+    
+    msg_t msg;
+    
+    puts("[umdk-" _UMDK_NAME_ "] Periodic publisher thread started");
+
+    while (1) {
+        msg_receive(&msg);
+
+        module_data_t data = {};
+        data.as_ack = is_polled;
+        is_polled = false;
+
+        prepare_result(&data);
+
+        /* Notify the application */
+        callback(&data);
+        /* Restart after delay */
+        rtctimers_millis_set_msg(&timer, 60000 * gps_config.publish_period_min, &timer_msg, timer_pid);
+    }
+
+    return NULL;
+}
+
+static void reset_config(void) {
+	gps_config.publish_period_min = UMDK_GPS_PUBLISH_PERIOD_MIN;
+}
+
+static void init_config(void) {
+	reset_config();
+
+	if (!unwds_read_nvram_config(_UMDK_MID_, (uint8_t *) &gps_config, sizeof(gps_config))) {
+        reset_config();
+    }
+}
+
+static inline void save_config(void) {
+	unwds_write_nvram_config(_UMDK_MID_, (uint8_t *) &gps_config, sizeof(gps_config));
+}
+
+static void set_period (int period) {
+    rtctimers_millis_remove(&timer);
+    gps_config.publish_period_min = period;
+	save_config();
+
+	/* Don't restart timer if new period is zero */
+	if (gps_config.publish_period_min) {
+		rtctimers_millis_set_msg(&timer, 60000 * gps_config.publish_period_min, &timer_msg, timer_pid);
+		printf("[umdk-" _UMDK_NAME_ "] Period set to %d minute (s)\n", gps_config.publish_period_min);
+	} else {
+		puts("[umdk-" _UMDK_NAME_ "] Timer stopped");
+	}
+}
+
+int umdk_gps_shell_cmd(int argc, char **argv) {
+    if (argc == 1) {
+        puts (_UMDK_NAME_ " get - get results now");
+        puts (_UMDK_NAME_ " send - get and send results now");
+        puts (_UMDK_NAME_ " period <N> - set period to N minutes");
+        return 0;
+    }
+    
+    char *cmd = argv[1];
+	
+    if (strcmp(cmd, "get") == 0) {
+        prepare_result(NULL);
+    }
+    
+    if (strcmp(cmd, "send") == 0) {
+		is_polled = false;
+        msg_send(&timer_msg, timer_pid);
+    }
+    
+    if (strcmp(cmd, "period") == 0) {
+        char *val = argv[2];
+        set_period(atoi(val));
+    }
+    
+    return 1;
+}
+
+void umdk_gps_init(uwnds_cb_t *event_callback)
 {
-    (void) non_gpio_pin_map;
 
     callback = event_callback;
     
+    init_config();
+	printf("[umdk-" _UMDK_NAME_ "] Publish period: %d min\n", gps_config.publish_period_min);
+    
     /* Dynamically allocate MT3333 reading stack */
-	gps.reader_stack = (char *) allocate_stack(UMDK_GPS_READER_STACK_SIZE);
+	gps.reader_stack = (char *) allocate_stack(MT3333_READER_THREAD_STACK_SIZE_BYTES);
 	if (!gps.reader_stack) {
-		puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Are too many modules enabled?");
 		return;
 	}
 
     mt3333_param_t gps_params;
     gps_params.gps_cb = gps_cb;
     gps_params.uart = UMDK_GPS_UART;
+    gps_params.baudrate = MT3333_UART_BAUDRATE_DEFAULT;
 
-    mt3333_init(&gps, &gps_params);
+    if (mt3333_init(&gps, &gps_params) < 0) {
+        puts("[umdk-" _UMDK_NAME_ "] unable to initialize GPS module");
+        return;
+    }
+    
+    char *stack = (char *) allocate_stack(UMDK_GPS_READER_STACK_SIZE);
+	if (!stack) {
+		return;
+	}
+    
+    timer_pid = thread_create(stack, UMDK_GPS_READER_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "gps thread");
+
+    /* Start publishing timer */
+	rtctimers_millis_set_msg(&timer, 60000 * gps_config.publish_period_min, &timer_msg, timer_pid);
+    
+    unwds_add_shell_command(_UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_gps_shell_cmd);
 }
 
 bool umdk_gps_cmd(module_data_t *data, module_data_t *reply)
 {
 	umdk_gps_cmd_t cmd = data->data[0];
 
-	reply->data[0] = _UMDK_MID_;
-
 	if (data->length > 0) {
 		switch (cmd) {
 		case UMDK_GPS_CMD_POLL:
-			if (has_data) {
-				make_reply(reply);
-			} else {
-				reply->data[1] = UMDK_GPS_REPLY_NO_DATA;
-				reply->length = 2; /* Module ID + reply byte */
-			}
+            is_polled = true;
 
-			return true;
+            /* Send signal to publisher thread */
+            msg_send(&timer_msg, timer_pid);
+
+            return false; /* Don't reply */
 
 		default:
 			break;
 		}
 	}
 
+    reply->data[0] = _UMDK_MID_;
 	reply->data[1] = UMDK_GPS_REPLY_ERROR; /* Unknown command */
     reply->length = 2;
 

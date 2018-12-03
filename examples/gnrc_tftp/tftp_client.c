@@ -58,7 +58,7 @@ static bool _tftp_client_start_cb(tftp_action_t action, tftp_mode_t mode,
     }
 
     /* display the action being performed */
-    printf("tftp_client: %s %s %s:%lu\n", str_mode, str_action, file_name, (unsigned long)*len);
+    printf("tftp_client: %s %s %s:%" PRIu32 "\n", str_mode, str_action, file_name, (unsigned long)*len);
 
     /* return the length of the text, if this is an read action */
     if (action == TFTP_READ) {

@@ -78,7 +78,7 @@ int timer_set_freq(tim_t tim, unsigned long freq)
     /* enable peripheral clock */
 	periph_clk_en(timer_config[tim].bus, timer_config[tim].rcc_mask);
 	/* change prescaler */
-    dev(tim)->PSC = (cpu_clock_global / freq) - 1;
+    dev(tim)->PSC = (cpu_status.clock.coreclock / freq) - 1;
     /* trigger update event to make pre-scaler value effective */
     dev(tim)->EGR = TIM_EGR_UG;
     return 0;
@@ -95,7 +95,7 @@ unsigned long timer_get_freq(tim_t tim)
 	periph_clk_en(timer_config[tim].bus, timer_config[tim].rcc_mask);
 	/* change prescaler */
 	
-	return cpu_clock_global/((dev(tim)->PSC) + 1);
+	return cpu_status.clock.coreclock/((dev(tim)->PSC) + 1);
 }
 
 int timer_set(tim_t tim, int channel, unsigned int timeout)

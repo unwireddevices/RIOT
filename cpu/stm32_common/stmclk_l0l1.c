@@ -2,6 +2,7 @@
  * Copyright (C) 2014 Freie Universität Berlin
  *               2017 Inria
  *               2018 Kaspar Schleiser <kaspar@schleiser.de>
+ *               2018 Unwired Devices LLC <info@unwds.com>
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -17,6 +18,7 @@
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  * @author      Alexandre Abadie <alexandre.abadie@inria.fr>
+ * @author      Oleg Artamonov <oleg@unwds.com>
  *
  * @}
  */
@@ -87,9 +89,6 @@
 #endif
 
 static volatile uint32_t clock_source_rdy = 0;
-volatile uint32_t cpu_clock_global;
-volatile uint32_t cpu_ports_number = 3;
-char cpu_clock_source[10] = { 0 };
 
 /**
  * @brief Configure the controllers clock system
@@ -276,32 +275,35 @@ void stmclk_init_sysclk(void)
     RCC->CR &= ~(CLOCK_DISABLE_OTHERS);
 #endif
     
-    cpu_clock_global = CLOCK_CORECLOCK;
-    
+    cpu_status.clock.coreclock = CLOCK_CORECLOCK;
+
 #if CLOCK_MSI
-    memcpy(cpu_clock_source, "MSI", 3);   
+    strncpy(cpu_status.clock.source, "MSI", CPU_CLOCK_SOURCE_MAX_SIZE);   
 #elif defined(CLOCK_HS_MULTI)
-    uint32_t n = 0;
-    if (CLOCK_USE_PLL) {
-        memcpy(cpu_clock_source, "PLL", 3);
-        n += 3;
-    }
     if (clock_source_rdy == RCC_CR_HSERDY) {
-        memcpy(cpu_clock_source + n, "/HSE", 4);
+        if (CLOCK_USE_PLL) {
+            strncpy(cpu_status.clock.source, "PLL/HSE", CPU_CLOCK_SOURCE_MAX_SIZE);
+        } else {
+            strncpy(cpu_status.clock.source, "HSE", CPU_CLOCK_SOURCE_MAX_SIZE);
+        }
     } else {
-        memcpy(cpu_clock_source + n, "/HSI", 4);
+        if (CLOCK_USE_PLL) {
+            strncpy(cpu_status.clock.source, "PLL/HSI", CPU_CLOCK_SOURCE_MAX_SIZE);
+        } else {
+            strncpy(cpu_status.clock.source, "HSI", CPU_CLOCK_SOURCE_MAX_SIZE);
+        }
     }
 #elif defined(CLOCK_HSI)
     #if CLOCK_USE_PLL
-        memcpy(cpu_clock_source, "PLL/HSI", 7);
+        strncpy(cpu_status.clock.source, "PLL/HSI", CPU_CLOCK_SOURCE_MAX_SIZE);
     #elif
-        memcpy(cpu_clock_source, "HSI", 3);
+        strncpy(cpu_status.clock.source, "HSI", CPU_CLOCK_SOURCE_MAX_SIZE);
     #endif
 #elif defined(CLOCK_HSE)
     #if CLOCK_USE_PLL
-        memcpy(cpu_clock_source, "PLL/HSE", 7);
+        strncpy(cpu_status.clock.source, "PLL/HSE", CPU_CLOCK_SOURCE_MAX_SIZE);
     #elif
-        memcpy(cpu_clock_source, "HSE", 3);
+        strncpy(cpu_status.clock.source, "HSE", CPU_CLOCK_SOURCE_MAX_SIZE);
     #endif
 #endif
 }
@@ -349,145 +351,8 @@ void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider) {
     tmpreg &= ~(RCC_CR_HSEBYP | RCC_CR_CSSON | RCC_CR_PLLON);
     RCC->CR = tmpreg;
     
-    cpu_clock_global = 65536 * (1 << (msi_range >> 13));
-}
-
-#if defined(CPU_FAM_STM32L1)
-static uint32_t cpu_find_memory_size(char *base, uint32_t block, uint32_t maxsize) {
-    char *address = base;
-    do {
-        address += block;
-        if (!cpu_check_address(address)) {
-            break;
-        }
-    } while ((uint32_t)(address - base) < maxsize);
-
-    return (uint32_t)(address - base);
-}
-#endif
-
-uint32_t get_cpu_ram_size(void) {
-#if defined(CPU_FAM_STM32L0)
-    switch (ST_DEV_ID) {
-        case STM32L0_DEV_ID_CAT3:
-            return 8*1024;
-            break;
-        case STM32L0_DEV_ID_CAT5:
-            return 20*1024;
-            break;
-    }
-    return 0;
-#elif defined(CPU_FAM_STM32L1)
-    return cpu_find_memory_size((char *)SRAM_BASE, 4096, 81920);
-#else
-#error unexpected MCU
-#endif
-}
-
-uint32_t get_cpu_flash_size(void) {
-#if defined(CPU_FAM_STM32L0)
-    switch (ST_DEV_ID) {
-        case STM32L0_DEV_ID_CAT3:
-            return 64*1024;
-            break;
-        case STM32L0_DEV_ID_CAT5:
-            return 128*1024;
-            break;
-    }
-    return 0;
-#elif defined(CPU_FAM_STM32L1)
-    return cpu_find_memory_size((char *)FLASH_BASE, 32768, 524288);
-#else
-#error unexpected MCU
-#endif
-}
-
-uint32_t get_cpu_eeprom_size(void) {
-#if defined(CPU_FAM_STM32L0)
-    switch (ST_DEV_ID) {
-        case STM32L0_DEV_ID_CAT3:
-            return 2*1024;
-            break;
-        case STM32L0_DEV_ID_CAT5:
-            return 6*1024;
-            break;
-    }
-    return 0;
-#elif defined(CPU_FAM_STM32L1)
-    return cpu_find_memory_size((char *)EEPROM_BASE, 2048, 16384);
-#else
-#error unexpected MCU
-#endif
-}
-
-uint32_t get_cpu_category(void) {
-#if defined(CPU_FAM_STM32L0)
-    switch (ST_DEV_ID) {
-        case STM32L0_DEV_ID_CAT3:
-            return 3;
-            break;
-        case STM32L0_DEV_ID_CAT5:
-            return 5;
-            break;
-    }
-    return 0;
-#elif defined(CPU_FAM_STM32L1)
-    switch (ST_DEV_ID) {
-        case STM32L1_DEV_ID_CAT1:
-            return 1;
-            break;
-        case STM32L1_DEV_ID_CAT2:
-            return 2;
-            break;
-        case STM32L1_DEV_ID_CAT3:
-            return 3;
-            break;
-        case STM32L1_DEV_ID_CAT4:
-            return 4;
-            break;
-        case STM32L1_DEV_ID_CAT56:
-            return 5;
-            break;
-    }
-    return 0;
-#else
-#error unexpected MCU
-#endif
-}
-
-uint32_t get_cpu_name(char *name) {
-#if defined(CPU_FAM_STM32L0)
-    switch (ST_DEV_ID) {
-        case STM32L0_DEV_ID_CAT3:
-            sprintf(name, "STM32L052xx");
-            break;
-        case STM32L0_DEV_ID_CAT5:
-            sprintf(name, "STM32L072xx");
-            break;
-    }
-    return 0;
-#elif defined(CPU_FAM_STM32L1)
-    switch (ST_DEV_ID) {
-        case STM32L1_DEV_ID_CAT1:
-            sprintf(name, "STM32L1xxxB");
-            break;
-        case STM32L1_DEV_ID_CAT2:
-            sprintf(name, "STM32L1xxxB-A");
-            break;
-        case STM32L1_DEV_ID_CAT3:
-            sprintf(name, "STM32L1xxxC");
-            break;
-        case STM32L1_DEV_ID_CAT4:
-            sprintf(name, "STM32L1xxxD");
-            break;
-        case STM32L1_DEV_ID_CAT56:
-            sprintf(name, "STM32L1xxxE");
-            break;
-    }
-    return 0;
-#else
-#error unexpected MCU
-#endif
+    strncpy(cpu_status.clock.source, "MSI", CPU_CLOCK_SOURCE_MAX_SIZE);
+    cpu_status.clock.coreclock = 65536 * (1 << (msi_range >> 13));
 }
 
 #endif /* defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L1) */

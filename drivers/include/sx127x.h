@@ -92,6 +92,9 @@ extern "C" {
 #define SX127X_IRQ_DIO3                  (1<<3)  /**< DIO3 IRQ */
 #define SX127X_IRQ_DIO4                  (1<<4)  /**< DIO4 IRQ */
 #define SX127X_IRQ_DIO5                  (1<<5)  /**< DIO5 IRQ */
+#ifdef SX127X_USE_DIO_MULTI
+#define SX127X_IRQ_DIO_MULTI             (1<<6)  /**< DIO MULTI IRQ */
+#endif
 /** @} */
 
 /**
@@ -228,11 +231,6 @@ typedef struct {
 } sx127x_params_t;
 
 /**
- * @brief   SX127X IRQ flags.
- */
-typedef uint8_t sx127x_flags_t;
-
-/**
  * @brief   SX127X device descriptor.
  * @extends netdev_t
  */
@@ -241,13 +239,7 @@ typedef struct {
     sx127x_radio_settings_t settings;  /**< Radio settings */
     sx127x_params_t params;            /**< Device driver parameters */
     sx127x_internal_t _internal;       /**< Internal sx127x data used within the driver */
-    sx127x_flags_t irq;                /**< Device IRQ flags */
 } sx127x_t;
-
-/**
- * @brief   Hardware IO IRQ callback function definition.
- */
-typedef void (sx127x_dio_irq_handler_t)(sx127x_t *dev);
 
 /**
  * @brief   Setup the SX127X
@@ -262,7 +254,7 @@ void sx127x_setup(sx127x_t *dev, const sx127x_params_t *params);
  *
  * @param[in] dev                      The sx127x device descriptor
  */
-void sx127x_reset(const sx127x_t *dev);
+int sx127x_reset(const sx127x_t *dev);
 
 /**
  * @brief   Initializes the transceiver.

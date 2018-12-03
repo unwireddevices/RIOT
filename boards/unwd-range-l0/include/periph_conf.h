@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Unwired Devices <info@unwds.com>
+ * Copyright (C) 2018 Unwired Devices LLC <info@unwds.com>
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
@@ -7,13 +7,12 @@
  */
 
 /**
- * @ingroup     boards_unwd-range-l1-r3
+ * @ingroup     boards_unwd-range-l0
  * @{
  *
  * @file
- * @brief       Peripheral MCU configuration for the Unwired Range R170115 board
+ * @brief       Peripheral MCU configuration for the Unwired Range L0 board
  *
- * @author      Mikhail Churikov
  * @author      Oleg Artamonov
  */
 
@@ -91,18 +90,6 @@ static const timer_conf_t timer_config[] = {
  * @brief UART configuration
  */
 static const uart_conf_t uart_config[] = {
-    // {
-    //     .dev      = USART1,
-    //     .rcc_mask = RCC_APB2ENR_USART1EN,
-    //     .rx_pin   = GPIO_PIN(PORT_A, 10),
-    //     .tx_pin   = GPIO_PIN(PORT_A, 9),
-    //     .rx_mode  = GPIO_IN_PU,
-    //     .tx_mode  = GPIO_OUT,
-    //     .rx_af    = GPIO_AF4,
-    //     .tx_af    = GPIO_AF4,
-    //     .bus      = APB2,
-    //     .irqn     = USART1_IRQn
-    // },
     {
         .dev      = USART2,
         .rcc_mask = RCC_APB1ENR_USART2EN,
@@ -114,24 +101,10 @@ static const uart_conf_t uart_config[] = {
         .tx_af    = GPIO_AF4,
         .bus      = APB1,
         .irqn     = USART2_IRQn
-    },
-    {
-        .dev      = USART4,
-        .rcc_mask = RCC_APB1ENR_USART4EN,
-        .rx_pin   = GPIO_PIN(PORT_B, 11),
-        .tx_pin   = GPIO_PIN(PORT_B, 10),
-        .rx_mode  = GPIO_IN_PU,
-        .tx_mode  = GPIO_OUT,
-        .rx_af    = GPIO_AF6,
-        .tx_af    = GPIO_AF6,
-        .bus      = APB1,
-        .irqn     = USART4_5_IRQn
     }
 };
 
-#define UART_0_ISR          (isr_usart1)
-#define UART_1_ISR          (isr_usart2)
-#define UART_2_ISR          (isr_usart4)
+#define UART_0_ISR          (isr_usart2)
 
 #define UART_NUMOF          (sizeof(uart_config) / sizeof(uart_config[0]))
 /** @} */

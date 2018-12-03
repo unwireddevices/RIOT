@@ -44,12 +44,6 @@ int opt3001_init(opt3001_t *dev)
     /* Acquire I2C bus */
     i2c_acquire(dev->i2c);
 
-    // if (i2c_init_master(dev->i2c, I2C_SPEED_NORMAL) < 0) {
-    //     i2c_release(dev->i2c);
-    //     puts("[opt3001 driver] Error initializing I2C bus");
-        
-    //     return -1;
-    // }
     i2c_init(dev->i2c);
 
     if (i2c_read_regs(dev->i2c, OPT3001_ADDRESS, OPT3001_REG_ID, (char *)&chipid, 2, 0) < 0) {

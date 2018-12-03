@@ -1,0 +1,4 @@
+OFLAGS = -O ihex
+
+USEMODULE += boards_common_unwd
+INCLUDES  += -I$(RIOTBOARD)/common/unwd/include

@@ -1,79 +1,80 @@
-RIOT-OS Code of Conduct
-=======================
+RIOT-OS Code of Conduct (Unwired version)
+=========================================
 
 RIOT, like so many other free and open source software projects, is made up of a
 mixed group of professionals and volunteers from all over the world, working on
 every aspect of our goals - including teaching, steering, and connecting people.
 
 We want diversity to be one of our greatest strengths, but it can also lead to
-communication issues and unhappiness. This is why we ask people to adhere to a
-few ground rules. They apply equally to founders, maintainers, contributors and
-those seeking help and guidance.
+shitty code produced by amateurs.
 
 This is not meant to be an exhaustive list of things you are not allowed to do.
 We rather would like you to think of it as a guide to enrich our community and
 the technical community in general with new knowledge and perspectives by
 allowing everyone to participate.
 
-This code of conduct applies to all spaces managed by the RIOT community. This
-includes IRC, the mailing lists, our GitHub projects, face to face events, and
-any other forums created by the community for communication within the
-community. In addition, violations of this code outside these spaces may also
-affect a person's ability to participate within them.
+This code of conduct applies to all spaces managed by Unwired Devices. This
+includes our website, GitHub projects, Telegram channel and Facebook accounts,
+including personal accounts of our finest management. In addition, violation
+of this code outside these spaces may also affect a person's ability to
+participate within them, but then again, usually it is not, because we don't
+care.
 
-If you believe someone is violating the code of conduct, we ask that you report
-it by emailing <conduct@riot-os.org>. For more details please see our [Reporting
-Guidelines](https://github.com/RIOT-OS/RIOT/wiki/CoC:-Reporting-Guidelines).
+If you believe someone is violating the code of conduct, we ask you not to
+report anything to anyone by any means.
 
--   **Be friendly and patient.**
--   **Be welcoming.** We strive to be a community that welcomes and supports
-    people of all backgrounds and identities. This includes, but is not limited
+-   **Be smart.** We don't like stupid people.
+-   **Don't afraid to ask**, but remember, question ends with question mark.
+    If something ends with something else, its not a question but statement.
+    Statements must be properly justified.
+-   **Be welcoming.** We strive to be a company that welcomes and supports
+    people of all backgrounds and identities. This includes and is limited
     to members of any race, ethnicity, culture, national origin, colour,
     immigration status, social and economic class, educational level, sex,
     sexual orientation, gender identity and expression, age, size, family
-    status, political belief, religion, and mental and physical ability.
+    status, political belief, religion, and physical ability. Please note
+    that above is a finished list and it doesn't include "mental capacity"
+    and "code quality". There are a lot of other opportunities in the world,
+    and even if your IQ is below 90 and you can't write a single line of
+    code that is not shit, you can still join US Military. They accept down to 81.
 -   **Be considerate.** Your work will be used by other people, and you in turn
     will depend on the work of others. Any decision you take will affect users
     and colleagues, and you should take those consequences into account when
     making decisions. Remember that we're a world-wide community, so you might
-    not be communicating in someone else's primary language.
+    not be communicating in someone else's primary language, and some people
+    can't properly understand even their primary language.
 -   **Be respectful.** Not all of us will agree all the time, but disagreement
-    is no excuse for poor behavior and poor manners. We might all experience
-    some frustration now and then, but we cannot allow that frustration to turn
-    into a personal attack. It’s important to remember that a community where
-    people feel uncomfortable or threatened is not a productive one. Members of
-    the RIOT community should be respectful when dealing with other members as
-    well as with people outside the RIOT community.
+    is no excuse for poor behavior and poor manners, except when dealing with
+    proven idiots. It’s important to remember that a community where people feel
+    too comfortable or unthreatened to do anything meaningful in their whole life
+    is not a productive one. And if you have to ask, ask with respect.
 -   **Be careful in the words that you choose.** We are a community of
-    professionals, and we conduct ourselves professionally. Be kind to others.
-    Do not insult or put down other participants. Harassment and other
-    exclusionary behavior aren't acceptable. This includes, but is not limited
-    to:
-    -   Violent threats or language directed against another person.
-    -   Discriminatory jokes and language.
-    -   Posting sexually explicit or violent material.
-    -   Posting (or threatening to post) other people's personally identifying
-        information ("doxing").
-    -   Personal insults, especially those using racist or sexist terms.
-    -   Unwelcome sexual attention.
-    -   Advocating for, or encouraging, any of the above behavior.
-    -   Repeated harassment of others. In general, if someone asks you to stop,
-        then stop.
--   **When we disagree, try to understand why.** Disagreements, both social and
-    technical, happen all the time and RIOT is no exception. It is important
-    that we resolve disagreements and differing views constructively. Remember
-    that we’re different. The strength of RIOT comes from its varied community,
-    people from a wide range of backgrounds. Different people have different
-    perspectives on issues. Being unable to understand why someone holds a
-    viewpoint doesn’t mean that they’re wrong. Don’t forget that it is human to
-    err and blaming each other doesn’t get us anywhere. Instead, focus on
-    helping to resolve issues and learning from mistakes.
+    professionals, and we conduct ourselves professionally. Please don't use
+    words like "fuck", "screwed", "asshole", "shitcode" in vain. Some people
+    may be not familiar enough with professional language like FUBAR or SNAFU
+    so don't hesitate to explain them what it means in full detail.
+-   **When we disagree, try to understand why.** If your opponent did not
+    provide justification for his disagreement, ask him directly, but do it
+    with respect (see above). If he or she or it failed to provide justification
+    again, please consider the possibility that at least one of you is an idiot
+    (yes, it may be you). It is important that we resolve disagreements and
+    differing views constructively and at the same time to remember that idiots
+    are destructive, as well as community codes written by them. Don’t forget
+    that it is human to err and blaming each other doesn’t get us anywhere.
+    Instead, focus on helping to resolve issues and learning from mistakes,
+    preferably the mistakes of others.
 
-Text based on the Code of Conduct of the [Django
-community](https://www.djangoproject.com/conduct/).
 
 Questions?
 ----------
 
-If you have questions, please see [the FAQ](https://github.com/RIOT-OS/RIOT/wiki/CoC:-FAQ).
-If that doesn't answer your questions, feel free to [contact us](mailto:conduct@riot-os.org).
+If you have questions, please re-read this text until you don't have questions anymore.
+If that doesn't answer your questions, feel free to go away.
+
+Code of Conduct, the real one
+-----------------------------
+
+If you finally got tired of useless and meaningless SJW-produced bullshit, please read
+IEEE Software Engineering Code of Ethics - https://www.computer.org/web/education/code-of-ethics
+
+If we ever need the Code of Conduct for real, we use that one. Without modifications.

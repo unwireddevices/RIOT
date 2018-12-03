@@ -23,7 +23,6 @@
 
 #include "net/loramac.h"
 
-#include "semtech-loramac/board.h"
 #include "LoRaMac.h"
 
 #define ENABLE_DEBUG (0)
@@ -117,6 +116,7 @@ void semtech_loramac_set_dr(semtech_loramac_t *mac, uint8_t dr)
 {
     mutex_lock(&mac->lock);
     DEBUG("[semtech-loramac] set dr %d\n", dr);
+    mac->datarate = dr;
     MibRequestConfirm_t mibReq;
     mibReq.Type = MIB_CHANNELS_DEFAULT_DATARATE;
     mibReq.Param.ChannelsDatarate = dr;
@@ -188,7 +188,7 @@ bool semtech_loramac_get_public_network(semtech_loramac_t *mac)
 void semtech_loramac_set_netid(semtech_loramac_t *mac, uint32_t netid)
 {
     mutex_lock(&mac->lock);
-    DEBUG("[semtech-loramac] set NetID %lu\n", netid);
+    DEBUG("[semtech-loramac] set NetID %" PRIu32 "\n", netid);
     MibRequestConfirm_t mibReq;
     mibReq.Type = MIB_NET_ID;
     mibReq.Param.NetID = netid;
@@ -253,6 +253,16 @@ uint8_t semtech_loramac_get_tx_mode(semtech_loramac_t *mac)
     return mac->cnf;
 }
 
+void semtech_loramac_set_retries(semtech_loramac_t *mac, uint8_t trials)
+{
+    mac->trials = trials;
+}
+
+uint8_t semtech_loramac_get_retries(semtech_loramac_t *mac)
+{
+    return mac->trials;
+}
+
 static void _semtech_loramac_set_rx2_params(semtech_loramac_channel_params_t params)
 {
     Rx2ChannelParams_t p;
@@ -272,7 +282,7 @@ static void _semtech_loramac_set_rx2_params(semtech_loramac_channel_params_t par
 void semtech_loramac_set_rx2_freq(semtech_loramac_t *mac, uint32_t freq)
 {
     mutex_lock(&mac->lock);
-    DEBUG("[semtech-loramac] setting RX2 freq to %lu\n", freq);
+    DEBUG("[semtech-loramac] setting RX2 freq to %" PRIu32 "\n", freq);
     Rx2ChannelParams_t p;
     MibRequestConfirm_t mibReq;
     mibReq.Type = MIB_RX2_DEFAULT_CHANNEL;

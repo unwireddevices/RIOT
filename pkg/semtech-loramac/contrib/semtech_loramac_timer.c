@@ -19,8 +19,8 @@
  * @}
  */
 
-#include "semtech-loramac/board.h"
 #include "rtctimers-millis.h"
+#include "semtech-loramac/timer.h"
 #include "thread.h"
 
 extern kernel_pid_t semtech_loramac_pid;
@@ -45,7 +45,7 @@ void TimerStart(TimerEvent_t *obj)
     msg_t *msg = &(obj->msg);
     msg->type = MSG_TYPE_MAC_TIMEOUT;
     msg->content.ptr = obj->cb;
-    rtctimers_millis_set_msg(timer, obj->timeout / 1000, msg, semtech_loramac_pid);
+    rtctimers_millis_set_msg(timer, obj->timeout, msg, semtech_loramac_pid);
 }
 
 void TimerStop(TimerEvent_t *obj)
@@ -60,28 +60,24 @@ void TimerSetValue(TimerEvent_t *obj, uint32_t value)
         rtctimers_millis_remove(&(obj->dev));
     }
 
-    /* According to the lorawan specifications, the data sent from the gateway
-       could arrive with a short shift in time of +/- 20ms. Here the timeout is
-       triggered 50ms in advance to make sure the radio switches to RX mode on
-       time and doesn't miss any downlink messages. */
-    obj->timeout = (value - 50) * 1000;
+    obj->timeout = value;
 }
 
 TimerTime_t TimerGetCurrentTime(void)
 {
-    uint64_t CurrentTime = rtctimers_millis_now() * 1000;
+    uint64_t CurrentTime = rtctimers_millis_now();
     return (TimerTime_t)CurrentTime;
 }
 
 TimerTime_t TimerGetElapsedTime(TimerTime_t savedTime)
 {
-    uint64_t CurrentTime = rtctimers_millis_now() * 1000;
+    uint64_t CurrentTime = rtctimers_millis_now();
     return (TimerTime_t)(CurrentTime - savedTime);
 }
 
 TimerTime_t TimerGetFutureTime(TimerTime_t eventInFuture)
 {
-    uint64_t CurrentTime = rtctimers_millis_now() * 1000;
+    uint64_t CurrentTime = rtctimers_millis_now();
     return (TimerTime_t)(CurrentTime + eventInFuture);
 }
 

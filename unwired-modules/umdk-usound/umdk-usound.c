@@ -1,9 +1,22 @@
 /*
- * Copyright (C) 2016 Unwired Devices [info@unwds.com]
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * Copyright (C) 2016-2018 Unwired Devices LLC <info@unwds.com>
+
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software
+ * is furnished to do so, subject to the following conditions:
+
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  */
 
 /**
@@ -11,7 +24,7 @@
  * @ingroup     
  * @brief       
  * @{
- * @file		umdk-usound.c
+ * @file        umdk-usound.c
  * @brief       umdk-usound module implementation
  * @author      Dmitry Golik <info@unwds.com>
  */
@@ -38,6 +51,7 @@ extern "C" {
 
 #include "ultrasoundrange.h"
 
+#include "umdk-ids.h"
 #include "unwds-common.h"
 #include "umdk-usound.h"
 #include "unwds-gpio.h"
@@ -50,63 +64,82 @@ static ultrasoundrange_t dev;
 static uwnds_cb_t *callback;
 
 static kernel_pid_t timer_pid;
+static kernel_pid_t timer_24hrs_pid;
 
 static msg_t timer_msg = {};
+static msg_t timer_24hrs_msg = {};
 static rtctimers_millis_t timer;
+static rtctimers_millis_t timer_24hrs;
 
 static bool is_polled = false;
 
-static struct {
-	uint8_t is_valid;
-	uint8_t publish_period_min;
-	uint8_t i2c_dev;
+#define UMDK_USOUND_TRANSMIT_PULSES     10
+#define UMDK_USOUND_SILENCING_PULSES    5
+#define UMDK_USOUND_PERIOD_US           790
+#define UMDK_USOUND_SILENCING_PERIOD_US 800
+#define UMDK_USOUND_IDLE_PERIOD_US      315
+#define UMDK_USOUND_DUTY                350
+#define UMDK_USOUND_DUTY2               300
 
-    uint16_t transmit_pulses;
-    uint16_t silencing_pulses;
-    uint16_t period_us;
-    uint16_t idle_period_us;
-    // uint16_t period_subus;
-    uint16_t chirp;
-    uint16_t duty;
-    uint16_t duty2;
+static struct {
+    uint8_t is_valid;
+    uint8_t publish_period_min;
+    uint16_t sensitivity;
+    uint16_t min_distance;
+    uint16_t max_distance;
+    uint16_t threshold;
+    uint8_t  mode;
 } ultrasoundrange_config;
 
 static bool init_sensor(void) {
     
-	printf("[umdk-" _UMDK_NAME_ "] Initializing ultrasound distance meter as opt3001\n");
+    printf("[umdk-" _UMDK_NAME_ "] Initializing ultrasound distance meter\n");
 
-	bool o = ultrasoundrange_init(&dev) == 0;
+    bool o = ultrasoundrange_init(&dev) == 0;
 
-	dev.transmit_pulses = ultrasoundrange_config.transmit_pulses;
-        dev.silencing_pulses = ultrasoundrange_config.silencing_pulses;
-        dev.period_us = ultrasoundrange_config.period_us;
-        // dev.period_subus = ultrasoundrange_config.period_subus;
-        dev.chirp = ultrasoundrange_config.chirp;
-        dev.idle_period_us = ultrasoundrange_config.idle_period_us;
-        dev.duty = ultrasoundrange_config.duty;
-        dev.duty2 = ultrasoundrange_config.duty2;
-        dev.verbose = false;        
-	return o;
-
+    dev.transmit_pulses = UMDK_USOUND_TRANSMIT_PULSES;
+    dev.silencing_pulses = UMDK_USOUND_SILENCING_PULSES;
+    dev.period_us = UMDK_USOUND_PERIOD_US;
+    dev.silencing_period_us = UMDK_USOUND_SILENCING_PERIOD_US;
+    dev.idle_period_us = UMDK_USOUND_IDLE_PERIOD_US;
+    dev.duty = UMDK_USOUND_DUTY;
+    dev.duty2 = UMDK_USOUND_DUTY2;
+    dev.sensitivity = ultrasoundrange_config.sensitivity;
+    dev.min_distance = ultrasoundrange_config.min_distance;
+    dev.max_distance = ultrasoundrange_config.max_distance;
+    dev.disrupting_pin = UMDK_USOUND_DISRUPT_PIN;
+    dev.silencing_pin = UMDK_USOUND_SILENCE_PIN;
+    dev.beeping_pin = UMDK_USOUND_BEEP_PIN;
+    dev.pwren_pin = UMDK_USOUND_PWREN;
+    dev.adc_pin = UMDK_USOUND_ADC_PIN;
+    dev.adc_channel = UMDK_USOUND_ADC_CH;
+    
+    return o;
 }
 
-static void prepare_result(module_data_t *data) {
-	ultrasoundrange_measure_t measure = {};
-	ultrasoundrange_measure(&dev, &measure);
+static int prepare_result(module_data_t *buf) {
+    ultrasoundrange_turn_on(&dev);
+    
+    rtctimers_millis_sleep(500);
+    
+    ultrasoundrange_measure_t measure = {};
+    ultrasoundrange_measure(&dev, &measure);
+    
+    ultrasoundrange_turn_off(&dev);
     
     int range;
     range = measure.range;
     
-	printf("[umdk-" _UMDK_NAME_ "] Echo distance %d mm\n", range);
+    printf("[umdk-" _UMDK_NAME_ "] Echo distance %d mm\n", range);
 
-    if (data) {
-        data->length = 1 + sizeof(range); /* Additional byte for module ID */
-
-        data->data[0] = _UMDK_MID_;
-
+    if (buf) {
+        buf->length = 1 + sizeof(range); /* Additional byte for module ID */
+        buf->data[0] = _UMDK_MID_;
         /* Copy measurements into response */
-        memcpy(data->data + 1, (uint8_t *) &range, sizeof(range));
+        memcpy(buf->data + 1, (uint8_t *) &range, sizeof(range));
     }
+    
+    return range;
 }
 
 static void *timer_thread(void *arg) {
@@ -116,328 +149,306 @@ static void *timer_thread(void *arg) {
     msg_t msg_queue[4];
     msg_init_queue(msg_queue, 4);
     
-    printf("[umdk-" _UMDK_NAME_ "] Periodic publisher thread started");
+    puts("[umdk-" _UMDK_NAME_ "] Periodic publisher thread started");
 
     while (1) {
         msg_receive(&msg);
-
-        rtctimers_millis_remove(&timer);
 
         module_data_t data = {};
         data.as_ack = is_polled;
         is_polled = false;
 
-        prepare_result(&data);
+        int range = prepare_result(&data);
 
-        /* Notify the application */
-        // callback(&data); 
+        if ((ultrasoundrange_config.mode == UMDK_SOUND_MODE_DISTANCE) ||
+            ((ultrasoundrange_config.mode == UMDK_SOUND_MODE_THRESHOLD) &&
+                (range < ultrasoundrange_config.threshold) && (range > 0))) {
+                    
+            /* Notify the application */
+            callback(&data);
+        } else {
+            puts("[umdk-" _UMDK_NAME_ "] Distance above threshold, ignoring");
+        }
 
         /* Restart after delay */
-        rtctimers_millis_set_msg(&timer, /* 60 * */ 1000*ultrasoundrange_config.publish_period_min, &timer_msg, timer_pid);
+        if (ultrasoundrange_config.publish_period_min) {
+            rtctimers_millis_set_msg(&timer, 60 * 1000 * ultrasoundrange_config.publish_period_min, &timer_msg, timer_pid);
+        }
     }
 
     return NULL;
 }
 
+static void *timer_24hrs_thread(void *arg) {
+    (void)arg;
+    msg_t msg;
+    msg_t msg_queue[4];
+    msg_init_queue(msg_queue, 4);
+    
+    puts("[umdk-" _UMDK_NAME_ "] 24 hrs publisher thread started");
+
+    while (1) {
+        msg_receive(&msg);
+        
+        /* Send empty data every 24 hrs to check device's status */
+
+        module_data_t data = {};
+        data.as_ack = false;
+        data.length = 5;
+        data.data[0] = _UMDK_MID_;
+        memset(&data.data[1], 0, 4);
+        
+        callback(&data);
+        
+        /* Restart after delay */
+        rtctimers_millis_set_msg(&timer_24hrs, 1000 * 60*60*24, &timer_24hrs_msg, timer_24hrs_pid);
+    }
+
+    return NULL;
+}
+
+static inline void save_config(void) {
+    ultrasoundrange_config.is_valid = 1;
+    unwds_write_nvram_config(_UMDK_MID_, (uint8_t *) &ultrasoundrange_config, sizeof(ultrasoundrange_config));
+}
+
 static void reset_config(void) {
+    ultrasoundrange_config.publish_period_min = 15;
+    ultrasoundrange_config.sensitivity = 50;
+    ultrasoundrange_config.min_distance = 400;
+    ultrasoundrange_config.max_distance = 6000;
+    ultrasoundrange_config.threshold = 500;
+    ultrasoundrange_config.mode = UMDK_SOUND_MODE_DISTANCE;
+    
+    save_config();
     return;
 }
 
 static void init_config(void) {
-	reset_config();
+    if (!unwds_read_nvram_config(_UMDK_MID_, (uint8_t *) &ultrasoundrange_config, sizeof(ultrasoundrange_config))) {
+        reset_config();
+        return;
+    }
 
-	if (!unwds_read_nvram_config(_UMDK_MID_, (uint8_t *) &ultrasoundrange_config, sizeof(ultrasoundrange_config)))
-		return;
-
-	if ((ultrasoundrange_config.is_valid == 0xFF) || (ultrasoundrange_config.is_valid == 0)) {
-		reset_config();
-		return;
-	}
-
-	if (ultrasoundrange_config.i2c_dev >= I2C_NUMOF) {
-		reset_config();
-		return;
-	}
-}
-
-static inline void save_config(void) {
-	ultrasoundrange_config.is_valid = 1;
-	unwds_write_nvram_config(_UMDK_MID_, (uint8_t *) &ultrasoundrange_config, sizeof(ultrasoundrange_config));
+    if ((ultrasoundrange_config.is_valid == 0xFF) || (ultrasoundrange_config.is_valid == 0)) {
+        reset_config();
+        return;
+    }
 }
 
 static void set_period (int period) {
     rtctimers_millis_remove(&timer);
 
     ultrasoundrange_config.publish_period_min = period;
-	save_config();
+    save_config();
 
-	/* Don't restart timer if new period is zero */
-	if (ultrasoundrange_config.publish_period_min) {
-        rtctimers_millis_set_msg(&timer, /* 60 * */ 1000*ultrasoundrange_config.publish_period_min, &timer_msg, timer_pid);
-		printf("[umdk-" _UMDK_NAME_ "] Period set to %d minute (s)\n", ultrasoundrange_config.publish_period_min);
+    /* Don't restart timer if new period is zero */
+    if (ultrasoundrange_config.publish_period_min) {
+        rtctimers_millis_set_msg(&timer, 60 * 1000 * ultrasoundrange_config.publish_period_min, &timer_msg, timer_pid);
+        printf("[umdk-" _UMDK_NAME_ "] Period set to %d minutes\n", ultrasoundrange_config.publish_period_min);
     } else {
         printf("[umdk-" _UMDK_NAME_ "] Timer stopped");
     }
 }
 
+static void umdk_usound_print_settings(void) {
+    puts("[umdk-" _UMDK_NAME_ "] Current settings:");
+    printf("period: %d m\n", ultrasoundrange_config.publish_period_min);
+    printf("sens: %d\n", ultrasoundrange_config.sensitivity);
+    printf("min: %d mm\n", ultrasoundrange_config.min_distance);
+    printf("max: %d mm\n", ultrasoundrange_config.max_distance);
+    printf("mode: %s\n", (ultrasoundrange_config.mode == UMDK_SOUND_MODE_DISTANCE)? "distance":"threshold");
+    printf("threshold: %d mm\n", ultrasoundrange_config.threshold);
+}
+
 int umdk_usound_shell_cmd(int argc, char **argv) {
     if (argc == 1) {
-        puts ("range - actually ultrasound rangefinder");
-        puts ("range get - get results now");
-        puts ("range send - get and send results now");
-        puts ("range period <N> - set period to N minutes");
-        puts ("range time <N> - set ultrasound period to N microseconds");
-        // printf ("range sub <N> - set sub-microsecond addendum to period (in us/%d)\n", UZ_SUBUS_DIVISOR);
-        puts ("range chirp <N> - set decrement of period per cycle");
-        puts ("range number <N> - set number of US generation periods");
-        puts ("range idle <N> - set ultrasound idle time to N microseconds");
-        puts ("range number2 <N> - set number of US silencing periods");
-        puts ("range duty <N> - set generation duty cycle in percents");
-        puts ("range duty2 <N> - set silencing duty cycle in percents");
-        puts ("range reset - reset settings to default\n");
+        puts ("usound - ultrasound rangefinder");
+        puts ("usound get - get results now");
+        puts ("usound send - get and send results now");
+        puts ("usound period <N> - set period to N minutes");
+        puts ("usound sens <N> - set echo detection sensitivity");
+        puts ("usound min <N> - set minimum distance in mm");
+        puts ("usound max <N> - set maximum distance in mm");
+        puts ("usound mode <distance|threshold> - set sensor mode");
+        puts ("usound threshold <N> - set threshold in mm for threshold mode");
+        puts ("usound reset - reset settings to default\n");
 
-        puts ("Current settings:");
-        printf("period (publish_period_min): %d\n", ultrasoundrange_config.publish_period_min);
-        printf("number (transmit_pulses): %d\n", ultrasoundrange_config.transmit_pulses);
-        printf("time (period_us): %d\n", ultrasoundrange_config.period_us);
-        // printf("sub (period_subus): %d\n", ultrasoundrange_config.period_subus);
-        printf("chirp (chirp): %d\n", ultrasoundrange_config.chirp);
-        printf("duty (duty): %d\n", ultrasoundrange_config.duty);
-        printf("idle (idle_period_us): %d\n", ultrasoundrange_config.idle_period_us);
-        printf("number2 (silencing_pulses): %d\n", ultrasoundrange_config.silencing_pulses);
-        printf("duty2 (duty2): %d\n", ultrasoundrange_config.duty2);
-        // printf(": %d\n", ultrasoundrange_config.);
+        umdk_usound_print_settings();
         return 0;
     }
-/*	uint8_t is_valid;
-	uint8_t publish_period_min;
-	uint8_t i2c_dev;
-
-    uint16_t transmit_pulses;
-    uint16_t silencing_pulses;
-    uint16_t period_us;
-    uint16_t idle_period_us;
-    uint16_t period_subus;
-*/
-
     
     char *cmd = argv[1];
-	
+    
     if (strcmp(cmd, "get") == 0) {
         prepare_result(NULL);
+        return 1;
     }
     
     if (strcmp(cmd, "send") == 0) {
-		/* Send signal to publisher thread */
-		msg_send(&timer_msg, timer_pid);
+        is_polled = true;
+        /* Send signal to publisher thread */
+        msg_send(&timer_msg, timer_pid);
+        return 1;
     }
     
     if (strcmp(cmd, "period") == 0) {
         int val = atoi(argv[2]);
         set_period(val);
+        return 1;
     }
     
-    if (strcmp(cmd, "time") == 0) {
+    if (strcmp(cmd, "sens") == 0) {
         int val = atoi(argv[2]);
-        ultrasoundrange_config . period_us = val;
-        dev            . period_us = val;
+        ultrasoundrange_config . sensitivity = val;
+        dev                    . sensitivity = val;
         save_config();
+        return 1;
     }
     
-    /*if (strcmp(cmd, "sub") == 0) {
+    if (strcmp(cmd, "min") == 0) {
         int val = atoi(argv[2]);
-        dev            . period_subus = val;
-    }*/
-    
-    if (strcmp(cmd, "chirp") == 0) {
-        int val = atoi(argv[2]);
-        ultrasoundrange_config . chirp = val;
-        dev            . chirp = val;
-    }
-    
-    if (strcmp(cmd, "number") == 0) {
-        int val = atoi(argv[2]);
-        ultrasoundrange_config . transmit_pulses = val;
-        dev            . transmit_pulses = val;
+        ultrasoundrange_config . min_distance = val;
+        dev                    . min_distance = val;
         save_config();
+        return 1;
     }
     
-    if (strcmp(cmd, "number2") == 0) {
+    if (strcmp(cmd, "max") == 0) {
         int val = atoi(argv[2]);
-        ultrasoundrange_config . silencing_pulses = val;
-        dev            . silencing_pulses = val;
+        ultrasoundrange_config . max_distance = val;
+        dev                    . max_distance = val;
         save_config();
+        return 1;
     }
     
-    if (strcmp(cmd, "idle") == 0) {
+    if (strcmp(cmd, "threshold") == 0) {
         int val = atoi(argv[2]);
-        ultrasoundrange_config . idle_period_us = val;
-        dev            . idle_period_us = val;
+        ultrasoundrange_config . threshold = val;
         save_config();
+        return 1;
     }
     
-    if (strcmp(cmd, "duty") == 0) {
-        int val = atoi(argv[2]);
-        ultrasoundrange_config . duty = val;
-        dev            . duty = val;
+    if (strcmp(cmd, "mode") == 0) {
+        if (strcmp(argv[2], "threshold") == 0) {
+            puts("[umdk-" _UMDK_NAME_ "] Threshold mode");
+            ultrasoundrange_config.mode = UMDK_SOUND_MODE_THRESHOLD;
+        } else {
+            if (strcmp(argv[2], "distance") == 0) {
+                ultrasoundrange_config.mode = UMDK_SOUND_MODE_DISTANCE;
+                puts("[umdk-" _UMDK_NAME_ "] Distance mode");
+            } else {
+                puts("[umdk-" _UMDK_NAME_ "] Unknown mode");
+            }
+        }
         save_config();
+        return 1;
     }
-    
-    if (strcmp(cmd, "duty2") == 0) {
-        int val = atoi(argv[2]);
-        ultrasoundrange_config . duty2 = val;
-        dev            . duty2 = val;
-        save_config();
-    }
-    
-    if (strcmp(cmd, "verbose") == 0) {
-        int val = atoi(argv[2]);
-        // ultrasoundrange_config . verbose = val;
-        dev            . verbose = val;
-        save_config();
-    }
-    
+
     if (strcmp(cmd, "reset") == 0) {
         reset_config();
         save_config();
+        return 1;
     }
+
+    puts("[umdk-" _UMDK_NAME_ "] Unknown command");
     
-    if (strcmp(cmd, "sin") == 0) {
-        printf("x = array((");
-        for (unsigned int x = 0; x < 65536; x += 128) {
-        // for (int x = -32768; x < 32768; x += 128) {
-            // printf("%d, ", x);
-            printf("%d, ", x * 65536);
-        }
-        printf("))\n");
-        printf("sin_x = ");
-        for (unsigned int x = 0; x < 65536; x += 128) {
-            printf("%d, ", fast_sin(x * 65536));
-        }
-        printf("\n");
-        printf("cos_x = ");
-        for (unsigned int x = 0; x < 65536; x += 128) {
-            printf("%d, ", fast_cos(x * 65536));
-        }
-        printf("\n");
-        /*printf("cos_x1 = ");
-        for (int x = 0; x < 65536; x += 128) {
-            printf("%d, ", _fast_cos_1(x));
-        }
-        printf("\n");*/
-        /*printf("atan_xt = array((");
-        for (int x = 0; x < 65536; x += 128) {
-            printf("%d, ", _atan_t7(x));
-        }
-        printf("))\n");
-        printf("atan_xp = array((");
-        for (int x = 0; x < 65536; x += 128) {
-            printf("%d, ", _atan_p4(x));
-        }
-        printf("))\n");
-        printf("atan_x3 = array((");
-        // for (int x = 0; x < 65536; x += 128) {
-        for (int x = -32768; x < 32768; x += 128) {
-            printf("%d, ", fast_atan2(x, 8192));
-        }
-        printf("))\n");*/
-    }
-    if (strcmp(cmd, "atan") == 0) {
-        int y = atoi(argv[2]);
-        int x = atoi(argv[3]);
-        printf("atan2 (y, x) = %d\n", fast_atan2(y, x));
-    }
     return 1;
 }
 
-void umdk_usound_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback) {
-	(void) non_gpio_pin_map;
+void umdk_usound_init(uwnds_cb_t *event_callback) {
 
-	callback = event_callback;
+    callback = event_callback;
 
-	init_config();
-	printf("[umdk-" _UMDK_NAME_ "] Publish period: %d min\n", ultrasoundrange_config.publish_period_min);
-    
-    dev.times = (int *)allocate_stack(UZ_MAX_PULSES * sizeof(int));
-    if (!dev.times) {
-		printf("[umdk-" _UMDK_NAME_ "] Unable to allocate driver memory. Are too many modules enabled?");
-		return;
-	}
+    init_config();
+    umdk_usound_print_settings();
 
-	if (!init_sensor()) {
-		printf("[umdk-" _UMDK_NAME_ "] Unable to init sensor!");
+    if (!init_sensor()) {
+        printf("[umdk-" _UMDK_NAME_ "] Unable to init sensor!");
         return;
-	}
-
+    }
+    
 	/* Create handler thread */
-	char *stack = (char *) allocate_stack(UMDK_USOUND_STACK_SIZE);
-	if (!stack) {
-		printf("[umdk-" _UMDK_NAME_ "] Unable to allocate memory. Are too many modules enabled?");
+	char *stack_24hrs = (char *) allocate_stack(UMDK_USOUND_STACK_SIZE);
+	if (!stack_24hrs) {
 		return;
 	}
     
-    unwds_add_shell_command("range", "type 'range' for commands list", umdk_usound_shell_cmd);
+    timer_24hrs_pid = thread_create(stack_24hrs, UMDK_USOUND_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_24hrs_thread, NULL, "usound 24hrs thread");
     
-	timer_pid = thread_create(stack, UMDK_USOUND_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "range thread");
+    /* Start 24 hrs timer */
+    rtctimers_millis_set_msg(&timer_24hrs, 1000 * 60 * 60 * 24, &timer_24hrs_msg, timer_24hrs_pid);
 
+    char *stack = (char *) allocate_stack(UMDK_USOUND_STACK_SIZE);
+	if (!stack) {
+		return;
+	}
+    
+    timer_pid = thread_create(stack, UMDK_USOUND_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "usound thread");
+    
+    
     /* Start publishing timer */
-	rtctimers_millis_set_msg(&timer, /* 60 * */ 1000*ultrasoundrange_config.publish_period_min, &timer_msg, timer_pid);
+    if (ultrasoundrange_config.publish_period_min) {
+        rtctimers_millis_set_msg(&timer, ultrasoundrange_config.publish_period_min * 1000 * 60, &timer_msg, timer_pid);
+    }
+    
+    unwds_add_shell_command("usound", "type 'usound' for commands list", umdk_usound_shell_cmd);
 }
 
 static void reply_fail(module_data_t *reply) {
-	reply->length = 2;
-	reply->data[0] = _UMDK_MID_;
-	reply->data[1] = 255;
+    reply->length = 2;
+    reply->data[0] = _UMDK_MID_;
+    reply->data[1] = 255;
 }
 
 static void reply_ok(module_data_t *reply) {
-	reply->length = 2;
-	reply->data[0] = _UMDK_MID_;
-	reply->data[1] = 0;
+    reply->length = 2;
+    reply->data[0] = _UMDK_MID_;
+    reply->data[1] = 0;
 }
 
 bool umdk_usound_cmd(module_data_t *cmd, module_data_t *reply) {
-	if (cmd->length < 1) {
-		reply_fail(reply);
-		return true;
-	}
+    if (cmd->length < 1) {
+        reply_fail(reply);
+        return true;
+    }
 
-	umdk_usound_cmd_t c = cmd->data[0];
-	switch (c) {
-	case UMDK_USOUND_CMD_SET_PERIOD: {
-		if (cmd->length != 2) {
-			reply_fail(reply);
-			break;
-		}
+    umdk_usound_cmd_t c = cmd->data[0];
+    switch (c) {
+    case UMDK_USOUND_CMD_SET_PERIOD: {
+        if (cmd->length != 2) {
+            reply_fail(reply);
+            break;
+        }
 
-		uint8_t period = cmd->data[1];
-		set_period(period);
+        uint8_t period = cmd->data[1];
+        set_period(period);
 
-		reply_ok(reply);
-		break;
-	}
+        reply_ok(reply);
+        break;
+    }
 
-	case UMDK_USOUND_CMD_POLL:
-		is_polled = true;
+    case UMDK_USOUND_CMD_POLL:
+        is_polled = true;
 
-		/* Send signal to publisher thread */
-		msg_send(&timer_msg, timer_pid);
+        /* Send signal to publisher thread */
+        msg_send(&timer_msg, timer_pid);
 
-		return false; /* Don't reply */
+        return false; /* Don't reply */
 
-	case UMDK_USOUND_CMD_INIT_SENSOR: {
-		init_sensor();
+    case UMDK_USOUND_CMD_INIT_SENSOR: {
+        init_sensor();
 
-		reply_ok(reply);
-		break;
-	}
+        reply_ok(reply);
+        break;
+    }
 
-	default:
-		reply_fail(reply);
-		break;
-	}
+    default:
+        reply_fail(reply);
+        break;
+    }
 
-	return true;
+    return true;
 }
 
 #ifdef __cplusplus

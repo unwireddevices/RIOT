@@ -1,9 +1,22 @@
 /*
- * Copyright (C) 2016 Unwired Devices [info@unwds.com]
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * Copyright (C) 2016-2018 Unwired Devices LLC <info@unwds.com>
+
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software
+ * is furnished to do so, subject to the following conditions:
+
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  */
 
 /**
@@ -37,6 +50,7 @@ extern "C" {
 
 #include "board.h"
 
+#include "umdk-ids.h"
 #include "unwds-common.h"
 #include "include/umdk-uart.h"
 
@@ -234,9 +248,8 @@ int umdk_uart_shell_cmd(int argc, char **argv) {
     return 1;
 }
 
-void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
+void umdk_uart_init(uwnds_cb_t *event_callback)
 {
-    (void) non_gpio_pin_map;
     callback = event_callback;
 
     init_config();
@@ -292,7 +305,7 @@ void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
             break;
     }
     
-    printf("[umdk-" _UMDK_NAME_ "] Mode: %lu-%u%c%u\n", umdk_uart_config.baudrate, databits, parity, stopbits);
+    printf("[umdk-" _UMDK_NAME_ "] Mode: %" PRIu32 "-%u%c%u\n", umdk_uart_config.baudrate, databits, parity, stopbits);
 
     uart_params_t uart_params;
     uart_params.baudrate = umdk_uart_config.baudrate;
@@ -302,7 +315,6 @@ void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     
     rxbuf = (uint8_t *) allocate_stack(UMDK_UART_RXBUF_SIZE);
     if (!rxbuf) {
-    	puts("umdk-" _UMDK_NAME_ ": unable to allocate buffer. Are too many modules enabled?");
     	return;
     }
     memset(rxbuf, 0, UMDK_UART_RXBUF_SIZE);
@@ -324,7 +336,6 @@ void umdk_uart_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 
     char *stack = (char *) allocate_stack(UMDK_UART_STACK_SIZE);
     if (!stack) {
-    	puts("umdk-" _UMDK_NAME_ ": unable to allocate memory. Are too many modules enabled?");
     	return;
     }
 
@@ -388,7 +399,7 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             
             uart_params_t uart_params;
             
-            if (sscanf((char *)&data->data[1], "%lu-%d%c%d", &baud, &databits, &parity, &stopbits) != 4) {
+            if (sscanf((char *)&data->data[1], "%" PRIu32 "-%d%c%d", &baud, &databits, &parity, &stopbits) != 4) {
                 do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
                 printf("umdk-" _UMDK_NAME_ ": error parsing parameters string: %s\n", (char *)&data->data[1]);
                 return true;
@@ -451,7 +462,7 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             umdk_uart_config.parity = parity;
             umdk_uart_config.stopbits = stopbits;
             
-            printf("[umdk-" _UMDK_NAME_ "] Mode: %lu-%d%c%d\n", baud, databits, parity, stopbits);
+            printf("[umdk-" _UMDK_NAME_ "] Mode: %" PRIu32 "-%d%c%d\n", baud, databits, parity, stopbits);
             save_config();
 
             gpio_set(RE_PIN);

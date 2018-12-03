@@ -720,7 +720,7 @@ static void _cp_packet_process_data(gnrc_netif_t *netif,
         duty = xtimer_now_usec64();
         duty = (netif->mac.prot.gomach.awake_duration_sum_ticks) * 100 /
                (duty - netif->mac.prot.gomach.system_start_time_ticks);
-        printf("[GoMacH]: achieved radio duty-cycle: %lu %% \n", (uint32_t)duty);
+        printf("[GoMacH]: achieved radio duty-cycle: %" PRIu32 " %% \n", (uint32_t)duty);
 #endif
     }
     else {

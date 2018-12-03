@@ -76,7 +76,7 @@ static void run_test(const char *name, unsigned (*test)(unsigned))
         ++count;
     } while (done == 0);
 
-    printf("+ %s: %lu iterations per second\r\n", name, (4*PER_ITERATION) * count / TIMEOUT_S);
+    printf("+ %s: %" PRIu32 " iterations per second\r\n", name, (4*PER_ITERATION) * count / TIMEOUT_S);
 }
 
 #define run_test(test) run_test(#test, test)

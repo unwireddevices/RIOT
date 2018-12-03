@@ -69,7 +69,7 @@ static int _cid(int argc, char **argv)
     printf("PNM: %c%c%c%c%c\n", card->cid.PNM[0], card->cid.PNM[1], card->cid.PNM[2],
                                 card->cid.PNM[3], card->cid.PNM[4]);
     printf("PRV: %d\n", card->cid.PRV);
-    printf("PSN: %lu\n", card->cid.PSN);
+    printf("PSN: %" PRIu32 "\n", card->cid.PSN);
     printf("MDT: %d\n", card->cid.MDT);
     printf("CRC: %d\n", card->cid.CID_CRC);
     puts("----------------------------------------");
@@ -192,7 +192,7 @@ static int _size(int argc, char **argv)
 
     puts("\nCard size: ");
     print_u64_dec( bytes );
-    printf(" bytes (%lu,%03lu GiB | %lu,%03lu GB)\n", gib_int, gib_frac, gb_int, gb_frac);
+    printf(" bytes (%" PRIu32 ",%03lu GiB | %" PRIu32 ",%03lu GB)\n", gib_int, gib_frac, gb_int, gb_frac);
     return 0;
 }
 

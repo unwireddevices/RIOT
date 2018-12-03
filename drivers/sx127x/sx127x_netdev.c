@@ -204,7 +204,6 @@ static int _init(netdev_t *netdev)
 {
     sx127x_t *sx127x = (sx127x_t*) netdev;
 
-    sx127x->irq = 0;
     sx127x_radio_settings_t settings;
     settings.channel = SX127X_CHANNEL_DEFAULT;
     settings.modem = SX127X_MODEM_DEFAULT;
@@ -232,28 +231,28 @@ static void _isr(netdev_t *netdev)
 {
     sx127x_t *dev = (sx127x_t *) netdev;
 
-    uint8_t irq = dev->irq;
-    dev->irq = 0;
-
-    switch (irq) {
-        case SX127X_IRQ_DIO0:
-            _on_dio0_irq(dev);
-            break;
-
-        case SX127X_IRQ_DIO1:
-            _on_dio1_irq(dev);
-            break;
-
-        case SX127X_IRQ_DIO2:
-            _on_dio2_irq(dev);
-            break;
-
-        case SX127X_IRQ_DIO3:
-            _on_dio3_irq(dev);
-            break;
-
-        default:
-            break;
+    /* check the actual IRQ on the registers */
+    uint8_t interruptReg = sx127x_reg_read(dev, SX127X_REG_LR_IRQFLAGS);
+    
+    if ((interruptReg & SX127X_RF_LORA_IRQFLAGS_TXDONE) ||
+        (interruptReg & SX127X_RF_LORA_IRQFLAGS_RXDONE)) {
+            
+        _on_dio0_irq(dev);
+    }
+    
+    if (interruptReg & SX127X_RF_LORA_IRQFLAGS_RXTIMEOUT) {
+        _on_dio1_irq(dev);
+    }
+    
+    if (interruptReg & SX127X_RF_LORA_IRQFLAGS_FHSSCHANGEDCHANNEL) {
+        _on_dio2_irq(dev);
+    }
+    
+    if ((interruptReg & SX127X_RF_LORA_IRQFLAGS_CADDETECTED) ||
+        (interruptReg & SX127X_RF_LORA_IRQFLAGS_CADDONE)     ||
+        (interruptReg & SX127X_RF_LORA_IRQFLAGS_VALIDHEADER)) {
+            
+        _on_dio3_irq(dev);
     }
 }
 
@@ -436,7 +435,7 @@ static int _set(netdev_t *netdev, netopt_t opt, const void *val, size_t len)
             return sizeof(uint32_t);
 
         case NETOPT_TX_POWER:
-            assert(len <= sizeof(int16_t));
+            assert(len == sizeof(int16_t));
             int16_t power = *((const int16_t *)val);
             if ((power < INT8_MIN) || (power > INT8_MAX)) {
                 res = -EINVAL;
@@ -543,6 +542,7 @@ static void _on_dio0_irq(void *arg)
 
     switch (dev->settings.state) {
         case SX127X_RF_RX_RUNNING:
+            DEBUG("sx127x_on_dio0: NETDEV_EVENT_RX_COMPLETE\n");
             netdev->event_callback(netdev, NETDEV_EVENT_RX_COMPLETE, netdev->event_callback_arg);
             break;
         case SX127X_RF_TX_RUNNING:
@@ -550,6 +550,7 @@ static void _on_dio0_irq(void *arg)
             switch (dev->settings.modem) {
                 case SX127X_MODEM_LORA:
                     /* Clear IRQ */
+                    DEBUG("sx127x_on_dio0: clearing IRQ\n");
                     sx127x_reg_write(dev, SX127X_REG_LR_IRQFLAGS,
                                      SX127X_RF_LORA_IRQFLAGS_TXDONE);
                 /* Intentional fall-through */
@@ -557,6 +558,7 @@ static void _on_dio0_irq(void *arg)
                 default:
                     sx127x_set_state(dev, SX127X_RF_IDLE);
                     netdev->event_callback(netdev, NETDEV_EVENT_TX_COMPLETE, netdev->event_callback_arg);
+                    DEBUG("sx127x_on_dio0: NETDEV_EVENT_TX_COMPLETE\n");
                     break;
             }
             break;
@@ -582,11 +584,14 @@ static void _on_dio1_irq(void *arg)
                     /* todo */
                     break;
                 case SX127X_MODEM_LORA:
+                    DEBUG("sx127x_on_dio1: remove timer\n");
                     rtctimers_millis_remove(&dev->_internal.rx_timeout_timer);
                     /*  Clear Irq */
+                    DEBUG("sx127x_on_dio1: clear IRQ\n");
                     sx127x_reg_write(dev, SX127X_REG_LR_IRQFLAGS, SX127X_RF_LORA_IRQFLAGS_RXTIMEOUT);
                     sx127x_set_state(dev, SX127X_RF_IDLE);
                     netdev->event_callback(netdev, NETDEV_EVENT_RX_TIMEOUT, netdev->event_callback_arg);
+                    DEBUG("sx127x_on_dio1: NETDEV_EVENT_RX_TIMEOUT\n");
                     break;
                 default:
                     break;

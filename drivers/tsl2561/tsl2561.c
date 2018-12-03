@@ -88,6 +88,7 @@ int tsl2561_init(tsl2561_t *dev,
 #endif
 
     _disable(dev);
+    i2c_release(DEV_I2C);
 
     return TSL2561_OK;
 }
@@ -216,6 +217,8 @@ static void _disable(const tsl2561_t *dev)
 
 static void _read_data(const tsl2561_t *dev, uint16_t *full, uint16_t *ir)
 {
+    /* acquire bus */
+    i2c_acquire(DEV_I2C);
     /* Enable the device */
     _enable(dev);
 
@@ -251,6 +254,8 @@ static void _read_data(const tsl2561_t *dev, uint16_t *full, uint16_t *ir)
 
     /* Turn the device off to save power */
     _disable(dev);
+    /* release bus */
+    i2c_release(DEV_I2C);
 }
 
 static void _print_init_info(const tsl2561_t *dev)

@@ -38,17 +38,17 @@ extern "C" {
 #endif
 
 /* SPI support is not implemented (yet), so throw an error when selected */
-#ifndef MODULE_LIS2HH12_I2C
-#error "LIS2HH12 error: SPI mode is not supported, yet."
+#ifdef MODULE_LIS2HH12_SPI
+#error "LIS2HH12 error: SPI mode is not supported yet."
 #endif
 
 /**
  * @brief   3d data container of the LIS3MDL sensor
  */
 typedef struct {
-    int16_t x_axis;                  /**< Data from x-axis */
-    int16_t y_axis;                  /**< Data from y_axis */
-    int16_t z_axis;                  /**< Data from z_axis */
+    int32_t x_axis;                  /**< Data from x-axis */
+    int32_t y_axis;                  /**< Data from y_axis */
+    int32_t z_axis;                  /**< Data from z_axis */
 } lis2hh12_data_t;
 
 /**

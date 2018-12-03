@@ -362,18 +362,16 @@ static inline int _start(I2C_TypeDef *i2c, uint16_t address,
     DEBUG("[i2c] start: set address mode\n");
     /* set address mode to 7-bit */
     i2c->CR2 &= ~(I2C_CR2_ADD10);
-
     DEBUG("[i2c] start: set slave address\n");
     /* set slave address */
     i2c->CR2 &= ~(I2C_CR2_SADD);
     i2c->CR2 |= (address << 1);
-
     DEBUG("[i2c] start: set transfert direction\n");
     /* set transfer direction */
     i2c->CR2 &= ~(I2C_CR2_RD_WRN);
     i2c->CR2 |= (rw_flag << I2C_CR2_RD_WRN_Pos);
-
-    DEBUG("[i2c] start: set number of bytes\n");
+    DEBUG("[i2c] start: slave address: [0x%04lX]\n", ((i2c->CR2 & 0x3FFU)|rw_flag));
+    DEBUG("[i2c] start: set number of bytes [%d]\n", length);
     /* set number of bytes */
     i2c->CR2 &= ~(I2C_CR2_NBYTES);
     i2c->CR2 |= (length << I2C_CR2_NBYTES_Pos);
@@ -400,6 +398,7 @@ static inline int _start(I2C_TypeDef *i2c, uint16_t address,
         return ret;
     }
 
+    DEBUG("[i2c] start: generate start condition is complete\n");
     return 0;
 }
 
@@ -462,7 +461,7 @@ static inline int _write(I2C_TypeDef *i2c, const uint8_t *data, size_t length)
         DEBUG("[i2c] write: write didn't complete\n");
         return -ENXIO;
     }
-
+    DEBUG("[i2c] write: write complete\n");
     return 0;
 }
 
@@ -476,6 +475,8 @@ static inline int _stop(I2C_TypeDef *i2c)
     DEBUG("[i2c] stop: Wait for transfer to be complete\n");
     while (!(i2c->ISR & I2C_ISR_TC) && tick--) {}
     if (i2c->ISR & ERROR_FLAG || !tick) {
+        DEBUG("[i2c] stop: Wait for transfer didn't complete\n");
+        DEBUG("[i2c] stop: Error flag is 0x%08X\n", (unsigned int)i2c->ISR);
         return -EIO;
     }
 
@@ -487,9 +488,11 @@ static inline int _stop(I2C_TypeDef *i2c)
     tick = TICK_TIMEOUT;
     while (!(i2c->CR2 & I2C_CR2_STOP) && tick--) {}
     if (!tick) {
+        DEBUG("[i2c] stop: Stop condition timeout\n");
         return -ETIMEDOUT;
     }
 
+    DEBUG("[i2c] stop: Generate stop condition is complete\n");
     return 0;
 }
 
@@ -518,6 +521,7 @@ static inline int _check_bus(I2C_TypeDef *i2c)
         return -EIO;
     }
 
+    DEBUG("[i2c] check_bus: bus no error\n");
     return ret;
 }
 
@@ -551,7 +555,7 @@ static inline void irq_handler(i2c_t dev)
     if (state & I2C_ISR_ALERT) {
         DEBUG("SMBALERT\n");
     }
-    core_panic(PANIC_GENERAL_ERROR, "I2C FAULT");
+    /* core_panic(PANIC_GENERAL_ERROR, "I2C FAULT"); */
 }
 
 #ifdef I2C_0_ISR

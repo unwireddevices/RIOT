@@ -32,7 +32,7 @@ extern "C" {
  * @{
  */
 #ifndef ADXL345_PARAM_I2C
-#define ADXL345_PARAM_I2C           (I2C_DEV(1))
+#define ADXL345_PARAM_I2C           (I2C_DEV(0))
 #endif
 #ifndef ADXL345_PARAM_ADDR
 #define ADXL345_PARAM_ADDR          (ADXL345_ADDR_53)
@@ -48,17 +48,19 @@ extern "C" {
                                      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F}
 #endif
 #ifndef ADXL345_PARAM_FULL_RES
-#define ADXL345_PARAM_FULL_RES      (0x08)
+#define ADXL345_PARAM_FULL_RES      (1)
 #endif
 #ifndef ADXL345_PARAM_OFFSET
 #define ADXL345_PARAM_OFFSET        { 0, 0, 0 }
 #endif
-#ifndef ADXL345_PARAM_SCALE_FACTOR
-#define ADXL345_PARAM_SCALE_FACTOR  (3.9)
-#endif
-#ifndef ADXL345_PARAMS
-#define ADXL345_PARAMS              { .offset = ADXL345_PARAM_OFFSET,    \
-                                      .range  = ADXL345_RANGE_16G,     \
+
+#define ADXL345_PARAM_SCALE_FACTOR  (4)
+
+#ifndef ADXL345_PARAMS_DEFAULT
+#define ADXL345_PARAMS_DEFAULT      { .i2c    = ADXL345_PARAM_I2C,       \
+                                      .addr   = ADXL345_PARAM_ADDR,      \
+                                      .offset = ADXL345_PARAM_OFFSET,    \
+                                      .range  = ADXL345_PARAM_RANGE,     \
                                       .rate   = ADXL345_PARAM_RATE,      \
                                       .full_res = ADXL345_PARAM_FULL_RES }
 #endif
@@ -66,14 +68,6 @@ extern "C" {
 #define ADXL345_SAUL_INFO           { .name = "adxl345" }
 #endif
 /**@}*/
-
-/**
- * @brief   ADXL345 configuration
- */
-static const adxl345_params_t adxl345_params[] =
-{
-    ADXL345_PARAMS
-};
 
 /**
  * @brief   Additional meta information to keep in the SAUL registry

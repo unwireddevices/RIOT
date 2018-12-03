@@ -1,3 +1,18 @@
+30.11.2018
+* power consumption issues fixed
+* hold Safe/Connect button for > 1 sec to enter standby mode
+
+16.11.2018
+* GPIO and SPI power consumption fixes
+* STMicro ST95HF driver and st95 module
+* LMP91000 driver and gassensor module with support for SpecSensors H2S, CO, O3, SO2, NO2 sensors
+
+01.11.2018
+* synced with RIOT OS Release 2018.07
+* lps331, bme280, sht21 module moved to meteo module
+* opt3001 module renamed to light module
+* lis2hh12, lsm6ds3, adxl345 modules moved to inclinometer module
+
 14.06.2018
 * fix stability issues
 

@@ -71,9 +71,10 @@ ifneq (,$(filter bm%280,$(USEMODULE)))
   USEMODULE += bmx280
 endif
 
-ifneq (,$(filter bme280,$(USEMODULE)))
-    FEATURES_REQUIRED += periph_i2c
-    USEMODULE += xtimer
+ifneq (,$(filter bmes680,$(USEMODULE)))
+  FEATURES_REQUIRED += periph_i2c
+  USEMODULE += xtimer
+  USEMODULE += bme680
 endif
 
 ifneq (,$(filter cc110x,$(USEMODULE)))
@@ -227,6 +228,11 @@ ifneq (,$(filter lm75a,$(USEMODULE)))
   USEMODULE += xtimer
 endif
 
+ifneq (,$(filter lmp91000,$(USEMODULE)))
+  FEATURES_REQUIRED += periph_gpio
+  FEATURES_REQUIRED += periph_i2c
+endif
+
 ifneq (,$(filter lpd8808,$(USEMODULE)))
   USEMODULE += color
   FEATURES_REQUIRED += periph_gpio
@@ -234,6 +240,12 @@ endif
 
 ifneq (,$(filter lsm6dsl,$(USEMODULE)))
   FEATURES_REQUIRED += periph_i2c
+  USEMODULE += xtimer
+endif
+
+ifneq (,$(filter m24sr,$(USEMODULE)))
+  FEATURES_REQUIRED += periph_i2c
+  FEATURES_REQUIRED += periph_gpio
   USEMODULE += xtimer
 endif
 
@@ -328,6 +340,11 @@ ifneq (,$(filter sht1%,$(USEMODULE)))
   USEMODULE += xtimer
 endif
 
+ifneq (,$(filter sht3x,$(USEMODULE)))
+  USEMODULE += xtimer
+  FEATURES_REQUIRED += periph_i2c
+endif
+
 ifneq (,$(filter si114%,$(USEMODULE)))
   USEMODULE += xtimer
   FEATURES_REQUIRED += periph_i2c
@@ -355,6 +372,14 @@ ifneq (,$(filter srf02,$(USEMODULE)))
 endif
 
 ifneq (,$(filter srf08,$(USEMODULE)))
+  USEMODULE += xtimer
+endif
+
+ifneq (,$(filter st95,$(USEMODULE)))
+  FEATURES_REQUIRED += periph_gpio
+  FEATURES_REQUIRED += periph_spi
+  FEATURES_REQUIRED += periph_rtc
+  USEMODULE += rtctimers-millis
   USEMODULE += xtimer
 endif
 

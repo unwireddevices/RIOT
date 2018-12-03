@@ -209,8 +209,7 @@ ISR_VECTOR(1) const isr_t vector_cpu[CPU_IRQ_NUMOF] = {
     [DFSDM1_FLT2_IRQn        ] = isr_dfsdm1_flt2,          /* [63] DFSDM1 Filter 2 global Interrupt */
     [OTG_FS_IRQn             ] = isr_otg_fs,               /* [67] USB OTG FS global Interrupt */
     [SAI2_IRQn               ] = isr_sai2,                 /* [75] Serial Audio Interface 2 global interrupt */
-#endif
-#if defined(CPU_MODEL_STM32L451CC)
+#elif defined(CPU_MODEL_STM32L451CC) || defined(CPU_MODEL_STM32L452RE)
     [ADC1_IRQn               ] = isr_adc1,                 /* [18] ADC1 global Interrupt */
     [TIM1_TRG_COM_IRQn       ] = isr_tim1_trg_com,         /* [26] TIM1 Trigger and Commutation Interrupt */
     [TIM3_IRQn               ] = isr_tim3,                 /* [29] TIM3 global Interrupt */
@@ -253,4 +252,10 @@ ISR_VECTOR(1) const isr_t vector_cpu[CPU_IRQ_NUMOF] = {
     [CAN2_SCE_IRQn           ] = isr_can2_sce,             /* [89] CAN2 SCE interrupt */
     [DMA2D_IRQn              ] = isr_dma2d,                /* [90] DMA2D global interrupt */
 #endif
+#if defined(CPU_MODEL_STM32L432KC) || defined(CPU_MODEL_STM32L476RG) || \
+    defined(CPU_MODEL_STM32L475VG)
+    [TIM7_IRQn               ] = isr_tim7,                 /* [55] TIM7 global interrupt */
+    [SWPMI1_IRQn             ] = isr_swpmi1,               /* [76] Serial Wire Interface 1 global interrupt */
+#endif
+
 };

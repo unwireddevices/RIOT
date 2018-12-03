@@ -461,13 +461,13 @@ static bool _send_data(gnrc_netif_t *netif)
     /* Packet has been released by netdev, so drop pointer */
     netif->mac.tx.packet = NULL;
 
-    DEBUG("[LWMAC-tx]: spent %lu WR in TX\n",
+    DEBUG("[LWMAC-tx]: spent %" PRIu32 " WR in TX\n",
           (unsigned long)netif->mac.tx.wr_sent);
 
 #if (LWMAC_ENABLE_DUTYCYLE_RECORD == 1)
     netif->mac.prot.lwmac.pkt_start_sending_time_ticks =
         rtt_get_counter() - netif->mac.prot.lwmac.pkt_start_sending_time_ticks;
-    DEBUG("[LWMAC-tx]: pkt sending delay in TX: %lu us\n",
+    DEBUG("[LWMAC-tx]: pkt sending delay in TX: %" PRIu32 " us\n",
           RTT_TICKS_TO_US(netif->mac.prot.lwmac.pkt_start_sending_time_ticks));
 #endif
 

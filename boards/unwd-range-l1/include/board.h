@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Unwired Devices
+ * Copyright (C) 2016 Unwired Devices LLC <info@unwds.com>
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
@@ -9,11 +9,11 @@
 /**
  * @defgroup    boards_unwd-range-l1
  * @ingroup     boards
- * @brief       Board specific files for the Unwired Range R160617 board.
+ * @brief       Board specific files for the Unwired Range L1 R160617 board.
  * @{
  *
  * @file
- * @brief       Board specific definitions for the Unwired Range R160617 board.
+ * @brief       Board specific definitions for the Unwired Range L1 R160617 board.
  *
  * @author      Cr0s
  */
@@ -25,6 +25,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include "board_unwd.h"
 
 /**
  * @name SX127X configuration
@@ -114,11 +116,6 @@ extern "C" {
 #define XTIMER_OVERHEAD     (6)
 #define XTIMER_BACKOFF      (3)
 /** @} */
-
-/**
- * @brief   Initialize board specific hardware, including clock, LEDs and std-IO
- */
-void board_init(void);
 
 #ifdef __cplusplus
 }

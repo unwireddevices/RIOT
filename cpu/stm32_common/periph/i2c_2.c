@@ -62,6 +62,7 @@ static inline void _clear_addr(I2C_TypeDef *dev);
 static inline int _write(I2C_TypeDef *dev, const uint8_t *data, int length);
 static inline int _stop(I2C_TypeDef *dev);
 static inline int _wait_ready(I2C_TypeDef *dev);
+static int _wait_sr1(I2C_TypeDef *i2c, int mask) ;
 
 /**
  * @brief Array holding one pre-initialized mutex for each I2C device
@@ -212,7 +213,6 @@ int i2c_read_bytes(i2c_t dev, uint16_t address, void *data, size_t length,
 
     uint16_t tick = TICK_TIMEOUT;
 
-    size_t n = length;
     char *in = (char *)data;
 
     I2C_TypeDef *i2c = i2c_config[dev].dev;
@@ -220,45 +220,84 @@ int i2c_read_bytes(i2c_t dev, uint16_t address, void *data, size_t length,
     assert(i2c != NULL);
 
     int ret = 0;
+
+    DEBUG("[i2c] read_bytes: Clear reg CR1 = 0\n");
+    /* Clear start, stop, POS, ACK bits to get us in a known state */
+    i2c->CR1 &= ~(I2C_CR1_START 
+                | I2C_CR1_STOP
+                | I2C_CR1_POS
+                | I2C_CR1_ACK);
+
+    /* Setup ACK/POS before sending start as per user manual */
+    if (length == 2) {
+        i2c->CR1 |= I2C_CR1_POS; 
+    } else if (length != 1) {
+        i2c->CR1 |= I2C_CR1_ACK;
+    }
+
     if (!(flags & I2C_NOSTART)) {
         DEBUG("[i2c] read_bytes: Send Slave address and wait for ADDR == 1\n");
         ret = _start(i2c, address, I2C_FLAG_READ, flags);
         if (ret < 0) {
             return ret;
         }
-        if (length == 1 && !(flags & I2C_NOSTOP)) {
-            DEBUG("[i2c] read_bytes: Set ACK = 0\n");
-            i2c->CR1 &= ~(I2C_CR1_ACK);
-        }
-        else {
-            i2c->CR1 |= I2C_CR1_ACK;
-        }
-        _clear_addr(i2c);
-    }
-    else {
-        if (length == 1 && !(flags & I2C_NOSTOP)) {
-            DEBUG("[i2c] read_bytes: Set ACK = 0\n");
-            i2c->CR1 &= ~(I2C_CR1_ACK);
-        }
-        else {
-            i2c->CR1 |= I2C_CR1_ACK;
-        }
     }
 
-    while (n--) {
-        /* wait for reception to complete */
-        while (!(i2c->SR1 & I2C_SR1_RXNE) && tick--) {
-            if ((i2c->SR1 & ERROR_FLAG) || !tick) {
-                return -ETIMEDOUT;
-            }
-        }
+    _clear_addr(i2c);
 
-        if (n == 1 && !(flags & I2C_NOSTOP)) {
-            /* disable ACK */
-            i2c->CR1 &= ~(I2C_CR1_ACK);
+    if (length == 1) {
+        /* Set stop immediately after ADDR cleared */
+        if (!(flags & I2C_NOSTOP)) {
+            i2c->CR1 |= I2C_CR1_STOP;
         }
-
+        ret = _wait_sr1(i2c,I2C_SR1_RXNE);
+        if (ret < 0) {
+            return ret;
+        }
         /* read byte */
+        *(in++) = i2c->DR;
+    } else if (length == 2) {
+        /* Wait till the shift register is full */
+        ret = _wait_sr1(i2c, I2C_SR1_BTF);
+        if (ret < 0) {
+            return ret;
+        }
+
+        if (!(flags & I2C_NOSTOP)) {
+            i2c->CR1 |= I2C_CR1_STOP;
+        }
+        *(in++) = i2c->DR;
+        *(in++) = i2c->DR;
+    } else {
+        /* Read all but last three */
+        for (size_t i = 0; i < length - 3; i++) {
+            /* Wait for receive buffer not empty */
+            ret = _wait_sr1(i2c, I2C_SR1_RXNE);
+            if (ret < 0) {
+                return ret;
+            }
+            DEBUG("[i2c] read_bytes: Read data\n");
+            *(in++) = i2c->DR;
+            DEBUG("[i2c] read_bytes: Post read data\n");
+        }
+        /* Wait for BTF (data N-2 in DR, N-1 in shift) */
+        ret = _wait_sr1(i2c, I2C_SR1_BTF);
+        if (ret < 0) {
+            return ret;
+        }
+        /* No more acking */
+        i2c->CR1 &= ~(I2C_CR1_ACK);
+        *(in++) = i2c->DR;
+        /* Wait for BTF (data N-1 in DR, N in shift) */
+        ret = _wait_sr1(i2c, I2C_SR1_BTF);
+        if (ret < 0) {
+            return ret;
+        }
+        /* If this is the last byte, queue stop condition */
+        if (!(flags & I2C_NOSTOP)) {
+            i2c->CR1 |= I2C_CR1_STOP;
+        }
+        *(in++) = i2c->DR;
         *(in++) = i2c->DR;
     }
 
@@ -424,7 +463,7 @@ static int _start(I2C_TypeDef *i2c, uint8_t address, uint8_t rw_flag, uint8_t fl
 
     /* generate start condition */
     i2c->CR1 |= I2C_CR1_START;
-
+    DEBUG("[i2c] start: Send start\n");
     /* Wait for SB flag to be set */
     while (!(i2c->SR1 & I2C_SR1_SB)) {}
 
@@ -439,7 +478,7 @@ static int _start(I2C_TypeDef *i2c, uint8_t address, uint8_t rw_flag, uint8_t fl
             return -EIO;
         }
     }
-
+    DEBUG("[i2c] start: Wrote addr\n");
     return 0;
 }
 
@@ -507,6 +546,25 @@ static inline int _wait_ready(I2C_TypeDef *i2c)
     return 0;
 }
 
+static int _wait_sr1(I2C_TypeDef *i2c, int mask) 
+{
+    /* wait for reg CR1 to be mask is set*/
+    uint16_t tick = TICK_TIMEOUT;
+    while (!(i2c->SR1 & mask) && tick--) {
+        if (!tick) {
+            DEBUG("[i2c] wait_sr1: timeout\n");
+            return -ETIMEDOUT;
+        }
+        if (i2c->SR1 & ERROR_FLAG) {
+            DEBUG("[i2c] wait_sr1: failed (error I2C)\n");
+            return -EIO;
+        }
+    }
+
+    return 0;
+}
+
+#if I2C_0_ISR || I2C_1_ISR
 static inline void irq_handler(i2c_t dev)
 {
     assert(dev < I2C_NUMOF);
@@ -522,9 +580,11 @@ static inline void irq_handler(i2c_t dev)
         DEBUG("OVR\n");
     }
     if (state & I2C_SR1_AF) {
+        i2c->SR1 &= ~I2C_SR1_AF;
         DEBUG("AF\n");
     }
     if (state & I2C_SR1_ARLO) {
+        i2c->SR1 &= ~I2C_SR1_ARLO;
         DEBUG("ARLO\n");
     }
     if (state & I2C_SR1_BERR) {
@@ -539,8 +599,9 @@ static inline void irq_handler(i2c_t dev)
     if (state & I2C_SR1_SMBALERT) {
         DEBUG("SMBALERT\n");
     }
-    core_panic(PANIC_GENERAL_ERROR, "I2C FAULT");
+    /* core_panic(PANIC_GENERAL_ERROR, "I2C FAULT"); */
 }
+#endif
 
 #if I2C_0_ISR
 void I2C_0_ISR(void)

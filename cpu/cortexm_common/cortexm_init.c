@@ -69,33 +69,61 @@ void cortexm_init(void)
 #endif
 }
 
+size_t cpu_find_memory_size(char *base, uint32_t block, uint32_t maxsize) {
+    char *address = base;
+    do {
+        address += block;
+        if (!cpu_check_address(address)) {
+            break;
+        }
+    } while ((size_t)(address - base) < maxsize);
+
+    return (size_t)(address - base);
+}
+
 bool cpu_check_address(volatile const char *address)
 {
-#if defined(CPU_ARCH_CORTEX_M3)
+#if defined(CPU_ARCH_CORTEX_M3) || defined(CPU_ARCH_CORTEX_M4) || \
+    defined(CPU_ARCH_CORTEX_M4F) || defined(CPU_ARCH_CORTEX_M7)
+    static const uint32_t BFARVALID_MASK = (0x80 << SCB_CFSR_BUSFAULTSR_Pos);
+    
     bool is_valid = true;
 
-    /* Clear BFAR ADDRESS VALID flag */
-    SCB->CFSR |= SCB_CFSR_BFARVALID;
+    /* Clear BFARVALID flag */
+    SCB->CFSR |= BFARVALID_MASK;
 
-    SCB->CCR |= SCB_CCR_BFHFNMIGN;
-    __asm volatile ("cpsid f;");
-    
+    /* Ignore BusFault by enabling BFHFNMIGN and disabling interrupts */
+    uint32_t mask = __get_FAULTMASK();
+    __disable_fault_irq();
+    SCB->CCR |= SCB_CCR_BFHFNMIGN_Msk;
+
     *address;
-    if ((SCB->CFSR & SCB_CFSR_BFARVALID) != 0)
+    /* Check BFARVALID flag */
+    if ((SCB->CFSR & BFARVALID_MASK) != 0)
     {
         /* Bus Fault occured reading the address */
         is_valid = false;
     }
-    
-    __asm volatile ("cpsie f;");
-    SCB->CCR &= ~SCB_CCR_BFHFNMIGN;
+
+    /* Reenable BusFault by clearing  BFHFNMIGN */
+    SCB->CCR &= ~SCB_CCR_BFHFNMIGN_Msk;
+    __set_FAULTMASK(mask);
 
     return is_valid;
 #else
-    /* Cortex-M0 doesn't have BusFault */
-    (void) address;
+    /* Cortex-M0 doesn't have BusFault so we need to catch HardFault */
+    (void)address;
     
-    printf("[warning] %s: Cortex-M0 doesn't have BusFault", __func__);
-    return true;
+    /* R5 will be set to 0 by HardFault handler */
+    /* to indicate HardFault has occured */
+    register uint32_t result __asm("r5") = 1;
+
+    __asm__ volatile (
+        "ldr  r1, =0xDEADF00D   \n" /* set magic number     */
+        "ldr  r2, =0xCAFEBABE   \n" /* 2nd magic to be sure */
+        "ldrb r3, [r0]          \n" /* probe address        */
+    );
+
+    return result;
 #endif
 }

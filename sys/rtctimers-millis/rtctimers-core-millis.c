@@ -73,7 +73,7 @@ void rtctimers_millis_init(void)
     /* initialize low-level timer */
     rtc_init();
 
-    /* register initial overflow 60-seconds tick */
+    /* register initial overflow weekly tick */
     _lltimer_set(RTCTIMERS_MILLIS_OVERFLOW_VALUE);
 }
 
@@ -234,6 +234,21 @@ void rtctimers_millis_remove(rtctimers_millis_t *timer)
         _remove(timer);
     }
     irq_restore(state);
+}
+
+void rtctimers_millis_remove_all(void)
+{
+    while (timer_list_head) {
+        timer_list_head = timer_list_head->next;
+    }
+    
+    while (overflow_list_head) {
+        overflow_list_head = overflow_list_head->next;
+    }
+    
+    while (long_list_head) {
+        long_list_head = long_list_head->next;
+    }
 }
 
 static uint32_t _time_left(uint32_t target, uint32_t reference)
@@ -520,14 +535,18 @@ void rtctimers_millis_set_absolute(rtctimers_millis_t *timer, uint8_t wday, uint
 }
 
 void rtctimers_millis_set_timebase(struct tm *new_time) {
-	/* Previous and current time stamps to calculate time differences */
-	time_t prev_ts = rtctimers_millis_now();
-	time_t new_ts = mktime(new_time);
-
+    /* convert struct tm to internal milliseconds timer */
+    uint32_t new_ts = 1000*(new_time->tm_sec + new_time->tm_min*60 + new_time->tm_hour*60*60 + new_time->tm_wday*24*60*60);
+    
+    /* current milliseconds timer value */
+    uint32_t prev_ts;
+    rtc_millis_get_time(&prev_ts);
+    
 	rtc_set_time(new_time);
-
+    
 	if (timer_list_head) {
 		/* Shift hardware alarm to new time base */
+        /* int is ok here as maximum actual target value is 7*24*60*60*1000 = 604 800 000 */
 		int diff = timer_list_head->target - prev_ts;
 		DEBUG("[RTC] Head timer is %d seconds far\n", diff);
 		_lltimer_set(new_ts + diff);

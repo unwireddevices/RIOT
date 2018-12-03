@@ -1,9 +1,22 @@
 /*
- * Copyright (C) 2018 Unwired Devices [info@unwds.com]
- *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * Copyright (C) 2016-2018 Unwired Devices LLC <info@unwds.com>
+
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software
+ * is furnished to do so, subject to the following conditions:
+
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  */
 
 /**
@@ -34,6 +47,7 @@ extern "C" {
 #include "umdk-hx711.h"
 #include "periph/gpio.h"
 #include "board.h"
+#include "umdk-ids.h"
 #include "unwds-common.h"
 #include "thread.h"
 #include "rtctimers-millis.h"
@@ -128,7 +142,7 @@ static void prepare_result(module_data_t *data) {
         weight /= hx711_config.hx711_cal;
     }
     
-    printf("[umdk-" _UMDK_NAME_ "] Weight: %lu g\n", weight);
+    printf("[umdk-" _UMDK_NAME_ "] Weight: %" PRIu32 " g\n", weight);
 
     if (data) {
         data->length = 2 + sizeof(weight) + sizeof(raw);
@@ -136,18 +150,6 @@ static void prepare_result(module_data_t *data) {
         data->data[1] = UMDK_HX711_DATA_DATA;
         memcpy(data->data + 2, &weight, sizeof(weight));
         memcpy(data->data + 2 + sizeof(weight), &raw, sizeof(raw));
-    }
-}
-
-static volatile uint32_t btn_last_press = 0;
-
-static void btn_connect(void* arg) {
-    (void) arg;
-    if (rtctimers_millis_now() > btn_last_press + 500) {
-        is_polled = false;
-        msg_send(&timer_msg, timer_pid);
-        
-        btn_last_press = rtctimers_millis_now();
     }
 }
 
@@ -201,9 +203,9 @@ int umdk_hx711_shell_cmd(int argc, char **argv) {
         if (hx711_config.hx711_cal != 0) {
             uint32_t zero_grams = hx711_config.zero * 10;
             zero_grams /= hx711_config.hx711_cal;
-            printf("[umdk-" _UMDK_NAME_ "] Zero set to %lu g\n", zero_grams);
+            printf("[umdk-" _UMDK_NAME_ "] Zero set to %" PRIu32 " g\n", zero_grams);
         } else {
-            printf("[umdk-" _UMDK_NAME_ "] Zero set to %lu units\n", hx711_config.zero);
+            printf("[umdk-" _UMDK_NAME_ "] Zero set to %" PRIu32 " units\n", hx711_config.zero);
         }
         
         save_config();
@@ -257,9 +259,8 @@ static void *timer_thread(void *arg) {
     return NULL;
 }
 
-void umdk_hx711_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
+void umdk_hx711_init(uwnds_cb_t *event_callback)
 {
-    (void) non_gpio_pin_map;
 
     callback = event_callback;
     
@@ -274,7 +275,6 @@ void umdk_hx711_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
     /* Create handler thread */
 	char *stack = (char *) allocate_stack(UMDK_HX711_STACK_SIZE);
 	if (!stack) {
-		puts("[umdk-" _UMDK_NAME_ "] unable to allocate memory. Is too many modules enabled?");
 		return;
 	}
     
@@ -283,12 +283,6 @@ void umdk_hx711_init(uint32_t *non_gpio_pin_map, uwnds_cb_t *event_callback)
 
     /* Start publishing timer */
 	rtctimers_millis_set_msg(&timer, 60000 * hx711_config.publish_period_min, &timer_msg, timer_pid);
-    
-#ifdef UNWD_CONNECT_BTN
-    if (UNWD_USE_CONNECT_BTN) {
-        gpio_init_int(UNWD_CONNECT_BTN, GPIO_IN_PU, GPIO_FALLING, btn_connect, NULL);
-    }
-#endif
 
     puts("[umdk-" _UMDK_NAME_ "] HX711 ADC ready");
     

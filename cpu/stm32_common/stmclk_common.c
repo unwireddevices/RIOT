@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2017 Freie Universität Berlin
  *               2017 OTA keys S.A.
+ *               2018 Unwired Devices LLC <info@unwds.com>
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -16,6 +17,7 @@
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  * @author      Vincent Dupont <vincent@otakeys.com>
+ * @author      Oleg Artamonov <oleg@unwds.com>
  * @}
  */
 

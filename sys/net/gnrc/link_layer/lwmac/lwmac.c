@@ -271,7 +271,7 @@ void lwmac_set_state(gnrc_netif_t *netif, gnrc_lwmac_state_t newstate)
             duty = (uint64_t) rtt_get_counter();
             duty = ((uint64_t) netif->mac.prot.lwmac.awake_duration_sum_ticks) * 100 /
                    (duty - (uint64_t)netif->mac.prot.lwmac.system_start_time_ticks);
-            printf("[LWMAC]: achieved duty-cycle: %lu %% \n", (uint32_t)duty);
+            printf("[LWMAC]: achieved duty-cycle: %" PRIu32 " %% \n", (uint32_t)duty);
 #endif
             break;
         }
@@ -304,7 +304,7 @@ void lwmac_set_state(gnrc_netif_t *netif, gnrc_lwmac_state_t newstate)
                 alarm = random_uint32_range(RTT_US_TO_TICKS((3 * GNRC_LWMAC_WAKEUP_DURATION_US / 2)),
                                             RTT_US_TO_TICKS(GNRC_LWMAC_WAKEUP_INTERVAL_US -
                                                             (3 * GNRC_LWMAC_WAKEUP_DURATION_US / 2)));
-                LOG_WARNING("WARNING: [LWMAC] phase backoffed: %lu us\n",
+                LOG_WARNING("WARNING: [LWMAC] phase backoffed: %" PRIu32 " us\n",
                             (unsigned long)RTT_TICKS_TO_US(alarm));
                 netif->mac.prot.lwmac.last_wakeup = netif->mac.prot.lwmac.last_wakeup + alarm;
                 alarm = _next_inphase_event(netif->mac.prot.lwmac.last_wakeup,

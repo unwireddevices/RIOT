@@ -118,7 +118,6 @@ void sx127x_read_fifo(const sx127x_t *dev, uint8_t *buffer, uint8_t size);
  */
 int16_t sx127x_read_rssi(const sx127x_t *dev);
 
-#if defined(MODULE_SX1276)
 /**
  * @brief   Performs the Rx chain calibration for LF and HF bands
  *
@@ -128,7 +127,6 @@ int16_t sx127x_read_rssi(const sx127x_t *dev);
  * @param[in] dev                      The sx127x device structure pointer
  */
 void sx1276_rx_chain_calibration(sx127x_t *dev);
-#endif
 
 #ifdef __cplusplus
 }

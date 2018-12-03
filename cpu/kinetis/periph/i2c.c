@@ -82,7 +82,7 @@ int i2c_release(i2c_t dev)
 
 int i2c_init_master(i2c_t dev, i2c_speed_t speed)
 {
-    DEBUG("i2c_init_master: %lu, %lu\n", (unsigned long)dev, (unsigned long) speed);
+    DEBUG("i2c_init_master: %" PRIu32 ", %" PRIu32 "\n", (unsigned long)dev, (unsigned long) speed);
     I2C_Type *i2c;
     PORT_Type *i2c_port;
     int pin_scl = 0;

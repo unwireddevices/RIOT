@@ -97,7 +97,7 @@ int main(void)
 #endif
 
         printf("Temperature [°C]:%c%d.%d\n"
-               "Pressure [Pa]: %lu\n"
+               "Pressure [Pa]: %" PRIu32 "\n"
 #if defined(MODULE_BME280)
                "Humidity [%%rH]: %u.%02u\n"
 #endif

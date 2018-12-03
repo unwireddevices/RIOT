@@ -24,15 +24,10 @@
 
 #include <stdint.h>
 
-#include "cpu.h"
 #include "periph_cpu.h"
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-#ifndef EEPROM_SIZE
-#error "periph/eeprom: EEPROM_SIZE is not defined"
 #endif
 
 /**
@@ -73,6 +68,23 @@ void eeprom_write_byte(uint32_t pos, uint8_t data);
  * @return the number of bytes written
  */
 size_t eeprom_write(uint32_t pos, const uint8_t *data, size_t len);
+
+/**
+ * @brief   Clear @p len bytes at the given position
+ *
+ * @param[in] pos       start position in eeprom
+ * @param[in] len       the number of bytes to clear
+ *
+ * @return the number of bytes cleared
+ */
+size_t eeprom_clear(uint32_t pos, size_t len);
+
+/**
+ * @brief   Clear EEPROM completely
+ *
+ * @return the number of bytes cleared
+ */
+size_t eeprom_erase(void);
 
 #ifdef __cplusplus
 }

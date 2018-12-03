@@ -231,7 +231,7 @@ static int constfs_open(vfs_file_t *filp, const char *name, int flags, mode_t mo
 static ssize_t constfs_read(vfs_file_t *filp, void *dest, size_t nbytes)
 {
     constfs_file_t *fp = filp->private_data.ptr;
-    DEBUG("constfs_read: %p, %p, %lu\n", (void *)filp, dest, (unsigned long)nbytes);
+    DEBUG("constfs_read: %p, %p, %" PRIu32 "\n", (void *)filp, dest, (unsigned long)nbytes);
     if ((size_t)filp->pos >= fp->size) {
         /* Current offset is at or beyond end of file */
         return 0;
@@ -241,14 +241,14 @@ static ssize_t constfs_read(vfs_file_t *filp, void *dest, size_t nbytes)
         nbytes = fp->size - filp->pos;
     }
     memcpy(dest, fp->data + filp->pos, nbytes);
-    DEBUG("constfs_read: read %lu bytes\n", (long unsigned)nbytes);
+    DEBUG("constfs_read: read %" PRIu32 " bytes\n", (long unsigned)nbytes);
     filp->pos += nbytes;
     return nbytes;
 }
 
 static ssize_t constfs_write(vfs_file_t *filp, const void *src, size_t nbytes)
 {
-    DEBUG("constfs_write: %p, %p, %lu\n", (void *)filp, src, (unsigned long)nbytes);
+    DEBUG("constfs_write: %p, %p, %" PRIu32 "\n", (void *)filp, src, (unsigned long)nbytes);
     /* Read only file system */
     DEBUG("constfs_write: read only FS\n");
     /* prevent warning: unused parameter */

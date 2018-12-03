@@ -157,14 +157,11 @@ static void *sender_thread(void *arg) {
                 break;
             }
             case SEMTECH_LORAMAC_RESTRICTED:
-                puts("[LoRa] LoRaMAC restricted");
             case SEMTECH_LORAMAC_BUSY:
-                puts("[LoRa] LoRaMAC busy");
             case SEMTECH_LORAMAC_NOT_JOINED:
-                puts("[LoRa] LoRaMAC not joined");
             case SEMTECH_LORAMAC_JOIN_FAILED:
             {
-                puts("[LoRa] LoRaMAC join failed");
+                printf("[LoRa] LoRaMAC join failed: code %d\n", res);
                 if ((current_join_retries > unwds_get_node_settings().max_retr) &&
                     (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A)) {
                     /* class A node: go to sleep */

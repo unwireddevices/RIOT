@@ -21,18 +21,29 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "periph/gpio.h"
-#include "periph/spi.h"
 #include "lis3dh.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
-#define SPI_MODE            SPI_MODE_3
 
-#define DEV_SPI        (dev->params.spi)
-#define DEV_CS         (dev->params.cs)
-#define DEV_CLK        (dev->params.clk)
-#define DEV_SCALE      (dev->params.scale)
+#if defined (MODULE_LIS3DH_SPI)
+#include "periph/spi.h"
+
+#define SPI_MODE        SPI_MODE_3
+
+#define DEV_SPI         (dev->params.spi)
+#define DEV_CS          (dev->params.cs)
+#define DEV_CLK         (dev->params.clk)
+#define DEV_SCALE       (dev->params.scale)
+#elif defined (MODULE_LIS3DH_I2C)
+#include "periph/i2c.h"
+#define DEV_I2C         (dev->params.i2c)
+#define DEV_ADDR        (dev->params.addr)
+#define DEV_SCALE       (dev->params.scale)
+#endif
+
+
 
 static inline int lis3dh_write_bits(const lis3dh_t *dev, const uint8_t reg,
                                     const uint8_t mask,  const uint8_t values);
@@ -40,6 +51,95 @@ static int lis3dh_write_reg(const lis3dh_t *dev, const uint8_t reg,
                             const uint8_t value);
 static int lis3dh_read_regs(const lis3dh_t *dev, const uint8_t reg,
                             const uint8_t len, uint8_t *buf);
+
+
+#if defined (MODULE_LIS3DH_SPI)
+/**
+ * @brief Read sequential registers from the LIS3DH.
+ *
+ * @param[in]  dev          Device descriptor
+ * @param[in]  reg          The source register starting address
+ * @param[in]  len          Number of bytes to read
+ * @param[out] buf          The values of the source registers will be written
+ *                          here
+ *
+ * @return                  0 on success
+ * @return                  -1 on error
+ */
+static int lis3dh_read_regs(const lis3dh_t *dev, const uint8_t reg,
+                            const uint8_t len, uint8_t *buf)
+{
+    /* Set READ MULTIPLE mode */
+    uint8_t addr = (reg & LIS3DH_SPI_ADDRESS_MASK) | LIS3DH_SPI_READ_MASK |
+                    LIS3DH_SPI_MULTI_MASK;
+
+    /* Acquire exclusive access to the bus. */
+    spi_acquire(DEV_SPI, DEV_CS, SPI_MODE, DEV_CLK);
+    /* Perform the transaction */
+    spi_transfer_regs(DEV_SPI, DEV_CS, addr, NULL, buf, (size_t)len);
+    /* Release the bus for other threads. */
+    spi_release(DEV_SPI);
+
+    return 0;
+}
+
+/**
+ * @brief Write a value to an 8 bit register in the LIS3DH.
+ *
+ * @param[in]  reg          The target register.
+ * @param[in]  value        The value to write.
+ *
+ * @return                  0 on success
+ * @return                  -1 on error
+ */
+
+static int lis3dh_write_reg(const lis3dh_t *dev, const uint8_t reg,
+                            const uint8_t value)
+{
+    /* Set WRITE SINGLE mode */
+    uint8_t addr = ((reg & LIS3DH_SPI_ADDRESS_MASK) | LIS3DH_SPI_WRITE_MASK |
+                    LIS3DH_SPI_SINGLE_MASK);
+
+    /* Acquire exclusive access to the bus. */
+    spi_acquire(DEV_SPI, DEV_CS, SPI_MODE, DEV_CLK);
+    /* Perform the transaction */
+    spi_transfer_reg(DEV_SPI, DEV_CS, addr, value);
+    /* Release the bus for other threads. */
+    spi_release(DEV_SPI);
+
+    return 0;
+}
+
+/**
+ * @brief Write (both set and clear) bits of an 8-bit register on the LIS3DH.
+ *
+ * @param[in]  addr         Register address on the LIS3DH.
+ * @param[in]  mask         Bitmask for the bits to modify.
+ * @param[in]  values       The values to write to the masked bits.
+ *
+ * @return                  0 on success
+ * @return                  -1 on error
+ */
+static inline int lis3dh_write_bits(const lis3dh_t *dev, const uint8_t reg,
+                                    const uint8_t mask, const uint8_t values)
+{
+    uint8_t tmp;
+
+    if (lis3dh_read_regs(dev, reg, 1, &tmp) < 0) {
+        /* Communication error */
+        return -1;
+    }
+
+    tmp &= ~mask;
+    tmp |= (values & mask);
+
+    if (lis3dh_write_reg(dev, reg, tmp) < 0) {
+        /* Communication error */
+        return -1;
+    }
+
+    return 0;
+}
 
 int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params)
 {
@@ -108,6 +208,154 @@ int lis3dh_read_xyz(const lis3dh_t *dev, lis3dh_data_t *acc_data)
 
     return 0;
 }
+#elif defined (MODULE_LIS3DH_I2C)
+/**
+ * @brief Read sequential registers from the LIS3DH.
+ *
+ * @param[in]  dev          Device descriptor
+ * @param[in]  reg          The source register starting address
+ * @param[in]  len          Number of bytes to read
+ * @param[out] buf          The values of the source registers will be written
+ *                          here
+ *
+ * @return                  0 on success
+ * @return                  -1 on error
+ */
+static int lis3dh_read_regs(const lis3dh_t *dev, const uint8_t reg,
+                            const uint8_t len, uint8_t *buf)
+{
+    /* Acquire exclusive access to the bus. */
+    i2c_acquire(dev->params.i2c);
+    /* Perform the transaction */
+    i2c_read_regs(dev->params.i2c, dev->params.addr, (uint16_t)reg, buf, (size_t)len, 0);
+    /* Release the bus for other threads. */
+    i2c_release(dev->params.i2c);
+
+    return 0;
+}
+
+/**
+ * @brief Write a value to an 8 bit register in the LIS3DH.
+ *
+ * @param[in]  reg          The target register.
+ * @param[in]  value        The value to write.
+ *
+ * @return                  0 on success
+ * @return                  -1 on error
+ */
+
+static int lis3dh_write_reg(const lis3dh_t *dev, const uint8_t reg,
+                            const uint8_t value)
+{
+
+    /* Acquire exclusive access to the bus. */
+    i2c_acquire(dev->params.i2c);
+    /* Perform the transaction */
+    i2c_write_reg(dev->params.i2c, dev->params.addr, (uint16_t)reg, value, 0);
+    /* Release the bus for other threads. */
+    i2c_release(dev->params.i2c);
+    return 0;
+}
+
+/**
+ * @brief Write (both set and clear) bits of an 8-bit register on the LIS3DH.
+ *
+ * @param[in]  addr         Register address on the LIS3DH.
+ * @param[in]  mask         Bitmask for the bits to modify.
+ * @param[in]  values       The values to write to the masked bits.
+ *
+ * @return                  0 on success
+ * @return                  -1 on error
+ */
+static inline int lis3dh_write_bits(const lis3dh_t *dev, const uint8_t reg,
+                                    const uint8_t mask, const uint8_t values)
+{
+    uint8_t tmp;
+
+    if (lis3dh_read_regs(dev, reg, 1, &tmp) < 0) {
+        /* Communication error */
+        return -1;
+    }
+
+    tmp &= ~mask;
+    tmp |= (values & mask);
+
+    if (lis3dh_write_reg(dev, reg, tmp) < 0) {
+        /* Communication error */
+        return -1;
+    }
+
+    return 0;
+}
+
+
+int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params)
+{
+    dev->params = *params;
+
+    uint8_t test;
+
+    i2c_acquire(dev->params.i2c);
+
+    /* initialize the chip select line */
+    i2c_init(dev->params.i2c);
+
+
+    /* test connection to the device */
+    lis3dh_read_regs(dev, LIS3DH_REG_WHO_AM_I, 1, &test);
+    if (test != LIS3DH_WHO_AM_I_RESPONSE) {
+        /* chip is not responding correctly */
+        DEBUG("[lis3dh] error reading the who am i reg [0x%02x]\n", (int)test);
+        return -1;
+    }
+
+    /* Clear all settings */
+    lis3dh_write_reg(dev, LIS3DH_REG_CTRL_REG1, LIS3DH_CTRL_REG1_XYZEN_MASK);
+    /* Disable HP filter */
+    lis3dh_write_reg(dev, LIS3DH_REG_CTRL_REG2, 0);
+    /* Disable INT1 interrupt sources */
+    lis3dh_write_reg(dev, LIS3DH_REG_CTRL_REG3, 0);
+    /* Set block data update and little endian, set Normal mode (LP=0, HR=1) */
+    lis3dh_write_reg(dev, LIS3DH_REG_CTRL_REG4,
+                     (LIS3DH_CTRL_REG4_BDU_ENABLE |
+                      LIS3DH_CTRL_REG4_BLE_LITTLE_ENDIAN |
+                      LIS3DH_CTRL_REG4_HR_MASK));
+    /* Disable FIFO */
+    lis3dh_write_reg(dev, LIS3DH_REG_CTRL_REG5, 0);
+    /* Reset INT2 settings */
+    lis3dh_write_reg(dev, LIS3DH_REG_CTRL_REG6, 0);
+
+    /* Configure scale */
+    lis3dh_set_scale(dev, DEV_SCALE);
+
+    return 0;
+}
+
+int lis3dh_read_xyz(const lis3dh_t *dev, lis3dh_data_t *acc_data)
+{
+    int i;
+    /* Set READ MULTIPLE mode */
+    static const uint8_t addr = (LIS3DH_REG_OUT_X_L|0x80);
+                                 
+    /* Acquire exclusive access to the bus. */
+    i2c_acquire(dev->params.i2c);
+    /* Perform the transaction */
+
+    i2c_read_regs(dev->params.i2c, dev->params.addr, (uint16_t)addr, acc_data, sizeof(lis3dh_data_t), 0);
+    /* Release the bus for other threads. */
+    i2c_release(dev->params.i2c);
+
+    /* Scale to milli-G */
+    for (i = 0; i < 3; ++i) {
+        int32_t tmp = (int32_t)(((int16_t *)acc_data)[i]);
+        tmp *= dev->scale;
+        tmp /= 32768;
+        (((int16_t *)acc_data)[i]) = (int16_t)tmp;
+    }
+
+    return 0;
+}
+#endif
 
 int lis3dh_read_aux_adc1(const lis3dh_t *dev, int16_t *out)
 {
@@ -215,93 +463,6 @@ int lis3dh_get_fifo_level(const lis3dh_t *dev)
     }
     level = (reg & LIS3DH_FIFO_SRC_REG_FSS_MASK) >> LIS3DH_FIFO_SRC_REG_FSS_SHIFT;
     return level;
-}
-
-
-/**
- * @brief Read sequential registers from the LIS3DH.
- *
- * @param[in]  dev          Device descriptor
- * @param[in]  reg          The source register starting address
- * @param[in]  len          Number of bytes to read
- * @param[out] buf          The values of the source registers will be written
- *                          here
- *
- * @return                  0 on success
- * @return                  -1 on error
- */
-static int lis3dh_read_regs(const lis3dh_t *dev, const uint8_t reg,
-                            const uint8_t len, uint8_t *buf)
-{
-    /* Set READ MULTIPLE mode */
-    uint8_t addr = (reg & LIS3DH_SPI_ADDRESS_MASK) | LIS3DH_SPI_READ_MASK |
-                    LIS3DH_SPI_MULTI_MASK;
-
-    /* Acquire exclusive access to the bus. */
-    spi_acquire(DEV_SPI, DEV_CS, SPI_MODE, DEV_CLK);
-    /* Perform the transaction */
-    spi_transfer_regs(DEV_SPI, DEV_CS, addr, NULL, buf, (size_t)len);
-    /* Release the bus for other threads. */
-    spi_release(DEV_SPI);
-
-    return 0;
-}
-
-/**
- * @brief Write a value to an 8 bit register in the LIS3DH.
- *
- * @param[in]  reg          The target register.
- * @param[in]  value        The value to write.
- *
- * @return                  0 on success
- * @return                  -1 on error
- */
-static int lis3dh_write_reg(const lis3dh_t *dev, const uint8_t reg,
-                            const uint8_t value)
-{
-    /* Set WRITE SINGLE mode */
-    uint8_t addr = ((reg & LIS3DH_SPI_ADDRESS_MASK) | LIS3DH_SPI_WRITE_MASK |
-                    LIS3DH_SPI_SINGLE_MASK);
-
-    /* Acquire exclusive access to the bus. */
-    spi_acquire(DEV_SPI, DEV_CS, SPI_MODE, DEV_CLK);
-    /* Perform the transaction */
-    spi_transfer_reg(DEV_SPI, DEV_CS, addr, value);
-    /* Release the bus for other threads. */
-    spi_release(DEV_SPI);
-
-    return 0;
-}
-
-/**
- * @brief Write (both set and clear) bits of an 8-bit register on the LIS3DH.
- *
- * @param[in]  addr         Register address on the LIS3DH.
- * @param[in]  mask         Bitmask for the bits to modify.
- * @param[in]  values       The values to write to the masked bits.
- *
- * @return                  0 on success
- * @return                  -1 on error
- */
-static inline int lis3dh_write_bits(const lis3dh_t *dev, const uint8_t reg,
-                                    const uint8_t mask, const uint8_t values)
-{
-    uint8_t tmp;
-
-    if (lis3dh_read_regs(dev, reg, 1, &tmp) < 0) {
-        /* Communication error */
-        return -1;
-    }
-
-    tmp &= ~mask;
-    tmp |= (values & mask);
-
-    if (lis3dh_write_reg(dev, reg, tmp) < 0) {
-        /* Communication error */
-        return -1;
-    }
-
-    return 0;
 }
 
 /** @} */

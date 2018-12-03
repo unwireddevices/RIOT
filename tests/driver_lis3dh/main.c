@@ -31,16 +31,26 @@
 
 #define WATERMARK_LEVEL 16
 
-static volatile int int1_count = 0;
+// static volatile int int1_count = 0;
 
-static void test_int1(void *arg)
-{
-    volatile int *int1_count_ptr = arg;
-    ++(*int1_count_ptr);
-}
+// static void test_int1(void *arg)
+// {
+//     volatile int *int1_count_ptr = arg;
+//     ++(*int1_count_ptr);
+// }
 
 int main(void)
-{
+{   
+
+    lis3dh_params_t lis3dh_params[] = { 
+        {.i2c   = I2C_DEV(0),   
+        .addr  = LIS3DH_I2C_SAD_L,    
+        .int1  = GPIO_PIN(PORT_A, 14),  
+        .int2  = GPIO_UNDEF,  
+        .scale = 4,
+        .odr   = LIS3DH_ODR_100Hz}
+
+    };
     lis3dh_t dev;
     lis3dh_data_t acc_data;
 
@@ -82,68 +92,68 @@ int main(void)
         return 1;
     }
 
-    puts("Enable streaming FIFO mode... ");
-    if (lis3dh_set_fifo(&dev, LIS3DH_FIFO_MODE_STREAM, WATERMARK_LEVEL) == 0) {
-        puts("[OK]");
-    }
-    else {
-        puts("[Failed]\n");
-        return 1;
-    }
+    // puts("Enable streaming FIFO mode... ");
+    // if (lis3dh_set_fifo(&dev, LIS3DH_FIFO_MODE_STREAM, WATERMARK_LEVEL) == 0) {
+    //     puts("[OK]");
+    // }
+    // else {
+    //     puts("[Failed]\n");
+    //     return 1;
+    // }
 
-    puts("Enable temperature reading... ");
-    if (lis3dh_set_aux_adc(&dev, 1, 1) == 0) {
-        puts("[OK]");
-    }
-    else {
-        puts("[Failed]\n");
-        return 1;
-    }
+    // puts("Enable temperature reading... ");
+    // if (lis3dh_set_aux_adc(&dev, 1, 1) == 0) {
+    //     puts("[OK]");
+    // }
+    // else {
+    //     puts("[Failed]\n");
+    //     return 1;
+    // }
 
-    puts("Set INT1 watermark function... ");
-    if (lis3dh_set_int1(&dev, LIS3DH_CTRL_REG3_I1_WTM_MASK) == 0) {
-        puts("[OK]");
-    }
-    else {
-        puts("[Failed]\n");
-        return 1;
-    }
+    // puts("Set INT1 watermark function... ");
+    // if (lis3dh_set_int1(&dev, LIS3DH_CTRL_REG3_I1_WTM_MASK) == 0) {
+    //     puts("[OK]");
+    // }
+    // else {
+    //     puts("[Failed]\n");
+    //     return 1;
+    // }
 
-    puts("Set INT1 callback");
-    if (gpio_init_int(lis3dh_params[0].int1, GPIO_IN, GPIO_RISING,
-                      test_int1, (void*)&int1_count) == 0) {
-        puts("[OK]");
-    }
-    else {
-        puts("[Failed]\n");
-        return 1;
-    }
+    // puts("Set INT1 callback");
+    // if (gpio_init_int(lis3dh_params[0].int1, GPIO_IN, GPIO_RISING,
+    //                   test_int1, (void*)&int1_count) == 0) {
+    //     puts("[OK]");
+    // }
+    // else {
+    //     puts("[Failed]\n");
+    //     return 1;
+    // }
 
     puts("LIS3DH init done.\n");
 
     while (1) {
-        int fifo_level;
+        // int fifo_level;
 
-        fifo_level = lis3dh_get_fifo_level(&dev);
-        printf("int1_count = %d\n", int1_count);
-        printf("Reading %d measurements\n", fifo_level);
-        while (fifo_level > 0) {
-            int16_t temperature;
-            int int1;
+        // fifo_level = lis3dh_get_fifo_level(&dev);
+        // printf("int1_count = %d\n", int1_count);
+        // printf("Reading %d measurements\n", fifo_level);
+        // while (fifo_level > 0) {
+            // int16_t temperature;
+            // int int1;
             if (lis3dh_read_xyz(&dev, &acc_data) != 0) {
                 puts("Reading acceleration data... ");
                 puts("[Failed]\n");
             }
-            if (lis3dh_read_aux_adc3(&dev, &temperature) != 0) {
-                puts("Reading temperature data... ");
-                puts("[Failed]\n");
-                return 1;
-            }
-            int1 = gpio_read(lis3dh_params[0].int1);
-            printf("X: %6d Y: %6d Z: %6d Temp: %6d, INT1: %08x\n",
-                   acc_data.acc_x, acc_data.acc_y, acc_data.acc_z, temperature, int1);
-            --fifo_level;
-        }
+            // if (lis3dh_read_aux_adc3(&dev, &temperature) != 0) {
+            //     puts("Reading temperature data... ");
+            //     puts("[Failed]\n");
+            //     return 1;
+            // }
+            // int1 = gpio_read(lis3dh_params[0].int1);
+            printf("X: %6d Y: %6d Z: %6d \n",
+                   acc_data.acc_x, acc_data.acc_y, acc_data.acc_z);
+            // --fifo_level;
+        // }
 
         xtimer_usleep(SLEEP);
     }

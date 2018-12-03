@@ -24,7 +24,12 @@
 
 #include <stdint.h>
 
+#if defined (MODULE_LIS3DH_SPI)
 #include "periph/spi.h"
+#elif defined (MODULE_LIS3DH_I2C)
+#include "periph/i2c.h"
+#endif
+
 #include "periph/gpio.h"
 
 #ifdef __cplusplus
@@ -722,6 +727,7 @@ extern "C" {
 /**
  * @brief   Configuration parameters for LIS3DH devices
  */
+#if defined (MODULE_LIS3DH_SPI)
 typedef struct {
     spi_t spi;              /**< SPI device the sensor is connected to */
     spi_clk_t clk;          /**< designated clock speed of the SPI bus */
@@ -731,6 +737,16 @@ typedef struct {
     uint8_t scale;          /**< Default sensor scale: 2, 4, 8, or 16 (G) */
     uint8_t odr;            /**< Default sensor ODR setting: LIS3DH_ODR_xxxHz */
 } lis3dh_params_t;
+#elif defined (MODULE_LIS3DH_I2C)
+typedef struct {
+    i2c_t i2c;              /**< I2C device */
+    uint8_t addr;           /**< I2C address */
+    gpio_t int1;            /**< INT1 pin */
+    gpio_t int2;            /**< INT2 (DRDY) pin */
+    uint8_t scale;          /**< Default sensor scale: 2, 4, 8, or 16 (G) */
+    uint8_t odr;            /**< Default sensor ODR setting: LIS3DH_ODR_xxxHz */
+} lis3dh_params_t;
+#endif
 
 /**
  * @brief   Device descriptor for LIS3DH sensors

@@ -62,6 +62,7 @@ static inline void _clear_addr(I2C_TypeDef *dev);
 static inline int _write(I2C_TypeDef *dev, const uint8_t *data, int length);
 static inline int _stop(I2C_TypeDef *dev);
 static inline int _wait_ready(I2C_TypeDef *dev);
+static int _wait_sr1(I2C_TypeDef *i2c, int mask) ;
 
 /**
  * @brief Array holding one pre-initialized mutex for each I2C device
@@ -212,7 +213,6 @@ int i2c_read_bytes(i2c_t dev, uint16_t address, void *data, size_t length,
 
     uint16_t tick = TICK_TIMEOUT;
 
-    size_t n = length;
     char *in = (char *)data;
 
     I2C_TypeDef *i2c = i2c_config[dev].dev;

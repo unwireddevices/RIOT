@@ -73,7 +73,7 @@ index c6837c2..2ec35d8 100644
 +    //memset1( AesContext.ksch, '\0', 240 );
 +    //aes_set_key( key, 16, &AesContext );
 +    aes_init(&AesContext, key, 16);
-+    //aes_encrypt( buffer, decBuffer, &AesContext );    
++    //aes_encrypt( buffer, decBuffer, &AesContext );
 +    aes_encrypt(&AesContext, buffer, decBuffer);
      // Check if optional CFList is included
      if( size >= 16 )

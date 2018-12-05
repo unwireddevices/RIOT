@@ -80,6 +80,15 @@ void adxl345_read(const adxl345_t *dev, adxl345_data_t *data)
     assert(dev && data);
 
     i2c_acquire(ADXL345_BUS);
+    
+    uint8_t status = 0;
+    do {
+        if (i2c_read_regs(ADXL345_BUS, ADXL345_ADDR, ADXL345_INT_SOURCE, &status, 1, 0) < 0) {
+            i2c_release(ADXL345_BUS);
+        }
+    } while (!(status & ADXL345_DATA_READY));
+    
+    
     i2c_read_regs(ADXL345_BUS, ADXL345_ADDR, ADXL345_DATA_X0, (void *)result, 6, 0);
     i2c_release(ADXL345_BUS);
 

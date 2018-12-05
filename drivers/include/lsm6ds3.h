@@ -120,4 +120,18 @@ bool lsm6ds3_read_gyro(lsm6ds3_t *dev, lsm6ds3_data_t *data);
  */
 int lsm6ds3_read_temp(lsm6ds3_t *dev);
 
+/**
+ * @brief Enables the sensor
+ *
+ * @param[in]   *dev   LSM6DS3 device pointer
+ */
+void lsm6ds3_poweron(lsm6ds3_t *dev);
+
+/**
+ * @brief Shuts down the sensor
+ *
+ * @param[in]   *dev   LSM6DS3 device pointer
+ */
+void lsm6ds3_poweroff(lsm6ds3_t *dev);
+
 #endif /* LSM6DS3_H_ */

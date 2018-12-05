@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 HAW Hamburg
+ * Copyright (C) 2018 Unwired Devices LLC
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -14,6 +15,7 @@
  * @brief       Device driver implementation for the LIS3MDL 3-axis magnetometer
  *
  * @author      René Herthel <rene-herthel@outlook.de>
+ * @author      Oleg Artamonov <oleg@unwds.com>
  *
  * @}
  */
@@ -73,7 +75,7 @@ int lis3mdl_init(lis3mdl_t *dev, const lis3mdl_params_t *params)
               tmp, LIS3MDL_CHIP_ID);
         return -1;
     }
-    
+
     tmp = ( LIS3MDL_MASK_REG1_TEMP_EN   /* enable temperature sensor */
           | dev->params.xy_mode         /* set x-, y-axis operative mode */
           | dev->params.odr);           /* set output data rate */
@@ -90,6 +92,9 @@ int lis3mdl_init(lis3mdl_t *dev, const lis3mdl_params_t *params)
 
     /* enable BDU (block data update) */ 
     i2c_write_reg(DEV_I2C, DEV_ADDR, LIS3MDL_CTRL_REG5, LIS3MDL_MASK_REG5_BDU, 0);
+    
+    tmp = 0xff;
+    i2c_write_reg(DEV_I2C, DEV_ADDR, 0x1E, tmp, 0);
 
     i2c_release(DEV_I2C);
 
@@ -99,8 +104,15 @@ int lis3mdl_init(lis3mdl_t *dev, const lis3mdl_params_t *params)
 void lis3mdl_read_mag(const lis3mdl_t *dev, lis3mdl_3d_data_t *data)
 {
     uint8_t tmp[2] = {0, 0};
+    uint8_t status = 0;
 
     i2c_acquire(DEV_I2C);
+
+    /* wait for data to be ready for all axes */
+    do {
+        i2c_read_reg(DEV_I2C, DEV_ADDR, LIS3MDL_STATUS_REG, &status, 0);
+    } while (!(status & LIS3MDL_MASK_STATUS_REG_ZYXDA));
+
 
     i2c_read_reg(DEV_I2C, DEV_ADDR, LIS3MDL_OUT_X_L_REG, &tmp[0], 0);
     i2c_read_reg(DEV_I2C, DEV_ADDR, LIS3MDL_OUT_X_H_REG, &tmp[1], 0);
@@ -144,7 +156,7 @@ void lis3mdl_read_mag(const lis3mdl_t *dev, lis3mdl_3d_data_t *data)
             scale = 1;
             break;
     }
-    
+
     data->x_axis = (1000 * (int32_t)x)/scale;
     data->y_axis = (1000 * (int32_t)y)/scale;
     data->z_axis = (1000 * (int32_t)z)/scale;
@@ -165,29 +177,36 @@ void lis3mdl_read_temp(const lis3mdl_t *dev, int16_t *value)
 
     *value = ((tmp[1] << 8) | tmp[0]);
     DEBUG("LIS3MDL: value %d(%04X)\n", *value, *value);
-    
+
     *value = _twos_complement(*value);
     DEBUG("LIS3MDL: value %d\n", *value);
-    
+
     *value = (TEMP_OFFSET + (*value / TEMP_DIVIDER));
     DEBUG("LIS3MDL: value %d\n", *value);
 }
 
-void lis3mdl_enable(const lis3mdl_t *dev)
+void lis3mdl_poweron(const lis3mdl_t *dev)
 {
     i2c_acquire(DEV_I2C);
-    /* Z-axis medium-power mode */
-    i2c_write_reg(DEV_I2C, DEV_ADDR,
-                  LIS3MDL_CTRL_REG3, LIS3MDL_MASK_REG3_Z_MEDIUM_POWER, 0);
+
+    uint8_t tmp;
+    i2c_read_regs(DEV_I2C, DEV_ADDR, LIS3MDL_CTRL_REG3, &tmp, 1, 0);
+    tmp &= ~LIS3MDL_MASK_REG3_MODE;
+    tmp |= dev->params.op_mode;
+
+    i2c_write_reg(DEV_I2C, DEV_ADDR, LIS3MDL_CTRL_REG3, tmp, 0);
     i2c_release(DEV_I2C);
 }
 
-void lis3mdl_disable(const lis3mdl_t *dev)
+void lis3mdl_poweroff(const lis3mdl_t *dev)
 {
-    uint8_t tmp = ( LIS3MDL_MASK_REG3_LOW_POWER_EN   /**< enable power-down mode */
-                  | LIS3MDL_MASK_REG3_Z_LOW_POWER);  /**< Z-axis low-power mode */
-
     i2c_acquire(DEV_I2C);
+    uint8_t tmp;
+
+    i2c_read_regs(DEV_I2C, DEV_ADDR, LIS3MDL_CTRL_REG3, &tmp, 1, 0);
+    tmp &= ~LIS3MDL_MASK_REG3_MODE;
+    tmp |= LIS3MDL_OP_PDOWN;
+
     i2c_write_reg(DEV_I2C, DEV_ADDR, LIS3MDL_CTRL_REG3, tmp, 0);
     i2c_release(DEV_I2C);
 }

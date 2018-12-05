@@ -129,22 +129,26 @@ static bool init_sensor(void) {
     lis2hh12_params.i2c_addr = 0x1E;                    /**< Accelerometer I2C address */
     lis2hh12_params.odr = LIS2HH12_ODR_50HZ;            /**< Output data rate */
     lis2hh12_params.scale = LIS2HH12_SCALE_2G;          /**< Scale factor */
+    lis2hh12_params.resolution = LIS2HH12_RES_HR;       /**< Resolution */
 
 	printf("[umdk-" _UMDK_NAME_ "] Initializing INCLINOMETER on I2C #%d\n", lis2hh12_params.i2c);
     
     if (lis2hh12_init(&dev_lis2hh12, &lis2hh12_params) == 0) {
         puts("[umdk-" _UMDK_NAME_ "] STMicro LIS2HH12 sensor found");
         active_sensors |= UMDK_INCLINOMETER_LIS2HH12;
+        lis2hh12_poweroff(&dev_lis2hh12);
         return true;
     }
     
     adxl345_params_t adxl_params = ADXL345_PARAMS_DEFAULT;
     adxl_params.i2c = I2C_DEV(UMDK_INCLINOMETER_I2C);
     adxl_params.addr = ADXL345_PARAM_ADDR;
+    adxl_params.range = ADXL345_RANGE_2G;
     
     if (adxl345_init(&dev_adxl345, &adxl_params) == ADXL345_OK) {
         puts("[umdk-" _UMDK_NAME_ "] Analog Devices ADXL345 sensor found");
         active_sensors |= UMDK_INCLINOMETER_ADXL345;
+        adxl345_set_standby(&dev_adxl345);
         return true;
     }
     
@@ -204,10 +208,12 @@ static void *measure_thread(void *arg) {
         if (active_sensors & UMDK_INCLINOMETER_LIS2HH12) {
             lis2hh12_data_t lis2hh12_data;
         
+            lis2hh12_poweron(&dev_lis2hh12);
             lis2hh12_read_xyz(&dev_lis2hh12, &lis2hh12_data);
 
             int16_t temp_value;
             lis2hh12_read_temp(&dev_lis2hh12, &temp_value);
+            lis2hh12_poweroff(&dev_lis2hh12);
 
             /* Copy measurements into response */
             x = lis2hh12_data.x_axis;
@@ -217,12 +223,9 @@ static void *measure_thread(void *arg) {
         
         if (active_sensors & UMDK_INCLINOMETER_ADXL345) {
             adxl345_set_measure(&dev_adxl345);
-            
-            rtctimers_millis_sleep(20);
-            
             adxl345_data_t adxl345_data;
             adxl345_read(&dev_adxl345, &adxl345_data);
-            adxl345_set_sleep(&dev_adxl345);
+            adxl345_set_standby(&dev_adxl345);
         
             x = adxl345_data.x;
             y = adxl345_data.y;
@@ -231,7 +234,9 @@ static void *measure_thread(void *arg) {
         
         if (active_sensors & UMDK_INCLINOMETER_LSM6DS3) {
             lsm6ds3_data_t lsm6ds3_data;
+            lsm6ds3_poweron(&dev_lsm6ds3);
             lsm6ds3_read_acc(&dev_lsm6ds3, &lsm6ds3_data);
+            lsm6ds3_poweroff(&dev_lsm6ds3);
             
             x = lsm6ds3_data.acc_x;
             y = lsm6ds3_data.acc_y;

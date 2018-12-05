@@ -55,8 +55,9 @@ extern "C" {
 #define LIS3DH_REG_OUT_AUX_ADC2_H                (0x0B)
 #define LIS3DH_REG_OUT_AUX_ADC3_L                (0x0C)
 #define LIS3DH_REG_OUT_AUX_ADC3_H                (0x0D)
-#define LIS3DH_REG_INT_COUNTER_REG               (0x0E)
+#define LIS3DH_REG_RESERVED                      (0x0E)
 #define LIS3DH_REG_WHO_AM_I                      (0x0F)
+#define LIS3DH_REG_CTRL_REG0                     (0x1E)
 #define LIS3DH_REG_TEMP_CFG_REG                  (0x1F)
 #define LIS3DH_REG_CTRL_REG1                     (0x20)
 #define LIS3DH_REG_CTRL_REG2                     (0x21)
@@ -78,12 +79,19 @@ extern "C" {
 #define LIS3DH_REG_INT1_SOURCE                   (0x31)
 #define LIS3DH_REG_INT1_THS                      (0x32)
 #define LIS3DH_REG_INT1_DURATION                 (0x33)
+#define LIS3DH_REG_INT2_CFG                      (0x34)
+#define LIS3DH_REG_INT2_SOURCE                   (0x35)
+#define LIS3DH_REG_INT2_THS                      (0x36)
+#define LIS3DH_REG_INT2_DURATION                 (0x37)     
 #define LIS3DH_REG_CLICK_CFG                     (0x38)
 #define LIS3DH_REG_CLICK_SRC                     (0x39)
 #define LIS3DH_REG_CLICK_THS                     (0x3A)
 #define LIS3DH_REG_TIME_LIMIT                    (0x3B)
 #define LIS3DH_REG_TIME_LATENCY                  (0x3C)
 #define LIS3DH_REG_TIME_WINDOW                   (0x3D)
+#define LIS3DH_REG_ACT_THS                       (0x3E)
+#define LIS3DH_REG_IACT_DUR                      (0x3F)
+     
 /** @} */
 
 /*
@@ -112,6 +120,22 @@ extern "C" {
  */
 #define LIS3DH_TEMP_CFG_REG_TEMP_EN_MASK         (1 << 6)
 /** @} */ /* TEMP_CFG_REG bitfield macros */
+
+
+/**
+ * @name    CTRL_REG0 bitfield macros
+ * @{
+ */
+/**
+ * @brief  Disconnect SDO/SA0 pull-up.
+ *
+ * Default value: 0
+ *
+ * 0: PU connected; 1: PU disconnected
+ */     
+#define LIS3DH_CTRL_REG0_SDO_PU_DISC_MASK        (1 << 7)
+
+/** @} */  /* CTRL_REG0 bitfield macros */
 
 /**
  * @name    CTRL_REG1 bitfield macros
@@ -492,6 +516,24 @@ extern "C" {
  * 4D detection is enabled on INT1 when 6D bit on INT1_CFG is set to 1.
  */
 #define LIS3DH_CTRL_REG5_D4D_I1_MASK             (1 << 2)
+/**
+ * @brief   Latch interrupt request on INT2
+ *
+ * Latch interrupt request on INT2_SRC register, with INT2_SRC register
+ * cleared by reading INT2_SRC itself.
+ *
+ * Default value: 0
+ *
+ *  0. interrupt request not latched
+ *  1. interrupt request latched
+ */
+#define LIS3DH_CTRL_REG5_LIR_I2_MASK             (1 << 1)
+/**
+ * @brief   4D enable
+ *
+ * 4D detection is enabled on INT2 when 6D bit on INT2_CFG is set to 1.
+ */
+#define LIS3DH_CTRL_REG5_D4D_I2_MASK             (1 << 0)  
 /** @} */ /* CTRL_REG4 bitfield macros */
 
 /**

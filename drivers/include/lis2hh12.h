@@ -74,13 +74,22 @@ typedef enum {
 } lis2hh12_odr_t;
 
 /**
+ * @brief   LIS2HH12 high-res mode
+ */
+typedef enum {
+    LIS2HH12_RES_NORMAL = 0x00,     /**< Normal mode    */
+    LIS2HH12_RES_HR     = 0x80,     /**< High resolution mode  */
+} lis2hh12_res_t;
+
+/**
  * @brief   LIS2HH12 configuration parameters
  */
 typedef struct {
     i2c_t i2c;                      /**< I2C device                */
     uint8_t i2c_addr;               /**< I2C address               */
     lis2hh12_odr_t odr;             /**< Output data range         */
-    lis2hh12_scale_t scale;         /**< sampling sensitivity used */
+    lis2hh12_scale_t scale;         /**< Sampling sensitivity used */
+    lis2hh12_res_t resolution;      /**< Resolution */
 } lis2hh12_params_t;
 
 

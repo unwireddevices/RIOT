@@ -30,7 +30,7 @@
 extern "C" {
 #endif
 
-static bool read_register(lsm6ds3_t *dev, uint8_t *result, uint8_t reg)
+static bool read_register(lsm6ds3_t *dev, uint8_t reg, uint8_t *result)
 {
     i2c_acquire(dev->params.i2c);
 
@@ -44,7 +44,7 @@ static bool read_register(lsm6ds3_t *dev, uint8_t *result, uint8_t reg)
     return true;
 }
 
-bool read_register_int16(lsm6ds3_t *dev, int16_t *result, uint8_t reg)
+bool read_register_int16(lsm6ds3_t *dev, uint8_t reg, int16_t *result)
 {
     i2c_acquire(dev->params.i2c);
 
@@ -102,7 +102,7 @@ static bool lsm6ds3_configure(lsm6ds3_t *dev)
     }
 
     /* Set ODR bit */
-    if (!read_register(dev, &data, LSM6DS3_ACC_GYRO_CTRL4_C)) {
+    if (!read_register(dev, LSM6DS3_ACC_GYRO_CTRL4_C, &data)) {
         return false;
     }
 
@@ -144,16 +144,12 @@ int lsm6ds3_init(lsm6ds3_t *dev)
     
     /* Initialize I2C bus */
     i2c_acquire(dev->params.i2c);
-    // if (i2c_init_master(dev->params.i2c, I2C_SPEED_NORMAL) < 0) {
-    //     i2c_release(dev->params.i2c);
-    //     return -1;
-    // }
     i2c_init(dev->params.i2c);
     i2c_release(dev->params.i2c);
     
     /* Check device ID */
     uint8_t id;
-    read_register(dev, &id, LSM6DS3_ACC_GYRO_WHO_AM_I_REG);
+    read_register(dev, LSM6DS3_ACC_GYRO_WHO_AM_I_REG, &id);
 
     if (id != LSM6DS3_DEFAULT_ID) {
         return -3;
@@ -168,32 +164,32 @@ int lsm6ds3_init(lsm6ds3_t *dev)
 
 static bool read_raw_accel_x(lsm6ds3_t *dev, int16_t *data)
 {
-    return read_register_int16(dev, data, LSM6DS3_ACC_GYRO_OUTX_L_XL);
+    return read_register_int16(dev, LSM6DS3_ACC_GYRO_OUTX_L_XL, data);
 }
 
 static bool read_raw_accel_y(lsm6ds3_t *dev, int16_t *data)
 {
-    return read_register_int16(dev, data, LSM6DS3_ACC_GYRO_OUTY_L_XL);
+    return read_register_int16(dev, LSM6DS3_ACC_GYRO_OUTY_L_XL, data);
 }
 
 static bool read_raw_accel_z(lsm6ds3_t *dev, int16_t *data)
 {
-    return read_register_int16(dev, data, LSM6DS3_ACC_GYRO_OUTZ_L_XL);
+    return read_register_int16(dev, LSM6DS3_ACC_GYRO_OUTZ_L_XL, data);
 }
 
 static bool read_raw_gyro_x(lsm6ds3_t *dev, int16_t *data)
 {
-    return read_register_int16(dev, data, LSM6DS3_ACC_GYRO_OUTX_L_G);
+    return read_register_int16(dev, LSM6DS3_ACC_GYRO_OUTX_L_G, data);
 }
 
 static bool read_raw_gyro_y(lsm6ds3_t *dev, int16_t *data)
 {
-    return read_register_int16(dev, data, LSM6DS3_ACC_GYRO_OUTY_L_G);
+    return read_register_int16(dev, LSM6DS3_ACC_GYRO_OUTY_L_G, data);
 }
 
 static bool read_raw_gyro_z(lsm6ds3_t *dev, int16_t *data)
 {
-    return read_register_int16(dev, data, LSM6DS3_ACC_GYRO_OUTZ_L_G);
+    return read_register_int16(dev, LSM6DS3_ACC_GYRO_OUTZ_L_G, data);
 }
 
 static inline int convert_acc(lsm6ds3_t *dev, int16_t data)
@@ -243,6 +239,11 @@ static inline int32_t convert_gyr(lsm6ds3_t *dev, int16_t data) {
 bool lsm6ds3_read_acc(lsm6ds3_t *dev, lsm6ds3_data_t *data)
 {
     int16_t acc_x, acc_y, acc_z;
+    
+    uint8_t status;
+    do {
+        read_register(dev, LSM6DS3_ACC_GYRO_STATUS_REG, &status);
+    } while(!(status & LSM6DS3_ACC_GYRO_XLDA_DATA_AVAIL));
 
     if (!read_raw_accel_x(dev, &acc_x)) {
         return false;
@@ -267,6 +268,11 @@ bool lsm6ds3_read_gyro(lsm6ds3_t *dev, lsm6ds3_data_t *data)
 {
     int16_t gyr_x, gyr_y, gyr_z;
     
+    uint8_t status;
+    do {
+        read_register(dev, LSM6DS3_ACC_GYRO_STATUS_REG, &status);
+    } while(!(status & LSM6DS3_ACC_GYRO_GDA_DATA_AVAIL));
+    
     if (!read_raw_gyro_x(dev, &gyr_x)) {
         return false;
     }
@@ -288,11 +294,50 @@ bool lsm6ds3_read_gyro(lsm6ds3_t *dev, lsm6ds3_data_t *data)
 
 int lsm6ds3_read_temp(lsm6ds3_t *dev)
 {
+    uint8_t status;
+    do {
+        read_register(dev, LSM6DS3_ACC_GYRO_STATUS_REG, &status);
+    } while(!(status & LSM6DS3_ACC_GYRO_TDA_DATA_AVAIL));
+    
     int16_t out = 0;
-    read_register_int16(dev, &out, LSM6DS3_ACC_GYRO_OUT_TEMP_L);
+    read_register_int16(dev, LSM6DS3_ACC_GYRO_OUT_TEMP_L, &out);
    
     /* millicelsius */
     return (25000 + ((int)out*1000)/16);
+}
+
+void lsm6ds3_poweron(lsm6ds3_t *dev)
+{
+    uint8_t tmp;
+    
+    read_register(dev, LSM6DS3_ACC_GYRO_CTRL1_XL, &tmp);
+    /* clear ODR bits */
+    tmp &= ~0xF0;
+    /* set ODR bits */
+    tmp |= dev->params.accel_sample_rate;
+    write_register(dev, LSM6DS3_ACC_GYRO_CTRL1_XL, tmp);
+    
+    read_register(dev, LSM6DS3_ACC_GYRO_CTRL1_XL, &tmp);
+    /* clear ODR bits */
+    tmp &= ~0xF0;
+    /* set ODR bits */
+    tmp |= dev->params.gyro_sample_rate;
+    write_register(dev, LSM6DS3_ACC_GYRO_CTRL2_G, tmp);
+}
+
+void lsm6ds3_poweroff(lsm6ds3_t *dev)
+{
+    uint8_t tmp;
+    
+    read_register(dev, LSM6DS3_ACC_GYRO_CTRL1_XL, &tmp);
+    /* clear ODR bits */
+    tmp &= ~0xF0;
+    write_register(dev, LSM6DS3_ACC_GYRO_CTRL1_XL, tmp);
+    
+    read_register(dev, LSM6DS3_ACC_GYRO_CTRL2_G, &tmp);
+    /* clear ODR bits */
+    tmp &= ~0xF0;
+    write_register(dev, LSM6DS3_ACC_GYRO_CTRL2_G, tmp);
 }
 
 #ifdef __cplusplus

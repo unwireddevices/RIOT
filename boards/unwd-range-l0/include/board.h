@@ -73,8 +73,8 @@ extern "C" {
 #define UNWD_CONNECT_BTN		GPIO_UNDEF
 
 /** LEDs */
-#define LED_GREEN   GPIO_PIN(PORT_A, 0)
-#define LED_RED     GPIO_UNDEF
+#define LED0_PIN   GPIO_PIN(PORT_A, 0)
+#define LED1_PIN     GPIO_UNDEF
 
 /** @} */
 

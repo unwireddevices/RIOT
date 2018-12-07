@@ -126,7 +126,7 @@ static int node_join(semtech_loramac_t *ls) {
         current_join_retries++;
     }
     
-    blink_led(LED_GREEN);
+    blink_led(LED0_PIN);
     
     if (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A) {
         printf("[LoRa] joining, attempt %d / %d\n", current_join_retries, unwds_get_node_settings().max_retr + 1);
@@ -237,7 +237,7 @@ static bool appdata_received(uint8_t *buf, size_t buflen)
     bytes_to_hex(buf, buflen, hex, false);
 
     printf("[LoRa] received data: \"%s\"\n", hex);
-    blink_led(LED_GREEN);
+    blink_led(LED0_PIN);
 
     if (buflen < 2) {
         return true;
@@ -635,7 +635,7 @@ static void unwds_callback(module_data_t *buf)
             break;
     }
 
-    blink_led(LED_GREEN);
+    blink_led(LED0_PIN);
 }
 
 static int unwds_init(void) {

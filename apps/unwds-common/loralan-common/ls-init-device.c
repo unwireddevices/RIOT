@@ -359,7 +359,7 @@ static void init_config(shell_command_t *commands)
     /* Set our commands for shell */
     memcpy(commands, shell_commands_cfg, sizeof(shell_commands_cfg));
 
-    blink_led(LED_GREEN);
+    blink_led(LED0_PIN);
 
     print_help();
     print_config();
@@ -458,8 +458,8 @@ static  rtctimers_millis_t  sys_on_off;
 
 static void system_on_off (void *arg) {
     if (arg) {
-        gpio_clear(LED_RED);
-        gpio_clear(LED_GREEN);
+        gpio_clear(LED1_PIN);
+        gpio_clear(LED0_PIN);
         /* stop all activity */
         rtctimers_millis_remove_all();
         /* restart watchdog timer */
@@ -469,7 +469,7 @@ static void system_on_off (void *arg) {
         board_sleep();
         puts("*** SYSTEM HALTED BY USER ***");
     } else {
-        gpio_clear(LED_GREEN);
+        gpio_clear(LED0_PIN);
         puts("*** REBOOTING SYSTEM ***");
         pm_reboot();
     }
@@ -523,12 +523,12 @@ static void connect_btn_pressed (void *arg) {
             sys_on_off.callback = system_on_off;
             
             if (board_is_off) {
-                gpio_set(LED_GREEN);
+                gpio_set(LED0_PIN);
                 sys_on_off.arg = NULL;
                 rtctimers_millis_set(&sys_on_off, 1000);
             } else {            
                 board_is_off = true;
-                gpio_set(LED_RED);
+                gpio_set(LED1_PIN);
                 sys_on_off.arg = arg;
                 rtctimers_millis_set(&sys_on_off, 1000);
             }
@@ -592,7 +592,7 @@ void unwds_device_init(void *unwds_callback, void *unwds_init, void *unwds_join,
     
     if (board_init() != 0) {        
         puts("ls: error initializing device");
-        gpio_set(LED_GREEN);
+        gpio_set(LED0_PIN);
         rtctimers_millis_sleep(5000);
         NVIC_SystemReset();
     }
@@ -611,9 +611,9 @@ void unwds_device_init(void *unwds_callback, void *unwds_init, void *unwds_join,
         rtc_save_backup(bootmode, RTC_REGBACKUP_BOOTMODE);
         
         puts("[!] Entering Safe Mode, all modules disabled, class C.");
-        blink_led(LED_GREEN);
-        blink_led(LED_GREEN);
-        blink_led(LED_GREEN);
+        blink_led(LED0_PIN);
+        blink_led(LED0_PIN);
+        blink_led(LED0_PIN);
     }
     else {
         unwds_init_modules(unwds_callback);
@@ -634,7 +634,7 @@ void unwds_device_init(void *unwds_callback, void *unwds_init, void *unwds_join,
         delayed_setup_timer.arg = unwds_sleep;
         rtctimers_millis_set(&delayed_setup_timer, 15000);
         
-        blink_led(LED_GREEN);
+        blink_led(LED0_PIN);
     }
 
     if (!unwds_get_node_settings().no_join) {

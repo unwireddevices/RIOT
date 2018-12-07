@@ -35,6 +35,8 @@
 #include "periph_cpu.h"
 #include "periph/init.h"
 #include "periph/rtc.h"
+#include "periph/gpio.h"
+#include "board.h"
 
 #if defined (CPU_FAM_STM32L4)
 #define BIT_APB_PWREN       RCC_APB1ENR1_PWREN

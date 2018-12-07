@@ -201,9 +201,10 @@ bool cpu_check_address(volatile const char *address);
  * 
  * @param[in]	start    Start at address
  * @param[in]	stop     Stop at address
+ * @param[in]	step     Address step
  * @param[in]	valid    Address type to look for
  */
-char* cpu_find_next_valid_address(char *start, char *stop, bool valid);
+char* cpu_find_next_valid_address(char *start, char *stop, uint32_t step, bool valid);
 
 /**
  * @brief   Determine CPU memory size

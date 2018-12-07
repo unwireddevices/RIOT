@@ -81,7 +81,7 @@ size_t cpu_find_memory_size(char *base, uint32_t block, uint32_t maxsize) {
     return (size_t)(address - base);
 }
 
-char *cpu_find_next_valid_address(char *start, char *stop, bool valid) {
+char *cpu_find_next_valid_address(char *start, char *stop, uint32_t step, bool valid) {
     char *address = start;
     while (true) {       
         if (address == stop) {
@@ -93,9 +93,9 @@ char *cpu_find_next_valid_address(char *start, char *stop, bool valid) {
         }
         
         if (stop > start) {
-            address++;
+            address += step;
         } else {
-            address--;
+            address -= step;
         }
     };
 

@@ -14,6 +14,7 @@
  * @brief       Clock initialization code
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
+ * @author      Manchenko Oleg <man4enkoos@gmail.com>
  * @}
  */
 
@@ -80,4 +81,10 @@ void clock_stop_lf(void)
 {
     NRF_CLOCK->TASKS_LFCLKSTOP = 1;
     while (NRF_CLOCK->LFCLKSTAT & CLOCK_LFCLKSTAT_STATE_Msk) {}
+}
+
+void clock_stop_hf(void)
+{
+    NRF_CLOCK->TASKS_HFCLKSTOP = 1;
+    // while (NRF_CLOCK->HFCLKSTAT & CLOCK_HFCLKSTAT_STATE_Msk) {}
 }

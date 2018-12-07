@@ -14,6 +14,7 @@
  * @brief       nRF5x shared functions for configuration the system clocks
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
+ * @author      Manchenko Oleg <man4enkoos@gmail.com>
  */
 
 #ifndef NRF_CLOCK_H
@@ -43,6 +44,13 @@ void clock_start_lf(void);
  * @note    Be sure that no module is using the LFCLK before you shut it down!
  */
 void clock_stop_lf(void);
+
+/**
+ * @brief   Stop the high frequency clock (HFCLK)
+ *
+ * @note    Be sure that no module is using the HFCLK before you shut it down!
+ */
+void clock_stop_hf(void);
 
 #ifdef __cplusplus
 }

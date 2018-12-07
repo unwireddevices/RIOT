@@ -17,6 +17,7 @@
  * @brief       GNRC adapter for nrfmax devices (e.g. nRF5x radios)
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
+ * @author      Manchenko Oleg <man4enkoos@gmail.com>
  */
 
 #ifndef NRFMAX_GNRC_H

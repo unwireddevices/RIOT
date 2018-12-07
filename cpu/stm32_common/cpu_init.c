@@ -34,6 +34,7 @@
 #include "stmclk.h"
 #include "periph_cpu.h"
 #include "periph/init.h"
+#include "periph/rtc.h"
 
 #if defined (CPU_FAM_STM32L4)
 #define BIT_APB_PWREN       RCC_APB1ENR1_PWREN
@@ -41,12 +42,66 @@
 #define BIT_APB_PWREN       RCC_APB1ENR_PWREN
 #endif
 
+static void jump_to_bootloader(void) __attribute__ ((noreturn));
+
+/* Sets up and jumps to the bootloader */
+static void jump_to_bootloader(void) {
+    /* System memory is the valid area next _below_ Option bytes */
+    char *a, *b, *c;
+    a = (char *)(OB_BASE - 1);
+    b = 0;
+    
+    /* Here we have System memory top address */
+    c = cpu_find_next_valid_address(a, b, true);
+    
+    /* Here we have System memory bottom address */
+    c = cpu_find_next_valid_address(c, b, false) + 1;
+    
+    if (!c) {
+        NVIC_SystemReset();
+    }
+    
+    uint32_t boot_addr = (uint32_t)c;
+    
+    uint32_t boot_stack_ptr = *(uint32_t*)(boot_addr);
+    uint32_t dfu_reset_addr = *(uint32_t*)(boot_addr+4);
+
+    void (*dfu_bootloader)(void) = (void (*))(dfu_reset_addr);
+
+    /* Remap vector table to system memory */
+    RCC->APB2ENR |= 1;
+    #if defined(CPU_FAM_STM32F0)
+        SYSCFG->CFGR1 = 0x1;
+    #else
+        SYSCFG->MEMRMP = 0x1;
+    #endif
+
+    /* Reset the stack pointer */
+    __set_MSP(boot_stack_ptr);
+
+    dfu_bootloader();
+    while (1);
+}
+
 void cpu_init(void)
 {
     /* initialize the Cortex-M core */
     cortexm_init();
+       
     /* enable PWR module */
     periph_clk_en(APB1, BIT_APB_PWREN);
+
+    /* check if we need to update firmware */
+    rtc_poweron();
+    if (rtc_restore_backup(RTC_REGBACKUP_BOOTLOADER) == RTC_REGBACKUP_BOOTLOADER_VALUE) {
+        /* clear RTC register */
+        rtc_save_backup(0, RTC_REGBACKUP_BOOTLOADER);
+        rtc_poweroff();
+        
+        jump_to_bootloader();
+    }
+    rtc_poweroff();
+    
     /* initialize the system clock as configured in the periph_conf.h */
     stmclk_init_sysclk();
     

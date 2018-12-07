@@ -50,14 +50,14 @@ static void jump_to_bootloader(void) __attribute__ ((noreturn));
 static void jump_to_bootloader(void) {
     /* System memory is the valid area next _below_ Option bytes */
     char *a, *b, *c;
-    a = (char *)(OB_BASE - 1);
+    a = (char *)(OB_BASE - 4);
     b = 0;
     
     /* Here we have System memory top address */
-    c = cpu_find_next_valid_address(a, b, true);
+    c = cpu_find_next_valid_address(a, b, 4, true);
     
     /* Here we have System memory bottom address */
-    c = cpu_find_next_valid_address(c, b, false) + 1;
+    c = cpu_find_next_valid_address(c, b, 4, false) + 4;
     
     if (!c) {
         NVIC_SystemReset();
@@ -69,14 +69,6 @@ static void jump_to_bootloader(void) {
     uint32_t dfu_reset_addr = *(uint32_t*)(boot_addr+4);
 
     void (*dfu_bootloader)(void) = (void (*))(dfu_reset_addr);
-
-    /* Remap vector table to system memory */
-    RCC->APB2ENR |= 1;
-    #if defined(CPU_FAM_STM32F0)
-        SYSCFG->CFGR1 = 0x1;
-    #else
-        SYSCFG->MEMRMP = 0x1;
-    #endif
 
     /* Reset the stack pointer */
     __set_MSP(boot_stack_ptr);

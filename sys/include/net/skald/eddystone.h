@@ -60,7 +60,8 @@ typedef struct __attribute__((packed)) {
  * @param[in] tx_pwr    calibrated TX power to be advertised by the beacon
  */
 void skald_eddystone_uid_adv(skald_ctx_t *ctx,
-                             const skald_eddystone_uid_t *uid, uint8_t tx_pwr);
+                             const skald_eddystone_uid_t *uid, 
+                             uint8_t tx_pwr);
 
 /**
  * @brief   Advertise Eddystone-URL data
@@ -73,7 +74,9 @@ void skald_eddystone_uid_adv(skald_ctx_t *ctx,
  * @param[in] tx_pwr    calibrated TX power to be advertised by the beacon
  */
 void skald_eddystone_url_adv(skald_ctx_t *ctx,
-                             uint8_t scheme, const char *url, uint8_t tx_pwr);
+                             uint8_t scheme, 
+                             const char *url, 
+                             uint8_t tx_pwr);
 
 #ifdef __cplusplus
 }

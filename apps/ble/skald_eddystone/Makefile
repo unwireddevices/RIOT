@@ -12,11 +12,12 @@ USEMODULE += skald_eddystone
 
 # - advertising interval is configured during compile time, override by setting
 #   `CFLAGS+=-DSKALD_INTERVAL=xxx` in microseconds
-CFLAGS += -DSKALD_INTERVAL=10000
+CFLAGS += -DSKALD_INTERVAL=100000
 
 # - advertising channels are configured during compile time, override by
 #   setting `CFLAGS+=-DSKALD_ADV_CHAN={37,39}`
 # CFLAGS+=-DSKALD_ADV_CHAN={37,39}
+CFLAGS+=-DSKALD_ADV_CHAN={37}
 
 
 # Comment this out to disable code in RIOT that does safety checking

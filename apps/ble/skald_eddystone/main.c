@@ -36,8 +36,8 @@
                           0x63, 0x6f, 0x6f, 0x6c, 0x21 }
 #define URI_INSTANCE    { 0x5f, 0x52, 0x49, 0x4f, 0x54, 0x5f }
 
-/* advertise this short URL, points to https://www.riot-os.org */
-#define URL             "bit.ly/2Ep11dm"
+/* advertise this short URL, points to https://www.unwireddevices.com/ */
+#define URL             "unwds.com"
 /* calibrated TX power value */
 #define TX_PWR          (0U)
 
@@ -45,7 +45,7 @@
 /* allocate two advertising contexts, one for Eddystone-URL and one for
  * Eddystone-URI */
 // static skald_ctx_t _ctx_uid;
-// static skald_ctx_t _ctx_url;
+static skald_ctx_t _ctx_url;
 
 /* Test BTN0 */
 static void _gpio_cb(void *arg)
@@ -64,14 +64,15 @@ int main(void)
     // skald_eddystone_uid_adv(&_ctx_uid, &uid, TX_PWR);
 
     /* also advertise the defined short-URL */
-    // skald_eddystone_url_adv(&_ctx_url, EDDYSTONE_URL_HTTPS, URL, TX_PWR);
+    skald_eddystone_url_adv(&_ctx_url, EDDYSTONE_URL_HTTPS, URL, TX_PWR);
 
     /* Test BTN0 */
     gpio_init_int(BTN0_PIN, GPIO_IN_PU, GPIO_FALLING, _gpio_cb, NULL);
 
     while(1)
     {
-        pm_set(PM_SLEEP);
+        // pm_set(PM_SLEEP);
+        __WFI();
     }
 
     return 0;

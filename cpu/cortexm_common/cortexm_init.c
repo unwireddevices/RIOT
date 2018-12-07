@@ -81,6 +81,27 @@ size_t cpu_find_memory_size(char *base, uint32_t block, uint32_t maxsize) {
     return (size_t)(address - base);
 }
 
+char *cpu_find_next_valid_address(char *start, char *stop, bool valid) {
+    char *address = start;
+    while (true) {       
+        if (address == stop) {
+            return NULL;
+        }
+        
+        if (cpu_check_address(address) == valid) {
+            return address;
+        }
+        
+        if (stop > start) {
+            address++;
+        } else {
+            address--;
+        }
+    };
+
+    return NULL;
+}
+
 bool cpu_check_address(volatile const char *address)
 {
 #if defined(CPU_ARCH_CORTEX_M3) || defined(CPU_ARCH_CORTEX_M4) || \

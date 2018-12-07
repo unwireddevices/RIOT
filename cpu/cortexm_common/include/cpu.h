@@ -195,6 +195,17 @@ static inline void cortexm_isr_end(void) {
 bool cpu_check_address(volatile const char *address);
 
 /**
+ * @brief   Checks for next valid or next invalid address
+ *
+ * This function can be used to find specific memory areas
+ * 
+ * @param[in]	start    Start at address
+ * @param[in]	stop     Stop at address
+ * @param[in]	valid    Address type to look for
+ */
+char* cpu_find_next_valid_address(char *start, char *stop, bool valid);
+
+/**
  * @brief   Determine CPU memory size
  *
  * This function can be used to calculate memory size in runtime

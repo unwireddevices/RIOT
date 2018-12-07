@@ -81,6 +81,11 @@ static void jump_to_bootloader(void) {
     /* Reset the stack pointer */
     __set_MSP(boot_stack_ptr);
 
+#if defined(LED0_PIN)
+    gpio_init(LED0_PIN, GPIO_OUT);
+    gpio_set(LED0_PIN);
+#endif
+
     dfu_bootloader();
     while (1);
 }

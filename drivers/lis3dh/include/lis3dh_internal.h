@@ -27,13 +27,8 @@ extern "C" {
 #endif
 
 
-#define PROPERTY_DISABLE                            (0U)
-#define PROPERTY_ENABLE                             (1U)
-
-
-#define LIS3DH_AUX_DISABLE                          (0x00)
-#define LIS3DH_AUX_ON_PADS                          (0x01)                              
-#define LIS3DH_AUX_ON_TEMPERATURE                   (0x02)
+#define PROPERTY_DISABLE                            (0x00)
+#define PROPERTY_ENABLE                             (0x01)
 
 /**
  * @name    LIS3DH hardware register addresses
@@ -83,8 +78,347 @@ extern "C" {
 #define LIS3DH_REG_TIME_WINDOW                      (0x3D)
 #define LIS3DH_REG_ACT_THS                          (0x3E)
 #define LIS3DH_REG_IACT_DUR                         (0x3F)
-     
 /** @} */
+
+/**
+ * @name    LIS3DH hardware register structures
+ * @{
+ */
+
+typedef struct {
+    uint8_t _1da            : 1;
+    uint8_t _2da            : 1;
+    uint8_t _3da            : 1;
+    uint8_t _321da          : 1;
+    uint8_t _1or            : 1;
+    uint8_t _2or            : 1;
+    uint8_t _3or            : 1;
+    uint8_t _321or          : 1;
+} lis3dh_status_reg_aux_t;
+
+
+typedef struct {
+    uint8_t reserved        : 7;
+    uint8_t sdo_pu_disc     : 1;
+} lis3dh_ctrl_reg0_t;
+
+typedef struct {
+    uint8_t reserved        : 6;
+    uint8_t adc_pd          : 1;
+    uint8_t temp_en         : 1;
+} lis3dh_temp_cfg_reg_t;
+
+
+typedef struct {
+    uint8_t xen             : 1;
+    uint8_t yen             : 1;
+    uint8_t zen             : 1;
+    uint8_t lpen            : 1;
+    uint8_t odr             : 4;
+} lis3dh_ctrl_reg1_t;
+
+
+typedef struct {
+    uint8_t hp              : 3; /* HPCLICK + HP_IA2 + HP_IA1 -> HP */
+    uint8_t fds             : 1;
+    uint8_t hpcf            : 2;
+    uint8_t hpm             : 2;
+} lis3dh_ctrl_reg2_t;
+
+typedef struct {
+    uint8_t reserved_01     : 1;
+    uint8_t i1_overrun      : 1;
+    uint8_t i1_wtm          : 1;
+    uint8_t reserved_02     : 1;
+    uint8_t i1_zyxda        : 1;
+    uint8_t i1_ia2          : 1;
+    uint8_t i1_ia1          : 1;
+    uint8_t i1_click        : 1;
+} lis3dh_ctrl_reg3_t;
+
+typedef struct {
+    uint8_t sim             : 1;
+    uint8_t st              : 2;
+    uint8_t hr              : 1;
+    uint8_t fs              : 2;
+    uint8_t ble             : 1;
+    uint8_t bdu             : 1;
+} lis3dh_ctrl_reg4_t;
+
+typedef struct {
+    uint8_t d4d_int2        : 1;
+    uint8_t lir_int2        : 1;
+    uint8_t d4d_int1        : 1;
+    uint8_t lir_int1        : 1;
+    uint8_t reserved        : 2;
+    uint8_t fifo_en         : 1;
+    uint8_t boot            : 1;
+} lis3dh_ctrl_reg5_t;
+
+typedef struct {
+    uint8_t reserved_01     : 1;
+    uint8_t int_polarity    : 1;
+    uint8_t reserved_02     : 1;
+    uint8_t i2_act          : 1;
+    uint8_t i2_boot         : 1;
+    uint8_t i2_ia2          : 1;
+    uint8_t i2_ia1          : 1;
+    uint8_t i2_click        : 1;
+} lis3dh_ctrl_reg6_t;
+
+typedef struct {
+    uint8_t _xda            : 1;
+    uint8_t _yda            : 1;
+    uint8_t _zda            : 1;
+    uint8_t _zyxda          : 1;
+    uint8_t _xor            : 1;
+    uint8_t _yor            : 1;
+    uint8_t _zor            : 1;
+    uint8_t _zyxor          : 1;
+} lis3dh_status_reg_t;
+
+typedef struct {
+    uint8_t fth             : 5;
+    uint8_t tr              : 1;
+    uint8_t fm              : 2;
+} lis3dh_fifo_ctrl_reg_t;
+
+typedef struct {
+    uint8_t fss             : 5;
+    uint8_t empty           : 1;
+    uint8_t ovrn_fifo       : 1;
+    uint8_t wtm             : 1;
+} lis3dh_fifo_src_reg_t;
+
+typedef struct {
+    uint8_t xlie            : 1;
+    uint8_t xhie            : 1;
+    uint8_t ylie            : 1;
+    uint8_t yhie            : 1;
+    uint8_t zlie            : 1;
+    uint8_t zhie            : 1;
+    uint8_t _6d             : 1;
+    uint8_t aoi             : 1;
+} lis3dh_int1_cfg_t;
+
+
+typedef struct {
+    uint8_t xl              : 1;
+    uint8_t xh              : 1;
+    uint8_t yl              : 1;
+    uint8_t yh              : 1;
+    uint8_t zl              : 1;
+    uint8_t zh              : 1;
+    uint8_t ia              : 1;
+    uint8_t reserved_01     : 1;
+} lis3dh_int1_src_t;
+
+
+typedef struct {
+    uint8_t ths             : 7;
+    uint8_t reserved        : 1;
+} lis3dh_int1_ths_t;
+
+typedef struct {
+    uint8_t d               : 7;
+    uint8_t reserved        : 1;
+} lis3dh_int1_duration_t;
+
+typedef struct {
+    uint8_t xlie            : 1;
+    uint8_t xhie            : 1;
+    uint8_t ylie            : 1;
+    uint8_t yhie            : 1;
+    uint8_t zlie            : 1;
+    uint8_t zhie            : 1;
+    uint8_t _6d             : 1;
+    uint8_t aoi             : 1;
+} lis3dh_int2_cfg_t;
+
+
+typedef struct {
+    uint8_t xl              : 1;
+    uint8_t xh              : 1;
+    uint8_t yl              : 1;
+    uint8_t yh              : 1;
+    uint8_t zl              : 1;
+    uint8_t zh              : 1;
+    uint8_t ia              : 1;
+    uint8_t reserved_01     : 1;
+} lis3dh_int2_src_t;
+
+
+
+typedef struct {
+    uint8_t ths             : 7;
+    uint8_t reserved_01     : 1;
+} lis3dh_int2_ths_t;
+
+
+typedef struct {
+    uint8_t d               : 7;
+    uint8_t reserved_01     : 1;
+} lis3dh_int2_duration_t;
+
+typedef struct {
+    uint8_t xs              : 1;
+    uint8_t xd              : 1;
+    uint8_t ys              : 1;
+    uint8_t yd              : 1;
+    uint8_t zs              : 1;
+    uint8_t zd              : 1;
+    uint8_t reserved_01     : 2;
+} lis3dh_click_cfg_t;
+
+typedef struct {
+    uint8_t x               : 1;
+    uint8_t y               : 1;
+    uint8_t z               : 1;
+    uint8_t sign            : 1;
+    uint8_t sclick          : 1;
+    uint8_t dclick          : 1;
+    uint8_t ia              : 1;
+    uint8_t reserved_01     : 1;
+} lis3dh_click_src_t;
+
+typedef struct {
+    uint8_t ths             : 7;
+    uint8_t lir_click       : 1;
+} lis3dh_click_ths_t;
+
+typedef struct {
+    uint8_t tli             : 7;
+    uint8_t reserved_01     : 1;
+} lis3dh_time_limit_t;
+
+typedef struct {
+    uint8_t tla             : 8;
+} lis3dh_time_latency_t;
+
+typedef struct {
+    uint8_t tw              : 8;
+} lis3dh_time_window_t;
+
+typedef struct {
+    uint8_t acth            : 7;
+    uint8_t reserved_01     : 1;
+} lis3dh_act_ths_t;
+
+typedef struct {
+    uint8_t actd            : 8;
+} lis3dh_act_dur_t;
+/** @} */
+
+/**
+ * @name    LIS3DH values registers enumirations
+ * @{ 
+ */
+typedef enum {
+  LIS3DH_AUX_DISABLE          = 0,
+  LIS3DH_AUX_ON_TEMPERATURE   = 3,
+  LIS3DH_AUX_ON_PADS          = 1,
+} lis3dh_temp_en_t;
+
+typedef enum {
+  LIS3DH_HR_12bit   = 0,
+  LIS3DH_NM_10bit   = 1,
+  LIS3DH_LP_8bit    = 2,
+} lis3dh_op_md_t;
+
+typedef enum {
+  LIS3DH_POWER_DOWN                      = 0x00,
+  LIS3DH_ODR_1Hz                         = 0x01,
+  LIS3DH_ODR_10Hz                        = 0x02,
+  LIS3DH_ODR_25Hz                        = 0x03,
+  LIS3DH_ODR_50Hz                        = 0x04,
+  LIS3DH_ODR_100Hz                       = 0x05,
+  LIS3DH_ODR_200Hz                       = 0x06,
+  LIS3DH_ODR_400Hz                       = 0x07,
+  LIS3DH_ODR_1kHz620_LP                  = 0x08,
+  LIS3DH_ODR_5kHz376_LP_1kHz344_NM_HP    = 0x09,
+} lis3dh_odr_t;
+
+typedef enum {
+  LIS3DH_AGGRESSIVE  = 0,
+  LIS3DH_STRONG      = 1,
+  LIS3DH_MEDIUM      = 2,
+  LIS3DH_LIGHT       = 3,
+} lis3dh_hpcf_t;
+
+typedef enum {
+  LIS3DH_NORMAL_WITH_RST  = 0,
+  LIS3DH_REFERENCE_MODE   = 1,
+  LIS3DH_NORMAL           = 2,
+  LIS3DH_AUTORST_ON_INT   = 3,
+} lis3dh_hpm_t;
+
+typedef enum {
+  LIS3DH_2g   = 0,
+  LIS3DH_4g   = 1,
+  LIS3DH_8g   = 2,
+  LIS3DH_16g  = 3,
+} lis3dh_fs_t;
+
+typedef enum {
+  LIS3DH_ST_DISABLE   = 0,
+  LIS3DH_ST_POSITIVE  = 1,
+  LIS3DH_ST_NEGATIVE  = 2,
+} lis3dh_st_t;
+
+typedef enum {
+  LIS3DH_LSB_AT_LOW_ADD = 0,
+  LIS3DH_MSB_AT_LOW_ADD = 1,
+} lis3dh_ble_t;
+
+typedef enum {
+  LIS3DH_DISC_FROM_INT_GENERATOR  = 0,
+  LIS3DH_ON_INT1_GEN              = 1,
+  LIS3DH_ON_INT2_GEN              = 2,
+  LIS3DH_ON_TAP_GEN               = 4,
+  LIS3DH_ON_INT1_INT2_GEN         = 3,
+  LIS3DH_ON_INT1_TAP_GEN          = 5,
+  LIS3DH_ON_INT2_TAP_GEN          = 6,
+  LIS3DH_ON_INT1_INT2_TAP_GEN     = 7,
+} lis3dh_hp_t;
+
+typedef enum {
+  LIS3DH_INT2_PULSED   = 0,
+  LIS3DH_INT2_LATCHED  = 1,
+} lis3dh_lir_int2_t;
+
+typedef enum {
+  LIS3DH_INT1_PULSED   = 0,
+  LIS3DH_INT1_LATCHED  = 1,
+} lis3dh_lir_int1_t;
+
+typedef enum {
+  LIS3DH_INT1_GEN = 0,
+  LIS3DH_INT2_GEN = 1,
+} lis3dh_tr_t;
+
+typedef enum {
+  LIS3DH_BYPASS_MODE           = 0,
+  LIS3DH_FIFO_MODE             = 1,
+  LIS3DH_DYNAMIC_STREAM_MODE   = 2,
+  LIS3DH_STREAM_TO_FIFO_MODE   = 3,
+} lis3dh_fm_t;
+
+typedef enum {
+  LIS3DH_TAP_PULSED   = 0,
+  LIS3DH_TAP_LATCHED  = 1,
+} lis3dh_lir_click_t;
+
+typedef enum {
+  LIS3DH_PULL_UP_DISCONNECT  = 0,
+  LIS3DH_PULL_UP_CONNECT     = 1,
+} lis3dh_sdo_pu_disc_t;
+
+typedef enum {
+  LIS3DH_SPI_4_WIRE = 0,
+  LIS3DH_SPI_3_WIRE = 1,
+} lis3dh_sim_t;
+/** @} */
+
 
 /**
  * @brief   Identifier register value

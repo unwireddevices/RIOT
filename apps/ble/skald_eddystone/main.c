@@ -24,6 +24,7 @@
 #include "board.h"
 #include "periph/gpio.h"
 #include "periph/pm.h"
+#include "periph/rtt.h"
 
 #include "stdio.h"
 
@@ -47,12 +48,26 @@
 // static skald_ctx_t _ctx_uid;
 static skald_ctx_t _ctx_url;
 
+#define TICKS_TO_WAIT      (100) //((1 / 10) * RTT_FREQUENCY)
+static volatile uint32_t last;
+
 /* Test BTN0 */
 static void _gpio_cb(void *arg)
 {
     (void)arg;
 
     puts("Test BTN0"); 
+}
+
+static void _rtt_cb(void *arg)
+{
+    (void)arg;
+
+    last += TICKS_TO_WAIT;
+    last &= RTT_MAX_VALUE;
+    rtt_set_alarm(last, _rtt_cb, NULL);
+
+    printf("RTT: 0x%08lx\n", rtt_get_counter());
 }
 
 int main(void)
@@ -69,9 +84,19 @@ int main(void)
     /* Test BTN0 */
     gpio_init_int(BTN0_PIN, GPIO_IN_PU, GPIO_FALLING, _gpio_cb, NULL);
 
+    rtt_init();
+
+    uint32_t rtt_now = rtt_get_counter();
+    last = (rtt_now + TICKS_TO_WAIT) & RTT_MAX_VALUE;
+    
+    rtt_set_alarm(last, _rtt_cb, NULL);
+
+
     while(1)
     {
         // pm_set(PM_SLEEP);
+
+        
         __WFI();
     }
 

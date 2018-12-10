@@ -46,14 +46,14 @@ extern "C" {
  */
 static const timer_conf_t timer_config[] = {
     {
-        .dev      =  NRF_TIMER1,
+        .dev      =  NRF_TIMER0,
         .channels =  3,
         .bitmode  = TIMER_BITMODE_BITMODE_32Bit,
-        .irqn     = TIMER1_IRQn
+        .irqn     = TIMER0_IRQn
     }
 };
 
-#define TIMER_0_ISR         isr_timer1
+#define TIMER_0_ISR         isr_timer0
 
 #define TIMER_NUMOF         (sizeof(timer_config) / sizeof(timer_config[0]))
 /** @} */

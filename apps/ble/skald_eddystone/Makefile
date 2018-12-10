@@ -19,6 +19,7 @@ CFLAGS += -DSKALD_INTERVAL=100000
 # CFLAGS+=-DSKALD_ADV_CHAN={37,39}
 CFLAGS+=-DSKALD_ADV_CHAN={37}
 
+FEATURES_REQUIRED += periph_rtt
 
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the

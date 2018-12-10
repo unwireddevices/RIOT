@@ -19,16 +19,10 @@
  * @}
  */
 
-#include "log.h"
-
-#include "board.h"
-#include "periph/gpio.h"
-#include "periph/pm.h"
-#include "periph/rtt.h"
-
 #include "stdio.h"
 
 #include "net/skald/eddystone.h"
+#include "periph/pm.h"
 
 /* Example of an Eddystone URI:
  * - namespace (ASCII): 'supercool!'
@@ -39,6 +33,7 @@
 
 /* Advertise this short URL, points to https://www.unwireddevices.com/ */
 #define URL             "unwds.com"
+
 /* Calibrated TX power value */
 #define TX_PWR          (0U)
 
@@ -50,7 +45,7 @@ static skald_ctx_t _ctx_url;
 
 int main(void)
 {
-    LOG_INFO("Skald and the tail of Eddystone\n");
+    puts("Skald and the tail of Eddystone");
 
     /* Advertise the defined URI */
     // skald_eddystone_uid_t uid = { URI_NAMESPACE, URI_INSTANCE };

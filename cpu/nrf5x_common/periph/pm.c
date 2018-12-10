@@ -56,7 +56,7 @@ void pm_off(void)
         NRF_POWER->RAM[i].POWERCLR = (POWER_RAM_POWERCLR_S1RETENTION_Msk |
                                       POWER_RAM_POWERCLR_S0RETENTION_Msk);
     }
-#endif
+#endif /* CPU_FAM_NRF51 */
     NRF_POWER->SYSTEMOFF = 1;
     while(1) {}
 }

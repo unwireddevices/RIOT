@@ -97,7 +97,9 @@ static void _sched_next(skald_ctx_t *ctx)
 
 static void _on_adv_evt(void *arg)
 {
-    printf("RTT: %08lu\n", rtt_get_counter());
+    /* Does not work without a delay of 10 μs */
+    xtimer_usleep(10);
+
     skald_ctx_t *ctx = (skald_ctx_t *)arg;
 
     /* Advertise on the next adv channel - or skip this event if the radio is

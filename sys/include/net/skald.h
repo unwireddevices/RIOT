@@ -83,7 +83,6 @@ typedef struct {
 #ifndef SKALD_ON_RTT
     xtimer_t timer;         /**< timer for scheduling advertising events */
 #endif /* SKALD_ON_RTT */
-    xtimer_t timer;         /**< timer for scheduling advertising events */
     uint32_t last;          /**< last timer trigger (for offset compensation) */
     uint8_t cur_chan;       /**< keep track of advertising channels */
 } skald_ctx_t;

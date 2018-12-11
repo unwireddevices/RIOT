@@ -310,6 +310,53 @@ typedef struct {
 /** @} */
 
 /**
+ * @name    LIS3DH union any structure registers and Bytes
+ */
+typedef struct{
+    uint8_t bit0 : 1;
+    uint8_t bit1 : 1;
+    uint8_t bit2 : 1;
+    uint8_t bit3 : 1;
+    uint8_t bit4 : 1;
+    uint8_t bit5 : 1;
+    uint8_t bit6 : 1;
+    uint8_t bit7 : 1;
+} bitwise_t;
+
+typedef union{
+    lis3dh_status_reg_aux_t status_reg_aux;
+    lis3dh_ctrl_reg0_t      ctrl_reg0;
+    lis3dh_temp_cfg_reg_t   temp_cfg_reg;
+    lis3dh_ctrl_reg1_t      ctrl_reg1;
+    lis3dh_ctrl_reg2_t      ctrl_reg2;
+    lis3dh_ctrl_reg3_t      ctrl_reg3;
+    lis3dh_ctrl_reg4_t      ctrl_reg4;
+    lis3dh_ctrl_reg5_t      ctrl_reg5;
+    lis3dh_ctrl_reg6_t      ctrl_reg6;
+    lis3dh_status_reg_t     status_reg;
+    lis3dh_fifo_ctrl_reg_t  fifo_ctrl_reg;
+    lis3dh_fifo_src_reg_t   fifo_src_reg;
+    lis3dh_int1_cfg_t       int1_cfg;
+    lis3dh_int1_src_t       int1_src;
+    lis3dh_int1_ths_t       int1_ths;
+    lis3dh_int1_duration_t  int1_duration;
+    lis3dh_int2_cfg_t       int2_cfg;
+    lis3dh_int2_src_t       int2_src;
+    lis3dh_int2_ths_t       int2_ths;
+    lis3dh_int2_duration_t  int2_duration;
+    lis3dh_click_cfg_t      click_cfg;
+    lis3dh_click_src_t      click_src;
+    lis3dh_click_ths_t      click_ths;
+    lis3dh_time_limit_t     time_limit;
+    lis3dh_time_latency_t   time_latency;
+    lis3dh_time_window_t    time_window;
+    lis3dh_act_ths_t        act_ths;
+    lis3dh_act_dur_t        act_dur;
+    bitwise_t               bitwise;
+    uint8_t                 byte;
+} lis3dh_reg_t;
+
+/**
  * @name    LIS3DH values registers enumirations
  * @{ 
  */
@@ -1068,59 +1115,59 @@ typedef enum {
 #define LIS3DH_FIFO_MODE_STREAM_TO_FIFO             (0x03 << LIS3DH_FIFO_CTRL_REG_FM_SHIFT)
 /** @} */
 
-/**
- * @name    Output Data Rates (ODR) macros
- *
- * Use these when calling lis3dh_set_odr(odr).
- * @{
- */
-/**
- * @brief    Powerdown mode
- */
-#define LIS3DH_ODR_POWERDOWN                        (0x00 << LIS3DH_CTRL_REG1_ODR_SHIFT)
-/**
- * @brief   1Hz mode
- */
-#define LIS3DH_ODR_1Hz                              (0x01 << LIS3DH_CTRL_REG1_ODR_SHIFT)
-/**
- * @brief   10Hz mode
- */
-#define LIS3DH_ODR_10Hz                             (0x02 << LIS3DH_CTRL_REG1_ODR_SHIFT)
-/**
- * @brief   25Hz mode
- */
-#define LIS3DH_ODR_25Hz                             (0x03 << LIS3DH_CTRL_REG1_ODR_SHIFT)
-/**
- * @brief   50Hz mode
- */
-#define LIS3DH_ODR_50Hz                             (0x04 << LIS3DH_CTRL_REG1_ODR_SHIFT)
-/**
- * @brief   100Hz mode
- */
-#define LIS3DH_ODR_100Hz                            (0x05 << LIS3DH_CTRL_REG1_ODR_SHIFT)
-/**
- * @brief   200Hz mode
- */
-#define LIS3DH_ODR_200Hz                            (0x06 << LIS3DH_CTRL_REG1_ODR_SHIFT)
-/**
- * @brief   400Hz mode
- */
-#define LIS3DH_ODR_400Hz                            (0x07 << LIS3DH_CTRL_REG1_ODR_SHIFT)
-/**
- * @brief   Low power 1600Hz mode
- */
-#define LIS3DH_ODR_LP1600Hz                         (0x08 << LIS3DH_CTRL_REG1_ODR_SHIFT)
-/**
- * @brief   Normal mode 1250 Hz
- * @note    Normal mode 1250 Hz and Low power mode 5000 Hz share the same setting
- */
-#define LIS3DH_ODR_NP1250Hz                         (0x09 << LIS3DH_CTRL_REG1_ODR_SHIFT)
-/**
- * @brief   Low power mode 5000 Hz
- * @note    Normal mode 1250 Hz and Low power mode 5000 Hz share the same setting
- */
-#define LIS3DH_ODR_LP5000HZ                         (0x09 << LIS3DH_CTRL_REG1_ODR_SHIFT)
-/** @} */
+// /**
+//  * @name    Output Data Rates (ODR) macros
+//  *
+//  * Use these when calling lis3dh_set_odr(odr).
+//  * @{
+//  */
+// /**
+//  * @brief    Powerdown mode
+//  */
+// #define LIS3DH_ODR_POWERDOWN                        (0x00 << LIS3DH_CTRL_REG1_ODR_SHIFT)
+// /**
+//  * @brief   1Hz mode
+//  */
+// #define LIS3DH_ODR_1Hz                              (0x01 << LIS3DH_CTRL_REG1_ODR_SHIFT)
+// /**
+//  * @brief   10Hz mode
+//  */
+// #define LIS3DH_ODR_10Hz                             (0x02 << LIS3DH_CTRL_REG1_ODR_SHIFT)
+// /**
+//  * @brief   25Hz mode
+//  */
+// #define LIS3DH_ODR_25Hz                             (0x03 << LIS3DH_CTRL_REG1_ODR_SHIFT)
+// /**
+//  * @brief   50Hz mode
+//  */
+// #define LIS3DH_ODR_50Hz                             (0x04 << LIS3DH_CTRL_REG1_ODR_SHIFT)
+// /**
+//  * @brief   100Hz mode
+//  */
+// #define LIS3DH_ODR_100Hz                            (0x05 << LIS3DH_CTRL_REG1_ODR_SHIFT)
+// /**
+//  * @brief   200Hz mode
+//  */
+// #define LIS3DH_ODR_200Hz                            (0x06 << LIS3DH_CTRL_REG1_ODR_SHIFT)
+// /**
+//  * @brief   400Hz mode
+//  */
+// #define LIS3DH_ODR_400Hz                            (0x07 << LIS3DH_CTRL_REG1_ODR_SHIFT)
+// /**
+//  * @brief   Low power 1600Hz mode
+//  */
+// #define LIS3DH_ODR_LP1600Hz                         (0x08 << LIS3DH_CTRL_REG1_ODR_SHIFT)
+// /**
+//  * @brief   Normal mode 1250 Hz
+//  * @note    Normal mode 1250 Hz and Low power mode 5000 Hz share the same setting
+//  */
+// #define LIS3DH_ODR_NP1250Hz                         (0x09 << LIS3DH_CTRL_REG1_ODR_SHIFT)
+// /**
+//  * @brief   Low power mode 5000 Hz
+//  * @note    Normal mode 1250 Hz and Low power mode 5000 Hz share the same setting
+//  */
+// #define LIS3DH_ODR_LP5000HZ                         (0x09 << LIS3DH_CTRL_REG1_ODR_SHIFT)
+// /** @} */
 
 
 

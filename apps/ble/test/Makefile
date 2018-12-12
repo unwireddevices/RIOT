@@ -1,22 +1,18 @@
 # name of your application
-APPLICATION = nimble_gatt
+APPLICATION = test
 
 # If no BOARD is found in the environment, use this default:
-BOARD ?= unwd-nrf
-
-# So far, NimBLE only works on nRF52 based platforms
-BOARD_WHITELIST := unwd-nrf nrf52dk nrf52840dk 
+BOARD ?= unwd-beacon-C2M-r100
 
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../../..
 
-# Include NimBLE
-USEPKG += nimble
+FEATURES_REQUIRED += periph_pwm
 
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the
 # development process:
-DEVELHELP ?= 1
+CFLAGS += -DDEVELHELP
 
 CFLAGS += -DNO_RIOT_BANNER
 

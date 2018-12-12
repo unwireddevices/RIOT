@@ -4,6 +4,9 @@ FEATURES_PROVIDED += periph_rtt
 FEATURES_PROVIDED += periph_timer
 FEATURES_PROVIDED += periph_uart
 
+# Test pwm
+FEATURES_PROVIDED += periph_pwm
+
 # Various other features (if any)
 FEATURES_PROVIDED += radio_ble
 FEATURES_PROVIDED += radio_nrfble

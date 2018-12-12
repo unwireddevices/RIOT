@@ -170,3 +170,17 @@ void TIMER_2_ISR(void)
     irq_handler(2);
 }
 #endif
+
+#ifdef TIMER_3_ISR
+void TIMER_3_ISR(void)
+{
+    irq_handler(3);
+}
+#endif
+
+#ifdef TIMER_4_ISR
+void TIMER_4_ISR(void)
+{
+    irq_handler(4);
+}
+#endif

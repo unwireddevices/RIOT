@@ -61,6 +61,26 @@ enum {
 };
 
 /**
+ * @brief   PWM channel
+ * @{
+ */
+typedef struct {
+    gpio_t pin;             /* */
+    uint8_t channel;        /* */
+} pwm_chan_t;
+/** @} */
+
+/**
+ * @brief   PWM configuration
+ * @{
+ */
+typedef struct {
+    NRF_PWM_Type *dev;               /* */
+    pwm_chan_t channel[4];           /* */
+} pwm_conf_t;
+/** @} */
+
+/**
  * @brief   Override ADC resolution values
  * @{
  */
@@ -91,12 +111,14 @@ typedef enum {
 
 /**
  * @brief   I2C (TWI) configuration options
+ * @{
  */
 typedef struct {
     NRF_TWIM_Type *dev;         /**< TWIM hardware device */
     uint8_t scl;                /**< SCL pin */
     uint8_t sda;                /**< SDA pin */
 } i2c_conf_t;
+/** @} */
 
 #ifdef __cplusplus
 }

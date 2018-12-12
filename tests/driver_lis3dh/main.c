@@ -27,7 +27,7 @@
 #include "lis3dh_params.h"
 
 
-#define SLEEP       (100 * 1000U)
+#define SLEEP       (1000 * 1000U)
 
 #define WATERMARK_LEVEL 16
 
@@ -43,48 +43,23 @@ int main(void)
 {   
 
     lis3dh_params_t lis3dh_params[] = { 
-        {.i2c   = I2C_DEV(0),   
-        .addr  = LIS3DH_I2C_SAD_L,    
-        .int1  = GPIO_PIN(PORT_A, 14),  
-        .int2  = GPIO_UNDEF,  
-        .scale = 4,
-        .odr   = LIS3DH_ODR_100Hz}
+        {.i2c      = I2C_DEV(0),   
+        .addr      = LIS3DH_I2C_SAD_L,    
+        .int1      = GPIO_UNDEF,  
+        .int1_mode = I1_DISABLE,  
+        .scale     = LIS3DH_2g,
+        .odr       = LIS3DH_ODR_1Hz,
+        .op_mode   = LIS3DH_HR_12bit},
 
     };
+
     lis3dh_t dev;
-    lis3dh_data_t acc_data;
+    lis3dh_acceleration_t acc_data;
 
     puts("LIS3DH accelerometer driver test application\n");
 
     puts("Initializing LIS3DH sensor... ");
     if (lis3dh_init(&dev, &lis3dh_params[0]) == 0) {
-        puts("[OK]");
-    }
-    else {
-        puts("[Failed]\n");
-        return 1;
-    }
-
-    puts("Set ODR... ");
-    if (lis3dh_set_odr(&dev, lis3dh_params[0].odr) == 0) {
-        puts("[OK]");
-    }
-    else {
-        puts("[Failed]\n");
-        return 1;
-    }
-
-    puts("Set scale... ");
-    if (lis3dh_set_scale(&dev, lis3dh_params[0].scale) == 0) {
-        puts("[OK]");
-    }
-    else {
-        puts("[Failed]\n");
-        return 1;
-    }
-
-    puts("Set axes XYZ... ");
-    if (lis3dh_set_axes(&dev, LIS3DH_AXES_XYZ) == 0) {
         puts("[OK]");
     }
     else {
@@ -132,15 +107,9 @@ int main(void)
     puts("LIS3DH init done.\n");
 
     while (1) {
-        // int fifo_level;
-
-        // fifo_level = lis3dh_get_fifo_level(&dev);
-        // printf("int1_count = %d\n", int1_count);
-        // printf("Reading %d measurements\n", fifo_level);
-        // while (fifo_level > 0) {
-            // int16_t temperature;
-            // int int1;
-            if (lis3dh_read_xyz(&dev, &acc_data) != 0) {
+ 
+        printf("Reading measurements\n");
+        if (lis3dh_read_xyz(&dev, &acc_data) != 0) {
                 puts("Reading acceleration data... ");
                 puts("[Failed]\n");
             }
@@ -150,10 +119,7 @@ int main(void)
             //     return 1;
             // }
             // int1 = gpio_read(lis3dh_params[0].int1);
-            printf("X: %6d Y: %6d Z: %6d \n",
-                   acc_data.acc_x, acc_data.acc_y, acc_data.acc_z);
-            // --fifo_level;
-        // }
+            printf("X: %ld Y: %ld Z: %ld \n", acc_data.axis_x, acc_data.axis_y, acc_data.axis_z);
 
         xtimer_usleep(SLEEP);
     }

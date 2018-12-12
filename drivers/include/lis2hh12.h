@@ -43,7 +43,7 @@ extern "C" {
 #endif
 
 /**
- * @brief   3d data container of the LIS3MDL sensor
+ * @brief   3d data container of the LIS2HH12 sensor
  */
 typedef struct {
     int32_t x_axis;                  /**< Data from x-axis */

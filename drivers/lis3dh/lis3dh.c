@@ -20,6 +20,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "periph/gpio.h"
 
@@ -28,6 +29,20 @@
 
 #define ENABLE_DEBUG (1)
 #include "debug.h"
+
+#if ENABLE_DEBUG
+    #define PRINTBUFF _printbuff
+    static void _printbuff(uint8_t *buff, unsigned len)
+    {
+        while (len) {
+            len--;
+            printf("%02X ", *buff++);
+        }
+        printf("\n");
+    }
+#else
+    #define PRINTBUFF(...)
+#endif
 
 
 #if defined (MODULE_LIS3DH_SPI)
@@ -57,7 +72,7 @@
  * @return            0 on success
  * @return           -1 on error
  */
-static int _write(const lis3dh_t *dev, const uint8_t reg, const uint8_t *data, uint16_t length);
+static int _write(const lis3dh_t *dev, uint8_t reg, uint8_t *data, uint16_t length);
 
 /**
  * @brief Read sequential registers from the LIS3DH.
@@ -70,10 +85,163 @@ static int _write(const lis3dh_t *dev, const uint8_t reg, const uint8_t *data, u
  * @return             0 on success
  * @return            -1 on error
  */
-static int _read(const lis3dh_t *dev, const uint8_t reg, uint8_t *data, const uint16_t length);
+static int _read(const lis3dh_t *dev, uint8_t reg, uint8_t *data, uint16_t length);
 
 
 static void _platform_init(lis3dh_t *dev, const lis3dh_params_t *params);
+
+
+int32_t lis3dh_temp_status_reg_get(lis3dh_t *dev, uint8_t *buff);
+int32_t lis3dh_temp_data_ready_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_temp_data_ovr_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_temperature_raw_get(lis3dh_t *dev, uint8_t *buff);
+
+int32_t lis3dh_adc_raw_get(lis3dh_t *dev, uint8_t *buff);
+
+int32_t lis3dh_aux_adc_set(lis3dh_t *dev, lis3dh_temp_en_t val);
+int32_t lis3dh_aux_adc_get(lis3dh_t *dev, lis3dh_temp_en_t *val);
+
+int32_t lis3dh_operating_mode_set(lis3dh_t *dev, lis3dh_op_md_t val);
+int32_t lis3dh_operating_mode_get(lis3dh_t *dev, lis3dh_op_md_t *val);
+
+int32_t lis3dh_data_rate_set(lis3dh_t *dev, lis3dh_odr_t val);
+int32_t lis3dh_data_rate_get(lis3dh_t *dev, lis3dh_odr_t *val);
+
+int32_t lis3dh_high_pass_on_outputs_set(lis3dh_t *dev, uint8_t val);
+int32_t lis3dh_high_pass_on_outputs_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_high_pass_bandwidth_set(lis3dh_t *dev, lis3dh_hpcf_t val);
+int32_t lis3dh_high_pass_bandwidth_get(lis3dh_t *dev, lis3dh_hpcf_t *val);
+
+int32_t lis3dh_high_pass_mode_set(lis3dh_t *dev, lis3dh_hpm_t val);
+int32_t lis3dh_high_pass_mode_get(lis3dh_t *dev, lis3dh_hpm_t *val);
+
+int32_t lis3dh_full_scale_set(lis3dh_t *dev, lis3dh_fs_t val);
+int32_t lis3dh_full_scale_get(lis3dh_t *dev, lis3dh_fs_t *val);
+
+int32_t lis3dh_block_data_update_set(lis3dh_t *dev, uint8_t val);
+int32_t lis3dh_block_data_update_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_filter_reference_set(lis3dh_t *dev, uint8_t *buff);
+int32_t lis3dh_filter_reference_get(lis3dh_t *dev, uint8_t *buff);
+
+int32_t lis3dh_xl_data_ready_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_xl_data_ovr_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_acceleration_raw_get(lis3dh_t *dev, uint8_t *buff);
+
+int32_t lis3dh_device_id_get(lis3dh_t *dev, uint8_t *buff);
+
+int32_t lis3dh_self_test_set(lis3dh_t *dev, lis3dh_st_t val);
+int32_t lis3dh_self_test_get(lis3dh_t *dev, lis3dh_st_t *val);
+
+int32_t lis3dh_data_format_set(lis3dh_t *dev, lis3dh_ble_t val);
+int32_t lis3dh_data_format_get(lis3dh_t *dev, lis3dh_ble_t *val);
+
+int32_t lis3dh_boot_set(lis3dh_t *dev, uint8_t val);
+int32_t lis3dh_boot_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_status_get(lis3dh_t *dev, lis3dh_status_reg_t *val);
+
+int32_t lis3dh_int1_gen_conf_set(lis3dh_t *dev, lis3dh_int1_cfg_t *val);
+int32_t lis3dh_int1_gen_conf_get(lis3dh_t *dev, lis3dh_int1_cfg_t *val);
+
+int32_t lis3dh_int1_gen_source_get(lis3dh_t *dev, lis3dh_int1_src_t *val);
+
+int32_t lis3dh_int1_gen_threshold_set(lis3dh_t *dev, uint8_t val);
+int32_t lis3dh_int1_gen_threshold_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_int1_gen_duration_set(lis3dh_t *dev, uint8_t val);
+int32_t lis3dh_int1_gen_duration_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_int2_gen_conf_set(lis3dh_t *dev, lis3dh_int2_cfg_t *val);
+int32_t lis3dh_int2_gen_conf_get(lis3dh_t *dev, lis3dh_int2_cfg_t *val);
+
+int32_t lis3dh_int2_gen_source_get(lis3dh_t *dev, lis3dh_int2_src_t *val);
+
+int32_t lis3dh_int2_gen_threshold_set(lis3dh_t *dev, uint8_t val);
+int32_t lis3dh_int2_gen_threshold_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_int2_gen_duration_set(lis3dh_t *dev, uint8_t val);
+int32_t lis3dh_int2_gen_duration_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_high_pass_int_conf_set(lis3dh_t *dev, lis3dh_hp_t val);
+int32_t lis3dh_high_pass_int_conf_get(lis3dh_t *dev, lis3dh_hp_t *val);
+
+int32_t lis3dh_pin_int1_config_set(lis3dh_t *dev, lis3dh_ctrl_reg3_t *val);
+int32_t lis3dh_pin_int1_config_get(lis3dh_t *dev, lis3dh_ctrl_reg3_t *val);
+
+int32_t lis3dh_int2_pin_detect_4d_set(lis3dh_t *dev, uint8_t val);
+int32_t lis3dh_int2_pin_detect_4d_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_int2_pin_notification_mode_set(lis3dh_t *dev, lis3dh_lir_int2_t val);
+int32_t lis3dh_int2_pin_notification_mode_get(lis3dh_t *dev, lis3dh_lir_int2_t *val);
+
+int32_t lis3dh_int1_pin_detect_4d_set(lis3dh_t *dev, uint8_t val);
+int32_t lis3dh_int1_pin_detect_4d_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_int1_pin_notification_mode_set(lis3dh_t *dev, lis3dh_lir_int1_t val);
+int32_t lis3dh_int1_pin_notification_mode_get(lis3dh_t *dev, lis3dh_lir_int1_t *val);
+
+int32_t lis3dh_pin_int2_config_set(lis3dh_t *dev, lis3dh_ctrl_reg6_t *val);
+int32_t lis3dh_pin_int2_config_get(lis3dh_t *dev, lis3dh_ctrl_reg6_t *val);
+
+int32_t lis3dh_fifo_set(lis3dh_t *dev, uint8_t val);
+int32_t lis3dh_fifo_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_fifo_watermark_set(lis3dh_t *dev, uint8_t val);
+int32_t lis3dh_fifo_watermark_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_fifo_trigger_event_set(lis3dh_t *dev, lis3dh_tr_t val);
+int32_t lis3dh_fifo_trigger_event_get(lis3dh_t *dev, lis3dh_tr_t *val);
+
+int32_t lis3dh_fifo_mode_set(lis3dh_t *dev, lis3dh_fm_t val);
+int32_t lis3dh_fifo_mode_get(lis3dh_t *dev, lis3dh_fm_t *val);
+
+int32_t lis3dh_fifo_status_get(lis3dh_t *dev, lis3dh_fifo_src_reg_t *val);
+
+int32_t lis3dh_fifo_data_level_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_fifo_empty_flag_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_fifo_ovr_flag_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_fifo_fth_flag_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_tap_conf_set(lis3dh_t *dev, lis3dh_click_cfg_t *val);
+int32_t lis3dh_tap_conf_get(lis3dh_t *dev, lis3dh_click_cfg_t *val);
+
+int32_t lis3dh_tap_source_get(lis3dh_t *dev, lis3dh_click_src_t *val);
+
+int32_t lis3dh_tap_threshold_set(lis3dh_t *dev, uint8_t val);
+int32_t lis3dh_tap_threshold_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_tap_notification_mode_set(lis3dh_t *dev, lis3dh_lir_click_t val);
+int32_t lis3dh_tap_notification_mode_get(lis3dh_t *dev, lis3dh_lir_click_t *val);
+
+int32_t lis3dh_shock_dur_set(lis3dh_t *dev, uint8_t val);
+int32_t lis3dh_shock_dur_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_quiet_dur_set(lis3dh_t *dev, uint8_t val);
+int32_t lis3dh_quiet_dur_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_double_tap_timeout_set(lis3dh_t *dev, uint8_t val);
+int32_t lis3dh_double_tap_timeout_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_act_threshold_set(lis3dh_t *dev, uint8_t val);
+int32_t lis3dh_act_threshold_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_act_timeout_set(lis3dh_t *dev, uint8_t val);
+int32_t lis3dh_act_timeout_get(lis3dh_t *dev, uint8_t *val);
+
+int32_t lis3dh_pin_sdo_sa0_mode_set(lis3dh_t *dev, lis3dh_sdo_pu_disc_t val);
+int32_t lis3dh_pin_sdo_sa0_mode_get(lis3dh_t *dev, lis3dh_sdo_pu_disc_t *val);
+
+int32_t lis3dh_spi_mode_set(lis3dh_t *dev, lis3dh_sim_t val);
+int32_t lis3dh_spi_mode_get(lis3dh_t *dev, lis3dh_sim_t *val);
 
 #if defined (MODULE_LIS3DH_SPI)
 /**
@@ -88,7 +256,7 @@ static void _platform_init(lis3dh_t *dev, const lis3dh_params_t *params);
  * @return                  0 on success
  * @return                  -1 on error
  */
-static int _read(const lis3dh_t *dev, const uint8_t reg, uint8_t *data, const uint16_t length)
+static int _read(const lis3dh_t *dev, uint8_t reg, uint8_t *data, uint16_t length)
 {
     /* Set READ MULTIPLE mode */
     uint8_t addr = (reg & LIS3DH_SPI_ADDRESS_MASK) | LIS3DH_SPI_READ_MASK |
@@ -114,7 +282,7 @@ static int _read(const lis3dh_t *dev, const uint8_t reg, uint8_t *data, const ui
  * @return                  -1 on error
  */
 
-static int _write(const lis3dh_t *dev, const uint8_t reg, const uint8_t *data, uint16_t length)
+static int _write(const lis3dh_t *dev, uint8_t reg, uint8_t *data, uint16_t length)
 {
     /* Set WRITE SINGLE mode */
     uint8_t addr = ((reg & LIS3DH_SPI_ADDRESS_MASK) | LIS3DH_SPI_WRITE_MASK |
@@ -147,9 +315,12 @@ static void _platform_init(lis3dh_t *dev, const lis3dh_params_t *params)
 
 #elif defined (MODULE_LIS3DH_I2C)
 
-static int _read(const lis3dh_t *dev, const uint8_t reg, uint8_t *data, const uint16_t length)
+static int _read(const lis3dh_t *dev, uint8_t reg, uint8_t *data, uint16_t length)
 {
     int status = 0x00;
+
+    /* Write multiple command */
+    reg |= 0x80;
 
     /* Acquire exclusive access to the bus. */
     i2c_acquire(dev->params.i2c);
@@ -158,12 +329,21 @@ static int _read(const lis3dh_t *dev, const uint8_t reg, uint8_t *data, const ui
     /* Release the bus for other threads. */
     i2c_release(dev->params.i2c);
 
+    DEBUG("LIS3DH [REG %02X]: <- ", (reg&0x7F));
+    PRINTBUFF(data, length);
+
     return status;
 }
 
-static int _write(const lis3dh_t *dev, const uint8_t reg, const uint8_t *data, uint16_t length)
+static int _write(const lis3dh_t *dev, uint8_t reg, uint8_t *data, uint16_t length)
 {
-    int ststatus = 0x00;
+    int status = 0x00;
+
+    /* Read multiple command */
+    reg |= 0x80;
+
+    DEBUG("LIS3DH [REG %02X]: -> ", (reg&0x7F));
+    PRINTBUFF(data, length);
 
     /* Acquire exclusive access to the bus. */
     i2c_acquire(dev->params.i2c);
@@ -185,6 +365,55 @@ static void _platform_init(lis3dh_t *dev, const lis3dh_params_t *params) {
 }
 #endif
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+  * @defgroup  LIS3DH_Interfaces_Functions
+  * @brief     This section provide a set of functions used to read and
+  *            write a generic register of the device.
+  *            MANDATORY: return 0 -> no Error.
+  * @{
+  *
+  */
+
+/**
+  * @brief  Read generic device register
+  *
+  * @param  ctx   read / write interface definitions(ptr)
+  * @param  reg   register to read
+  * @param  data  pointer to buffer that store the data read(ptr)
+  * @param  len   number of consecutive register to read
+  * @retval          interface status (MANDATORY: return 0 -> no Error)
+  *
+  */
+int32_t lis3dh_read_reg(lis3dh_t *dev, uint8_t reg, uint8_t* data, uint16_t len)
+{
+    int32_t ret;
+    ret = _read(dev, reg, data, len);
+    return ret;
+}
+
+/**
+  * @brief  Write generic device register
+  *
+  * @param  ctx   read / write interface definitions(ptr)
+  * @param  reg   register to write
+  * @param  data  pointer to data to write in register reg(ptr)
+  * @param  len   number of consecutive register to write
+  * @retval          interface status (MANDATORY: return 0 -> no Error)
+  *
+  */
+int32_t lis3dh_write_reg(lis3dh_t *dev, uint8_t reg, uint8_t* data, uint16_t len)
+{
+    int32_t ret;
+    ret = _write(dev, reg, data, len);
+    return ret;
+}
+
+/**
+  * @}
+  *
+  */
+
+
 /**
  * @defgroup    LIS3DH_Sensitivity
  * @brief       These functions convert raw-data into engineering units.
@@ -307,7 +536,7 @@ int32_t lis3dh_temp_data_ovr_get(lis3dh_t *dev, uint8_t *val)
     lis3dh_status_reg_aux_t status_reg_aux;
     int32_t ret;
 
-    ret = lis3dh_read_reg(dev, LIS3DH_STATUS_REG_AUX, (uint8_t*)&status_reg_aux, 1);
+    ret = lis3dh_read_reg(dev, LIS3DH_REG_STATUS_AUX, (uint8_t*)&status_reg_aux, 1);
     *val = status_reg_aux._3or;
 
     return ret;
@@ -854,7 +1083,7 @@ int32_t lis3dh_xl_data_ready_get(lis3dh_t *dev, uint8_t *val)
     int32_t ret;
 
     ret = lis3dh_read_reg(dev, LIS3DH_REG_STATUS_REG, (uint8_t*)&status_reg, 1);
-    *val = status_reg.zyxda;
+    *val = status_reg._zyxda;
 
     return ret;
 }
@@ -872,7 +1101,7 @@ int32_t lis3dh_xl_data_ovr_get(lis3dh_t *dev, uint8_t *val)
     int32_t ret;
 
     ret = lis3dh_read_reg(dev, LIS3DH_REG_STATUS_REG, (uint8_t*)&status_reg, 1);
-    *val = status_reg.zyxor;
+    *val = status_reg._zyxor;
 
     return ret;
 }
@@ -888,6 +1117,25 @@ int32_t lis3dh_acceleration_raw_get(lis3dh_t *dev, uint8_t *buff)
 {
     int32_t ret;
     ret = lis3dh_read_reg(dev, LIS3DH_REG_OUT_X_L, buff, 6);
+    DEBUG("Acceleration Raw Data: ");
+    PRINTBUFF(buff, 6);
+    return ret;
+}
+
+/**
+  * @brief  Acceleration output value.[get]
+  *
+  * @param  dev      read / write interface definitions
+  * @param  buff     buffer that stores data read
+  * @retval          interface status (MANDATORY: return 0 -> no Error)
+  *
+  */
+int32_t lis3dh_acceleration_raw_axis_get(lis3dh_t *dev, uint8_t *buff)
+{
+    int32_t ret;
+    ret = lis3dh_read_reg(dev, LIS3DH_REG_OUT_X_L, buff, 2);
+    DEBUG("Acceleration Raw Data: ");
+    PRINTBUFF(buff, 6);
     return ret;
 }
 /**
@@ -2494,36 +2742,43 @@ int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params)
     lis3dh_device_id_get(dev, &dev_id);
     if (dev_id != LIS3DH_WHO_AM_I_RESPONSE) {
         /* chip is not responding correctly */
-        DEBUG("[lis3dh] error reading the who am i reg [0x%02x]\n", (int)test);
+        DEBUG("[lis3dh] error reading the who am i reg [0x%02x]\n", (int)dev_id);
         return -1;
     }
 
-    /* Enable all axis */
-    lis3dh_axes_set(dev, /* FIXME: Insert property */);
+    // /* Enable all axis */
+    // lis3dh_axes_set(dev, /* FIXME: Insert property */);
 
     /* Enable Block Data Update */
+    DEBUG("Enable Block Data Update\n");
     lis3dh_block_data_update_set(dev, PROPERTY_ENABLE);
 
     /* Set Output Data Rate */
-    lis3dh_data_rate_set(dev, dev->params.odr /* z.B. LIS3DH_ODR_1Hz */); 
+    DEBUG("Set Output Data Rate [%d]\n", dev->params.odr);
+    lis3dh_data_rate_set(dev, dev->params.odr); 
 
-    /* Set full scale to 2g */  
-    lis3dh_full_scale_set(dev, dev->params.scale /* z.B. LIS3DH_2g*/);
+    /* Set full scale */ 
+    DEBUG("Set full scale [%d]\n", dev->params.scale); 
+    lis3dh_full_scale_set(dev, dev->params.scale);
 
-    /* Enable temperature sensor */   
-    lis3dh_aux_adc_set(dev, LIS3DH_AUX_ON_TEMPERATURE);
+    // /* Enable temperature sensor */
+    // DEBUG("Set Output Data Rate [%d]\n", dev->params.odr);   
+    // lis3dh_aux_adc_set(dev, LIS3DH_AUX_ON_TEMPERATURE);
 
-    /* Set device in continuous mode with 12 bit resol. */   
-    lis3dh_operating_mode_set(dev, dev->params.op_mode /* z.B. LIS3DH_HR_12bit */);
+    /* Set device operation mode */
+    DEBUG("Set device operation mode [%d]\n", dev->params.op_mode);   
+    lis3dh_operating_mode_set(dev, dev->params.op_mode);
 
     return 0;
 }
 
-int32_t lis3dh_calculation_acceleration(const lis3dh_t *dev, uint16_t acc_raw) {
+int32_t lis3dh_calculation_acceleration(lis3dh_t *dev, uint16_t acc_raw) {
     lis3dh_op_md_t op_mode;
     lis3dh_fs_t scale;
 
-    lis3dh_operating_mode_get(dev, &op_mode):
+    DEBUG("Get device operation mode\n");
+    lis3dh_operating_mode_get(dev, &op_mode);
+    DEBUG("Get full scale\n");
     lis3dh_full_scale_get(dev, &scale);
 
     switch (op_mode) {
@@ -2576,9 +2831,11 @@ int32_t lis3dh_calculation_acceleration(const lis3dh_t *dev, uint16_t acc_raw) {
             }
             break;
     }
+
+    return 0;
 }
 
-int lis3dh_read_xyz(const lis3dh_t *dev, lis3dh_acceleration_t *acceleration) {
+int lis3dh_read_xyz(lis3dh_t *dev, lis3dh_acceleration_t *acceleration) {
     lis3dh_reg_t reg;
     uint8_t data_raw_acc[6] = {0x00};
     /* Read output only if new value available */
@@ -2586,13 +2843,17 @@ int lis3dh_read_xyz(const lis3dh_t *dev, lis3dh_acceleration_t *acceleration) {
         lis3dh_xl_data_ready_get(dev, &reg.byte);
         if (reg.byte) {
             /* Read accelerometer data */
-            memset((uint8_t)&acc_data, 0x00, 3*sizeof(int16_t));
+            memset((uint8_t *)&acceleration, 0x00, 3*sizeof(int16_t));
             lis3dh_acceleration_raw_get(dev, data_raw_acc);
-            acc_data->axis_x = lis3dh_calculation_acceleration(dev, ((data_raw_acc[0] << 8) | data_raw_acc[1]));
-            acc_data->axis_y = lis3dh_calculation_acceleration(dev, ((data_raw_acc[2] << 8) | data_raw_acc[3]));
-            acc_data->axis_z = lis3dh_calculation_acceleration(dev, ((data_raw_acc[4] << 8) | data_raw_acc[5]));
+            uint8_t x_raw[2] = {0x00};
+            lis3dh_acceleration_raw_axis_get(dev, x_raw);
+            DEBUG("Raw data x axis: "); 
+            PRINTBUFF(x_raw, sizeof(x_raw));
+            acceleration->axis_x = lis3dh_calculation_acceleration(dev, ((data_raw_acc[0] << 8) | data_raw_acc[1]));
+            acceleration->axis_y = lis3dh_calculation_acceleration(dev, ((data_raw_acc[2] << 8) | data_raw_acc[3]));
+            acceleration->axis_z = lis3dh_calculation_acceleration(dev, ((data_raw_acc[4] << 8) | data_raw_acc[5]));
 
-            DEBUG("Acceleration [mg]:%4.2f\t%4.2f\t%4.2f\r\n", acceleration_mg[0], acceleration_mg[1], acceleration_mg[2]);
+            DEBUG("Acceleration [mg]:%ld\t%ld\t%ld\n", acceleration->axis_x, acceleration->axis_y, acceleration->axis_z);
         }
     } while(!reg.byte);
 
@@ -2602,11 +2863,10 @@ int lis3dh_read_xyz(const lis3dh_t *dev, lis3dh_acceleration_t *acceleration) {
 
 
 
-int32_t lis3dh_calculation_temperature(const lis3dh_t *dev, uint16_t temp_raw) {
+int32_t lis3dh_calculation_temperature(lis3dh_t *dev, uint16_t temp_raw) {
     lis3dh_op_md_t op_mode;
-    lis3dh_fs_t scale;
 
-    lis3dh_operating_mode_get(dev, &op_mode):
+    lis3dh_operating_mode_get(dev, &op_mode);
 
     switch (op_mode) {
         case LIS3DH_HR_12bit:
@@ -2619,10 +2879,12 @@ int32_t lis3dh_calculation_temperature(const lis3dh_t *dev, uint16_t temp_raw) {
             lis3dh_from_lsb_lp_to_celsius(temp_raw);
             break;
     }
+
+    return 0;
 }
 
 
-int lis3dh_read_temp(const lis3dh_t *dev, uint16_t *temperature_degC) {
+int lis3dh_read_temp(lis3dh_t *dev, uint16_t *temperature_degC) {
 
     lis3dh_reg_t reg;
     uint8_t data_raw_temperature;
@@ -2632,10 +2894,10 @@ int lis3dh_read_temp(const lis3dh_t *dev, uint16_t *temperature_degC) {
         lis3dh_temp_data_ready_get(dev, &reg.byte);      
         if (reg.byte) {
             /* Read temperature data */
-            lis3dh_temperature_raw_get(dev, data_raw_temperature);
-            temperature_degC = ((((uint16_t)data_raw_temperature) << 8) | 0x00);
-            temperature_degC = lis3dh_calculation_temperature(temperature_degC);
-            DEBUG("Temperature [degC]:%6.2f\r\n", temperature_degC);
+            lis3dh_temperature_raw_get(dev, &data_raw_temperature);
+            *temperature_degC = ((((uint16_t)data_raw_temperature) << 8) | 0x00);
+            *temperature_degC = lis3dh_calculation_temperature(dev, *temperature_degC);
+            DEBUG("Temperature [degC]: %d\n", *temperature_degC);
         }
     } while(!reg.byte);
 
@@ -2644,8 +2906,8 @@ int lis3dh_read_temp(const lis3dh_t *dev, uint16_t *temperature_degC) {
 
 
 
-int lis3dh_set_axes(const lis3dh_t *dev, const uint8_t axes) {
-    return 0;
-}
+// int lis3dh_set_axes(const lis3dh_t *dev, const uint8_t axes) {
+//     return 0;
+// }
 
 /** @} */

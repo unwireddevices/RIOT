@@ -129,7 +129,7 @@ typedef struct {
     uint8_t reserved_01     : 1;
     uint8_t i1_overrun      : 1;
     uint8_t i1_wtm          : 1;
-    uint8_t reserved_02     : 1;
+    uint8_t i1_321da        : 1;
     uint8_t i1_zyxda        : 1;
     uint8_t i1_ia2          : 1;
     uint8_t i1_ia1          : 1;
@@ -355,117 +355,6 @@ typedef union{
     bitwise_t               bitwise;
     uint8_t                 byte;
 } lis3dh_reg_t;
-
-/**
- * @name    LIS3DH values registers enumirations
- * @{ 
- */
-typedef enum {
-  LIS3DH_AUX_DISABLE          = 0,
-  LIS3DH_AUX_ON_TEMPERATURE   = 3,
-  LIS3DH_AUX_ON_PADS          = 1,
-} lis3dh_temp_en_t;
-
-typedef enum {
-  LIS3DH_HR_12bit   = 0,
-  LIS3DH_NM_10bit   = 1,
-  LIS3DH_LP_8bit    = 2,
-} lis3dh_op_md_t;
-
-typedef enum {
-  LIS3DH_POWER_DOWN                      = 0x00,
-  LIS3DH_ODR_1Hz                         = 0x01,
-  LIS3DH_ODR_10Hz                        = 0x02,
-  LIS3DH_ODR_25Hz                        = 0x03,
-  LIS3DH_ODR_50Hz                        = 0x04,
-  LIS3DH_ODR_100Hz                       = 0x05,
-  LIS3DH_ODR_200Hz                       = 0x06,
-  LIS3DH_ODR_400Hz                       = 0x07,
-  LIS3DH_ODR_1kHz620_LP                  = 0x08,
-  LIS3DH_ODR_5kHz376_LP_1kHz344_NM_HP    = 0x09,
-} lis3dh_odr_t;
-
-typedef enum {
-  LIS3DH_AGGRESSIVE  = 0,
-  LIS3DH_STRONG      = 1,
-  LIS3DH_MEDIUM      = 2,
-  LIS3DH_LIGHT       = 3,
-} lis3dh_hpcf_t;
-
-typedef enum {
-  LIS3DH_NORMAL_WITH_RST  = 0,
-  LIS3DH_REFERENCE_MODE   = 1,
-  LIS3DH_NORMAL           = 2,
-  LIS3DH_AUTORST_ON_INT   = 3,
-} lis3dh_hpm_t;
-
-typedef enum {
-  LIS3DH_2g   = 0,
-  LIS3DH_4g   = 1,
-  LIS3DH_8g   = 2,
-  LIS3DH_16g  = 3,
-} lis3dh_fs_t;
-
-typedef enum {
-  LIS3DH_ST_DISABLE   = 0,
-  LIS3DH_ST_POSITIVE  = 1,
-  LIS3DH_ST_NEGATIVE  = 2,
-} lis3dh_st_t;
-
-typedef enum {
-  LIS3DH_LSB_AT_LOW_ADD = 0,
-  LIS3DH_MSB_AT_LOW_ADD = 1,
-} lis3dh_ble_t;
-
-typedef enum {
-  LIS3DH_DISC_FROM_INT_GENERATOR  = 0,
-  LIS3DH_ON_INT1_GEN              = 1,
-  LIS3DH_ON_INT2_GEN              = 2,
-  LIS3DH_ON_TAP_GEN               = 4,
-  LIS3DH_ON_INT1_INT2_GEN         = 3,
-  LIS3DH_ON_INT1_TAP_GEN          = 5,
-  LIS3DH_ON_INT2_TAP_GEN          = 6,
-  LIS3DH_ON_INT1_INT2_TAP_GEN     = 7,
-} lis3dh_hp_t;
-
-typedef enum {
-  LIS3DH_INT2_PULSED   = 0,
-  LIS3DH_INT2_LATCHED  = 1,
-} lis3dh_lir_int2_t;
-
-typedef enum {
-  LIS3DH_INT1_PULSED   = 0,
-  LIS3DH_INT1_LATCHED  = 1,
-} lis3dh_lir_int1_t;
-
-typedef enum {
-  LIS3DH_INT1_GEN = 0,
-  LIS3DH_INT2_GEN = 1,
-} lis3dh_tr_t;
-
-typedef enum {
-  LIS3DH_BYPASS_MODE           = 0,
-  LIS3DH_FIFO_MODE             = 1,
-  LIS3DH_DYNAMIC_STREAM_MODE   = 2,
-  LIS3DH_STREAM_TO_FIFO_MODE   = 3,
-} lis3dh_fm_t;
-
-typedef enum {
-  LIS3DH_TAP_PULSED   = 0,
-  LIS3DH_TAP_LATCHED  = 1,
-} lis3dh_lir_click_t;
-
-typedef enum {
-  LIS3DH_PULL_UP_DISCONNECT  = 0,
-  LIS3DH_PULL_UP_CONNECT     = 1,
-} lis3dh_sdo_pu_disc_t;
-
-typedef enum {
-  LIS3DH_SPI_4_WIRE = 0,
-  LIS3DH_SPI_3_WIRE = 1,
-} lis3dh_sim_t;
-/** @} */
-
 
 /**
  * @brief   Identifier register value

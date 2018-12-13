@@ -287,9 +287,9 @@ typedef struct {
  */
 typedef struct
 {
-    int32_t axis_x;             /**< Acceleration in the X direction in milli-G */
-    int32_t axis_y;             /**< Acceleration in the Y direction in milli-G */
-    int32_t axis_z;             /**< Acceleration in the Z direction in milli-G */
+    int16_t axis_x;             /**< Acceleration in the X direction in milli-G */
+    int16_t axis_y;             /**< Acceleration in the Y direction in milli-G */
+    int16_t axis_z;             /**< Acceleration in the Z direction in milli-G */
 } __attribute__((packed)) lis3dh_acceleration_t;
 
 /**

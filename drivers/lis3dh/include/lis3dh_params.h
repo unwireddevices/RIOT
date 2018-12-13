@@ -150,10 +150,10 @@ static const lis3dh_params_t lis3dh_params[] =
 /**
  * @brief   Additional meta information to keep in the SAUL registry
  */
-static const saul_reg_info_t lis3dh_saul_info[] =
-{
-    LIS3DH_SAUL_INFO
-};
+// static const saul_reg_info_t lis3dh_saul_info[] =
+// {
+//     LIS3DH_SAUL_INFO
+// };
 #endif
 
 

@@ -36,7 +36,7 @@
     {
         while (len) {
             len--;
-            printf("%02X ", *buff++);
+            printf("%02Xh ", *buff++);
         }
         printf("\n");
     }
@@ -342,7 +342,7 @@ static int _write(const lis3dh_t *dev, uint8_t reg, uint8_t *data, uint16_t leng
     /* Read multiple command */
     reg |= 0x80;
 
-    DEBUG("LIS3DH [REG %02X]: -> ", (reg&0x7F));
+    DEBUG("LIS3DH [REG %02X]: -> %02Xh ", (reg&0x7F), reg);
     PRINTBUFF(data, length);
 
     /* Acquire exclusive access to the bus. */
@@ -412,46 +412,12 @@ int32_t lis3dh_write_reg(lis3dh_t *dev, uint8_t reg, uint8_t* data, uint16_t len
   * @}
   *
   */
-
-
-/**
- * @defgroup    LIS3DH_Sensitivity
- * @brief       These functions convert raw-data into engineering units.
- * @{
- *
- */
-
-static inline int32_t lis3dh_from_fs2_hr_to_ug(int16_t lsb) {
-    return (((int32_t)lsb * 1000) / 16) * 1;
-}
-
-static inline int32_t lis3dh_from_fs4_hr_to_ug(int16_t lsb) {
-    return (((int32_t)lsb * 1000) / 16) * 2;
-}
-
-static inline int32_t lis3dh_from_fs8_hr_to_ug(int16_t lsb) {
-    return (((int32_t)lsb * 1000) / 16) * 4;
-}
-
-static inline int32_t lis3dh_from_fs16_hr_to_ug(int16_t lsb) {
-    return (((int32_t)lsb * 1000) / 16) * 12;
-}
-
 static inline int32_t lis3dh_from_lsb_hr_to_celsius(int16_t lsb) {
     return (((int32_t)lsb / 64) / 4) + 25;
 }
 
-static inline int32_t lis3dh_from_fs2_nm_to_ug(int16_t lsb) {
-    return (((int32_t)lsb * 1000) / 64) * 4;
-}
 
-static inline int32_t lis3dh_from_fs4_nm_to_ug(int16_t lsb) {
-    return (((int32_t)lsb * 1000) / 64) * 8;
-}
 
-static inline int32_t lis3dh_from_fs8_nm_to_ug(int16_t lsb) {
-    return (((int32_t)lsb * 1000) / 64) * 16;
-}
 
 static inline int32_t lis3dh_from_fs16_nm_to_ug(int16_t lsb) {
     return (((int32_t)lsb * 1000) / 64) * 48;
@@ -696,11 +662,14 @@ int32_t lis3dh_operating_mode_get(lis3dh_t *dev, lis3dh_op_md_t *val)
         ret = lis3dh_read_reg(dev, LIS3DH_REG_CTRL_REG4, (uint8_t*)&ctrl_reg4, 1);
         if ( ctrl_reg1.lpen == PROPERTY_ENABLE ) {
             *val = LIS3DH_LP_8bit;
+            DEBUG("LIS3DH_LP_8bit\n");
         }
         if (ctrl_reg4.hr == PROPERTY_ENABLE ) {
             *val = LIS3DH_HR_12bit;
+            DEBUG("LIS3DH_HR_12bit\n");
         } else {
             *val = LIS3DH_NM_10bit;
+            DEBUG("LIS3DH_NM_10bit\n")
         }
     }
     return ret;
@@ -981,18 +950,23 @@ int32_t lis3dh_full_scale_get(lis3dh_t *dev, lis3dh_fs_t *val)
     switch (ctrl_reg4.fs) {
     case LIS3DH_2g:
         *val = LIS3DH_2g;
+        DEBUG("LIS3DH_2g\n");
         break;
     case LIS3DH_4g:
         *val = LIS3DH_4g;
+        DEBUG("LIS3DH_4g\n");
         break;
     case LIS3DH_8g:
         *val = LIS3DH_8g;
+        DEBUG("LIS3DH_8g\n");
         break;
     case LIS3DH_16g:
         *val = LIS3DH_16g;
+        DEBUG("LIS3DH_16g\n");
         break;
     default:
         *val = LIS3DH_2g;
+        DEBUG("Default LIS3DH_2g\n");
         break;
     }
     return ret;
@@ -1130,12 +1104,12 @@ int32_t lis3dh_acceleration_raw_get(lis3dh_t *dev, uint8_t *buff)
   * @retval          interface status (MANDATORY: return 0 -> no Error)
   *
   */
-int32_t lis3dh_acceleration_raw_axis_get(lis3dh_t *dev, uint8_t *buff)
+int32_t lis3dh_acceleration_raw_axis_get(lis3dh_t *dev, uint8_t reg_axis, uint8_t *buff)
 {
     int32_t ret;
-    ret = lis3dh_read_reg(dev, LIS3DH_REG_OUT_X_L, buff, 2);
+    ret = lis3dh_read_reg(dev, reg_axis, buff, 2);
     DEBUG("Acceleration Raw Data: ");
-    PRINTBUFF(buff, 6);
+    PRINTBUFF(buff, 2);
     return ret;
 }
 /**
@@ -2761,6 +2735,10 @@ int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params)
     DEBUG("Set full scale [%d]\n", dev->params.scale); 
     lis3dh_full_scale_set(dev, dev->params.scale);
 
+    /* Set Big Endianes */
+    DEBUG("Set BLE bit\n");
+    lis3dh_data_format_set(dev, LIS3DH_MSB_AT_LOW_ADD);
+
     // /* Enable temperature sensor */
     // DEBUG("Set Output Data Rate [%d]\n", dev->params.odr);   
     // lis3dh_aux_adc_set(dev, LIS3DH_AUX_ON_TEMPERATURE);
@@ -2772,7 +2750,16 @@ int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params)
     return 0;
 }
 
-int32_t lis3dh_calculation_acceleration(lis3dh_t *dev, uint16_t acc_raw) {
+
+/**
+ * @brief These functions convert raw-data into engineering units.
+ * 
+ * @param dev [description]
+ * @param acc_raw [description]
+ * 
+ * @return [description]
+ */
+int32_t lis3dh_calculation_acceleration(lis3dh_t *dev, int16_t acc_raw) {
     lis3dh_op_md_t op_mode;
     lis3dh_fs_t scale;
 
@@ -2781,33 +2768,36 @@ int32_t lis3dh_calculation_acceleration(lis3dh_t *dev, uint16_t acc_raw) {
     DEBUG("Get full scale\n");
     lis3dh_full_scale_get(dev, &scale);
 
+    DEBUG("acc raw data: %d[%04X]\n", acc_raw, acc_raw);
+
     switch (op_mode) {
         case LIS3DH_HR_12bit:
             switch (scale) {
                 case LIS3DH_2g:
-                    lis3dh_from_fs2_hr_to_ug(acc_raw);
+                    
+                    return ((acc_raw / 16) * 1);
                     break;
                 case LIS3DH_4g:
-                    lis3dh_from_fs4_hr_to_ug(acc_raw);
+                    return ((acc_raw / 16) * 2);
                     break;
                 case LIS3DH_8g:
-                    lis3dh_from_fs8_hr_to_ug(acc_raw);
+                    return ((acc_raw / 16) * 4;
                     break;
                 case LIS3DH_16g:
-                    lis3dh_from_fs16_hr_to_ug(acc_raw);
+                    return ((acc_raw / 16) * 12;
                     break;
             } 
             break;
         case LIS3DH_NM_10bit:
             switch (scale) {
                 case LIS3DH_2g:
-                    lis3dh_from_fs2_nm_to_ug(acc_raw);
+                    return ((acc_raw / 64) * 4);
                     break;
                 case LIS3DH_4g:
-                    lis3dh_from_fs4_nm_to_ug(acc_raw);
+                    return ((acc_raw / 64) * 8);
                     break;
                 case LIS3DH_8g:
-                    lis3dh_from_fs8_nm_to_ug(acc_raw);
+                    return ((acc_raw / 64) * 16);
                     break;
                 case LIS3DH_16g:
                     lis3dh_from_fs16_nm_to_ug(acc_raw);
@@ -2837,23 +2827,36 @@ int32_t lis3dh_calculation_acceleration(lis3dh_t *dev, uint16_t acc_raw) {
 
 int lis3dh_read_xyz(lis3dh_t *dev, lis3dh_acceleration_t *acceleration) {
     lis3dh_reg_t reg;
-    uint8_t data_raw_acc[6] = {0x00};
+    // uint8_t data_raw_acc[6] = {0x00};
     /* Read output only if new value available */
     do {
         lis3dh_xl_data_ready_get(dev, &reg.byte);
         if (reg.byte) {
             /* Read accelerometer data */
-            memset((uint8_t *)&acceleration, 0x00, 3*sizeof(int16_t));
-            lis3dh_acceleration_raw_get(dev, data_raw_acc);
+            // lis3dh_acceleration_raw_get(dev, data_raw_acc);
             uint8_t x_raw[2] = {0x00};
-            lis3dh_acceleration_raw_axis_get(dev, x_raw);
+            uint8_t y_raw[2] = {0x00};
+            uint8_t z_raw[2] = {0x00};
+            lis3dh_acceleration_raw_axis_get(dev, LIS3DH_REG_OUT_X_L, x_raw);
             DEBUG("Raw data x axis: "); 
             PRINTBUFF(x_raw, sizeof(x_raw));
-            acceleration->axis_x = lis3dh_calculation_acceleration(dev, ((data_raw_acc[0] << 8) | data_raw_acc[1]));
-            acceleration->axis_y = lis3dh_calculation_acceleration(dev, ((data_raw_acc[2] << 8) | data_raw_acc[3]));
-            acceleration->axis_z = lis3dh_calculation_acceleration(dev, ((data_raw_acc[4] << 8) | data_raw_acc[5]));
+            lis3dh_acceleration_raw_axis_get(dev, LIS3DH_REG_OUT_Y_L, y_raw);
+            DEBUG("Raw data y axis: "); 
+            PRINTBUFF(y_raw, sizeof(y_raw));
+            lis3dh_acceleration_raw_axis_get(dev, LIS3DH_REG_OUT_Z_L, z_raw);
+            DEBUG("Raw data z axis: "); 
+            PRINTBUFF(z_raw, sizeof(z_raw));
+            DEBUG("Calculation accleretation axis_x: ");
+            acceleration->axis_x = lis3dh_calculation_acceleration(dev, ((x_raw[0] << 8) | x_raw[1]));
+            DEBUG("%d mg\n", acceleration->axis_x);
+            DEBUG("Calculation accleretation axis_y: ");
+            acceleration->axis_y = lis3dh_calculation_acceleration(dev, ((y_raw[0] << 8) | y_raw[1]));
+            DEBUG("%d mg\n", acceleration->axis_y);
+            DEBUG("Calculation accleretation axis_z: ");
+            acceleration->axis_z = lis3dh_calculation_acceleration(dev, ((z_raw[0] << 8) | z_raw[1]));
+            DEBUG("%d mg\n", acceleration->axis_z);
 
-            DEBUG("Acceleration [mg]:%ld\t%ld\t%ld\n", acceleration->axis_x, acceleration->axis_y, acceleration->axis_z);
+            DEBUG("Acceleration [mg]:%d\t%d\t%d\n", acceleration->axis_x, acceleration->axis_y, acceleration->axis_z);
         }
     } while(!reg.byte);
 

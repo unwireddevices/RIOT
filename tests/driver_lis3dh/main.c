@@ -27,7 +27,7 @@
 #include "lis3dh_params.h"
 
 
-#define SLEEP       (1000 * 1000U)
+#define SLEEP       (100 * 1000U)
 
 #define WATERMARK_LEVEL 16
 
@@ -48,7 +48,7 @@ int main(void)
         .int1      = GPIO_UNDEF,  
         .int1_mode = I1_DISABLE,  
         .scale     = LIS3DH_2g,
-        .odr       = LIS3DH_ODR_1Hz,
+        .odr       = LIS3DH_ODR_100Hz,
         .op_mode   = LIS3DH_HR_12bit},
 
     };
@@ -119,7 +119,7 @@ int main(void)
             //     return 1;
             // }
             // int1 = gpio_read(lis3dh_params[0].int1);
-            printf("X: %ld Y: %ld Z: %ld \n", acc_data.axis_x, acc_data.axis_y, acc_data.axis_z);
+            printf("X: %d Y: %d Z: %d \n", acc_data.axis_x, acc_data.axis_y, acc_data.axis_z);
 
         xtimer_usleep(SLEEP);
     }

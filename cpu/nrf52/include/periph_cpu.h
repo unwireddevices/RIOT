@@ -65,8 +65,7 @@ enum {
  * @{
  */
 typedef struct {
-    gpio_t pin;             /* */
-    uint8_t channel;        /* */
+    uint32_t pin;       /* */
 } pwm_chan_t;
 /** @} */
 

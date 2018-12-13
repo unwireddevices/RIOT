@@ -71,6 +71,7 @@ typedef enum {
 
 /**
  * @brief   I2C (TWI) configuration options
+ * @{
  */
 typedef struct {
     NRF_TWI_Type *dev;          /**< hardware device */
@@ -78,6 +79,7 @@ typedef struct {
     uint8_t pin_sda;            /**< SDA pin */
     uint8_t ppi;                /**< PPI channel to use */
 } i2c_conf_t;
+/** @} */
 
 #ifdef __cplusplus
 }

@@ -31,6 +31,8 @@
 #include "periph_cpu.h"
 #include "periph_conf.h"
 
+#include "assert.h"
+
 #define PORT_BIT            (1 << 5)
 #define PIN_MASK            (0x1f)
 
@@ -67,12 +69,23 @@ static inline int pin_num(gpio_t pin)
 #endif
 }
 
-int gpio_init(gpio_t pin, gpio_mode_t mode)
+int gpio_init(gpio_t pin, 
+              gpio_mode_t mode)
 {
+    // assert(pin != GPIO_UNDEF);
+    // if(pin == GPIO_UNDEF)
+    // {
+    //     puts("Error: GPIO_UNDEF");
+    //     return -1;
+    // }
+
     switch (mode) {
         case GPIO_IN:
+            break;
         case GPIO_IN_PD:
+            break;
         case GPIO_IN_PU:
+            break;
         case GPIO_OUT:
             /* configure pin direction, input buffer and pull resistor state */
             port(pin)->PIN_CNF[pin] = mode;
@@ -84,8 +97,11 @@ int gpio_init(gpio_t pin, gpio_mode_t mode)
     return 0;
 }
 
-int gpio_init_int(gpio_t pin, gpio_mode_t mode, gpio_flank_t flank,
-                  gpio_cb_t cb, void *arg)
+int gpio_init_int(gpio_t pin,
+                  gpio_mode_t mode, 
+                  gpio_flank_t flank,
+                  gpio_cb_t cb, 
+                  void *arg)
 {
     /* disable external interrupt in case one is active */
     NRF_GPIOTE->INTENSET &= ~(GPIOTE_INTENSET_IN0_Msk);

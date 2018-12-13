@@ -33,19 +33,27 @@ int main(void)
     puts("Test pwm"); 
 
     pwm_t dev = 0;
-    pwm_mode_t mode = PWM_LEFT;
+    pwm_mode_t mode = PWM_RIGHT;
     uint32_t freq = 550;
     uint16_t res = 16000;
     uint8_t channel = 0;
-    uint16_t value = res / 2;
+    uint16_t value = res / 4;
 
     pwm_init(dev, mode, freq, res);
     pwm_set(dev, channel, value); 
-    pwm_start(dev);
+    pwm_start(dev); 
+
+    // pwm_stop(dev);
+    
+    // value = res / 2;
+    // pwm_set(dev, channel, value); 
+    // pwm_start(dev); 
+    // pwm_poweroff(dev); 
 
     while(1)
     {
         // pm_set(PM_SLEEP);
+        __WFI();
     }
 
     return 0;

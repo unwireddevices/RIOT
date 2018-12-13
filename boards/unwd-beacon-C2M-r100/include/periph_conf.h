@@ -26,8 +26,6 @@
 extern "C" {
 #endif
 
-#define GPIO_UNDEF (0xFFFFFFFF)
-
 /**
  * @name    Clock configuration
  *
@@ -41,41 +39,6 @@ extern "C" {
                                              *         1: 32.768 kHz crystal
                                              *         2: derived from HFCLK */
 /** @} */
-
-
-/**
- * @brief   PWM configuration
- * @{
- */
-static const pwm_conf_t pwm_config[] = 
-{
-    {
-        .dev     = NRF_PWM0,
-        .channel = { { .pin = GPIO_PIN(0,13) },
-                     { .pin = GPIO_UNDEF },
-                     { .pin = GPIO_UNDEF },
-                     { .pin = GPIO_UNDEF } }
-    },
-    {
-        .dev      = NRF_PWM1,
-        .channel = { { .pin = GPIO_UNDEF },
-                     { .pin = GPIO_UNDEF },
-                     { .pin = GPIO_UNDEF },
-                     { .pin = GPIO_UNDEF } }
-    },
-    {
-        .dev      = NRF_PWM2,
-        .channel = { { .pin = GPIO_UNDEF },
-                     { .pin = GPIO_UNDEF },
-                     { .pin = GPIO_UNDEF },
-                     { .pin = GPIO_UNDEF } }
-    }
-};
-
-#define PWM_CHAN        4
-#define PWM_NUMOF       (sizeof(pwm_config) / sizeof(pwm_config[0]))
-/** @} */
-
 
 /**
  * @name    Timer configuration

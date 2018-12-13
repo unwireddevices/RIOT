@@ -26,6 +26,8 @@
 extern "C" {
 #endif
 
+#define GPIO_UNDEF (0xFFFFFFFF)
+
 /**
  * @name    Clock configuration
  *
@@ -38,6 +40,39 @@ extern "C" {
 #define CLOCK_LFCLK         (1)             /* set to  0: internal RC oscillator
                                              *         1: 32.768 kHz crystal
                                              *         2: derived from HFCLK */
+/** @} */
+
+/**
+ * @brief   PWM configuration
+ * @{
+ */
+static const pwm_conf_t pwm_config[] = 
+{
+    {
+        .dev     = NRF_PWM0,
+        .channel = { { .pin = GPIO_PIN(0,13) },
+                     { .pin = GPIO_UNDEF },
+                     { .pin = GPIO_UNDEF },
+                     { .pin = GPIO_UNDEF } }
+    },
+    {
+        .dev      = NRF_PWM1,
+        .channel = { { .pin = GPIO_UNDEF },
+                     { .pin = GPIO_UNDEF },
+                     { .pin = GPIO_UNDEF },
+                     { .pin = GPIO_UNDEF } }
+    },
+    {
+        .dev      = NRF_PWM2,
+        .channel = { { .pin = GPIO_UNDEF },
+                     { .pin = GPIO_UNDEF },
+                     { .pin = GPIO_UNDEF },
+                     { .pin = GPIO_UNDEF } }
+    }
+};
+
+#define PWM_CHAN        4
+#define PWM_NUMOF       (sizeof(pwm_config) / sizeof(pwm_config[0]))
 /** @} */
 
 /**
@@ -73,7 +108,7 @@ static const timer_conf_t timer_config[] = {
  * @{
  */
 #define UART_NUMOF          (1U)
-#define UART_PIN_RX         GPIO_PIN(0,13)
+#define UART_PIN_RX         GPIO_UNDEF
 #define UART_PIN_TX         GPIO_PIN(0,18)
 /** @} */
 

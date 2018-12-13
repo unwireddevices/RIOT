@@ -22,6 +22,7 @@
  * @author      Timo Ziegler <timo.ziegler@fu-berlin.de>
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  * @author      Jan Wagner <mail@jwagner.eu>
+ * @author      Manchenko Oleg <man4enkoos@gmail.com>
  *
  * @}
  */
@@ -79,17 +80,49 @@ int gpio_init(gpio_t pin,
     //     return -1;
     // }
 
+    // port(pin)->PIN_CNF[pin] = ( ( << GPIO_PIN_CNF_DIR_Pos) |
+    //                             ( << GPIO_PIN_CNF_INPUT_Pos) |
+    //                             ( << GPIO_PIN_CNF_PULL_Pos) |
+    //                             ( << GPIO_PIN_CNF_DRIVE_Pos) |
+    //                             ( << GPIO_PIN_CNF_SENSE_Pos)); 
+
     switch (mode) {
-        case GPIO_IN:
+        case GPIO_IN:       /**< configure as input without pull resistor */
+            port(pin)->PIN_CNF[pin] = ( (GPIO_PIN_CNF_DIR_Input     << GPIO_PIN_CNF_DIR_Pos) |
+                                        (GPIO_PIN_CNF_PULL_Disabled << GPIO_PIN_CNF_PULL_Pos));             
             break;
-        case GPIO_IN_PD:
+        case GPIO_IN_PD:    /**< configure as input with pull-down resistor */
+            port(pin)->PIN_CNF[pin] = ( (GPIO_PIN_CNF_DIR_Input     << GPIO_PIN_CNF_DIR_Pos) |
+                                        (GPIO_PIN_CNF_PULL_Pulldown << GPIO_PIN_CNF_PULL_Pos)); 
             break;
-        case GPIO_IN_PU:
+        case GPIO_IN_PU:    /**< configure as input with pull-up resistor */
+            port(pin)->PIN_CNF[pin] = ( (GPIO_PIN_CNF_DIR_Input   << GPIO_PIN_CNF_DIR_Pos) |
+                                        (GPIO_PIN_CNF_PULL_Pullup << GPIO_PIN_CNF_PULL_Pos)); 
             break;
-        case GPIO_OUT:
-            /* configure pin direction, input buffer and pull resistor state */
-            port(pin)->PIN_CNF[pin] = mode;
+        case GPIO_OUT:      /**< configure as output in push-pull mode */
+            port(pin)->PIN_CNF[pin] = (GPIO_PIN_CNF_DIR_Output << GPIO_PIN_CNF_DIR_Pos); 
             break;
+        // case GPIO_OD:       /**< configure as output in open-drain mode without pull resistor */
+        //     port(pin)->PIN_CNF[pin] = ( ( << GPIO_PIN_CNF_DIR_Pos) |
+        //                                 ( << GPIO_PIN_CNF_INPUT_Pos) |
+        //                                 ( << GPIO_PIN_CNF_PULL_Pos) |
+        //                                 ( << GPIO_PIN_CNF_DRIVE_Pos) |
+        //                                 ( << GPIO_PIN_CNF_SENSE_Pos)); 
+        //     break;
+        // case GPIO_OD_PU:    /**< configure as output in open-drain mode with pull resistor enabled */
+        //     port(pin)->PIN_CNF[pin] = ( ( << GPIO_PIN_CNF_DIR_Pos) |
+        //                                 ( << GPIO_PIN_CNF_INPUT_Pos) |
+        //                                 ( << GPIO_PIN_CNF_PULL_Pos) |
+        //                                 ( << GPIO_PIN_CNF_DRIVE_Pos) |
+        //                                 ( << GPIO_PIN_CNF_SENSE_Pos)); 
+        //     break;
+        // case GPIO_AIN:      /**<configure as analog input */
+        //     port(pin)->PIN_CNF[pin] = ( ( << GPIO_PIN_CNF_DIR_Pos) |
+        //                                 ( << GPIO_PIN_CNF_INPUT_Pos) |
+        //                                 ( << GPIO_PIN_CNF_PULL_Pos) |
+        //                                 ( << GPIO_PIN_CNF_DRIVE_Pos) |
+        //                                 ( << GPIO_PIN_CNF_SENSE_Pos)); 
+        //     break;    
         default:
             return -1;
     }

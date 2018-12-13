@@ -2,12 +2,14 @@
 APPLICATION = test
 
 # If no BOARD is found in the environment, use this default:
-BOARD ?= unwd-beacon-C2M-r100
+BOARD ?= unwd-nrf
 
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../../..
 
-FEATURES_REQUIRED += periph_pwm
+# FEATURES_REQUIRED += periph_pwm
+
+USEMODULE += xtimer
 
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the

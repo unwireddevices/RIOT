@@ -48,13 +48,14 @@ int main(void)
         .int1      = GPIO_UNDEF,  
         .int1_mode = I1_DISABLE,  
         .scale     = LIS3DH_2g,
-        .odr       = LIS3DH_ODR_100Hz,
+        .odr       = LIS3DH_ODR_1Hz,
         .op_mode   = LIS3DH_HR_12bit},
 
     };
 
     lis3dh_t dev;
     lis3dh_acceleration_t acc_data;
+    int16_t temperature;
 
     puts("LIS3DH accelerometer driver test application\n");
 
@@ -66,24 +67,6 @@ int main(void)
         puts("[Failed]\n");
         return 1;
     }
-
-    // puts("Enable streaming FIFO mode... ");
-    // if (lis3dh_set_fifo(&dev, LIS3DH_FIFO_MODE_STREAM, WATERMARK_LEVEL) == 0) {
-    //     puts("[OK]");
-    // }
-    // else {
-    //     puts("[Failed]\n");
-    //     return 1;
-    // }
-
-    // puts("Enable temperature reading... ");
-    // if (lis3dh_set_aux_adc(&dev, 1, 1) == 0) {
-    //     puts("[OK]");
-    // }
-    // else {
-    //     puts("[Failed]\n");
-    //     return 1;
-    // }
 
     // puts("Set INT1 watermark function... ");
     // if (lis3dh_set_int1(&dev, LIS3DH_CTRL_REG3_I1_WTM_MASK) == 0) {
@@ -112,14 +95,15 @@ int main(void)
         if (lis3dh_read_xyz(&dev, &acc_data) != 0) {
                 puts("Reading acceleration data... ");
                 puts("[Failed]\n");
-            }
-            // if (lis3dh_read_aux_adc3(&dev, &temperature) != 0) {
-            //     puts("Reading temperature data... ");
-            //     puts("[Failed]\n");
-            //     return 1;
-            // }
-            // int1 = gpio_read(lis3dh_params[0].int1);
-            printf("X: %d Y: %d Z: %d \n", acc_data.axis_x, acc_data.axis_y, acc_data.axis_z);
+                return 1;
+        }
+        if (lis3dh_read_temp(&dev, &temperature) != 0) {
+            puts("Reading temperature data... ");
+            puts("[Failed]\n");
+            return 1;
+        }
+        // int1 = gpio_read(lis3dh_params[0].int1);
+        printf("X: %d Y: %d Z: %d Temp: %d\n", acc_data.axis_x, acc_data.axis_y, acc_data.axis_z, temperature);
 
         xtimer_usleep(SLEEP);
     }

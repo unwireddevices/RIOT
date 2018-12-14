@@ -314,6 +314,17 @@ int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params);
  */
 int lis3dh_read_xyz(lis3dh_t *dev, lis3dh_acceleration_t *acceleration);
 
+/**
+ * @brief   Read temperature from the accelerometer
+ * 
+ * @param dev                Device descriptor of sensor
+ * @param temperature_degC   Temperature output buffer
+ * 
+ * @return                  0 on success
+ * @return                  -1 on error
+ */
+int lis3dh_read_temp(lis3dh_t *dev, int16_t *temperature_degC);
+
 #ifdef __cplusplus
 }
 #endif

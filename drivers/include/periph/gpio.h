@@ -102,7 +102,7 @@ typedef enum {
                              *   pull resistor */
     GPIO_OD_PU,             /**< configure as output in open-drain mode with
                              *   pull resistor enabled */
-    GPIO_AIN                /**<configure as analog input */
+    GPIO_AIN                /**< configure as analog input */
 } gpio_mode_t;
 #endif
 
@@ -166,8 +166,11 @@ int gpio_init(gpio_t pin, gpio_mode_t mode);
  * @return              0 on success
  * @return              -1 on error
  */
-int gpio_init_int(gpio_t pin, gpio_mode_t mode, gpio_flank_t flank,
-                  gpio_cb_t cb, void *arg);
+int gpio_init_int(gpio_t pin, 
+                  gpio_mode_t mode, 
+                  gpio_flank_t flank,
+                  gpio_cb_t cb, 
+                  void *arg);
 
 /**
  * @brief   Enable pin interrupt if configured as interrupt source

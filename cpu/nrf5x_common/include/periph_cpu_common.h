@@ -14,6 +14,7 @@
  * @brief           nRF5x common definitions for handling peripherals
  *
  * @author          Hauke Petersen <hauke.petersen@fu-berlin.de>
+ * @author          Manchenko Oleg <man4enkoos@gmail.com>
  */
 
 #ifndef PERIPH_CPU_COMMON_H
@@ -55,12 +56,18 @@ extern "C" {
 /**
  * @brief   Generate GPIO mode bitfields
  *
- * We use 4 bit to encode the pin mode:
- * - bit   0: output enable
- * - bit   1: input connect
- * - bit 2+3: pull resistor configuration
+ * We use 9 bit to encode the pin mode:
+ * - bit   0: Pin direction
+ * - bit   1: Connect or disconnect input buffer
+ * - bit 2-3: Pull configuration
+ * - bit 8-10: Drive configuration
+ * - bit 16-17: Pin sensing mechanism
  */
-#define GPIO_MODE(oe, ic, pr)   (oe | (ic << 1) | (pr << 2))
+#define GPIO_MODE(dir, input, pull, drive, sense)  ((dir   << GPIO_PIN_CNF_DIR_Pos)   | \
+                                                    (input << GPIO_PIN_CNF_INPUT_Pos) | \
+                                                    (pull  << GPIO_PIN_CNF_PULL_Pos)  | \
+                                                    (drive << GPIO_PIN_CNF_DRIVE_Pos) | \
+                                                    (sense << GPIO_PIN_CNF_SENSE_Pos) )
 
 /**
  * @brief   No support for HW chip select...
@@ -81,20 +88,24 @@ extern "C" {
 /**
  * @brief   Override GPIO modes
  *
- * We use 4 bit to encode the pin mode:
- * - bit   0: output enable
- * - bit   1: input connect
- * - bit 2+3: pull resistor configuration
+ * We use 9 bit to encode the pin mode:
+ * - bit   0: Pin direction
+ * - bit   1: Connect or disconnect input buffer
+ * - bit 2-3: Pull configuration
+ * - bit 8-10: Drive configuration
+ * - bit 16-17: Pin sensing mechanism
  * @{
  */
 #define HAVE_GPIO_MODE_T
+
 typedef enum {
-    GPIO_IN    = GPIO_MODE(0, 0, 0),    /**< IN */
-    GPIO_IN_PD = GPIO_MODE(0, 0, 1),    /**< IN with pull-down */
-    GPIO_IN_PU = GPIO_MODE(0, 0, 3),    /**< IN with pull-up */
-    GPIO_OUT   = GPIO_MODE(1, 1, 0),    /**< OUT (push-pull) */
-    GPIO_OD    = (0xff),                /**< not supported by HW */
-    GPIO_OD_PU = (0xfe)                 /**< not supported by HW */
+    GPIO_IN    = GPIO_MODE(GPIO_PIN_CNF_DIR_Input, GPIO_PIN_CNF_INPUT_Connect, GPIO_PIN_CNF_PULL_Disabled, GPIO_PIN_CNF_DRIVE_S0S1, GPIO_PIN_CNF_SENSE_Disabled),     /**< Configure as input without pull resistor */
+    GPIO_IN_PD = GPIO_MODE(GPIO_PIN_CNF_DIR_Input, GPIO_PIN_CNF_INPUT_Connect, GPIO_PIN_CNF_PULL_Pulldown, GPIO_PIN_CNF_DRIVE_S0S1, GPIO_PIN_CNF_SENSE_Disabled),     /**< Configure as input with pull-down resistor */
+    GPIO_IN_PU = GPIO_MODE(GPIO_PIN_CNF_DIR_Input, GPIO_PIN_CNF_INPUT_Connect, GPIO_PIN_CNF_PULL_Pullup, GPIO_PIN_CNF_DRIVE_S0S1, GPIO_PIN_CNF_SENSE_Disabled),       /**< Configure as input with pull-up resistor */
+    GPIO_OUT   = GPIO_MODE(GPIO_PIN_CNF_DIR_Output, GPIO_PIN_CNF_INPUT_Disconnect, GPIO_PIN_CNF_PULL_Disabled, GPIO_PIN_CNF_DRIVE_S0S1, GPIO_PIN_CNF_SENSE_Disabled), /**< Configure as output in push-pull mode */
+    GPIO_OD    = GPIO_MODE(GPIO_PIN_CNF_DIR_Output, GPIO_PIN_CNF_INPUT_Disconnect, GPIO_PIN_CNF_PULL_Disabled, GPIO_PIN_CNF_DRIVE_S0D1, GPIO_PIN_CNF_SENSE_Disabled), /**< Configure as output in open-drain mode without pull resistor */
+    GPIO_OD_PU = GPIO_MODE(GPIO_PIN_CNF_DIR_Output, GPIO_PIN_CNF_INPUT_Disconnect, GPIO_PIN_CNF_PULL_Pulldown, GPIO_PIN_CNF_DRIVE_S0D1, GPIO_PIN_CNF_SENSE_Disabled), /**< Configure as output in open-drain mode with pull resistor enabled */
+    GPIO_AIN   = GPIO_MODE(GPIO_PIN_CNF_DIR_Input, GPIO_PIN_CNF_INPUT_Disconnect, GPIO_PIN_CNF_PULL_Disabled, GPIO_PIN_CNF_DRIVE_S0S1, GPIO_PIN_CNF_SENSE_Disabled)   /**< Configure as analog input */
 } gpio_mode_t;
 /** @} */
 

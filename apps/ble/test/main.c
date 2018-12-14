@@ -33,15 +33,18 @@ int main(void)
 {
     puts("Test gpio");
 
-    gpio_init(GPIO_PIN(0,13), GPIO_IN_PU);
+    gpio_init(GPIO_PIN(0,13), GPIO_OD);
 
-    // while(1)
-    // {
-    //     gpio_set(GPIO_PIN(0,13));
-    //     xtimer_usleep(1000);
-    //     gpio_clear(GPIO_PIN(0,13));
-    //     xtimer_usleep(1000);
-    // }
+    // gpio_set(GPIO_PIN(0,13));
+    // gpio_clear(GPIO_PIN(0,13));
+
+    while(1)
+    {
+        gpio_set(GPIO_PIN(0,13));
+        xtimer_usleep(100000);
+        gpio_clear(GPIO_PIN(0,13));
+        xtimer_usleep(100000);
+    }
 
     // pwm_t dev = 0;
     // pwm_mode_t mode = PWM_RIGHT;

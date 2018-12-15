@@ -68,11 +68,13 @@ static const dma_conf_t dma_config[] = {
     { .stream = 4 },    /* DMA1 Stream 4 - USART3_TX */
     { .stream = 14 },   /* DMA2 Stream 6 - USART6_TX */
     { .stream = 6 },    /* DMA1 Stream 6 - USART2_TX */
+    { .stream = 8 },    /* DMA2 Stream 8 - ETH_TX    */
 };
 
 #define DMA_0_ISR  isr_dma1_stream4
 #define DMA_1_ISR  isr_dma2_stream6
 #define DMA_2_ISR  isr_dma1_stream6
+#define DMA_3_ISR  isr_dma2_stream0
 
 #define DMA_NUMOF           (sizeof(dma_config) / sizeof(dma_config[0]))
 #endif
@@ -151,6 +153,74 @@ static const uart_conf_t uart_config[] = {
 #define UART_2_ISR          (isr_usart2)
 
 #define UART_NUMOF          (sizeof(uart_config) / sizeof(uart_config[0]))
+/** @} */
+
+/**
+ * @name   SPI configuration
+ *
+ * @note    The spi_divtable is auto-generated from
+ *          `cpu/stm32_common/dist/spi_divtable/spi_divtable.c`
+ * @{
+ */
+static const spi_conf_t spi_config[] = {
+    {
+        .dev      = SPI1,
+        .mosi_pin = GPIO_PIN(PORT_A, 7),
+        .miso_pin = GPIO_PIN(PORT_A, 6),
+        .sclk_pin = GPIO_PIN(PORT_A, 5),
+        .cs_pin   = GPIO_UNDEF,
+        .af       = GPIO_AF5,
+        .rccmask  = RCC_APB2ENR_SPI1EN,
+        .apbbus   = APB2
+    },
+    {
+        .dev      = SPI4,
+        .mosi_pin = GPIO_PIN(PORT_E, 6),
+        .miso_pin = GPIO_PIN(PORT_E, 5),
+        .sclk_pin = GPIO_PIN(PORT_E, 2),
+        .cs_pin   = GPIO_UNDEF,
+        .af       = GPIO_AF5,
+        .rccmask  = RCC_APB2ENR_SPI4EN,
+        .apbbus   = APB2
+    }
+};
+
+#define SPI_NUMOF           (sizeof(spi_config) / sizeof(spi_config[0]))
+/** @} */
+
+
+/**
+ * @name ETH configuration
+ * @{
+ */
+#define ETH_NUMOF           (1)
+#define ETH_RX_BUFFER_COUNT (4)
+#define ETH_TX_BUFFER_COUNT (4)
+
+#define ETH_RX_BUFFER_SIZE (1524)
+#define ETH_TX_BUFFER_SIZE (1524)
+
+#define ETH_DMA_ISR        isr_dma2_stream0
+
+static const eth_conf_t eth_config = {
+    .mode = RMII,
+    .mac = { 0 },
+    .speed = ETH_SPEED_100TX_FD,
+    .dma_chan = 0,
+    .dma_stream = 8,
+    .phy_addr = 0x01,
+    .pins = {
+        GPIO_PIN(PORT_G, 13),
+        GPIO_PIN(PORT_B, 13),
+        GPIO_PIN(PORT_G, 11),
+        GPIO_PIN(PORT_C, 4),
+        GPIO_PIN(PORT_C, 5),
+        GPIO_PIN(PORT_A, 7),
+        GPIO_PIN(PORT_C, 1),
+        GPIO_PIN(PORT_A, 2),
+        GPIO_PIN(PORT_A, 1),
+    }
+};
 /** @} */
 
 #ifdef __cplusplus

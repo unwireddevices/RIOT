@@ -243,6 +243,21 @@ typedef enum {
 /** @} */
 
 
+/**
+ * @brief   Named return values
+ */
+enum {
+    LIS3DH_OK          =  0,                            /**< everything was fine */
+    LIS3DH_NOCOM       = -1,                            /**< communication failed */
+    LIS3DH_NODEV       = -2,                            /**< no LIS3DH device found on the bus */
+    LIS3DH_NODATA      = -3,                            /**< no data available */
+    LIS3DH_ERROR       = -4                             /**< any error */
+};
+
+/**
+ * @brief   LIS3DH interrupt 1 callback
+ */
+typedef void (*lis3dh_int1_cb_t)(void *);
 
 
 
@@ -251,25 +266,25 @@ typedef enum {
  */
 #if defined (MODULE_LIS3DH_SPI)
 typedef struct {
-    spi_t               spi;                    /**< SPI device the sensor is connected to */
-    spi_clk_t           clk;                    /**< designated clock speed of the SPI bus */
-    gpio_t              cs;                     /**< Chip select pin */
-    gpio_t              int1;                   /**< INT1 pin */
-    lis3dh_int1_md_t    int1_mode;              /**< INT1 mode */
-    lis3dh_fs_t         scale;                  /**< Sensor scale: 2, 4, 8, or 16 (G) */
-    lis3dh_odr_t        odr;                    /**< Sensor ODR setting: LIS3DH_ODR_xxxHz */
-    lis3dh_op_md_t      op_mode;                /**< Operation mode */
+    spi_t               spi;                            /**< SPI device the sensor is connected to */
+    spi_clk_t           clk;                            /**< designated clock speed of the SPI bus */
+    gpio_t              cs;                             /**< Chip select pin */
+    gpio_t              int1;                           /**< INT1 pin */
+    lis3dh_int1_md_t    int1_mode;                      /**< INT1 mode */
+    lis3dh_fs_t         scale;                          /**< Sensor scale: 2, 4, 8, or 16 (G) */
+    lis3dh_odr_t        odr;                            /**< Sensor ODR setting: LIS3DH_ODR_xxxHz */
+    lis3dh_op_md_t      op_mode;                        /**< Operation mode */
     
 } lis3dh_params_t;
 #elif defined (MODULE_LIS3DH_I2C)
 typedef struct {
-    i2c_t               i2c;                    /**< I2C device */
-    uint8_t             addr;                   /**< I2C address */
-    gpio_t              int1;                   /**< INT1 pin */
-    lis3dh_int1_md_t    int1_mode;              /**< INT1 mode */
-    lis3dh_fs_t         scale;                  /**< Ssensor scale: 2, 4, 8, or 16 (G) */
-    lis3dh_odr_t        odr;                    /**< Sensor ODR setting: LIS3DH_ODR_xxxHz */
-    lis3dh_op_md_t      op_mode;                /**< Operation mode */
+    i2c_t               i2c;                            /**< I2C device */
+    uint8_t             addr;                           /**< I2C address */
+    gpio_t              int1;                           /**< INT1 pin */
+    lis3dh_int1_md_t    int1_mode;                      /**< INT1 mode */
+    lis3dh_fs_t         scale;                          /**< Ssensor scale: 2, 4, 8, or 16 (G) */
+    lis3dh_odr_t        odr;                            /**< Sensor ODR setting: LIS3DH_ODR_xxxHz */
+    lis3dh_op_md_t      op_mode;                        /**< Operation mode */
     
 } lis3dh_params_t;
 #endif
@@ -278,8 +293,12 @@ typedef struct {
  * @brief   Device descriptor for LIS3DH sensors
  */
 typedef struct {
-    lis3dh_params_t params;     /**< Device initialization parameters */
-    uint16_t scale;             /**< Internal sensor scale */
+    lis3dh_params_t  params;                            /**< Device initialization parameters */
+    lis3dh_int1_cb_t cb;                                /**< alert callback */
+    void             *arg;                              /**< alert callback param */
+    lis3dh_fs_t      scale;                             /**< Internal sensor scale */
+    lis3dh_op_md_t   op_mode;                           /**< Internal sensor operation mode */
+
 } lis3dh_t;
 
 /**
@@ -297,11 +316,13 @@ typedef struct
  *
  * @param[in]  dev          Device descriptor of sensor to initialize
  * @param[in]  params       Configuration parameters
+ * @param[in]  cb
+ * @param[in]  arg
  *
  * @return                  0 on success
  * @return                  -1 on error
  */
-int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params);
+int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params, lis3dh_int1_cb_t cb, void *arg);
 
 /**
  * @brief   Read 3D acceleration data from the accelerometer

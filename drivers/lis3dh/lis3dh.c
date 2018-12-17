@@ -357,10 +357,14 @@ static int _write(const lis3dh_t *dev, uint8_t reg, uint8_t *data, uint16_t leng
 static void _platform_init(lis3dh_t *dev, const lis3dh_params_t *params) {
     dev->params = *params;
 
+    /* Acquire exclusive access to the bus. */
     i2c_acquire(dev->params.i2c);
 
     /* initialize the chip select line */
     i2c_init(dev->params.i2c);
+
+    /* Release the bus for other threads. */
+    i2c_release(dev->params.i2c);
 
 }
 #endif
@@ -2673,50 +2677,104 @@ int32_t lis3dh_spi_mode_get(lis3dh_t *dev, lis3dh_sim_t *val)
  * @return [description]
  */
 
-int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params)
+int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params, lis3dh_int1_cb_t cb, void *arg)
 {
     uint8_t dev_id;
+
+    lis3dh_ctrl_reg3_t ctrl_reg3;
 
     _platform_init(dev, params);
 
     /* test connection to the device */
-    lis3dh_device_id_get(dev, &dev_id);
+    if (lis3dh_device_id_get(dev, &dev_id) < 0) {
+        return LIS3DH_NOCOM;
+    }
+
     if (dev_id != LIS3DH_WHO_AM_I_RESPONSE) {
         /* chip is not responding correctly */
         DEBUG("[lis3dh] error reading the who am i reg [0x%02x]\n", (int)dev_id);
-        return -1;
+        return LIS3DH_NODEV;
+    }
+
+    if (dev->params.int1 != GPIO_UNDEF) {
+        
+        /* Enable interrupt pin - DRDY*/
+        if (lis3dh_pin_int1_config_get(dev, &ctrl_reg3) < 0) {
+            return LIS3DH_NOCOM;
+        }
+        ctrl_reg3.i1_zyxda = PROPERTY_ENABLE;
+        if (lis3dh_pin_int1_config_set(dev, &ctrl_reg3) < 0) {
+            return LIS3DH_NOCOM;
+        } 
+
+        /* Enable interrupt */
+        dev->arg = arg;
+        dev->cb = cb;
+        if (gpio_init_int(dev->params.int1, GPIO_IN, GPIO_RISING, cb, arg)) {
+            return LIS3DH_ERROR;
+        }
     }
 
     // /* Enable all axis */
     // lis3dh_axes_set(dev, /* FIXME: Insert property */);
 
-    /* Enable Block Data Update */
-    DEBUG("Enable Block Data Update\n");
-    lis3dh_block_data_update_set(dev, PROPERTY_ENABLE);
-
-    /* Set Output Data Rate */
-    DEBUG("Set Output Data Rate [%d]\n", dev->params.odr);
-    lis3dh_data_rate_set(dev, dev->params.odr); 
-
     /* Set full scale */ 
     DEBUG("Set full scale [%d]\n", dev->params.scale); 
-    lis3dh_full_scale_set(dev, dev->params.scale);
+    if (lis3dh_full_scale_set(dev, dev->params.scale) < 0) {
+        return LIS3DH_NOCOM;
+    }
+
+    /* Enable Block Data Update */
+    DEBUG("Enable Block Data Update\n");
+    if (lis3dh_block_data_update_set(dev, PROPERTY_ENABLE) < 0) {
+        return LIS3DH_NOCOM;
+    }
 
     /* Set Big endian output value */
     DEBUG("Set Big endian output value\n");
-    lis3dh_data_format_set(dev, LIS3DH_MSB_AT_LOW_ADD);
+    if (lis3dh_data_format_set(dev, LIS3DH_MSB_AT_LOW_ADD) < 0) {
+        return LIS3DH_NOCOM;
+    }
 
     /* Enable temperature sensor */
     DEBUG("Enable temperature sensor\n");   
-    lis3dh_aux_adc_set(dev, LIS3DH_AUX_ON_TEMPERATURE);
+    if (lis3dh_aux_adc_set(dev, LIS3DH_AUX_ON_TEMPERATURE) < 0) {
+        return LIS3DH_NOCOM;
+    }
 
     /* Set device operation mode */
     DEBUG("Set device operation mode [%d]\n", dev->params.op_mode);   
-    lis3dh_operating_mode_set(dev, dev->params.op_mode);
+    if (lis3dh_operating_mode_set(dev, dev->params.op_mode) < 0) {
+        return LIS3DH_NOCOM;
+    }
 
-    return 0;
+    /* Set Output Data Rate */
+    DEBUG("Set Output Data Rate [%d]\n", dev->params.odr);
+    if (lis3dh_data_rate_set(dev, dev->params.odr) < 0) {
+        return LIS3DH_NOCOM;
+    } 
+
+    return LIS3DH_OK;
 }
 
+
+int lis3dh_accuracy_get(lis3dh_t *dev) {
+    lis3dh_op_md_t op_mode;
+    lis3dh_fs_t scale;
+
+    DEBUG("Get device operation mode\n");
+    if (lis3dh_operating_mode_get(dev, &op_mode) < 0) {
+        return LIS3DH_NOCOM;
+    }
+    DEBUG("Get full scale\n");
+    if (lis3dh_full_scale_get(dev, &scale) < 0) {
+        return LIS3DH_NOCOM;
+    }
+    dev->scale = scale;
+    dev->op_mode = op_mode;
+
+    return LIS3DH_OK;
+}
 
 /**
  * @brief These functions convert raw-data into engineering units.
@@ -2727,21 +2785,13 @@ int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params)
  * @return [description]
  */
 int32_t lis3dh_calculation_acceleration(lis3dh_t *dev, int16_t acc_raw) {
-    lis3dh_op_md_t op_mode;
-    lis3dh_fs_t scale;
-
-    DEBUG("Get device operation mode\n");
-    lis3dh_operating_mode_get(dev, &op_mode);
-    DEBUG("Get full scale\n");
-    lis3dh_full_scale_get(dev, &scale);
 
     DEBUG("acc raw data: %d[%04X]\n", acc_raw, acc_raw);
 
-    switch (op_mode) {
+    switch (dev->op_mode) {
         case LIS3DH_HR_12bit:
-            switch (scale) {
+            switch (dev->scale) {
                 case LIS3DH_2g:
-                    
                     return ((acc_raw / 16) * 1);
                     break;
                 case LIS3DH_4g:
@@ -2756,7 +2806,7 @@ int32_t lis3dh_calculation_acceleration(lis3dh_t *dev, int16_t acc_raw) {
             } 
             break;
         case LIS3DH_NM_10bit:
-            switch (scale) {
+            switch (dev->scale) {
                 case LIS3DH_2g:
                     return ((acc_raw / 64) * 4);
                     break;
@@ -2772,7 +2822,7 @@ int32_t lis3dh_calculation_acceleration(lis3dh_t *dev, int16_t acc_raw) {
             }
             break;
         case LIS3DH_LP_8bit:
-            switch (scale) {
+            switch (dev->scale) {
                 case LIS3DH_2g:
                     return ((acc_raw / 256) * 16);
                     break;
@@ -2800,23 +2850,23 @@ int lis3dh_read_xyz(lis3dh_t *dev, lis3dh_acceleration_t *acceleration) {
         lis3dh_xl_data_ready_get(dev, &reg.byte);
         DEBUG("Bit ZYXDA STATUS_REG is %d\n", reg.status_reg._zyxda);
         DEBUG("Bit ZYXOR STATUS_REG is %d\n", reg.status_reg._zyxor);
-        if (reg.status_reg._zyxda) {
+        if (reg.byte) {
             /* Read accelerometer data */
             lis3dh_acceleration_raw_get(dev, acc_raw);
+            lis3dh_accuracy_get(dev);
             acceleration->axis_x = lis3dh_calculation_acceleration(dev, ((acc_raw[0] << 8) | acc_raw[1]));
             acceleration->axis_y = lis3dh_calculation_acceleration(dev, ((acc_raw[2] << 8) | acc_raw[3]));
             acceleration->axis_z = lis3dh_calculation_acceleration(dev, ((acc_raw[4] << 8) | acc_raw[5]));
             DEBUG("Acceleration [mg]:%d\t%d\t%d\n", acceleration->axis_x, acceleration->axis_y, acceleration->axis_z);
         }
-        if (reg.status_reg._zyxor) {
-            lis3dh_acceleration_raw_get(dev, acc_raw);
-        }
-    } while(!reg.status_reg._zyxda);
+        // if (reg.status_reg._zyxor) {
+        //     lis3dh_acceleration_raw_get(dev, acc_raw);
+        // }
+    } while(!reg.byte);
 
     return 0;
 
 }
-
 
 
 int32_t lis3dh_calculation_temperature(lis3dh_t *dev, int16_t temp_raw) {

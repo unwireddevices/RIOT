@@ -27,7 +27,7 @@
 #include "lis3dh.h"
 #include "include/lis3dh_internal.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 #if ENABLE_DEBUG
@@ -331,6 +331,14 @@ static int _read(const lis3dh_t *dev, uint8_t reg, uint8_t *data, uint16_t lengt
 
     DEBUG("LIS3DH [REG %02X]: <- ", (reg&0x7F));
     PRINTBUFF(data, length);
+    printf("LIS3DH [REG %02X]: <- ", (reg&0x7F));
+    uint16_t len = length;
+    uint8_t *buff = data;
+    while (len) {
+        len--;
+        printf("%02Xh ", *buff++);
+    }
+    printf("\n");
 
     return status;
 }
@@ -339,15 +347,28 @@ static int _write(const lis3dh_t *dev, uint8_t reg, uint8_t *data, uint16_t leng
 {
     int status = 0x00;
 
-    /* Read multiple command */
-    reg |= 0x80;
+    /* Write multiple command */
+    if (length > 1) {
+        reg |= 0x80;
+    }
 
     DEBUG("LIS3DH [REG %02X]: -> %02Xh ", (reg&0x7F), reg);
     PRINTBUFF(data, length);
 
+    printf("LIS3DH [REG %02X]: -> %02Xh ", (reg&0x7F), reg);
+    uint16_t len = length;
+    uint8_t *buff = data;
+    while (len) {
+        len--;
+        printf("%02Xh ", *buff++);
+    }
+    printf("\n");
+
+
     /* Acquire exclusive access to the bus. */
     i2c_acquire(dev->params.i2c);
     /* Perform the transaction */
+    // int i2c_write_regs(i2c_t dev, uint16_t address, uint16_t reg, const void *data, size_t length, uint8_t flags)
     status = i2c_write_regs(dev->params.i2c, dev->params.addr, (uint16_t)reg, data, (size_t)length, 0);
     /* Release the bus for other threads. */
     i2c_release(dev->params.i2c);
@@ -1021,7 +1042,7 @@ int32_t lis3dh_xl_data_ready_get(lis3dh_t *dev, uint8_t *val)
     lis3dh_status_reg_t status_reg;
     int32_t ret;
 
-    ret = lis3dh_read_reg(dev, LIS3DH_REG_STATUS_REG, (uint8_t*)&status_reg, 1);
+    ret = lis3dh_read_reg(dev, LIS3DH_REG_STATUS_REG, (uint8_t *)&status_reg, 1);
     *val = status_reg._zyxda;
     DEBUG("Bit ZYXDA STATUS_REG is %d\n", status_reg._zyxda);
     return ret;
@@ -2718,41 +2739,52 @@ int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params, lis3dh_int1_cb_t c
     // /* Enable all axis */
     // lis3dh_axes_set(dev, /* FIXME: Insert property */);
 
-    /* Set full scale */ 
-    DEBUG("Set full scale [%d]\n", dev->params.scale); 
-    if (lis3dh_full_scale_set(dev, dev->params.scale) < 0) {
-        return LIS3DH_NOCOM;
-    }
+
 
     /* Enable Block Data Update */
     DEBUG("Enable Block Data Update\n");
+    puts("Enable Block Data Update");
     if (lis3dh_block_data_update_set(dev, PROPERTY_ENABLE) < 0) {
         return LIS3DH_NOCOM;
     }
 
-    /* Set Big endian output value */
+        /* Set Big endian output value */
     DEBUG("Set Big endian output value\n");
+    puts("Set Big endian output value");
     if (lis3dh_data_format_set(dev, LIS3DH_MSB_AT_LOW_ADD) < 0) {
-        return LIS3DH_NOCOM;
-    }
-
-    /* Enable temperature sensor */
-    DEBUG("Enable temperature sensor\n");   
-    if (lis3dh_aux_adc_set(dev, LIS3DH_AUX_ON_TEMPERATURE) < 0) {
-        return LIS3DH_NOCOM;
-    }
-
-    /* Set device operation mode */
-    DEBUG("Set device operation mode [%d]\n", dev->params.op_mode);   
-    if (lis3dh_operating_mode_set(dev, dev->params.op_mode) < 0) {
         return LIS3DH_NOCOM;
     }
 
     /* Set Output Data Rate */
     DEBUG("Set Output Data Rate [%d]\n", dev->params.odr);
+    puts("Set Output Data Rate"); 
     if (lis3dh_data_rate_set(dev, dev->params.odr) < 0) {
         return LIS3DH_NOCOM;
     } 
+
+    /* Set full scale */ 
+    DEBUG("Set full scale [%d]\n", dev->params.scale); 
+    puts("Set full scale");
+    if (lis3dh_full_scale_set(dev, dev->params.scale) < 0) {
+        return LIS3DH_NOCOM;
+    }
+
+
+    /* Enable temperature sensor */
+    DEBUG("Enable temperature sensor\n");
+    puts("Enable temperature sensor");   
+    if (lis3dh_aux_adc_set(dev, LIS3DH_AUX_ON_TEMPERATURE) < 0) {
+        return LIS3DH_NOCOM;
+    }
+
+    /* Set device operation mode */
+    DEBUG("Set device operation mode [%d]\n", dev->params.op_mode);
+    puts("Set device operation mode");  
+    if (lis3dh_operating_mode_set(dev, dev->params.op_mode) < 0) {
+        return LIS3DH_NOCOM;
+    }
+
+    
 
     return LIS3DH_OK;
 }
@@ -2843,14 +2875,17 @@ int32_t lis3dh_calculation_acceleration(lis3dh_t *dev, int16_t acc_raw) {
 }
 
 int lis3dh_read_xyz(lis3dh_t *dev, lis3dh_acceleration_t *acceleration) {
-    lis3dh_reg_t reg;
+    lis3dh_reg_t reg_da;
+    lis3dh_reg_t reg_ovr;
     uint8_t acc_raw[6] = {0x00};
     /* Read output only if new value available */
     do {
-        lis3dh_xl_data_ready_get(dev, &reg.byte);
-        DEBUG("Bit ZYXDA STATUS_REG is %d\n", reg.status_reg._zyxda);
-        DEBUG("Bit ZYXOR STATUS_REG is %d\n", reg.status_reg._zyxor);
-        if (reg.byte) {
+        puts("***********************************************************");
+        lis3dh_xl_data_ready_get(dev, &reg_da.byte);
+        DEBUG("Bit ZYXDA STATUS_REG is %d\n", reg_da.byte);
+        reg_da.byte = 0x01;
+        if (reg_da.byte) {
+            puts("\tRAW DATA");
             /* Read accelerometer data */
             lis3dh_acceleration_raw_get(dev, acc_raw);
             lis3dh_accuracy_get(dev);
@@ -2859,10 +2894,15 @@ int lis3dh_read_xyz(lis3dh_t *dev, lis3dh_acceleration_t *acceleration) {
             acceleration->axis_z = lis3dh_calculation_acceleration(dev, ((acc_raw[4] << 8) | acc_raw[5]));
             DEBUG("Acceleration [mg]:%d\t%d\t%d\n", acceleration->axis_x, acceleration->axis_y, acceleration->axis_z);
         }
-        // if (reg.status_reg._zyxor) {
-        //     lis3dh_acceleration_raw_get(dev, acc_raw);
-        // }
-    } while(!reg.byte);
+        // puts("@@@@@@@@@@@@@@@@@@");
+        reg_ovr.byte = 0x00;
+        // lis3dh_xl_data_ovr_get(dev, &reg_ovr.byte);
+        // DEBUG("Bit ZYXOR STATUS_REG is %d\n", reg_ovr.byte);
+        if (reg_ovr.byte) {
+            lis3dh_acceleration_raw_get(dev, acc_raw);
+        }
+
+    } while(!reg_da.byte);
 
     return 0;
 
@@ -2894,6 +2934,7 @@ int lis3dh_read_temp(lis3dh_t *dev, int16_t *temperature_degC) {
 
     lis3dh_reg_t reg;
     uint8_t data_raw_temperature;
+    uint8_t tmp[6];
 
     /* Read output only if new value available */
     do {
@@ -2901,6 +2942,7 @@ int lis3dh_read_temp(lis3dh_t *dev, int16_t *temperature_degC) {
         if (reg.byte) {
             /* Read temperature data */
             lis3dh_temperature_raw_get(dev, &data_raw_temperature);
+            lis3dh_adc_raw_get(dev, tmp);
             *temperature_degC = ((((uint16_t)data_raw_temperature) << 8) | 0x00);
             *temperature_degC = lis3dh_calculation_temperature(dev, *temperature_degC);
             DEBUG("Temperature [degC]: %d\n", *temperature_degC);

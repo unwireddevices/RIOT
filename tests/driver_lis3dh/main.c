@@ -55,12 +55,17 @@ int main(void)
 
     lis3dh_t dev;
     lis3dh_acceleration_t acc_data;
-    int16_t temperature;
+    int16_t temperature = 0x00;
 
-    puts("LIS3DH accelerometer driver test application\n");
+    gpio_init(GPIO_PIN(PORT_B, 0), GPIO_OUT);
+
+    puts("LIS3DH accelerometer driver test application");
+
+    puts("LIS3DH timeout for boot device > 5ms");
+    xtimer_usleep(10 * 1000);
 
     puts("Initializing LIS3DH sensor... ");
-    if (lis3dh_init(&dev, &lis3dh_params[0]) == 0) {
+    if (lis3dh_init(&dev, &lis3dh_params[0], NULL, NULL) == 0) {
         puts("[OK]");
     }
     else {
@@ -92,6 +97,7 @@ int main(void)
     while (1) {
  
         printf("Reading measurements\n");
+        gpio_set(GPIO_PIN(PORT_B, 0));
         if (lis3dh_read_xyz(&dev, &acc_data) != 0) {
                 puts("Reading acceleration data... ");
                 puts("[Failed]\n");
@@ -104,8 +110,9 @@ int main(void)
         }
         // int1 = gpio_read(lis3dh_params[0].int1);
         printf("X: %d Y: %d Z: %d Temp: %d\n", acc_data.axis_x, acc_data.axis_y, acc_data.axis_z, temperature);
-
+        gpio_clear(GPIO_PIN(PORT_B, 0));
         xtimer_usleep(SLEEP);
+        
     }
 
     return 0;

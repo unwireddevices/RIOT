@@ -55,9 +55,9 @@ typedef enum {
  * @drief   AUX connected to temperature sensor or ADC
  */
 typedef enum {
-    LIS3DH_AUX_DISABLE          = 0,                    /**< AUX disable */
-    LIS3DH_AUX_ON_TEMPERATURE   = 3,                    /**< Temperature sensor enable */
-    LIS3DH_AUX_ON_PADS          = 1,                    /**< AUX pin connected to ADC */
+    LIS3DH_AUX_DISABLE          = 0x00,                    /**< AUX disable */
+    LIS3DH_AUX_ON_TEMPERATURE   = 0x03,                    /**< Temperature sensor enable */
+    LIS3DH_AUX_ON_PADS          = 0x01,                    /**< AUX pin connected to ADC */
 } lis3dh_temp_en_t;
 
 /**

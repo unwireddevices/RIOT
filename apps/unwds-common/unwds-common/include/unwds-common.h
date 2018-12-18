@@ -125,6 +125,12 @@ typedef struct {
 	bool (*cmb_broadcast_cb)(module_data_t *data, module_data_t *reply);
 } unwd_module_t;
 
+typedef enum {
+    UNWDS_BOOT_NORMAL_MODE = 0,
+    UNWDS_BOOT_SAFE_MODE = 1,
+    UNWDS_BOOT_MODULES_FAILED = 2,
+} boot_modes_t;
+
 void unwds_init_modules(uwnds_cb_t *event_callback);
 int unwds_send_to_module(unwds_module_id_t modid, module_data_t *data, module_data_t *reply);
 bool unwds_send_broadcast(unwds_module_id_t modid, module_data_t *data, module_data_t *reply);
@@ -144,8 +150,6 @@ bool unwds_is_module_enabled(unwds_module_id_t modid);
 uint64_t unwds_get_ability_mask(unwds_module_id_t modid);
 
 int unwds_modid_by_name(char *name);
-
-void unwds_init(void);
 
 gpio_t unwds_gpio_pin(int pin);
 int unwds_gpio_pins_total(void);

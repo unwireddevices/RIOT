@@ -69,10 +69,9 @@ extern "C" {
  * @name    LIS3DML masks for CTRL_REG3
  * @{
  */
-#define LIS3MDL_MASK_REG3_LOW_POWER_EN    (0x02)
-#define LIS3MDL_MASK_REG3_CONT_CONV_MODE  (0x00)
-#define LIS3MDL_MASK_REG3_Z_LOW_POWER     (0x00)
-#define LIS3MDL_MASK_REG3_Z_MEDIUM_POWER  (0x04)
+#define LIS3MDL_MASK_REG3_MODE            (0x03)
+#define LIS3MDL_MASK_REG3_SIM             (1<<2)
+#define LIS3MDL_MASK_LP                   (1<<5)
 /**  @} */
 
 /**
@@ -88,6 +87,20 @@ extern "C" {
  * @{
  */
 #define LIS3MDL_STATUS_REG                (0x27)
+/**  @} */
+
+/**
+ * @name    LIS3DML masks for status register
+ * @{
+ */
+#define LIS3MDL_MASK_STATUS_REG_ZYXOR     (1<<7)
+#define LIS3MDL_MASK_STATUS_REG_ZOR       (1<<6)
+#define LIS3MDL_MASK_STATUS_REG_YOR       (1<<5)
+#define LIS3MDL_MASK_STATUS_REG_XOR       (1<<4)
+#define LIS3MDL_MASK_STATUS_REG_ZYXDA     (1<<3)
+#define LIS3MDL_MASK_STATUS_REG_ZDA       (1<<2)
+#define LIS3MDL_MASK_STATUS_REG_YDA       (1<<1)
+#define LIS3MDL_MASK_STATUS_REG_XDA       (1<<0)
 /**  @} */
 
 /**

@@ -39,6 +39,8 @@ extern void init_normal(shell_command_t *commands);
 
 void init_role(shell_command_t *shell_commands);
 
+void unwds_device_init(void *unwds_callback, void *unwds_init, void *unwds_join, void *unwds_sleep);
+
 void ls_setup_sx127x(netdev_t *dev, ls_datarate_t dr, uint32_t frequency);
 
 #endif /* LS_INIT_DEVICE_H_ */

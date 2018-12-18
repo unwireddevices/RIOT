@@ -64,14 +64,10 @@ extern "C" {
 #include "utils.h"
 
 #include "ls-regions.h"
-#include "periph/wdg.h"
 #include "rtctimers-millis.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
-
-static rtctimers_millis_t iwdg_timer;
-static rtctimers_millis_t pm_enable_timer;
 
 static sx127x_t sx127x;
 static netdev_t *netdev;
@@ -157,7 +153,7 @@ void joined_cb(void)
 	current_join_retries = 0;
 
     puts("[LoRa] successfully joined to the network");
-    blink_led(LED_GREEN);
+    blink_led(LED0_PIN);
     
     /* Synchronize time if necessary */
     /*
@@ -196,7 +192,7 @@ static bool appdata_received_cb(uint8_t *buf, size_t buflen)
     bytes_to_hex(buf, buflen, hex, false);
 
     printf("[LoRa] received data: \"%s\"\n", hex);
-    blink_led(LED_GREEN);
+    blink_led(LED0_PIN);
 
     if (buflen < 2) {
         return true;
@@ -245,7 +241,7 @@ static bool broadcast_appdata_received_cb(uint8_t *buf, size_t buflen) {
     bytes_to_hex(buf, buflen, hex, false);
 
     printf("[LoRa] received broadcast data: \"%s\"\n", hex);
-    blink_led(LED_GREEN);
+    blink_led(LED0_PIN);
 
     if (buflen < 2) {
         return true;
@@ -668,173 +664,41 @@ static void unwds_callback(module_data_t *buf)
         }
     }
 
-    blink_led(LED_GREEN);
+    blink_led(LED0_PIN);
 }
 
-static bool is_connect_button_pressed(void)
-{
-#if defined(UNWD_CONNECT_POL)
-    uint8_t state;
-    if (UNWD_CONNECT_POL) {
-        state = GPIO_IN_PD;
-    } else {
-        state = GPIO_IN_PU;
+static int unwds_init(void) {
+    radio_init();
+    ls_setup(&ls);
+    
+    if (ls_ed_init(&ls) != LS_OK) {
+        return -1;
     }
     
-    if (!gpio_init(UNWD_CONNECT_BTN, state)) {
-        if (gpio_read(UNWD_CONNECT_BTN) == UNWD_CONNECT_POL) {
-            return true;
-        }
-    }
-#else
-    if (!gpio_init(UNWD_CONNECT_BTN, GPIO_IN_PU)) {
-        if (gpio_read(UNWD_CONNECT_BTN) == UNWD_CONNECT_POL) {
-            return true;
-        }
-    }
-#endif
-
-    return false;
+    return 0;
 }
 
-uint32_t connect_btn_last_press = 0;
-bool     board_is_off = false;
-
-static void connect_btn_pressed (void *arg) {
-    (void)arg;
-    
-    /* debounce */
-    if (connect_btn_last_press < rtctimers_millis_now() + 100) {
-        return;
-    }
-    
-    /* button released */
-    if ((gpio_read(UNWD_CONNECT_BTN)) != UNWD_CONNECT_POL) {
-        if (((rtctimers_millis_now() > connect_btn_last_press) && ((rtctimers_millis_now() - connect_btn_last_press) > 1000)) || 
-            ((rtctimers_millis_now() + (UINT32_MAX - connect_btn_last_press)) > 1000)) {
-            /* long press */
-            if (board_is_off) {
-                gpio_set(LED_GREEN);
-                rtctimers_millis_sleep(1000);
-                gpio_clear(LED_GREEN);
-                puts("*** REBOOTING SYSTEM ***");
-                pm_reboot();
-            } else {            
-                board_is_off = true;
-                gpio_set(LED_RED);
-                rtctimers_millis_sleep(1000);
-                gpio_clear(LED_RED);
-                gpio_clear(LED_GREEN);
-                /* stop all activity */
-                rtctimers_millis_remove_all();
-                /* restart watchdog timer */
-                rtctimers_millis_set(&iwdg_timer, 100);
-                pm_unblock(PM_SLEEP);
-                /* put SX1276 to sleep */
-                ls_ed_sleep(&ls);
-                puts("*** SYSTEM HALTED BY USER ***");
-            }
-        } else {
-            /* short press */
-        }
-    }
-    
-    connect_btn_last_press = rtctimers_millis_now();
+static void unwds_join(void) {
+    node_join(&ls);
 }
 
-static void iwdg_reset (void *arg) {
-    (void)arg;
-    
-    wdg_reload();
-    rtctimers_millis_set(&iwdg_timer, 15000);
-    DEBUG("Watchdog reset\n");
-    return;
-}
-
-static void ls_delayed_setup (void *arg) {
-    (void)arg;
-    
-    if (ls.settings.class == LS_ED_CLASS_A) {
-        pm_unblock(PM_SLEEP);
-        puts("Low-power sleep mode active");
-    }
-    
-#if defined(UNWD_CONNECT_POL)
-    if (UNWD_CONNECT_POL) {
-        gpio_init_int(UNWD_CONNECT_BTN, GPIO_IN_PD, GPIO_RISING, connect_btn_pressed, NULL);
-    } else {
-        gpio_init_int(UNWD_CONNECT_BTN, GPIO_IN_PU, GPIO_FALLING, connect_btn_pressed, NULL);
-    }
-#else
-    gpio_init_int(UNWD_CONNECT_BTN, GPIO_IN_PU, GPIO_FALLING, connect_btn_pressed, NULL);
-#endif
-    
-    return;
+static void unwds_sleep(void) {
+    /* put SX127x to sleep */
+    ls_ed_sleep(&ls);
 }
 
 void init_normal(shell_command_t *commands)
 {
-    if (!unwds_config_load()) {
+    bool cfg_valid = unwds_config_load();
+    print_config();
+    
+    if (!cfg_valid) {
         puts("[!] Device is not configured yet. Type \"help\" to see list of possible configuration commands.");
         puts("[!] Configure the node and type \"reboot\" to reboot and apply settings.");
-
-        print_config();
+    } else {
+        unwds_device_init(unwds_callback, unwds_init, unwds_join, unwds_sleep);
     }
-    else {
-        print_config();
 
-        radio_init();
-        ls_setup(&ls);
-        if (ls_ed_init(&ls) != LS_OK) {
-            puts("ls: error initializing device");
-            gpio_set(LED_GREEN);
-            rtctimers_millis_sleep(5000);
-            NVIC_SystemReset();
-        }
-
-        unwds_set_enabled(unwds_get_node_settings().enabled_mods);
-        memcpy(ls.settings.ability, unwds_get_node_settings().enabled_mods, sizeof(ls.settings.ability));
-        ls.settings.class = unwds_get_node_settings().nodeclass;
-
-        unwds_setup_nvram_config(UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
-
-        uint32_t bootmode = rtc_restore_backup(RTC_REGBACKUP_BOOTLOADER);
-        
-        if (is_connect_button_pressed() || (bootmode == UNWDS_BOOT_SAFE_MODE)) {
-            uint32_t bootmode = UNWDS_BOOT_NORMAL_MODE;
-            rtc_save_backup(bootmode, RTC_REGBACKUP_BOOTMODE);
-            
-            puts("[!] Entering Safe Mode, all modules disabled, class C.");
-            blink_led(LED_GREEN);
-            blink_led(LED_GREEN);
-            blink_led(LED_GREEN);
-        }
-        else {
-            unwds_init_modules(unwds_callback);
-            
-            /* reset IWDG timer every 15 seconds */
-            /* NB: unwired-module MUST NOT need more than 3 seconds to finish its job */
-            
-            iwdg_timer.callback = iwdg_reset;
-            rtctimers_millis_set(&iwdg_timer, 15000);
-            
-            /* IWDG period is 18 seconds minimum, 28 seconds typical */
-            wdg_set_prescaler(6);
-            wdg_set_reload(0x0FFF);
-            wdg_reload();
-            wdg_enable();
-
-            /* enable sleep for Class A devices only */
-            pm_enable_timer.callback = ls_delayed_setup;
-            rtctimers_millis_set(&pm_enable_timer, 15000);
-            
-            blink_led(LED_GREEN);
-        }
-
-        if (!unwds_get_node_settings().no_join) {
-        	node_join(&ls);
-        }
-    }
     /* Add our commands to shell */
     int i = 0;
     do {

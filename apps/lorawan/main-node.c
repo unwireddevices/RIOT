@@ -57,6 +57,7 @@ extern "C" {
 
 #include "ls-settings.h"
 #include "ls-config.h"
+#include "ls-init-device.h"
 
 #include "board.h"
 
@@ -74,9 +75,6 @@ extern "C" {
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
-
-static rtctimers_millis_t iwdg_timer;
-static rtctimers_millis_t pm_enable_timer;
 
 static msg_t msg_join;
 static kernel_pid_t sender_pid;
@@ -128,7 +126,7 @@ static int node_join(semtech_loramac_t *ls) {
         current_join_retries++;
     }
     
-    blink_led(LED_GREEN);
+    blink_led(LED0_PIN);
     
     if (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A) {
         printf("[LoRa] joining, attempt %d / %d\n", current_join_retries, unwds_get_node_settings().max_retr + 1);
@@ -159,9 +157,11 @@ static void *sender_thread(void *arg) {
                 break;
             }
             case SEMTECH_LORAMAC_RESTRICTED:
-            case SEMTECH_LORAMAC_JOIN_FAILED:
+            case SEMTECH_LORAMAC_BUSY:
             case SEMTECH_LORAMAC_NOT_JOINED:
-            case SEMTECH_LORAMAC_BUSY: {
+            case SEMTECH_LORAMAC_JOIN_FAILED:
+            {
+                printf("[LoRa] LoRaMAC join failed: code %d\n", res);
                 if ((current_join_retries > unwds_get_node_settings().max_retr) &&
                     (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A)) {
                     /* class A node: go to sleep */
@@ -174,9 +174,8 @@ static void *sender_thread(void *arg) {
                     unsigned int delay = random_uint32_range(10000 + (current_join_retries - 1)*30000, 30000 + (current_join_retries - 1)*30000);
                     printf("[LoRa] random delay %d s\n", delay/1000);
                     rtctimers_millis_set_msg(&send_retry_timer, delay, &msg_join, sender_pid);
-          
-                    break;
                 }
+                break;
             }
             default:
                 printf("[LoRa] join request: unknown response %d\n", res);
@@ -238,7 +237,7 @@ static bool appdata_received(uint8_t *buf, size_t buflen)
     bytes_to_hex(buf, buflen, hex, false);
 
     printf("[LoRa] received data: \"%s\"\n", hex);
-    blink_led(LED_GREEN);
+    blink_led(LED0_PIN);
 
     if (buflen < 2) {
         return true;
@@ -405,6 +404,8 @@ static void print_config(void)
 
     printf("EUI64 = 0x%08x%08x\n", (unsigned int) (eui64 >> 32), (unsigned int) (eui64 & 0xFFFFFFFF));
     printf("APPID64 = 0x%08x%08x\n", (unsigned int) (appid >> 32), (unsigned int) (appid & 0xFFFFFFFF));
+    
+    printf("REGION = %s\n", LORA_REGION);
 
     printf("DATARATE = %d\n", unwds_get_node_settings().dr);
     
@@ -634,41 +635,22 @@ static void unwds_callback(module_data_t *buf)
             break;
     }
 
-    blink_led(LED_GREEN);
+    blink_led(LED0_PIN);
 }
 
-static bool is_connect_button_pressed(void)
-{
-    if (!gpio_init(UNWD_CONNECT_BTN, GPIO_IN_PU)) {
-        #if defined(UNWD_CONNECT_POL)
-        if (gpio_read(UNWD_CONNECT_BTN) == UNWD_CONNECT_POL) {
-            return true;
-        }
-        #else
-        if (!gpio_read(UNWD_CONNECT_BTN)) {
-            return true;
-        }
-        #endif
-    }
-    return false;
-}
-
-static void iwdg_reset (void *arg) {
-    (void)arg;
+static int unwds_init(void) {
+    radio_init();
+    ls_setup(&ls);
     
-    wdg_reload();
-    rtctimers_millis_set(&iwdg_timer, 15000);
-#if ENABLE_DEBUG
-    puts("Watchdog reset");
-#endif
-    return;
+    return 0;
 }
 
-static void ls_enable_sleep (void *arg) {
-    (void)arg;
-    pm_unblock(PM_SLEEP);
-    puts("Low-power sleep mode active");
-    return;
+static void unwds_join(void) {
+    msg_send(&msg_join, sender_pid);
+}
+
+static void unwds_sleep(void) {
+    semtech_loramac_set_class(&ls, LS_ED_CLASS_A);
 }
 
 void init_normal(shell_command_t *commands)
@@ -676,67 +658,19 @@ void init_normal(shell_command_t *commands)
     /* should always be 2 */
     main_thread_pid = thread_getpid();
     
-    if (!unwds_config_load()) {
+    bool cfg_valid = unwds_config_load();
+    print_config();
+    
+    if (!cfg_valid) {
         puts("[!] Device is not configured yet. Type \"help\" to see list of possible configuration commands.");
         puts("[!] Configure the node and type \"reboot\" to reboot and apply settings.");
-
-        print_config();
-    }
-    else {
-        print_config();
-
-        radio_init();
-        ls_setup(&ls);
-
-        unwds_set_enabled(unwds_get_node_settings().enabled_mods);
-        //memcpy(ls.settings.ability, unwds_get_node_settings().enabled_mods, sizeof(ls.settings.ability));
-        //ls.settings.class = unwds_get_node_settings().nodeclass;
-
-        unwds_setup_nvram_config(UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
-
-        uint32_t bootmode = rtc_restore_backup(RTC_REGBACKUP_BOOTLOADER);
-        
-        if (is_connect_button_pressed() || (bootmode == UNWDS_BOOT_SAFE_MODE)) {
-            uint32_t bootmode = UNWDS_BOOT_NORMAL_MODE;
-            rtc_save_backup(bootmode, RTC_REGBACKUP_BOOTMODE);
-            
-            puts("[!] Entering Safe Mode, all modules disabled, class C.");
-            blink_led(LED_GREEN);
-            blink_led(LED_GREEN);
-            blink_led(LED_GREEN);
-        }
-        else {
-            unwds_init_modules(unwds_callback);
-            
-            /* reset IWDG timer every 15 seconds */
-            /* NB: unwired-module MUST NOT need more than 3 seconds to finish its job */
-            
-            iwdg_timer.callback = iwdg_reset;
-            rtctimers_millis_set(&iwdg_timer, 15000);
-            
-            /* IWDG period is 18 seconds minimum, 28 seconds typical */
-            wdg_set_prescaler(6);
-            wdg_set_reload(0x0FFF);
-            wdg_reload();
-            wdg_enable();
-
-            /* enable sleep for Class A devices only */      
-            if (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A) {
-                pm_enable_timer.callback = ls_enable_sleep;
-                rtctimers_millis_set(&pm_enable_timer, 15000);
-            }
-            
-            blink_led(LED_GREEN);
-        }
-        
+    } else {
         sender_pid = thread_create(sender_stack, sizeof(sender_stack), THREAD_PRIORITY_MAIN - 2,
                                    THREAD_CREATE_STACKTEST, sender_thread, &ls,  "LoRa sender thread");
-            
-        
-        if (!unwds_get_node_settings().no_join) {
-        	msg_send(&msg_join, sender_pid);
-        }
+
+        unwds_device_init(unwds_callback, unwds_init, unwds_join, unwds_sleep);
     }
+    
     /* Add our commands to shell */
     int i = 0;
     do {

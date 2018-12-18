@@ -29,11 +29,11 @@ void board_init(void)
     cpu_init();
 
     /* initialize the boards LEDs */
-    if (LED_GREEN != GPIO_UNDEF) {
-        gpio_init(LED_GREEN, GPIO_OUT);
+    if (LED0_PIN != GPIO_UNDEF) {
+        gpio_init(LED0_PIN, GPIO_OUT);
     }
     
-    if (LED_RED != GPIO_UNDEF) {
-        gpio_init(LED_RED, GPIO_OUT);
+    if (LED1_PIN != GPIO_UNDEF) {
+        gpio_init(LED1_PIN, GPIO_OUT);
     }
 }

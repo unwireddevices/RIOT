@@ -596,14 +596,14 @@ void init_normal(shell_command_t *commands)
         ls_setup(&ls);
         if (ls_gate_init(&ls) != LS_GATE_OK) {
             puts("ls: error initializing gateway");
-            gpio_set(LED_GREEN);
+            gpio_set(LED0_PIN);
             rtctimers_millis_sleep(5000);
             NVIC_SystemReset();
         }
         
         unwds_setup_nvram_config(UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
 
-        blink_led(LED_GREEN);
+        blink_led(LED0_PIN);
     }
 
     /* Add our commands to shell */

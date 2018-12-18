@@ -31,7 +31,7 @@
 static int jc42_get_register(const jc42_t* dev, uint8_t reg, uint16_t* data)
 {
     i2c_acquire(dev->i2c);
-    if (i2c_read_regs(dev->i2c, dev->addr, reg, data, 2, 0) <= 0) {
+    if (i2c_read_regs(dev->i2c, dev->addr, reg, data, 2, 0) != 0) {
         DEBUG("[jc42] Problem reading register 0x%x\n", reg);
         i2c_release(dev->i2c);
         return JC42_NODEV;
@@ -43,7 +43,7 @@ static int jc42_get_register(const jc42_t* dev, uint8_t reg, uint16_t* data)
 static int jc42_set_register(const jc42_t* dev, uint8_t reg, uint16_t* data)
 {
     i2c_acquire(dev->i2c);
-    if (i2c_write_regs(dev->i2c, dev->addr, reg, data, 2, 0) <= 0) {
+    if (i2c_write_regs(dev->i2c, dev->addr, reg, data, 2, 0) != 0) {
         DEBUG("[jc42] Problem writing to register 0x%x\n", reg);
         i2c_release(dev->i2c);
         return JC42_NODEV;
@@ -69,7 +69,7 @@ int jc42_get_temperature(const jc42_t* dev, int16_t* temperature)
     uint16_t tmp;
 
     /* Read temperature */
-    if (jc42_get_register(dev, JC42_REG_TEMP, &tmp) != 0) {
+    if (jc42_get_register(dev, JC42_REG_TEMP, &tmp) != JC42_OK) {
         return JC42_NODEV;
     }
     tmp = ntohs(tmp);
@@ -84,15 +84,11 @@ int jc42_init(jc42_t* dev, const jc42_params_t* params)
     dev->i2c = params->i2c;
     dev->addr = params->addr;
     i2c_acquire(dev->i2c);
-    if (i2c_init_master(dev->i2c, params->speed) != 0) {
-        DEBUG("[jc42] Problem initializing I2C master\n");
-        i2c_release(dev->i2c);
-        return JC42_NOI2C;
-    }
+    i2c_init(dev->i2c);
     i2c_release(dev->i2c);
 
     /* Poll the device, fail if unavailable */
-    if (jc42_get_config(dev, &config) != 0) {
+    if (jc42_get_config(dev, &config) != JC42_OK) {
         return JC42_NODEV;
     }
 

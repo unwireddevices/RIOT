@@ -37,12 +37,6 @@
 #include "shell.h"
 #include "unwds-common.h"
 
-typedef enum {
-    UNWDS_BOOT_NORMAL_MODE = 0,
-    UNWDS_BOOT_SAFE_MODE = 1,
-    UNWDS_BOOT_MODULES_FAILED = 2,
-} boot_modes_t;
-
 extern void init_node(shell_command_t *commands);
 
 #endif /* LORALAN_DEVICE_MAIN_H_ */

@@ -85,9 +85,9 @@ typedef enum {
  * @brief   Operating modes
  */
 typedef enum {
-    LIS3MDL_OP_CONT_CONV = 0x00,     /**< Continous-conversion mode */
+    LIS3MDL_OP_CONT_CONV = 0x00,     /**< Continuous-conversion mode */
     LIS3MDL_OP_SNGL_CONV = 0x01,     /**< Single-conversion mode */
-    LIS3MDL_OP_PDOWN     = 0x11,     /**< Power-down mode */
+    LIS3MDL_OP_PDOWN     = 0x02,     /**< Power-down mode */
 } lis3mdl_op_t;
 
 /**
@@ -143,14 +143,14 @@ void lis3mdl_read_temp(const lis3mdl_t *dev, int16_t *value);
  *
  * @param[in] dev          device descriptor of LIS3MDL
  */
-void lis3mdl_enable(const lis3mdl_t *dev);
+void lis3mdl_poweron(const lis3mdl_t *dev);
 
 /**
  * @brief   Disable the LIS3MDL device.
  *
  * @param[in] dev          device descriptor of LIS3MDL
  */
-void lis3mdl_disable(const lis3mdl_t *dev);
+void lis3mdl_poweroff(const lis3mdl_t *dev);
 
 #ifdef __cplusplus
 }

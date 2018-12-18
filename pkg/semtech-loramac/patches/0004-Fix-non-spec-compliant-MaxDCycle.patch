@@ -1,0 +1,73 @@
+From e7f3b57c7542045f5b3fc859cdfd0d15dc991fbe Mon Sep 17 00:00:00 2001
+From: Oleg Artamonov <oleg@unwds.com>
+Date: Tue, 4 Dec 2018 15:37:01 +0300
+Subject: [PATCH] Fix non-spec-compliant MaxDCycle
+
+---
+ src/mac/LoRaMac.c |  7 +------
+ src/mac/LoRaMac.h | 10 ++--------
+ 2 files changed, 3 insertions(+), 14 deletions(-)
+
+diff --git a/src/mac/LoRaMac.c b/src/mac/LoRaMac.c
+index e642c04..31b9c9f 100644
+--- a/src/mac/LoRaMac.c
++++ b/src/mac/LoRaMac.c
+@@ -1818,7 +1818,7 @@ static void ProcessMacCommands( uint8_t *payload, uint8_t macIndex, uint8_t comm
+                 }
+                 break;
+             case SRV_MAC_DUTY_CYCLE_REQ:
+-                MaxDCycle = payload[macIndex++];
++                MaxDCycle = payload[macIndex++] & 0x0f;
+                 AggregatedDCycle = 1 << MaxDCycle;
+                 AddMacCommand( MOTE_MAC_DUTY_CYCLE_ANS, 0, 0 );
+                 break;
+@@ -1983,11 +1983,6 @@ static LoRaMacStatus_t ScheduleTx( bool allowDelayedTx )
+     TimerTime_t dutyCycleTimeOff = 0;
+     NextChanParams_t nextChan;
+ 
+-    // Check if the device is off
+-    if( MaxDCycle == 255 )
+-    {
+-        return LORAMAC_STATUS_DEVICE_OFF;
+-    }
+     if( MaxDCycle == 0 )
+     {
+         AggregatedTimeOff = 0;
+diff --git a/src/mac/LoRaMac.h b/src/mac/LoRaMac.h
+index 0067419..1bee129 100644
+--- a/src/mac/LoRaMac.h
++++ b/src/mac/LoRaMac.h
+@@ -1676,10 +1676,6 @@ typedef enum eLoRaMacStatus
+      */
+     LORAMAC_STATUS_LENGTH_ERROR,
+     /*!
+-     * Service not started - the device is switched off
+-     */
+-    LORAMAC_STATUS_DEVICE_OFF,
+-    /*!
+      * Service not started - the specified region is not supported
+      * or not activated with preprocessor definitions.
+      */
+@@ -2014,8 +2010,7 @@ LoRaMacStatus_t LoRaMacMibSetRequestConfirm( MibRequestConfirm_t *mibSet );
+  *          \ref LORAMAC_STATUS_SERVICE_UNKNOWN,
+  *          \ref LORAMAC_STATUS_PARAMETER_INVALID,
+  *          \ref LORAMAC_STATUS_NO_NETWORK_JOINED,
+- *          \ref LORAMAC_STATUS_LENGTH_ERROR,
+- *          \ref LORAMAC_STATUS_DEVICE_OFF.
++ *          \ref LORAMAC_STATUS_LENGTH_ERROR.
+  */
+ LoRaMacStatus_t LoRaMacMlmeRequest( MlmeReq_t *mlmeRequest );
+ 
+@@ -2049,8 +2044,7 @@ LoRaMacStatus_t LoRaMacMlmeRequest( MlmeReq_t *mlmeRequest );
+  *          \ref LORAMAC_STATUS_SERVICE_UNKNOWN,
+  *          \ref LORAMAC_STATUS_PARAMETER_INVALID,
+  *          \ref LORAMAC_STATUS_NO_NETWORK_JOINED,
+- *          \ref LORAMAC_STATUS_LENGTH_ERROR,
+- *          \ref LORAMAC_STATUS_DEVICE_OFF.
++ *          \ref LORAMAC_STATUS_LENGTH_ERROR.
+  */
+ LoRaMacStatus_t LoRaMacMcpsRequest( McpsReq_t *mcpsRequest );
+ 
+-- 
+2.7.4
+

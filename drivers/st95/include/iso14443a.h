@@ -77,6 +77,48 @@ extern "C" {
 #define ISO14443A_SAK_UID_NOT_COMPLETE      0x04
 #define ISO14443A_FLAG_ATS_SUPPORTED		0x20
 
+/* ISO7816 and APDU */                                   
+/*  Iblock */
+#define ISO7816_IBLOCK_02    				0x02
+#define ISO7816_IBLOCK_03					0x03
+#define ISO7816_TOGGLE_IBLOCK(block) ((block == ISO7816_IBLOCK_02)? ISO7816_IBLOCK_03 : ISO7816_IBLOCK_02) 
+
+#define ISO7816_SELECT_FILE					0xA4
+#define ISO7816_UPDATE_BINARY				0xD6
+#define ISO7816_READ_BINARY  				0xB0
+
+#define ISO7816_CLASS_0X00					0x00
+/* ADPU-Header command structure */
+typedef struct
+{
+    uint8_t cla;  /* Command class */
+    uint8_t ins;  /* Operation code */
+    uint8_t p1;   /* Selection Mode */
+    uint8_t p2;   /* Selection Option */
+} __attribute__((packed)) apdu_header_t;
+
+/* ADPU-Body command structure -----------------------------------------------*/
+typedef struct 
+{
+    uint8_t lc;         						  /* Data field length */	
+    uint8_t data[256];  							/* Command parameters */ // pointer on the transceiver buffer = *(ReaderRecBuf[CR95HF_DATA_OFFSET + ISO7816_ADPUOFFSET_DATA])
+    uint8_t le;          						 /* Expected length of data to be returned */
+} __attribute__((packed)) apdu_body_t;
+
+/* ADPU Command structure ----------------------------------------------------*/
+typedef struct
+{
+    apdu_header_t header;
+    apdu_body_t body;
+} __attribute__((packed)) iso7816_apdu_cmd_t;
+
+/* SC response structure -----------------------------------------------------*/
+typedef struct
+{
+    uint8_t sw1;         						 /* Command Processing status */
+    uint8_t sw2;          						/* Command Processing qualification */
+} __attribute__((packed)) iso7816_apdu_responce_t;
+
 
 int iso14443a_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_t * sak);
 

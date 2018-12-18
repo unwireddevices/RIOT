@@ -99,8 +99,8 @@ static void *radio_send(void *arg)
 {
     (void) arg;
     msg_t msg;
-    msg_t msg_queue[16];
-    msg_init_queue(msg_queue, 16);
+    msg_t msg_queue[4];
+    msg_init_queue(msg_queue, 4);
       
     while (1) {
         msg_receive(&msg);
@@ -137,7 +137,7 @@ static void *radio_send(void *arg)
                 DEBUG("RADIO: ");
                 _printbuff(data.data, data.length);
                 
-                callback(&data);
+                // callback(&data);
                 rtctimers_millis_sleep(UMDK_ST95_DELAY_DETECT_MS);                
                 st95_sleep(&dev);      
             }

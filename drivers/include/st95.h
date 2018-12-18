@@ -77,6 +77,9 @@
 #define ST95_WR_GAIN_8_DB       0x0F        // 8 Db
 
 
+
+
+
 /**
  * @brief ST95 return codes
 */
@@ -136,7 +139,7 @@ int st95_idn(const st95_t * dev, uint8_t * idn, uint8_t * length);
 
 int _st95_select_iso14443a(const st95_t * dev, uint8_t * params, uint8_t length_params);
 uint8_t _st95_cmd_write_reg(const st95_t * dev, uint8_t size_tx, uint8_t addr, uint8_t flag, uint8_t * data_tx);
-
+uint8_t _st95_modify_modulation_gain(const st95_t * dev, uint8_t modul, uint8_t gain);
 int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_t * sak);
 
 int _st95_cmd_send_receive(const st95_t * dev, uint8_t *data_tx, uint8_t size_tx, uint8_t params, uint8_t * rxbuff, uint16_t size_rx_buff);

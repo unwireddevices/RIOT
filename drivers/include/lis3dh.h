@@ -298,7 +298,6 @@ typedef struct {
     void             *arg;                              /**< alert callback param */
     lis3dh_fs_t      scale;                             /**< Internal sensor scale */
     lis3dh_op_md_t   op_mode;                           /**< Internal sensor operation mode */
-
 } lis3dh_t;
 
 /**
@@ -345,6 +344,10 @@ int lis3dh_read_xyz(lis3dh_t *dev, lis3dh_acceleration_t *acceleration);
  * @return                  -1 on error
  */
 int lis3dh_read_temp(lis3dh_t *dev, int16_t *temperature_degC);
+
+int lis3dh_power_on(lis3dh_t *dev);
+
+int lis3dh_poweroff(lis3dh_t *dev);
 
 #ifdef __cplusplus
 }

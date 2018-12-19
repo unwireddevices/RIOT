@@ -27,17 +27,18 @@
 #include "lis3dh_params.h"
 
 
-#define SLEEP       (100 * 1000U)
+#define SLEEP       (500 * 1000U)
 
-#define WATERMARK_LEVEL 16
+static void test_int1(void *arg)
+{
+    (void)arg;
+    puts("INT1 callback");
+    // if (lis3dh_read_xyz(&dev, &acc_data) != 0) {
+    //     puts("Reading acceleration data... ");
+    //     puts("[Failed]\n");
 
-// static volatile int int1_count = 0;
-
-// static void test_int1(void *arg)
-// {
-//     volatile int *int1_count_ptr = arg;
-//     ++(*int1_count_ptr);
-// }
+    // }
+}
 
 int main(void)
 {   
@@ -45,17 +46,17 @@ int main(void)
     lis3dh_params_t lis3dh_params[] = { 
         {.i2c      = I2C_DEV(0),   
         .addr      = LIS3DH_I2C_SAD_L,    
-        .int1      = GPIO_UNDEF,  
-        .int1_mode = I1_DISABLE,  
+        .int1      = GPIO_PIN(PORT_A, 14),  
+        .int1_mode = I1_ZYXDA,  
         .scale     = LIS3DH_2g,
-        .odr       = LIS3DH_ODR_1Hz,
+        .odr       = LIS3DH_ODR_100Hz,
         .op_mode   = LIS3DH_HR_12bit},
 
     };
 
     lis3dh_t dev;
-    lis3dh_acceleration_t acc_data;
-    int16_t temperature = 0x00;
+    // lis3dh_acceleration_t acc_data;
+    // int16_t temperature = 0x00;
 
     gpio_init(GPIO_PIN(PORT_B, 0), GPIO_OUT);
 
@@ -65,7 +66,7 @@ int main(void)
     xtimer_usleep(10 * 1000);
 
     puts("Initializing LIS3DH sensor... ");
-    if (lis3dh_init(&dev, &lis3dh_params[0], NULL, NULL) == 0) {
+    if (lis3dh_init(&dev, &lis3dh_params[0], test_int1, NULL) == 0) {
         puts("[OK]");
     }
     else {
@@ -73,43 +74,25 @@ int main(void)
         return 1;
     }
 
-    // puts("Set INT1 watermark function... ");
-    // if (lis3dh_set_int1(&dev, LIS3DH_CTRL_REG3_I1_WTM_MASK) == 0) {
-    //     puts("[OK]");
-    // }
-    // else {
-    //     puts("[Failed]\n");
-    //     return 1;
-    // }
-
-    // puts("Set INT1 callback");
-    // if (gpio_init_int(lis3dh_params[0].int1, GPIO_IN, GPIO_RISING,
-    //                   test_int1, (void*)&int1_count) == 0) {
-    //     puts("[OK]");
-    // }
-    // else {
-    //     puts("[Failed]\n");
-    //     return 1;
-    // }
-
     puts("LIS3DH init done.\n");
 
     while (1) {
  
         printf("Reading measurements\n");
         gpio_set(GPIO_PIN(PORT_B, 0));
-        if (lis3dh_read_xyz(&dev, &acc_data) != 0) {
-                puts("Reading acceleration data... ");
-                puts("[Failed]\n");
-                return 1;
-        }
-        if (lis3dh_read_temp(&dev, &temperature) != 0) {
-            puts("Reading temperature data... ");
-            puts("[Failed]\n");
-            return 1;
-        }
-        // int1 = gpio_read(lis3dh_params[0].int1);
-        printf("X: %d Y: %d Z: %d Temp: %d\n", acc_data.axis_x, acc_data.axis_y, acc_data.axis_z, temperature);
+        xtimer_usleep(SLEEP);
+        // if (lis3dh_read_xyz(&dev, &acc_data) != 0) {
+        //         puts("Reading acceleration data... ");
+        //         puts("[Failed]\n");
+        //         return 1;
+        // }
+        // if (lis3dh_read_temp(&dev, &temperature) != 0) {
+        //     puts("Reading temperature data... ");
+        //     puts("[Failed]\n");
+        //     return 1;
+        // }
+        // // int1 = gpio_read(lis3dh_params[0].int1);
+        // printf("X: %d Y: %d Z: %d Temp: %d\n", acc_data.axis_x, acc_data.axis_y, acc_data.axis_z, temperature);
         gpio_clear(GPIO_PIN(PORT_B, 0));
         xtimer_usleep(SLEEP);
         

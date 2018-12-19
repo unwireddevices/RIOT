@@ -27,6 +27,7 @@
 #include "periph/adc.h"
 #include "periph/uart.h"
 #include "periph/gpio.h"
+#include "periph/cpuid.h"
 
 #include "ps.h"
 

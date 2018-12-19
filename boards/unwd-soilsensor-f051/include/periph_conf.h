@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Inria
+ * Copyright (C) 2018 Unwired Devices LLC
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -7,15 +7,15 @@
  */
 
 /**
- * @ingroup     boards_nucleo-f030
+ * @defgroup    unwd-soilsensor-f051
+ * @ingroup     boards
+ * @brief       Soil moisture sensor board, based on STM32F051
  * @{
  *
  * @file
- * @brief       Peripheral MCU configuration for the nucleo-f030 board
+ * @brief       Soil moisture sensor board, based on STM32F051
  *
- * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
- * @author      José Ignacio Alamos <jialamos@uc.cl>
- * @author      Alexandre Abadie <alexandre.abadie@inria.fr>
+ * @author      Oleg Artamonov <oleg@unwds.com>
  */
 
 #ifndef PERIPH_CONF_H_

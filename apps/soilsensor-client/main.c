@@ -14,6 +14,7 @@
  * @file
  * @brief
  * @author      Katerina Gorinskaya
+ * @author      Oleg Artamonov <oleg@unwds.com>
  */
 
 #include <stdio.h>
@@ -43,8 +44,8 @@
 #define DE_PIN                      2
 #define UART_1                      1
 
-#define ADDRESS_SIZE                8                       // 8 bytes are for the device address
-#define OFFSET_TYPE                 ADDRESS_SIZE
+#define ADDRESS_SIZE                8                       // bytes 0-7 are for the device address
+#define OFFSET_TYPE                 ADDRESS_SIZE            // byte 8 is device type
 #define OFFSET_BYTE_MOISTURE        ADDRESS_SIZE + 1        // byte 9 is for moisture
 #define OFFSET_BYTE_TEMP            ADDRESS_SIZE + 2        // byte 10 is for temperature
 #define OFFSET_BYTE_VOLT            ADDRESS_SIZE + 3        // byte 10 is for temperature
@@ -53,8 +54,6 @@
 #define BUF_SIZE                    ADDRESS_SIZE + NUMBER_BYTE_CRC + 4
 
 #define SEED_CRC                    42
-
-#define STM32F0_CPU_UID             (0x1FFFF7ACU)
 
 enum {
     TYPE_NODATA         = 0,
@@ -333,7 +332,9 @@ int main(void)
     xtimer_init();
     
     /* generate 64-bit address */
-    memcpy(address_uart, sha256((uint8_t *)0x1FFFF7AC, 12, NULL), 8);
+    uint8_t cpuid[CPUID_LEN];
+    cpuid_get(cpuid);
+    memcpy(address_uart, sha256((uint8_t *)cpuid, CPUID_LEN, NULL), 8);
 
     uint32_t *add_ptr = (uint32_t *)address_uart;
     random_init(*add_ptr);

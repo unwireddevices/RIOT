@@ -44,6 +44,7 @@
 #define BIT_APB_PWREN       RCC_APB1ENR_PWREN
 #endif
 
+#if defined(RTC_REGBACKUP_BOOTLOADER)
 static void jump_to_bootloader(void) __attribute__ ((noreturn));
 
 /* Sets up and jumps to the bootloader */
@@ -81,6 +82,7 @@ static void jump_to_bootloader(void) {
     dfu_bootloader();
     while (1);
 }
+#endif
 
 void cpu_init(void)
 {
@@ -91,6 +93,7 @@ void cpu_init(void)
     periph_clk_en(APB1, BIT_APB_PWREN);
 
     /* check if we need to update firmware */
+#if defined(RTC_REGBACKUP_BOOTLOADER)
     rtc_poweron();
     if (rtc_restore_backup(RTC_REGBACKUP_BOOTLOADER) == RTC_REGBACKUP_BOOTLOADER_VALUE) {
         /* clear RTC register */
@@ -100,6 +103,7 @@ void cpu_init(void)
         jump_to_bootloader();
     }
     rtc_poweroff();
+#endif
     
     /* initialize the system clock as configured in the periph_conf.h */
     stmclk_init_sysclk();

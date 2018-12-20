@@ -29,15 +29,21 @@
 
 #define SLEEP       (500 * 1000U)
 
+lis3dh_t dev;
+lis3dh_acceleration_t acc_data;
+// int16_t temperature = 0x00;
+
 static void test_int1(void *arg)
 {
     (void)arg;
+    gpio_irq_disable(dev.params.int1);
     puts("INT1 callback");
-    // if (lis3dh_read_xyz(&dev, &acc_data) != 0) {
-    //     puts("Reading acceleration data... ");
-    //     puts("[Failed]\n");
+    if (lis3dh_read_xyz(&dev, &acc_data) != 0) {
+        puts("Reading acceleration data... ");
+        puts("[Failed]\n");
 
-    // }
+    }
+    gpio_irq_enable(dev.params.int1);
 }
 
 int main(void)
@@ -49,14 +55,10 @@ int main(void)
         .int1      = GPIO_PIN(PORT_A, 14),  
         .int1_mode = I1_ZYXDA,  
         .scale     = LIS3DH_2g,
-        .odr       = LIS3DH_ODR_100Hz,
+        .odr       = LIS3DH_ODR_25Hz,
         .op_mode   = LIS3DH_HR_12bit},
 
     };
-
-    lis3dh_t dev;
-    // lis3dh_acceleration_t acc_data;
-    // int16_t temperature = 0x00;
 
     gpio_init(GPIO_PIN(PORT_B, 0), GPIO_OUT);
 
@@ -76,23 +78,27 @@ int main(void)
 
     puts("LIS3DH init done.\n");
 
+    puts("LIS3DH power off.\n");
+    lis3dh_power_off(&dev);
+    xtimer_usleep(SLEEP);
+
+    puts("LIS3DH power on.\n");
+    lis3dh_power_on(&dev);
+
     while (1) {
  
-        printf("Reading measurements\n");
+        
         gpio_set(GPIO_PIN(PORT_B, 0));
         xtimer_usleep(SLEEP);
-        // if (lis3dh_read_xyz(&dev, &acc_data) != 0) {
-        //         puts("Reading acceleration data... ");
-        //         puts("[Failed]\n");
-        //         return 1;
-        // }
-        // if (lis3dh_read_temp(&dev, &temperature) != 0) {
-        //     puts("Reading temperature data... ");
-        //     puts("[Failed]\n");
-        //     return 1;
-        // }
-        // // int1 = gpio_read(lis3dh_params[0].int1);
-        // printf("X: %d Y: %d Z: %d Temp: %d\n", acc_data.axis_x, acc_data.axis_y, acc_data.axis_z, temperature);
+        if (dev.params.int1 == GPIO_UNDEF) {
+            printf("Reading measurements\n");
+            if (lis3dh_read_xyz(&dev, &acc_data) != 0) {
+                puts("Reading acceleration data... ");
+                puts("[Failed]\n");
+                return 1;
+            }
+        }
+        printf("X: %d Y: %d Z: %d \n", acc_data.axis_x, acc_data.axis_y, acc_data.axis_z);
         gpio_clear(GPIO_PIN(PORT_B, 0));
         xtimer_usleep(SLEEP);
         

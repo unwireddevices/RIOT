@@ -100,14 +100,8 @@ typedef enum {
  */
 typedef enum {
     LIS3DH_AXES_ALL_DISABLE  = 0,
-    LIS3DH_AXES_X_ENABLE     = 1,
-    LIS3DH_AXES_Y_ENABLE     = 2,
-    LIS3DH_AXES_Z_ENABLE     = 3,
-    LIS3DH_AXES_XY_ENABLE    = 4,
-    LIS3DH_AXES_XZ_ENABLE    = 5,
-    LIS3DH_AXES_YZ_ENABLE    = 6,
-    LIS3DH_AXES_ALL_ENABLE   = 7,
-} lis3dh_axes_t;
+    LIS3DH_AXES_ALL_ENABLE   = 1,
+} lis3dh_axis_t;
 
 /**
  * High-pass filter mode
@@ -347,7 +341,7 @@ int lis3dh_read_temp(lis3dh_t *dev, int16_t *temperature_degC);
 
 int lis3dh_power_on(lis3dh_t *dev);
 
-int lis3dh_poweroff(lis3dh_t *dev);
+int lis3dh_power_off(lis3dh_t *dev);
 
 #ifdef __cplusplus
 }

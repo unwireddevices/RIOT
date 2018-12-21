@@ -1,4 +1,4 @@
-   /*
+/*
  * Copyright (c) 2013,2014 Fingerprint Cards AB <tech@fingerprints.com>
  * Copyright (c) 2018 Unwired Devices LLC <info@unwds.com>
  *

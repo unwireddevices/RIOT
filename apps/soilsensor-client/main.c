@@ -58,12 +58,13 @@
 #define DE_PIN                      2
 #define UART_1                      1
 
-#define ADDRESS_SIZE                8   // bytes 0-7 are for the device address
-#define OFFSET_TYPE                 8   // byte 8 is device type
-#define OFFSET_CMD                  9   // byte 9 is command code
-#define OFFSET_BYTE_MOISTURE        10  // byte 10 is for moisture
-#define OFFSET_BYTE_TEMP            11  // byte 11 is for temperature
-#define OFFSET_BYTE_CRC             12  // bytes 12-13 is for CRC
+#define START_BYTE                  0x55 // byte 0
+#define ADDRESS_SIZE                8   // bytes 1-8 are for the device address
+#define OFFSET_TYPE                 9   // byte 9 is device type
+#define OFFSET_CMD                  10  // byte 10 is command code
+#define OFFSET_BYTE_MOISTURE        11  // byte 11 is for moisture
+#define OFFSET_BYTE_TEMP            12  // byte 12 is for temperature
+#define OFFSET_BYTE_CRC             13  // bytes 13-14 is for CRC
 #define CRC_SIZE                    2
 #define BUF_SIZE                    OFFSET_BYTE_CRC + CRC_SIZE
 
@@ -242,8 +243,8 @@ static void prepare_data(uint8_t *buf)
 {
     sensor_data_t data = readval();
     
-    memcpy(buf, address_uart, ADDRESS_SIZE);
-    
+    buf[0] = START_BYTE;
+    memcpy(&buf[1], address_uart, ADDRESS_SIZE);
     buf[OFFSET_TYPE] = TYPE_SOIL_SENSOR;
     buf[OFFSET_CMD] = SOILSENSOR_CMD_DATA;
     buf[OFFSET_BYTE_MOISTURE] = data.moisture;
@@ -341,7 +342,7 @@ static void uart_input(void *arg, uint8_t data)
 
 int main(void)
 {
-    int period = 10;
+    int period = 1;
     
     puts("*****************************");
     puts("72 MHz capacitive soil moisture sensor");
@@ -378,16 +379,24 @@ int main(void)
     while(1) {
         if (period) {
             xtimer_sleep(period);
-            puts("Sending data without request");
+            puts("Sending data periodically");
             
             uint8_t buf_out[BUF_SIZE];
             prepare_data(buf_out);
             send_data(buf_out, true);
             
             puts("Data successfully sent");
-            ps();
+            /* ps(); */
         } else {
-            xtimer_sleep(1);
+            puts("Sending data once");
+            
+            uint8_t buf_out[BUF_SIZE];
+            prepare_data(buf_out);
+            send_data(buf_out, true);
+            
+            puts("Data successfully sent");
+            
+            break;
         }
     }
     return 0;

@@ -50,6 +50,7 @@ extern "C" {
 #include "umdk-ids.h"
 #include "unwds-common.h"
 #include "include/umdk-soil.h"
+#include "periph/uart.h"
 
 #include "thread.h"
 #include "xtimer.h"
@@ -61,23 +62,92 @@ extern "C" {
 static uwnds_cb_t *callback;
 
 typedef struct {
-    uint8_t publish_period_sec;
+    uint32_t publish_period_sec;
 } umdk_soil_config_t;
 
-static umdk_soil_config_t umdk_soil_config = { .publish_period_sec = 5};
+static umdk_soil_config_t umdk_soil_config = { .publish_period_sec = 1800};
 
 static bool is_polled = false;
 static rtctimers_millis_t timer;
 static msg_t timer_msg = {};
 static kernel_pid_t timer_pid;
 
-static void prepare_result(module_data_t *data) {
-	
-    if (data) {
-        data->data[0] = _UMDK_MID_;
-        memcpy(data->data + 1, (uint8_t *) res, sizeof(res));
-        data->length = sizeof(res) + 1;
+#define START_BYTE                  0x55 // byte 0
+#define ADDRESS_SIZE                8   // bytes 1-8 are for the device address
+#define OFFSET_TYPE                 9   // byte 9 is device type
+#define OFFSET_CMD                  10  // byte 10 is command code
+#define OFFSET_BYTE_MOISTURE        11  // byte 11 is for moisture
+#define OFFSET_BYTE_TEMP            12  // byte 12 is for temperature
+#define OFFSET_BYTE_CRC             13  // bytes 13-14 is for CRC
+#define CRC_SIZE                    2
+#define BUF_SIZE                    OFFSET_BYTE_CRC + CRC_SIZE
+
+enum {
+    TYPE_NODATA         = 0,
+    TYPE_ASK            = 1,
+    TYPE_ADDRESS        = 2,
+    TYPE_SOIL_SENSOR    = 3,
+} data_types_t;
+
+static volatile int rx_cnt = 0;
+static volatile bool rx_started = false;
+static volatile bool rx_done = false;
+static volatile uint8_t rx_buf[BUF_SIZE - 1]; /* without start byte */
+
+static void rx_cb(void *arg, uint8_t data)
+{
+    (void)arg;
+    
+    if (!rx_started) {
+        if (data == START_BYTE) {
+            rx_started = true;
+            rx_cnt = 0;
+        }
+    } else {
+        rx_buf[rx_cnt] = data;
+        if (++rx_cnt == (BUF_SIZE - 1)) {
+            rx_started = false;
+            rx_done = true;
+        }
     }
+}
+
+static int prepare_result(module_data_t *data) {
+    gpio_set(UMDK_SOIL_POWEREN);
+    rx_started = false;
+    rx_done = false;
+    
+    uint32_t start = rtctimers_millis_now();
+    while (!rx_done) {
+        /* timeout 2 seconds */
+        if (rtctimers_millis_now() > start + 2000) {
+            gpio_clear(UMDK_SOIL_POWEREN);
+            puts("[umdk-" _UMDK_NAME_ "] Sensor timeout");
+            return -1;
+        }
+    }
+    
+    gpio_clear(UMDK_SOIL_POWEREN);
+    
+    if (rx_buf[OFFSET_TYPE - 1] == TYPE_SOIL_SENSOR) {
+        uint8_t moist = rx_buf[OFFSET_BYTE_MOISTURE - 1];
+        int8_t temp = rx_buf[OFFSET_BYTE_TEMP  - 1] - 50;
+        
+        printf("[umdk-" _UMDK_NAME_ "] Water: %d %%; temperature: %d C\n", moist, temp);
+        
+        if (data) {
+            data->data[0] = _UMDK_MID_;
+            data->data[1] = 0;
+            data->data[2] = moist;
+            data->data[3] = temp;
+            data->length = 4;
+        }
+    } else {
+        puts("[umdk-" _UMDK_NAME_ "] Unknown data");
+        return -2;
+    }
+    
+    return 0;
 }
 
 static void *timer_thread(void *arg) {
@@ -95,21 +165,26 @@ static void *timer_thread(void *arg) {
         module_data_t data = {};
         data.as_ack = is_polled;
         is_polled = false;
-
-        prepare_result(&data);
+        
+        int res = prepare_result(&data);
+        if (res != 0) {
+            data.data[0] = _UMDK_MID_;
+            data.data[1] = res;
+            data.length = 2;
+        }
 
         /* Notify the application */
         callback(&data);
 
         /* Restart after delay */
-        rtctimers_millis_set_msg(&timer, 60000 * soil_config.publish_period_min, &timer_msg, timer_pid);
+        rtctimers_millis_set_msg(&timer, 1000 * umdk_soil_config.publish_period_sec, &timer_msg, timer_pid);
     }
     
     return NULL;
 }
 
 static void reset_config(void) {
-    umdk_soil_config.publish_period_sec = 60;
+    umdk_soil_config.publish_period_sec = 1800;
 }
 
 static void init_config(void) {
@@ -127,7 +202,7 @@ int umdk_soil_shell_cmd(int argc, char **argv) {
     if (argc == 1) {
         puts ("soil send - obtain data from sensor");
         puts ("soil send - obtain and send data");
-        puts ("soil period <period> - set publishing period");
+        puts ("soil period <period> - set publishing period in seconds");
         puts ("soil reset - reset settings to default");
         return 0;
     }
@@ -162,11 +237,20 @@ void umdk_soil_init(uwnds_cb_t *event_callback)
     callback = event_callback;
 
     init_config();
-    
-    soil.reader_stack = (uint8_t *) allocate_stack(UMDK_SOIL_READER_STACK_SIZE);
-    if (!soil.reader_stack) {
+    /*
+    char *reader_stack = (uint8_t *) allocate_stack(UMDK_SOIL_READER_STACK_SIZE);
+    if (!reader_stack) {
         return;
     }
+    reader_pid = thread_create(reader_stack, UMDK_SOIL_READER_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, reader, dev, "umdk-soil UART reader");
+    */
+    
+    gpio_init(UMDK_SOIL_POWEREN, GPIO_OUT);
+    
+    if (uart_init(UMDK_SOIL_UART, 9600, rx_cb, NULL)) {
+        puts("[umdk-" _UMDK_NAME_ "] Error initializing UART");
+		return;
+	}
 
     char *timer_stack = (char *) allocate_stack(UMDK_SOIL_STACK_SIZE);
     if (!timer_stack) {
@@ -195,7 +279,7 @@ static void reply_ok(module_data_t *reply) {
 bool umdk_soil_cmd(module_data_t *data, module_data_t *reply)
 {
     if (data->length < 1) {
-        do_reply(reply, UMDK_SOIL_REPLY_ERR_FMT);
+        reply_fail(reply);
         return true;
     }
 
@@ -208,83 +292,19 @@ bool umdk_soil_cmd(module_data_t *data, module_data_t *reply)
             
         case UMDK_SOIL_SET_PERIOD:
             if (data->length != 2) {
-                do_reply(reply, UMDK_SOIL_REPLY_ERR_FMT);
+                reply_fail(reply);
                 break;
             }
-            umdk_soil_config.publish_period_sec = 60*(data->data[1]);
-            do_reply(reply, UMDK_SOIL_REPLY_OK);
+            umdk_soil_config.publish_period_sec = data->data[1];
+            reply_ok(reply);
             break;
 
         default:
-        	do_reply(reply, UMDK_SOIL_REPLY_ERR_FMT);
+        	reply_fail(reply);
         	break;
     }
 
     return true;
-}
-
-bool umdk_soil_cmd(module_data_t *cmd, module_data_t *reply) {
-	if (cmd->length < 1) {
-		reply_fail(reply);
-		return true;
-	}
-
-	umdk_soil_cmd_t c = cmd->data[0];
-	switch (c) {
-	case UMDK_SOIL_CMD_SET_PERIOD: {
-		if (cmd->length != 2) {
-			reply_fail(reply);
-			break;
-		}
-
-		uint8_t period = cmd->data[1];
-		set_period(period);
-
-		reply_ok(reply);
-		break;
-	}
-
-	case UMDK_SOIL_CMD_POLL:
-		is_polled = true;
-
-		/* Send signal to publisher thread */
-		msg_send(&timer_msg, timer_pid);
-
-		return false; /* Don't reply now */
-
-		break;
-
-	case UMDK_SOIL_CMD_SET_GPIOS: {
-		uint8_t *gpios = &cmd->data[1];
-		int num_gpios = cmd->length - 1;
-
-		if (!num_gpios) {
-			reply_fail(reply);
-			break;
-		}
-
-		int i;
-		for (i = 0; i < num_gpios; i++) {
-			if (gpios[i]) {
-				gpio_t gpio = unwds_gpio_pin(gpios[i]);
-				en_pins[i] = gpio;
-			} else
-				en_pins[i] = 0;	/* Disable this pin */
-		}
-
-		/* Re-initialize sensors */
-		init_sensors();
-
-		reply_ok(reply);
-		break;
-	}
-
-	default:
-		reply_ok(reply);
-		break;
-	}
-
-	return true;
 }
 
 #ifdef __cplusplus

@@ -40,6 +40,10 @@
 #define UMDK_SOIL_UART UMDK_UART_DEV
 #endif
 
+#ifndef UMDK_SOIL_POWEREN
+#define UMDK_SOIL_POWEREN GPIO_UNDEF
+#endif
+
 /** @} */
 
 typedef enum {

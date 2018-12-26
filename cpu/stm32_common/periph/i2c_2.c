@@ -495,8 +495,9 @@ static inline int _write(I2C_TypeDef *i2c, const uint8_t *data, int length)
     for (int i = 0; i < length; i++) {
         /* write data to data register */
         i2c->DR = data[i];
-        DEBUG("[i2c] write: Written %i byte to data reg, now waiting for DR "
-              "to be empty again\n", i);
+        DEBUG("[i2c] write: Written %i byte to data reg, now waiting for DR [%02X] "
+              "to be empty again\n", i, data[i]);
+        
 
         uint16_t tick = TICK_TIMEOUT;
         /* wait for transfer to finish */

@@ -1,12 +1,10 @@
 /*
- * Copyright (C) 2015 Eistec AB
- *               2017 Freie Universität Berlin
+ * Copyright (c) 2018 Unwired Devices LLC <info@unwds.com>
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
  * directory for more details.
  */
-
 /**
  * @ingroup tests
  * @{
@@ -14,53 +12,56 @@
  * @file
  * @brief       Test application for the LIS3DH accelerometer driver
  *
- * @author      Joakim Nohlgård <joakim.nohlgard@eistec.se>
- * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
+ *
+ * @author      Alexander Ugorelov <alex_u@unwds.com>
  *
  * @}
  */
 
 #include <stdio.h>
+#include <string.h>
 
 #include "xtimer.h"
+
 #include "lis3dh.h"
 #include "lis3dh_params.h"
 
+lis3dh_t dev;
+lis3dh_acceleration_t acc_data;
 
-#define SLEEP       (100 * 1000U)
+static void _int1_handler(void *arg)
+{
+    (void)arg;
 
-#define WATERMARK_LEVEL 16
+    puts("iRQ");
+    gpio_irq_disable(dev.params.int1);
 
-// static volatile int int1_count = 0;
-
-// static void test_int1(void *arg)
-// {
-//     volatile int *int1_count_ptr = arg;
-//     ++(*int1_count_ptr);
-// }
+    if (lis3dh_read_xyz(&dev, &acc_data) == 0) {
+        /* print values */
+        printf("X: %d[milli-G] Y: %d[milli-G] Z: %d[milli-G]\n", acc_data.axis_x, acc_data.axis_y, acc_data.axis_z);
+    } else {
+        puts("Reading acceleration data... ");
+        puts("[Failed]\n");
+    }
+    gpio_irq_enable(dev.params.int1);
+}
 
 int main(void)
 {   
-
     lis3dh_params_t lis3dh_params[] = { 
         {.i2c      = I2C_DEV(0),   
         .addr      = LIS3DH_I2C_SAD_L,    
-        .int1      = GPIO_UNDEF,  
-        .int1_mode = I1_DISABLE,  
+        .int1      = GPIO_PIN(PORT_A, 14),  
+        .int1_mode = I1_ZYXDA,  
         .scale     = LIS3DH_2g,
-        .odr       = LIS3DH_ODR_1Hz,
+        .odr       = LIS3DH_ODR_10Hz,
         .op_mode   = LIS3DH_HR_12bit},
-
     };
 
-    lis3dh_t dev;
-    lis3dh_acceleration_t acc_data;
-    int16_t temperature;
-
-    puts("LIS3DH accelerometer driver test application\n");
+    puts("LIS3DH accelerometer driver test application");
 
     puts("Initializing LIS3DH sensor... ");
-    if (lis3dh_init(&dev, &lis3dh_params[0]) == 0) {
+    if (lis3dh_init(&dev, &lis3dh_params[0], _int1_handler, NULL) == 0) {
         puts("[OK]");
     }
     else {
@@ -68,44 +69,23 @@ int main(void)
         return 1;
     }
 
-    // puts("Set INT1 watermark function... ");
-    // if (lis3dh_set_int1(&dev, LIS3DH_CTRL_REG3_I1_WTM_MASK) == 0) {
-    //     puts("[OK]");
-    // }
-    // else {
-    //     puts("[Failed]\n");
-    //     return 1;
-    // }
-
-    // puts("Set INT1 callback");
-    // if (gpio_init_int(lis3dh_params[0].int1, GPIO_IN, GPIO_RISING,
-    //                   test_int1, (void*)&int1_count) == 0) {
-    //     puts("[OK]");
-    // }
-    // else {
-    //     puts("[Failed]\n");
-    //     return 1;
-    // }
-
     puts("LIS3DH init done.\n");
 
-    while (1) {
- 
-        printf("Reading measurements\n");
-        if (lis3dh_read_xyz(&dev, &acc_data) != 0) {
-                puts("Reading acceleration data... ");
-                puts("[Failed]\n");
-                return 1;
-        }
-        if (lis3dh_read_temp(&dev, &temperature) != 0) {
-            puts("Reading temperature data... ");
-            puts("[Failed]\n");
-            return 1;
-        }
-        // int1 = gpio_read(lis3dh_params[0].int1);
-        printf("X: %d Y: %d Z: %d Temp: %d\n", acc_data.axis_x, acc_data.axis_y, acc_data.axis_z, temperature);
+    puts("LIS3DH power off...\n");
+    if (lis3dh_power_off(&dev) != 0) {
+        puts("[Failed]\n");
+        return 1;
+    }
+    xtimer_usleep(500 * 1000U);
 
-        xtimer_usleep(SLEEP);
+    puts("LIS3DH power on...\n");
+    if (lis3dh_power_on(&dev) != 0) {
+        puts("[Failed]\n");
+        return 1;
+    }
+
+    while (1) {     
+        //do Nothing
     }
 
     return 0;

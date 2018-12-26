@@ -42,6 +42,7 @@ umdk-modbus	   		        = 1
 umdk-pir	   				= 1
 umdk-pwm	   				= 1
 umdk-rssiecho  				= 1
+umdk-soil                   = 1
 umdk-st95	                = 1
 umdk-uart	   				= 1
 # for a while, umdk-usound supports STM32L1 only

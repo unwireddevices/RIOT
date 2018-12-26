@@ -36,7 +36,7 @@ typedef enum {
     UNWDS_4BTN_MODULE_ID = 2, 
     UNWDS_GPS_MODULE_ID = 3,
     UNWDS_GASSENSOR_MODULE_ID = 4,
-    /* */
+    UNWDS_SOIL_MODULE_ID = 5,
     UNWDS_LMT01_MODULE_ID = 6,
     UNWDS_UART_MODULE_ID = 7,
     /* */

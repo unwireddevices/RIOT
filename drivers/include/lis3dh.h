@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Eistec AB
+ * Copyright (c) 2018 Unwired Devices LLC <info@unwds.com>
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -9,17 +9,13 @@
 /**
  * @defgroup    drivers_lis3dh LIS3DH accelerometer
  * @ingroup     drivers_sensors
- * @brief       Device driver for the LIS3DH accelerometer
  * @{
  *
- * @file
+ * @files       lis3dh.h
  * @brief       Device driver interface for the LIS3DH accelerometer
  *
- *
- * @author      Joakim Nohlgård <joakim.nohlgard@eistec.se>
  * @author      Alexander Ugorelov <alex_u@unwds.com>
  */
-
 #ifndef LIS3DH_H
 #define LIS3DH_H
 
@@ -55,9 +51,9 @@ typedef enum {
  * @drief   AUX connected to temperature sensor or ADC
  */
 typedef enum {
-    LIS3DH_AUX_DISABLE          = 0,                    /**< AUX disable */
-    LIS3DH_AUX_ON_TEMPERATURE   = 3,                    /**< Temperature sensor enable */
-    LIS3DH_AUX_ON_PADS          = 1,                    /**< AUX pin connected to ADC */
+    LIS3DH_AUX_DISABLE          = 0x00,                    /**< AUX disable */
+    LIS3DH_AUX_ON_TEMPERATURE   = 0x03,                    /**< Temperature sensor enable */
+    LIS3DH_AUX_ON_PADS          = 0x01,                    /**< AUX pin connected to ADC */
 } lis3dh_temp_en_t;
 
 /**
@@ -100,14 +96,8 @@ typedef enum {
  */
 typedef enum {
     LIS3DH_AXES_ALL_DISABLE  = 0,
-    LIS3DH_AXES_X_ENABLE     = 1,
-    LIS3DH_AXES_Y_ENABLE     = 2,
-    LIS3DH_AXES_Z_ENABLE     = 3,
-    LIS3DH_AXES_XY_ENABLE    = 4,
-    LIS3DH_AXES_XZ_ENABLE    = 5,
-    LIS3DH_AXES_YZ_ENABLE    = 6,
-    LIS3DH_AXES_ALL_ENABLE   = 7,
-} lis3dh_axes_t;
+    LIS3DH_AXES_ALL_ENABLE   = 1,
+} lis3dh_axis_t;
 
 /**
  * High-pass filter mode
@@ -228,9 +218,9 @@ typedef enum {
  * @brief    Self-test mode
  */
 typedef enum {
-  LIS3DH_ST_DISABLE   = 0,                              /**< */
-  LIS3DH_ST_POSITIVE  = 1,                              /**< */
-  LIS3DH_ST_NEGATIVE  = 2,                              /**< */
+  LIS3DH_ST_DISABLE   = 0,
+  LIS3DH_ST_POSITIVE  = 1,
+  LIS3DH_ST_NEGATIVE  = 2, 
 } lis3dh_st_t;
 
 /**
@@ -241,7 +231,6 @@ typedef enum {
   LIS3DH_SPI_3_WIRE = 1,
 } lis3dh_sim_t;
 /** @} */
-
 
 /**
  * @brief   Named return values
@@ -258,8 +247,6 @@ enum {
  * @brief   LIS3DH interrupt 1 callback
  */
 typedef void (*lis3dh_int1_cb_t)(void *);
-
-
 
 /**
  * @brief   Configuration parameters for LIS3DH devices
@@ -298,7 +285,6 @@ typedef struct {
     void             *arg;                              /**< alert callback param */
     lis3dh_fs_t      scale;                             /**< Internal sensor scale */
     lis3dh_op_md_t   op_mode;                           /**< Internal sensor operation mode */
-
 } lis3dh_t;
 
 /**
@@ -306,9 +292,9 @@ typedef struct {
  */
 typedef struct
 {
-    int16_t axis_x;             /**< Acceleration in the X direction in milli-G */
-    int16_t axis_y;             /**< Acceleration in the Y direction in milli-G */
-    int16_t axis_z;             /**< Acceleration in the Z direction in milli-G */
+    int16_t axis_x;                                     /**< Acceleration in the X direction in milli-G */
+    int16_t axis_y;                                     /**< Acceleration in the Y direction in milli-G */
+    int16_t axis_z;                                     /**< Acceleration in the Z direction in milli-G */
 } __attribute__((packed)) lis3dh_acceleration_t;
 
 /**
@@ -316,11 +302,10 @@ typedef struct
  *
  * @param[in]  dev          Device descriptor of sensor to initialize
  * @param[in]  params       Configuration parameters
- * @param[in]  cb
- * @param[in]  arg
+ * @param[in]  cb           Callback called when interrupt 1
+ * @param[in]  arg          Callback argument
  *
- * @return                  0 on success
- * @return                  -1 on error
+ * @return                  Error status
  */
 int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params, lis3dh_int1_cb_t cb, void *arg);
 
@@ -328,10 +313,9 @@ int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params, lis3dh_int1_cb_t c
  * @brief   Read 3D acceleration data from the accelerometer
  *
  * @param[in]  dev            Device descriptor of sensor
- * @param[out] acceleration   Accelerometer data output buffer
+ * @param[out] acceleration   Accelerometer data output
  *
- * @return                  0 on success
- * @return                  -1 on error
+ * @return                    Error status
  */
 int lis3dh_read_xyz(lis3dh_t *dev, lis3dh_acceleration_t *acceleration);
 
@@ -339,12 +323,29 @@ int lis3dh_read_xyz(lis3dh_t *dev, lis3dh_acceleration_t *acceleration);
  * @brief   Read temperature from the accelerometer
  * 
  * @param dev                Device descriptor of sensor
- * @param temperature_degC   Temperature output buffer
+ * @param temperature_degC   Temperature output
  * 
- * @return                  0 on success
- * @return                  -1 on error
+ * @return                   Error status
  */
 int lis3dh_read_temp(lis3dh_t *dev, int16_t *temperature_degC);
+
+/**
+ * @brief   Power on the given device
+ * 
+ * @param[in] dev    Device descriptor of sensor
+ * 
+ * @return           Error status
+ */
+int lis3dh_power_on(lis3dh_t *dev);
+
+/**
+ * @brief   Power off the given device
+ * 
+ * @param[in] dev    Device descriptor of sensor
+ * 
+ * @return           Error status
+ */
+int lis3dh_power_off(lis3dh_t *dev);
 
 #ifdef __cplusplus
 }

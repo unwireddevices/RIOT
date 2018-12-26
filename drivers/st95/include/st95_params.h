@@ -35,8 +35,6 @@ extern "C" {
 
 #define ST95_NUMB_TRY_INIT              5
 
-#define ST95_MAX_BYTE_BUFF              255
-
 #define ST95_SLEEP_MODE                 0
 #define ST95_READY_MODE                 1
 

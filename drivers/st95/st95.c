@@ -55,19 +55,12 @@ static uint8_t _st95_cmd_idle(const st95_t * dev, uint8_t dac_l, uint8_t dac_h);
 static uint8_t _st95_cmd_calibration(const st95_t * dev, uint8_t dac_l, uint8_t dac_h);
 static uint8_t _st95_calibration(st95_t * dev);
 
-static uint8_t _st95_select_field_off(const st95_t * dev);
-// static int _st95_select_iso14443a(const st95_t * dev, uint8_t * params, uint8_t length_params);
+uint8_t _st95_select_field_off(const st95_t * dev);
 
 #if ST95_ENABLE_GAIN
-// static uint8_t _st95_cmd_write_reg(const st95_t * dev, uint8_t size_tx, uint8_t addr, uint8_t flag, uint8_t * data_tx);
 static uint8_t _st95_read_reg(const st95_t * dev, uint8_t * rxbuff);
-// static uint8_t _st95_modify_modulation_gain(const st95_t * dev, uint8_t modul, uint8_t gain);
-static uint8_t _st95_read_modulation_gain(const st95_t * dev, uint8_t * modul, uint8_t * gain);
+uint8_t _st95_read_modulation_gain(const st95_t * dev, uint8_t * modul, uint8_t * gain);
 #endif
-
-static uint8_t get_uid_apdu(const st95_t * dev);
-
-static uint8_t iblock = ISO7816_IBLOCK_02;
 
 
 /**
@@ -108,320 +101,38 @@ static void _st95_send_irqin_low_pulse(const st95_t * dev)
 #endif
     
     
-#if ENABLE_DEBUG_ST95   
-
-static uint8_t _select_app(const st95_t * dev, uint8_t * rxbuff)
+int st95_read_data(const st95_t * dev, uint8_t * data, uint16_t length)
 {
-    uint8_t apdu_tx[ST95_MAX_BYTE_BUFF] = { 0x00 };
-    uint8_t data[] = {0xD2, 0x76, 0x00, 0x00, 0x85, 0x01, 0x01};
-    uint16_t len = 0;
-        /* Control byte: Not used topaz format, Not SplitFrame, Append CRC, 8 significant bits in last byte */	
-    uint8_t ctrl_byte = ISO14443A_NUM_SIGN_BIT_8 | ISO14443A_APPEND_CRC;
-
-    apdu_tx[len++] = iblock;
-        /* Toggle */
-    iblock ^= 0x01;
-    
-    apdu_tx[len++] = ISO7816_CLASS_0X00;
-    apdu_tx[len++] = ISO7816_SELECT_FILE;
-    apdu_tx[len++] = 0x04;
-    apdu_tx[len++] = 0x00;
-
-    apdu_tx[len++] = sizeof(data);
-
-    memcpy(apdu_tx + len, data, sizeof(data));
-    len += sizeof(data);
-
-    apdu_tx[len++] = 0x00;
-    
-    if(_st95_cmd_send_receive(dev, apdu_tx, len, ctrl_byte, rxbuff, ST95_MAX_BYTE_BUFF) == ST95_OK) {
-        PRINTSTR("\t\t >>> RX APDU: "); 
-        PRINTBUFF(rxbuff + 2, rxbuff[1]);
-    }
-    else {
+    puts("\t\t\t\t\tST95 READ DATA");
+    if(_st95_select_iso14443a(dev, NULL, 1) == ST95_ERROR) {
         return ST95_ERROR;
     }
     
-    return ST95_OK;       
-}
-
-static uint8_t _select_cc_file(const st95_t * dev, uint8_t * rxbuff)
-{
-    uint8_t apdu_tx[ST95_MAX_BYTE_BUFF] = { 0x00 };
-    uint8_t data[] = {0xE1, 0x03};
-    uint16_t len = 0;
-        /* Control byte: Not used topaz format, Not SplitFrame, Append CRC, 8 significant bits in last byte */	
-    uint8_t ctrl_byte = ISO14443A_NUM_SIGN_BIT_8 | ISO14443A_APPEND_CRC;
-
-    apdu_tx[len++] = iblock;
-        /* Toggle */
-    iblock ^= 0x01;
-    
-    apdu_tx[len++] = ISO7816_CLASS_0X00;
-    apdu_tx[len++] = ISO7816_SELECT_FILE;   
-    apdu_tx[len++] = 0x00;
-    apdu_tx[len++] = 0x0C;
-
-    apdu_tx[len++] = sizeof(data);
-
-    memcpy(apdu_tx + len, data, sizeof(data));
-    len += sizeof(data);
-    
-    if(_st95_cmd_send_receive(dev, apdu_tx, len, ctrl_byte, rxbuff, ST95_MAX_BYTE_BUFF) == ST95_OK) {
-        PRINTSTR("\t\t >>> RX APDU: "); 
-        PRINTBUFF(rxbuff + 2, rxbuff[1]);
+    if(iso14443a_read_tag(dev, data, length, st95_rxbuf) == ST95_OK) {
+        puts("\t\t\t\t\tST95 READ OK");
+        return ST95_OK;
     }
-    else {
-        return ST95_ERROR;
-    }
-    
-    return ST95_OK;       
-}
-
-static uint8_t _read_cc_file(const st95_t * dev, uint8_t * rxbuff)
-{
-    uint8_t apdu_tx[ST95_MAX_BYTE_BUFF] = { 0x00 };
-    uint16_t len = 0;
-        /* Control byte: Not used topaz format, Not SplitFrame, Append CRC, 8 significant bits in last byte */	
-    uint8_t ctrl_byte = ISO14443A_NUM_SIGN_BIT_8 | ISO14443A_APPEND_CRC;
-    uint8_t length_cc_file = 0;
-    
-    apdu_tx[len++] = iblock;
-        /* Toggle */
-    iblock ^= 0x01;
-    
-    apdu_tx[len++] = ISO7816_CLASS_0X00;
-    apdu_tx[len++] = ISO7816_READ_BINARY;   
-    apdu_tx[len++] = 0x00;
-    apdu_tx[len++] = 0x00;
-
-    apdu_tx[len++] = 0x02;
-    
-    if(_st95_cmd_send_receive(dev, apdu_tx, len, ctrl_byte, rxbuff, ST95_MAX_BYTE_BUFF) == ST95_OK) {
-        PRINTSTR("\t\t >>> RX APDU: "); 
-        PRINTBUFF(rxbuff + 2, rxbuff[1]);
-        length_cc_file = rxbuff[4];
-    }
-    else {
-        return ST95_ERROR;
-    }
-    
-    len = 0;
-    apdu_tx[len++] = iblock;
-        /* Toggle */
-    iblock ^= 0x01;
-    
-    apdu_tx[len++] = ISO7816_CLASS_0X00;
-    apdu_tx[len++] = ISO7816_READ_BINARY;   
-    apdu_tx[len++] = 0x00;
-    apdu_tx[len++] = 0x00;
-    
-    apdu_tx[len++] = length_cc_file;
-    
-    if(_st95_cmd_send_receive(dev, apdu_tx, len, ctrl_byte, rxbuff, ST95_MAX_BYTE_BUFF) == ST95_OK) {
-        PRINTSTR("\t\t >>> RX APDU: ");  
-        PRINTBUFF(rxbuff + 2, rxbuff[1]);
-    }
-    else {
-        return ST95_ERROR;
-    }
-    
-    return ST95_OK;       
-}
-
-static uint8_t _select_ndef(const st95_t * dev, uint8_t * rxbuff)
-{
-    uint8_t apdu_tx[ST95_MAX_BYTE_BUFF] = { 0x00 };
-    uint8_t data[] = {0x00, 0x01};
-    uint16_t len = 0;
-        /* Control byte: Not used topaz format, Not SplitFrame, Append CRC, 8 significant bits in last byte */	
-    uint8_t ctrl_byte = ISO14443A_NUM_SIGN_BIT_8 | ISO14443A_APPEND_CRC;
-
-    apdu_tx[len++] = iblock;
-        /* Toggle */
-    iblock ^= 0x01;
-    
-    apdu_tx[len++] = ISO7816_CLASS_0X00;
-    apdu_tx[len++] = ISO7816_SELECT_FILE;   
-    apdu_tx[len++] = 0x00;
-    apdu_tx[len++] = 0x0C;
-    
-    apdu_tx[len++] = sizeof(data);
-    
-    memcpy(apdu_tx + len, data, sizeof(data));
-    len += sizeof(data);
-    
-    if(_st95_cmd_send_receive(dev, apdu_tx, len, ctrl_byte, rxbuff, ST95_MAX_BYTE_BUFF) == ST95_OK) {
-        PRINTSTR("\t\t >>> RX APDU: "); 
-        PRINTBUFF(rxbuff + 2, rxbuff[1]);
-    }
-    else {
-        return ST95_ERROR;
-    }
-    
-    return ST95_OK;       
-}
-
-static uint8_t _read_ndef(const st95_t * dev, uint8_t * rxbuff)
-{
-    puts("\n\t\t\t>>>>> READ NDEF <<<<<");
-    uint8_t apdu_tx[ST95_MAX_BYTE_BUFF] = { 0x00 };
-    uint16_t len = 0;
-        /* Control byte: Not used topaz format, Not SplitFrame, Append CRC, 8 significant bits in last byte */	
-    uint8_t ctrl_byte = ISO14443A_NUM_SIGN_BIT_8 | ISO14443A_APPEND_CRC;
-    uint16_t length_ndef = 0;
-
-    apdu_tx[len++] = iblock;
-        /* Toggle */
-    iblock ^= 0x01;
-    
-    apdu_tx[len++] = ISO7816_CLASS_0X00;
-    apdu_tx[len++] = ISO7816_READ_BINARY;   
-    apdu_tx[len++] = 0x00;
-    apdu_tx[len++] = 0x00;
-
-    apdu_tx[len++] = 0x02;
-    
-    if(_st95_cmd_send_receive(dev, apdu_tx, len, ctrl_byte, rxbuff, ST95_MAX_BYTE_BUFF) == ST95_OK) {
-        PRINTSTR("\t\t >>> RX APDU: "); 
-        PRINTBUFF(rxbuff + 2, rxbuff[1]);
-        length_ndef = (rxbuff[3] << 8) | rxbuff[4];
-        printf("Length: %04X\n", length_ndef);
-    }
-    else {
-        return ST95_ERROR;
-    }
-
-    len = 0;
-    apdu_tx[len++] = iblock;
-        /* Toggle */
-    iblock ^= 0x01;
-    
-    apdu_tx[len++] = ISO7816_CLASS_0X00;
-    apdu_tx[len++] = ISO7816_READ_BINARY;   
-    apdu_tx[len++] = 0x00;
-    apdu_tx[len++] = 0x00;
-    
-    if(length_ndef > 0xF6) {
-        length_ndef = 0xF6;
-    }
-
-    apdu_tx[len++] = length_ndef;
-    
-    if(_st95_cmd_send_receive(dev, apdu_tx, len, ctrl_byte, rxbuff, ST95_MAX_BYTE_BUFF) == ST95_OK) {
-        PRINTSTR("\t\t >>> RX DATA NDEF 1: \n");       
-        PRINTBUFF(rxbuff + 2, rxbuff[1]);
-    }
-    else {
-        return ST95_ERROR;
-    }
-    
-    len = 0;
-    apdu_tx[len++] = iblock;
-        /* Toggle */
-    iblock ^= 0x01;
-    
-    apdu_tx[len++] = ISO7816_CLASS_0X00;
-    apdu_tx[len++] = ISO7816_READ_BINARY;   
-    apdu_tx[len++] = 0x00;
-    apdu_tx[len++] = 0xF6;
-    
-    // if(length_ndef > 0xF6) {
-        // length_ndef = 0x0A;
-    // }
-
-    apdu_tx[len++] = 0x0A;
-    
-     if(_st95_cmd_send_receive(dev, apdu_tx, len, ctrl_byte, rxbuff, ST95_MAX_BYTE_BUFF) == ST95_OK) {
-        PRINTSTR("\t\t >>> RX DATA NDEF 2: \n");       
-        PRINTBUFF(rxbuff + 2, rxbuff[1]);
-    }
-    else {
-        return ST95_ERROR;
-    }
-    
-    return ST95_OK;       
-}
-
-static uint8_t _update_ndef(const st95_t * dev, uint8_t * rxbuff)
-{
-    uint8_t apdu_tx[ST95_MAX_BYTE_BUFF] = { 0x00 };
-    uint8_t data[] = {0x00, 0xFF};
-    uint16_t len = 0;
-        /* Control byte: Not used topaz format, Not SplitFrame, Append CRC, 8 significant bits in last byte */	
-    uint8_t ctrl_byte = ISO14443A_NUM_SIGN_BIT_8 | ISO14443A_APPEND_CRC;
-
-    apdu_tx[len++] = iblock;
-        /* Toggle */
-    iblock ^= 0x01;
-    
-    apdu_tx[len++] = ISO7816_CLASS_0X00;
-    apdu_tx[len++] = ISO7816_UPDATE_BINARY;   
-    apdu_tx[len++] = 0x00;
-    apdu_tx[len++] = 0x00;
-    
-    apdu_tx[len++] = sizeof(data);
-    
-    memcpy(apdu_tx + len, data, sizeof(data));
-    len += sizeof(data);
-   
-    if(_st95_cmd_send_receive(dev, apdu_tx, len, ctrl_byte, rxbuff, ST95_MAX_BYTE_BUFF) == ST95_OK) {
-        PRINTSTR("\t\t >>> RX APDU: ");       
-        PRINTBUFF(rxbuff + 2, rxbuff[1]);
-    }
-    else {
-        return ST95_ERROR;
-    }
-    
-    return ST95_OK;       
-}
-    
-static uint8_t get_uid_apdu(const st95_t * dev)
-{      
-    /* Change the FDT to accept APDU */	
-
-         // st95_state.mode = 0xFF;
-  if(_iso14443a_apdu(dev) == ST95_ERROR) {
-      return ST95_ERROR;
-  }
-      puts("\t\t >>> BEGIN APDU <<<\n");
-   // st95_state.mode = 0xFF;
-    if(_select_app(dev, st95_rxbuf) == ST95_OK) {
-        if(_select_cc_file(dev, st95_rxbuf) == ST95_OK) {
-            if(_read_cc_file(dev, st95_rxbuf) == ST95_OK) {
-                if(_select_ndef(dev, st95_rxbuf) == ST95_OK) {
-                       st95_state.mode = 0xFF;
-                    if(_read_ndef(dev, st95_rxbuf) == ST95_OK) {
-                        st95_state.mode = ST95_READY_MODE;
-                                puts("\t\t >>> END APDU <<<\n");
-                                return ST95_OK;
-                        
-                        
-                        if(_update_ndef(dev, st95_rxbuf) == ST95_OK) {
-                            if(_read_ndef(dev, st95_rxbuf) == ST95_OK) {
-                                 st95_state.mode = ST95_READY_MODE;
-                                puts("\t\t >>> END APDU <<<\n");
-                                return ST95_OK;
-                            }
-                        }
-                    
-                    
-                        // st95_state.mode = ST95_READY_MODE;
-                        // puts("\t\t >>> END APDU <<<\n");
-                        // return ST95_OK;
-                    }
-                }
-            }
-        }
-    }
-
-
-
-    puts("\t\t >>> END APDU <<<\n");
-    st95_state.mode = ST95_READY_MODE;
-    return ST95_ERROR; 
+    puts("\t\t\t\t\tST95 READ DATA ERROR");
+    return ST95_ERROR;
 }    
-#endif
+
+int st95_write_data(const st95_t * dev, uint8_t * data, uint16_t length)
+{
+  puts("\t\t\t\t\tST95 WRITE DATA");
+    if(_st95_select_iso14443a(dev, NULL, 1) == ST95_ERROR) {
+        puts("\t\t\t\t\tST95 READ WRITE ERROR");
+        return ST95_ERROR;
+    }
+       
+    if(iso14443a_write_tag(dev, data, length, st95_rxbuf) == ST95_OK) {
+        puts("\t\t\t\t\tST95 WRITE OK");
+        return ST95_OK;
+    }
+    
+    puts("\t\t\t\t\tST95 READ WRITE ERROR");
+    return ST95_ERROR;
+}    
+
 
 /**
  * @brief   Send a reset sequence over SPI bus.
@@ -433,7 +144,6 @@ static uint8_t get_uid_apdu(const st95_t * dev)
 void st95_spi_reset(const st95_t * dev)
 {
     uint8_t tx_spi = ST95_CTRT_SPI_RESET;
-    puts("RESET DEVICE");
         // reset the ST95HF data status 
     st95_state.data_rx = false;
     st95_state.timeout = false;
@@ -451,8 +161,6 @@ void st95_spi_reset(const st95_t * dev)
     _st95_send_irqin_low_pulse(dev);
         /* HFO setup time (delay before issuing a new command)*/
     rtctimers_millis_sleep(ST95_HFO_SETUP_TIME_MS);  
-    
-    puts("RESETED DEVICE");
 }
 
 /**
@@ -463,7 +171,7 @@ void st95_spi_reset(const st95_t * dev)
  * @return 0:   if selecting success
  * @return  >0: in case of an error
  */
-static uint8_t _st95_select_field_off(const st95_t * dev)
+uint8_t _st95_select_field_off(const st95_t * dev)
 {
     st95_txbuf[0] = ST95_CMD_PROTOCOL;
     st95_txbuf[1] = 2;                  // Data Length
@@ -474,8 +182,6 @@ static uint8_t _st95_select_field_off(const st95_t * dev)
     _st95_wait_ready_data();  
     
     if(_st95_spi_receive(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF, false) == ST95_OK) {
-                    PRINTSTR("RX OFF: ");
-        PRINTBUFF(st95_rxbuf, st95_rxbuf[1] + 2);
         if((st95_rxbuf[0] == 0x00) && (st95_rxbuf[1] == 0x00)) {
             return ST95_OK;
         }
@@ -552,7 +258,6 @@ static uint8_t _st95_spi_receive(const st95_t * dev, uint8_t * rxbuff, uint16_t 
     memset(rxbuff, 0x00, size_rx_buff);
          
     if(st95_state.timeout == true) {
-        PRINTSTR("[Timeout]\n");
         return ST95_NO_DEVICE;
 	}
      
@@ -712,7 +417,20 @@ uint8_t _st95_modify_modulation_gain(const st95_t * dev, uint8_t modul, uint8_t 
     return ST95_ERROR;
 }
 
-static uint8_t _st95_read_modulation_gain(const st95_t * dev, uint8_t * modul, uint8_t * gain)
+uint8_t _st95_set_timer_window(const st95_t * dev, uint8_t timer_w)
+{  
+    uint8_t data[2] = { 0 };
+    data[0] = timer_w;
+    data[1] = ST95_WR_TIMER_WINDOW_CONFIRM;
+        
+    if(_st95_cmd_write_reg(dev, 4, ST95_WR_TIMER_WINDOW, ST95_WR_FLAG_NOT_INC, data) == ST95_OK) {
+        return ST95_OK;
+    }
+    
+    return ST95_ERROR;
+}
+
+uint8_t _st95_read_modulation_gain(const st95_t * dev, uint8_t * modul, uint8_t * gain)
 {
     uint8_t data = 0x01;
     if(_st95_cmd_write_reg(dev, 3, ST95_WR_ARC_ADDR, ST95_WR_FLAG_NOT_INC, &data) == ST95_OK) {
@@ -899,8 +617,6 @@ static uint8_t _st95_cmd_idle(const st95_t * dev, uint8_t dac_l, uint8_t dac_h)
     
     _st95_spi_send(dev, st95_txbuf, 16, true);
     
-    // spi_release(SPI_DEV(dev->params.spi));
-    
     st95_state.mode = ST95_SLEEP_MODE;
        
     return ST95_OK;
@@ -917,7 +633,6 @@ static uint8_t _st95_cmd_idle(const st95_t * dev, uint8_t dac_l, uint8_t dac_h)
 int st95_is_wake_up(const st95_t * dev)
 {
     st95_state.mode = ST95_READY_MODE;
-    // spi_acquire(SPI_DEV(dev->params.spi), dev->params.cs_spi, SPI_MODE_0, ST95_SPI_CLK);
 
     if(_st95_spi_receive(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF, true) == ST95_OK) {
         if(st95_rxbuf[2] == 0x02) {
@@ -957,11 +672,11 @@ int _st95_select_iso14443a(const st95_t * dev, uint8_t * params, uint8_t length_
     st95_txbuf[0] = ST95_CMD_PROTOCOL;
     st95_txbuf[1] = length;    // Data Length
     st95_txbuf[2] = ISO_14443A;
-    if(length_params == 1) {
+    if(params == NULL) {
         st95_txbuf[3] = 0x00 | (ST95_TX_RATE_14443A << 6) | (ST95_RX_RATE_14443A << 4);
         length = 2;
     }
-    else if(length_params == 4){
+    else if((length_params == 4) && (params != NULL)){
         st95_txbuf[3] = *(params);    // TX/RX rate
         st95_txbuf[4] = *(params + 1);    // PP (Optioanal)
         st95_txbuf[5] = *(params + 2);    // MM (Optioanal)
@@ -1016,7 +731,8 @@ int _st95_cmd_send_receive(const st95_t * dev, uint8_t *data_tx, uint8_t size_tx
 	st95_txbuf[length] = params;
 	length++;
        
-	_st95_spi_send(dev, st95_txbuf, length, false);   
+	_st95_spi_send(dev, st95_txbuf, length, false);
+
     _st95_wait_ready_data();
 
     if(_st95_spi_receive(dev, rxbuff, size_rx_buff, false) == ST95_OK) {
@@ -1052,48 +768,38 @@ int _st95_cmd_send_receive(const st95_t * dev, uint8_t *data_tx, uint8_t size_tx
  * @return  1:  in case of an error
  */
 int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_t * sak)
-{
-    // if(_st95_select_field_off(dev) == ST95_ERROR) {
-        // return ST95_ERROR;
-    // }
-            // st95_state.mode = 0xFF;
-// gpio_irq_enable(dev->params.irq_out);
-    // st95_spi_reset(dev);
-    
-    // puts("wait ready");
-     // _st95_wait_ready_data();
-// puts("spi receive");
-    // _st95_spi_receive(dev, st95_rxbuf, sizeof(st95_rxbuf), true);
-       
-    
-        // uint8_t params[4] = { 0x00 };
-    // params[0] = 0x00 ;//| (ST95_TX_RATE_14443A << 6) | (ST95_RX_RATE_14443A << 4);
-    // params[1] = 6;
-    // params[2] = 1;
-    // params[3] = 0x00;
-    
-
-    // if(_st95_select_iso14443a(dev, params, 4) == ST95_ERROR) {
-        // return ST95_ERROR;
-    // }
-    
+{   
     if(_st95_select_iso14443a(dev, NULL, 1) == ST95_ERROR) {
         return ST95_ERROR;
     }
     
-        // uint8_t params_reg[2] = { 0x58, 0x04 };
-    // if(_st95_cmd_write_reg(dev, 4, 0x3A, 0x00, params_reg) == ST95_ERROR) {
-        // return ST95_ERROR;
-    // }
 
+      if(iso14443a_get_uid(dev, st95_rxbuf, length_uid, uid, sak) == ST95_OK) {
+
+        printf("\t\t\tSak %02X UID[%d]: ", *sak, *length_uid);
+    for(uint32_t i = 0; i < *length_uid; i++) {
+        printf("%02X ", uid[i]);
+    }
+    printf("\n\n");
     
-   
+        st95_state.mode = ST95_READY_MODE;     
+    }
     
-get_uid_apdu(dev);
-    
+     puts("\n**************************************************\n");      
+     uint8_t data[0xFE] = { 0x00 };
+     
+if(st95_read_data(dev, data, sizeof(data)) == ST95_OK) {
+PRINTSTR("Data: ");
+PRINTBUFF(data, sizeof(data));
+}
+else {
+    PRINTSTR("Data: ERROR");
+}
     puts("\n**************************************************\n");
-    
-    if(iso14443a_get_uid(dev, length_uid, uid, sak) == ST95_OK) {
+        if(_st95_select_iso14443a(dev, NULL, 1) == ST95_ERROR) {
+        return ST95_ERROR;
+    }
+    if(iso14443a_get_uid(dev, st95_rxbuf, length_uid, uid, sak) == ST95_OK) {
 
         printf("\t\t\tSak %02X UID[%d]: ", *sak, *length_uid);
     for(uint32_t i = 0; i < *length_uid; i++) {
@@ -1105,48 +811,6 @@ get_uid_apdu(dev);
         return ST95_OK;       
     }
     st95_state.mode = ST95_READY_MODE;
-    return ST95_ERROR;
-    
-    
-    
-    
-#if ENABLE_DEBUG_ST95   
-        // if(_iso144443a_rats(dev) == ST95_ERROR) {
-            
-            // return ST95_ERROR;
-        // }
-#endif        
-        
-#if ST95_ENABLE_GAIN    
-
-    uint8_t modul = 0;
-    uint8_t gain = 0;
-    
-    if(_st95_read_modulation_gain(dev, &modul, &gain) == ST95_ERROR) {
-        return ST95_ERROR;
-    }
-    
-    if(_st95_modify_modulation_gain(dev, ST95_WR_MODULATION_95, ST95_WR_GAIN_32_DB) == ST95_ERROR) {
-        return ST95_ERROR;
-    }
-    
-#endif
-                      
-#if ENABLE_DEBUG_ST95   
-    if(iso14443a_get_uid(dev, length_uid, uid, sak) == ST95_OK) {       
-        get_uid_apdu(dev);
-        return ST95_OK;       
-    }
-#else
-    if(iso14443a_get_uid(dev, length_uid, uid, sak) == ST95_OK) {
-        return ST95_OK;       
-    }
-#endif    
-
-  if(_st95_select_field_off(dev) == ST95_ERROR) {
-        return ST95_ERROR;
-    }
-    
     return ST95_ERROR;
 }
 

@@ -26,6 +26,8 @@
 #include "periph/gpio.h"
 #include "periph/spi.h"
 
+#define ST95_MAX_BYTE_BUFF              256
+
 #define ST95_RESULT_CODE_OK     0x80
 #define ST95_RESULT_CODE_ACK    0x90
 #define ST95_BYTE_ACK           0x0A
@@ -61,6 +63,9 @@
 
 #define ST95_WR_PTR_MODUL_GAIN  0x01        // Index pointing to the Modulation and Gain in ARC_B
 
+#define ST95_WR_TIMER_WINDOW_CONFIRM 0x04        // Timer Window value confirmation
+#define ST95_WR_TIMER_WINDOW_VAL 0x5F       // Timer Window value
+
 /* Possible Modulation index values [%] */
 #define ST95_WR_MODULATION_10   0x01        // 10%
 #define ST95_WR_MODULATION_17   0x02        // 17%
@@ -75,9 +80,6 @@
 #define ST95_WR_GAIN_27_DB      0x03        // 27 Db
 #define ST95_WR_GAIN_20_DB      0x07        // 20 Db
 #define ST95_WR_GAIN_8_DB       0x0F        // 8 Db
-
-
-
 
 
 /**
@@ -137,10 +139,16 @@ int st95_is_wake_up(const st95_t * dev);
 
 int st95_idn(const st95_t * dev, uint8_t * idn, uint8_t * length);
 
+int st95_write_data(const st95_t * dev, uint8_t * data, uint16_t length);
+int st95_read_data(const st95_t * dev, uint8_t * data, uint16_t length);
+int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_t * sak);
+
+
+
 int _st95_select_iso14443a(const st95_t * dev, uint8_t * params, uint8_t length_params);
 uint8_t _st95_cmd_write_reg(const st95_t * dev, uint8_t size_tx, uint8_t addr, uint8_t flag, uint8_t * data_tx);
 uint8_t _st95_modify_modulation_gain(const st95_t * dev, uint8_t modul, uint8_t gain);
-int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_t * sak);
+uint8_t _st95_set_timer_window(const st95_t * dev, uint8_t timer_w);
 
 int _st95_cmd_send_receive(const st95_t * dev, uint8_t *data_tx, uint8_t size_tx, uint8_t params, uint8_t * rxbuff, uint16_t size_rx_buff);
 #endif /* ST95_H_ */

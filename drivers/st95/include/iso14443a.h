@@ -23,12 +23,15 @@
 extern "C" {
 #endif
 
+#define ISO14443A_UID_LENGTH_MAX	            10
+
 /* Command code */
 #define ISO14443A_CMD_REQA                  0x26
 #define ISO14443A_CMD_WUPA					0x52
 #define ISO14443A_CMD_HLTA					0x50
 #define ISO14443A_CMD_RATS  				0xE0
 #define ISO14443A_CMD_PPS					0xD0
+#define ISO14443A_CMD_DESELECT				0xC2
 
 #define ISO14443A_OFFSET_UID_SELECT			2
 #define ISO14443A_OFFSET_SAK_BYTE			ST95_DATA_OFFSET
@@ -48,6 +51,8 @@ extern "C" {
 
 #define ISO14443A_CMD_MAX_BYTE				16
 #define ISO14443A_ANSWER_MAX_BYTE			32
+
+#define ISO14443A_APDU_CMD_MAX_BYTE			64
 
 /* Anticollison levels (commands) */
 #define ISO14443A_SELECT_LVL1               0x93
@@ -77,52 +82,54 @@ extern "C" {
 #define ISO14443A_SAK_UID_NOT_COMPLETE      0x04
 #define ISO14443A_FLAG_ATS_SUPPORTED		0x20
 
+#define ISO14443A_TYPE_2		            2
+#define ISO14443A_TYPE_4		            4
+#define ISO14443A_TYPE_UNKNOWN		        0
+
+/* RATS */
+#define ISO14443A_CID_DEF                   0x00
+#define ISO14443A_FSD_256                   0x08
+
 /* ISO7816 and APDU */                                   
 /*  Iblock */
 #define ISO7816_IBLOCK_02    				0x02
 #define ISO7816_IBLOCK_03					0x03
-#define ISO7816_TOGGLE_IBLOCK(block) ((block == ISO7816_IBLOCK_02)? ISO7816_IBLOCK_03 : ISO7816_IBLOCK_02) 
 
 #define ISO7816_SELECT_FILE					0xA4
 #define ISO7816_UPDATE_BINARY				0xD6
 #define ISO7816_READ_BINARY  				0xB0
 
 #define ISO7816_CLASS_0X00					0x00
-/* ADPU-Header command structure */
-typedef struct
-{
-    uint8_t cla;  /* Command class */
-    uint8_t ins;  /* Operation code */
-    uint8_t p1;   /* Selection Mode */
-    uint8_t p2;   /* Selection Option */
-} __attribute__((packed)) apdu_header_t;
 
-/* ADPU-Body command structure -----------------------------------------------*/
-typedef struct 
-{
-    uint8_t lc;         						  /* Data field length */	
-    uint8_t data[256];  							/* Command parameters */ // pointer on the transceiver buffer = *(ReaderRecBuf[CR95HF_DATA_OFFSET + ISO7816_ADPUOFFSET_DATA])
-    uint8_t le;          						 /* Expected length of data to be returned */
-} __attribute__((packed)) apdu_body_t;
+#define ISO14443A_CRC16_LENGTH              2
+#define ISO14443A_SERVICE_DATA_LENGTH       3
 
-/* ADPU Command structure ----------------------------------------------------*/
-typedef struct
-{
-    apdu_header_t header;
-    apdu_body_t body;
-} __attribute__((packed)) iso7816_apdu_cmd_t;
+#define NDEF_OK_SW_1                        0x90
+#define NDEF_OK_SW_2                        0x00
 
-/* SC response structure -----------------------------------------------------*/
-typedef struct
-{
-    uint8_t sw1;         						 /* Command Processing status */
-    uint8_t sw2;          						/* Command Processing qualification */
-} __attribute__((packed)) iso7816_apdu_responce_t;
+#define NDEF_OFFSET_DATA (ST95_DATA_OFFSET + 1)
 
+/**
+ * @brief   ISO14443A card parameters
+ */
+typedef struct {
+    uint8_t type;                           /**<  */
+    uint8_t sak;                            /**<  */
+    uint8_t uid_length;                     /**<  */
+    uint8_t uid[ISO14443A_UID_LENGTH_MAX];  /**<  */
+    
+    bool is_ats;                            /**<  */
+    uint16_t cc_size;                       /**<  */
+    uint16_t ndef_length;
+    uint16_t ndef_id;                       /**<  */
+    uint16_t ndef_read_max;              /**<  */
+    uint16_t ndef_write_max;             /**<  */
+    uint16_t ndef_size;                     /**<  */
+}   __attribute__((packed)) iso14443a_picc_t;
 
-int iso14443a_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_t * sak);
-
-uint8_t _iso14443a_apdu(const st95_t * dev);
+int iso14443a_get_uid(const st95_t * dev, uint8_t * iso_rxbuf, uint8_t * length_uid, uint8_t * uid, uint8_t * sak);
+int iso14443a_write_tag(const st95_t * dev, uint8_t * txbuff, uint8_t length, uint8_t * rxbuff);
+int iso14443a_read_tag(const st95_t * dev, uint8_t * data, uint16_t length, uint8_t * rxbuff);
 
 #ifdef __cplusplus
 }

@@ -41,7 +41,7 @@
 #endif
 
 #ifndef UMDK_SOIL_POWEREN
-#define UMDK_SOIL_POWEREN GPIO_UNDEF
+#define UMDK_SOIL_POWEREN GPIO_PIN(PORT_B, 5)
 #endif
 
 /** @} */

@@ -98,6 +98,8 @@ static void rx_cb(void *arg, uint8_t data)
 {
     (void)arg;
     
+    printf("RX: %d\n", data);
+
     if (!rx_started) {
         if (data == START_BYTE) {
             rx_started = true;
@@ -113,21 +115,21 @@ static void rx_cb(void *arg, uint8_t data)
 }
 
 static int prepare_result(module_data_t *data) {
-    gpio_set(UMDK_SOIL_POWEREN);
+    gpio_clear(UMDK_SOIL_POWEREN);
     rx_started = false;
     rx_done = false;
     
     uint32_t start = rtctimers_millis_now();
     while (!rx_done) {
-        /* timeout 2 seconds */
-        if (rtctimers_millis_now() > start + 2000) {
-            gpio_clear(UMDK_SOIL_POWEREN);
+        /* timeout 5 seconds */
+        if (rtctimers_millis_now() > start + 5000) {
+            gpio_set(UMDK_SOIL_POWEREN);
             puts("[umdk-" _UMDK_NAME_ "] Sensor timeout");
             return -1;
         }
     }
     
-    gpio_clear(UMDK_SOIL_POWEREN);
+    gpio_set(UMDK_SOIL_POWEREN);
     
     if (rx_buf[OFFSET_TYPE - 1] == TYPE_SOIL_SENSOR) {
         uint8_t moist = rx_buf[OFFSET_BYTE_MOISTURE - 1];
@@ -221,6 +223,7 @@ int umdk_soil_shell_cmd(int argc, char **argv) {
     if (strcmp(cmd, "period") == 0) {
         char *val = argv[2];
         umdk_soil_config.publish_period_sec = atoi(val);
+        printf("[umdk-" _UMDK_NAME_ "] Period set to %" PRIu32 " sec\n", umdk_soil_config.publish_period_sec);
         save_config();
     }
     
@@ -246,12 +249,10 @@ void umdk_soil_init(uwnds_cb_t *event_callback)
     */
     
     gpio_init(UMDK_SOIL_POWEREN, GPIO_OUT);
+    gpio_set(UMDK_SOIL_POWEREN);
     
-    if (uart_init(UMDK_SOIL_UART, 9600, rx_cb, NULL)) {
-        puts("[umdk-" _UMDK_NAME_ "] Error initializing UART");
-		return;
-	}
-
+    uart_init(UMDK_SOIL_UART, 9600, rx_cb, NULL);
+    
     char *timer_stack = (char *) allocate_stack(UMDK_SOIL_STACK_SIZE);
     if (!timer_stack) {
         return;
@@ -260,6 +261,8 @@ void umdk_soil_init(uwnds_cb_t *event_callback)
     /* Start publishing timer */
     rtctimers_millis_set_msg(&timer, 1000*umdk_soil_config.publish_period_sec, &timer_msg, timer_pid);
 
+    printf("[umdk-" _UMDK_NAME_ "] Period %" PRIu32 " sec\n", umdk_soil_config.publish_period_sec);
+    
     unwds_add_shell_command("soil", "type 'soil' for commands list", umdk_soil_shell_cmd);
 
 }

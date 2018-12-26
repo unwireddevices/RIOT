@@ -95,7 +95,6 @@ int uart_init_ext(uart_t uart, uart_params_t *params, uart_rx_cb_t rx_cb, void *
     isr_ctx[uart].arg   = arg;
 
     /* configure RX and TX pin */
-    gpio_init(uart_config[uart].rx_pin, uart_config[uart].rx_mode);
     gpio_init(uart_config[uart].tx_pin, uart_config[uart].tx_mode);
     /* set TX pin high to avoid garbage during further initialization */
     gpio_set(uart_config[uart].tx_pin);
@@ -106,7 +105,7 @@ int uart_init_ext(uart_t uart, uart_params_t *params, uart_rx_cb_t rx_cb, void *
 #endif
     /* configure RX pin */
     if (rx_cb) {
-        gpio_init(uart_config[uart].rx_pin, GPIO_IN);
+        gpio_init(uart_config[uart].rx_pin, uart_config[uart].rx_mode);
 #ifndef CPU_FAM_STM32F1
         gpio_init_af(uart_config[uart].rx_pin, uart_config[uart].rx_af);
 #endif

@@ -52,8 +52,8 @@
 #define ADC_MOIST                   0
 #define ADC_TEMP                    1
 #define ADC_VREF                    2
-#define MIN_MOISTURE                500
-#define MAX_MOISTURE                1800
+#define MIN_MOISTURE                140
+#define MAX_MOISTURE                1000
 #define RE_PIN                      1
 #define DE_PIN                      2
 #define UART_1                      1
@@ -186,7 +186,7 @@ static int collision_detect(uint8_t *data)
         while (!byte_received) {
             xtimer_usleep(100);
             if (++count > 10) {
-                puts("No echo detected");
+                /* puts("No echo detected"); */
                 return 1;
             }
         }
@@ -223,7 +223,8 @@ static void send_data(uint8_t *data, bool wait)
     }
     printf("\n");
     
-    while (collision_detect(data)) { }
+    int i = 0;
+    while (collision_detect(data) && (++i < 10000)) { }
 }
 
 /* Verifying сhecksum  */
@@ -342,7 +343,7 @@ static void uart_input(void *arg, uint8_t data)
 
 int main(void)
 {
-    int period = 1;
+    int period = 0;
     
     puts("*****************************");
     puts("72 MHz capacitive soil moisture sensor");

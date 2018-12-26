@@ -31,11 +31,11 @@ extern "C" {
  * @name Clock system configuration
  * @{
  */
-#define CLOCK_HSE           (24000000U)         /* external oscillator */
+#define CLOCK_HSE           (16000000U)         /* external oscillator */
 #define CLOCK_CORECLOCK     (48000000U)         /* desired core clock frequency */
 
 /* the actual PLL values are automatically generated */
-#define CLOCK_PLL_MUL       (2)
+#define CLOCK_PLL_MUL       (3)
 #define CLOCK_PLL_DIV       (1)
 
 /* bus clocks for simplified peripheral initialization, UPDATE MANUALLY! */

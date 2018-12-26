@@ -390,13 +390,13 @@ int main(void)
             /* ps(); */
         } else {
             puts("Sending data once");
-            
+            xtimer_sleep(3);
             uint8_t buf_out[BUF_SIZE];
             prepare_data(buf_out);
             send_data(buf_out, true);
             
             puts("Data successfully sent");
-            
+            while (1) {};
             break;
         }
     }

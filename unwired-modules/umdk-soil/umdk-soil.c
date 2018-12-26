@@ -98,8 +98,6 @@ static void rx_cb(void *arg, uint8_t data)
 {
     (void)arg;
     
-    printf("RX: %d\n", data);
-
     if (!rx_started) {
         if (data == START_BYTE) {
             rx_started = true;

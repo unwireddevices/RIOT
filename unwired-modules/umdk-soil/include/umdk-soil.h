@@ -47,14 +47,16 @@
 /** @} */
 
 typedef enum {
-    UMDK_SOIL_ASK = 0,
-    UMDK_SOIL_SET_PERIOD = 1,
-} umdk_soil_prefix_t;
+    UMDK_SOIL_DATA = 0,
+    UMDK_SOIL_CONFIG = 1,
+    UMDK_SOIL_ALARM = 2,
+    UMDK_SOIL_DATA_ERR = 254,
+    UMDK_SOIL_FAIL = 255
+} umdk_soil_response_t;
 
 typedef enum {
 	UMDK_SOIL_CMD_SET_PERIOD = 0,
 	UMDK_SOIL_CMD_POLL = 1,
-	UMDK_SOIL_CMD_SET_GPIOS = 2,
 } umdk_soil_cmd_t;
 
 typedef enum {

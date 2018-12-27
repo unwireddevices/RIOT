@@ -268,6 +268,15 @@ void umdk_soil_init(uwnds_cb_t *event_callback)
     printf("[umdk-" _UMDK_NAME_ "] Period %" PRIu32 " sec\n", umdk_soil_config.publish_period_sec);
     
     unwds_add_shell_command("soil", "type 'soil' for commands list", umdk_soil_shell_cmd);
+    
+    /* quick dirty hack for the unwd-range-l0-round board */
+    gpio_init(GPIO_PIN(PORT_A, 12), GPIO_OUT);
+    gpio_clear(GPIO_PIN(PORT_A, 12));
+    gpio_init(GPIO_PIN(PORT_A, 13), GPIO_OUT);
+    gpio_clear(GPIO_PIN(PORT_A, 13));
+    gpio_init(GPIO_PIN(PORT_B, 1), GPIO_OUT);
+    gpio_clear(GPIO_PIN(PORT_B, 1));
+    /* --- */
 }
 
 static void reply_fail(module_data_t *reply) {

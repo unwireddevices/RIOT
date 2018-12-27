@@ -41,6 +41,9 @@
 #include "periph/uart.h"
 #include "periph/gpio.h"
 #include "periph/cpuid.h"
+#include "periph/flashpage.h"
+#include "shell_commands.h"
+#include "shell.h"
 
 #include "ps.h"
 
@@ -52,8 +55,7 @@
 #define ADC_MOIST                   0
 #define ADC_TEMP                    1
 #define ADC_VREF                    2
-#define MIN_MOISTURE                140
-#define MAX_MOISTURE                1000
+
 #define RE_PIN                      1
 #define DE_PIN                      2
 #define UART_1                      1
@@ -91,7 +93,16 @@ static msg_t send_msg;
 static kernel_pid_t process_pid;
 
 typedef struct {
+    uint32_t magic;
+    int moisture_max;
+    int moisture_min;
+} sensor_settings_t;
+
+static sensor_settings_t sensor_settings = { 0xCAFEBABE, 0, 0 };
+
+typedef struct {
     uint8_t moisture;
+    int moisture_raw;
     uint8_t temperature;
     uint8_t voltage;
 } sensor_data_t;
@@ -107,6 +118,8 @@ static void flush_uart_buf(void)
 /* Reading moisture and temperature value  */
 static sensor_data_t readval(void)
 {
+    sensor_data_t data;
+    
     int sum1 = 0, sum2 = 0;
     int moisture = 0, temp = 0;
     int n = 5;
@@ -121,14 +134,15 @@ static sensor_data_t readval(void)
     }
     moisture = (100*sum1)/n;
     
+    data.moisture_raw = moisture/100;
+    
     /* Vref ADC channel */
     adc_init(ADC_VREF);
     int vdda = adc_sample(ADC_VREF, ADC_RES_12BIT);
     printf("Supply voltage: %d mV\n", vdda);
-    
-    moisture -= (100*MIN_MOISTURE);
-    moisture /= (MAX_MOISTURE - MIN_MOISTURE);
-    moisture = 100 - moisture;
+
+    moisture -= (100*sensor_settings.moisture_min);
+    moisture /= (sensor_settings.moisture_max - sensor_settings.moisture_min);
     
     if (moisture > 100) {
         moisture = 100;
@@ -138,7 +152,7 @@ static sensor_data_t readval(void)
         moisture = 0;
     }
     
-    printf("Moisture: %d %%\n", moisture);
+    printf("Moisture: %d %% (%d)\n", moisture, data.moisture_raw);
     
     temp = (10*vdda*sum2)/(4096 * n); /* mV*10 */
     
@@ -147,7 +161,6 @@ static sensor_data_t readval(void)
     
     printf("Temperature: %d C\n", temp);
     
-    sensor_data_t data;
     data.voltage = vdda/25;
     data.moisture = moisture;
     data.temperature = 50 + temp;
@@ -341,17 +354,67 @@ static void uart_input(void *arg, uint8_t data)
     return;
 }
 
+static int min_cal(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+    
+    sensor_data_t data = readval();
+    sensor_settings.moisture_min = data.moisture_raw;
+    printf("Min value: %d\n", sensor_settings.moisture_min);
+    return 0;
+}
+
+static int max_cal(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+    
+    sensor_data_t data = readval();
+    sensor_settings.moisture_max = data.moisture_raw;
+    printf("Max value: %d\n", sensor_settings.moisture_max);
+    return 0;
+}
+
+static int save(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+    
+    sensor_settings.magic = 0xCAFEBABE;
+    flashpage_write(cpu_status.flash.pages - 1, (void *)&sensor_settings, sizeof(sensor_settings));
+    
+    puts("Calibration saved permanently");
+    return 0;
+}
+
+static int get_data(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+    
+    uint8_t buf_out[BUF_SIZE];
+    prepare_data(buf_out);
+    return 0;
+}
+
+static const shell_command_t shell_commands[] = {
+    { "get", "get data", get_data },
+    { "min", "min value cal", min_cal },
+    { "max", "max value cal", max_cal },
+    { "save", "save calibration", save },
+    { NULL, NULL, NULL }
+};
+
 int main(void)
 {
-    int period = 0;
-    
     puts("*****************************");
     puts("72 MHz capacitive soil moisture sensor");
     puts("Firmware ver. 1.00");
     puts("(c) 2018 Unwired Devices LLC");
-    
+
     xtimer_init();
-    
+
     /* generate 64-bit address */
     uint8_t cpuid[CPUID_LEN];
     cpuid_get(cpuid);
@@ -365,40 +428,44 @@ int main(void)
         printf("%02X", address_uart[i]);
     }
     printf("\n");
-    printf("Measurement period: %d s\n", period);
+    
+    cpu_status.flash.pages = 32;
+    cpu_status.flash.pagesize = 1024;
+    cpu_status.flash.size = 32768;
+    
+    bool calibration = false;
+    flashpage_read(cpu_status.flash.pages - 1, (void *)&sensor_settings, sizeof(sensor_settings));
+    
+    if (sensor_settings.magic == 0xCAFEBABE) {
+        printf("Sensor already calibrated: %d/%d\n", 
+                sensor_settings.moisture_min, sensor_settings.moisture_max);
+        calibration = true;
+    }
     
     puts("*****************************");
     
     /* enable MCO */
     gpio_init_af(GPIO_PIN(PORT_A, 8), GPIO_AF0);
-
-    uart_init(UART_1, 9600, uart_input, NULL);
     
-    static char stack[SOILSENSOR_STACK_SIZE];
-    process_pid = thread_create(stack, SOILSENSOR_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, processing_thread, NULL, "data");
-    
-    while(1) {
-        if (period) {
-            xtimer_sleep(period);
-            puts("Sending data periodically");
-            
-            uint8_t buf_out[BUF_SIZE];
-            prepare_data(buf_out);
-            send_data(buf_out, true);
-            
-            puts("Data successfully sent");
-            /* ps(); */
-        } else {
-            puts("Sending data once");
-            xtimer_sleep(3);
-            uint8_t buf_out[BUF_SIZE];
-            prepare_data(buf_out);
-            send_data(buf_out, true);
-            
-            puts("Data successfully sent");
-            while (1) {};
-            break;
-        }
+    if (calibration) {
+        uart_init(UART_1, 9600, uart_input, NULL);
+        
+        static char stack[SOILSENSOR_STACK_SIZE];
+        process_pid = thread_create(stack, SOILSENSOR_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, processing_thread, NULL, "data");
+        
+        puts("Sending data once");
+        xtimer_sleep(3);
+        uint8_t buf_out[BUF_SIZE];
+        prepare_data(buf_out);
+        send_data(buf_out, true);
+        
+        puts("Data successfully sent");
+    } else {
+        puts("(!!!) UNCALIBRATED SENSOR (!!!)");
     }
+    
+    char line_buf[SHELL_DEFAULT_BUFSIZE];
+    shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);
+    
     return 0;
 }

@@ -19,11 +19,14 @@ FEATURES_REQUIRED += periph_gpio
 FEATURES_REQUIRED += periph_timer
 FEATURES_REQUIRED += periph_uart
 FEATURES_REQUIRED += periph_adc
+FEATURES_REQUIRED += periph_flashpage
 
 USEMODULE += xtimer
 USEMODULE += checksum
 USEMODULE += random
 USEMODULE += hashes
 USEMODULE += ps
+USEMODULE += shell
+USEMODULE += shell_commands
 
 include $(RIOTBASE)/Makefile.include

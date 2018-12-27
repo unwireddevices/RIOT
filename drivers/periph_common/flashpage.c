@@ -24,22 +24,23 @@
 
 /* guard this file, must be done before including periph/flashpage.h
  * TODO: remove as soon as periph drivers can be build selectively */
-#if defined(FLASHPAGE_NUMOF) && defined(FLASHPAGE_SIZE)
+#if defined(FLASHPAGE_SIZE)
 
 #include "periph/flashpage.h"
 
-void flashpage_read(int page, void *data)
+void flashpage_read(uint32_t page, void *data, uint32_t size)
 {
-    assert(page < (int)FLASHPAGE_NUMOF);
+    assert(page < (cpu_status.flash.size / FLASHPAGE_SIZE));
+    assert(size < FLASHPAGE_SIZE);
 
-    memcpy(data, flashpage_addr(page), FLASHPAGE_SIZE);
+    memcpy(data, flashpage_addr(page), size);
 }
 
-int flashpage_verify(int page, const void *data)
+int flashpage_verify(uint32_t page, const void *data, uint32_t size)
 {
-    assert(page < (int)FLASHPAGE_NUMOF);
+    assert(page < (cpu_status.flash.size / FLASHPAGE_SIZE));
 
-    if (memcmp(flashpage_addr(page), data, FLASHPAGE_SIZE) == 0) {
+    if (memcmp(flashpage_addr(page), data, size) == 0) {
         return FLASHPAGE_OK;
     }
     else {
@@ -47,10 +48,10 @@ int flashpage_verify(int page, const void *data)
     }
 }
 
-int flashpage_write_and_verify(int page, const void *data)
+int flashpage_write_and_verify(uint32_t page, const void *data, uint32_t size)
 {
-    flashpage_write(page, data);
-    return flashpage_verify(page, data);
+    flashpage_write(page, data, size);
+    return flashpage_verify(page, data, size);
 }
 
 #endif

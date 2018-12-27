@@ -117,10 +117,11 @@ static int prepare_result(module_data_t *data) {
     rx_started = false;
     rx_done = false;
     
+    rtctimers_millis_sleep(2500);
     uint32_t start = rtctimers_millis_now();
     while (!rx_done) {
         /* timeout 5 seconds */
-        if (rtctimers_millis_now() > start + 5000) {
+        if (rtctimers_millis_now() > start + 2500) {
             gpio_set(UMDK_SOIL_POWEREN);
             puts("[umdk-" _UMDK_NAME_ "] Sensor timeout");
             return -1;

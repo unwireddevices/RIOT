@@ -137,7 +137,7 @@ static int prepare_result(module_data_t *data) {
         
         if (data) {
             data->data[0] = _UMDK_MID_;
-            data->data[1] = 0;
+            data->data[1] = UMDK_SOIL_DATA;
             data->data[2] = moist;
             data->data[3] = temp;
             data->length = 4;
@@ -169,8 +169,9 @@ static void *timer_thread(void *arg) {
         int res = prepare_result(&data);
         if (res != 0) {
             data.data[0] = _UMDK_MID_;
+            data.data[0] = UMDK_SOIL_DATA_ERR;
             data.data[1] = res;
-            data.length = 2;
+            data.length = 3;
         }
 
         /* Notify the application */
@@ -194,8 +195,14 @@ static void init_config(void) {
 		reset_config();
 }
 
-static inline void save_config(void) {
+static void save_config(void) {
 	unwds_write_nvram_config(_UMDK_MID_, (uint8_t *) &umdk_soil_config, sizeof(umdk_soil_config));
+}
+
+static void set_period(uint32_t period) {
+    umdk_soil_config.publish_period_sec = period;
+    printf("[umdk-" _UMDK_NAME_ "] Period set to %" PRIu32 " sec\n", umdk_soil_config.publish_period_sec);
+    save_config();
 }
 
 int umdk_soil_shell_cmd(int argc, char **argv) {
@@ -220,9 +227,7 @@ int umdk_soil_shell_cmd(int argc, char **argv) {
     
     if (strcmp(cmd, "period") == 0) {
         char *val = argv[2];
-        umdk_soil_config.publish_period_sec = atoi(val);
-        printf("[umdk-" _UMDK_NAME_ "] Period set to %" PRIu32 " sec\n", umdk_soil_config.publish_period_sec);
-        save_config();
+        set_period(atoi(val));
     }
     
     if (strcmp(cmd, "reset") == 0) {
@@ -262,19 +267,23 @@ void umdk_soil_init(uwnds_cb_t *event_callback)
     printf("[umdk-" _UMDK_NAME_ "] Period %" PRIu32 " sec\n", umdk_soil_config.publish_period_sec);
     
     unwds_add_shell_command("soil", "type 'soil' for commands list", umdk_soil_shell_cmd);
-
 }
 
 static void reply_fail(module_data_t *reply) {
 	reply->length = 2;
 	reply->data[0] = _UMDK_MID_;
-	reply->data[1] = UMDK_SOIL_ERR;
+	reply->data[1] = UMDK_SOIL_FAIL;
 }
 
 static void reply_ok(module_data_t *reply) {
-	reply->length = 2;
 	reply->data[0] = _UMDK_MID_;
-	reply->data[1] = UMDK_SOIL_REPLY_OK;
+	reply->data[1] = UMDK_SOIL_CONFIG;
+    reply->length = 2;
+    
+    uint16_t period = umdk_soil_config.publish_period_sec;
+    convert_to_be_sam((void *)&period, sizeof(period));
+    memcpy(&reply->data[reply->length], (void *)&period, sizeof(period));
+    reply->length += sizeof(period);
 }
 
 bool umdk_soil_cmd(module_data_t *data, module_data_t *reply)
@@ -284,25 +293,21 @@ bool umdk_soil_cmd(module_data_t *data, module_data_t *reply)
         return true;
     }
 
-    umdk_soil_prefix_t prefix = data->data[0];
-    switch (prefix) {
-        case UMDK_SOIL_ASK:
-            is_polled = true;
-            msg_send(&timer_msg, timer_pid);
-            break;
-            
-        case UMDK_SOIL_SET_PERIOD:
-            if (data->length != 2) {
-                reply_fail(reply);
-                break;
-            }
-            umdk_soil_config.publish_period_sec = data->data[1];
-            reply_ok(reply);
-            break;
-
-        default:
-        	reply_fail(reply);
-        	break;
+    if ((data->data[0] == UMDK_SOIL_CONFIG) && (data->length == 3)) {
+        umdk_soil_config.publish_period_sec = data->data[1];
+        
+        uint32_t period = data->data[1] | data->data[2] << 8;
+        convert_from_be_sam((void *)&period, sizeof(period));
+        if (period > 0) {
+            set_period(period);
+        } else {
+            puts("[umdk-" _UMDK_NAME_ "] period: do not change");
+        }
+        
+        reply_ok(reply);
+    } else {
+        puts("[umdk-" _UMDK_NAME_ "] Incorrect command");
+        reply_fail(reply);
     }
 
     return true;

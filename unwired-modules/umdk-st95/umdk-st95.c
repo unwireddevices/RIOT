@@ -78,6 +78,8 @@ static uint8_t length_uid = 0;
 static uint8_t uid_full[255];
 static uint8_t sak = 0;
 
+static uint8_t ndef_data[255] = { 0x00 };
+
 static void umdk_st95_get_uid(void);
 
 #if ENABLE_DEBUG
@@ -99,8 +101,8 @@ static void *radio_send(void *arg)
 {
     (void) arg;
     msg_t msg;
-    msg_t msg_queue[16];
-    msg_init_queue(msg_queue, 16);
+    msg_t msg_queue[4];
+    msg_init_queue(msg_queue, 4);
       
     while (1) {
         msg_receive(&msg);
@@ -136,8 +138,8 @@ static void *radio_send(void *arg)
                 
                 DEBUG("RADIO: ");
                 _printbuff(data.data, data.length);
-                
-                callback(&data);
+                puts(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+                // callback(&data);
                 rtctimers_millis_sleep(UMDK_ST95_DELAY_DETECT_MS);                
                 st95_sleep(&dev);      
             }
@@ -158,6 +160,7 @@ static void umdk_st95_get_uid(void)
         msg_rx.content.value = UMDK_ST95_UID_OK;        
     }
     else {
+        length_uid = 0;
         msg_rx.content.value = UMDK_ST95_UID_ERROR;
     }
     
@@ -190,14 +193,55 @@ void umdk_st95_init(uwnds_cb_t *event_callback)
     }
     else {   
         puts("[umdk-" _UMDK_NAME_ "] st95 driver initialization success");
-        st95_sleep(&dev);
+        // st95_sleep(&dev);
     }
 }
 
 bool umdk_st95_cmd(module_data_t *cmd, module_data_t *reply)
 {      
-    (void)cmd;
     (void)reply;
+    
+    if(cmd->data[0] == 0x00) {
+        st95_sleep(&dev);
+    }
+    else if(cmd->data[0] == 0x01) {
+        uint16_t length = (cmd->data[1] << 8) | cmd->data[2];
+        if(st95_read_data(&dev, ndef_data, length) == ST95_OK) {
+            DEBUG("Data [%d]: ", length);
+            _printbuff(ndef_data, length);
+            
+            for(uint16_t i = 0; i < length; i++) {
+                printf("%c", ndef_data[i]);
+            }
+            printf("\n");
+
+        }
+        else {
+            DEBUG("Reading error\n");
+        }
+    }
+    else if(cmd->data[0] == 0x02) {
+        // TODO: write data
+        // memcpy(ndef_data, cmd->data + 1, cmd->length - 1);
+        
+        uint8_t test_data[] = {0x54, 0x65, 0x73, 0x74, 0x20, 0x4E, 0x44, 0x45, 0x46, 0x3A, 0x20, 0x50, 0x72, 0x6F, 0x70, 0x65, 0x72, 0x74, 0x79, 0x20, 0x62, 0x79, 0x20, 0x4D, 0x69, 0x6B, 0x68, 0x61, 0x69, 0x6C, 0x20, 0x50, 0x65, 0x72, 0x6B, 0x6F, 0x76};
+        ndef_data[0] = sizeof(test_data);
+        memcpy(ndef_data + 1, test_data, sizeof(test_data));
+        if(st95_write_data(&dev, ndef_data, sizeof(test_data) + 1) == ST95_OK) {
+            DEBUG("Writing completed\n");
+        }
+        else {
+            DEBUG("Writing error\n");
+        }
+        
+    }
+    else if(cmd->data[0] == 0x03) {
+        umdk_st95_get_uid();
+    }
+    else {
+        return false;
+    }
+   
     return false;
 }
 

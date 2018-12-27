@@ -30,12 +30,10 @@ extern "C" {
 #define ST95_RAMP_UP_TIME_MS            10
 #define ST95_DELAY_POWER_ON_MS          100
 
-#define ST95_NO_RESPONSE_TIME_MS        3000
+#define ST95_NO_RESPONSE_TIME_MS        5000
 #define ST95_NO_RESPONSE_TIME_MIN_MS    50
 
 #define ST95_NUMB_TRY_INIT              5
-
-#define ST95_MAX_BYTE_BUFF              255
 
 #define ST95_SLEEP_MODE                 0
 #define ST95_READY_MODE                 1

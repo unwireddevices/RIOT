@@ -104,10 +104,17 @@ extern "C" {
 #define ISO14443A_CRC16_LENGTH              2
 #define ISO14443A_SERVICE_DATA_LENGTH       3
 
+#define NDEF_OFFSET_PCB                     ST95_DATA_OFFSET
+#define NDEF_MASK_BLOCK                     0xC0
+#define NDEF_MASK_IBLOCK                    0x00
+#define NDEF_MASK_RBLOCK                    0x80
+#define NDEF_MASK_SBLOCK                    0xC0
 #define NDEF_OK_SW_1                        0x90
 #define NDEF_OK_SW_2                        0x00
 
 #define NDEF_OFFSET_DATA (ST95_DATA_OFFSET + 1)
+
+#define NDEF_PACK_OFFSET_DATA 0x02
 
 /**
  * @brief   ISO14443A card parameters

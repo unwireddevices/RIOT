@@ -103,33 +103,35 @@ static void _st95_send_irqin_low_pulse(const st95_t * dev)
     
 int st95_read_data(const st95_t * dev, uint8_t * data, uint16_t length)
 {
-    puts("\t\t\t\t\tST95 READ DATA");
+    puts("\n\t\t\t\t\tST95 READ DATA\n");
+    st95_state.mode = ST95_READY_MODE;
     if(_st95_select_iso14443a(dev, NULL, 1) == ST95_ERROR) {
         return ST95_ERROR;
     }
-    
+    puts("READ TAG");
     if(iso14443a_read_tag(dev, data, length, st95_rxbuf) == ST95_OK) {
-        puts("\t\t\t\t\tST95 READ OK");
+        puts("\n\t\t\t\t\tST95 READ OK\n");
         return ST95_OK;
     }
-    puts("\t\t\t\t\tST95 READ DATA ERROR");
+    puts("\n\t\t\t\t\tST95 READ DATA ERROR\n");
     return ST95_ERROR;
 }    
 
 int st95_write_data(const st95_t * dev, uint8_t * data, uint16_t length)
 {
-  puts("\t\t\t\t\tST95 WRITE DATA");
+  puts("\n\t\t\t\t\tST95 WRITE DATA\n");
+  st95_state.mode = ST95_READY_MODE;
     if(_st95_select_iso14443a(dev, NULL, 1) == ST95_ERROR) {
-        puts("\t\t\t\t\tST95 READ WRITE ERROR");
+        puts("\n\t\t\t\t\tST95 WRITE DATA ERROR\n");
         return ST95_ERROR;
     }
-       
+    puts("WRITE TAG");
     if(iso14443a_write_tag(dev, data, length, st95_rxbuf) == ST95_OK) {
-        puts("\t\t\t\t\tST95 WRITE OK");
+        puts("\n\t\t\t\t\tST95 WRITE OK\n");
         return ST95_OK;
     }
     
-    puts("\t\t\t\t\tST95 READ WRITE ERROR");
+    puts("\n\t\t\t\t\tST95 WRITE DATA ERROR\n");
     return ST95_ERROR;
 }    
 
@@ -202,6 +204,8 @@ uint8_t _st95_select_field_off(const st95_t * dev)
 uint8_t _st95_spi_send(const st95_t * dev, uint8_t * txbuff, uint8_t length_tx, bool cond)
 {
     uint8_t tx_spi = ST95_CTRT_SPI_SEND;
+    
+
     
     if(st95_state.mode == 0xFF) {
         PRINTSTR("\n>>> TX: ");        
@@ -277,10 +281,10 @@ static uint8_t _st95_spi_receive(const st95_t * dev, uint8_t * rxbuff, uint16_t 
         }
     }     
     
-        // if(st95_state.mode == 0xFF) {
-        // PRINTSTR(">>> RX data: ");
-         // PRINTBUFF(rxbuff, length_rx);
-    // }
+        if(st95_state.mode == 0xFF) {
+        PRINTSTR(">>> RX data: ");
+         PRINTBUFF(rxbuff, length_rx);
+    }
     
     return ST95_OK;
 }
@@ -618,7 +622,7 @@ static uint8_t _st95_cmd_idle(const st95_t * dev, uint8_t dac_l, uint8_t dac_h)
     _st95_spi_send(dev, st95_txbuf, 16, true);
     
     st95_state.mode = ST95_SLEEP_MODE;
-       
+           
     return ST95_OK;
 }
 
@@ -652,6 +656,9 @@ int st95_is_wake_up(const st95_t * dev)
  */
 void st95_sleep(st95_t * dev)
 {
+    if(st95_state.mode == ST95_SLEEP_MODE) {
+        return;
+    }
     _st95_cmd_idle(dev, dev->params.dac_l, dev->params.dac_h);
 }
 
@@ -721,6 +728,11 @@ int _st95_select_iso14443a(const st95_t * dev, uint8_t * params, uint8_t length_
 int _st95_cmd_send_receive(const st95_t * dev, uint8_t *data_tx, uint8_t size_tx, uint8_t params, uint8_t * rxbuff, uint16_t size_rx_buff) 
 {
 	uint8_t length = 0;
+    
+        if((data_tx[2] == 0xD6) || (data_tx[2] == 0xB0)) {
+            st95_state.mode = 0xFF;
+        }
+       
 
     st95_txbuf[0] = ST95_CMD_SEND_RECV;
     st95_txbuf[1] = size_tx + 1;
@@ -769,49 +781,17 @@ int _st95_cmd_send_receive(const st95_t * dev, uint8_t *data_tx, uint8_t size_tx
  */
 int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_t * sak)
 {   
+    st95_state.mode = ST95_READY_MODE;
+
     if(_st95_select_iso14443a(dev, NULL, 1) == ST95_ERROR) {
         return ST95_ERROR;
     }
-    
 
-      if(iso14443a_get_uid(dev, st95_rxbuf, length_uid, uid, sak) == ST95_OK) {
-
-        printf("\t\t\tSak %02X UID[%d]: ", *sak, *length_uid);
-    for(uint32_t i = 0; i < *length_uid; i++) {
-        printf("%02X ", uid[i]);
-    }
-    printf("\n\n");
-    
-        st95_state.mode = ST95_READY_MODE;     
-    }
-    
-     puts("\n**************************************************\n");      
-     uint8_t data[0xFE] = { 0x00 };
-     
-if(st95_read_data(dev, data, sizeof(data)) == ST95_OK) {
-PRINTSTR("Data: ");
-PRINTBUFF(data, sizeof(data));
-}
-else {
-    PRINTSTR("Data: ERROR");
-}
-    puts("\n**************************************************\n");
-        if(_st95_select_iso14443a(dev, NULL, 1) == ST95_ERROR) {
-        return ST95_ERROR;
-    }
     if(iso14443a_get_uid(dev, st95_rxbuf, length_uid, uid, sak) == ST95_OK) {
-
-        printf("\t\t\tSak %02X UID[%d]: ", *sak, *length_uid);
-    for(uint32_t i = 0; i < *length_uid; i++) {
-        printf("%02X ", uid[i]);
-    }
-    printf("\n\n");
-    
-        st95_state.mode = ST95_READY_MODE;
         return ST95_OK;       
     }
-    st95_state.mode = ST95_READY_MODE;
-    return ST95_ERROR;
+    
+    return ST95_ERROR;   
 }
 
 /**

@@ -46,6 +46,9 @@
 
 #define ST95_MAX_DATA_BYTES             254
 
+#define UMDK_ST95_OK_REPLY             0x00
+#define UMDK_ST95_ERROR_REPLY          0x01
+
 #define UMDK_ST95_MSG_WAKE_UP   0
 #define UMDK_ST95_MSG_UID       1
 
@@ -53,6 +56,19 @@
 #define UMDK_ST95_UID_ERROR     0
 
 #define UMDK_ST95_DELAY_DETECT_MS 1000
+
+#define UMDK_ST95_MODE_GET_UID 0
+#define UMDK_ST95_MODE_DETECT_TAG 1
+
+/**
+ * @brief Commands list
+ */
+typedef enum {
+    UMDK_ST95_DETECT_TAG    = 0x00,
+    UMDK_ST95_GET_UID       = 0x01,
+    UMDK_ST95_READ_DATA     = 0x02,
+    UMDK_ST95_WRITE_DATA    = 0x03,
+} umdk_st95_cmd_t;
 
 void umdk_st95_init(uwnds_cb_t *event_callback);
 bool umdk_st95_cmd(module_data_t *data, module_data_t *reply);

@@ -24,15 +24,15 @@
 #define ENABLE_DEBUG_ST95 (1)
 
 #if ENABLE_DEBUG_ST95
-    #define PRINTBUFF _printbuff
-    static void _printbuff(uint8_t *buff, unsigned len)
-    {
-        for(uint32_t i = 0; i < len; i++){
-            printf("%02X ", buff[i]);
-            if(i < 2) printf("  ");
-        }
-        printf("\n");
-    }
+    // #define PRINTBUFF _printbuff
+    // static void _printbuff(uint8_t *buff, unsigned len)
+    // {
+        // for(uint32_t i = 0; i < len; i++){
+            // printf("%02X ", buff[i]);
+            // if(i < 2) printf("  ");
+        // }
+        // printf("\n");
+    // }
     
     #define PRINTSTR _printstr
     static void _printstr(char * str)
@@ -40,7 +40,7 @@
         printf("%s ", str);
     }
 #else
-    #define PRINTBUFF(...)
+    // #define PRINTBUFF(...)
     #define PRINTSTR(...)
 #endif
 
@@ -78,9 +78,9 @@ static int _is_sblock (uint8_t * rxbuff) {
 static uint8_t _check_ndef(const st95_t * dev, uint8_t * rxbuff)
 {
     uint8_t length = rxbuff[ST95_LENGTH_OFFSET];
-
+    
     if(length < 3) {
-        DEBUG("\t\t\t\t\t\t\t\t\t\t\tError: invalid RX length\n");
+        DEBUG("Error: invalid RX length\n");
         return ST95_ERROR;
     }
         
@@ -93,7 +93,7 @@ static uint8_t _check_ndef(const st95_t * dev, uint8_t * rxbuff)
             iblock ^= 0x01;
             return ST95_OK;
         }
-        DEBUG("\t\t\t\t\t\t\t\t\t\t\tError status: %02X%02X\n", sw1, sw2);
+        DEBUG("Error status: %02X%02X\n", sw1, sw2);
         return ST95_ERROR;
     }
     else if(_is_rblock(rxbuff) == ST95_OK) { 
@@ -106,12 +106,18 @@ static uint8_t _check_ndef(const st95_t * dev, uint8_t * rxbuff)
         s_buff[1] = rxbuff[NDEF_OFFSET_PCB + 1];
         uint8_t ctrl_byte = ISO14443A_NUM_SIGN_BIT_8 | ISO14443A_APPEND_CRC;
         if(_st95_cmd_send_receive(dev, s_buff, sizeof(s_buff), ctrl_byte, rxbuff, ISO14443A_ANSWER_MAX_BYTE) == ST95_OK) {
-            PRINTSTR("\t\t >>>  S BLOCK: "); 
-            PRINTBUFF(rxbuff + ST95_DATA_OFFSET, rxbuff[ST95_LENGTH_OFFSET]);
             if(_check_ndef(dev, rxbuff) == ST95_OK) {
+                PRINTSTR("\t\t >>> S BLOCK OK\n");
                 return ST95_OK;  
             }
+            if(_st95_cmd_send_receive(dev, s_buff, sizeof(s_buff), ctrl_byte, rxbuff, ISO14443A_ANSWER_MAX_BYTE) == ST95_OK) {
+                if(_check_ndef(dev, rxbuff) == ST95_OK) {
+                    PRINTSTR("\t\t >>> S BLOCK OK\n");
+                    return ST95_OK;  
+                }
+            }  
         }
+        PRINTSTR("\t\t >>> S BLOCK ERROR\n");
         return ST95_ERROR;
     }
     
@@ -141,8 +147,6 @@ static uint8_t _select_app(const st95_t * dev, uint8_t * rxbuff)
     iso_txbuff[len++] = 0x00;
     
     if(_st95_cmd_send_receive(dev, iso_txbuff, len, ctrl_byte, rxbuff, ISO14443A_ANSWER_MAX_BYTE) == ST95_OK) {
-        // PRINTSTR("\t\t >>> SELECT APP: "); 
-        // PRINTBUFF(rxbuff + ST95_DATA_OFFSET, rxbuff[ST95_LENGTH_OFFSET]);
         if(_check_ndef(dev, rxbuff) == ST95_OK) {
             return ST95_OK;  
         }
@@ -172,8 +176,6 @@ static uint8_t _select_cc_file(const st95_t * dev, uint8_t * rxbuff)
     len += sizeof(data);
     
     if(_st95_cmd_send_receive(dev, iso_txbuff, len, ctrl_byte, rxbuff, ISO14443A_ANSWER_MAX_BYTE) == ST95_OK) {
-        // PRINTSTR("\t\t >>> SELECT CC : "); 
-        // PRINTBUFF(rxbuff + ST95_DATA_OFFSET, rxbuff[ST95_LENGTH_OFFSET]);
         if(_check_ndef(dev, rxbuff) == ST95_OK) {
             return ST95_OK;  
         }
@@ -199,8 +201,6 @@ static uint8_t _read_cc_file(const st95_t * dev, uint8_t * rxbuff)
     iso_txbuff[len++] = 0x02;
     
     if(_st95_cmd_send_receive(dev, iso_txbuff, len, ctrl_byte, rxbuff, ISO14443A_ANSWER_MAX_BYTE) == ST95_OK) {
-        // PRINTSTR("\t\t >>> CC FILE length: "); 
-        // PRINTBUFF(rxbuff + ST95_DATA_OFFSET + 3, 1);
         if(_check_ndef(dev, rxbuff) == ST95_ERROR) {
             return ST95_ERROR;  
         }    
@@ -220,10 +220,7 @@ static uint8_t _read_cc_file(const st95_t * dev, uint8_t * rxbuff)
     
     iso_txbuff[len++] = (uint8_t)(picc.cc_size & 0xFF);
     
-    if(_st95_cmd_send_receive(dev, iso_txbuff, len, ctrl_byte, rxbuff, ISO14443A_ANSWER_MAX_BYTE) == ST95_OK) {
-        // PRINTSTR("\t\t\t >>> CC FILE: ");  
-        // PRINTBUFF(rxbuff + ST95_DATA_OFFSET, rxbuff[ST95_LENGTH_OFFSET]);
-        
+    if(_st95_cmd_send_receive(dev, iso_txbuff, len, ctrl_byte, rxbuff, ISO14443A_ANSWER_MAX_BYTE) == ST95_OK) {     
         if(_check_ndef(dev, rxbuff) == ST95_OK) {           
             picc.ndef_id = (rxbuff[12] << 8) | rxbuff[13];
             picc.ndef_read_max = (rxbuff[6] << 8) | rxbuff[7];
@@ -254,8 +251,6 @@ static uint8_t _select_ndef(const st95_t * dev, uint8_t * rxbuff)
     iso_txbuff[len++] = (uint8_t)(picc.ndef_id & 0xFF);
 
     if(_st95_cmd_send_receive(dev, iso_txbuff, len, ctrl_byte, rxbuff, ISO14443A_ANSWER_MAX_BYTE) == ST95_OK) {
-        // PRINTSTR("\t\t >>> SELECT NDEF: "); 
-        // PRINTBUFF(rxbuff + ST95_DATA_OFFSET, rxbuff[ST95_LENGTH_OFFSET]);
        if(_check_ndef(dev, rxbuff) == ST95_OK) {
             return ST95_OK;  
         }    
@@ -266,7 +261,6 @@ static uint8_t _select_ndef(const st95_t * dev, uint8_t * rxbuff)
 
 static uint8_t _read_ndef(const st95_t * dev, uint8_t * data, uint16_t length, uint8_t * rxbuff)
 {
-    printf("\n\t\t\t>>>>> READ NDEF <<<<<  %d[%04X]\n", length, length);
     uint8_t iso_txbuff[16] = { 0x00 };
     uint16_t len = 0;
         /* Control byte: Not used topaz format, Not SplitFrame, Append CRC, 8 significant bits in last byte */	
@@ -285,11 +279,9 @@ static uint8_t _read_ndef(const st95_t * dev, uint8_t * data, uint16_t length, u
 
     iso_txbuff[len++] = 0x02;
     
-    if(_st95_cmd_send_receive(dev, iso_txbuff, len, ctrl_byte, rxbuff, ST95_MAX_BYTE_BUFF) == ST95_OK) {
-        PRINTSTR("\t\t >>> NDEF length: "); 
-        PRINTBUFF(rxbuff + ST95_DATA_OFFSET, rxbuff[ST95_LENGTH_OFFSET]);
-        
+    if(_st95_cmd_send_receive(dev, iso_txbuff, len, ctrl_byte, rxbuff, ST95_MAX_BYTE_BUFF) == ST95_OK) {       
         if(_check_ndef(dev, rxbuff) == ST95_ERROR) {
+            PRINTSTR("\t\t >>> READ NDEF length: ERROR\n");
             return ST95_ERROR;  
         }       
     }
@@ -300,6 +292,7 @@ static uint8_t _read_ndef(const st95_t * dev, uint8_t * data, uint16_t length, u
     picc.ndef_length = (rxbuff[ST95_DATA_OFFSET + 1] << 8) | rxbuff[ST95_DATA_OFFSET + 2];
     
     if(length > picc.ndef_length) {
+        PRINTSTR("\t\t >>> READ NDEF length: INVALID\n");
         return ST95_ERROR;
     }
     
@@ -313,16 +306,15 @@ static uint8_t _read_ndef(const st95_t * dev, uint8_t * data, uint16_t length, u
     if(length <= picc.ndef_read_max) {
         iso_txbuff[len++] = length;
         if(_st95_cmd_send_receive(dev, iso_txbuff, len, ctrl_byte, rxbuff, ST95_MAX_BYTE_BUFF) == ST95_OK) {
-            PRINTSTR("\t\t >>> RX DATA NDEF: \n");       
-            PRINTBUFF(rxbuff + ST95_DATA_OFFSET, rxbuff[ST95_LENGTH_OFFSET]);
             if(_check_ndef(dev, rxbuff) == ST95_ERROR) {
+                PRINTSTR("\t\t >>> READ NDEF data: ERROR\n");
                 return ST95_ERROR;  
             }    
         }
         else {
             return ST95_ERROR;
         }
-    
+        PRINTSTR("\t\t >>> READ NDEF data: SUCCESS\n");
         memcpy(data, rxbuff + NDEF_OFFSET_DATA, length);
         return ST95_OK;
     }
@@ -337,16 +329,15 @@ static uint8_t _read_ndef(const st95_t * dev, uint8_t * data, uint16_t length, u
     iso_txbuff[len++] = picc.ndef_read_max & 0xFF;
     
     if(_st95_cmd_send_receive(dev, iso_txbuff, len, ctrl_byte, rxbuff, ST95_MAX_BYTE_BUFF) == ST95_OK) {
-        PRINTSTR("\t\t >>> RX DATA NDEF 1: \n");       
-        PRINTBUFF(rxbuff + ST95_DATA_OFFSET, rxbuff[ST95_LENGTH_OFFSET]);
         if(_check_ndef(dev, rxbuff) == ST95_ERROR) {
+            PRINTSTR("\t\t >>> READ NDEF data 1: ERROR\n");
             return ST95_ERROR;  
         }
     }
     else {
         return ST95_ERROR;
     }
-    
+    PRINTSTR("\t\t >>> READ NDEF data 1: SUCCESS\n");
     memcpy(data, rxbuff + NDEF_OFFSET_DATA, picc.ndef_read_max);
     
     len = 0;
@@ -360,19 +351,18 @@ static uint8_t _read_ndef(const st95_t * dev, uint8_t * data, uint16_t length, u
     
     
      if(_st95_cmd_send_receive(dev, iso_txbuff, len, ctrl_byte, rxbuff, ST95_MAX_BYTE_BUFF) == ST95_OK) {
-        PRINTSTR("\t\t >>> RX DATA NDEF 2: \n");       
-        PRINTBUFF(rxbuff + ST95_DATA_OFFSET, rxbuff[ST95_LENGTH_OFFSET]);
         if(_check_ndef(dev, rxbuff) == ST95_OK) {           
             memcpy(data + picc.ndef_read_max, rxbuff + NDEF_OFFSET_DATA, (length - picc.ndef_read_max));
+            PRINTSTR("\t\t >>> READ NDEF data 2: SUCCESS\n");
             return ST95_OK;  
         }    
     }
-    
+    PRINTSTR("\t\t >>> READ NDEF data 2: ERROR\n");
     return ST95_ERROR;
 }
 
 static uint8_t _update_ndef(const st95_t * dev, uint8_t * data, uint16_t length, uint8_t * rxbuff)
-{printf("\n\t\t\t>>>>> UPDATE NDEF <<<<<  %d[%04X]\n", length, length);
+{
     uint8_t iso_txbuff[255] = { 0x00 };
     uint16_t len = 0;
         /* Control byte: Not used topaz format, Not SplitFrame, Append CRC, 8 significant bits in last byte */	
@@ -396,17 +386,16 @@ static uint8_t _update_ndef(const st95_t * dev, uint8_t * data, uint16_t length,
     iso_txbuff[len++] = 0x00;
     iso_txbuff[len++] = 0x00;
     
-    if(_st95_cmd_send_receive(dev, iso_txbuff, len, ctrl_byte, rxbuff, ISO14443A_ANSWER_MAX_BYTE) == ST95_OK) {
-        PRINTSTR("\t\t >>> ERASE NDEF length: ");       
-        PRINTBUFF(rxbuff, rxbuff[ST95_LENGTH_OFFSET]);
+    if(_st95_cmd_send_receive(dev, iso_txbuff, len, ctrl_byte, rxbuff, ISO14443A_ANSWER_MAX_BYTE) == ST95_OK) {     
         if(_check_ndef(dev, rxbuff) == ST95_ERROR) {
+            PRINTSTR("\t\t >>> ERASE NDEF length: ERROR\n"); 
             return ST95_ERROR;  
         }
     }
     else {
         return ST95_ERROR;
     }
-    
+    PRINTSTR("\t\t >>> ERASE NDEF length: SUCCESS\n");  
     /* Second step - update data */
     len = 0;    
     iso_txbuff[len++] = iblock;
@@ -423,16 +412,16 @@ static uint8_t _update_ndef(const st95_t * dev, uint8_t * data, uint16_t length,
         memcpy(iso_txbuff + len, data, length);
         len += length;
         
-        if(_st95_cmd_send_receive(dev, iso_txbuff, len, ctrl_byte, rxbuff, ISO14443A_ANSWER_MAX_BYTE) == ST95_OK) {
-            PRINTSTR("\t\t >>> UPDATE NDEF: ");       
-            PRINTBUFF(rxbuff, rxbuff[ST95_LENGTH_OFFSET]);
+        if(_st95_cmd_send_receive(dev, iso_txbuff, len, ctrl_byte, rxbuff, ISO14443A_ANSWER_MAX_BYTE) == ST95_OK) {  
             if(_check_ndef(dev, rxbuff) == ST95_ERROR) {
+                PRINTSTR("\t\t >>> UPDATE NDEF data: ERROR\n"); 
                 return ST95_ERROR;  
             }    
         }
         else {
             return ST95_ERROR;
-        }        
+        }      
+        PRINTSTR("\t\t >>> UPDATE NDEF data: SUCCESS \n");          
     }
     else {
         
@@ -441,16 +430,15 @@ static uint8_t _update_ndef(const st95_t * dev, uint8_t * data, uint16_t length,
         len += picc.ndef_write_max;
         
         if(_st95_cmd_send_receive(dev, iso_txbuff, len, ctrl_byte, rxbuff, ISO14443A_ANSWER_MAX_BYTE) == ST95_OK) {
-            PRINTSTR("\t\t >>> UPDATE NDEF 1: ");       
-            PRINTBUFF(rxbuff, rxbuff[ST95_LENGTH_OFFSET]);
             if(_check_ndef(dev, rxbuff) == ST95_ERROR) {
+                PRINTSTR("\t\t >>> UPDATE NDEF data 1: ERROR\n"); 
                 return ST95_ERROR;  
             }    
         }
         else {
             return ST95_ERROR;
         }        
-        
+        PRINTSTR("\t\t >>> UPDATE NDEF data 1: SUCCESS\n"); 
         len = 0;    
         iso_txbuff[len++] = iblock;
         
@@ -465,19 +453,17 @@ static uint8_t _update_ndef(const st95_t * dev, uint8_t * data, uint16_t length,
         memcpy(iso_txbuff + len, data + picc.ndef_write_max, length - picc.ndef_write_max);
         
         if(_st95_cmd_send_receive(dev, iso_txbuff, len, ctrl_byte, rxbuff, ISO14443A_ANSWER_MAX_BYTE) == ST95_OK) {
-            PRINTSTR("\t\t >>> UPDATE NDEF 2: ");       
-            PRINTBUFF(rxbuff, rxbuff[ST95_LENGTH_OFFSET]);
             if(_check_ndef(dev, rxbuff) == ST95_ERROR) {
+                PRINTSTR("\t\t >>> UPDATE NDEF data 2: ERROR\n"); 
                 return ST95_ERROR;  
             }    
         }
         else {
             return ST95_ERROR;
         }        
-        
+        PRINTSTR("\t\t >>> UPDATE NDEF data 2: SUCCESS\n"); 
     }    
-    
-       
+           
     /* Third step - update data length */    
     len = 0;
     iso_txbuff[len++] = iblock;
@@ -494,13 +480,15 @@ static uint8_t _update_ndef(const st95_t * dev, uint8_t * data, uint16_t length,
     iso_txbuff[len++] = length & 0xFF;
     
     if(_st95_cmd_send_receive(dev, iso_txbuff, len, ctrl_byte, rxbuff, ISO14443A_ANSWER_MAX_BYTE) == ST95_OK) {
-        PRINTSTR("\t\t >>> UPDATE Length: ");       
-        PRINTBUFF(rxbuff, rxbuff[ST95_LENGTH_OFFSET]);
         if(_check_ndef(dev, rxbuff) == ST95_OK) {
+            PRINTSTR("\t\t >>> UPDATE NDEF length: SUCCESS\n"); 
             return ST95_OK;  
-        }    
+        }
+        else {
+            PRINTSTR("\t\t >>> UPDATE NDEF length: ERROR\n"); 
+        }
     }
-
+    PRINTSTR("\t\t >>> UPDATE NDEF: ERROR\n"); 
     return ST95_ERROR;
 }
 
@@ -510,15 +498,19 @@ uint8_t _deselect_ndef(const st95_t * dev, uint8_t * rxbuff)
     uint8_t ctrl_byte = ISO14443A_NUM_SIGN_BIT_8 | ISO14443A_APPEND_CRC;
     
     uint8_t cmd = ISO14443A_CMD_DESELECT;
-    puts("CMD DESELECT");
-    if(_st95_cmd_send_receive(dev, &cmd, sizeof(cmd), ctrl_byte, rxbuff, ISO14443A_ANSWER_MAX_BYTE) == ST95_OK) {
-        PRINTSTR("\t\t >>> DESELECT NDEF: ");       
-        PRINTBUFF(rxbuff, rxbuff[ST95_LENGTH_OFFSET]);
+    if(_st95_cmd_send_receive(dev, &cmd, sizeof(cmd), ctrl_byte, rxbuff, ISO14443A_ANSWER_MAX_BYTE) == ST95_OK) {       
         if(rxbuff[ST95_DATA_OFFSET] == ISO14443A_CMD_DESELECT) {
+            PRINTSTR("\t\t >>> DESELECT NDEF OK\n");
             return ST95_OK;
         }
+        if(_st95_cmd_send_receive(dev, &cmd, sizeof(cmd), ctrl_byte, rxbuff, ISO14443A_ANSWER_MAX_BYTE) == ST95_OK) {  
+            if(rxbuff[ST95_DATA_OFFSET] == ISO14443A_CMD_DESELECT) {
+                PRINTSTR("\t\t >>> DESELECT NDEF OK\n");
+                return ST95_OK;
+            }
+        }
     }
-    
+    PRINTSTR("\t\t >>> DESELECT NDEF ERROR\n");
     return ST95_ERROR;
 }
 
@@ -631,7 +623,6 @@ static uint8_t _iso14443a_is_uid_complete(uint8_t sak_byte)
     }        
 }
 
-
 /**
  * @brief   This function send WUPA command to a tag
  * 
@@ -680,11 +671,10 @@ uint8_t _iso14443a_wupa(const st95_t * dev, uint8_t * rxbuff, uint16_t size_rx_b
 uint8_t _iso14443a_hlta(const st95_t * dev, uint8_t * rxbuff, uint16_t size_rx_buff)
 {    
     uint8_t data[2] = { ISO14443A_CMD_HLTA, 0x00 };
-    puts("CMD HLTA");
     /* Control byte: Not used topaz format, Not SplitFrame, Append CRC, 8 significant bits in last byte */	
     uint8_t ctrl_byte = ISO14443A_NUM_SIGN_BIT_8 | ISO14443A_APPEND_CRC;
     if(_st95_cmd_send_receive(dev, data, sizeof(data), ctrl_byte, rxbuff, size_rx_buff) != ST95_OK) {
-        puts("HLTed");
+        PRINTSTR("\t\t >>> HLTA OK\n");
         return ST95_OK;
     }
     return ST95_ERROR;
@@ -792,11 +782,11 @@ uint8_t _iso14443a_config_fdt(const st95_t * dev)
      /* FDT = ((2^PP) * (MM + 1) * (DD + 128) * 32) / 13.56 [usec] */
      /* 9-1-0 => 309 [ms] */
     uint8_t pp = 0x09; /* Min = 4 */
-    uint8_t mm = 2; /* Min = 1 */
+    uint8_t mm = 1; /* Min = 1 */
     uint8_t dd = 0; /* Min = 0 */
     
-    uint32_t fdt = (uint32_t)((1 << pp)*(mm+1)*(dd + 128)*32*100/1356);
-    printf("FDT: %ld [usec]\n", fdt);
+    // uint32_t fdt = (uint32_t)((1 << pp)*(mm+1)*(dd + 128)*32*100/1356);
+    // printf("FDT: %ld [usec]\n", fdt);
     
     params[0] = (ST95_TX_RATE_14443A << 6) | (ST95_RX_RATE_14443A << 4);
     params[1] = pp;
@@ -856,7 +846,11 @@ int iso14443a_read_tag(const st95_t * dev, uint8_t * data, uint16_t length, uint
         return ST95_ERROR;
     }
     
-    _deselect_ndef(dev, rxbuff);
+    if(_deselect_ndef(dev, rxbuff) == ST95_ERROR) {
+        _iso14443a_hlta(dev, rxbuff, ISO14443A_ANSWER_MAX_BYTE);
+        return ST95_ERROR;
+    }
+    
      _iso14443a_hlta(dev, rxbuff, ISO14443A_ANSWER_MAX_BYTE);
     return ST95_OK;
 }
@@ -898,7 +892,10 @@ int iso14443a_write_tag(const st95_t * dev, uint8_t * data, uint8_t length, uint
         return ST95_ERROR;
     }
     
-    _deselect_ndef(dev, rxbuff);
+     if(_deselect_ndef(dev, rxbuff) == ST95_ERROR) {
+        _iso14443a_hlta(dev, rxbuff, ISO14443A_ANSWER_MAX_BYTE);
+        return ST95_ERROR;
+    }
      _iso14443a_hlta(dev, rxbuff, ISO14443A_ANSWER_MAX_BYTE);
     return ST95_OK;
 }

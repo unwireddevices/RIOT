@@ -44,7 +44,7 @@
 #define UMDK_ST95_SSI_1                 GPIO_UNDEF
 #define UMDK_ST95_VCC_ENABLE            UNWD_GPIO_24
 
-#define ST95_MAX_DATA_BYTES             254
+#define ST95_MAX_DATA_BYTES             256
 
 #define UMDK_ST95_OK_REPLY             0x00
 #define UMDK_ST95_ERROR_REPLY          0x01
@@ -56,9 +56,14 @@
 #define UMDK_ST95_UID_ERROR     0
 
 #define UMDK_ST95_DELAY_DETECT_MS 1000
+#define UMDK_ST95_DELAY_CHECK_MS 10
 
-#define UMDK_ST95_MODE_GET_UID 0
-#define UMDK_ST95_MODE_DETECT_TAG 1
+#define UMDK_ST95_MODE_DETECT_TAG   0
+#define UMDK_ST95_MODE_GET_UID      1
+
+#define UMDK_ST95_STATUS_PROCCESSING 0
+#define UMDK_ST95_STATUS_READY 1
+
 
 /**
  * @brief Commands list

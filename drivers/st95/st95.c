@@ -31,9 +31,7 @@
 #define ENABLE_DEBUG (1)
 #include "debug.h"
 
-#define ST95_ENABLE_GAIN (1)
-
-#define ENABLE_DEBUG_ST95 (1)
+#define ENABLE_DEBUG_ST95 (0)
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,10 +55,8 @@ static uint8_t _st95_calibration(st95_t * dev);
 
 uint8_t _st95_select_field_off(const st95_t * dev);
 
-#if ST95_ENABLE_GAIN
-static uint8_t _st95_read_reg(const st95_t * dev, uint8_t * rxbuff);
+uint8_t _st95_read_reg(const st95_t * dev, uint8_t * rxbuff);
 uint8_t _st95_read_modulation_gain(const st95_t * dev, uint8_t * modul, uint8_t * gain);
-#endif
 
 
 /**
@@ -103,35 +99,27 @@ static void _st95_send_irqin_low_pulse(const st95_t * dev)
     
 int st95_read_data(const st95_t * dev, uint8_t * data, uint16_t length)
 {
-    puts("\n\t\t\t\t\tST95 READ DATA\n");
-    st95_state.mode = ST95_READY_MODE;
     if(_st95_select_iso14443a(dev, NULL, 1) == ST95_ERROR) {
         return ST95_ERROR;
     }
-    puts("READ TAG");
+
     if(iso14443a_read_tag(dev, data, length, st95_rxbuf) == ST95_OK) {
-        puts("\n\t\t\t\t\tST95 READ OK\n");
         return ST95_OK;
     }
-    puts("\n\t\t\t\t\tST95 READ DATA ERROR\n");
+
     return ST95_ERROR;
 }    
 
 int st95_write_data(const st95_t * dev, uint8_t * data, uint16_t length)
 {
-  puts("\n\t\t\t\t\tST95 WRITE DATA\n");
-  st95_state.mode = ST95_READY_MODE;
     if(_st95_select_iso14443a(dev, NULL, 1) == ST95_ERROR) {
-        puts("\n\t\t\t\t\tST95 WRITE DATA ERROR\n");
         return ST95_ERROR;
     }
-    puts("WRITE TAG");
+
     if(iso14443a_write_tag(dev, data, length, st95_rxbuf) == ST95_OK) {
-        puts("\n\t\t\t\t\tST95 WRITE OK\n");
         return ST95_OK;
     }
     
-    puts("\n\t\t\t\t\tST95 WRITE DATA ERROR\n");
     return ST95_ERROR;
 }    
 
@@ -204,13 +192,6 @@ uint8_t _st95_select_field_off(const st95_t * dev)
 uint8_t _st95_spi_send(const st95_t * dev, uint8_t * txbuff, uint8_t length_tx, bool cond)
 {
     uint8_t tx_spi = ST95_CTRT_SPI_SEND;
-    
-
-    
-    if(st95_state.mode == 0xFF) {
-        PRINTSTR("\n>>> TX: ");        
-        PRINTBUFF(txbuff, length_tx);
-    }
 
     spi_acquire(SPI_DEV(dev->params.spi), dev->params.cs_spi, SPI_MODE_0, ST95_SPI_CLK);
 
@@ -281,11 +262,6 @@ static uint8_t _st95_spi_receive(const st95_t * dev, uint8_t * rxbuff, uint16_t 
         }
     }     
     
-        if(st95_state.mode == 0xFF) {
-        PRINTSTR(">>> RX data: ");
-         PRINTBUFF(rxbuff, length_rx);
-    }
-    
     return ST95_OK;
 }
 
@@ -301,7 +277,7 @@ static void _st95_wait_ready_data(void)
     uint32_t time_delta = 0;
     st95_state.timeout = false;
         
-    xtimer_spin(xtimer_ticks_from_usec(ST95_NO_RESPONSE_TIME_MIN_MS));
+    xtimer_spin(xtimer_ticks_from_usec(ST95_NO_RESPONSE_TIME_MIN_USEC));
     
 	while((st95_state.data_rx == false) && (st95_state.timeout == false)) {
 		time_end = rtctimers_millis_now();
@@ -309,7 +285,7 @@ static void _st95_wait_ready_data(void)
 		if(time_delta > ST95_NO_RESPONSE_TIME_MS) {
             st95_state.timeout = true;
 		}
-        xtimer_spin(xtimer_ticks_from_usec(ST95_NO_RESPONSE_TIME_MIN_MS));
+        xtimer_spin(xtimer_ticks_from_usec(ST95_NO_RESPONSE_TIME_MIN_USEC));
 	}
 }
 
@@ -360,8 +336,7 @@ static int _st95_cmd_echo(const st95_t * dev)
     return ST95_ERROR;
 }
 
-#if ST95_ENABLE_GAIN
-static uint8_t _st95_read_reg(const st95_t * dev, uint8_t * rxbuff)
+uint8_t _st95_read_reg(const st95_t * dev, uint8_t * rxbuff)
 {    
     st95_txbuf[0] = ST95_CMD_READ_REG;
     st95_txbuf[1] = 3;
@@ -455,7 +430,6 @@ uint8_t _st95_read_modulation_gain(const st95_t * dev, uint8_t * modul, uint8_t 
 
     return ST95_ERROR; 
 }
-#endif
 
 /**
  * @brief   This function gives brief information about the ST95HF and its revision
@@ -729,11 +703,6 @@ int _st95_cmd_send_receive(const st95_t * dev, uint8_t *data_tx, uint8_t size_tx
 {
 	uint8_t length = 0;
     
-        if((data_tx[2] == 0xD6) || (data_tx[2] == 0xB0)) {
-            st95_state.mode = 0xFF;
-        }
-       
-
     st95_txbuf[0] = ST95_CMD_SEND_RECV;
     st95_txbuf[1] = size_tx + 1;
 	
@@ -759,7 +728,9 @@ int _st95_cmd_send_receive(const st95_t * dev, uint8_t *data_tx, uint8_t size_tx
             }                              
         }
         else {
-            DEBUG("[st95]: Error 0x%02X\n", rxbuff[0]);
+            if(data_tx[0] != ISO14443A_CMD_HLTA) {
+                DEBUG("[st95]: Error 0x%02X\n", rxbuff[0]);
+            }
             return ST95_ERROR;
         }
     }

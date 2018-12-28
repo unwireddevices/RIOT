@@ -78,7 +78,8 @@ static uint8_t length_uid = 0;
 static uint8_t uid_full[10];
 static uint8_t sak = 0;
 
-static uint8_t mode = UMDK_ST95_MODE_GET_UID;
+static volatile uint8_t mode = UMDK_ST95_MODE_GET_UID;
+static volatile uint8_t status = UMDK_ST95_STATUS_READY;
 
 static uint8_t ndef_data[255] = { 0x00 };
 
@@ -128,7 +129,7 @@ static void *radio_send(void *arg)
         msg_receive(&msg);
         
         module_data_t data;
-        data.as_ack = true;
+        data.as_ack = false;
         data.data[0] = _UMDK_MID_;
         data.length = 1;
 
@@ -141,7 +142,7 @@ static void *radio_send(void *arg)
             }
             case UMDK_ST95_MSG_UID: {
                 if(msg.content.value == UMDK_ST95_UID_OK) {
-                    DEBUG("Sak: %02X -> UID[%d]: ", sak, length_uid);
+                    DEBUG("SAK: %02X -> UID[%d]: ", sak, length_uid);
                     _printbuff(uid_full, length_uid);
                    
                     memcpy(data.data + 1, uid_full, length_uid);
@@ -155,15 +156,16 @@ static void *radio_send(void *arg)
                     data.length = 2;
                 }
                 
-                DEBUG("RADIO: ");
-                _printbuff(data.data, data.length);
+                // DEBUG("RADIO: ");
+                // _printbuff(data.data, data.length);
 
-                // callback(&data);
+                callback(&data);
                 
                 if(mode == UMDK_ST95_MODE_DETECT_TAG) {
                     rtctimers_millis_sleep(UMDK_ST95_DELAY_DETECT_MS);
-                    st95_sleep(&dev);      
+                    st95_sleep(&dev);
                 }
+                status = UMDK_ST95_STATUS_READY;
                 break;
             }
                         
@@ -179,7 +181,7 @@ static void umdk_st95_get_uid(void)
     length_uid = 0;
     sak = 0;
     memset(uid_full, 0x00, sizeof(uid_full));
-    puts("umdk_st95_get_uid");
+
     if(st95_get_uid(&dev, &length_uid, uid_full, &sak) == ST95_OK) {
         msg_rx.content.value = UMDK_ST95_UID_OK;        
     }
@@ -218,13 +220,14 @@ void umdk_st95_init(uwnds_cb_t *event_callback)
     }
     else {   
         puts("[umdk-" _UMDK_NAME_ "] st95 driver initialization success");
-        // st95_sleep(&dev);
+        mode = UMDK_ST95_MODE_DETECT_TAG;
+        st95_sleep(&dev);
     }
 }
 
 static inline void reply_code(module_data_t *reply, uint8_t code) 
 {
-    reply->as_ack = true;
+    reply->as_ack = false;
     reply->length = 2;
     reply->data[0] = _UMDK_MID_;
         /* Add reply-code */
@@ -238,37 +241,41 @@ bool umdk_st95_cmd(module_data_t *cmd, module_data_t *reply)
         return true;        
     }
     
+    // if(status == UMDK_ST95_STATUS_PROCCESSING) {
+        // rtctimers_millis_sleep(UMDK_ST95_DELAY_CHECK_MS);
+    // }
+    
     if(cmd->data[0] == UMDK_ST95_DETECT_TAG) {
         if(cmd->length != 1) {
             reply_code(reply, UMDK_ST95_ERROR_REPLY);
             return true;        
         }
-        
         mode = UMDK_ST95_MODE_DETECT_TAG;
+        status = UMDK_ST95_STATUS_PROCCESSING;
         st95_sleep(&dev);
         
-        reply_code(reply, UMDK_ST95_OK_REPLY);
-        return true;
-        // return false;
+        // reply_code(reply, UMDK_ST95_OK_REPLY);
+        // return true;
+        return false;
     }
     else if(cmd->data[0] == UMDK_ST95_GET_UID) {
-        // if(cmd->length != 1) {
-            // reply_code(reply, UMDK_ST95_ERROR_REPLY);
-            // return true;        
-        // }
-        puts("CMD get uid");
-        if(mode == UMDK_ST95_DETECT_TAG) {
+        if(cmd->length != 1) {
+            reply_code(reply, UMDK_ST95_ERROR_REPLY);
+            return true;        
+        }
+        
+        status = UMDK_ST95_STATUS_PROCCESSING;
+        if(mode == UMDK_ST95_MODE_DETECT_TAG) {
             mode = UMDK_ST95_MODE_GET_UID;
             st95_sleep(&dev);
         }
         else {
             mode = UMDK_ST95_MODE_GET_UID;
             umdk_st95_get_uid();
-        }
-                
-        reply_code(reply, UMDK_ST95_OK_REPLY);
-        return true;       
-        // return false;       
+        } 
+        // reply_code(reply, UMDK_ST95_OK_REPLY);
+        // return true;       
+        return false;       
     }
     else if(cmd->data[0] == UMDK_ST95_READ_DATA) {
         if(cmd->length < 2) {
@@ -277,38 +284,38 @@ bool umdk_st95_cmd(module_data_t *cmd, module_data_t *reply)
         }
         
         uint16_t length = (cmd->data[1] << 8) | cmd->data[2];
-        
+        status = UMDK_ST95_STATUS_PROCCESSING;
         if(st95_read_data(&dev, ndef_data, length) == ST95_OK) {
             DEBUG("Data [%d]: ", length);
             _printbuff(ndef_data, length);            
             for(uint16_t i = 0; i < length; i++) {
                 printf("%c", ndef_data[i]);
             }
-            printf("\n");
-            
+            DEBUG("\n");
             reply_code(reply, UMDK_ST95_OK_REPLY);
-            return true;  
         }
         else {
             DEBUG("Reading error\n");
-            reply_code(reply, UMDK_ST95_ERROR_REPLY);
-            return true;  
+            reply_code(reply, UMDK_ST95_ERROR_REPLY); 
         }
+        status = UMDK_ST95_STATUS_READY;
+        return true;
     }
     else if(cmd->data[0] == UMDK_ST95_WRITE_DATA) {
-        // memcpy(ndef_data, cmd->data + 1, cmd->length - 1);
-        
-        memcpy(ndef_data, test_data, sizeof(test_data));
-        if(st95_write_data(&dev, ndef_data, sizeof(test_data)) == ST95_OK) {
+        uint16_t length = (cmd->data[1] << 8) | cmd->data[2];
+        status = UMDK_ST95_STATUS_PROCCESSING;
+        memcpy(ndef_data, test_data, length);
+        if(st95_write_data(&dev, ndef_data, length) == ST95_OK) {
             DEBUG("Writing completed\n");
             reply_code(reply, UMDK_ST95_OK_REPLY);
-            return true;  
         }
         else {
             DEBUG("Writing error\n");
-            reply_code(reply, UMDK_ST95_ERROR_REPLY);
-            return true;  
+            reply_code(reply, UMDK_ST95_ERROR_REPLY);              
         }      
+        
+        status = UMDK_ST95_STATUS_READY;
+        return true;
     }
     else {
         reply_code(reply, UMDK_ST95_ERROR_REPLY);

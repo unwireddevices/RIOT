@@ -171,7 +171,7 @@ static void *sender_thread(void *arg) {
                     puts("[LoRa] join request timed out, resending");
                     
                     /* Pseudorandom delay for collision avoidance */
-                    unsigned int delay = random_uint32_range(10000 + (current_join_retries - 1)*30000, 30000 + (current_join_retries - 1)*30000);
+                    unsigned int delay = random_uint32_range(30000 + (current_join_retries - 1)*60000, 90000 + (current_join_retries - 1)*60000);
                     printf("[LoRa] random delay %d s\n", delay/1000);
                     rtctimers_millis_set_msg(&send_retry_timer, delay, &msg_join, sender_pid);
                 }

@@ -16,6 +16,7 @@
  *
  * @author      René Herthel <rene-herthel@outlook.de>
  * @author      Oleg Artamonov <oleg@unwds.com>
+ * @author      Alexander Ugorelov <alex_u@unwds.com>
  *
  * @}
  */

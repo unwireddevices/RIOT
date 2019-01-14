@@ -14,6 +14,7 @@
  * @brief       Default configuration for LIS3MDL devices
  *
  * @author      Alexandre Abadie <alexandre.abadie@inria.fr>
+ * @author      Alexander Ugorelov <alex_u@unwds.com>
  */
 
 #ifndef LIS3MDL_PARAMS_H
@@ -32,7 +33,7 @@ extern "C" {
  * @{
  */
 #define LIS3MDL_SAD0L               (0x00)
-#define LIS3MDL_SAD0H               (0x10)
+#define LIS3MDL_SAD0H               (0x02)
 #define LIS3MDL_I2C_SADROOT         (0x07)
 
 /* I2C address if acc SA0 pin to GND */

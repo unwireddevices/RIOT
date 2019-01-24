@@ -99,7 +99,11 @@ int adc_sample(adc_t line,  adc_res_t res)
     /* Reactivate VREFINT and temperature sensor if necessary */
     if ((adc_config[line].chan == ADC_VREF_CHANNEL) || (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL)) {
         ADC->CCR = (ADC_CCR_VREFEN | ADC_CCR_TSEN);
-        while ((PWR->CSR & PWR_CSR_VREFINTRDYF) == 0);
+        
+        /* there's not PWR_CSR_VREFINTRDYF on STM32F030 and STM32F070 */
+        #if defined(PWR_CSR_VREFINTRDYF)
+            while ((PWR->CSR & PWR_CSR_VREFINTRDYF) == 0);
+        #endif
     }
 
     /* set resolution and channel */

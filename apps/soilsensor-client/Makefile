@@ -25,7 +25,5 @@ FEATURES_REQUIRED += periph_status
 USEMODULE += xtimer
 USEMODULE += checksum
 USEMODULE += random
-USEMODULE += shell
-USEMODULE += shell_commands
 
 include $(RIOTBASE)/Makefile.include

@@ -9,7 +9,6 @@ RIOTBASE ?= $(CURDIR)/../..
 
 CFLAGS += -DNO_RIOT_BANNER
 CFLAGS += -DTHREAD_STACKSIZE_MAIN=1536
-CFLAGS += -DCPU_STATUS_NO_STRINGS
 # CFLAGS += -DDEVELHELP
 
 # Change this to 0 show compiler invocation lines by default:

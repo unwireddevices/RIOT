@@ -18,6 +18,8 @@
  * @}
  */
 
+#if defined(MODULE_PERIPH_STATUS)
+ 
 #include "cpu.h"
 #include "periph/adc.h"
 #include "periph_conf.h"
@@ -229,6 +231,7 @@ static uint32_t get_cpu_category(void) {
 #endif
 }
 
+#if defined(MODULE_PERIPH_STATUS_EXTENDED)
 static char get_cpu_memory_code(uint32_t memory_size) {
     switch (memory_size/1024) {
         case (8):
@@ -261,9 +264,11 @@ static char get_cpu_memory_code(uint32_t memory_size) {
     
     return 'x';
 }
+#endif
 
 static void get_cpu_name(char *name) {
-int series = 0;
+#if defined(MODULE_PERIPH_STATUS_EXTENDED)
+    int series = 0;
 
 #if defined(CPU_FAM_STM32L0)
     #if defined(AES_BASE)
@@ -289,7 +294,7 @@ int series = 0;
     
     uint32_t memory = get_cpu_flash_size();
     char model = get_cpu_memory_code(memory);
-    sprintf(name, "STM32L%03dx%c", series, model);
+    snprintf(name, CPU_NAME_MAX_SIZE, "STM32L%03dx%c", series, model);
     
     return;
 
@@ -533,6 +538,10 @@ int series = 0;
 #else
 #error unexpected MCU
 #endif
+
+#else /* MODULE_PERIPH_STATUS_EXTENDED */
+    (void) name;
+#endif
 }
 
 static void get_cpu_flash(cpu_status_t* status) {
@@ -720,3 +729,5 @@ void cpu_update_status(void) {
     get_cpu_voltage(&cpu_status);
     get_cpu_temp(&cpu_status);
 }
+
+#endif /* MODULE_PERIPH_STATUS */

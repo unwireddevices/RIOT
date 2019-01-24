@@ -685,6 +685,9 @@ CFLAGS += -include '$(RIOTBUILD_CONFIG_HEADER_C)'
 # include mcuboot support
 include $(RIOTMAKE)/mcuboot.mk
 
+# include wolfboot support
+include $(RIOTMAKE)/wolfboot.mk
+
 # include Murdock helpers
 include $(RIOTMAKE)/murdock.inc.mk
 

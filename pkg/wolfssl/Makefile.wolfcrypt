@@ -24,12 +24,10 @@ SRC +=  error.c \
 # Enabled by default
 SRC +=  sha.c
 SRC +=  sha256.c
-SRC +=  fe_operations.c
 SRC +=  fe_low_mem.c
-SRC +=  ge_operations.c
 SRC +=  ge_low_mem.c
-SRC +=  integer.c
-SRC +=  tfm.c
+SRC +=  sp_int.c
+SRC +=  sp_c32.c
 
 
 include $(RIOTBASE)/Makefile.base

@@ -1,6 +1,5 @@
 /* user_settings.h : custom configuration for wolfcrypt/wolfSSL */
 
-
 /* System */
 #ifndef WOLFSSL_RIOT_OS
 #   define WOLFSSL_RIOT_OS 1
@@ -16,6 +15,11 @@
 #define NO_SIG_WRAPPER
 #define NO_OLD_RNGNAME
 #define WOLFSSL_SMALL_STACK
+
+/* Single precision math */
+#define WOLFSSL_SP_MATH
+#define WOLFSSL_SP_SMALL
+#define SP_WORD_SIZE 32
 
 
 #ifndef MODULE_WOLFSSL_SOCKET
@@ -155,6 +159,8 @@ int strncasecmp(const char *s1, const char * s2, unsigned int sz);
 #undef HAVE_ECC
 #ifdef MODULE_WOLFCRYPT_ECC
   #define HAVE_ECC
+  #define FP_ECC
+  #define WOLFSSL_HAVE_SP_ECC
   #define ECC_TIMING_RESISTANT
 #endif
 

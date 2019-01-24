@@ -33,6 +33,7 @@ USEMODULE += shell
 USEMODULE += shell_commands
 
 USEPKG += wolfssl
+USEMODULE += wolfcrypt
 USEMODULE += wolfssl
 USEMODULE += wolfcrypt-test
 USEMODULE += wolfcrypt_ecc
@@ -51,6 +52,6 @@ CFLAGS += -DTHREAD_STACKSIZE_MAIN=\(3*THREAD_STACKSIZE_DEFAULT\)
 CFLAGS += -DDEVELHELP
 
 # Change this to 0 show compiler invocation lines by default:
-QUIET ?= 1
+QUIET ?= 0
 
 include $(RIOTBASE)/Makefile.include

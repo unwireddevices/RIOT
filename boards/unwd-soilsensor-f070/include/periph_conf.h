@@ -44,7 +44,7 @@ extern "C" {
 #define CLOCK_APB1          (CLOCK_CORECLOCK / 1)
 
 /* configuration of peripheral bus clock prescalers */
-#define CLOCK_AHB_DIV       RCC_CFGR_HPRE_DIV8
+#define CLOCK_AHB_DIV       RCC_CFGR_HPRE_DIV16
 #define CLOCK_APB1_DIV      RCC_CFGR_PPRE_DIV1
 /** @} */
 

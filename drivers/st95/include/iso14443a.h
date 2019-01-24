@@ -116,6 +116,11 @@ extern "C" {
 
 #define NDEF_PACK_OFFSET_DATA 0x02
 
+#define ST95_14443A_CARD_WAIT_RF            1
+#define ST95_14443A_CARD_NO_RF              0
+#define ST95_14443A_CARD_CLKREC             1
+#define ST95_14443A_CARD_HFO                0
+
 /**
  * @brief   ISO14443A card parameters
  */

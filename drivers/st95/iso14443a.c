@@ -18,10 +18,10 @@
  
 #include "st95.h"
 #include "iso14443a.h"
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
-#define ENABLE_DEBUG_ST95 (1)
+#define ENABLE_DEBUG_ST95 (0)
 
 #if ENABLE_DEBUG_ST95
     // #define PRINTBUFF _printbuff

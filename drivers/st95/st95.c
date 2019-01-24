@@ -28,7 +28,7 @@
 #include "st95_params.h"
 #include "iso14443a.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 #define ENABLE_DEBUG_ST95 (0)
@@ -633,6 +633,7 @@ void st95_sleep(st95_t * dev)
     if(st95_state.mode == ST95_SLEEP_MODE) {
         return;
     }
+
     _st95_cmd_idle(dev, dev->params.dac_l, dev->params.dac_h);
 }
 
@@ -683,6 +684,36 @@ int _st95_select_iso14443a(const st95_t * dev, uint8_t * params, uint8_t length_
             return ST95_OK;
         }
     }
+    return ST95_ERROR;
+}
+
+/**
+ * @brief This function select ISO 14443A protocol Card emulation
+ * 
+ * @param[in]   dev:            Pointer to ST95 device descriptor
+ * 
+ * @return 0:   if selecting success
+ * @return 1:   in case of an error
+ */
+int _st95_select_iso14443a_card(const st95_t * dev)
+{    
+    st95_txbuf[0] = ST95_CMD_PROTOCOL;
+    st95_txbuf[1] = 2;    // Data Length
+    st95_txbuf[2] = CARD_ISO14443A;
+    
+    st95_txbuf[3] = 0x00 | (ST95_14443A_CARD_WAIT_RF << 3) | (ST95_14443A_CARD_HFO << 1);
+    st95_txbuf[3] |= (ST95_TX_RATE_14443A << 6) | (ST95_RX_RATE_14443A << 4);
+    
+    _st95_spi_send(dev, st95_txbuf, 4, false);
+    _st95_wait_ready_data();  
+    
+    if(_st95_spi_receive(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF, false) == ST95_OK) {
+        if((st95_rxbuf[0] == 0x00) && (st95_rxbuf[1] == 0x00)) {
+            puts("[CARD Emul] OK");
+            return ST95_OK;
+        }
+    }
+    puts("[CARD Emul] ERR");
     return ST95_ERROR;
 }
 
@@ -838,6 +869,10 @@ int st95_init(st95_t * dev, st95_params_t * params)
         DEBUG("[ST95]: Calibration error\n");
         return ST95_ERROR;
     }
+    
+    // if(_st95_select_iso14443a_card(dev) != ST95_OK) {
+        // return ST95_ERROR;
+    // }
     
     return ST95_OK;
 }

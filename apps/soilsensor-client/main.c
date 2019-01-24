@@ -34,18 +34,13 @@
 #include <random.h>
 #include "xtimer.h"
 #include "checksum/ucrc16.h"
-#include "hashes/sha256.h"
+#include "luid.h"
 #include "string.h"
 #include "thread.h"
 #include "periph/adc.h"
 #include "periph/uart.h"
 #include "periph/gpio.h"
-#include "periph/cpuid.h"
 #include "periph/flashpage.h"
-#include "shell_commands.h"
-#include "shell.h"
-
-#include "ps.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -84,7 +79,7 @@ enum {
     TYPE_SOIL_SENSOR    = 3,
 } data_types_t;
 
-static uint8_t address_uart[ADDRESS_SIZE] = {};
+static uint64_t address_uart;
 
 static uint8_t buf_in[BUF_SIZE] = {};     /* buffer for the received data */
 
@@ -101,8 +96,8 @@ typedef struct {
 static sensor_settings_t sensor_settings = { 0xCAFEBABE, 0, 0 };
 
 typedef struct {
-    uint8_t moisture;
     int moisture_raw;
+    uint8_t moisture;
     uint8_t temperature;
     uint8_t voltage;
 } sensor_data_t;
@@ -139,7 +134,7 @@ static sensor_data_t readval(void)
     /* Vref ADC channel */
     adc_init(ADC_VREF);
     int vdda = adc_sample(ADC_VREF, ADC_RES_12BIT);
-    printf("Supply voltage: %d mV\n", vdda);
+    printf("VDD: %d mV\n", vdda);
 
     moisture -= (100*sensor_settings.moisture_min);
     moisture /= (sensor_settings.moisture_max - sensor_settings.moisture_min);
@@ -151,8 +146,11 @@ static sensor_data_t readval(void)
     if (moisture < 0) {
         moisture = 0;
     }
-    
+#if ENABLE_DEBUG
     printf("Moisture: %d %% (%d)\n", moisture, data.moisture_raw);
+#else
+    printf("Moisture: %d %%\n", moisture);
+#endif
     
     temp = (10*vdda*sum2)/(4096 * n); /* mV*10 */
     
@@ -205,7 +203,7 @@ static int collision_detect(uint8_t *data)
         }
 
         if (last_byte_value != data[i]) {
-            printf("Collision detected, %02x vs %02x", data[i], last_byte_value);
+            printf("Collision: %02x vs %02x", data[i], last_byte_value);
             /* random delay 30 to 300 ms */
             xtimer_usleep(1000*random_uint32_range(30, 300));
 
@@ -230,11 +228,13 @@ static void send_data(uint8_t *data, bool wait)
         }
     }
 
+#if ENABLE_DEBUG
     printf("Data: 0x");
     for (uint8_t i = 0; i < BUF_SIZE; i++) {
         printf("%02X", data[i]);
     }
     printf("\n");
+#endif
     
     int i = 0;
     while (collision_detect(data) && (++i < 10000)) { }
@@ -258,7 +258,7 @@ static void prepare_data(uint8_t *buf)
     sensor_data_t data = readval();
     
     buf[0] = START_BYTE;
-    memcpy(&buf[1], address_uart, ADDRESS_SIZE);
+    memcpy(&buf[1], (void *)&address_uart, sizeof(address_uart));
     buf[OFFSET_TYPE] = TYPE_SOIL_SENSOR;
     buf[OFFSET_CMD] = SOILSENSOR_CMD_DATA;
     buf[OFFSET_BYTE_MOISTURE] = data.moisture;
@@ -279,11 +279,13 @@ static void *processing_thread(void *arg)
     while (1) {
         msg_receive(&msg);
         
+#if ENABLE_DEBUG
         printf("Received: 0x");
         for (int i = 0; i<BUF_SIZE; i++) {
             printf ("%02X", buf_in[i]);
         }
         printf("\n");
+#endif
         
         if (!verify_crc(buf_in)) {
             puts("CRC error");
@@ -301,14 +303,14 @@ static void *processing_thread(void *arg)
             xtimer_usleep(1000*random_uint32_range(30, 300));
             send_data(buf_out, true);
             
-            puts("Address successfully sent");
+            puts("Address sent");
             
             continue;
         }
         
         /* Verifying if destination address is ours */
-        if (memcmp(buf_in, address_uart, ADDRESS_SIZE)) {
-            puts("Address mismatch, ignoring packet");
+        if (memcmp(buf_in, (void *)&address_uart, ADDRESS_SIZE)) {
+            puts("Address mismatch, ignoring");
             continue;
         }
         
@@ -316,9 +318,9 @@ static void *processing_thread(void *arg)
             puts("Data requested");
             prepare_data(buf_out);
             send_data(buf_out, false);
-            puts("Data successfully sent");
+            puts("Data sent");
         } else {
-            puts("Unknown request code, ignoring packet");
+            puts("Unknown code, ignoring");
         }
     }
     return NULL;
@@ -353,7 +355,7 @@ static void uart_input(void *arg, uint8_t data)
     
     return;
 }
-
+/*
 static int min_cal(int argc, char **argv)
 {
     (void)argc;
@@ -405,47 +407,45 @@ static const shell_command_t shell_commands[] = {
     { "save", "save calibration", save },
     { NULL, NULL, NULL }
 };
-
+*/
 int main(void)
 {
-    puts("*****************************");
-    puts("72 MHz capacitive soil moisture sensor");
-    puts("Firmware ver. 1.00");
-    puts("(c) 2018 Unwired Devices LLC");
-
+    puts("FW v. 1.00 / STM32F030");
+    puts("(c) 2019 Unwired Devices LLC");
+ 
     xtimer_init();
 
-    /* generate 64-bit address */
-    uint8_t cpuid[CPUID_LEN];
-    cpuid_get(cpuid);
-    memcpy(address_uart, sha256((uint8_t *)cpuid, CPUID_LEN, NULL), 8);
-
-    uint32_t *add_ptr = (uint32_t *)address_uart;
-    random_init(*add_ptr);
+    /* generate 64-bit address based on CPUID */    
+    luid_get((void *)&address_uart, sizeof(address_uart));
     
-    printf("64-bit device address: 0x");
-    for (int i = 0; i < ADDRESS_SIZE; i++) {
-        printf("%02X", address_uart[i]);
-    }
-    printf("\n");
+    printf("DevAddr: 0x%16llx\n", address_uart);
     
+#if defined(CPU_LINE_STM32F051x8)
     cpu_status.flash.pages = 32;
     cpu_status.flash.pagesize = 1024;
     cpu_status.flash.size = 32768;
+    
+    /* enable MCO */
+    gpio_init_af(GPIO_PIN(PORT_A, 8), GPIO_AF0);
+#elif defined(CPU_LINE_STM32F030x8) || defined(CPU_LINE_STM32F070xB)
+    cpu_status.flash.pages = 16;
+    cpu_status.flash.pagesize = 1024;
+    cpu_status.flash.size = 16384;
+    
+    /* setup TIM14 */
+#else
+    #error Unsupported CPU model
+#endif
     
     bool calibration = false;
     flashpage_read(cpu_status.flash.pages - 1, (void *)&sensor_settings, sizeof(sensor_settings));
     
     if (sensor_settings.magic == 0xCAFEBABE) {
-        printf("Sensor already calibrated: %d/%d\n", 
-                sensor_settings.moisture_min, sensor_settings.moisture_max);
+        puts("Sensor already calibrated");
         calibration = true;
     }
     
     puts("*****************************");
-    
-    /* enable MCO */
-    gpio_init_af(GPIO_PIN(PORT_A, 8), GPIO_AF0);
     
     if (calibration) {
         uart_init(UART_1, 9600, uart_input, NULL);
@@ -459,13 +459,12 @@ int main(void)
         prepare_data(buf_out);
         send_data(buf_out, true);
         
-        puts("Data successfully sent");
+        puts("Data sent");
     } else {
         puts("(!!!) UNCALIBRATED SENSOR (!!!)");
     }
-    
-    char line_buf[SHELL_DEFAULT_BUFSIZE];
-    shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);
+  
+    while (1) {};
     
     return 0;
 }

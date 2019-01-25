@@ -57,6 +57,7 @@ int lis2hh12_init(lis2hh12_t *dev, const lis2hh12_params_t *params)
     uint8_t tmp;
     
     i2c_acquire(DEV_I2C);
+    i2c_init(DEV_I2C);
 
     if (i2c_read_reg(DEV_I2C, DEV_ADDR, LIS2HH12_WHO_AM_I, &tmp, 0) < 0)
         return LIS2HH12_NOBUS;

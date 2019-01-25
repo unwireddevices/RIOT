@@ -37,6 +37,10 @@ extern "C" {
 #define XTIMER_WIDTH        (16)
 /** @} */
 
+#define UART_STDIO_DEV              UART_DEV(0)
+#define UART_STDIO_BAUDRATE         (115200U)
+#define UART_STDIO_RX_BUFSIZE       (64U)
+
 /**
  * @brief Initialize board specific hardware, including clock, LEDs and std-IO
  */

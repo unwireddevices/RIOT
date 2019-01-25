@@ -32,7 +32,7 @@ extern "C" {
  * @{
  */
 #define CLOCK_HSE           (24000000U)         /* external oscillator */
-#define CLOCK_CORECLOCK     (3000000U)          /* desired core clock frequency */
+#define CLOCK_CORECLOCK     (48000000U)          /* desired core clock frequency */
 
 /* the actual PLL values are automatically generated */
 #define CLOCK_PLL_MUL       (2)
@@ -44,7 +44,7 @@ extern "C" {
 #define CLOCK_APB1          (CLOCK_CORECLOCK / 1)
 
 /* configuration of peripheral bus clock prescalers */
-#define CLOCK_AHB_DIV       RCC_CFGR_HPRE_DIV16
+#define CLOCK_AHB_DIV       RCC_CFGR_HPRE_DIV1
 #define CLOCK_APB1_DIV      RCC_CFGR_PPRE_DIV1
 /** @} */
 
@@ -54,15 +54,15 @@ extern "C" {
  */
 static const timer_conf_t timer_config[] = {
     {
-        .dev      = TIM3,
+        .dev      = TIM6,
         .max      = 0x0000ffff,
-        .rcc_mask = RCC_APB1ENR_TIM3EN,
+        .rcc_mask = RCC_APB1ENR_TIM6EN,
         .bus      = APB1,
-        .irqn     = TIM3_IRQn
+        .irqn     = TIM6_IRQn
     }
 };
 
-#define TIMER_0_ISR         isr_tim3
+#define TIMER_0_ISR         isr_tim6
 
 #define TIMER_NUMOF         (sizeof(timer_config) / sizeof(timer_config[0]))
 /** @} */
@@ -73,31 +73,31 @@ static const timer_conf_t timer_config[] = {
  */
 static const uart_conf_t uart_config[] = {
     {
-        .dev        = USART2,
-        .rcc_mask   = RCC_APB1ENR_USART2EN,
-        .rx_pin     = GPIO_PIN(PORT_A, 3),
-        .tx_pin     = GPIO_PIN(PORT_A, 2),
-        .tx_mode    = GPIO_OUT,
-        .rx_af      = GPIO_AF1,
-        .tx_af      = GPIO_AF1,
-        .bus        = APB1,
-        .irqn       = USART2_IRQn
-    },
-    {
         .dev        = USART1,
         .rcc_mask   = RCC_APB2ENR_USART1EN,
         .rx_pin     = GPIO_PIN(PORT_A, 10),
         .tx_pin     = GPIO_PIN(PORT_A, 9),
-        .tx_mode    = GPIO_OD,
+        .tx_mode    = GPIO_OUT,
         .rx_af      = GPIO_AF1,
         .tx_af      = GPIO_AF1,
         .bus        = APB2,
         .irqn       = USART1_IRQn
+    },
+    {
+        .dev        = USART2,
+        .rcc_mask   = RCC_APB1ENR_USART2EN,
+        .rx_pin     = GPIO_PIN(PORT_A, 3),
+        .tx_pin     = GPIO_PIN(PORT_A, 2),
+        .tx_mode    = GPIO_OD,
+        .rx_af      = GPIO_AF1,
+        .tx_af      = GPIO_AF1,
+        .bus        = APB1,
+        .irqn       = USART2_IRQn
     }
 };
 
-#define UART_0_ISR          (isr_usart2)
-#define UART_1_ISR          (isr_usart1)
+#define UART_0_ISR          (isr_usart1)
+#define UART_1_ISR          (isr_usart2)
 
 #define UART_NUMOF          (sizeof(uart_config) / sizeof(uart_config[0]))
 /** @} */

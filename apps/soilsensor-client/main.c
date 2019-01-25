@@ -432,7 +432,17 @@ int main(void)
     cpu_status.flash.pagesize = 1024;
     cpu_status.flash.size = 16384;
     
-    /* setup TIM14 */
+    /* setup TIM3 CH2 */
+    gpio_init_af(GPIO_PIN(PORT_A, 7), GPIO_AF1);
+    RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
+    
+    TIM3->CR1 |= TIM_CR1_ARPE;
+    TIM3->CCMR1 |= (TIM_CCMR1_OC2M_0 | TIM_CCMR1_OC2M_1);
+    TIM3->CCER |= TIM_CCER_CC2E;
+    TIM3->ARR = 1;
+    TIM3->CCR[1] = 1;
+    
+    TIM3->CR1 |= TIM_CR1_CEN;
 #else
     #error Unsupported CPU model
 #endif

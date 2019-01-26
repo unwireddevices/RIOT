@@ -103,6 +103,46 @@ static const uart_conf_t uart_config[] = {
 /** @} */
 
 /**
+ * @brief   PWM configuration
+ * @{
+ */
+static const pwm_conf_t pwm_config[] = {
+    {
+        .dev      = TIM3,
+        .rcc_mask = RCC_APB1ENR_TIM3EN,
+        .chan     = { { .pin = GPIO_PIN(PORT_A, 7), .cc_chan = 1 },
+                      { .pin = GPIO_UNDEF,          .cc_chan = 0 },
+                      { .pin = GPIO_UNDEF,          .cc_chan = 0 },
+                      { .pin = GPIO_UNDEF,          .cc_chan = 0 } },
+        .af       = GPIO_AF1,
+        .bus      = APB1
+    },
+    {
+        .dev      = TIM14,
+        .rcc_mask = RCC_APB1ENR_TIM14EN,
+        .chan     = { { .pin = GPIO_PIN(PORT_A, 7), .cc_chan = 0 },
+                      { .pin = GPIO_UNDEF,          .cc_chan = 0 },
+                      { .pin = GPIO_UNDEF,          .cc_chan = 0 },
+                      { .pin = GPIO_UNDEF,          .cc_chan = 0 } },
+        .af       = GPIO_AF4,
+        .bus      = APB1
+    },
+    {
+        .dev      = TIM17,
+        .rcc_mask = RCC_APB2ENR_TIM17EN,
+        .chan     = { { .pin = GPIO_PIN(PORT_A, 7), .cc_chan = 0 },
+                      { .pin = GPIO_UNDEF,          .cc_chan = 0 },
+                      { .pin = GPIO_UNDEF,          .cc_chan = 0 },
+                      { .pin = GPIO_UNDEF,          .cc_chan = 0 } },
+        .af       = GPIO_AF5,
+        .bus      = APB2
+    }
+};
+
+#define PWM_NUMOF           (sizeof(pwm_config) / sizeof(pwm_config[0]))
+/** @} */
+
+/**
  * @brief   ADC configuration
  * @{
  */

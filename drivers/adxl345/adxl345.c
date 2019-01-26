@@ -47,6 +47,7 @@ int adxl345_init(adxl345_t *dev, const adxl345_params_t* params)
 
     /* Acquire exclusive access */
     i2c_acquire(ADXL345_BUS);
+    i2c_init(ADXL345_BUS);
 
     /* test if the target device responds */
     i2c_read_reg(ADXL345_BUS, ADXL345_ADDR, ADXL345_CHIP_ID_REG, &reg, 0);

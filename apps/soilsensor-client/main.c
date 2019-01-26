@@ -440,7 +440,7 @@ int main(void)
     cpu_status.flash.size = 32768;
     
     /* setup 24 MHz output to feed the sensor */
-    pwm_init(PWM_DEV(1), PWM_RIGHT, 1500000, 2);
+    pwm_init(PWM_DEV(1), PWM_RIGHT, 24000000, 2);
     pwm_set(PWM_DEV(1), 0, 1);
     pwm_start(PWM_DEV(1), 0);
 

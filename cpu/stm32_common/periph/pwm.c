@@ -45,7 +45,7 @@ uint32_t pwm_init(pwm_t pwm, pwm_mode_t mode, uint32_t freq, uint16_t res)
     uint32_t timer_clk = periph_timer_clk(pwm_config[pwm].bus);
 
     /* verify parameters */
-    assert((pwm < PWM_NUMOF) && ((freq * res) < timer_clk));
+    assert((pwm < PWM_NUMOF) && ((freq * res) <= timer_clk));
 
     /* power on the used timer */
     periph_clk_en(pwm_config[pwm].bus, pwm_config[pwm].rcc_mask);
@@ -84,7 +84,7 @@ uint32_t pwm_init(pwm_t pwm, pwm_mode_t mode, uint32_t freq, uint16_t res)
 #endif
     dev(pwm)->CCER = (TIM_CCER_CC1E | TIM_CCER_CC2E |
                       TIM_CCER_CC3E | TIM_CCER_CC4E);
-    dev(pwm)->CR1 |= TIM_CR1_CEN;
+
     /* return the actual used PWM frequency */
     return (timer_clk / (res * (dev(pwm)->PSC + 1)));
 }
@@ -92,9 +92,11 @@ uint32_t pwm_init(pwm_t pwm, pwm_mode_t mode, uint32_t freq, uint16_t res)
 uint8_t pwm_channels(pwm_t pwm)
 {
     assert(pwm < PWM_NUMOF);
-
+    
+    (void) pwm;
+    
     unsigned i = 0;
-    while ((i < TIMER_CHAN) && (pwm_config[pwm].chan[i].pin != GPIO_UNDEF)) {
+    while (i < TIMER_CHAN) {
         i++;
     }
     return (uint8_t)i;
@@ -114,16 +116,24 @@ void pwm_set(pwm_t pwm, uint8_t channel, uint16_t value)
     dev(pwm)->CCR[pwm_config[pwm].chan[channel].cc_chan] = value;
 }
 
-void pwm_start(pwm_t pwm)
+void pwm_start(pwm_t pwm, uint8_t channel)
 {
     assert(pwm < PWM_NUMOF);
+    
+    /* configure corresponding pin */
+    gpio_init(pwm_config[pwm].chan[channel].pin, GPIO_OUT);
+    gpio_init_af(pwm_config[pwm].chan[channel].pin, pwm_config[pwm].af);
+    
+    /* enable PWM */
     dev(pwm)->CR1 |= TIM_CR1_CEN;
 }
 
-void pwm_stop(pwm_t pwm)
+void pwm_stop(pwm_t pwm, uint8_t channel)
 {
     assert(pwm < PWM_NUMOF);
-    dev(pwm)->CR1 &= ~TIM_CR1_CEN;
+    
+    /* disable corresponding pin */
+    gpio_init(pwm_config[pwm].chan[channel].pin, GPIO_AIN);
 }
 
 void pwm_poweron(pwm_t pwm)

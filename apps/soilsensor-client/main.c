@@ -40,6 +40,9 @@
 #include "periph/adc.h"
 #include "periph/uart.h"
 #include "periph/gpio.h"
+#include "periph/pwm.h"
+#include "periph/pm.h"
+#include "pm_layered.h"
 #include "periph/flashpage.h"
 
 #define ENABLE_DEBUG (0)
@@ -410,6 +413,10 @@ static const shell_command_t shell_commands[] = {
 */
 int main(void)
 {
+    pm_init();
+    pm_unblock(PM_IDLE);
+    pm_unblock(PM_SLEEP);
+    
     puts("FW v. 1.00 / STM32F030");
     puts("(c) 2019 Unwired Devices LLC");
  
@@ -430,19 +437,13 @@ int main(void)
 #elif defined(CPU_LINE_STM32F030x8) || defined(CPU_LINE_STM32F070xB)
     cpu_status.flash.pages = 16;
     cpu_status.flash.pagesize = 1024;
-    cpu_status.flash.size = 16384;
+    cpu_status.flash.size = 32768;
     
-    /* setup TIM3 CH2 */
-    gpio_init_af(GPIO_PIN(PORT_A, 7), GPIO_AF1);
-    RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
-    
-    TIM3->CR1 |= TIM_CR1_ARPE;
-    TIM3->CCMR1 |= (TIM_CCMR1_OC2M_0 | TIM_CCMR1_OC2M_1);
-    TIM3->CCER |= TIM_CCER_CC2E;
-    TIM3->ARR = 1;
-    TIM3->CCR[1] = 1;
-    
-    TIM3->CR1 |= TIM_CR1_CEN;
+    /* setup 24 MHz output to feed the sensor */
+    pwm_init(PWM_DEV(1), PWM_RIGHT, 1500000, 2);
+    pwm_set(PWM_DEV(1), 0, 1);
+    pwm_start(PWM_DEV(1), 0);
+
 #else
     #error Unsupported CPU model
 #endif

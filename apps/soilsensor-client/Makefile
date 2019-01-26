@@ -19,6 +19,8 @@ FEATURES_REQUIRED += periph_gpio
 FEATURES_REQUIRED += periph_timer
 FEATURES_REQUIRED += periph_uart
 FEATURES_REQUIRED += periph_adc
+FEATURES_REQUIRED += periph_pwm
+FEATURES_REQUIRED += periph_pm
 FEATURES_REQUIRED += periph_flashpage
 FEATURES_REQUIRED += periph_status
 

@@ -58,8 +58,10 @@ extern "C" {
  */
 #define PROVIDES_PM_SET_LOWEST
 
-#define CPU_NAME_MAX_SIZE           20
-#define CPU_CLOCK_SOURCE_MAX_SIZE   9
+#if defined(MODULE_PERIPH_STATUS_EXTENDED)
+    #define CPU_NAME_MAX_SIZE           20
+    #define CPU_CLOCK_SOURCE_MAX_SIZE   9
+#endif
 
 typedef struct {
     size_t      size;
@@ -78,6 +80,7 @@ typedef struct {
     uint8_t     alignment;
 } cpu_eeprom_t;
 
+#if defined(MODULE_PERIPH_STATUS_EXTENDED)
 typedef struct {
     int16_t         vdd;        /**< CPU VDD voltage, mV (INT16_MIN if not available)  */
     int16_t         vdda;       /**< CPU VDDA voltage, mV (INT16_MIN if not available) */
@@ -87,29 +90,36 @@ typedef struct {
 typedef struct {
     int16_t         core_temp;          /**< CPU core temperature, C (INT16_MIN if not available) */
 } cpu_temp_t;
+#endif
 
 typedef struct {
     uint32_t        coreclock;          /**< CPU core clock     */
+#if defined(MODULE_PERIPH_STATUS_EXTENDED)
     char            source[CPU_CLOCK_SOURCE_MAX_SIZE + 1];         /**< CPU clock source   */
+#endif
 } cpu_clock_t;
 
 typedef struct {
     cpu_ram_t       ram;                /**< CPU RAM data */
     cpu_flash_t     flash;              /**< CPU flash data */
     cpu_eeprom_t    eeprom;             /**< CPU EEPROM data */
-    cpu_voltage_t   voltage;            /**< CPU voltages */
     cpu_clock_t     clock;              /**< CPU clocks */
+#if defined(MODULE_PERIPH_STATUS_EXTENDED)
+    cpu_voltage_t   voltage;            /**< CPU voltages */
     cpu_temp_t      temp;               /**< CPU core temperatures */
     char            model[CPU_NAME_MAX_SIZE];    /**< CPU name and model */
+#endif
     uint8_t         category;           /**< CPU category (0 if not applicable) */
 } cpu_status_t;
 
 extern cpu_status_t cpu_status;
 
+#if defined(MODULE_PERIPH_STATUS_EXTENDED)
 /**
  * @brief   Updates CPU status info
  */
 void cpu_update_status(void);
+#endif
 
 /**
  * @brief   Initializes CPU status info

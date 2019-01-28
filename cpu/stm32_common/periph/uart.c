@@ -56,7 +56,7 @@ int uart_set_baudrate(uart_t uart, uint32_t baudrate) {
         periph_clk_dis(uart_config[uart].bus, uart_config[uart].rcc_mask);
         return UART_NOBAUD;
     } else {       
-        /* Disable UART. Setting BRR on enabled USART1 sometimes somehow results in Hard Fault */
+        /* Disable UART. Setting BRR on enabled USART is not supported */
         dev(uart)->CR1 &= ~USART_CR1_UE;
         
         /* choose between 8x and 16x oversampling */

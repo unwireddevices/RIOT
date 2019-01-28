@@ -54,15 +54,15 @@ extern "C" {
  */
 static const timer_conf_t timer_config[] = {
     {
-        .dev      = TIM6,
+        .dev      = TIM3,
         .max      = 0x0000ffff,
-        .rcc_mask = RCC_APB1ENR_TIM6EN,
+        .rcc_mask = RCC_APB1ENR_TIM3EN,
         .bus      = APB1,
-        .irqn     = TIM6_IRQn
+        .irqn     = TIM3_IRQn
     }
 };
 
-#define TIMER_0_ISR         isr_tim6
+#define TIMER_0_ISR         isr_tim3
 
 #define TIMER_NUMOF         (sizeof(timer_config) / sizeof(timer_config[0]))
 /** @} */
@@ -107,16 +107,6 @@ static const uart_conf_t uart_config[] = {
  * @{
  */
 static const pwm_conf_t pwm_config[] = {
-    {
-        .dev      = TIM3,
-        .rcc_mask = RCC_APB1ENR_TIM3EN,
-        .chan     = { { .pin = GPIO_PIN(PORT_A, 7), .cc_chan = 1 },
-                      { .pin = GPIO_UNDEF,          .cc_chan = 0 },
-                      { .pin = GPIO_UNDEF,          .cc_chan = 0 },
-                      { .pin = GPIO_UNDEF,          .cc_chan = 0 } },
-        .af       = GPIO_AF1,
-        .bus      = APB1
-    },
     {
         .dev      = TIM14,
         .rcc_mask = RCC_APB1ENR_TIM14EN,

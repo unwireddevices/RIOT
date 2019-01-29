@@ -68,7 +68,7 @@ void ls_devlist_init(ls_gate_devices_t *devlist) {
 	for(int i = 0; i < LS_GATE_MAX_NODES; i++) {
         ls_gate_node_t *node = &devlist->nodes[i];
         bloom_init(&node->nonces, LS_GATE_NONCES_PER_DEVICE, node->bloom_bits, hashes, BLOOM_NUM_HASHES);
-        memset(node->bloom_bits, 0, ((LS_GATE_NONCES_PER_DEVICE) + 7) / 8);
+        memset(node->bloom_bits, 0, LS_GATE_NONCES_PER_DEVICE / 8);
 
 		devlist->nodes_free_list[i] = true;
     }
@@ -88,7 +88,7 @@ static void clear_nonce_list(ls_gate_devices_t *devlist, ls_addr_t addr) {
 
 	ls_gate_node_t *node = &devlist->nodes[addr];
     bloom_init(&node->nonces, LS_GATE_NONCES_PER_DEVICE, node->bloom_bits, hashes, BLOOM_NUM_HASHES);
-    memset(node->bloom_bits, 0, ((LS_GATE_NONCES_PER_DEVICE) + 7) / 8);
+    memset(node->bloom_bits, 0, LS_GATE_NONCES_PER_DEVICE / 8);
 
 	node->num_nonces = 0;
     

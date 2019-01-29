@@ -54,7 +54,7 @@
     #define LS_GATE_NONCES_PER_DEVICE 128
 #else
     #define LS_GATE_MAX_NODES 100
-    #define LS_GATE_NONCES_PER_DEVICE 128
+    #define LS_GATE_NONCES_PER_DEVICE 32
 #endif
 
 typedef struct __attribute__((__packed__)){
@@ -66,7 +66,7 @@ typedef struct __attribute__((__packed__)){
 	void *node_ch;				/**< Node's channel */
     bloom_t nonces;                                     /**< Bloom filter of used nonces, gives number of possibly remembered nonces proportional to the filter size */
     ls_nonce_t last_nonce;                              /**< Last accepted nonce used for key derivation */
-    BITFIELD(bloom_bits, LS_GATE_NONCES_PER_DEVICE);    /**< Bitset for Bloom filter */
+    uint8_t bloom_bits[LS_GATE_NONCES_PER_DEVICE / 8];  /**< Bitset for Bloom filter */
 	ls_node_class_t node_class;	/**< Node's class */
     ls_device_status_t status;	/**< Last received device status */
 	ls_frame_id_t last_fid;		/**< Last received frame ID */

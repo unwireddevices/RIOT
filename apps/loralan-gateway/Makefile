@@ -39,6 +39,8 @@ USEMODULE += hashes
 USEMODULE += checksum
 USEMODULE += sx127x
 USEMODULE += rtctimers-millis
+USEMODULE += bloom
+USEMODULE += bitfield
 
 ####### Empty modules list as we don't need any modules for the gateway ############
 

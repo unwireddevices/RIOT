@@ -107,14 +107,14 @@ static int send_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame)
         case LS_DL_ACK:
             node = ls_devlist_get(&ls->devices, frame->header.dev_addr);
 
-            ls_derive_keys(node->nonce[node->num_nonces - 1], node->app_nonce, node->addr, mic_key, NULL);
+            ls_derive_keys(node->last_nonce, node->app_nonce, node->addr, mic_key, NULL);
             ls_encrypt_frame(mic_key, mic_key, frame, &payload_size);
             break;
 
         default:
             node = ls_devlist_get(&ls->devices, frame->header.dev_addr);
 
-            ls_derive_keys(node->nonce[node->num_nonces - 1], node->app_nonce, node->addr, mic_key, aes_key);
+            ls_derive_keys(node->last_nonce, node->app_nonce, node->addr, mic_key, aes_key);
             ls_encrypt_frame(mic_key, aes_key, frame, &payload_size);
     }
     
@@ -312,7 +312,7 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
         /* Update node's last seen time */
         node->last_seen = ls->_internal.ping_count;
         
-        ls_derive_keys(node->nonce[node->num_nonces - 1], node->app_nonce, node->addr, mic_key, aes_key);
+        ls_derive_keys(node->last_nonce, node->app_nonce, node->addr, mic_key, aes_key);
 
         /* Validate frame MIC */
         if (!ls_validate_frame_mic(mic_key, frame)) {

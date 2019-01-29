@@ -39,11 +39,25 @@ extern "C" {
 #include "xtimer.h"
 #include "mutex.h"
 
+#include "hashes.h"
+#include "bloom.h"
+
 #include "ls-mac-types.h"
 #include "ls-gate-device-list.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
+
+/* Set of different hash functions used for Bloom filter of used nonces */
+#define BLOOM_NUM_HASHES (6)
+hashfp_t hashes[BLOOM_NUM_HASHES] = {
+    (hashfp_t) fnv_hash,
+    (hashfp_t) sax_hash,
+    (hashfp_t) sdbm_hash,
+    (hashfp_t) djb2_hash,
+    (hashfp_t) kr_hash,
+    (hashfp_t) dek_hash,
+};
 
 /**
  * @brief Initialize list of connected nodes
@@ -52,6 +66,10 @@ void ls_devlist_init(ls_gate_devices_t *devlist) {
 	memset(devlist, 0, sizeof(ls_gate_devices_t));
 
 	for(int i = 0; i < LS_GATE_MAX_NODES; i++) {
+        ls_gate_node_t *node = &devlist->nodes[i];
+        bloom_init(&node->nonces, LS_GATE_NONCES_PER_DEVICE, node->bloom_bits, hashes, BLOOM_NUM_HASHES);
+        memset(node->bloom_bits, 0, ((LS_GATE_NONCES_PER_DEVICE) + 7) / 8);
+
 		devlist->nodes_free_list[i] = true;
     }
 	mutex_init(&devlist->mutex);    
@@ -69,8 +87,9 @@ static void clear_nonce_list(ls_gate_devices_t *devlist, ls_addr_t addr) {
     }
 
 	ls_gate_node_t *node = &devlist->nodes[addr];
-    
-    memset((void *)node->nonce, 0, sizeof(ls_nonce_t) * LS_GATE_NONCES_PER_DEVICE);
+    bloom_init(&node->nonces, LS_GATE_NONCES_PER_DEVICE, node->bloom_bits, hashes, BLOOM_NUM_HASHES);
+    memset(node->bloom_bits, 0, ((LS_GATE_NONCES_PER_DEVICE) + 7) / 8);
+
 	node->num_nonces = 0;
     
     DEBUG("ls-gate-device-list: nonce list cleared\n");
@@ -89,15 +108,13 @@ ls_gate_node_t *add_nonce(ls_gate_devices_t *devlist, uint64_t node_id, uint32_t
 					clear_nonce_list(devlist, i);
 				}
 
-				/* Add current nonce to nonce list */
-                for (uint32_t j = 0; j < LS_GATE_NONCES_PER_DEVICE; j++) {
-                    if (node->nonce[j] == 0) {
-                        node->nonce[j] = nonce;
-                        node->num_nonces++;
-                        DEBUG("ls-gate-device-list: nonce successfully added\n");
-                        break;
-                    }
-                }
+				/* Add current nonce to used nonces set */
+                bloom_add(&node->nonces, (uint8_t *) &nonce, sizeof(nonce));
+                node->last_nonce = nonce;
+                node->num_nonces++;
+
+                DEBUG("ls-gate-device-list: nonce successfully added\n");
+
                 return node;
 			}
 		}
@@ -121,15 +138,9 @@ static void init_node(ls_gate_devices_t *devlist, ls_gate_node_t *node, ls_addr_
 		clear_nonce_list(devlist, addr);
 	}
 
-	/* Append nonce to the nonce list */
-    for (uint32_t j = 0; j < LS_GATE_NONCES_PER_DEVICE; j++) {
-        if (node->nonce[j] == 0) {
-            node->nonce[j] = nonce;
-            node->num_nonces++;
-            DEBUG("ls-gate-device-list: nonce successfully added\n");
-            break;
-        }
-    }
+    bloom_add(&node->nonces, (uint8_t *) &nonce, sizeof(nonce));
+    node->last_nonce = nonce;
+    node->num_nonces++;
     
     DEBUG("ls-gate-device-list: node initialized\n");
 }
@@ -172,8 +183,8 @@ ls_gate_node_t *ls_devlist_add_by_addr(ls_gate_devices_t *devlist, ls_addr_t add
 	node->app_nonce = 0;
 	node->is_static = true;
 
-	node->num_nonces = 1;
-	node->nonce[0] = nonce;
+    bloom_add(&node->nonces, (uint8_t *) &nonce, sizeof(nonce));
+    node->num_nonces = 1;
 
 	/* Increase number of connected devices */
 	devlist->num_nodes++;
@@ -235,22 +246,19 @@ bool ls_devlist_check_nonce(ls_gate_devices_t *devlist, uint64_t node_id, uint32
 		ls_gate_node_t *node = &devlist->nodes[i];
 
 		if (node->node_id == node_id) {
-			/* Iterate through remembered nonce list */
-            for (uint32_t k = 0; k < LS_GATE_NONCES_PER_DEVICE; k++) {
-                if (node->nonce[k] == 0) {
-                    DEBUG("ls-gate-device-list: end of nonce list\n");
-                    break;
-                }
-                
-                if (node->nonce[k] == nonce) {
-                    DEBUG("ls-gate-device-list: nonce value was used before\n");
-					return false;
-                }
+			bool res = !bloom_check(&node->nonces, (uint8_t *) &nonce, sizeof(nonce));
+
+            if (res) {
+                DEBUG("ls-gate-device-list: ok, nonce wasn't used before\n");
+            } else {
+                DEBUG("ls-gate-device-list: rejected, nonce was used before\n");
             }
-            break;
+
+            return res;
 		}
 	}
-    DEBUG("ls-gate-device-list: nonce checked, is ok\n");
+
+    DEBUG("ls-gate-device-list: no node in the list\n");
 	return true;
 }
 

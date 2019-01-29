@@ -35,6 +35,9 @@
 #include <stdbool.h>
 
 #include "mutex.h"
+#include "bloom.h"
+#include "bitfield.h"
+#include "hashes.h" /* for bloom filter */
 
 #include "ls-crypto.h"
 #include "ls-mac-types.h"
@@ -42,16 +45,16 @@
 #include "ls-frame-fifo.h"
 
 /**
- * Max device number that gate can hold simultaneously and nonce counts per device to remember
+ * Max device number that gate can hold simultaneously and nonce counts per device to remember. Nonces used by node are stored in Bloom filter.
  * depend on available RAM
  */
 
 #if defined(CPU_FAM_STM32L4)
     #define LS_GATE_MAX_NODES 1000
-    #define LS_GATE_NONCES_PER_DEVICE 20
+    #define LS_GATE_NONCES_PER_DEVICE 128
 #else
     #define LS_GATE_MAX_NODES 100
-    #define LS_GATE_NONCES_PER_DEVICE 8
+    #define LS_GATE_NONCES_PER_DEVICE 128
 #endif
 
 typedef struct __attribute__((__packed__)){
@@ -61,7 +64,9 @@ typedef struct __attribute__((__packed__)){
 	uint32_t app_nonce;			/**< Application nonce */
     ls_addr_t addr;				/**< Node unique address in network */
 	void *node_ch;				/**< Node's channel */
-    ls_nonce_t nonce[LS_GATE_NONCES_PER_DEVICE]; /**< List of accepted device nonces */
+    bloom_t nonces;                                     /**< Bloom filter of used nonces, gives number of possibly remembered nonces proportional to the filter size */
+    ls_nonce_t last_nonce;                              /**< Last accepted nonce used for key derivation */
+    BITFIELD(bloom_bits, LS_GATE_NONCES_PER_DEVICE);    /**< Bitset for Bloom filter */
 	ls_node_class_t node_class;	/**< Node's class */
     ls_device_status_t status;	/**< Last received device status */
 	ls_frame_id_t last_fid;		/**< Last received frame ID */

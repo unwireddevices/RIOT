@@ -40,8 +40,8 @@ volatile thread_t *thread_get(kernel_pid_t pid)
 
 int thread_getstatus(kernel_pid_t pid)
 {
-    volatile thread_t *thread = thread_get(pid);
-    return thread ? (int)thread->status : (int)STATUS_NOT_FOUND;
+    volatile thread_t *t = thread_get(pid);
+    return t ? (int)t->status : (int)STATUS_NOT_FOUND;
 }
 
 const char *thread_getname(kernel_pid_t pid)
@@ -93,7 +93,7 @@ int thread_wakeup(kernel_pid_t pid)
     }
 
     irq_restore(old_state);
-    return STATUS_NOT_FOUND;
+    return (int)STATUS_NOT_FOUND;
 }
 
 void thread_yield(void)
@@ -223,8 +223,13 @@ kernel_pid_t thread_create(char *stack, int stacksize, char priority, int flags,
     thread->name = name;
 #endif
 
+<<<<<<< HEAD
     thread->priority = priority;
     thread->status = STATUS_STOPPED;
+=======
+    cb->priority = priority;
+    cb->status = STATUS_STOPPED;
+>>>>>>> 4c3e92f... core: Made thread state an enum
 
     thread->rq_entry.next = NULL;
 

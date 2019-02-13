@@ -26,7 +26,10 @@
 #include "periph/gpio.h"
 #include "periph/spi.h"
 
-#define ST95_MAX_BYTE_BUFF              256
+#define ST95_IFACE_UART         1
+#define ST95_IFACE_SPI          2
+
+#define ST95_MAX_BYTE_BUFF      256
 
 #define ST95_RESULT_CODE_OK     0x80
 #define ST95_RESULT_CODE_ACK    0x90
@@ -94,6 +97,10 @@
  * @brief   ST95 hardware and global parameters.
  */
 typedef struct {
+    uint8_t iface;      /**< Iface (SPI or UART) */
+    uint8_t uart;       /**< UART device */
+    uint32_t baudrate;  /**< Baudrate UART device */
+    
     uint8_t spi;        /**< SPI device */
     gpio_t cs_spi;      /**< SPI NSS pin */
     gpio_t irq_in;      /**< Interrupt input */
@@ -142,6 +149,7 @@ int st95_idn(const st95_t * dev, uint8_t * idn, uint8_t * length);
 int st95_write_data(const st95_t * dev, uint8_t * data, uint16_t length);
 int st95_read_data(const st95_t * dev, uint8_t * data, uint16_t length);
 int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_t * sak);
+int st95_set_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_t * sak);
 
 
 

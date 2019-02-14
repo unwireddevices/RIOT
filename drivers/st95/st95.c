@@ -1109,7 +1109,7 @@ int st95_set_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_
  * @return 0:   if initialization succeeded
  * @return >0:  in case of an error
  */
-int st95_init_spi(st95_t * dev, st95_params_t * params)
+int _st95_init_spi(st95_t * dev, st95_params_t * params)
 {      
     dev->params = *params;
     dev->arg = NULL;
@@ -1189,7 +1189,7 @@ int st95_init_spi(st95_t * dev, st95_params_t * params)
  * @return 0:   if initialization succeeded
  * @return >0:  in case of an error
  */
-int st95_init_uart(st95_t * dev, st95_params_t * params)
+int _st95_init_uart(st95_t * dev, st95_params_t * params)
 {      
     dev->params = *params;
     dev->arg = NULL;
@@ -1276,10 +1276,10 @@ int st95_init_uart(st95_t * dev, st95_params_t * params)
 int st95_init(st95_t * dev, st95_params_t * params)
 {      
     if (params->iface == ST95_IFACE_SPI) {
-        return st95_init_spi(dev, params);
+        return _st95_init_spi(dev, params);
     }
     else if (params->iface == ST95_IFACE_UART) {
-        return st95_init_uart(dev, params);
+        return _st95_init_uart(dev, params);
     }
     else {
          return ST95_ERROR;

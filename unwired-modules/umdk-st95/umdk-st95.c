@@ -58,25 +58,8 @@ extern "C" {
 #include "thread.h"
 #include "rtctimers-millis.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
-
-uint8_t test_data[] = {
-0x3E, 0x3E, 0x3E, 0x20, 0x23, 0x23, 0x23, 0x20, 0x54, 0x65, 0x73, 0x74, 0x20, 0x53, 0x54, 0x39,
-0x35, 0x68, 0x66, 0x3A, 0x20, 0x4E, 0x46, 0x43, 0x20, 0x46, 0x6F, 0x72, 0x75, 0x6D, 0x20, 0x54,
-0x61, 0x67, 0x20, 0x74, 0x79, 0x70, 0x65, 0x20, 0x34, 0x61, 0x20, 0x5B, 0x57, 0x72, 0x69, 0x74,
-0x65, 0x2F, 0x52, 0x65, 0x61, 0x64, 0x20, 0x4E, 0x44, 0x45, 0x46, 0x5D, 0x3A, 0x20, 0x46, 0x55,
-0x43, 0x4B, 0x21, 0x20, 0x0D, 0x0A, 0x54, 0x68, 0x69, 0x73, 0x20, 0x66, 0x75, 0x63, 0x6B, 0x69,
-0x6E, 0x67, 0x20, 0x61, 0x6E, 0x74, 0x65, 0x6E, 0x6E, 0x61, 0x20, 0x64, 0x6F, 0x65, 0x73, 0x20,
-0x6E, 0x6F, 0x74, 0x20, 0x77, 0x61, 0x6E, 0x74, 0x20, 0x74, 0x6F, 0x20, 0x77, 0x6F, 0x72, 0x6B,
-0x20, 0x6E, 0x6F, 0x72, 0x6D, 0x61, 0x6C, 0x6C, 0x79, 0x21, 0x0D, 0x0A, 0x20, 0x52, 0x45, 0x50,
-0x45, 0x41, 0x54, 0x21, 0x20, 0x0D, 0x0A, 0x20, 0x54, 0x68, 0x69, 0x73, 0x20, 0x66, 0x75, 0x63,
-0x6B, 0x69, 0x6E, 0x67, 0x20, 0x61, 0x6E, 0x74, 0x65, 0x6E, 0x6E, 0x61, 0x20, 0x64, 0x6F, 0x65,
-0x73, 0x20, 0x6E, 0x6F, 0x74, 0x20, 0x77, 0x61, 0x6E, 0x74, 0x20, 0x74, 0x6F, 0x20, 0x77, 0x6F,
-0x72, 0x6B, 0x20, 0x6E, 0x6F, 0x72, 0x6D, 0x61, 0x6C, 0x6C, 0x79, 0x21, 0x20, 0x0D, 0x0A, 0x20,
-0x42, 0x55, 0x4C, 0x4C, 0x20, 0x53, 0x48, 0x49, 0x54, 0x21, 0x20, 0x0D, 0x0A, 0x20, 0x23, 0x23,
-0x23, 0x20, 0x3C, 0x3C, 0x3C
-};
 
 static msg_t msg_wu = { .type = UMDK_ST95_MSG_WAKE_UP, };
 static msg_t msg_rx = { .type = UMDK_ST95_MSG_UID, };
@@ -100,7 +83,7 @@ static uint8_t sak = 0;
 static volatile uint8_t mode = UMDK_ST95_MODE_GET_UID;
 static volatile uint8_t status = UMDK_ST95_STATUS_READY;
 
-static uint8_t ndef_data[255] = { 0x00 };
+// static uint8_t ndef_data[255] = { 0x00 };
 
 
 static void umdk_st95_get_uid(void);
@@ -240,7 +223,6 @@ static inline void reply_code(module_data_t *reply, uint8_t code)
 
 bool umdk_st95_cmd(module_data_t *cmd, module_data_t *reply)
 {         
-    puts("\t>>> [UMDK CMD] <<<");
     if(cmd->length < 1) {
         reply_code(reply, UMDK_ST95_ERROR_REPLY);
         return true;        
@@ -255,8 +237,6 @@ bool umdk_st95_cmd(module_data_t *cmd, module_data_t *reply)
         status = UMDK_ST95_STATUS_PROCCESSING;
         st95_sleep(&dev);
         
-        // reply_code(reply, UMDK_ST95_OK_REPLY);
-        // return true;
         return false;
     }
     else if(cmd->data[0] == UMDK_ST95_GET_UID) {
@@ -275,57 +255,8 @@ bool umdk_st95_cmd(module_data_t *cmd, module_data_t *reply)
             mode = UMDK_ST95_MODE_GET_UID;
             umdk_st95_get_uid();
         } 
-        // reply_code(reply, UMDK_ST95_OK_REPLY);
-        // return true;       
+ 
         return false;       
-    }
-    else if(cmd->data[0] == UMDK_ST95_READ_DATA) {
-        if(cmd->length < 2) {
-            reply_code(reply, UMDK_ST95_ERROR_REPLY);
-            return true;        
-        }
-        
-        uint16_t length = (cmd->data[1] << 8) | cmd->data[2];
-        
-        status = UMDK_ST95_STATUS_PROCCESSING;
-        
-        if(st95_read_data(&dev, ndef_data, length) == ST95_OK) {
-            DEBUG("Data [%d]: ", length);
-            PRINTBUFF(ndef_data, length);            
-            for(uint16_t i = 0; i < length; i++) {
-                printf("%c", ndef_data[i]);
-            }
-            printf("\n");
-            reply_code(reply, UMDK_ST95_OK_REPLY);
-        }
-        else {
-            DEBUG("Reading error\n");
-            reply_code(reply, UMDK_ST95_ERROR_REPLY); 
-        }
-        status = UMDK_ST95_STATUS_READY;
-        return true;
-    }
-    else if(cmd->data[0] == UMDK_ST95_WRITE_DATA) {
-        uint16_t length = (cmd->data[1] << 8) | cmd->data[2];
-        status = UMDK_ST95_STATUS_PROCCESSING;
-        memcpy(ndef_data, test_data, length);
-        if(st95_write_data(&dev, ndef_data, length) == ST95_OK) {
-            DEBUG("Writing completed\n");
-            reply_code(reply, UMDK_ST95_OK_REPLY);
-        }
-        else {
-            DEBUG("Writing error\n");
-            reply_code(reply, UMDK_ST95_ERROR_REPLY);              
-        }      
-        
-        status = UMDK_ST95_STATUS_READY;
-        return true;
-    }
-    else if (cmd->data[0] == UMDK_ST95_CARD_EMUL){
-        st95_set_uid(&dev, &length_uid, uid_full, &sak);
-        // return false;       
-        reply_code(reply, UMDK_ST95_OK_REPLY);
-        return true;
     }
     else {
         reply_code(reply, UMDK_ST95_ERROR_REPLY);

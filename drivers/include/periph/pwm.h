@@ -151,9 +151,18 @@ void pwm_set(pwm_t dev, uint8_t channel, uint16_t value);
  * @brief   Start PWM generation on the given channel
  *
  * @param[in] dev           PWM device
- * @param[in] dev           channel to start
+ * @param[in] channel       channel to start
  */
 void pwm_start(pwm_t dev, uint8_t channel);
+
+/**
+ * @brief   Generate specific number of pulses
+ *
+ * @param[in] dev           PWM device
+ * @param[in] channel       channel
+ * @param[in] pulses        number of pulses
+ */
+void pwm_pulses(pwm_t dev, uint8_t channel, uint32_t pulses);
 
 /**
  * @brief   Stop PWM generation on the given channel

@@ -193,6 +193,10 @@ static const pwm_conf_t pwm_config[] = {
     }
 };
 
+#define TIM_0_ISR           isr_tim2
+#define TIM_1_ISR           isr_tim3
+#define TIM_2_ISR           isr_tim4
+
 #define PWM_NUMOF           (sizeof(pwm_config) / sizeof(pwm_config[0]))
 /** @} */
 

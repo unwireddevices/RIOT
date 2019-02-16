@@ -382,7 +382,7 @@ void sx127x_set_tx(sx127x_t *dev)
         break;
     }
 
-    sx127x_set_state(dev, SX127X_RF_RX_RUNNING);
+    sx127x_set_state(dev, SX127X_RF_TX_RUNNING);
     if (dev->settings.lora.tx_timeout != 0) {
         rtctimers_millis_set(&(dev->_internal.tx_timeout_timer),
                    dev->settings.lora.tx_timeout);

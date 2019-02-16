@@ -44,6 +44,10 @@
 #define UMDK_ST95_SSI_1                 GPIO_UNDEF
 #define UMDK_ST95_VCC_ENABLE            UNWD_GPIO_24
 
+
+#define UMDK_ST95_UART_BAUD_DEF         57600
+#define UMDK_ST95_UART_DEV              1
+
 #define ST95_MAX_DATA_BYTES             256
 
 #define UMDK_ST95_OK_REPLY             0x00
@@ -73,6 +77,7 @@ typedef enum {
     UMDK_ST95_GET_UID       = 0x01,
     UMDK_ST95_READ_DATA     = 0x02,
     UMDK_ST95_WRITE_DATA    = 0x03,
+    UMDK_ST95_CARD_EMUL     = 0x04,
 } umdk_st95_cmd_t;
 
 void umdk_st95_init(uwnds_cb_t *event_callback);

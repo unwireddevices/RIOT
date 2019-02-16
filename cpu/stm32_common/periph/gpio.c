@@ -91,20 +91,36 @@ int gpio_init(gpio_t pin, gpio_mode_t mode)
     periph_clk_en(AHB1, (RCC_AHB1ENR_GPIOAEN << _port_num(pin)));
 #endif
 
-    /* set mode */
-    port->MODER &= ~(0x3 << (2 * pin_num));
-    port->MODER |=  ((mode & 0x3) << (2 * pin_num));
+    uint32_t irqs = irq_disable();
+
+    /* using temporary variable to prevent glitches when switching modes */
+    uint32_t tmpreg;
+
+    /* set mode */    
+    tmpreg = port->MODER;
+    tmpreg &= ~(0x3 << (2 * pin_num));
+    tmpreg |=  ((mode & 0x3) << (2 * pin_num));
+    port->MODER = tmpreg;
+
     /* set pull resistor configuration */
-    port->PUPDR &= ~(0x3 << (2 * pin_num));
-    port->PUPDR |=  (((mode >> 2) & 0x3) << (2 * pin_num));
+    tmpreg = port->PUPDR;
+    tmpreg &= ~(0x3 << (2 * pin_num));
+    tmpreg |=  (((mode >> 2) & 0x3) << (2 * pin_num));
+    port->PUPDR = tmpreg;
+    
     /* set output mode */
-    port->OTYPER &= ~(1 << pin_num);
-    port->OTYPER |=  (((mode >> 4) & 0x1) << pin_num);
+    tmpreg = port->OTYPER;
+    tmpreg &= ~(1 << pin_num);
+    tmpreg |=  (((mode >> 4) & 0x1) << pin_num);
+    port->OTYPER = tmpreg;
+    
     /* set pin speed to maximum */
     port->OSPEEDR |= (3 << (2 * pin_num));
 #if defined (STM32L1XX_HD) || defined (STM32L1XX_XL)
     port->BRR = (1 << pin_num);
 #endif
+
+    irq_restore(irqs);
 
     return 0;
 }
@@ -155,6 +171,7 @@ int gpio_init_int(gpio_t pin, gpio_mode_t mode, gpio_flank_t flank,
         NVIC_EnableIRQ(EXTI15_10_IRQn);
     }
 #endif
+
     /* configure the active flank */
     EXTI->RTSR &= ~(1 << pin_num);
     EXTI->RTSR |=  ((flank & 0x1) << pin_num);
@@ -181,7 +198,10 @@ void gpio_init_af(gpio_t pin, gpio_af_t af)
     GPIO_TypeDef *port = _port(pin);
     uint32_t pin_num = _pin_num(pin);
 
+    uint32_t irqs = irq_disable();
+    
     /* set pin to AF mode */
+    /* using temporary variable to prevent glitches when switching mode */
     uint32_t tmpreg;
 	tmpreg = port->MODER;
     tmpreg &= ~(3 << (2 * pin_num));
@@ -192,6 +212,8 @@ void gpio_init_af(gpio_t pin, gpio_af_t af)
     tmpreg &= ~(0xf << ((pin_num & 0x07) * 4));
     tmpreg |= (af << ((pin_num & 0x07) * 4));
 	port->AFR[(pin_num > 7) ? 1 : 0] = tmpreg;
+    
+    irq_restore(irqs);
 }
 
 void gpio_init_analog(gpio_t pin)

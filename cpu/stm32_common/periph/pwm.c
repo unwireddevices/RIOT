@@ -36,7 +36,7 @@
                              TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2M_2);
 
 volatile uint32_t pwm_pulses_counter[PWM_NUMOF] = { 0 };
-                             
+
 static inline TIM_TypeDef *dev(pwm_t pwm)
 {
     return pwm_config[pwm].dev;
@@ -130,13 +130,14 @@ void pwm_start(pwm_t pwm, uint8_t channel)
     dev(pwm)->CR1 |= TIM_CR1_CEN;
 }
 
-void pwm_pulses(pwm_t pwm, uint8_t channel, uint32_t pulses) {
+void pwm_pulses(pwm_t pwm, uint8_t channel, uint16_t pulses) {
     assert(pwm < PWM_NUMOF);
-    
-    pwm_pulses_counter[pwm] = pulses;
+
+    pwm_pulses_counter[pwm] = (pulses | (channel << 16)) + 1;
 
     /* configure update event interrupt */
-    dev(pwm)->DIER |= TIM_DIER_UIE;
+    dev(pwm)->DIER |= (TIM_DIER_CC1IE << pwm_config[pwm].chan[channel].cc_chan);
+    NVIC_EnableIRQ(pwm_config[pwm].irqn);
     
     /* configure corresponding pin */
     gpio_init(pwm_config[pwm].chan[channel].pin, GPIO_OUT);
@@ -144,6 +145,11 @@ void pwm_pulses(pwm_t pwm, uint8_t channel, uint32_t pulses) {
     
     /* enable PWM */
     dev(pwm)->CR1 |= TIM_CR1_CEN;
+    
+    /* blocking function */
+    while (dev(pwm)->CR1 & TIM_CR1_CEN) {};
+    
+    dev(pwm)->DIER &= ~(TIM_DIER_CC1IE << pwm_config[pwm].chan[channel].cc_chan);
 }
 
 void pwm_stop(pwm_t pwm, uint8_t channel)
@@ -168,85 +174,94 @@ void pwm_poweroff(pwm_t pwm)
     periph_clk_dis(pwm_config[pwm].bus, pwm_config[pwm].rcc_mask);
 }
 
-void irq_handler(pwm_t pwm) {
+static inline void irq_handler(pwm_t pwm) {
     uint32_t pulses = pwm_pulses_counter[pwm];
-    
-    if (pulses) {
-        pulses--;
-        if (!pulses) {
-            dev(pwm)->DIER &= ~TIM_DIER_UIE;
-            dev(pwm)->CR1 &= ~TIM_CR1_CEN;
+    uint16_t channel = pulses >> 16;
+    pulses &= 0xFFFF;
+
+    if (dev(pwm)->SR & (TIM_SR_CC1IF << pwm_config[pwm].chan[channel].cc_chan)) {
+        /* reset capture/compare interrupt flag */
+        dev(pwm)->SR &= ~(TIM_SR_CC1IF << pwm_config[pwm].chan[channel].cc_chan);
+        
+        if (pulses) {
+            pulses--;
+            
+            if (!pulses) {
+                dev(pwm)->CR1 &= ~TIM_CR1_CEN;
+            }
+            pwm_pulses_counter[pwm] = pulses | (channel << 16);
         }
-        pwm_pulses_counter[pwm] = pulses;
     }
+    
+    cortexm_isr_end();
 }
 
-#if TIM_0_ISR
+#ifdef TIM_0_ISR
 void TIM_0_ISR(void)
 {
-    irq_handler(0);
+    irq_handler(PWM_DEV(0));
 }
 #endif /* TIM_0_ISR */
 
-#if TIM_1_ISR
+#ifdef TIM_1_ISR
 void TIM_1_ISR(void)
 {
-    irq_handler(1);
+    irq_handler(PWM_DEV(1));
 }
 #endif /* TIM_1_ISR */
 
-#if TIM_2_ISR
+#ifdef TIM_2_ISR
 void TIM_2_ISR(void)
 {
-    irq_handler(2);
+    irq_handler(PWM_DEV(2));
 }
 #endif /* TIM_2_ISR */
 
-#if TIM_3_ISR
+#ifdef TIM_3_ISR
 void TIM_3_ISR(void)
 {
-    irq_handler(3);
+    irq_handler(PWM_DEV(3));
 }
 #endif /* TIM_3_ISR */
 
-#if TIM_4_ISR
+#ifdef TIM_4_ISR
 void TIM_4_ISR(void)
 {
-    irq_handler(4);
+    irq_handler(PWM_DEV(4));
 }
 #endif /* TIM_4_ISR */
 
-#if TIM_5_ISR
+#ifdef TIM_5_ISR
 void TIM_5_ISR(void)
 {
-    irq_handler(5);
+    irq_handler(PWM_DEV(5));
 }
 #endif /* TIM_5_ISR */
 
-#if TIM_6_ISR
+#ifdef TIM_6_ISR
 void TIM_6_ISR(void)
 {
-    irq_handler(6);
+    irq_handler(PWM_DEV(6));
 }
 #endif /* TIM_6_ISR */
 
-#if TIM_7_ISR
+#ifdef TIM_7_ISR
 void TIM_7_ISR(void)
 {
-    irq_handler(7);
+    irq_handler(PWM_DEV(7));
 }
 #endif /* TIM_7_ISR */
 
-#if TIM_8_ISR
+#ifdef TIM_8_ISR
 void TIM_8_ISR(void)
 {
-    irq_handler(8);
+    irq_handler(PWM_DEV(8));
 }
 #endif /* TIM_8_ISR */
 
-#if TIM_9_ISR
+#ifdef TIM_9_ISR
 void TIM_9_ISR(void)
 {
-    irq_handler(9);
+    irq_handler(PWM_DEV(9));
 }
 #endif /* TIM_9_ISR */

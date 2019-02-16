@@ -162,7 +162,7 @@ void pwm_start(pwm_t dev, uint8_t channel);
  * @param[in] channel       channel
  * @param[in] pulses        number of pulses
  */
-void pwm_pulses(pwm_t dev, uint8_t channel, uint32_t pulses);
+void pwm_pulses(pwm_t dev, uint8_t channel, uint16_t pulses);
 
 /**
  * @brief   Stop PWM generation on the given channel

@@ -300,6 +300,7 @@ typedef struct {
                                      *   if not used */
     gpio_af_t af;                   /**< alternate function used */
     uint8_t bus;                    /**< APB bus */
+    uint8_t irqn;                   /**< global IRQ channel */
 } pwm_conf_t;
 
 /**

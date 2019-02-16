@@ -115,7 +115,8 @@ static const pwm_conf_t pwm_config[] = {
                       { .pin = GPIO_UNDEF,          .cc_chan = 0 },
                       { .pin = GPIO_UNDEF,          .cc_chan = 0 } },
         .af       = GPIO_AF4,
-        .bus      = APB1
+        .bus      = APB1,
+        .irqn     = TIM14_IRQn
     },
     {
         .dev      = TIM17,
@@ -125,9 +126,13 @@ static const pwm_conf_t pwm_config[] = {
                       { .pin = GPIO_UNDEF,          .cc_chan = 0 },
                       { .pin = GPIO_UNDEF,          .cc_chan = 0 } },
         .af       = GPIO_AF5,
-        .bus      = APB2
+        .bus      = APB2,
+        .irqn     = TIM17_IRQn
     }
 };
+
+#define TIM_0_ISR           isr_tim14
+#define TIM_1_ISR           isr_tim17
 
 #define PWM_NUMOF           (sizeof(pwm_config) / sizeof(pwm_config[0]))
 /** @} */

@@ -122,12 +122,43 @@ void pwm_start(pwm_t pwm, uint8_t channel)
 {
     assert(pwm < PWM_NUMOF);
     
-    /* configure corresponding pin */
-    gpio_init(pwm_config[pwm].chan[channel].pin, GPIO_OUT);
-    gpio_init_af(pwm_config[pwm].chan[channel].pin, pwm_config[pwm].af);
+    uint32_t pin = pwm_config[pwm].chan[channel].pin;
+    
+    if (pin == GPIO_UNDEF) {
+        return;
+    }
+    
+    /* reimplementing gpio_init_af here to split computations and register writes */
+    GPIO_TypeDef *port = (GPIO_TypeDef *)(pin & ~(0x0f));
+    uint32_t pin_num = (pin & 0x0f);
+
+    uint32_t irqs = irq_disable();
+
+    /* set pin to AF mode */
+    uint32_t moder;
+	moder = port->MODER;
+    moder &= ~(3 << (2 * pin_num));
+    moder |= (2 << (2 * pin_num));
+    
+    /* set selected function */
+    uint32_t afr;
+	afr = port->AFR[(pin_num > 7) ? 1 : 0];
+    afr &= ~(0xf << ((pin_num & 0x07) * 4));
+    afr |= (pwm_config[pwm].af << ((pin_num & 0x07) * 4));
+    uint32_t afr_num = (pin_num > 7) ? 1 : 0;
     
     /* enable PWM */
     dev(pwm)->CR1 |= TIM_CR1_CEN;
+    
+    /* delay needed to eliminate small glitch, present at least on STM32L1 */
+    __asm("nop; nop; nop; nop; nop;");
+
+    /* if pin was configured before timer started, glitch is bigger */
+    port->AFR[afr_num] = afr;
+    port->MODER = moder;
+    
+    /* restore interrupts */
+    irq_restore(irqs);
 }
 
 void pwm_pulses(pwm_t pwm, uint8_t channel, uint16_t pulses) {
@@ -138,13 +169,8 @@ void pwm_pulses(pwm_t pwm, uint8_t channel, uint16_t pulses) {
     /* configure update event interrupt */
     dev(pwm)->DIER |= (TIM_DIER_CC1IE << pwm_config[pwm].chan[channel].cc_chan);
     NVIC_EnableIRQ(pwm_config[pwm].irqn);
-    
-    /* configure corresponding pin */
-    gpio_init(pwm_config[pwm].chan[channel].pin, GPIO_OUT);
-    gpio_init_af(pwm_config[pwm].chan[channel].pin, pwm_config[pwm].af);
-    
-    /* enable PWM */
-    dev(pwm)->CR1 |= TIM_CR1_CEN;
+
+    pwm_start(pwm, channel);
     
     /* blocking function */
     while (dev(pwm)->CR1 & TIM_CR1_CEN) {};

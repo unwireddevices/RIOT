@@ -37,8 +37,6 @@
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-#define _MAX_MHR_OVERHEAD   (25)
-
 static void _irq_handler(void *arg)
 {
     netdev_t *dev = (netdev_t *) arg;
@@ -176,6 +174,26 @@ static int _get(netdev_t *netdev, netopt_t opt, void *val, size_t max_len)
 
     int res;
     switch (opt) {
+        case NETOPT_ADDRESS:
+            if (max_len < sizeof(uint16_t)) {
+                res = -EOVERFLOW;
+            }
+            else {
+                *(uint16_t*)val = mrf24j40_get_addr_short(dev);
+                res = sizeof(uint16_t);
+            }
+            break;
+
+        case NETOPT_ADDRESS_LONG:
+            if (max_len < sizeof(uint64_t)) {
+                res = -EOVERFLOW;
+            }
+            else {
+                *(uint64_t*)val = mrf24j40_get_addr_long(dev);
+                res = sizeof(uint64_t);
+            }
+            break;
+
         case NETOPT_CHANNEL_PAGE:
             if (max_len < sizeof(uint16_t)) {
                 res = -EOVERFLOW;
@@ -183,16 +201,6 @@ static int _get(netdev_t *netdev, netopt_t opt, void *val, size_t max_len)
             else {
                 ((uint8_t *)val)[1] = 0;
                 ((uint8_t *)val)[0] = 0;
-                res = sizeof(uint16_t);
-            }
-            break;
-
-        case NETOPT_MAX_PACKET_SIZE:
-            if (max_len < sizeof(int16_t)) {
-                res = -EOVERFLOW;
-            }
-            else {
-                *((uint16_t *)val) = IEEE802154_FRAME_LEN_MAX - _MAX_MHR_OVERHEAD;
                 res = sizeof(uint16_t);
             }
             break;
@@ -363,7 +371,7 @@ static int _set(netdev_t *netdev, netopt_t opt, const void *val, size_t len)
             }
             else {
                 mrf24j40_set_addr_short(dev, *((const uint16_t *)val));
-                /* don't set res to set netdev_ieee802154_t::short_addr */
+                res = sizeof(uint16_t);
             }
             break;
 
@@ -373,7 +381,7 @@ static int _set(netdev_t *netdev, netopt_t opt, const void *val, size_t len)
             }
             else {
                 mrf24j40_set_addr_long(dev, *((const uint64_t *)val));
-                /* don't set res to set netdev_ieee802154_t::long_addr */
+                res = sizeof(uint64_t);
             }
             break;
 

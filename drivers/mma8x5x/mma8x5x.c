@@ -34,35 +34,38 @@
 #define ENABLE_DEBUG        (0)
 #include "debug.h"
 
-#define I2C_SPEED           I2C_SPEED_FAST
-
 #define BUS                 (dev->params.i2c)
 #define ADDR                (dev->params.addr)
 
 int mma8x5x_init(mma8x5x_t *dev, const mma8x5x_params_t *params)
 {
-    uint8_t reg;
+    uint8_t reg = 0;
 
     assert(dev && params);
 
     /* write device descriptor */
-    memcpy(dev, params, sizeof(mma8x5x_params_t));
+    dev->params = *params;
 
     /* initialize the I2C bus */
+    i2c_init(BUS);
+    
+    /* acquire the I2C bus */
     i2c_acquire(BUS);
-    if (i2c_init_master(BUS, I2C_SPEED) < 0) {
-        i2c_release(BUS);
-        DEBUG("[mma8x5x] init - error: unable to initialize I2C bus\n");
-        return MMA8X5X_NOI2C;
-    }
 
     /* test if the target device responds */
     i2c_read_reg(BUS, ADDR, MMA8X5X_WHO_AM_I, &reg, 0);
-    if (reg != dev->params.type) {
-        i2c_release(BUS);
-        DEBUG("[mma8x5x] init - error: invalid WHO_AM_I value [0x%02x]\n",
-               (int)reg);
-        return MMA8X5X_NODEV;
+    switch (reg) {
+        case MMA8X5X_TYPE_MMA8451:
+        case MMA8X5X_TYPE_MMA8452:
+        case MMA8X5X_TYPE_MMA8453:
+        case MMA8X5X_TYPE_MMA8652:
+        case MMA8X5X_TYPE_MMA8653:
+            break;
+        default: /* invalid device type */
+            i2c_release(BUS);
+            DEBUG("[mma8x5x] init - error: invalid WHO_AM_I value [0x%02x]\n",
+                  (int)reg);
+            return MMA8X5X_NODEV;
     }
 
     /* reset the device */

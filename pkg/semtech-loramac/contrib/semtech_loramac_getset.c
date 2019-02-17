@@ -18,6 +18,7 @@
  */
 
 #include <string.h>
+#include <inttypes.h>
 
 #include "mutex.h"
 
@@ -263,6 +264,26 @@ uint8_t semtech_loramac_get_retries(semtech_loramac_t *mac)
     return mac->trials;
 }
 
+void semtech_loramac_set_system_max_rx_error(semtech_loramac_t *mac, int error)
+{
+    MibRequestConfirm_t mibReq;
+    mutex_lock(&mac->lock);
+    mibReq.Type = MIB_SYSTEM_MAX_RX_ERROR;
+    mibReq.Param.SystemMaxRxError = error;
+    LoRaMacMibSetRequestConfirm(&mibReq);
+    mutex_unlock(&mac->lock);
+}
+
+void semtech_loramac_set_min_rx_symbols(semtech_loramac_t *mac, int min_rx)
+{
+    MibRequestConfirm_t mibReq;
+    mutex_lock(&mac->lock);
+    mibReq.Type = MIB_MIN_RX_SYMBOLS;
+    mibReq.Param.MinRxSymbols = min_rx;
+    LoRaMacMibSetRequestConfirm(&mibReq);
+    mutex_unlock(&mac->lock);
+}
+
 static void _semtech_loramac_set_rx2_params(semtech_loramac_channel_params_t params)
 {
     Rx2ChannelParams_t p;
@@ -282,7 +303,7 @@ static void _semtech_loramac_set_rx2_params(semtech_loramac_channel_params_t par
 void semtech_loramac_set_rx2_freq(semtech_loramac_t *mac, uint32_t freq)
 {
     mutex_lock(&mac->lock);
-    DEBUG("[semtech-loramac] setting RX2 freq to %" PRIu32 "\n", freq);
+    DEBUG("[semtech-loramac] setting RX2 freq to %" PRIu32" \n", freq);
     Rx2ChannelParams_t p;
     MibRequestConfirm_t mibReq;
     mibReq.Type = MIB_RX2_DEFAULT_CHANNEL;

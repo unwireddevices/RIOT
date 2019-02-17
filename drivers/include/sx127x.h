@@ -227,8 +227,16 @@ typedef struct {
     gpio_t dio5_pin;                   /**< Interrupt line DIO5 (not used) */
     gpio_t rfswitch_pin;               /**< GPIO to switch PE4259 on/off */
     gpio_t rfswitch_active_level;      /**< PE4259 power switch active level */
+#ifdef SX127X_USE_DIO_MULTI
+    gpio_t dio_multi_pin;              /**< Interrupt line for multiple IRQs */
+#endif
     uint8_t paselect;                  /**< Power amplifier mode (RFO or PABOOST) */
 } sx127x_params_t;
+
+/**
+ * @brief   SX127X IRQ flags.
+ */
+typedef uint8_t sx127x_flags_t;
 
 /**
  * @brief   SX127X device descriptor.
@@ -239,6 +247,7 @@ typedef struct {
     sx127x_radio_settings_t settings;  /**< Radio settings */
     sx127x_params_t params;            /**< Device driver parameters */
     sx127x_internal_t _internal;       /**< Internal sx127x data used within the driver */
+    sx127x_flags_t irq;                /**< Device IRQ flags */
 } sx127x_t;
 
 /**

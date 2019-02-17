@@ -17,7 +17,7 @@
  * @file
  * @brief       Low-level GPIO driver implementation
  *
- * @author      Hauke Petersen <mail@haukepetersen.de>
+ * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  * @author      Fabian Nack <nack@inf.fu-berlin.de>
  * @author      Alexandre Abadie <alexandre.abadie@inria.fr>
  * @author      Katja Kirstein <katja.kirstein@haw-hamburg.de>
@@ -34,6 +34,7 @@
 /* this implementation is not valid for the stm32f1 */
 #ifndef CPU_FAM_STM32F1
 
+#ifdef MODULE_PERIPH_GPIO_IRQ
 /**
  * @brief   The STM32F0 family has 16 external interrupt lines
  */
@@ -43,6 +44,7 @@
  * @brief   Allocate memory for one callback and argument per EXTI channel
  */
 static gpio_isr_ctx_t isr_ctx[EXTI_NUMOF];
+#endif /* MODULE_PERIPH_GPIO_IRQ */
 
 /**
  * @brief   Extract the port base address from the given pin identifier
@@ -87,6 +89,13 @@ int gpio_init(gpio_t pin, gpio_mode_t mode)
     periph_clk_en(IOP, (RCC_IOPENR_GPIOAEN << _port_num(pin)));
 #elif defined (CPU_FAM_STM32L4)
     periph_clk_en(AHB2, (RCC_AHB2ENR_GPIOAEN << _port_num(pin)));
+#ifdef PWR_CR2_IOSV
+    if (port == GPIOG) {
+        /* Port G requires external power supply */
+        periph_clk_en(APB1, RCC_APB1ENR1_PWREN);
+        PWR->CR2 |= PWR_CR2_IOSV;
+    }
+#endif /* PWR_CR2_IOSV */
 #else
     periph_clk_en(AHB1, (RCC_AHB1ENR_GPIOAEN << _port_num(pin)));
 #endif
@@ -121,70 +130,6 @@ int gpio_init(gpio_t pin, gpio_mode_t mode)
 #endif
 
     irq_restore(irqs);
-
-    return 0;
-}
-
-int gpio_init_int(gpio_t pin, gpio_mode_t mode, gpio_flank_t flank,
-                  gpio_cb_t cb, void *arg)
-{
-    if (pin == GPIO_UNDEF) {
-        return -1;
-    }
-
-    int pin_num = _pin_num(pin);
-    int port_num = _port_num(pin);
-
-    /* set callback */
-    isr_ctx[pin_num].cb = cb;
-    isr_ctx[pin_num].arg = arg;
-
-    /* enable clock of the SYSCFG module for EXTI configuration */
-#ifdef CPU_FAN_STM32F0
-    periph_clk_en(APB2, RCC_APB2ENR_SYSCFGCOMPEN);
-#else
-    periph_clk_en(APB2, RCC_APB2ENR_SYSCFGEN);
-#endif
-
-    /* initialize pin as input */
-    gpio_init(pin, mode);
-
-    /* enable global pin interrupt */
-#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32L0)
-    if (pin_num < 2) {
-        NVIC_EnableIRQ(EXTI0_1_IRQn);
-    }
-    else if (pin_num < 4) {
-        NVIC_EnableIRQ(EXTI2_3_IRQn);
-    }
-    else {
-        NVIC_EnableIRQ(EXTI4_15_IRQn);
-    }
-#else
-    if (pin_num < 5) {
-        NVIC_EnableIRQ(EXTI0_IRQn + pin_num);
-    }
-    else if (pin_num < 10) {
-        NVIC_EnableIRQ(EXTI9_5_IRQn);
-    }
-    else {
-        NVIC_EnableIRQ(EXTI15_10_IRQn);
-    }
-#endif
-
-    /* configure the active flank */
-    EXTI->RTSR &= ~(1 << pin_num);
-    EXTI->RTSR |=  ((flank & 0x1) << pin_num);
-    EXTI->FTSR &= ~(1 << pin_num);
-    EXTI->FTSR |=  ((flank >> 1) << pin_num);
-    /* enable specific pin as exti sources */
-    SYSCFG->EXTICR[pin_num >> 2] &= ~(0xf << ((pin_num & 0x03) * 4));
-    SYSCFG->EXTICR[pin_num >> 2] |= (port_num << ((pin_num & 0x03) * 4));
-
-    /* clear any pending requests */
-    EXTI->PR = (1 << pin);
-    /* unmask the pins interrupt channel */
-    EXTI->IMR |= (1 << pin);
 
     return 0;
 }
@@ -302,20 +247,16 @@ int gpio_get_status(gpio_t pin) {
 
 void gpio_set(gpio_t pin)
 {
-    if (pin == GPIO_UNDEF) {
-        return;
+    if (pin != GPIO_UNDEF) {
+        _port(pin)->BSRR = (1 << _pin_num(pin));
     }
-
-    _port(pin)->BSRR = (1 << _pin_num(pin));
 }
 
 void gpio_clear(gpio_t pin)
 {
-    if (pin == GPIO_UNDEF) {
-        return;
+    if (pin != GPIO_UNDEF) {
+        _port(pin)->BSRR = (1 << (_pin_num(pin) + 16));
     }
-
-    _port(pin)->BSRR = (1 << (_pin_num(pin) + 16));
 }
 
 void gpio_toggle(gpio_t pin)
@@ -336,6 +277,65 @@ void gpio_write(gpio_t pin, int value)
     }
 }
 
+#ifdef MODULE_PERIPH_GPIO_IRQ
+int gpio_init_int(gpio_t pin, gpio_mode_t mode, gpio_flank_t flank,
+                  gpio_cb_t cb, void *arg)
+{
+    int pin_num = _pin_num(pin);
+    int port_num = _port_num(pin);
+
+    /* set callback */
+    isr_ctx[pin_num].cb = cb;
+    isr_ctx[pin_num].arg = arg;
+
+    /* enable clock of the SYSCFG module for EXTI configuration */
+#ifdef CPU_FAN_STM32F0
+    periph_clk_en(APB2, RCC_APB2ENR_SYSCFGCOMPEN);
+#else
+    periph_clk_en(APB2, RCC_APB2ENR_SYSCFGEN);
+#endif
+
+    /* initialize pin as input */
+    gpio_init(pin, mode);
+
+    /* enable global pin interrupt */
+#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32L0)
+    if (pin_num < 2) {
+        NVIC_EnableIRQ(EXTI0_1_IRQn);
+    }
+    else if (pin_num < 4) {
+        NVIC_EnableIRQ(EXTI2_3_IRQn);
+    }
+    else {
+        NVIC_EnableIRQ(EXTI4_15_IRQn);
+    }
+#else
+    if (pin_num < 5) {
+        NVIC_EnableIRQ(EXTI0_IRQn + pin_num);
+    }
+    else if (pin_num < 10) {
+        NVIC_EnableIRQ(EXTI9_5_IRQn);
+    }
+    else {
+        NVIC_EnableIRQ(EXTI15_10_IRQn);
+    }
+#endif
+    /* configure the active flank */
+    EXTI->RTSR &= ~(1 << pin_num);
+    EXTI->RTSR |=  ((flank & 0x1) << pin_num);
+    EXTI->FTSR &= ~(1 << pin_num);
+    EXTI->FTSR |=  ((flank >> 1) << pin_num);
+    /* enable specific pin as exti sources */
+    SYSCFG->EXTICR[pin_num >> 2] &= ~(0xf << ((pin_num & 0x03) * 4));
+    SYSCFG->EXTICR[pin_num >> 2] |= (port_num << ((pin_num & 0x03) * 4));
+
+    /* clear any pending requests */
+    EXTI->PR = (1 << pin);
+    /* unmask the pins interrupt channel */
+    EXTI->IMR |= (1 << pin);
+
+    return 0;
+}
 void isr_exti(void)
 {
     /* only generate interrupts against lines which have their IMR set */
@@ -348,6 +348,7 @@ void isr_exti(void)
     }
     cortexm_isr_end();
 }
+#endif /* MODULE_PERIPH_GPIO_IRQ */
 
 #else
 typedef int dont_be_pedantic;

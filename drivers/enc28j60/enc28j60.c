@@ -34,6 +34,10 @@
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
 
+#define SPI_BUS         (dev->p.spi)
+#define CS_PIN          (dev->p.cs_pin)
+#define INT_PIN         (dev->p.int_pin)
+#define RST_PIN         (dev->p.rst_pin)
 /**
  * @brief   Amount of time to hold the reset pin low on reset
  */
@@ -70,23 +74,30 @@
  * RX must start at buffer address 0x0000 (see errata sheet, section 5)
  */
 #define BUF_TX_START                ((BUFFER_SIZE / 4) * 3)
-#define BUF_TX_END                  (BUFFER_SIZE - 2)
+#define BUF_TX_END                  (BUFFER_SIZE - 1)
 #define BUF_RX_START                (0)
-#define BUF_RX_END                  (BUF_TX_START - 2)
+#define BUF_RX_END                  (BUF_TX_START - 1)
 
+/**
+ * @brief  Maximum transmission time
+ *
+ * The time in us that is required to send an Ethernet frame of maximum length
+ * (Preamle + SFD + 1518 byte) at 10 Mbps in full duplex mode with a guard
+ * period of 9,6 us. This time is used as time out for send operations.
+ */
+#define MAX_TX_TIME                 (1230U)
 
 static void switch_bank(enc28j60_t *dev, int8_t bank)
 {
-    /* only switch bank if needed */
-    if ((bank < 0) || (dev->bank == bank)) {
+    assert(bank < 0x04);
+
+    if (bank < 0) {
         return;
     }
     /* clear old value */
-    spi_transfer_reg(dev->spi, dev->cs_pin, (CMD_BFC | REG_ECON1), 0x03);
+    spi_transfer_reg(SPI_BUS, CS_PIN, (CMD_BFC | REG_ECON1), 0x03);
     /* set new value */
-    spi_transfer_reg(dev->spi, dev->cs_pin, (CMD_BFS | REG_ECON1), bank);
-    /* remember active bank */
-    dev->bank = bank;
+    spi_transfer_reg(SPI_BUS, CS_PIN, (CMD_BFS | REG_ECON1), bank);
 }
 
 static uint8_t cmd_rcr(enc28j60_t *dev, uint8_t reg, int8_t bank)
@@ -94,13 +105,13 @@ static uint8_t cmd_rcr(enc28j60_t *dev, uint8_t reg, int8_t bank)
     uint8_t res;
 
     /* start transaction */
-    spi_acquire(dev->spi, dev->cs_pin, SPI_MODE_0, SPI_CLK);
+    spi_acquire(SPI_BUS, CS_PIN, SPI_MODE_0, SPI_CLK);
 
     switch_bank(dev, bank);
-    res = spi_transfer_reg(dev->spi, dev->cs_pin, (CMD_RCR | reg), 0);
+    res = spi_transfer_reg(SPI_BUS, CS_PIN, (CMD_RCR | reg), 0);
 
     /* finish SPI transaction */
-    spi_release(dev->spi);
+    spi_release(SPI_BUS);
 
     return res;
 }
@@ -110,13 +121,13 @@ static uint8_t cmd_rcr_miimac(enc28j60_t *dev, uint8_t reg, int8_t bank)
     char res[2];
 
     /* start transaction */
-    spi_acquire(dev->spi, dev->cs_pin, SPI_MODE_0, SPI_CLK);
+    spi_acquire(SPI_BUS, CS_PIN, SPI_MODE_0, SPI_CLK);
 
     switch_bank(dev, bank);
-    spi_transfer_regs(dev->spi, dev->cs_pin, (CMD_RCR | reg), NULL, res, 2);
+    spi_transfer_regs(SPI_BUS, CS_PIN, (CMD_RCR | reg), NULL, res, 2);
 
     /* finish SPI transaction */
-    spi_release(dev->spi);
+    spi_release(SPI_BUS);
 
     return (uint8_t)res[1];
 }
@@ -124,37 +135,37 @@ static uint8_t cmd_rcr_miimac(enc28j60_t *dev, uint8_t reg, int8_t bank)
 static void cmd_wcr(enc28j60_t *dev, uint8_t reg, int8_t bank, uint8_t value)
 {
     /* start transaction */
-    spi_acquire(dev->spi, dev->cs_pin, SPI_MODE_0, SPI_CLK);
+    spi_acquire(SPI_BUS, CS_PIN, SPI_MODE_0, SPI_CLK);
 
     switch_bank(dev, bank);
-    spi_transfer_reg(dev->spi, dev->cs_pin, (CMD_WCR | reg), value);
+    spi_transfer_reg(SPI_BUS, CS_PIN, (CMD_WCR | reg), value);
 
     /* finish SPI transaction */
-    spi_release(dev->spi);
+    spi_release(SPI_BUS);
 }
 
 static void cmd_bfs(enc28j60_t *dev, uint8_t reg, int8_t bank, uint8_t mask)
 {
     /* start transaction */
-    spi_acquire(dev->spi, dev->cs_pin, SPI_MODE_0, SPI_CLK);
+    spi_acquire(SPI_BUS, CS_PIN, SPI_MODE_0, SPI_CLK);
 
     switch_bank(dev, bank);
-    spi_transfer_reg(dev->spi, dev->cs_pin, (CMD_BFS | reg), mask);
+    spi_transfer_reg(SPI_BUS, CS_PIN, (CMD_BFS | reg), mask);
 
     /* finish SPI transaction */
-    spi_release(dev->spi);
+    spi_release(SPI_BUS);
 }
 
 static void cmd_bfc(enc28j60_t *dev, uint8_t reg, int8_t bank, uint8_t mask)
 {
     /* start transaction */
-    spi_acquire(dev->spi, dev->cs_pin, SPI_MODE_0, SPI_CLK);
+    spi_acquire(SPI_BUS, CS_PIN, SPI_MODE_0, SPI_CLK);
 
     switch_bank(dev, bank);
-    spi_transfer_reg(dev->spi, dev->cs_pin, (CMD_BFC | reg), mask);
+    spi_transfer_reg(SPI_BUS, CS_PIN, (CMD_BFC | reg), mask);
 
     /* finish SPI transaction */
-    spi_release(dev->spi);
+    spi_release(SPI_BUS);
 }
 
 static uint16_t cmd_r_addr(enc28j60_t *dev, uint8_t addr)
@@ -197,21 +208,21 @@ static void cmd_w_phy(enc28j60_t *dev, uint8_t reg, uint16_t val)
 static void cmd_rbm(enc28j60_t *dev, uint8_t *data, size_t len)
 {
     /* start transaction */
-    spi_acquire(dev->spi, dev->cs_pin, SPI_MODE_0, SPI_CLK);
+    spi_acquire(SPI_BUS, CS_PIN, SPI_MODE_0, SPI_CLK);
     /* transfer data */
-    spi_transfer_regs(dev->spi, dev->cs_pin, CMD_RBM, NULL, data, len);
+    spi_transfer_regs(SPI_BUS, CS_PIN, CMD_RBM, NULL, data, len);
     /* finish SPI transaction */
-    spi_release(dev->spi);
+    spi_release(SPI_BUS);
 }
 
 static void cmd_wbm(enc28j60_t *dev, uint8_t *data, size_t len)
 {
     /* start transaction */
-    spi_acquire(dev->spi, dev->cs_pin, SPI_MODE_0, SPI_CLK);
+    spi_acquire(SPI_BUS, CS_PIN, SPI_MODE_0, SPI_CLK);
     /* transfer data */
-    spi_transfer_regs(dev->spi, dev->cs_pin, CMD_WBM, data, NULL, len);
+    spi_transfer_regs(SPI_BUS, CS_PIN, CMD_WBM, data, NULL, len);
     /* finish SPI transaction */
-    spi_release(dev->spi);
+    spi_release(SPI_BUS);
 }
 
 static void mac_get(enc28j60_t *dev, uint8_t *mac)
@@ -236,6 +247,9 @@ static void mac_set(enc28j60_t *dev, uint8_t *mac)
 
 static void on_int(void *arg)
 {
+    /* disable gobal interupt enable bit to avoid loosing interupts */
+    cmd_bfc((enc28j60_t *)arg, REG_EIE, -1, EIE_INTIE);
+
     netdev_t *netdev = (netdev_t *)arg;
     netdev->event_callback(arg, NETDEV_EVENT_ISR);
 }
@@ -246,8 +260,30 @@ static int nd_send(netdev_t *netdev, const iolist_t *iolist)
     uint8_t ctrl = 0;
     int c = 0;
 
-    mutex_lock(&dev->devlock);
+    mutex_lock(&dev->lock);
 
+    if (cmd_rcr(dev, REG_ECON1, -1) & ECON1_TXRTS) {
+        /* there is already a transmission in progress */
+        if (xtimer_now_usec() - dev->tx_time > MAX_TX_TIME * 2) {
+            /*
+             * if transmission time exceeds the double of maximum transmission
+             * time, we suppose that TX logic hangs and has to be reset
+             */
+            cmd_bfs(dev, REG_ECON1, -1, ECON1_TXRST);
+            cmd_bfc(dev, REG_ECON1, -1, ECON1_TXRST);
+        }
+        else {
+            /*
+             * otherwise we suppose that the transmission is still in progress
+             * and return EBUSY
+             */
+            mutex_unlock(&dev->lock);
+            return -EBUSY;
+        }
+    }
+
+    /* set TX start pointer */
+    cmd_w_addr(dev, ADDR_TX_START, BUF_TX_START);
     /* set write pointer */
     cmd_w_addr(dev, ADDR_WRITE_PTR, BUF_TX_START);
     /* write control byte and the actual data into the buffer */
@@ -260,32 +296,48 @@ static int nd_send(netdev_t *netdev, const iolist_t *iolist)
     cmd_w_addr(dev, ADDR_TX_END, cmd_r_addr(dev, ADDR_WRITE_PTR) - 1);
     /* trigger the send process */
     cmd_bfs(dev, REG_ECON1, -1, ECON1_TXRTS);
+    /* set last transmission time for timeout handling */
+    dev->tx_time = xtimer_now_usec();
 
 #ifdef MODULE_NETSTATS_L2
     netdev->stats.tx_bytes += c;
 #endif
 
-    mutex_unlock(&dev->devlock);
+    mutex_unlock(&dev->lock);
     return c;
 }
+
+/*
+ * Section 14 of errata sheet: Even values in ERXRDPT may corrupt receive
+ * buffer as well as the next packet pointer. ERXRDPT need to be set always
+ * at odd addresses. Following macros determine odd ERXRDPT from next packet
+ * pointer and vise versa. Next packet pointer is always at even address
+ * because of hardware padding.
+ */
+#define NEXT_TO_ERXRDPT(n) ((n == BUF_RX_START || n - 1 > BUF_RX_END) ? BUF_RX_END : n - 1)
+#define ERXRDPT_TO_NEXT(e) ((e >= BUF_RX_END) ? BUF_RX_START : e + 1)
 
 static int nd_recv(netdev_t *netdev, void *buf, size_t max_len, void *info)
 {
     enc28j60_t *dev = (enc28j60_t *)netdev;
     uint8_t head[6];
-    size_t size;
+    uint16_t size;
     uint16_t next;
 
     (void)info;
-    mutex_lock(&dev->devlock);
+    mutex_lock(&dev->lock);
 
     /* set read pointer to RX read address */
-    cmd_w_addr(dev, ADDR_READ_PTR, cmd_r_addr(dev, ADDR_RX_READ));
+    uint16_t rx_rd_ptr = cmd_r_addr(dev, ADDR_RX_READ);
+    cmd_w_addr(dev, ADDR_READ_PTR, ERXRDPT_TO_NEXT(rx_rd_ptr));
     /* read packet header */
     cmd_rbm(dev, head, 6);
     /* TODO: care for endianess */
     next = (uint16_t)((head[1] << 8) | head[0]);
-    size = (size_t)((head[3] << 8) | head[2]) - 4;  /* discard CRC */
+    size = (uint16_t)((head[3] << 8) | head[2]) - 4;  /* discard CRC */
+
+    DEBUG("[enc28j60] recv: size=%i next=%i buf=%p len=%d\n",
+          (int)size, (int)next, buf, max_len);
 
     if (buf != NULL) {
 #ifdef MODULE_NETSTATS_L2
@@ -300,11 +352,17 @@ static int nd_recv(netdev_t *netdev, void *buf, size_t max_len, void *info)
             size = 0;
         }
         /* release memory */
-        cmd_w_addr(dev, ADDR_RX_READ, next);
+        cmd_w_addr(dev, ADDR_RX_READ, NEXT_TO_ERXRDPT(next));
+        cmd_bfs(dev, REG_ECON2, -1, ECON2_PKTDEC);
+    }
+    else if (max_len != 0) {
+        /* drop the packet */
+        DEBUG("[enc28j60] recv: drop packet - no buffer to receive\n");
+        cmd_w_addr(dev, ADDR_RX_READ, NEXT_TO_ERXRDPT(next));
         cmd_bfs(dev, REG_ECON2, -1, ECON2_PKTDEC);
     }
 
-    mutex_unlock(&dev->devlock);
+    mutex_unlock(&dev->lock);
     return (int)size;
 }
 
@@ -315,21 +373,21 @@ static int nd_init(netdev_t *netdev)
     uint8_t tmp;
 
     /* get exclusive access of the device */
-    mutex_lock(&dev->devlock);
+    mutex_lock(&dev->lock);
 
     /* setup the low-level interfaces */
-    gpio_init(dev->reset_pin, GPIO_OUT);
-    gpio_clear(dev->reset_pin);     /* this puts the device into reset state */
-    res = spi_init_cs(dev->spi, dev->cs_pin);
+    gpio_init(RST_PIN, GPIO_OUT);
+    gpio_clear(RST_PIN);     /* this puts the device into reset state */
+    res = spi_init_cs(SPI_BUS, CS_PIN);
     if (res != SPI_OK) {
         DEBUG("[enc28j60] init: error initializing the CS pin [%i]\n", res);
         return -1;
     }
-    gpio_init_int(dev->int_pin, GPIO_IN, GPIO_FALLING, on_int, (void *)dev);
+    gpio_init_int(INT_PIN, GPIO_IN, GPIO_FALLING, on_int, (void *)dev);
 
     /* wait at least 1ms and then release device from reset state */
     xtimer_usleep(DELAY_RESET);
-    gpio_set(dev->reset_pin);
+    gpio_set(RST_PIN);
 
     /* wait for oscillator to be stable before proceeding */
     res = 0;
@@ -348,7 +406,7 @@ static int nd_init(netdev_t *netdev)
     /* configure the RX buffer */
     cmd_w_addr(dev, ADDR_RX_START, BUF_RX_START);
     cmd_w_addr(dev, ADDR_RX_END, BUF_RX_END);
-    cmd_w_addr(dev, ADDR_RX_READ, BUF_RX_START);
+    cmd_w_addr(dev, ADDR_RX_READ, NEXT_TO_ERXRDPT(BUF_RX_START));
     /* configure the TX buffer */
     cmd_w_addr(dev, ADDR_TX_START, BUF_TX_START);
     cmd_w_addr(dev, ADDR_TX_END, BUF_TX_END);
@@ -399,7 +457,7 @@ static int nd_init(netdev_t *netdev)
 #ifdef MODULE_NETSTATS_L2
     memset(&netdev->stats, 0, sizeof(netstats_t));
 #endif
-    mutex_unlock(&dev->devlock);
+    mutex_unlock(&dev->lock);
     return 0;
 }
 
@@ -443,6 +501,8 @@ static void nd_isr(netdev_t *netdev)
         }
         eir = cmd_rcr(dev, REG_EIR, -1);
     }
+    /* enable gobal interupt enable bit again */
+    cmd_bfs(dev, REG_EIE, -1, EIE_INTIE);
 }
 
 static int nd_get(netdev_t *netdev, netopt_t opt, void *value, size_t max_len)
@@ -493,10 +553,7 @@ static const netdev_driver_t netdev_driver_enc28j60 = {
 void enc28j60_setup(enc28j60_t *dev, const enc28j60_params_t *params)
 {
     dev->netdev.driver = &netdev_driver_enc28j60;
-    dev->spi = params->spi;
-    dev->cs_pin = params->cs_pin;
-    dev->int_pin = params->int_pin;
-    dev->reset_pin = params->reset_pin;
-    mutex_init(&dev->devlock);
-    dev->bank = 99;                         /* mark as invalid */
+    dev->p = *params;
+    mutex_init(&dev->lock);
+    dev->tx_time = 0;
 }

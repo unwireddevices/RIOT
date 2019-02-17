@@ -29,7 +29,7 @@
 /**
  * @brief   Allocation of memory for device descriptors
  */
-static sht3x_dev_t sht3x_devs[SHT3X_NUM];
+sht3x_dev_t sht3x_devs[SHT3X_NUM];
 
 /**
  * @brief   Memory for the SAUL registry entries

@@ -18,6 +18,8 @@
 #define SHT3X_H
 
 #include <stdint.h>
+#include <stdbool.h>
+
 #include "periph/i2c.h"
 
 #ifdef __cplusplus
@@ -43,12 +45,12 @@ typedef enum {
  * @brief   SHT3x measurement modes
  */
 typedef enum {
-    sht3x_single_shot = 0,  /**< single shot measurement */
-    sht3x_periodic_05mps,   /**< periodic with 0.5 measurements per second (mps) */
-    sht3x_periodic_1mps,    /**< periodic with   1 measurements per second (mps) */
-    sht3x_periodic_2mps,    /**< periodic with   2 measurements per second (mps) */
-    sht3x_periodic_4mps,    /**< periodic with   4 measurements per second (mps) */
-    sht3x_periodic_10mps    /**< periodic with  10 measurements per second (mps) */
+    SHT3X_SINGLE_SHOT = 0,  /**< single shot measurement */
+    SHT3X_PERIODIC_0_5_MPS, /**< periodic with 0.5 measurements per second (mps) */
+    SHT3X_PERIODIC_1_MPS,   /**< periodic with   1 measurements per second (mps) */
+    SHT3X_PERIODIC_2_MPS,   /**< periodic with   2 measurements per second (mps) */
+    SHT3X_PERIODIC_4_MPS,   /**< periodic with   4 measurements per second (mps) */
+    SHT3X_PERIODIC_10_MPS   /**< periodic with  10 measurements per second (mps) */
 } sht3x_mode_t;
 
 
@@ -71,9 +73,9 @@ typedef enum {
  * low             | 0.15    | 0.21    | 4.5 ms
  */
 typedef enum {
-    sht3x_high = 0, /**< high repeatability */
-    sht3x_medium,   /**< medium repeatability */
-    sht3x_low       /**< low repeatability */
+    SHT3X_HIGH = 0, /**< high repeatability */
+    SHT3X_MEDIUM,   /**< medium repeatability */
+    SHT3X_LOW       /**< low repeatability */
 } sht3x_repeat_t;
 
 

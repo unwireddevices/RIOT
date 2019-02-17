@@ -58,7 +58,6 @@
 #define TMP006_MID_VALUE            (0x5449) /**< Manufacturer ID */
 #define TMP006_DID_VALUE            (0x0067) /**< Device ID */
 
-#define I2C_SPEED                   I2C_SPEED_FAST
 #define BUS                         (dev->p.i2c)
 #define ADDR                        (dev->p.addr)
 
@@ -71,23 +70,16 @@ int tmp006_init(tmp006_t *dev, const tmp006_params_t *params)
     uint16_t tmp;
 
     /* initialize the device descriptor */
-    memcpy(&dev->p, params, sizeof(tmp006_params_t));
+    dev->p = *params;
 
     if (dev->p.rate > TMP006_CONFIG_CR_AS16) {
         LOG_ERROR("tmp006_init: invalid conversion rate!\n");
         return -TMP006_ERROR_CONF;
     }
 
-    /* setup the I2C bus */
-    i2c_acquire(BUS);
-    // if (i2c_init_master(BUS, I2C_SPEED) < 0) {
-    //     i2c_release(BUS);
-    //     LOG_ERROR("tmp006_init: error initializing I2C bus\n");
-    //     return -TMP006_ERROR_BUS;
-    // }
-    i2c_init(BUS);
     /* test device id */
-    if (i2c_read_regs(BUS, ADDR, TMP006_REGS_DEVICE_ID, reg, 2, 0) != 2) {
+    i2c_acquire(BUS);
+    if (i2c_read_regs(BUS, ADDR, TMP006_REGS_DEVICE_ID, reg, 2, 0) < 0) {
         i2c_release(BUS);
         LOG_ERROR("tmp006_init: error reading device ID!\n");
         return -TMP006_ERROR_BUS;
@@ -100,7 +92,7 @@ int tmp006_init(tmp006_t *dev, const tmp006_params_t *params)
     tmp = TMP006_CONFIG_CR(dev->p.rate);
     reg[0] = (tmp >> 8);
     reg[1] = tmp;
-    if (i2c_write_regs(BUS, ADDR, TMP006_REGS_CONFIG, reg, 2, 0) != 2) {
+    if (i2c_write_regs(BUS, ADDR, TMP006_REGS_CONFIG, reg, 2, 0) < 0) {
         i2c_release(BUS);
         LOG_ERROR("tmp006_init: error setting conversion rate!\n");
         return -TMP006_ERROR_BUS;
@@ -119,7 +111,7 @@ int tmp006_reset(const tmp006_t *dev)
 
     /* Acquire exclusive access to the bus. */
     i2c_acquire(BUS);
-    if (i2c_write_regs(BUS, ADDR, TMP006_REGS_CONFIG, reg, 2, 0) != 2) {
+    if (i2c_write_regs(BUS, ADDR, TMP006_REGS_CONFIG, reg, 2, 0) < 0) {
         i2c_release(BUS);
         return -TMP006_ERROR_BUS;
     }
@@ -132,13 +124,13 @@ int tmp006_set_active(const tmp006_t *dev)
     uint8_t reg[2];
 
     i2c_acquire(BUS);
-    if (i2c_read_regs(BUS, ADDR, TMP006_REGS_CONFIG, reg, 2, 0) != 2) {
+    if (i2c_read_regs(BUS, ADDR, TMP006_REGS_CONFIG, reg, 2, 0) < 0) {
         i2c_release(BUS);
         return -TMP006_ERROR_BUS;
     }
 
     reg[0] |= (TMP006_CONFIG_MOD(TMP006_CONFIG_MOD_CC) >> 8);
-    if (i2c_write_regs(BUS, ADDR, TMP006_REGS_CONFIG, reg, 2, 0) != 2) {
+    if (i2c_write_regs(BUS, ADDR, TMP006_REGS_CONFIG, reg, 2, 0) < 0) {
         i2c_release(BUS);
         return -TMP006_ERROR_BUS;
     }
@@ -151,13 +143,13 @@ int tmp006_set_standby(const tmp006_t *dev)
     uint8_t reg[2];
 
     i2c_acquire(BUS);
-    if (i2c_read_regs(BUS, ADDR, TMP006_REGS_CONFIG, reg, 2, 0) != 2) {
+    if (i2c_read_regs(BUS, ADDR, TMP006_REGS_CONFIG, reg, 2, 0) < 0) {
         i2c_release(BUS);
         return -TMP006_ERROR_BUS;
     }
 
     reg[0] &= ~(TMP006_CONFIG_MOD(TMP006_CONFIG_MOD_CC) >> 8);
-    if (i2c_write_regs(BUS, ADDR, TMP006_REGS_CONFIG, reg, 2, 0) != 2) {
+    if (i2c_write_regs(BUS, ADDR, TMP006_REGS_CONFIG, reg, 2, 0) < 0) {
         i2c_release(BUS);
         return -TMP006_ERROR_BUS;
     }
@@ -171,7 +163,7 @@ int tmp006_read(const tmp006_t *dev, int16_t *rawv, int16_t *rawt, uint8_t *drdy
 
     i2c_acquire(BUS);
     /* Register bytes are sent MSB first. */
-    if (i2c_read_regs(BUS, ADDR, TMP006_REGS_CONFIG, reg, 2, 0) != 2) {
+    if (i2c_read_regs(BUS, ADDR, TMP006_REGS_CONFIG, reg, 2, 0) < 0) {
         i2c_release(BUS);
         return -TMP006_ERROR_BUS;
     }
@@ -184,7 +176,7 @@ int tmp006_read(const tmp006_t *dev, int16_t *rawv, int16_t *rawt, uint8_t *drdy
     }
 
     i2c_acquire(BUS);
-    if (i2c_read_regs(BUS, ADDR, TMP006_REGS_V_OBJECT, reg, 2, 0) != 2) {
+    if (i2c_read_regs(BUS, ADDR, TMP006_REGS_V_OBJECT, reg, 2, 0) < 0) {
         i2c_release(BUS);
         return -TMP006_ERROR_BUS;
     }
@@ -193,7 +185,7 @@ int tmp006_read(const tmp006_t *dev, int16_t *rawv, int16_t *rawt, uint8_t *drdy
     *rawv = ((uint16_t)reg[0] << 8) | reg[1];
 
     i2c_acquire(BUS);
-    if (i2c_read_regs(BUS, ADDR, TMP006_REGS_T_AMBIENT, reg, 2, 0) != 2) {
+    if (i2c_read_regs(BUS, ADDR, TMP006_REGS_T_AMBIENT, reg, 2, 0) < 0) {
         i2c_release(BUS);
         return -TMP006_ERROR_BUS;
     }

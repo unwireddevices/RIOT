@@ -77,7 +77,6 @@ int bmx280_init(bmx280_t* dev, const bmx280_params_t* params)
     /* Initialize I2C interface */
     i2c_init(dev->params.i2c_dev);
 
-
     /* Read chip ID */
     chip_id = read_u8_reg(dev, BMX280_CHIP_ID_REG);
     if ((chip_id != BME280_CHIP_ID) && (chip_id != BMP280_CHIP_ID)) {
@@ -220,10 +219,8 @@ uint16_t bme280_read_humidity(const bmx280_t *dev)
  */
 static int read_calibration_data(bmx280_t* dev)
 {
-    i2c_acquire(dev->params.i2c_dev);
-    
     uint8_t buffer[128];        /* 128 should be enough to read all calibration bytes */
-    int nr_bytes;
+    int result;
 #ifdef MODULE_BME280
     int nr_bytes_to_read = (BME280_DIG_H6_REG - BMX280_DIG_T1_LSB_REG) + 1;
 #else
@@ -232,13 +229,16 @@ static int read_calibration_data(bmx280_t* dev)
     uint8_t offset = 0x88;
 
     memset(buffer, 0, sizeof(buffer));
-    nr_bytes = i2c_read_regs(dev->params.i2c_dev, dev->params.i2c_addr, offset,
-                             buffer, nr_bytes_to_read, 0);
-    if (nr_bytes < 0) {
+
+    i2c_acquire(dev->params.i2c_dev);
+    result = i2c_read_regs(dev->params.i2c_dev, dev->params.i2c_addr, offset,
+                           buffer, nr_bytes_to_read, 0);
+    i2c_release(dev->params.i2c_dev);
+    if (result != 0) {
         LOG_ERROR("Unable to read calibration data\n");
         return -1;
     }
-    DUMP_BUFFER("Raw Calibration Data", buffer, nr_bytes);
+    DUMP_BUFFER("Raw Calibration Data", buffer, nr_bytes_to_read);
 
     /* All little endian */
     dev->calibration.dig_T1 = get_uint16_le(buffer, BMX280_DIG_T1_LSB_REG - offset);
@@ -268,9 +268,10 @@ static int read_calibration_data(bmx280_t* dev)
 
     DEBUG("[INFO] Chip ID = 0x%02X\n", buffer[BMX280_CHIP_ID_REG - offset]);
 
-    /* Config is only be writable in sleep mode */
-    (void)i2c_write_reg(dev->params.i2c_dev, dev->params.i2c_addr,
-                        BMX280_CTRL_MEAS_REG, 0, 0);
+    /* Config is only writable in sleep mode */
+    i2c_acquire(dev->params.i2c_dev);
+    i2c_write_reg(dev->params.i2c_dev, dev->params.i2c_addr, BMX280_CTRL_MEAS_REG, 0, 0);
+    i2c_release(dev->params.i2c_dev);
 
     uint8_t b;
 
@@ -304,8 +305,6 @@ static int read_calibration_data(bmx280_t* dev)
  */
 static int do_measurement(const bmx280_t* dev)
 {
-    i2c_acquire(dev->params.i2c_dev);
-    
     /*
      * If settings has FORCED mode, then the device go to sleep after
      * it finished the measurement. To read again we have to set the
@@ -326,20 +325,20 @@ static int do_measurement(const bmx280_t* dev)
         }
         /* What to do when measuring is still on? */
     }
-    int nr_bytes;
+    int result;
     int nr_bytes_to_read = sizeof(measurement_regs);
     uint8_t offset = BMX280_PRESSURE_MSB_REG;
 
-    nr_bytes = i2c_read_regs(dev->params.i2c_dev, dev->params.i2c_addr,
-                             offset, measurement_regs, nr_bytes_to_read, 0);
-    if (nr_bytes < 0 ) {
+    i2c_acquire(dev->params.i2c_dev);
+    result = i2c_read_regs(dev->params.i2c_dev, dev->params.i2c_addr,
+                           offset, measurement_regs, nr_bytes_to_read, 0);
+    i2c_release(dev->params.i2c_dev);
+    if (result != 0) {
         LOG_ERROR("Unable to read temperature data\n");
         i2c_release(dev->params.i2c_dev);
         return -1;
     }
-    DUMP_BUFFER("Raw Sensor Data", measurement_regs, nr_bytes);
-    
-    i2c_release(dev->params.i2c_dev);
+    DUMP_BUFFER("Raw Sensor Data", measurement_regs, nr_bytes_to_read);
 
     return 0;
 }
@@ -358,14 +357,18 @@ static uint8_t read_u8_reg(const bmx280_t* dev, uint8_t reg)
 {
     uint8_t b;
     /* Assuming device is correct, it should return 1 (nr bytes) */
-    (void)i2c_read_reg(dev->params.i2c_dev, dev->params.i2c_addr, reg, &b, 0);
+    i2c_acquire(dev->params.i2c_dev);
+    i2c_read_reg(dev->params.i2c_dev, dev->params.i2c_addr, reg, &b, 0);
+    i2c_release(dev->params.i2c_dev);
     return b;
 }
 
 static void write_u8_reg(const bmx280_t* dev, uint8_t reg, uint8_t b)
 {
     /* Assuming device is correct, it should return 1 (nr bytes) */
-    (void)i2c_write_reg(dev->params.i2c_dev, dev->params.i2c_addr, reg, b, 0);
+    i2c_acquire(dev->params.i2c_dev);
+    i2c_write_reg(dev->params.i2c_dev, dev->params.i2c_addr, reg, b, 0);
+    i2c_release(dev->params.i2c_dev);
 }
 
 static uint16_t get_uint16_le(const uint8_t *buffer, size_t offset)

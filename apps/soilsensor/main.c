@@ -44,7 +44,7 @@
 #include "periph/pm.h"
 #include "pm_layered.h"
 #include "periph/flashpage.h"
-#include "uart_stdio.h"
+#include "stdio_uart.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -135,7 +135,7 @@ static void cpu_switch_idle(bool idle) {
     xtimer_init();
 
     /* recalculate UART baudrate */
-    uart_stdio_init();
+    stdio_init();
     uart_set_baudrate(SOILSENSOR_COMM_UART, sensor_settings.baud);
     
     irq_restore(irqs);

@@ -20,6 +20,10 @@
 #include "phydat.h"
 #include "saul.h"
 #include "sht3x.h"
+#include "sht3x_params.h"
+
+#define SHT3X_NUM      (sizeof(sht3x_params) / sizeof(sht3x_params[0]))
+extern sht3x_dev_t sht3x_devs[SHT3X_NUM];
 
 /**
  * Humidity and temperature sensor values are fetched by separate saul
@@ -28,32 +32,53 @@
  * store them in local variables to provide them in the separate saul
  * read functions.
  */
-static bool _temp_valid = false;
-static bool _hum_valid = false;
-static int16_t _temp;
-static int16_t _hum;
+static bool _temp_valid[SHT3X_NUM] = { false };
+static bool _hum_valid[SHT3X_NUM] = { false };
+static int16_t _temp[SHT3X_NUM];
+static int16_t _hum[SHT3X_NUM];
 
-static int read(const sht3x_dev_t *dev)
+static unsigned _dev2index (const sht3x_dev_t *dev)
+{
+    /*
+     * returns the index of the device in sht3x_devs[] or SHT3_NUM
+     * if not found
+     */
+    for (unsigned i = 0; i < SHT3X_NUM; i++) {
+        if (dev == &sht3x_devs[i]) {
+            return i;
+        }
+    }
+    return SHT3X_NUM;
+}
+
+static int read(int dev)
 {
     /* read both sensor values */
-    int res = sht3x_read((sht3x_dev_t *)dev, &_temp, &_hum);
+    unsigned res = sht3x_read(&sht3x_devs[dev], &_temp[dev], &_hum[dev]);
     if (res != SHT3X_OK) {
         return res;
     }
     /* mark both sensor values as valid */
-    _temp_valid = true;
-    _hum_valid = true;
+    _temp_valid[dev] = true;
+    _hum_valid[dev] = true;
     return SHT3X_OK;
 }
 
 static int read_temp(const void *dev, phydat_t *data)
 {
-    /* either local variable is valid or fetching it was successful */
-    if (_temp_valid || read(dev) == SHT3X_OK) {
-        /* mark local variable as invalid */
-        _temp_valid = false;
+    /* find the device index */
+    unsigned dev_index = _dev2index((const sht3x_dev_t *)dev);
+    if (dev_index == SHT3X_NUM) {
+        /* return with error if device index could not be found */
+        return -ECANCELED;
+    }
 
-        data->val[0] = _temp;
+    /* either local variable is valid or fetching it was successful */
+    if (_temp_valid[dev_index] || read(dev_index) == SHT3X_OK) {
+        /* mark local variable as invalid */
+        _temp_valid[dev_index] = false;
+
+        data->val[0] = _temp[dev_index];
         data->unit = UNIT_TEMP_C;
         data->scale = -2;
         return 1;
@@ -63,12 +88,19 @@ static int read_temp(const void *dev, phydat_t *data)
 
 static int read_hum(const void *dev, phydat_t *data)
 {
-    /* either local variable is valid or fetching it was successful */
-    if (_hum_valid || read(dev) == SHT3X_OK) {
-        /* mark local variable as invalid */
-        _hum_valid = false;
+    /* find the device index */
+    unsigned dev_index = _dev2index((const sht3x_dev_t *)dev);
+    if (dev_index == SHT3X_NUM) {
+        /* return with error if device index could not be found */
+        return -ECANCELED;
+    }
 
-        data->val[0] = _hum;
+    /* either local variable is valid or fetching it was successful */
+    if (_hum_valid[dev_index] || read(dev_index) == SHT3X_OK) {
+        /* mark local variable as invalid */
+        _hum_valid[dev_index] = false;
+
+        data->val[0] = _hum[dev_index];
         data->unit = UNIT_PERCENT;
         data->scale = -2;
         return 1;

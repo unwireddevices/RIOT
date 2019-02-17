@@ -223,8 +223,18 @@ enum pm_mode pm_set(enum pm_mode mode)
 #else
             /* Set PDDS to enter standby mode on deepsleep and clear flags */
             PWR->CR |= (PWR_CR_PDDS | PWR_CR_CWUF | PWR_CR_CSBF);
+            /* Enable WKUP pin to use for wakeup from standby mode */
+            /*
+#if defined(CPU_FAM_STM32L0)
+            PWR->CSR |= (PWR_CSR_EWUP1 | PWR_CSR_EWUP2);
+#if !defined(CPU_LINE_STM32L053xx)
+            */
+            /* STM32L053 only have 2 wake pins */
+            /*
+            PWR->CSR |= PWR_CSR_EWUP3;
+            */
 #endif
-            
+
 #if defined(CPU_FAM_STM32L0) || defined (CPU_FAM_STM32L1)
             /* Disable Vrefint in standby mode */
             PWR->CR |= PWR_CR_ULP;

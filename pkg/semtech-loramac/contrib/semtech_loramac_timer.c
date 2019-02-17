@@ -20,8 +20,8 @@
  */
 
 #include "rtctimers-millis.h"
-#include "semtech-loramac/timer.h"
 #include "thread.h"
+#include "semtech-loramac/timer.h"
 
 extern kernel_pid_t semtech_loramac_pid;
 

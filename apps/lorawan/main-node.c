@@ -183,21 +183,26 @@ static void *sender_thread(void *arg) {
             }
         } else {
             switch (msg.type) {
-                case MSG_TYPE_LORAMAC_TX_DONE:
-                    puts("[LoRa] TX done");
-                    break;
-                case MSG_TYPE_LORAMAC_TX_CNF_FAILED:
-                    puts("[LoRa] Uplink confirmation failed");
-                    uplinks_failed++;
-                    
-                    if (uplinks_failed > unwds_get_node_settings().max_retr) {
-                        puts("[LoRa] Too many uplinks failed, rejoining");
-                        current_join_retries = 0;
-                        uplinks_failed = 0;
-                        msg_send(&msg_join, sender_pid);
+                case MSG_TYPE_LORAMAC_TX_STATUS: {
+                    if (msg.content.value == SEMTECH_LORAMAC_TX_DONE) {
+                        puts("[LoRa] TX done");
                     }
+                    else
+                    if (msg.content.value == SEMTECH_LORAMAC_TX_CNF_FAILED) {
+                        puts("[LoRa] Uplink confirmation failed");
+                        uplinks_failed++;
+                        
+                        if (uplinks_failed > unwds_get_node_settings().max_retr) {
+                            puts("[LoRa] Too many uplinks failed, rejoining");
+                            current_join_retries = 0;
+                            uplinks_failed = 0;
+                            msg_send(&msg_join, sender_pid);
+                        }
+                    }
+                    
                     break;
-                case MSG_TYPE_LORAMAC_RX:
+                }
+                case MSG_TYPE_LORAMAC_RX: {
                     if ((ls->rx_data.payload_len == 0) && ls->rx_data.ack) {
                         printf("[LoRa] Ack received: RSSI %d, DR %d\n",
                                 ls->rx_data.rssi,
@@ -218,6 +223,7 @@ static void *sender_thread(void *arg) {
                         appdata_received(ls->rx_data.payload, ls->rx_data.payload_len);
                     }
                     break;
+                }
                 case MSG_TYPE_LORAMAC_JOIN:
                     puts("[LoRa] LoRaMAC join notification\n");
                     break;

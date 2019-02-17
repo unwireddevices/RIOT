@@ -140,7 +140,7 @@ static bool init_sensor(void) {
         return true;
     }
     
-    adxl345_params_t adxl_params = ADXL345_PARAMS_DEFAULT;
+    adxl345_params_t adxl_params = ADXL345_PARAMS;
     adxl_params.i2c = I2C_DEV(UMDK_INCLINOMETER_I2C);
     adxl_params.addr = ADXL345_PARAM_ADDR;
     adxl_params.range = ADXL345_RANGE_2G;

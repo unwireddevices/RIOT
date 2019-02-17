@@ -25,11 +25,7 @@
 
 #include "cpu_conf_common.h"
 
-#if defined(CPU_MODEL_STM32F103C8) || defined(CPU_MODEL_STM32F103CB) || defined(CPU_MODEL_STM32F103RB)
-    #define STM32F103xB
-#elif defined(CPU_MODEL_STM32F103RE) || defined(CPU_MODEL_STM32F103ZE)
-    #define STM32F103xE
-#endif
+#include "vendor/stm32f1xx.h"
 
 #include "vendor/stm32f1xx.h"
 
@@ -42,7 +38,7 @@ extern "C" {
  * @{
  */
 #define CPU_DEFAULT_IRQ_PRIO            (1U)
-#if defined(STM32F103xE)
+#if defined(CPU_LINE_STM32F103xE)
 #define CPU_IRQ_NUMOF                   (60U)
 #else
 #define CPU_IRQ_NUMOF                   (43U)
@@ -58,6 +54,26 @@ extern "C" {
 #define STM32F1_DEV_ID_XL     0x430
 #define STM32F1_DEV_ID_CD     0x418
 #define ST_DEV_ID           ((DBGMCU->IDCODE) & DBGMCU_IDCODE_DEV_ID)
+
+/**
+ * @brief   Flash page configuration
+ * @{
+ */
+#if defined(CPU_LINE_STM32F103xB)
+#define FLASHPAGE_SIZE      (1024U)
+#elif defined(CPU_LINE_STM32F103xE)
+#define FLASHPAGE_SIZE      (2048U)
+#endif
+
+#define FLASHPAGE_NUMOF     (STM32_FLASHSIZE / FLASHPAGE_SIZE)
+
+/* The minimum block size which can be written is 2B. However, the erase
+ * block is always FLASHPAGE_SIZE.
+ */
+#define FLASHPAGE_RAW_BLOCKSIZE    (2U)
+/* Writing should be always 4 bytes aligned */
+#define FLASHPAGE_RAW_ALIGNMENT    (4U)
+/** @} */
 
 #ifdef __cplusplus
 }

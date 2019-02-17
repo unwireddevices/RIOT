@@ -19,6 +19,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 
 #include "net/ipv6/addr.h"
 #include "net/gnrc.h"
@@ -361,16 +362,22 @@ static void _netif_list_ipv6(ipv6_addr_t *addr, uint8_t flags)
     if (flags & GNRC_NETIF_IPV6_ADDRS_FLAGS_ANYCAST) {
         printf(" [anycast]");
     }
-    switch (flags & GNRC_NETIF_IPV6_ADDRS_FLAGS_STATE_MASK) {
-        case GNRC_NETIF_IPV6_ADDRS_FLAGS_STATE_TENTATIVE:
-            printf("  TNT");
-            break;
-        case GNRC_NETIF_IPV6_ADDRS_FLAGS_STATE_DEPRECATED:
-            printf("  DPR");
-            break;
-        case GNRC_NETIF_IPV6_ADDRS_FLAGS_STATE_VALID:
-            printf("  VAL");
-            break;
+    if (flags & GNRC_NETIF_IPV6_ADDRS_FLAGS_STATE_TENTATIVE) {
+        printf("  TNT[%u]",
+               flags & GNRC_NETIF_IPV6_ADDRS_FLAGS_STATE_TENTATIVE);
+    }
+    else {
+        switch (flags & GNRC_NETIF_IPV6_ADDRS_FLAGS_STATE_MASK) {
+            case GNRC_NETIF_IPV6_ADDRS_FLAGS_STATE_DEPRECATED:
+                printf("  DPR");
+                break;
+            case GNRC_NETIF_IPV6_ADDRS_FLAGS_STATE_VALID:
+                printf("  VAL");
+                break;
+            default:
+                printf("  UNK");
+                break;
+        }
     }
     line_thresh = _newline(0U, line_thresh);
 }
@@ -516,6 +523,9 @@ static void _netif_list(kernel_pid_t iface)
 #endif
     line_thresh = _netif_list_flag(iface, NETOPT_IPV6_SND_RTR_ADV, "RTR_ADV  ",
                                    line_thresh);
+#ifdef MODULE_GNRC_SIXLOWPAN
+    line_thresh = _netif_list_flag(iface, NETOPT_6LO, "6LO  ", line_thresh);
+#endif
 #ifdef MODULE_GNRC_SIXLOWPAN_IPHC
     line_thresh += _LINE_THRESHOLD + 1; /* enforce linebreak after this option */
     line_thresh = _netif_list_flag(iface, NETOPT_6LO_IPHC, "IPHC  ",

@@ -24,69 +24,73 @@
 #include "xtimer.h"
 
 #define ASSERT_PARAM(cond) \
-    if (!(cond)) { \
-        DEBUG("[sht3x] %s: %s\n", \
-              __func__, "parameter condition (" #cond ") not fulfilled"); \
-        assert(cond); \
-    }
+    do { \
+        if (!(cond)) { \
+            DEBUG("[sht3x] %s: %s\n", \
+                  __func__, "parameter condition (" #cond ") not fulfilled"); \
+            assert(cond); \
+        } \
+    } while (0)
 
 #define DEBUG_DEV(f, d, ...) \
         DEBUG("[sht3x] %s dev=%d addr=%02x: " f "\n", \
-              __func__, d->i2c_dev, d->i2c_addr, ## __VA_ARGS__);
+              __func__, d->i2c_dev, d->i2c_addr, ## __VA_ARGS__)
 
 #define ERROR_DEV(f, d, ...) \
         LOG_ERROR("[sht3x] dev=%d addr=%x: " f "\n", \
-                  d->i2c_dev, d->i2c_addr, ## __VA_ARGS__);
+                  d->i2c_dev, d->i2c_addr, ## __VA_ARGS__)
 
-/** SHT3x common commands */
-#define SHT3X_STATUS_CMD               0xF32D
-#define SHT3X_CLEAR_STATUS_CMD         0x3041
-#define SHT3X_RESET_CMD                0x30A2
-#define SHT3X_FETCH_DATA_CMD           0xE000
-#define SHT3X_HEATER_OFF_CMD           0x3066
+/* SHT3x common commands */
+#define SHT3X_CMD_CLEAR_STATUS  0x3041  /* clear status command */
+#define SHT3X_CMD_HEATER_OFF    0x3066  /* Heater disable command */
+#define SHT3X_CMD_BREAK         0x3093  /* Break command */
+#define SHT3X_CMD_RESET         0x30A2  /* reset command */
+#define SHT3X_CMD_FETCH_DATA    0xE000  /* fetch data command */
+#define SHT3X_CMD_STATUS        0xF32D  /* get status command */
 
-/** SHT3x status register flags */
-#define SHT3X_STATUS_REG_MASK   (0xbc13)
-#define SHT3X_STATUS_REG_CRC    (1 << 0)
-#define SHT3X_STATUS_REG_CMD    (1 << 1)
+/* SHT3x status register flags */
+#define SHT3X_STATUS_REG_MASK   (0xbc13) /* valid status register bit mask */
+#define SHT3X_STATUS_REG_CRC    (1 << 0) /* write data checksum status */
+#define SHT3X_STATUS_REG_CMD    (1 << 1) /* last command execution status */
 
-/** SHT3x measurement period times in us */
-uint32_t SHT3X_MEASURE_PERIOD[] = {
-          0,   /* [SINGLE_SHOT] */
-    2000000,   /* [PERIODIC_05] */
-    1000000,   /* [PERIODIC_1 ] */
-     500000,   /* [PERIODIC_2 ] */
-     250000,   /* [PERIODIC_4 ] */
-     100000    /* [PERIODIC_10] */
+/* Raw date size */
+#define SHT3X_RAW_DATA_SIZE 6
+
+/* SHT3x measurement period times in us */
+static const uint32_t SHT3X_MEASURE_PERIOD[] = {
+          0,   /* [SINGLE_SHOT ] */
+    2000000,   /* [PERIODIC_0_5] */
+    1000000,   /* [PERIODIC_1  ] */
+     500000,   /* [PERIODIC_2  ] */
+     250000,   /* [PERIODIC_4  ] */
+     100000    /* [PERIODIC_10 ] */
 };
 
-/** SHT3x measurement command sequences */
-const uint16_t SHT3X_MEASURE_CMD[6][3] = {
-    {0x2400, 0x240b, 0x2416},   /* [SINGLE_SHOT][H, M, L] without clock stretching */
-    {0x2032, 0x2024, 0x202f},   /* [PERIODIC_05][H, M, L] */
-    {0x2130, 0x2126, 0x212d},   /* [PERIODIC_1 ][H, M, L] */
-    {0x2236, 0x2220, 0x222b},   /* [PERIODIC_2 ][H, M, L] */
-    {0x2234, 0x2322, 0x2329},   /* [PERIODIC_4 ][H, M, L] */
-    {0x2737, 0x2721, 0x272a}    /* [PERIODIC_10][H, M, L] */
+/* SHT3x measurement command sequences */
+static const uint16_t SHT3X_CMD_MEASURE[6][3] = {
+    {0x2400, 0x240b, 0x2416},   /* [SINGLE_SHOT ][H, M, L] without clock stretching */
+    {0x2032, 0x2024, 0x202f},   /* [PERIODIC_0_5][H, M, L] */
+    {0x2130, 0x2126, 0x212d},   /* [PERIODIC_1  ][H, M, L] */
+    {0x2236, 0x2220, 0x222b},   /* [PERIODIC_2  ][H, M, L] */
+    {0x2234, 0x2322, 0x2329},   /* [PERIODIC_4  ][H, M, L] */
+    {0x2737, 0x2721, 0x272a}    /* [PERIODIC_10 ][H, M, L] */
 };
 
-/** maximum measurement durations dependent on repatability in ms */
+/* maximum measurement durations dependent on repatability in ms */
 #define SHT3X_MEAS_DURATION_REP_HIGH   16
 #define SHT3X_MEAS_DURATION_REP_MEDIUM 7
 #define SHT3X_MEAS_DURATION_REP_LOW    5
 
-#define SHT3X_RAW_DATA_SIZE 6
-
-/** measurement durations in us */
+/* measurement durations in us */
 const uint16_t SHT3X_MEAS_DURATION_US[3] = { SHT3X_MEAS_DURATION_REP_HIGH   * 1000,
                                              SHT3X_MEAS_DURATION_REP_MEDIUM * 1000,
                                              SHT3X_MEAS_DURATION_REP_LOW    * 1000 };
 
-/** functions for internal use */
+/* functions for internal use */
 static int _get_raw_data(sht3x_dev_t* dev, uint8_t* raw_data);
 static int _compute_values (uint8_t* raw_data, int16_t* temp, int16_t* hum);
 
-/** sensor commands */
+/* sensor commands */
 static int _start_measurement (sht3x_dev_t* dev);
 static int _reset (sht3x_dev_t* dev);
 static int _status (sht3x_dev_t* dev, uint16_t* status);
@@ -125,14 +129,13 @@ int sht3x_init (sht3x_dev_t *dev, const sht3x_params_t *params)
     DEBUG_DEV("sensor initialized", dev);
 
     /* start periodic measurements */
-    if ((dev->mode != sht3x_single_shot) &&
+    if ((dev->mode != SHT3X_SINGLE_SHOT) &&
         (res = _start_measurement (dev)) != SHT3X_OK){
         return res;
     }
 
     return res;
 }
-
 
 int sht3x_read (sht3x_dev_t* dev, int16_t* temp, int16_t* hum)
 {
@@ -155,17 +158,15 @@ int sht3x_read (sht3x_dev_t* dev, int16_t* temp, int16_t* hum)
     return _compute_values (raw_data, temp, hum);
 }
 
-/**
- * Functions for internal use only
- */
+/* Functions for internal use only */
 
 static int _start_measurement (sht3x_dev_t* dev)
 {
     /* start measurement according to selected mode */
-    if (_send_command(dev, SHT3X_MEASURE_CMD[dev->mode][dev->repeat]) != SHT3X_OK)
+    if (_send_command(dev, SHT3X_CMD_MEASURE[dev->mode][dev->repeat]) != SHT3X_OK)
     {
         DEBUG_DEV("start measurement failed, "
-                  "could not send SHT3X_MEASURE_CMD to sensor", dev);
+                  "could not send SHT3X_CMD_MEASURE to sensor", dev);
         return -SHT3X_ERROR_I2C;
     }
 
@@ -173,7 +174,7 @@ static int _start_measurement (sht3x_dev_t* dev)
      * in periodic modes, we check whether the command were processed, in
      * single shot mode, reading results has to follow directly.
      */
-    if (dev->mode != sht3x_single_shot) {
+    if (dev->mode != SHT3X_SINGLE_SHOT) {
         /* sensor needs up to 250 us to process the measurement command */
         xtimer_usleep (1000);
 
@@ -187,8 +188,8 @@ static int _start_measurement (sht3x_dev_t* dev)
 
         if (status & SHT3X_STATUS_REG_CMD) {
             DEBUG_DEV("start measurement failed, "
-                      "SHT3X_MEASURE_CMD were not executed", dev);
-            return SHT3X_ERROR_MEASURE_CMD_INV;
+                      "SHT3X_CMD_MEASURE were not executed", dev);
+            return -SHT3X_ERROR_MEASURE_CMD_INV;
         }
     }
 
@@ -218,9 +219,9 @@ static int _get_raw_data(sht3x_dev_t* dev, uint8_t* raw_data)
     }
 
     /* send fetch command in any periodic mode (mode > 0) before read raw data */
-    if (dev->mode != sht3x_single_shot &&
-        _send_command(dev, SHT3X_FETCH_DATA_CMD) != SHT3X_OK) {
-        DEBUG_DEV("could not send SHT3X_FETCH_DATA_CMD to sensor", dev);
+    if (dev->mode != SHT3X_SINGLE_SHOT &&
+        _send_command(dev, SHT3X_CMD_FETCH_DATA) != SHT3X_OK) {
+        DEBUG_DEV("could not send SHT3X_CMD_FETCH_DATA to sensor", dev);
         return -SHT3X_ERROR_I2C;
     }
 
@@ -230,8 +231,8 @@ static int _get_raw_data(sht3x_dev_t* dev, uint8_t* raw_data)
         return -SHT3X_ERROR_I2C;
     }
 
-    /* stop measurement in single shot mode by resetting the started flag */
-    if (dev->mode == sht3x_single_shot) {
+    /* in single shot mode upate dmeasurement started flag of the driver */
+    if (dev->mode == SHT3X_SINGLE_SHOT) {
         dev->meas_started = false;
     }
     /* start next measurement cycle in periodic modes */
@@ -286,7 +287,7 @@ static int _send_command(sht3x_dev_t* dev, uint16_t cmd)
     uint8_t data[2] = { cmd >> 8, cmd & 0xff };
     DEBUG_DEV("send command 0x%02x%02x", dev, data[0], data[1]);
 
-    if (i2c_acquire(dev->i2c_dev) != SHT3X_OK) {
+    if (i2c_acquire(dev->i2c_dev) != 0) {
         DEBUG_DEV ("could not aquire I2C bus", dev);
         return -SHT3X_ERROR_I2C;
     }
@@ -294,7 +295,7 @@ static int _send_command(sht3x_dev_t* dev, uint16_t cmd)
     res = i2c_write_bytes(dev->i2c_dev, dev->i2c_addr, (const void*)data, 2, 0);
     i2c_release(dev->i2c_dev);
 
-    if (res != SHT3X_OK) {
+    if (res != 0) {
         DEBUG_DEV("could not send command 0x%02x%02x to sensor, reason=%d",
                   dev, data[0], data[1], res);
         return -SHT3X_ERROR_I2C;
@@ -308,7 +309,7 @@ static int _read_data(sht3x_dev_t* dev, uint8_t *data, uint8_t len)
 {
     int res = SHT3X_OK;
 
-    if (i2c_acquire(dev->i2c_dev) != SHT3X_OK) {
+    if (i2c_acquire(dev->i2c_dev) != 0) {
         DEBUG_DEV ("could not aquire I2C bus", dev);
         return -SHT3X_ERROR_I2C;
     }
@@ -316,18 +317,18 @@ static int _read_data(sht3x_dev_t* dev, uint8_t *data, uint8_t len)
     res = i2c_read_bytes(dev->i2c_dev, dev->i2c_addr, (void*)data, len, 0);
     i2c_release(dev->i2c_dev);
 
-    if (res == SHT3X_OK) {
-        #if ENABLE_DEBUG
+    if (res == 0) {
+#if ENABLE_DEBUG
         printf("[sht3x] %s bus=%d addr=%02x: read following bytes: ",
                __func__, dev->i2c_dev, dev->i2c_addr);
         for (int i=0; i < len; i++)
             printf("%02x ", data[i]);
         printf("\n");
-        #endif /* ENABLE_DEBUG */
+#endif /* ENABLE_DEBUG */
     }
     else {
-        DEBUG_DEV("could not read %d bytes from sensor, reason %d (%s)",
-                  dev, len, res, strerror(res * -1));
+        DEBUG_DEV("could not read %d bytes from sensor, reason %d",
+                  dev, len, res);
         return -SHT3X_ERROR_I2C;
     }
 
@@ -340,18 +341,17 @@ static int _reset (sht3x_dev_t* dev)
 
     DEBUG_DEV("", dev);
 
-    /**
-     * Sensor can only be soft resetted in idle mode. Therefore, we try to
-     * start a single shot measurement and wait for its completion. After
-     * that the sensor should be in idle mode. We don't check I2C errors
-     * at this moment.
+    /*
+     * Sensor can only be soft resetted in idle mode. Therefore, we
+     * send a break and wait 1 ms. After that the sensor should be
+     * in idle mode. We don't check I2C errors at this moment.
      */
-    _send_command(dev, SHT3X_MEASURE_CMD[sht3x_single_shot][sht3x_low]);
-    xtimer_usleep (3000);
+    _send_command(dev, SHT3X_CMD_BREAK);
+    xtimer_usleep (1000);
 
     /* send the soft-reset command */
-    if (_send_command(dev, SHT3X_RESET_CMD) != SHT3X_OK) {
-        DEBUG_DEV("reset failed, could not send SHT3X_RESET_CMD", dev);
+    if (_send_command(dev, SHT3X_CMD_RESET) != SHT3X_OK) {
+        DEBUG_DEV("reset failed, could not send SHT3X_CMD_RESET", dev);
         return -SHT3X_ERROR_I2C;
     }
 
@@ -359,8 +359,8 @@ static int _reset (sht3x_dev_t* dev)
     xtimer_usleep (2000);
 
     /* send reset command */
-    if (_send_command(dev, SHT3X_CLEAR_STATUS_CMD) != SHT3X_OK) {
-        DEBUG_DEV("reset failed, could not send SHT3X_CLEAR_STATUS_CMD", dev);
+    if (_send_command(dev, SHT3X_CMD_CLEAR_STATUS) != SHT3X_OK) {
+        DEBUG_DEV("reset failed, could not send SHT3X_CMD_CLEAR_STATUS", dev);
         return -SHT3X_ERROR_I2C;
     }
 
@@ -397,8 +397,8 @@ static int _status (sht3x_dev_t* dev, uint16_t* status)
     uint8_t  data[3];
 
     /* read sensor status */
-    if (_send_command(dev, SHT3X_STATUS_CMD) != SHT3X_OK) {
-        DEBUG_DEV("could not send SHT3X_STATUS_CMD to sensor", dev);
+    if (_send_command(dev, SHT3X_CMD_STATUS) != SHT3X_OK) {
+        DEBUG_DEV("could not send SHT3X_CMD_STATUS to sensor", dev);
         return -SHT3X_ERROR_I2C;
     }
     if (_read_data(dev, data, 3) != SHT3X_OK) {

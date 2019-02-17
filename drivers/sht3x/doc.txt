@@ -113,15 +113,15 @@ Parameter        | Symbol               | Default
 :----------------|:---------------------|:------------------
 I2C device       | SHT3X_PARAM_I2C_DEV  | I2C_DEV(0)
 I2C address      | SHT3X_PARAM_I2C_ADDR | SHT3X_I2C_ADDR_2
-Measurement mode | SHT3X_PARAM_MODE     | sht3x_periodic_2mps
-Repeatability    | SHT3X_PARAM_REPEAT   | sht3x_high
+Measurement mode | SHT3X_PARAM_MODE     | SHT3X_PERIODIC_2_MPS
+Repeatability    | SHT3X_PARAM_REPEAT   | SHT3X_HIGH
 
-The default configuration is defined ```sht3_params.h``` and can be overridden by the application before including ```sht3_params.h```.
+The default configuration is defined ```sht3x_params.h``` and can be overridden by the application before including ```sht3x_params.h```.
 
 Example:
 ```
-#define SHT3X_PARAM_MODE        (sht3x_single_shot)
-#define SHT3X_PARAM_REPEAT      (sht3x_medium)
+#define SHT3X_PARAM_MODE        (SHT3X_SINGLE_SHOT)
+#define SHT3X_PARAM_REPEAT      (SHT3X_MEDIUM)
 ...
 #include "sht3x.h"
 #include "sht3x_params.h"
@@ -138,7 +138,7 @@ if ((res = sht3x_init(&dev, &sht3x_params[0])) != SHT3X_OK) {
 }
 ```
 
-Parameter ```sht3x_params``` is also defined by default in file ```sht3_params.h``` and can be overridden by the application before including ```sht3_params.h```.
+Parameter ```sht3x_params``` is also defined by default in file ```sht3x_params.h``` and can be overridden by the application before including ```sht3x_params.h```.
 
 Example:
 ```
@@ -148,13 +148,13 @@ Example:
 ...
 #define SHT3X_PARAMS    { .i2c_dev  = I2C_DEV(0),          \
                           .i2c_addr = SHT3X_I2C_ADDR_1,    \
-                          .mode     = sht3x_periodic_2mps, \
-                          .repeat   = sht3x_high           \
+                          .mode     = SHT3X_PERIODIC_2_MPS, \
+                          .repeat   = SHT3X_HIGH           \
                         }, \
                         { .i2c_dev  = I2C_DEV(0),          \
                           .i2c_addr = SHT3X_I2C_ADDR_2,    \
-                          .mode     = sht3x_single_shot,   \
-                          .repeat   = sht3x_low            \
+                          .mode     = SHT3X_SINGLE_SHOT,   \
+                          .repeat   = SHT3X_LOW            \
                         }, \
 ...
 sht3x_dev_t dev1;

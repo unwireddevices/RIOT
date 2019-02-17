@@ -215,28 +215,59 @@ static void _isr(netdev_t *netdev)
 {
     sx127x_t *dev = (sx127x_t *) netdev;
 
-    /* check the actual IRQ on the registers */
-    uint8_t interruptReg = sx127x_reg_read(dev, SX127X_REG_LR_IRQFLAGS);
-    
-    if ((interruptReg & SX127X_RF_LORA_IRQFLAGS_TXDONE) ||
-        (interruptReg & SX127X_RF_LORA_IRQFLAGS_RXDONE)) {
-            
-        _on_dio0_irq(dev);
+    uint8_t irq = dev->irq;
+
+#ifdef SX127X_USE_DIO_MULTI
+    /* if the IRQ is from an OR'd pin check the actual IRQ on the registers */
+    if (irq == SX127X_IRQ_DIO_MULTI) {
+        uint8_t interruptReg = sx127x_reg_read(dev, SX127X_REG_LR_IRQFLAGS);
+
+        switch (interruptReg) {
+            case SX127X_RF_LORA_IRQFLAGS_TXDONE:
+            case SX127X_RF_LORA_IRQFLAGS_RXDONE:
+                irq = SX127X_IRQ_DIO0;
+                break;
+
+            case SX127X_RF_LORA_IRQFLAGS_RXTIMEOUT:
+                irq = SX127X_IRQ_DIO1;
+                break;
+
+            case SX127X_RF_LORA_IRQFLAGS_FHSSCHANGEDCHANNEL:
+                irq = SX127X_IRQ_DIO2;
+                break;
+
+            case SX127X_RF_LORA_IRQFLAGS_CADDETECTED:
+            case SX127X_RF_LORA_IRQFLAGS_CADDONE:
+                irq = SX127X_IRQ_DIO3;
+                break;
+
+            default:
+                break;
+        }
     }
-    
-    if (interruptReg & SX127X_RF_LORA_IRQFLAGS_RXTIMEOUT) {
-        _on_dio1_irq(dev);
-    }
-    
-    if (interruptReg & SX127X_RF_LORA_IRQFLAGS_FHSSCHANGEDCHANNEL) {
-        _on_dio2_irq(dev);
-    }
-    
-    if ((interruptReg & SX127X_RF_LORA_IRQFLAGS_CADDETECTED) ||
-        (interruptReg & SX127X_RF_LORA_IRQFLAGS_CADDONE)     ||
-        (interruptReg & SX127X_RF_LORA_IRQFLAGS_VALIDHEADER)) {
-            
-        _on_dio3_irq(dev);
+#endif
+
+    dev->irq = 0;
+
+    switch (irq) {
+        case SX127X_IRQ_DIO0:
+            _on_dio0_irq(dev);
+            break;
+
+        case SX127X_IRQ_DIO1:
+            _on_dio1_irq(dev);
+            break;
+
+        case SX127X_IRQ_DIO2:
+            _on_dio2_irq(dev);
+            break;
+
+        case SX127X_IRQ_DIO3:
+            _on_dio3_irq(dev);
+            break;
+
+        default:
+            break;
     }
 }
 
@@ -509,7 +540,15 @@ static int _get_state(sx127x_t *dev, void *val)
 
         case SX127X_RF_OPMODE_RECEIVER:
         case SX127X_RF_LORA_OPMODE_RECEIVER_SINGLE:
-            state = NETOPT_STATE_IDLE;
+            /* Sx127x is in receive mode:
+             * -> need to check if the device is currently receiving a packet */
+            if (sx127x_reg_read(dev, SX127X_REG_LR_MODEMSTAT) &
+                SX127X_RF_LORA_MODEMSTAT_MODEM_STATUS_SIGNAL_DETECTED) {
+                state = NETOPT_STATE_RX;
+            }
+            else {
+                state = NETOPT_STATE_IDLE;
+            }
             break;
 
         default:

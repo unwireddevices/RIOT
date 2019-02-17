@@ -51,6 +51,7 @@ extern "C" {
  * @{
  */
 #define TIMER_NUMOF         (2U)
+#define TIMER_CHANNELS      (2)
 
 #define TIMER_0             MEGA_TIMER1
 #define TIMER_0_MASK        &TIMSK1
@@ -108,6 +109,7 @@ extern "C" {
  * @name    I2C configuration
  * @{
  */
+#define I2C_BUS_SPEED       I2C_SPEED_FAST
 #define I2C_NUMOF           1
 /** @} */
 

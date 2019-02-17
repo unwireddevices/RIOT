@@ -160,6 +160,7 @@ static void *sender_thread(void *arg) {
             case SEMTECH_LORAMAC_BUSY:
             case SEMTECH_LORAMAC_NOT_JOINED:
             case SEMTECH_LORAMAC_JOIN_FAILED:
+            case SEMTECH_LORAMAC_DUTYCYCLE_RESTRICTED:
             {
                 printf("[LoRa] LoRaMAC join failed: code %d\n", res);
                 if ((current_join_retries > unwds_get_node_settings().max_retr) &&
@@ -179,6 +180,10 @@ static void *sender_thread(void *arg) {
             }
             default:
                 printf("[LoRa] join request: unknown response %d\n", res);
+                /* Pseudorandom delay for collision avoidance */
+                unsigned int delay = random_uint32_range(600000, 1200000);
+                printf("[LoRa] random delay %d s\n", delay/1000);
+                rtctimers_millis_set_msg(&send_retry_timer, delay, &msg_join, sender_pid);
                 break;
             }
         } else {

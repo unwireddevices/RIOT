@@ -1,7 +1,9 @@
 # Put defined MCU peripherals here
 FEATURES_PROVIDED += periph_adc
 FEATURES_PROVIDED += periph_dac
+FEATURES_PROVIDED += periph_dma
 FEATURES_PROVIDED += periph_gpio
+FEATURES_PROVIDED += periph_gpio_irq
 FEATURES_PROVIDED += periph_i2c
 FEATURES_PROVIDED += periph_pwm
 FEATURES_PROVIDED += periph_rtc

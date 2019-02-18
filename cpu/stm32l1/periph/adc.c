@@ -48,16 +48,6 @@
 #define ADC_SAMPLE_TIME_384C  (7)
 
 /**
- * @brief   Load the ADC configuration
- * @{
- */
-#ifdef ADC_CONFIG
-static const adc_conf_t adc_config[] = ADC_CONFIG;
-#else
-static const adc_conf_t adc_config[] = {};
-#endif
-
-/**
  * @brief   Allocate locks for all three available ADC device
  *
  * All STM32l1 CPU's have single ADC device
@@ -280,4 +270,122 @@ int adc_sample(adc_t line,  adc_res_t res)
     done();
 
     return sample;
+}
+
+volatile adc_cb_t adc_dma_callback;
+
+int adc_sampling_start(adc_t line, adc_res_t res, uint16_t *buf, uint16_t wsize, adc_cb_t adc_cb, adc_conconv_mode_t mode)
+{
+    /* check if resolution is applicable */
+    if ( (res != ADC_RES_6BIT) &&
+         (res != ADC_RES_8BIT) &&
+         (res != ADC_RES_10BIT) &&
+         (res != ADC_RES_12BIT)) {
+        return -1;
+    }
+    
+    if ((!buf) || (!wsize)) {
+        return -1;
+    }
+    
+    adc_dma_callback = adc_cb;
+
+    /* lock and power on the ADC device  */
+    prep();
+    
+    /* reset DMA bit */
+    ADC1->CR2 &= ~ADC_CR2_DMA;
+    
+    /* enable DMA clock */
+    periph_clk_en(AHB, RCC_AHBENR_DMA1EN);
+    /* disable DMA channel */
+    DMA1_Channel1->CCR &= ~DMA_CCR1_EN;
+    
+    /* set resolution */
+    ADC1->CR1 |= res & ADC_CR1_RES;
+    
+    /* set trigger event */
+    ADC1->CR2 &= ~ADC_CR2_EXTSEL;
+    ADC1->CR2 |= ((uint32_t)adc_config[line].trigger << 24);
+    ADC1->CR2 &= ~ADC_CR2_EXTEN;
+    ADC1->CR2 |= ADC_CR2_EXTEN_0;
+    
+    /* enable DMA */
+    ADC1->CR2 |= ADC_CR2_DMA;
+    
+    /* setup DMA channel 1 */
+    DMA1_Channel1->CCR = 0;
+    /* high priority */
+    DMA1_Channel1->CCR |= DMA_CCR1_PL_1;
+    /* 16-bit memory size */
+    DMA1_Channel1->CCR |= DMA_CCR1_MSIZE_0;
+    /* memory increment mode */
+    DMA1_Channel1->CCR |= DMA_CCR1_MINC;
+    /* transfer completed IRQ */
+    DMA1_Channel1->CCR |= DMA_CCR1_TCIE;
+    /* number of data */
+    DMA1_Channel1->CNDTR = wsize;
+    /* peripheral address */
+    DMA1_Channel1->CPAR = (uint32_t)&ADC1->DR;
+    /* memory address */
+    DMA1_Channel1->CMAR = (uint32_t)buf;
+    
+    /* disable interrupt */
+    ADC1->CR1 &= ~ADC_CR1_EOCIE;
+    
+    if (mode == ADC_CONTINUOUS_CIRCULAR) {
+        ADC1->CR2 |= ADC_CR2_DDS;
+        DMA1_Channel1->CCR |= DMA_CCR1_CIRC;
+        DMA1_Channel1->CCR |= DMA_CCR1_HTIE;
+    } else {
+        ADC1->CR2 &= ~ADC_CR2_DDS;
+    }
+    
+    ADC1->SQR1 &= ~ADC_SQR1_L;
+    ADC1->SQR5 = adc_config[line].chan;
+
+    /* wait for regular channel to be ready*/
+    while (ADC1->SR & ADC_SR_RCNR) {}
+    
+    /* enable DMA IRQ */
+    NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+    
+    /* Enable DMA channel */
+    DMA1_Channel1->CCR |= DMA_CCR1_EN;
+
+    return 0;
+}
+
+int adc_sampling_stop(void) {
+    /* reset DMA bit */
+    ADC1->CR2 &= ~ADC_CR2_DMA;
+
+    /* disable DMA channel */
+    DMA1_Channel1->CCR &= ~DMA_CCR1_EN;
+    
+    /* disable IRQ */
+    NVIC_DisableIRQ(DMA1_Channel1_IRQn);
+    
+    /* power off and unlock ADC */
+    done();
+    
+    return 0;
+}
+
+void isr_dma1_ch1(void) {
+    puts("DMA IRQ");
+    
+    if (DMA1->ISR & DMA_ISR_HTIF1) {
+        /* half-tranfer */
+        DMA1->IFCR |= DMA_IFCR_CHTIF1;
+        
+        adc_dma_callback(ADC_DMA_CALLBACK_HALF);
+    }
+    
+    if (DMA1->ISR & DMA_ISR_TCIF1) {
+        /* transfer completed */
+        DMA1->IFCR |= DMA_IFCR_CTCIF1;
+        
+        adc_dma_callback(ADC_DMA_CALLBACK_COMPLETED);
+    }
 }

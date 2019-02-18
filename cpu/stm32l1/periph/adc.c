@@ -373,8 +373,6 @@ int adc_sampling_stop(void) {
 }
 
 void isr_dma1_ch1(void) {
-    puts("DMA IRQ");
-    
     if (DMA1->ISR & DMA_ISR_HTIF1) {
         /* half-tranfer */
         DMA1->IFCR |= DMA_IFCR_CHTIF1;

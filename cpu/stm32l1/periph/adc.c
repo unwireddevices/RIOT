@@ -24,6 +24,7 @@
 #include "cpu.h"
 #include "mutex.h"
 #include "periph/adc.h"
+#include "periph/pm.h"
 
 /**
  * @brief   ADC clock settings
@@ -117,7 +118,7 @@ int adc_init(adc_t line)
     ADC->CCR |= ADC_CLOCK_HIGH;
 
     /* Set 1 us sample time */
-    /* Min 4us needed for temperature sensor (ADC_IN16) measurements */
+    /* Min 4 us needed for temperature sensor (ADC_IN16) measurements */
     /* Total conversion time is Tsample + 12/Fadc, i.e. 1.75 us with 16 MHz and 16 cycles sampling */
     switch (ADC->CCR & ADC_CCR_ADCPRE) {
         case ADC_CLOCK_LOW:
@@ -365,7 +366,10 @@ int adc_sampling_start(adc_t line, adc_res_t res, uint16_t *buf, uint16_t wsize,
     
     /* Enable DMA channel */
     DMA1_Channel1->CCR |= DMA_CCR1_EN;
-
+    
+    /* block STOP mode */
+    pm_block(PM_STOP);
+    
     return 0;
 }
 
@@ -381,6 +385,9 @@ int adc_sampling_stop(void) {
     
     /* power off and unlock ADC */
     done();
+    
+    /* unblock STOP mode */
+    pm_unblock(PM_STOP);
     
     return 0;
 }
@@ -398,5 +405,9 @@ void isr_dma1_ch1(void) {
         DMA1->IFCR |= DMA_IFCR_CTCIF1;
         
         adc_dma_callback(ADC_DMA_CALLBACK_COMPLETED);
+        
+        if (!(ADC1->CR2 & ADC_CR2_DDS)) {
+            adc_sampling_stop();
+        }
     }
 }

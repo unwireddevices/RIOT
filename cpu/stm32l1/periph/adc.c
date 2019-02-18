@@ -114,10 +114,11 @@ int adc_init(adc_t line)
 
     /* set ADC clock prescaler */
     ADC->CCR &= ~ADC_CCR_ADCPRE;
-    ADC->CCR |= ADC_CLOCK_MEDIUM;
+    ADC->CCR |= ADC_CLOCK_HIGH;
 
     /* Set 1 us sample time */
     /* Min 4us needed for temperature sensor (ADC_IN16) measurements */
+    /* Total conversion time is Tsample + 12/Fadc, i.e. 1.75 us with 16 MHz and 16 cycles sampling */
     switch (ADC->CCR & ADC_CCR_ADCPRE) {
         case ADC_CLOCK_LOW:
             /* 4 MHz ADC clock -> 4 cycles */

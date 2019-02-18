@@ -116,20 +116,32 @@ int adc_init(adc_t line)
     ADC->CCR &= ~ADC_CCR_ADCPRE;
     ADC->CCR |= ADC_CLOCK_MEDIUM;
 
-    /* Set sample time */
-    /* Min 4us needed for temperature sensor measurements */
+    /* Set 1 us sample time */
+    /* Min 4us needed for temperature sensor (ADC_IN16) measurements */
     switch (ADC->CCR & ADC_CCR_ADCPRE) {
         case ADC_CLOCK_LOW:
-            /* 4 MHz ADC clock -> 16 cycles */
-            adc_set_sample_time(ADC_SAMPLE_TIME_16C);
+            /* 4 MHz ADC clock -> 4 cycles */
+            adc_set_sample_time(ADC_SAMPLE_TIME_4C);
+            
+            /* 24 cycles for ADC_IN16 */
+            ADC1->SMPR2 &= ~(0x7 << 18);
+            ADC1->SMPR2 |=  (0x3 << 18);
             break;
         case ADC_CLOCK_MEDIUM:
-            /* 8 MHz ADC clock -> 48 cycles */
-            adc_set_sample_time(ADC_SAMPLE_TIME_48C);
+            /* 8 MHz ADC clock -> 9 cycles */
+            adc_set_sample_time(ADC_SAMPLE_TIME_9C);
+            
+            /* 48 cycles for ADC_IN16 */
+            ADC1->SMPR2 &= ~(0x7 << 18);
+            ADC1->SMPR2 |=  (0x4 << 18);
             break;
         default:
-            /* 16 MHz ADC clock -> 96 cycles */
-            adc_set_sample_time(ADC_SAMPLE_TIME_96C);
+            /* 16 MHz ADC clock -> 16 cycles */
+            adc_set_sample_time(ADC_SAMPLE_TIME_16C);
+            
+            /* 96 cycles for ADC_IN16 */
+            ADC1->SMPR2 &= ~(0x7 << 18);
+            ADC1->SMPR2 |=  (0x5 << 18);
     }
 
     /* enable the ADC module */

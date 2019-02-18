@@ -368,7 +368,7 @@ int adc_sampling_start(adc_t line, adc_res_t res, uint16_t *buf, uint16_t wsize,
     DMA1_Channel1->CCR |= DMA_CCR1_EN;
     
     /* block STOP mode */
-    pm_block(PM_STOP);
+    pm_block(PM_SLEEP);
     
     return 0;
 }
@@ -387,7 +387,7 @@ int adc_sampling_stop(void) {
     done();
     
     /* unblock STOP mode */
-    pm_unblock(PM_STOP);
+    pm_unblock(PM_SLEEP);
     
     return 0;
 }

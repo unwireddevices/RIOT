@@ -92,41 +92,34 @@ static struct {
 } ultrasoundrange_config;
 
 static bool init_sensor(void) {
-    
     printf("[umdk-" _UMDK_NAME_ "] Initializing ultrasound distance meter\n");
-
-    bool o = ultrasoundrange_init(&dev) == 0;
-
-    dev.transmit_pulses = UMDK_USOUND_TRANSMIT_PULSES;
-    dev.silencing_pulses = UMDK_USOUND_SILENCING_PULSES;
-    dev.period_us = UMDK_USOUND_PERIOD_US;
-    dev.silencing_period_us = UMDK_USOUND_SILENCING_PERIOD_US;
-    dev.idle_period_us = UMDK_USOUND_IDLE_PERIOD_US;
-    dev.duty = UMDK_USOUND_DUTY;
-    dev.duty2 = UMDK_USOUND_DUTY2;
-    dev.sensitivity = ultrasoundrange_config.sensitivity;
-    dev.min_distance = ultrasoundrange_config.min_distance;
-    dev.max_distance = ultrasoundrange_config.max_distance;
-    dev.disrupting_pin = UMDK_USOUND_DISRUPT_PIN;
-    dev.silencing_pin = UMDK_USOUND_SILENCE_PIN;
-    dev.beeping_pin = UMDK_USOUND_BEEP_PIN;
-    dev.pwren_pin = UMDK_USOUND_PWREN;
-    dev.adc_pin = UMDK_USOUND_ADC_PIN;
-    dev.adc_channel = UMDK_USOUND_ADC_CH;
-    
-    return o;
+    return true;
 }
 
 static int prepare_result(module_data_t *buf) {
-    ultrasoundrange_turn_on(&dev);
+    (void) buf;
+    
+    gpio_init(GPIO_PIN(PORT_B, 1), GPIO_OUT);
+    gpio_clear(GPIO_PIN(PORT_B, 1));
     
     rtctimers_millis_sleep(500);
     
-    ultrasoundrange_measure_t measure = {};
-    ultrasoundrange_measure(&dev, &measure);
+    dev.timer = 1;
+    dev.pwm = 0;
+    dev.pwm_channel = 3;
+    dev.adc = 3;
+    dev.pulses = 5;
+    dev.signal_pin = GPIO_PIN(PORT_A, 1);
+    dev.suppress_pin = GPIO_PIN(PORT_A, 2);
     
-    ultrasoundrange_turn_off(&dev);
+    ultrasoundrange_measure(&dev);
     
+    rtctimers_millis_sleep(1000);
+    
+    gpio_set(GPIO_PIN(PORT_B, 1));
+    
+    puts("MEASUREMENT DONE");
+#if 0
     int range;
     range = measure.range;
     
@@ -140,6 +133,8 @@ static int prepare_result(module_data_t *buf) {
     }
     
     return range;
+#endif
+    return 0;
 }
 
 static void *timer_thread(void *arg) {
@@ -301,7 +296,7 @@ int umdk_usound_shell_cmd(int argc, char **argv) {
     if (strcmp(cmd, "sens") == 0) {
         int val = atoi(argv[2]);
         ultrasoundrange_config . sensitivity = val;
-        dev                    . sensitivity = val;
+//        dev                    . sensitivity = val;
         save_config();
         return 1;
     }
@@ -309,7 +304,7 @@ int umdk_usound_shell_cmd(int argc, char **argv) {
     if (strcmp(cmd, "min") == 0) {
         int val = atoi(argv[2]);
         ultrasoundrange_config . min_distance = val;
-        dev                    . min_distance = val;
+//        dev                    . min_distance = val;
         save_config();
         return 1;
     }
@@ -317,7 +312,7 @@ int umdk_usound_shell_cmd(int argc, char **argv) {
     if (strcmp(cmd, "max") == 0) {
         int val = atoi(argv[2]);
         ultrasoundrange_config . max_distance = val;
-        dev                    . max_distance = val;
+//        dev                    . max_distance = val;
         save_config();
         return 1;
     }

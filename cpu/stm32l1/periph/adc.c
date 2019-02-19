@@ -108,6 +108,10 @@ int adc_init(adc_t line)
 
     /* lock and power-on the device */
     prep();
+    
+    /* reset ADC */
+    RCC->APB2RSTR |= RCC_APB2RSTR_ADC1RST;
+    RCC->APB2RSTR &= ~RCC_APB2RSTR_ADC1RST;
 
     /* configure the pin */
     if ((adc_config[line].pin != GPIO_UNDEF))
@@ -333,6 +337,8 @@ int adc_sampling_start(adc_t line, adc_res_t res, uint16_t *buf, uint16_t wsize,
     DMA1_Channel1->CCR |= DMA_CCR1_PL_1;
     /* 16-bit memory size */
     DMA1_Channel1->CCR |= DMA_CCR1_MSIZE_0;
+    /* 16-bit peripheral size */
+    DMA1_Channel1->CCR |= DMA_CCR1_PSIZE_0;
     /* memory increment mode */
     DMA1_Channel1->CCR |= DMA_CCR1_MINC;
     /* transfer completed IRQ */
@@ -340,7 +346,7 @@ int adc_sampling_start(adc_t line, adc_res_t res, uint16_t *buf, uint16_t wsize,
     /* number of data */
     DMA1_Channel1->CNDTR = wsize;
     /* peripheral address */
-    DMA1_Channel1->CPAR = (uint32_t)&ADC1->DR;
+    DMA1_Channel1->CPAR = (uint32_t)(&ADC1->DR);
     /* memory address */
     DMA1_Channel1->CMAR = (uint32_t)buf;
     

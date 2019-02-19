@@ -200,24 +200,12 @@ static const pwm_conf_t pwm_config[] = {
         .af       = GPIO_AF2,
         .bus      = APB1,
         .irqn     = TIM4_IRQn
-    },
-    {
-        .dev      = TIM9,
-        .rcc_mask = RCC_APB2ENR_TIM9EN,
-        .chan     = { { .pin = GPIO_UNDEF,          .cc_chan = 0 },
-                      { .pin = GPIO_UNDEF,          .cc_chan = 1 },
-                      { .pin = GPIO_UNDEF,          .cc_chan = 2 },
-                      { .pin = GPIO_UNDEF,          .cc_chan = 3 } },
-        .af       = GPIO_AF2,
-        .bus      = APB2,
-        .irqn     = TIM9_IRQn
-    },
+    }
 };
 
 #define TIM_0_ISR           isr_tim2
 #define TIM_1_ISR           isr_tim3
 #define TIM_2_ISR           isr_tim4
-#define TIM_3_ISR           isr_tim9
 
 #define PWM_NUMOF           (sizeof(pwm_config) / sizeof(pwm_config[0]))
 /** @} */

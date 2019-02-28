@@ -65,6 +65,8 @@ extern "C" {
 static bmx280_t dev_bmx280;
 static sht21_t dev_sht21;
 static lps331ap_t dev_lps331;
+static lps331ap_params_t lps331_params;
+
 static lm75_t dev_lm75;
 
 static uwnds_cb_t *callback;
@@ -105,8 +107,10 @@ static bool init_sensor(void) {
         puts("[umdk-" _UMDK_NAME_ "] Sensirion SHT21 sensor found");
     }
     
-    dev_lps331.i2c = bme280_params[0].i2c_dev;
-    if (lps331ap_init(&dev_lps331, dev_lps331.i2c, 0x5D, LPS331AP_RATE_1HZ) == 0) {
+    lps331_params.i2c = bme280_params[0].i2c_dev;
+    lps331_params.addr = 0x5D;
+    lps331_params.rate = LPS331AP_RATE_1HZ;
+    if (lps331ap_init(&dev_lps331, &lps331_params) == 0) {
         active_sensors |= UMDK_METEO_LPS331;
         puts("[umdk-" _UMDK_NAME_ "] STMicro LPS331 sensor found");
     }

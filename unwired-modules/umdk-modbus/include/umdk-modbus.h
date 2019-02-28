@@ -32,6 +32,7 @@
 #define UMDK_MODBUS_H
 
 #include "unwds-common.h"
+#include "periph/uart.h"
 
 #define UMDK_MODBUS_DEV 1
 #define UMDK_MODBUS_BAUDRATE_MAX 115200
@@ -85,11 +86,11 @@ typedef enum {
  * @brief Reply messages values
  */
 typedef enum {
-    UMDK_MODBUS_OK_REPLY             = 0x00,
-    UMDK_MODBUS_ERROR_REPLY            = 0x01,
+    UMDK_MODBUS_OK_REPLY            = 0x00,
+    UMDK_MODBUS_ERROR_REPLY         = 0x01,
     UMDK_MODBUS_NO_RESPONSE_REPLY   = 0x02,
-    UMDK_MODBUS_OVERFLOW_REPLY       = 0x03,
-    UMDK_MODBUS_INVALID_FORMAT       = 0x04,
+    UMDK_MODBUS_OVERFLOW_REPLY      = 0x03,
+    UMDK_MODBUS_INVALID_FORMAT      = 0x04,
     UMDK_MODBUS_INVALID_CMD_REPLY   = 0xFF,
 } umdk_modbus_reply_t;
 
@@ -97,33 +98,33 @@ typedef enum {
  * @brief Modbus configurations structure
  */
 typedef struct {
-    uint8_t uart_dev;
-    uint32_t baudrate;
-    uint8_t databits;
-    uint8_t parity;
-    uint8_t stopbits;
+    uart_t              uart_dev;
+    uint32_t            baudrate;
+    uart_data_bits_t    databits;
+    uart_parity_t       parity;
+    uart_stop_bits_t    stopbits;
 } umdk_modbus_config_t;
 
 /**
  * @brief Modbus package configurations structure
  */
 typedef struct {
-    volatile uint8_t flag_rx;
-    volatile uint8_t rx_allow;
-    volatile uint8_t radio;
-    uint8_t response;
+    volatile uint8_t    flag_rx;
+    volatile uint8_t    rx_allow;
+    volatile uint8_t    radio;
+    uint8_t             response;
     
-    bool is_true;
+    bool                is_true;
     
-    uint8_t length_rx;
-    uint8_t length_tx;
+    uint8_t             length_rx;
+    uint8_t             length_tx;
 } umdk_modbus_config_pack_t;
 
 /**
  * @brief Commands list
  */
 typedef enum {
-    UMDK_MODBUS_SET_PARAMS     = 0xFF,
+    UMDK_MODBUS_SET_PARAMS    = 0xFF,
     UMDK_MODBUS_SET_DEVICE    = 0xFE,
     MODBUS_MAX_CMD            = 0x7F,
 

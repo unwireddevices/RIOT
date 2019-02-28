@@ -1333,21 +1333,14 @@ int _st95_init_uart(st95_t * dev, st95_params_t * params)
     
     st95_iface_send = _st95_uart_send;
     st95_iface_receive = _st95_uart_receive; 
-    
-    /* Initialize the UART params*/
-    uart_params_t params_uart;
-    params_uart.baudrate = dev->params.baudrate;
-    params_uart.databits = UART_DATABITS_8;
-    params_uart.parity = UART_PARITY_NOPARITY;
-    params_uart.stopbits = UART_STOPBITS_10;
-    
-        /* Init SSI_0 pin */
+
+    /* Init SSI_0 pin */
     gpio_init(dev->params.ssi_0, GPIO_OD_PU);
-        /* Init IRQ_IN pin */
+    /* Init IRQ_IN pin */
     gpio_init(dev->params.irq_in, GPIO_OD_PU);
-        /* Init VCC_ENABLE pin -> after init st95 is power on! */
+    /* Init VCC_ENABLE pin -> after init st95 is power on! */
     gpio_init(dev->params.vcc, GPIO_OUT);
-        /* Number of initializations */
+    /* Number of initializations */
     uint8_t cnt_init = 0;
 
     do {      
@@ -1371,8 +1364,8 @@ int _st95_init_uart(st95_t * dev, st95_params_t * params)
         gpio_init_af(dev->params.irq_in, GPIO_AF7);
 
         /* Initialize UART */
-        if (uart_init_ext(UART_DEV(dev->params.uart), &params_uart, _st95_uart_rx, dev) != UART_OK) {
-            DEBUG("[ST95]: Error init UART interface\n");
+        if (uart_init(UART_DEV(dev->params.uart), dev->params.baudrate, _st95_uart_rx, dev) != UART_OK) {
+            DEBUG("[ST95]: Error initializing UART interface\n");
             return ST95_ERROR;
         }
            

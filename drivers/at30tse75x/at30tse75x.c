@@ -273,7 +273,7 @@ int at30tse75x_get_temperature(const at30tse75x_t *dev, float *temperature)
     return 0;
 }
 
-int at30tse75x_init(at30tse75x_t *dev, i2c_t i2c, i2c_speed_t speed, uint8_t addr)
+int at30tse75x_init(at30tse75x_t *dev, i2c_t i2c, uint8_t addr)
 {
     uint8_t config;
 
@@ -286,11 +286,6 @@ int at30tse75x_init(at30tse75x_t *dev, i2c_t i2c, i2c_speed_t speed, uint8_t add
     dev->addr = addr;
 
     i2c_acquire(dev->i2c);
-    // if(i2c_init_master(dev->i2c, speed) != 0) {
-    //     DEBUG("[at30tse75x] Can't initialize I2C master\n");
-    //     i2c_release(dev->i2c);
-    //     return -1;
-    // }
     i2c_init(dev->i2c);
     i2c_release(dev->i2c);
 

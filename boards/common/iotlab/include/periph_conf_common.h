@@ -69,6 +69,23 @@ extern "C" {
 /** @} */
 
 /**
+ * @name    DMA streams configuration
+ * @{
+ */
+#ifdef MODULE_PERIPH_DMA
+static const dma_conf_t dma_config[] = {
+    { .stream = 3 },    /* DMA1 Channel 4 - USART1_TX */
+    { .stream = 5 },    /* DMA1 Channel 6 - USART2_TX */
+};
+
+#define DMA_0_ISR  isr_dma1_channel4
+#define DMA_1_ISR  isr_dma1_channel6
+
+#define DMA_NUMOF           (sizeof(dma_config) / sizeof(dma_config[0]))
+#endif
+/** @} */
+
+/**
  * @name    Timer configuration
  * @{
  */
@@ -106,7 +123,11 @@ static const uart_conf_t uart_config[] = {
         .rx_pin   = GPIO_PIN(PORT_A, 10),
         .tx_pin   = GPIO_PIN(PORT_A, 9),
         .bus      = APB2,
-        .irqn     = USART1_IRQn
+        .irqn     = USART1_IRQn,
+#ifdef MODULE_PERIPH_DMA
+        .dma        = 0,
+        .dma_chan   = 2
+#endif
     },
     {
         .dev      = USART2,
@@ -114,7 +135,11 @@ static const uart_conf_t uart_config[] = {
         .rx_pin   = GPIO_PIN(PORT_A, 3),
         .tx_pin   = GPIO_PIN(PORT_A, 2),
         .bus      = APB1,
-        .irqn     = USART2_IRQn
+        .irqn     = USART2_IRQn,
+#ifdef MODULE_PERIPH_DMA
+        .dma        = 1,
+        .dma_chan   = 2
+#endif
     }
 };
 
@@ -143,22 +168,22 @@ static const uart_conf_t uart_config[] = {
  * @name    I2C configuration
   * @{
  */
-#define I2C_NUMOF           (1U)
-#define I2C_0_EN            1
-#define I2C_IRQ_PRIO        1
-#define I2C_APBCLK          (CLOCK_APB1)
+static const i2c_conf_t i2c_config[] = {
+    {
+        .dev            = I2C1,
+        .speed          = I2C_SPEED_NORMAL,
+        .scl_pin        = GPIO_PIN(PORT_B, 6),
+        .sda_pin        = GPIO_PIN(PORT_B, 7),
+        .bus            = APB1,
+        .rcc_mask       = RCC_APB1ENR_I2C1EN,
+        .clk            = CLOCK_APB1,
+        .irqn           = I2C1_EV_IRQn
+    }
+};
 
-/* I2C 0 device configuration */
-#define I2C_0_DEV           I2C1
-#define I2C_0_CLKEN()       (periph_clk_en(APB1, RCC_APB1ENR_I2C1EN))
-#define I2C_0_CLKDIS()      (periph_clk_dis(APB1, RCC_APB1ENR_I2C1EN))
-#define I2C_0_EVT_IRQ       I2C1_EV_IRQn
-#define I2C_0_EVT_ISR       isr_i2c1_ev
-#define I2C_0_ERR_IRQ       I2C1_ER_IRQn
-#define I2C_0_ERR_ISR       isr_i2c1_er
-/* I2C 0 pin configuration */
-#define I2C_0_SCL_PIN       GPIO_PIN(PORT_B,6)
-#define I2C_0_SDA_PIN       GPIO_PIN(PORT_B,7)
+#define I2C_0_ISR           isr_i2c1_ev
+
+#define I2C_NUMOF           (sizeof(i2c_config) / sizeof(i2c_config[0]))
 /** @} */
 
 /**

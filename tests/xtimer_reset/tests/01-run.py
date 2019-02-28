@@ -6,8 +6,8 @@
 # General Public License v2.1. See the file LICENSE in the top level
 # directory for more details.
 
-import os
 import sys
+from testrunner import run
 
 def testfunc(child):
     child.expect_exact("This test tests re-setting of an already active timer.")
@@ -19,6 +19,4 @@ def testfunc(child):
     child.expect_exact("Test completed!")
 
 if __name__ == "__main__":
-    sys.path.append(os.path.join(os.environ['RIOTTOOLS'], 'testrunner'))
-    from testrunner import run
     sys.exit(run(testfunc))

@@ -83,6 +83,7 @@ int jc42_init(jc42_t* dev, const jc42_params_t* params)
     uint16_t config;
     dev->i2c = params->i2c;
     dev->addr = params->addr;
+
     i2c_acquire(dev->i2c);
     i2c_init(dev->i2c);
     i2c_release(dev->i2c);

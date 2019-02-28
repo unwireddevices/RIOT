@@ -100,7 +100,7 @@ static void _erase_page(void *page_addr)
     DEBUG("[flashpage] erase: setting the page address\n");
     CNTRL_REG |= FLASH_CR_PER;
     uint8_t pn;
-    
+
     if ((cpu_status.flash.size / FLASHPAGE_SIZE) <= 256) {
         pn = (uint8_t)flashpage_page(dst);
     } else {

@@ -24,6 +24,7 @@
 #include "cpu.h"
 #include "mutex.h"
 #include "periph/adc.h"
+#include "periph/pm.h"
 
 /**
  * @brief   ADC clock settings
@@ -46,16 +47,6 @@
 #define ADC_SAMPLE_TIME_96C   (5)
 #define ADC_SAMPLE_TIME_192C  (6)
 #define ADC_SAMPLE_TIME_384C  (7)
-
-/**
- * @brief   Load the ADC configuration
- * @{
- */
-#ifdef ADC_CONFIG
-static const adc_conf_t adc_config[] = ADC_CONFIG;
-#else
-static const adc_conf_t adc_config[] = {};
-#endif
 
 /**
  * @brief   Allocate locks for all three available ADC device
@@ -117,6 +108,10 @@ int adc_init(adc_t line)
 
     /* lock and power-on the device */
     prep();
+    
+    /* reset ADC */
+    RCC->APB2RSTR |= RCC_APB2RSTR_ADC1RST;
+    RCC->APB2RSTR &= ~RCC_APB2RSTR_ADC1RST;
 
     /* configure the pin */
     if ((adc_config[line].pin != GPIO_UNDEF))
@@ -124,22 +119,35 @@ int adc_init(adc_t line)
 
     /* set ADC clock prescaler */
     ADC->CCR &= ~ADC_CCR_ADCPRE;
-    ADC->CCR |= ADC_CLOCK_MEDIUM;
+    ADC->CCR |= ADC_CLOCK_HIGH;
 
-    /* Set sample time */
-    /* Min 4us needed for temperature sensor measurements */
+    /* Set 1 us sample time */
+    /* Min 4 us needed for temperature sensor (ADC_IN16) measurements */
+    /* Total conversion time is Tsample + 12/Fadc, i.e. 1.75 us with 16 MHz and 16 cycles sampling */
     switch (ADC->CCR & ADC_CCR_ADCPRE) {
         case ADC_CLOCK_LOW:
-            /* 4 MHz ADC clock -> 16 cycles */
-            adc_set_sample_time(ADC_SAMPLE_TIME_16C);
+            /* 4 MHz ADC clock -> 4 cycles */
+            adc_set_sample_time(ADC_SAMPLE_TIME_4C);
+            
+            /* 24 cycles for ADC_IN16 */
+            ADC1->SMPR2 &= ~(0x7 << 18);
+            ADC1->SMPR2 |=  (0x3 << 18);
             break;
         case ADC_CLOCK_MEDIUM:
-            /* 8 MHz ADC clock -> 48 cycles */
-            adc_set_sample_time(ADC_SAMPLE_TIME_48C);
+            /* 8 MHz ADC clock -> 9 cycles */
+            adc_set_sample_time(ADC_SAMPLE_TIME_9C);
+            
+            /* 48 cycles for ADC_IN16 */
+            ADC1->SMPR2 &= ~(0x7 << 18);
+            ADC1->SMPR2 |=  (0x4 << 18);
             break;
         default:
-            /* 16 MHz ADC clock -> 96 cycles */
-            adc_set_sample_time(ADC_SAMPLE_TIME_96C);
+            /* 16 MHz ADC clock -> 16 cycles */
+            adc_set_sample_time(ADC_SAMPLE_TIME_16C);
+            
+            /* 96 cycles for ADC_IN16 */
+            ADC1->SMPR2 &= ~(0x7 << 18);
+            ADC1->SMPR2 |=  (0x5 << 18);
     }
 
     /* enable the ADC module */
@@ -280,4 +288,132 @@ int adc_sample(adc_t line,  adc_res_t res)
     done();
 
     return sample;
+}
+
+volatile adc_cb_t adc_dma_callback;
+
+int adc_sampling_start(adc_t line, adc_res_t res, uint16_t *buf, uint16_t wsize, adc_cb_t adc_cb, adc_conconv_mode_t mode)
+{
+    /* check if resolution is applicable */
+    if ( (res != ADC_RES_6BIT) &&
+         (res != ADC_RES_8BIT) &&
+         (res != ADC_RES_10BIT) &&
+         (res != ADC_RES_12BIT)) {
+        return -1;
+    }
+    
+    if ((!buf) || (!wsize)) {
+        return -1;
+    }
+    
+    adc_dma_callback = adc_cb;
+
+    /* lock and power on the ADC device  */
+    prep();
+    
+    /* reset DMA bit */
+    ADC1->CR2 &= ~ADC_CR2_DMA;
+    
+    /* enable DMA clock */
+    periph_clk_en(AHB, RCC_AHBENR_DMA1EN);
+    /* disable DMA channel */
+    DMA1_Channel1->CCR &= ~DMA_CCR1_EN;
+    
+    /* set resolution */
+    ADC1->CR1 |= res & ADC_CR1_RES;
+    
+    /* set trigger event */
+    ADC1->CR2 &= ~ADC_CR2_EXTSEL;
+    ADC1->CR2 |= ((uint32_t)adc_config[line].trigger << 24);
+    ADC1->CR2 &= ~ADC_CR2_EXTEN;
+    ADC1->CR2 |= ADC_CR2_EXTEN_0;
+    
+    /* enable DMA */
+    ADC1->CR2 |= ADC_CR2_DMA;
+    
+    /* setup DMA channel 1 */
+    DMA1_Channel1->CCR = 0;
+    /* high priority */
+    DMA1_Channel1->CCR |= DMA_CCR1_PL_1;
+    /* 16-bit memory size */
+    DMA1_Channel1->CCR |= DMA_CCR1_MSIZE_0;
+    /* 16-bit peripheral size */
+    DMA1_Channel1->CCR |= DMA_CCR1_PSIZE_0;
+    /* memory increment mode */
+    DMA1_Channel1->CCR |= DMA_CCR1_MINC;
+    /* transfer completed IRQ */
+    DMA1_Channel1->CCR |= DMA_CCR1_TCIE;
+    /* number of data */
+    DMA1_Channel1->CNDTR = wsize;
+    /* peripheral address */
+    DMA1_Channel1->CPAR = (uint32_t)(&ADC1->DR);
+    /* memory address */
+    DMA1_Channel1->CMAR = (uint32_t)buf;
+    
+    /* disable interrupt */
+    ADC1->CR1 &= ~ADC_CR1_EOCIE;
+    
+    if (mode == ADC_CONTINUOUS_CIRCULAR) {
+        ADC1->CR2 |= ADC_CR2_DDS;
+        DMA1_Channel1->CCR |= DMA_CCR1_CIRC;
+        DMA1_Channel1->CCR |= DMA_CCR1_HTIE;
+    } else {
+        ADC1->CR2 &= ~ADC_CR2_DDS;
+    }
+    
+    ADC1->SQR1 &= ~ADC_SQR1_L;
+    ADC1->SQR5 = adc_config[line].chan;
+
+    /* wait for regular channel to be ready*/
+    while (ADC1->SR & ADC_SR_RCNR) {}
+    
+    /* enable DMA IRQ */
+    NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+    
+    /* Enable DMA channel */
+    DMA1_Channel1->CCR |= DMA_CCR1_EN;
+    
+    /* block STOP mode */
+    pm_block(PM_SLEEP);
+    
+    return 0;
+}
+
+int adc_sampling_stop(void) {
+    /* reset DMA bit */
+    ADC1->CR2 &= ~ADC_CR2_DMA;
+
+    /* disable DMA channel */
+    DMA1_Channel1->CCR &= ~DMA_CCR1_EN;
+    
+    /* disable IRQ */
+    NVIC_DisableIRQ(DMA1_Channel1_IRQn);
+    
+    /* power off and unlock ADC */
+    done();
+    
+    /* unblock STOP mode */
+    pm_unblock(PM_SLEEP);
+    
+    return 0;
+}
+
+void isr_dma1_ch1(void) {
+    if (DMA1->ISR & DMA_ISR_HTIF1) {
+        /* half-tranfer */
+        DMA1->IFCR |= DMA_IFCR_CHTIF1;
+        
+        adc_dma_callback(ADC_DMA_CALLBACK_HALF);
+    }
+    
+    if (DMA1->ISR & DMA_ISR_TCIF1) {
+        /* transfer completed */
+        DMA1->IFCR |= DMA_IFCR_CTCIF1;
+        
+        adc_dma_callback(ADC_DMA_CALLBACK_COMPLETED);
+        
+        if (!(ADC1->CR2 & ADC_CR2_DDS)) {
+            adc_sampling_stop();
+        }
+    }
 }

@@ -76,8 +76,8 @@ static msg_t msg_rx_full         = { .type = UMDK_MODBUS_MSG_OVERFLOW, };
 static msg_t msg_no_response     = { .type = UMDK_MODBUS_MSG_NO_RESPONSE, };
 
 static xtimer_t rx_timer;
-static umdk_modbus_config_t umdk_modbus_config = { UMDK_MODBUS_DEV, UMDK_MODBUS_BAUDRATE_DEF, UART_DATABITS_8, \
-                                                    UART_PARITY_NOPARITY, UART_STOPBITS_10 };
+static umdk_modbus_config_t umdk_modbus_config = { UMDK_MODBUS_DEV, UMDK_MODBUS_BAUDRATE_DEF, UART_DATA_BITS_8, \
+                                                    UART_PARITY_NONE, UART_STOP_BITS_1 };
 
 static umdk_modbus_config_pack_t current_pack = { UMDK_MODBUS_NOT_RECIEVED, UMDK_MODBUS_RX_NOT_ALLOW, \
                                                 UMDK_MODBUS_RADIO, UMDK_MODBUS_RESPONSE, true, 0, 0, };
@@ -348,9 +348,9 @@ static void umdk_modbus_handler(void *arg, uint8_t data)
 
 static void reset_config(void) {
     umdk_modbus_config.baudrate = UMDK_MODBUS_BAUDRATE_DEF;
-    umdk_modbus_config.databits = UART_DATABITS_8;
-    umdk_modbus_config.parity = UART_PARITY_NOPARITY;
-    umdk_modbus_config.stopbits = UART_STOPBITS_20;
+    umdk_modbus_config.databits = UART_DATA_BITS_8;
+    umdk_modbus_config.parity = UART_PARITY_NONE;
+    umdk_modbus_config.stopbits = UART_STOP_BITS_2;
     umdk_modbus_config.uart_dev = UMDK_UART_DEV;
 }
 
@@ -366,7 +366,7 @@ static void init_config(void) {
         return;
     }
     
-    if (umdk_modbus_config.stopbits > UART_STOPBITS_20) {
+    if (umdk_modbus_config.stopbits > UART_STOP_BITS_2) {
         reset_config();
         return;
     }
@@ -376,7 +376,7 @@ static void init_config(void) {
         return;
     }
     
-    if (umdk_modbus_config.databits > UART_DATABITS_9) {
+    if (umdk_modbus_config.databits > UART_DATA_BITS_8) {
         reset_config();
         return;
     }
@@ -411,45 +411,71 @@ void umdk_modbus_init(uwnds_cb_t *event_callback)
     gpio_clear(UMDK_MODBUS_DE_PIN);
     gpio_clear(UMDK_MODBUS_RE_PIN);    
     
-    /* Initialize the ModBus params*/
-    uart_params_t params;
-    params.baudrate = umdk_modbus_config.baudrate;
-    params.databits = umdk_modbus_config.databits;
-    params.parity = umdk_modbus_config.parity;
-    params.stopbits = umdk_modbus_config.stopbits;
+    /* Initialize MODBUS parameters */
     
-    uint8_t device = umdk_modbus_config.uart_dev;
-    char parity = umdk_modbus_config.parity;
-    uint8_t stopbits = umdk_modbus_config.stopbits;;
-    uint32_t baudrate = umdk_modbus_config.baudrate;
-    uint8_t databits = umdk_modbus_config.databits + 8;
-    
-    if(umdk_modbus_config.stopbits == UART_STOPBITS_10) {
-        stopbits = 1;
-    }
-    else if(umdk_modbus_config.stopbits == UART_STOPBITS_20) {
-        stopbits = 2;
+    uint8_t stopbits;
+    switch (umdk_modbus_config.stopbits) {
+        case UART_STOP_BITS_1:
+            stopbits = 1;
+            break;
+        case UART_STOP_BITS_2:
+            stopbits = 2;
+            break;
+        default:
+            stopbits = 0;
+            break;
     }
     
-    if(umdk_modbus_config.parity == UART_PARITY_NOPARITY) {
-        parity = 'N';
+    char parity       = umdk_modbus_config.parity;
+    switch (umdk_modbus_config.parity) {
+        case UART_PARITY_NONE:
+            parity = 'N';
+            break;
+        case UART_PARITY_ODD:
+            parity = 'O';
+            break;
+        case UART_PARITY_EVEN:
+            parity = 'E';
+            break;
+        default:
+            parity = ' ';
+            break;
     }
-    else if(umdk_modbus_config.parity == UART_PARITY_ODD) {
-        parity = 'O';
+
+    uint8_t databits;
+    
+    switch (umdk_modbus_config.databits) {
+    case UART_DATA_BITS_5:
+        parity = 5;
+        break;
+    case UART_DATA_BITS_6:
+        parity = 6;
+        break;
+    case UART_DATA_BITS_7:
+        parity = 7;
+        break;
+    case UART_DATA_BITS_8:
+        parity = 8;
+        break;
+    default:
+        databits = 0;
+        break;
     }
-    else if(umdk_modbus_config.parity == UART_PARITY_EVEN) {
-        parity = 'E';
-    }
-     
+
      /* Initialize UART */
-    if (uart_init_ext(UART_DEV(umdk_modbus_config.uart_dev), &params, umdk_modbus_handler, NULL)) {
+    if (uart_init(UART_DEV(umdk_modbus_config.uart_dev), umdk_modbus_config.baudrate,
+            umdk_modbus_handler, NULL) != UART_OK) {
         return;
     }
-    else {
-        printf("[umdk-" _UMDK_NAME_ "] Device: %02d Mode: %" PRIu32 "-%u%c%u\n", device, baudrate, databits, parity, stopbits);
+    
+    if (uart_mode(UART_DEV(umdk_modbus_config.uart_dev), umdk_modbus_config.databits,
+            umdk_modbus_config.parity, umdk_modbus_config.stopbits) != UART_OK) {
+        return;
     }
     
-    
+    printf("[umdk-" _UMDK_NAME_ "] Device: %02d Mode: %" PRIu32 "-%u%c%u\n",
+               umdk_modbus_config.uart_dev, umdk_modbus_config.baudrate, databits, parity, stopbits);
+
     /* Create handler thread */
     char *stack = (char *) allocate_stack(UMDK_MODBUS_STACK_SIZE);
     if (!stack) {
@@ -466,13 +492,14 @@ void umdk_modbus_init(uwnds_cb_t *event_callback)
     memset(txbuf, 0, UMDK_MODBUS_BUFF_SIZE);
         
     /* Create handler thread */
-    radio_pid = thread_create(stack, UMDK_MODBUS_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, radio_send, NULL, "modbus thread");
+    radio_pid = thread_create(stack, UMDK_MODBUS_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,
+                                radio_send, NULL, "modbus thread");
     
     if(umdk_modbus_config.baudrate > UMDK_MODBUS_BAUDRATE_DEF) {
         time_wait = UMDK_MODBUS_TIMEWAIT_DEF_USEC;
     }
     else {
-        time_wait = (uint32_t)((MODBUS_FRAME_BIT * MODBUS_WAIT_FRAME * UMDK_MODBUS_USEC_IN_SEC) / baudrate);
+        time_wait = (uint32_t)((MODBUS_FRAME_BIT * MODBUS_WAIT_FRAME * UMDK_MODBUS_USEC_IN_SEC) / umdk_modbus_config.baudrate);
     }
 }
 
@@ -517,33 +544,27 @@ bool umdk_modbus_cmd(module_data_t *cmd, module_data_t *reply)
     if((command == UMDK_MODBUS_SET_PARAMS) || (command == UMDK_MODBUS_SET_DEVICE)){
         /* Do not allow receiving data*/
         current_pack.rx_allow = UMDK_MODBUS_RX_NOT_ALLOW;
-        uart_params_t modbus_params;
         
         int databits;
         int stopbits;
         char parity;
-        
-        modbus_params.baudrate = umdk_modbus_config.baudrate;
-        modbus_params.databits = umdk_modbus_config.databits;
-        modbus_params.stopbits = umdk_modbus_config.stopbits;
-        modbus_params.parity = umdk_modbus_config.parity;
-        
-        if(command == UMDK_MODBUS_SET_DEVICE){
+
+        if (command == UMDK_MODBUS_SET_DEVICE) {
             if (cmd->length < 2) { /* Must be one byte of cmd and 1 byte device number */
                 puts("[umdk-" _UMDK_NAME_ "] Incorrect device number");
                 reply_code(reply, UMDK_MODBUS_ERROR_REPLY);
                 return true;
             }
             /* Disable current UART */
-            if (uart_init_ext(UART_DEV(umdk_modbus_config.uart_dev), &modbus_params, NULL, NULL)) {
+            if (uart_init(UART_DEV(umdk_modbus_config.uart_dev), umdk_modbus_config.baudrate, NULL, NULL) != UART_OK) {
                 puts("[umdk-" _UMDK_NAME_ "] Error disabling current UART");
                 reply_code(reply, UMDK_MODBUS_ERROR_REPLY);
                 return true;
             }
-            
+
             umdk_modbus_config.uart_dev = cmd->data[1];
         }
-        else if(command == UMDK_MODBUS_SET_PARAMS) {
+        else if (command == UMDK_MODBUS_SET_PARAMS) {
             /* 1 byte command and a string like 115200-8N1 */
             if (cmd->length < 8) { /* Must be one byte of cmd and 8 bytes parameters string */
                 puts("[umdk-" _UMDK_NAME_ "] Incorrect data length");
@@ -551,14 +572,14 @@ bool umdk_modbus_cmd(module_data_t *cmd, module_data_t *reply)
                 return true;
             }
 
-            if (sscanf((char *)&cmd->data[1], "%" PRIu32 "-%d%c%d", &modbus_params.baudrate, &databits, &parity, &stopbits) != 4) {
+            if (sscanf((char *)&cmd->data[1], "%" PRIu32 "-%d%c%d", &umdk_modbus_config.baudrate, &databits, &parity, &stopbits) != 4) {
                 puts("[umdk-" _UMDK_NAME_ "] Error parsing parameters");
                 reply_code(reply, UMDK_MODBUS_ERROR_REPLY);
                 return true;
             }
 
-            if(databits == 8) {
-                modbus_params.databits = UART_DATABITS_8;
+            if (databits == 8) {
+                umdk_modbus_config.databits = UART_DATA_BITS_8;
             }
             else {
                 puts("[umdk-" _UMDK_NAME_ "] invalid number of data bits, must be 8");
@@ -568,13 +589,13 @@ bool umdk_modbus_cmd(module_data_t *cmd, module_data_t *reply)
 
             switch (parity) {
                 case 'N':
-                    modbus_params.parity = UART_PARITY_NOPARITY;
+                    umdk_modbus_config.parity = UART_PARITY_NONE;
                     break;
                 case 'E':
-                    modbus_params.parity = UART_PARITY_EVEN;
+                    umdk_modbus_config.parity = UART_PARITY_EVEN;
                     break;
                 case 'O':
-                    modbus_params.parity = UART_PARITY_ODD;
+                    umdk_modbus_config.parity = UART_PARITY_ODD;
                     break;
                 default:
                     puts("[umdk-" _UMDK_NAME_ "] Invalid parity value, must be N, O or E");
@@ -584,10 +605,10 @@ bool umdk_modbus_cmd(module_data_t *cmd, module_data_t *reply)
                 
             switch (stopbits) {
                 case 1:
-                    modbus_params.stopbits = UART_STOPBITS_10;
+                    umdk_modbus_config.stopbits = UART_STOP_BITS_1;
                     break;
                 case 2:
-                    modbus_params.stopbits = UART_STOPBITS_20;
+                    umdk_modbus_config.stopbits = UART_STOP_BITS_2;
                     break;
                 default:
                     puts("[umdk-" _UMDK_NAME_ "] invalid number of stop bits, must be 1 or 2");
@@ -597,17 +618,20 @@ bool umdk_modbus_cmd(module_data_t *cmd, module_data_t *reply)
         
         }
         /* Set baudrate and reinitialize UART */
-        if (uart_init_ext(UART_DEV(umdk_modbus_config.uart_dev), &modbus_params, umdk_modbus_handler, NULL)) {
-            puts("[umdk-" _UMDK_NAME_ "] Error UART -> parameters not supported");
+        if (uart_init(UART_DEV(umdk_modbus_config.uart_dev), umdk_modbus_config.baudrate,
+                umdk_modbus_handler, NULL) != UART_OK) {
+            puts("[umdk-" _UMDK_NAME_ "] Error initializing UART");
             reply_code(reply, UMDK_MODBUS_ERROR_REPLY);
             return true;
         }
         
-        umdk_modbus_config.baudrate = modbus_params.baudrate;
-        umdk_modbus_config.databits = modbus_params.databits;
-        umdk_modbus_config.parity = modbus_params.parity;
-        umdk_modbus_config.stopbits = modbus_params.stopbits;
-        
+        if (uart_mode(UART_DEV(umdk_modbus_config.uart_dev), umdk_modbus_config.databits, 
+                umdk_modbus_config.parity, umdk_modbus_config.stopbits) != UART_OK) {
+            puts("[umdk-" _UMDK_NAME_ "] Error setting UART parameters");
+            reply_code(reply, UMDK_MODBUS_ERROR_REPLY);
+            return true;
+        }
+
         switch (umdk_modbus_config.parity) {
             case (UART_PARITY_EVEN):
                 parity = 'E';
@@ -621,7 +645,7 @@ bool umdk_modbus_cmd(module_data_t *cmd, module_data_t *reply)
         }
         
         switch (umdk_modbus_config.stopbits) {
-            case (UART_STOPBITS_20):
+            case (UART_STOP_BITS_2):
                 stopbits = 2;
                 break;
             default:
@@ -629,14 +653,15 @@ bool umdk_modbus_cmd(module_data_t *cmd, module_data_t *reply)
                 break;
         }
             
-        printf("[umdk-" _UMDK_NAME_ "] Device: %02d Mode: %" PRIu32 "-%d%c%d\n", umdk_modbus_config.uart_dev, modbus_params.baudrate, 8, parity, stopbits);
+        printf("[umdk-" _UMDK_NAME_ "] Device: %02d Mode: %" PRIu32 "-%d%c%d\n", umdk_modbus_config.uart_dev,
+                umdk_modbus_config.baudrate, 8, parity, stopbits);
         save_config();
         
-        if(modbus_params.baudrate > UMDK_MODBUS_BAUDRATE_DEF) {
+        if(umdk_modbus_config.baudrate > UMDK_MODBUS_BAUDRATE_DEF) {
             time_wait = UMDK_MODBUS_TIMEWAIT_DEF_USEC;
         }
         else {
-            time_wait = (uint32_t)((MODBUS_FRAME_BIT * MODBUS_WAIT_FRAME * UMDK_MODBUS_USEC_IN_SEC) / modbus_params.baudrate);
+            time_wait = (uint32_t)((MODBUS_FRAME_BIT * MODBUS_WAIT_FRAME * UMDK_MODBUS_USEC_IN_SEC) / umdk_modbus_config.baudrate);
         }
     
         reply_code(reply, UMDK_MODBUS_OK_REPLY);

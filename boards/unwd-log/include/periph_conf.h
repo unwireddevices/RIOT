@@ -147,9 +147,12 @@ static const pwm_conf_t pwm_config[] = {
                       { .pin = GPIO_PIN(PORT_C, 8),          .cc_chan = 2 },
                       { .pin = GPIO_PIN(PORT_C, 9),          .cc_chan = 3 } },
         .af       = GPIO_AF2,
-        .bus      = APB1
+        .bus      = APB1,
+        .irqn     = TIM3_IRQn
     },
 };
+
+#define TIM_0_ISR           isr_tim3
 
 #define PWM_NUMOF           (sizeof(pwm_config) / sizeof(pwm_config[0]))
 /** @} */

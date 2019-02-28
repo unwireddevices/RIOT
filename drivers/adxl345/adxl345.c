@@ -23,6 +23,7 @@
 
 #include "assert.h"
 #include "periph/i2c.h"
+#include "byteorder.h"
 #include "adxl345.h"
 #include "adxl345_regs.h"
 #include "adxl345_params.h"
@@ -30,8 +31,10 @@
 #define ENABLE_DEBUG        (0)
 #include "debug.h"
 
-#define ADXL345_BUS                 (dev->params->i2c)
-#define ADXL345_ADDR                (dev->params->addr)
+#define ADXL345_BUS                 (dev->params.i2c)
+#define ADXL345_ADDR                (dev->params.addr)
+
+#define ADXL345_PARAM_SCALE_FACTOR  (4)
 
 int adxl345_init(adxl345_t *dev, const adxl345_params_t* params)
 {
@@ -40,10 +43,10 @@ int adxl345_init(adxl345_t *dev, const adxl345_params_t* params)
     assert(dev && params);
 
     /* get device descriptor */
-    dev->params = (adxl345_params_t*)params;
+    dev->params = *params;
 
     /* get scale_factor from full_res and range parameters */
-    dev->scale_factor = (dev->params->full_res ? ADXL345_PARAM_SCALE_FACTOR : (4 << dev->params->range));
+    dev->scale_factor = (dev->params.full_res ? ADXL345_PARAM_SCALE_FACTOR : (4 << dev->params.range));
 
     /* Acquire exclusive access */
     i2c_acquire(ADXL345_BUS);
@@ -57,12 +60,12 @@ int adxl345_init(adxl345_t *dev, const adxl345_params_t* params)
         return ADXL345_NODEV;
     }
     /* configure the user offset */
-    i2c_write_regs(ADXL345_BUS, ADXL345_ADDR, ADXL345_OFFSET_X, dev->params->offset, 3, 0);
+    i2c_write_regs(ADXL345_BUS, ADXL345_ADDR, ADXL345_OFFSET_X, dev->params.offset, 3, 0);
     /* Basic device setup */
-    reg = (dev->params->full_res ? ADXL345_FULL_RES : 0);
-    reg |= dev->params->range;
+    reg = (dev->params.full_res ? ADXL345_FULL_RES : 0);
+    reg |= dev->params.range;
     i2c_write_reg(ADXL345_BUS, ADXL345_ADDR, ADXL345_DATA_FORMAT, reg, 0);
-    i2c_write_reg(ADXL345_BUS, ADXL345_ADDR, ADXL345_BW_RATE, dev->params->rate, 0);
+    i2c_write_reg(ADXL345_BUS, ADXL345_ADDR, ADXL345_BW_RATE, dev->params.rate, 0);
     /* Put device in measure mode */
     i2c_write_reg(ADXL345_BUS, ADXL345_ADDR, ADXL345_POWER_CTL, ADXL345_MEASURE_BIT, 0);
 
@@ -81,21 +84,14 @@ void adxl345_read(const adxl345_t *dev, adxl345_data_t *data)
     assert(dev && data);
 
     i2c_acquire(ADXL345_BUS);
-    
-    uint8_t status = 0;
-    do {
-        if (i2c_read_regs(ADXL345_BUS, ADXL345_ADDR, ADXL345_INT_SOURCE, &status, 1, 0) < 0) {
-            i2c_release(ADXL345_BUS);
-        }
-    } while (!(status & ADXL345_DATA_READY));
-    
-    
     i2c_read_regs(ADXL345_BUS, ADXL345_ADDR, ADXL345_DATA_X0, (void *)result, 6, 0);
     i2c_release(ADXL345_BUS);
 
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    /* ADXL345 returns value in little endian, so swap is needed on big endian
+     * platforms. See Analog Devices ADXL345 datasheet page 27. */
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
     for (int i = 0; i < 3; i++) {
-        result[i] = ((result[i] & 0xFF) << 8 | (result[i] >> 8));
+        result[i] = byteorder_swaps((uint16_t)result[i]);
     }
 #endif
 

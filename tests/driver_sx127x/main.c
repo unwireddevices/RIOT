@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include "thread.h"
 #include "xtimer.h"
@@ -375,7 +376,7 @@ void *_recv_thread(void *arg)
 
 int main(void)
 {
-    memcpy(&sx127x.params, sx127x_params, sizeof(sx127x_params));
+    sx127x.params = sx127x_params[0];
     netdev_t *netdev = (netdev_t*) &sx127x;
     netdev->driver = &sx127x_driver;
 

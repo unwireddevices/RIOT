@@ -36,10 +36,10 @@ extern "C" {
 #define SHT3X_PARAM_I2C_ADDR    (SHT3X_I2C_ADDR_2)
 #endif
 #ifndef SHT3X_PARAM_MODE
-#define SHT3X_PARAM_MODE        (sht3x_periodic_2mps)
+#define SHT3X_PARAM_MODE        (SHT3X_PERIODIC_2_MPS)
 #endif
 #ifndef SHT3X_PARAM_REPEAT
-#define SHT3X_PARAM_REPEAT      (sht3x_high)
+#define SHT3X_PARAM_REPEAT      (SHT3X_HIGH)
 #endif
 
 #ifndef SHT3X_PARAMS
@@ -49,8 +49,9 @@ extern "C" {
                           .repeat   = SHT3X_PARAM_REPEAT    \
                         }
 #endif
+
 #ifndef SHT3X_SAUL_INFO
-#define SHT3X_SAUL_INFO { .name = "sht3x" }
+#define SHT3X_SAUL_INFO { .name = "sht3x1" }
 #endif
 /**@}*/
 

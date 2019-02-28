@@ -88,6 +88,23 @@ typedef enum {
 #endif
 
 /**
+ * @brief   Continuous conversion mode
+ */
+typedef enum {
+    ADC_CONTINUOUS_SINGLE,  /**< Fill the buffer and stop */
+    ADC_CONTINUOUS_CIRCULAR /**< Fill the buffer and restart */
+} adc_conconv_mode_t;
+
+/**
+ * @brief   ADC DMA callback type
+ */
+typedef enum {
+    ADC_DMA_CALLBACK_HALF,      /**< DMA half-transfer event */
+    ADC_DMA_CALLBACK_COMPLETED, /**< DMA transfer completed */
+    ADC_DMA_CALLBACK_ERROR      /**< ADC DMA error */
+} adc_dma_event_t;
+
+/**
  * @brief   Initialize the given ADC line
  *
  * The ADC line is initialized in synchronous, blocking mode.
@@ -114,6 +131,37 @@ int adc_init(adc_t line);
  * @return                  -1 if resolution is not applicable
  */
 int adc_sample(adc_t line, adc_res_t res);
+
+/**
+ * @brief   Signature of callback function for continuous ADC sampling
+ *
+ * @param[in] data          pointer to buffer with sampled data
+ * @param[in] size          buffer size in 16-bit words
+ */
+typedef void (*adc_cb_t)(adc_dma_event_t event);
+
+/**
+ * @brief   Starts continuous sampling
+ *
+ * Funtional continuously samples ADC and stores data in provided buffer.
+ * Functinal is not blocking, it uses DMA.
+ *
+ * @param[in] line          line to sample
+ * @param[in] res           resolution to use for conversion
+ * @param[in] buf           pointer to buffer to store data
+ * @param[in] wsize         buffer size in 16-bit words
+ * @param[in] adc_cb        callback function
+ *
+ * @return                  -1 if something is wrong
+ */
+int adc_sampling_start(adc_t line, adc_res_t res, uint16_t *buf, uint16_t wsize, adc_cb_t adc_cb, adc_conconv_mode_t mode);
+
+/**
+ * @brief   Stops continuous sampling
+ *
+ * @return                  -1 if something is wrong
+ */
+int adc_sampling_stop(void);
 
 #ifdef __cplusplus
 }

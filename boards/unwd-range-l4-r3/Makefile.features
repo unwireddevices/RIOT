@@ -3,6 +3,7 @@ FEATURES_PROVIDED += periph_adc
 FEATURES_PROVIDED += periph_cpuid
 FEATURES_PROVIDED += periph_dac
 FEATURES_PROVIDED += periph_gpio
+FEATURES_PROVIDED += periph_gpio_irq
 FEATURES_PROVIDED += periph_i2c
 FEATURES_PROVIDED += periph_iwdg
 FEATURES_PROVIDED += periph_pm
@@ -21,4 +22,4 @@ FEATURES_PROVIDED += cpp
 # The board MPU family (used for grouping by the CI system)
 FEATURES_MCU_GROUP = cortex_m4_2
 
--include $(RIOTCPU)/stm32l4/Makefile.features
+include $(RIOTCPU)/stm32l4/Makefile.features

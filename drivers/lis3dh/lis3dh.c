@@ -19,8 +19,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-
 #include "periph/gpio.h"
+#include "periph/spi.h"
 
 #include "lis3dh.h"
 #include "include/lis3dh_internal.h"
@@ -1334,6 +1334,8 @@ static void _platform_init(lis3dh_t *dev, const lis3dh_params_t *params)
     uint8_t test;
 
     /* initialize the chip select line */
+    spi_init(DEV_SPI);
+    
     if (spi_init_cs(DEV_SPI, DEV_CS) != SPI_OK) {
         DEBUG("[lis3dh] error while initializing CS pin\n");
         return -1;

@@ -35,6 +35,8 @@
                              TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC2M_0 | \
                              TIM_CCMR1_OC2M_1 | TIM_CCMR1_OC2M_2);
 
+volatile uint32_t pwm_pulses_counter[PWM_NUMOF] = { 0 };
+
 static inline TIM_TypeDef *dev(pwm_t pwm)
 {
     return pwm_config[pwm].dev;
@@ -120,12 +122,60 @@ void pwm_start(pwm_t pwm, uint8_t channel)
 {
     assert(pwm < PWM_NUMOF);
     
-    /* configure corresponding pin */
-    gpio_init(pwm_config[pwm].chan[channel].pin, GPIO_OUT);
-    gpio_init_af(pwm_config[pwm].chan[channel].pin, pwm_config[pwm].af);
+    uint32_t pin = pwm_config[pwm].chan[channel].pin;
+    
+    if (pin == GPIO_UNDEF) {
+        return;
+    }
+    
+    /* reimplementing gpio_init_af here to split computations and register writes */
+    GPIO_TypeDef *port = (GPIO_TypeDef *)(pin & ~(0x0f));
+    uint32_t pin_num = (pin & 0x0f);
+
+    uint32_t irqs = irq_disable();
+
+    /* set pin to AF mode */
+    uint32_t moder;
+	moder = port->MODER;
+    moder &= ~(3 << (2 * pin_num));
+    moder |= (2 << (2 * pin_num));
+    
+    /* set selected function */
+    uint32_t afr;
+	afr = port->AFR[(pin_num > 7) ? 1 : 0];
+    afr &= ~(0xf << ((pin_num & 0x07) * 4));
+    afr |= (pwm_config[pwm].af << ((pin_num & 0x07) * 4));
+    uint32_t afr_num = (pin_num > 7) ? 1 : 0;
     
     /* enable PWM */
     dev(pwm)->CR1 |= TIM_CR1_CEN;
+    
+    /* delay needed to eliminate small glitch, present at least on STM32L1 */
+    __asm("nop; nop; nop; nop; nop;");
+
+    /* if pin was configured before timer started, glitch is bigger */
+    port->AFR[afr_num] = afr;
+    port->MODER = moder;
+    
+    /* restore interrupts */
+    irq_restore(irqs);
+}
+
+void pwm_pulses(pwm_t pwm, uint8_t channel, uint16_t pulses) {
+    assert(pwm < PWM_NUMOF);
+
+    pwm_pulses_counter[pwm] = (pulses | (channel << 16)) + 1;
+
+    /* configure update event interrupt */
+    dev(pwm)->DIER |= (TIM_DIER_CC1IE << pwm_config[pwm].chan[channel].cc_chan);
+    NVIC_EnableIRQ(pwm_config[pwm].irqn);
+
+    pwm_start(pwm, channel);
+    
+    /* blocking function */
+    while (dev(pwm)->CR1 & TIM_CR1_CEN) {};
+    
+    dev(pwm)->DIER &= ~(TIM_DIER_CC1IE << pwm_config[pwm].chan[channel].cc_chan);
 }
 
 void pwm_stop(pwm_t pwm, uint8_t channel)
@@ -149,3 +199,95 @@ void pwm_poweroff(pwm_t pwm)
     dev(pwm)->CR1 &= ~TIM_CR1_CEN;
     periph_clk_dis(pwm_config[pwm].bus, pwm_config[pwm].rcc_mask);
 }
+
+static inline void irq_handler(pwm_t pwm) {
+    uint32_t pulses = pwm_pulses_counter[pwm];
+    uint16_t channel = pulses >> 16;
+    pulses &= 0xFFFF;
+
+    if (dev(pwm)->SR & (TIM_SR_CC1IF << pwm_config[pwm].chan[channel].cc_chan)) {
+        /* reset capture/compare interrupt flag */
+        dev(pwm)->SR &= ~(TIM_SR_CC1IF << pwm_config[pwm].chan[channel].cc_chan);
+        
+        if (pulses) {
+            pulses--;
+            
+            if (!pulses) {
+                dev(pwm)->CR1 &= ~TIM_CR1_CEN;
+            }
+            pwm_pulses_counter[pwm] = pulses | (channel << 16);
+        }
+    }
+    
+    cortexm_isr_end();
+}
+
+#ifdef TIM_0_ISR
+void TIM_0_ISR(void)
+{
+    irq_handler(PWM_DEV(0));
+}
+#endif /* TIM_0_ISR */
+
+#ifdef TIM_1_ISR
+void TIM_1_ISR(void)
+{
+    irq_handler(PWM_DEV(1));
+}
+#endif /* TIM_1_ISR */
+
+#ifdef TIM_2_ISR
+void TIM_2_ISR(void)
+{
+    irq_handler(PWM_DEV(2));
+}
+#endif /* TIM_2_ISR */
+
+#ifdef TIM_3_ISR
+void TIM_3_ISR(void)
+{
+    irq_handler(PWM_DEV(3));
+}
+#endif /* TIM_3_ISR */
+
+#ifdef TIM_4_ISR
+void TIM_4_ISR(void)
+{
+    irq_handler(PWM_DEV(4));
+}
+#endif /* TIM_4_ISR */
+
+#ifdef TIM_5_ISR
+void TIM_5_ISR(void)
+{
+    irq_handler(PWM_DEV(5));
+}
+#endif /* TIM_5_ISR */
+
+#ifdef TIM_6_ISR
+void TIM_6_ISR(void)
+{
+    irq_handler(PWM_DEV(6));
+}
+#endif /* TIM_6_ISR */
+
+#ifdef TIM_7_ISR
+void TIM_7_ISR(void)
+{
+    irq_handler(PWM_DEV(7));
+}
+#endif /* TIM_7_ISR */
+
+#ifdef TIM_8_ISR
+void TIM_8_ISR(void)
+{
+    irq_handler(PWM_DEV(8));
+}
+#endif /* TIM_8_ISR */
+
+#ifdef TIM_9_ISR
+void TIM_9_ISR(void)
+{
+    irq_handler(PWM_DEV(9));
+}
+#endif /* TIM_9_ISR */

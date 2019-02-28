@@ -78,8 +78,8 @@ typedef struct {
 } umdk_uart_config_t;
 
 static umdk_uart_config_t umdk_uart_config = { UMDK_UART_DEV, 115200U, \
-                                               UART_DATABITS_8, UART_PARITY_NOPARITY, \
-                                               UART_STOPBITS_10 };
+                                               UART_DATA_BITS_8, UART_PARITY_NONE, \
+                                               UART_STOP_BITS_1 };
 
 void *writer(void *arg) {
     (void)arg;
@@ -147,9 +147,9 @@ void rx_cb(void *arg, uint8_t data)
 
 static void reset_config(void) {
 	umdk_uart_config.baudrate = 115200U;
-    umdk_uart_config.databits = UART_DATABITS_8;
-    umdk_uart_config.parity = UART_PARITY_NOPARITY;
-    umdk_uart_config.stopbits = UART_STOPBITS_10;
+    umdk_uart_config.databits = UART_DATA_BITS_8;
+    umdk_uart_config.parity = UART_PARITY_NONE;
+    umdk_uart_config.stopbits = UART_STOP_BITS_1;
 	umdk_uart_config.uart_dev = UMDK_UART_DEV;
 }
 
@@ -162,7 +162,7 @@ static void init_config(void) {
     }
 
     /* simple check if we're upgrading from previous version */
-    if (umdk_uart_config.stopbits > UART_STOPBITS_20) {
+    if (umdk_uart_config.stopbits > UART_STOP_BITS_2) {
 		reset_config();
 		return;
     }
@@ -227,15 +227,10 @@ int umdk_uart_shell_cmd(int argc, char **argv) {
     
     if (strcmp(cmd, "baud") == 0) {
         char *val = argv[2];
-        
-        uart_params_t uart_params;
-        uart_params.baudrate = atoi(val);
-        uart_params.parity = umdk_uart_config.parity;
-        uart_params.stopbits = umdk_uart_config.stopbits;
-        uart_params.databits = umdk_uart_config.databits;
-        
-        if (!uart_init_ext(UART_DEV(umdk_uart_config.uart_dev), &uart_params, rx_cb, NULL)){
-            umdk_uart_config.baudrate = uart_params.baudrate;
+
+        uint32_t baud = atoi(val);
+        if (uart_init(UART_DEV(umdk_uart_config.uart_dev), baud, rx_cb, NULL) == UART_OK) {
+            umdk_uart_config.baudrate = baud;
             save_config();
         }
     }
@@ -258,7 +253,7 @@ void umdk_uart_init(uwnds_cb_t *event_callback)
     char parity;
     uint8_t stopbits;
     switch (umdk_uart_config.parity) {
-        case UART_PARITY_NOPARITY:
+        case UART_PARITY_NONE:
             parity = 'N';
             break;
         case UART_PARITY_ODD:
@@ -269,50 +264,34 @@ void umdk_uart_init(uwnds_cb_t *event_callback)
             break;
         default:
             parity = 'N';
-            umdk_uart_config.parity = UART_PARITY_NOPARITY;
+            umdk_uart_config.parity = UART_PARITY_NONE;
             break;
     }
     
     switch (umdk_uart_config.stopbits) {
-        case UART_STOPBITS_10:
+        case UART_STOP_BITS_1:
             stopbits = 1;
             break;
-        case UART_STOPBITS_20:
+        case UART_STOP_BITS_2:
             stopbits = 2;
             break;
         default:
-            umdk_uart_config.stopbits = UART_STOPBITS_10;
+            umdk_uart_config.stopbits = UART_STOP_BITS_1;
             stopbits = 1;
             break;
     }
     
     switch (umdk_uart_config.databits) {
-        case UART_DATABITS_8:
-            databits = 8;
-            break;
-        case UART_DATABITS_9:
-        /* not an error!!! */
-        /* 9 bits are used with parity only, so it will be 8 data bits + 1 parity bit */
+        case UART_DATA_BITS_8:
             databits = 8;
             break;
         default:
-            databits = 8;
-            if (umdk_uart_config.parity == UART_PARITY_NOPARITY) {
-                umdk_uart_config.databits = UART_DATABITS_8;
-            } else {
-                umdk_uart_config.databits = UART_DATABITS_9;                
-            }
+            databits = 0;
             break;
     }
     
     printf("[umdk-" _UMDK_NAME_ "] Mode: %" PRIu32 "-%u%c%u\n", umdk_uart_config.baudrate, databits, parity, stopbits);
 
-    uart_params_t uart_params;
-    uart_params.baudrate = umdk_uart_config.baudrate;
-    uart_params.parity = umdk_uart_config.parity;
-    uart_params.stopbits = umdk_uart_config.stopbits;
-    uart_params.databits = umdk_uart_config.databits;
-    
     rxbuf = (uint8_t *) allocate_stack(UMDK_UART_RXBUF_SIZE);
     if (!rxbuf) {
     	return;
@@ -320,7 +299,12 @@ void umdk_uart_init(uwnds_cb_t *event_callback)
     memset(rxbuf, 0, UMDK_UART_RXBUF_SIZE);
     
     /* Initialize UART */
-    if (uart_init_ext(UART_DEV(umdk_uart_config.uart_dev), &uart_params, rx_cb, NULL)) {
+    if (uart_init(UART_DEV(umdk_uart_config.uart_dev), umdk_uart_config.baudrate, rx_cb, NULL) != UART_OK) {
+        return;
+    }
+    
+    if (uart_mode(UART_DEV(umdk_uart_config.uart_dev), umdk_uart_config.databits,
+        umdk_uart_config.parity, umdk_uart_config.stopbits) != UART_OK) {
         return;
     }
 
@@ -397,19 +381,15 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             int stopbits;
             char parity;
             
-            uart_params_t uart_params;
-            
             if (sscanf((char *)&data->data[1], "%" PRIu32 "-%d%c%d", &baud, &databits, &parity, &stopbits) != 4) {
                 do_reply(reply, UMDK_UART_REPLY_ERR_FMT);
                 printf("umdk-" _UMDK_NAME_ ": error parsing parameters string: %s\n", (char *)&data->data[1]);
                 return true;
             }
             
-            uart_params.baudrate = baud;
-            
             switch (databits) {
                 case 8:
-                    uart_params.databits = UART_DATABITS_8;
+                    databits = UART_DATA_BITS_8;
                     break;
                 default:
                     puts("umdk-" _UMDK_NAME_ ": invalid number of data bits, must be 8");
@@ -419,15 +399,13 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             
             switch (parity) {
                 case 'N':
-                    uart_params.parity = UART_PARITY_NOPARITY;
+                    parity = UART_PARITY_NONE;
                     break;
                 case 'E':
-                    uart_params.parity = UART_PARITY_EVEN;
-                    uart_params.databits = UART_DATABITS_9;
+                    parity = UART_PARITY_EVEN;
                     break;
                 case 'O':
-                    uart_params.parity = UART_PARITY_ODD;
-                    uart_params.databits = UART_DATABITS_9;
+                    parity = UART_PARITY_ODD;
                     break;
                 default:
                     puts("umdk-" _UMDK_NAME_ ": invalid parity value, must be N, O or E");
@@ -437,10 +415,10 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
             
             switch (stopbits) {
                 case 1:
-                    uart_params.stopbits = UART_STOPBITS_10;
+                    stopbits = UART_STOP_BITS_1;
                     break;
                 case 2:
-                    uart_params.stopbits = UART_STOPBITS_20;
+                    stopbits = UART_STOP_BITS_2;
                     break;
                 default:
                     puts("umdk-" _UMDK_NAME_ ": invalid number of stop bits, must be 1 or 2");
@@ -450,10 +428,16 @@ bool umdk_uart_cmd(module_data_t *data, module_data_t *reply)
 
             /* Set baudrate and reinitialize UART */
             gpio_clear(RE_PIN);
-
-            if (uart_init_ext(umdk_uart_config.uart_dev, &uart_params, rx_cb, NULL)) {
+            
+            if (uart_set_baudrate(umdk_uart_config.uart_dev, baud) != UART_OK) {
                 do_reply(reply, UMDK_UART_ERR); /* UART error, baud rate not supported? */
                 puts("umdk-" _UMDK_NAME_ ": baud rate not supported");
+                break;
+            }
+
+            if (uart_mode(umdk_uart_config.uart_dev, databits, parity, stopbits) != UART_OK) {
+                do_reply(reply, UMDK_UART_ERR); /* UART error, mode not supported? */
+                puts("umdk-" _UMDK_NAME_ ": mode not supported");
                 break;
             }
             

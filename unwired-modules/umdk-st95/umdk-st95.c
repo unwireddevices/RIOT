@@ -58,10 +58,10 @@ extern "C" {
 #include "thread.h"
 #include "rtctimers-millis.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
-static msg_t msg_wu = { .type = UMDK_ST95_MSG_WAKE_UP, };
+static msg_t msg_wu = { .type = UMDK_ST95_MSG_EVENT, };
 static msg_t msg_rx = { .type = UMDK_ST95_MSG_UID, };
 
 static kernel_pid_t radio_pid;
@@ -87,6 +87,7 @@ static volatile uint8_t status = UMDK_ST95_STATUS_READY;
 
 
 static void umdk_st95_get_uid(void);
+static void umdk_st95_set_uid(void);
 
 #if ENABLE_DEBUG
     #define PRINTBUFF _printbuff
@@ -119,10 +120,18 @@ static void *radio_send(void *arg)
         data.length = 1;
 
         switch(msg.type) {
-            case UMDK_ST95_MSG_WAKE_UP: {
-                if(st95_is_wake_up(&dev) == ST95_WAKE_UP) {
-                    umdk_st95_get_uid();   
-                }                             
+            case UMDK_ST95_MSG_EVENT: {
+                if(mode == UMDK_ST95_MODE_SET_UID) {
+                    if(st95_is_field_detect(&dev) != ST95_ERROR) {      
+                        umdk_st95_set_uid();
+                    }
+                }
+                else {
+                    if(st95_is_wake_up(&dev) == ST95_WAKE_UP) {
+                        umdk_st95_get_uid();
+                    }                       
+                }
+                                
                 break;
             }
             case UMDK_ST95_MSG_UID: {
@@ -132,7 +141,7 @@ static void *radio_send(void *arg)
                     data.length += length_uid;
                 }
                 else {
-                    DEBUG("[ERROR]: Invalid UID\n");
+                    DEBUG("[ERROR]\n");
                     PRINTBUFF(uid_full, length_uid);
                     
                     data.data[1] = UMDK_ST95_ERROR_REPLY;
@@ -142,7 +151,7 @@ static void *radio_send(void *arg)
                 DEBUG("RADIO: ");
                 PRINTBUFF(data.data, data.length);
 
-                callback(&data);
+                // callback(&data);
                 
                 if(mode == UMDK_ST95_MODE_DETECT_TAG) {
                     rtctimers_millis_sleep(UMDK_ST95_DELAY_DETECT_MS);
@@ -176,6 +185,29 @@ static void umdk_st95_get_uid(void)
     msg_try_send(&msg_rx, radio_pid);
 }
 
+static void umdk_st95_set_uid(void)
+{
+    uint8_t length = 0;
+    uint8_t atqa[2] = { 0 };
+    uint8_t sak = 0;
+    uint8_t uid[10] = { 0 };
+    
+    atqa[0] = 0x04; // ATQA
+    atqa[1] = 0x00; // ATQA
+    
+    sak = 0x08; // SAK
+
+    uid[0] = 0xDE; // UID
+    uid[1] = 0xAD; // UID
+    uid[2] = 0xAB; // UID
+    uid[3] = 0xBA; // UID
+    length = 4;
+
+     if(st95_set_uid(&dev, length, atqa, sak, uid) == ST95_OK) {
+
+        }
+}
+
 static void wake_up_cb(void * arg)
 {
     (void) arg;
@@ -198,7 +230,8 @@ void umdk_st95_init(uwnds_cb_t *event_callback)
 
     radio_pid = thread_create(stack, UMDK_ST95_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, radio_send, NULL, "st95 thread");
     
-    st95_params.iface = ST95_IFACE_UART;
+    st95_params.iface = ST95_IFACE_SPI;
+    mode = UMDK_ST95_MODE_SET_UID;
 
     if(st95_init(&dev, &st95_params) != ST95_OK){
         puts("[umdk-" _UMDK_NAME_ "] st95 driver initialization error");
@@ -206,8 +239,15 @@ void umdk_st95_init(uwnds_cb_t *event_callback)
     }
     else {   
         puts("[umdk-" _UMDK_NAME_ "] st95 driver initialization success");
-        mode = UMDK_ST95_MODE_DETECT_TAG;
-        st95_sleep(&dev);
+
+        if(mode == UMDK_ST95_MODE_SET_UID) {
+            puts("[umdk-" _UMDK_NAME_ "] card emulation mode");
+            umdk_st95_set_uid();
+        }
+        else if(mode == UMDK_ST95_MODE_DETECT_TAG) {
+            puts("[umdk-" _UMDK_NAME_ "] reader mode");
+            st95_sleep(&dev);
+        }
     }
  
 }
@@ -233,9 +273,10 @@ bool umdk_st95_cmd(module_data_t *cmd, module_data_t *reply)
             reply_code(reply, UMDK_ST95_ERROR_REPLY);
             return true;        
         }
+        puts("[umdk-" _UMDK_NAME_ "] st95 reader mode");
         mode = UMDK_ST95_MODE_DETECT_TAG;
         status = UMDK_ST95_STATUS_PROCCESSING;
-        st95_sleep(&dev);
+        umdk_st95_get_uid();
         
         return false;
     }
@@ -257,6 +298,14 @@ bool umdk_st95_cmd(module_data_t *cmd, module_data_t *reply)
         } 
  
         return false;       
+    }
+    else if(cmd->data[0] == 0x05) {
+        puts("[umdk-" _UMDK_NAME_ "] st95 card emulation mode");
+        mode = UMDK_ST95_MODE_SET_UID;
+        umdk_st95_set_uid();
+
+        reply_code(reply, UMDK_ST95_OK_REPLY);
+        return true;      
     }
     else {
         reply_code(reply, UMDK_ST95_ERROR_REPLY);

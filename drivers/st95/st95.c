@@ -29,14 +29,16 @@
 #include "st95_params.h"
 #include "iso14443a.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
-#define ENABLE_DEBUG_ST95 (0)
+#define ENABLE_DEBUG_ST95 (1)
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+static uint8_t cmd_allow = 0;
 
 static uint8_t (*st95_iface_send)(const st95_t *, uint8_t *, uint8_t, bool);
 static uint8_t (*st95_iface_receive)(const st95_t *, uint8_t *, uint16_t, bool);
@@ -64,23 +66,6 @@ uint8_t _st95_select_field_off(const st95_t * dev);
 uint8_t _st95_read_reg(const st95_t * dev, uint8_t * rxbuff);
 uint8_t _st95_read_modulation_gain(const st95_t * dev, uint8_t * modul, uint8_t * gain);
 
-
-/**
- * @brief   This function send low pulse on IRQ_IN pin
- * 
- * @param[in]   dev:    Pointer to ST95 device descriptor
- * 
- * @return  None
- */
-static void _st95_send_irqin_low_pulse(const st95_t * dev)
-{    
-    gpio_set(dev->params.irq_in);      
-    xtimer_spin(xtimer_ticks_from_usec(ST95_PULSE_NEGATIVE_USEC));
-    gpio_clear(dev->params.irq_in);  
-    xtimer_spin(xtimer_ticks_from_usec(ST95_PULSE_NEGATIVE_USEC));
-    gpio_set(dev->params.irq_in);
-}
-
 #if ENABLE_DEBUG_ST95
     #define PRINTBUFF _printbuff
     static void _printbuff(uint8_t *buff, unsigned len)
@@ -101,8 +86,32 @@ static void _st95_send_irqin_low_pulse(const st95_t * dev)
     #define PRINTBUFF(...)
     #define PRINTSTR(...)
 #endif
+
+/**
+ * @brief   This function send low pulse on IRQ_IN pin
+ * 
+ * @param[in]   dev:    Pointer to ST95 device descriptor
+ * 
+ * @return  None
+ */
+static void _st95_send_irqin_low_pulse(const st95_t * dev)
+{    
+    gpio_set(dev->params.irq_in);      
+    xtimer_spin(xtimer_ticks_from_usec(ST95_PULSE_NEGATIVE_USEC));
+    gpio_clear(dev->params.irq_in);  
+    xtimer_spin(xtimer_ticks_from_usec(ST95_PULSE_NEGATIVE_USEC));
+    gpio_set(dev->params.irq_in);
+}
     
-    
+/**
+ * @brief   This function reads the data from the tag
+ * 
+ * @param[in]   dev:    Pointer to ST95 device descriptor
+ * @param[in]   data:   Pointer to data
+ * @param[in]   length: Data length
+ * 
+ * @return  None
+ */    
 int st95_read_data(const st95_t * dev, uint8_t * data, uint16_t length)
 {
     if(_st95_select_iso14443a(dev, NULL, 1) == ST95_ERROR) {
@@ -120,6 +129,15 @@ int st95_read_data(const st95_t * dev, uint8_t * data, uint16_t length)
     return ST95_ERROR;
 }    
 
+/**
+ * @brief   This function writes the data to the tag
+ * 
+ * @param[in]   dev:    Pointer to ST95 device descriptor
+ * @param[in]   data:   Pointer to data
+ * @param[in]   length: Data length
+ * 
+ * @return  None
+ */    
 int st95_write_data(const st95_t * dev, uint8_t * data, uint16_t length)
 {
     if(_st95_select_iso14443a(dev, NULL, 1) == ST95_ERROR) {
@@ -206,6 +224,11 @@ uint8_t _st95_select_field_off(const st95_t * dev)
 uint8_t _st95_spi_send(const st95_t * dev, uint8_t * txbuff, uint8_t length_tx, bool cond)
 {
     uint8_t tx_spi = ST95_CTRL_SPI_SEND;
+    
+        // if(cmd_allow == 1) {
+        // PRINTSTR(">>> SPI TX:");
+        // PRINTBUFF(txbuff, length_tx);
+    // }
 
     spi_acquire(SPI_DEV(dev->params.spi), dev->params.cs_spi, SPI_MODE_0, ST95_SPI_CLK);
 
@@ -234,13 +257,18 @@ uint8_t _st95_spi_send(const st95_t * dev, uint8_t * txbuff, uint8_t length_tx, 
  * @param[in]   dev:            Pointer to ST95 device descriptor
  * @param[out]  txbuff:         Pointer to the transmit buffer
  * @param[out]  size_rx_buff:   Size of the transmit buffer
- * @param[in]   cond:           Condition of SPI release after sending data
+ * @param[in]   cond:           Any: True/false (no use)
  * 
  * @return  0:  data has been successfully transmitted
  */
 uint8_t _st95_uart_send(const st95_t * dev, uint8_t * txbuff, uint8_t length_tx, bool cond)
 {
     (void) cond;
+    
+    if(cmd_allow == 1) {
+        PRINTSTR(">>> UART TX:");
+        PRINTBUFF(txbuff, length_tx);
+    }
     
     uart_write(UART_DEV(dev->params.uart), txbuff, length_tx);
         
@@ -255,6 +283,16 @@ uint8_t _st95_uart_send(const st95_t * dev, uint8_t * txbuff, uint8_t length_tx,
     return ST95_OK;
 }
 
+/**
+ * @brief   This function send data
+ * 
+ * @param[in]   dev:            Pointer to ST95 device descriptor
+ * @param[out]  txbuff:         Pointer to the transmit buffer
+ * @param[out]  size_rx_buff:   Size of the transmit buffer
+ * @param[in]   cond:           For SPI: Condition of SPI release after sending data. For UART:any (no use)
+ * 
+ * @return  :  Sending data
+ */
 uint8_t _st95_send_pack(const st95_t * dev, uint8_t * txbuff, uint8_t length_tx, bool cond)
 {	
 	return ((*st95_iface_send)(dev, txbuff, length_tx, cond));
@@ -267,7 +305,7 @@ uint8_t _st95_send_pack(const st95_t * dev, uint8_t * txbuff, uint8_t length_tx,
  * @param[in]   dev:            Pointer to ST95 device descriptor
  * @param[out]  rxbuff:         Pointer to the receive buffer
  * @param[out]  size_rx_buff:   Size of the receive buffer
- * @param[in]   cond:           Condition of SPI acquire after sending data
+ * @param[in]   cond:           Condition of SPI acquire before receiving data.
  * 
  * @return  0:  data has been successfully received
  * @return  >0: in case of an error
@@ -314,6 +352,14 @@ static uint8_t _st95_spi_receive(const st95_t * dev, uint8_t * rxbuff, uint16_t 
         }
     }     
     
+// if(cmd_allow == 2) {
+        // PRINTSTR("<<< IRQ:");
+        // PRINTBUFF(rxbuff, rxbuff[1] + 2);
+    // }
+    
+    // if(st95_state.mode == ST95_LISTEN_MODE) {
+        // PRINTBUFF(rxbuff, length_rx);
+    // }    
     return ST95_OK;
 }
 
@@ -323,7 +369,7 @@ static uint8_t _st95_spi_receive(const st95_t * dev, uint8_t * rxbuff, uint16_t 
  * @param[in]   dev:            Pointer to ST95 device descriptor
  * @param[out]  rxbuff:         Pointer to the receive buffer
  * @param[out]  size_rx_buff:   Size of the receive buffer
- * @param[in]   cond:           Condition of SPI acquire after sending data
+ * @param[in]   cond:           Any: True/false (no use)
  * 
  * @return  0:  data has been successfully received
  * @return  >0: in case of an error
@@ -331,14 +377,19 @@ static uint8_t _st95_spi_receive(const st95_t * dev, uint8_t * rxbuff, uint16_t 
 uint8_t _st95_uart_receive(const st95_t * dev, uint8_t * rxbuff, uint16_t size_rx_buff, bool cond)
 {    
     (void) cond;
-    (void) dev;   
+    (void) dev;
     
     if(size_rx_buff > ST95_MAX_BYTE_BUFF) {
         size_rx_buff = ST95_MAX_BYTE_BUFF;
     }
     
     uint16_t length_rx_tmp = 0;
-         
+    
+    if(cmd_allow == 1) {
+        PRINTSTR("<<< UART RX:");
+        PRINTBUFF(rxbuff, rxbuff[1] + 2);
+    }
+    
     if(st95_state.timeout == true) {
         return ST95_NO_DEVICE;
 	}
@@ -362,6 +413,16 @@ uint8_t _st95_uart_receive(const st95_t * dev, uint8_t * rxbuff, uint16_t size_r
     return ST95_OK;
 }
 
+/**
+ * @brief   This function receive data
+ * 
+ * @param[in]   dev:            Pointer to ST95 device descriptor
+ * @param[out]  txbuff:         Pointer to the transmit buffer
+ * @param[out]  size_rx_buff:   Size of the transmit buffer
+ * @param[in]   cond:           For SPI: Condition of SPI acquire before receiving data. For UART:any (no use)
+ * 
+ * @return :  Receiving data
+ */
 uint8_t _st95_receive_pack(const st95_t * dev, uint8_t * rxbuff, uint16_t size_rx_buff, bool cond)
 {	
 	return ((*st95_iface_receive)(dev, rxbuff, size_rx_buff, cond));
@@ -400,7 +461,15 @@ static void _st95_spi_rx(void* arg)
 {
     st95_t *dev = arg;
     
-    st95_state.data_rx = true;    
+    st95_state.data_rx = true; 
+    
+    // if(cmd_allow == 2) puts("SPI IRQ LISTEN");
+    
+    if(st95_state.mode == ST95_LISTEN_MODE) {
+        if (dev->cb) {
+            dev->cb(dev->arg);
+        }
+    }  
 
     if(st95_state.mode == ST95_SLEEP_MODE) {
         if (dev->cb) {
@@ -420,6 +489,7 @@ static void _st95_uart_rx(void *arg, uint8_t data)
 {
     st95_t *dev = arg;
 
+    if(cmd_allow == 2) puts("UART IRQ LISTEN");
     st95_rxbuf[length_rx++] = data;
     
     if(st95_rxbuf[0] == ST95_CMD_ECHO) {
@@ -487,13 +557,24 @@ int _st95_exit_listen(const st95_t * dev)
 
     if(_st95_receive_pack(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF, true) == ST95_OK) {
         if((st95_rxbuf[0] == ST95_CMD_ECHO) && (st95_rxbuf[1] == 0x85) && (st95_rxbuf[2] == 0x00)) {
+            puts("EXIT LISTEN OK");           
             return ST95_OK;
         }
+        puts("EXIT LISTEN ERR");
     }
-    
+    puts("EXIT LISTEN ERR RX");
     return ST95_ERROR;
 }
 
+/**
+ * @brief   This function send cmd READ REG
+ * 
+ * @param[in]   dev:    Pointer to ST95 device descriptor
+ * @param[out]  rxbuff: Pointer to receiving buffer
+ * 
+ * @return  0:  if is response
+ * @return  >0: in case of an error
+ */
 uint8_t _st95_read_reg(const st95_t * dev, uint8_t * rxbuff)
 {    
     st95_txbuf[0] = ST95_CMD_READ_REG;
@@ -512,6 +593,18 @@ uint8_t _st95_read_reg(const st95_t * dev, uint8_t * rxbuff)
     return ST95_ERROR;  
 }
 
+/**
+ * @brief   This function send cmd WRITE REG
+ * 
+ * @param[in]   dev:       Pointer to ST95 device descriptor
+ * @param[in]   size_tx:   Data length to writing
+ * @param[in]   addr:      Register address
+ * @param[in]   flag:      Flag 
+ * @param[out]  data_tx:   Pointer to receiving buffer
+ * 
+ * @return  0:  if is response
+ * @return  >0: in case of an error
+ */
 uint8_t _st95_cmd_write_reg(const st95_t * dev, uint8_t size_tx, uint8_t addr, uint8_t flag, uint8_t * data_tx)
 {   
     if((size_tx < 3) || (size_tx > 4)) {
@@ -723,7 +816,7 @@ uint8_t _st95_cmd_poll_field(const st95_t * dev)
 {    
     st95_txbuf[0] = ST95_CMD_POLL_FIELD;    // Command
     st95_txbuf[1] = 0x00;                // Data Length
-    
+cmd_allow = 1;
     _st95_send_pack(dev, st95_txbuf, 2, false);
     
     _st95_wait_ready_data();  
@@ -747,7 +840,7 @@ uint8_t _st95_cmd_poll_field(const st95_t * dev)
             return ST95_ERROR;
         }
     }
-    
+
     return ST95_ERROR;
 }
 
@@ -762,12 +855,14 @@ uint8_t _st95_cmd_listen(const st95_t * dev)
 {    
     st95_txbuf[0] = ST95_CMD_LISTEN;    // Command
     st95_txbuf[1] = 00;                // Data Length
-    
+
     _st95_send_pack(dev, st95_txbuf, 2, false);
     
-    _st95_wait_ready_data();  
+    _st95_wait_ready_data(); 
     if(_st95_receive_pack(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF, false) == ST95_OK) {
         if((st95_rxbuf[0] == 0x00) && (st95_rxbuf[1] == 0x00)) {
+            gpio_irq_enable(dev->params.irq_out);
+            cmd_allow = 2;
             return ST95_OK;    
         }
         return ST95_ERROR;
@@ -818,12 +913,12 @@ static uint8_t _st95_cmd_idle(const st95_t * dev, uint8_t dac_l, uint8_t dac_h)
     _st95_send_pack(dev, st95_txbuf, 16, true);
     
     st95_state.mode = ST95_SLEEP_MODE;
-           
+
     return ST95_OK;
 }
 
 /**
- * @brief This function check wake-up state
+ * @brief This function check event - Wake-up state
  * 
  * @param[in]   dev:    Pointer to ST95 device descriptor
  * 
@@ -840,6 +935,33 @@ int st95_is_wake_up(const st95_t * dev)
         }
     }
     
+    return ST95_ERROR;
+}
+
+/**
+ * @brief This function check event - RF detect state
+ * 
+ * @param[in]   dev:    Pointer to ST95 device descriptor
+ * 
+ * @return 0:   if device wake-up
+ * @return 1:   in case of an error
+ */
+int st95_is_field_detect(const st95_t * dev)
+{
+    if(st95_state.mode == ST95_LISTEN_MODE) {
+        if(_st95_receive_pack(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF, true) == ST95_OK) {           
+            st95_state.mode = ST95_READY_MODE;
+            // if(_st95_cmd_poll_field(dev) != ST95_OK) {
+                 // puts("\t[NO FIELD 1]");
+                 // if(_st95_cmd_poll_field(dev) != ST95_OK) {
+                    // puts("\t[NO FIELD 2]");
+                    // return ST95_NO_FIELD_DET;
+                // }
+            // }
+             // puts("\t\t\t\t>>> [FIELD] <<<");
+            return ST95_FIELD_DET;
+        }
+    }
     return ST95_ERROR;
 }
 
@@ -926,10 +1048,10 @@ int _st95_select_iso14443a_card(const st95_t * dev)
     st95_txbuf[3] = 0x00 | (ST95_14443A_CARD_WAIT_RF << 3) | (ST95_14443A_CARD_HFO << 1);
     st95_txbuf[3] |= (ST95_TX_RATE_14443A << 6) | (ST95_RX_RATE_14443A << 4);
 
-    _st95_spi_send(dev, st95_txbuf, 4, false);
+    _st95_send_pack(dev, st95_txbuf, 4, false);
     _st95_wait_ready_data();  
     
-    if(_st95_spi_receive(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF, false) == ST95_OK) {
+    if(_st95_receive_pack(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF, false) == ST95_OK) {
         if((st95_rxbuf[0] == 0x00) && (st95_rxbuf[1] == 0x00)) {
             return ST95_OK;
         }
@@ -946,25 +1068,22 @@ int _st95_select_iso14443a_card(const st95_t * dev)
  * @return 0:   if selecting success
  * @return 1:   in case of an error
  */
-int _st95_cmd_ac_filter(const st95_t * dev)
+int _st95_cmd_ac_filter(const st95_t * dev, uint8_t length, uint8_t * atqa, uint8_t sak, uint8_t * uid)
 {    
     st95_txbuf[0] = ST95_CMD_ANTICOL_FILTER;
-    st95_txbuf[1] = 7;    // Data Length
+    st95_txbuf[1] = length + 3;             // Data Length
     
-    st95_txbuf[2] = 0x04; // ATQA
-    st95_txbuf[3] = 0x00; // ATQA
+    st95_txbuf[2] = *atqa;                  // ATQA
+    st95_txbuf[3] = *(atqa + 1);            // ATQA
     
-    st95_txbuf[4] = 0x08; // SAK
+    st95_txbuf[4] = sak;                    // SAK
 
-    st95_txbuf[5] = 0xAA; // UID
-    st95_txbuf[6] = 0xBB; // UID
-    st95_txbuf[7] = 0xCC; // UID
-    st95_txbuf[8] = 0xDD; // UID
-
-    _st95_spi_send(dev, st95_txbuf, 9, false);
+    memcpy(st95_txbuf + 5, uid, length);    // UID
+  
+    _st95_send_pack(dev, st95_txbuf, length + 5, false);
     _st95_wait_ready_data();  
     
-    if(_st95_spi_receive(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF, false) == ST95_OK) {
+    if(_st95_receive_pack(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF, false) == ST95_OK) {
         if((st95_rxbuf[0] == 0x00) && (st95_rxbuf[1] == 0x00)) {
             return ST95_OK;
         }
@@ -1040,8 +1159,16 @@ int _st95_cmd_send_receive(const st95_t * dev, uint8_t *data_tx, uint8_t size_tx
  */
 int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_t * sak)
 {   
-    st95_state.mode = ST95_READY_MODE;
+cmd_allow = 0;    
+    if(st95_state.mode == ST95_LISTEN_MODE) {
+        st95_state.mode = ST95_READY_MODE;
+        if(_st95_exit_listen(dev) != ST95_OK) {
+            return ST95_ERROR;
+        }
+     }     
 
+    st95_state.mode = ST95_READY_MODE;
+    
     if(_st95_select_iso14443a(dev, NULL, 1) == ST95_ERROR) {
         return ST95_ERROR;
     }
@@ -1051,9 +1178,20 @@ int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_
     }
 
     if(iso14443a_get_uid(dev, st95_rxbuf, length_uid, uid, sak) == ST95_OK) {
+     // puts("\t\t\t\t\tFIRST");        
         return ST95_OK;       
     }
-    
+
+    if(iso14443a_get_uid(dev, st95_rxbuf, length_uid, uid, sak) == ST95_OK) {
+    // puts("\t\t\t\t\tSECOND");        
+        return ST95_OK;       
+    }
+
+    if(iso14443a_get_uid(dev, st95_rxbuf, length_uid, uid, sak) == ST95_OK) {
+    // puts("\t\t\t\t\tTHIRD");        
+        return ST95_OK;       
+    }
+    // puts("\t\t\t\tERROR");
     return ST95_ERROR;   
 }
 
@@ -1068,34 +1206,31 @@ int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_
  * @return  0:  the command has been successfully executed
  * @return  1:  in case of an error
  */
-int st95_set_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_t * sak)
+int st95_set_uid(const st95_t * dev, uint8_t length, uint8_t * atqa, uint8_t sak, uint8_t * uid)
 {   
-(void) length_uid;
-(void) uid;
-(void) sak;
+cmd_allow = 0;
 
      if(st95_state.mode == ST95_LISTEN_MODE) {
+        st95_state.mode = ST95_READY_MODE;
         if(_st95_exit_listen(dev) != ST95_OK) {
             return ST95_ERROR;
         }
-     }
-     st95_state.mode = ST95_READY_MODE;
-
+     }     
+     
     if(_st95_select_iso14443a_card(dev) != ST95_OK) {
         return ST95_ERROR;
     }
- 
-    if(_st95_cmd_ac_filter(dev) != ST95_OK) {
+    if(_st95_cmd_ac_filter(dev, length, atqa, sak, uid) != ST95_OK) {
         return ST95_ERROR;
     }
-
-    if(_st95_cmd_poll_field(dev) != ST95_OK) {
-        return ST95_ERROR;
-    }
-
+    
+    // TODO: WriteReg values
+    
     if(_st95_cmd_listen(dev) != ST95_OK) {
+
         return ST95_ERROR;
     }
+   
     st95_state.mode = ST95_LISTEN_MODE;
     return ST95_OK;   
 }
@@ -1275,6 +1410,7 @@ int _st95_init_uart(st95_t * dev, st95_params_t * params)
  */
 int st95_init(st95_t * dev, st95_params_t * params)
 {      
+cmd_allow = 0;
     if (params->iface == ST95_IFACE_SPI) {
         return _st95_init_spi(dev, params);
     }

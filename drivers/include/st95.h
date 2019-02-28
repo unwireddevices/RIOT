@@ -89,9 +89,11 @@
  * @brief ST95 return codes
 */
 #define ST95_OK			        0
-#define ST95_WAKE_UP            ST95_OK
 #define ST95_ERROR		        1
 #define ST95_NO_DEVICE	        2
+#define ST95_WAKE_UP            ST95_OK
+#define ST95_FIELD_DET          ST95_OK
+#define ST95_NO_FIELD_DET 3
 
 /**
  * @brief   ST95 hardware and global parameters.
@@ -143,13 +145,14 @@ void st95_spi_reset(const st95_t * dev);
 void st95_sleep(st95_t * dev);
 
 int st95_is_wake_up(const st95_t * dev);
+int st95_is_field_detect(const st95_t * dev);
 
 int st95_idn(const st95_t * dev, uint8_t * idn, uint8_t * length);
 
 int st95_write_data(const st95_t * dev, uint8_t * data, uint16_t length);
 int st95_read_data(const st95_t * dev, uint8_t * data, uint16_t length);
 int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_t * sak);
-int st95_set_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_t * sak);
+int st95_set_uid(const st95_t * dev, uint8_t length, uint8_t * atqa, uint8_t sak, uint8_t * uid);
 
 
 int _st95_select_iso14443a(const st95_t * dev, uint8_t * params, uint8_t length_params);

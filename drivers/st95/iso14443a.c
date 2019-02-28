@@ -293,7 +293,6 @@ static uint8_t _read_ndef(const st95_t * dev, uint8_t * data, uint16_t length, u
     
     picc.ndef_length = (rxbuff[ST95_DATA_OFFSET + 1] << 8) | rxbuff[ST95_DATA_OFFSET + 2];
     
-    printf("picc.ndef_length = %04X  length = %04X\n", picc.ndef_length, length);
     if(length > picc.ndef_length) {
         PRINTSTR("\t\t >>> READ NDEF length: INVALID\n");
         return ST95_ERROR;
@@ -947,7 +946,7 @@ int iso14443a_get_uid(const st95_t * dev, uint8_t * iso_rxbuf, uint8_t * length_
         _iso14443a_hlta(dev, iso_rxbuf, ISO14443A_ANSWER_MAX_BYTE);
         return ST95_ERROR;
     }
-    
+
     if(_iso14443a_get_uidsize(iso_rxbuf[ISO14443A_OFFSET_ATQA_FIRST_BYTE]) == ST95_ERROR) {
         _iso14443a_hlta(dev, iso_rxbuf, ISO14443A_ANSWER_MAX_BYTE);
         return ST95_ERROR;

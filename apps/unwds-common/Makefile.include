@@ -39,6 +39,7 @@ umdk-lmt01	        		= 1
 umdk-meteo     				= 1
 umdk-mhz19     				= 1
 umdk-modbus	   		        = 1
+umdk-parking                = 1
 umdk-pir	   				= 1
 umdk-pwm	   				= 0
 umdk-rssiecho  				= 1

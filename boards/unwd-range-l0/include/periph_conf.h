@@ -228,15 +228,15 @@ static const i2c_conf_t i2c_config[] = {
  * @{
  */
 static const adc_conf_t adc_config[] = {
-    { .pin = GPIO_PIN(PORT_A, 1), .chan = 1,                       .trigger = ADC_EXT_TRIGGER_TIM9TRGO },
-    { .pin = GPIO_PIN(PORT_A, 2), .chan = 2,                       .trigger = ADC_EXT_TRIGGER_TIM9TRGO },
-    { .pin = GPIO_PIN(PORT_A, 3), .chan = 3,                       .trigger = ADC_EXT_TRIGGER_TIM9TRGO },
-    { .pin = GPIO_PIN(PORT_A, 4), .chan = 4,                       .trigger = ADC_EXT_TRIGGER_TIM9TRGO },
-    { .pin = GPIO_PIN(PORT_A, 5), .chan = 5,                       .trigger = ADC_EXT_TRIGGER_TIM9TRGO },
-    { .pin = GPIO_PIN(PORT_A, 6), .chan = 6,                       .trigger = ADC_EXT_TRIGGER_TIM9TRGO },
-	{ .pin = GPIO_PIN(PORT_A, 7), .chan = 7,                       .trigger = ADC_EXT_TRIGGER_TIM9TRGO },
-	{ .pin = GPIO_UNDEF,          .chan = ADC_VREF_CHANNEL,        .trigger = ADC_EXT_TRIGGER_TIM9TRGO },
-	{ .pin = GPIO_UNDEF,          .chan = ADC_TEMPERATURE_CHANNEL, .trigger = ADC_EXT_TRIGGER_TIM9TRGO },
+    { .pin = GPIO_PIN(PORT_A, 1), .chan = 1,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+    { .pin = GPIO_PIN(PORT_A, 2), .chan = 2,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+    { .pin = GPIO_PIN(PORT_A, 3), .chan = 3,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+    { .pin = GPIO_PIN(PORT_A, 4), .chan = 4,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+    { .pin = GPIO_PIN(PORT_A, 5), .chan = 5,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+    { .pin = GPIO_PIN(PORT_A, 6), .chan = 6,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+	{ .pin = GPIO_PIN(PORT_A, 7), .chan = 7,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+	{ .pin = GPIO_UNDEF,          .chan = ADC_VREF_CHANNEL,        /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+	{ .pin = GPIO_UNDEF,          .chan = ADC_TEMPERATURE_CHANNEL, /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
 };
 
 #define ADC_VREF_INDEX          7

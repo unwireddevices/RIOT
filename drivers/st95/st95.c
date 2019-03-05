@@ -29,10 +29,10 @@
 #include "st95_params.h"
 #include "iso14443a.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
-#define ENABLE_DEBUG_ST95 (1)
+#define ENABLE_DEBUG_ST95 (0)
 
 #ifdef __cplusplus
 extern "C" {
@@ -224,11 +224,6 @@ uint8_t _st95_select_field_off(const st95_t * dev)
 uint8_t _st95_spi_send(const st95_t * dev, uint8_t * txbuff, uint8_t length_tx, bool cond)
 {
     uint8_t tx_spi = ST95_CTRL_SPI_SEND;
-    
-        // if(cmd_allow == 1) {
-        // PRINTSTR(">>> SPI TX:");
-        // PRINTBUFF(txbuff, length_tx);
-    // }
 
     spi_acquire(SPI_DEV(dev->params.spi), dev->params.cs_spi, SPI_MODE_0, ST95_SPI_CLK);
 
@@ -264,11 +259,6 @@ uint8_t _st95_spi_send(const st95_t * dev, uint8_t * txbuff, uint8_t length_tx, 
 uint8_t _st95_uart_send(const st95_t * dev, uint8_t * txbuff, uint8_t length_tx, bool cond)
 {
     (void) cond;
-    
-    if(cmd_allow == 1) {
-        PRINTSTR(">>> UART TX:");
-        PRINTBUFF(txbuff, length_tx);
-    }
     
     uart_write(UART_DEV(dev->params.uart), txbuff, length_tx);
         
@@ -337,30 +327,21 @@ static uint8_t _st95_spi_receive(const st95_t * dev, uint8_t * rxbuff, uint16_t 
     spi_release(SPI_DEV(dev->params.spi));   
 
     if(rxbuff[0] == ST95_CMD_ECHO) {
-        if((rxbuff[1] == 0x85) && ((rxbuff[2] == 0x00))) {
+        length_rx = 1;
+        if(st95_state.mode == ST95_LISTEN_MODE) {
             length_rx = 3;
         }
-        else {
-            length_rx = 1;
-        }
+        return ST95_OK;
     }
     else {
         length_rx = rxbuff[1] + 2;
         
-        if((length_rx - 2) != rxbuff[1]) {
-            return ST95_ERROR;
+        if((length_rx - 2) == rxbuff[1]) {
+            return ST95_OK;
         }
     }     
-    
-// if(cmd_allow == 2) {
-        // PRINTSTR("<<< IRQ:");
-        // PRINTBUFF(rxbuff, rxbuff[1] + 2);
-    // }
-    
-    // if(st95_state.mode == ST95_LISTEN_MODE) {
-        // PRINTBUFF(rxbuff, length_rx);
-    // }    
-    return ST95_OK;
+      
+    return ST95_ERROR;
 }
 
 /**
@@ -385,32 +366,26 @@ uint8_t _st95_uart_receive(const st95_t * dev, uint8_t * rxbuff, uint16_t size_r
     
     uint16_t length_rx_tmp = 0;
     
-    if(cmd_allow == 1) {
-        PRINTSTR("<<< UART RX:");
-        PRINTBUFF(rxbuff, rxbuff[1] + 2);
-    }
-    
     if(st95_state.timeout == true) {
         return ST95_NO_DEVICE;
 	}
 
     if(rxbuff[0] == ST95_CMD_ECHO) {
-        if((rxbuff[1] == 0x85) && ((rxbuff[2] == 0x00))) {
+        length_rx_tmp = 1;
+        if(st95_state.mode == ST95_LISTEN_MODE) {
             length_rx_tmp = 3;
         }
-        else {
-            length_rx_tmp = 1;
-        }
+        return ST95_OK;
     }
     else {
         length_rx_tmp = rxbuff[1] + 2;
         
-        if((length_rx_tmp - 2) != rxbuff[1]) {
-            return ST95_ERROR;
+        if((length_rx_tmp - 2) == rxbuff[1]) {
+            return ST95_OK;
         }
     }     
-    
-    return ST95_OK;
+      
+    return ST95_ERROR;
 }
 
 /**
@@ -463,8 +438,6 @@ static void _st95_spi_rx(void* arg)
     
     st95_state.data_rx = true; 
     
-    // if(cmd_allow == 2) puts("SPI IRQ LISTEN");
-    
     if(st95_state.mode == ST95_LISTEN_MODE) {
         if (dev->cb) {
             dev->cb(dev->arg);
@@ -488,18 +461,34 @@ static void _st95_spi_rx(void* arg)
 static void _st95_uart_rx(void *arg, uint8_t data)
 {
     st95_t *dev = arg;
+    
+    if(length_rx > ST95_MAX_BYTE_BUFF) {
+        length_rx = ST95_MAX_BYTE_BUFF;
+        st95_state.data_rx = false;
+        return;
+    }
 
-    if(cmd_allow == 2) puts("UART IRQ LISTEN");
     st95_rxbuf[length_rx++] = data;
     
     if(st95_rxbuf[0] == ST95_CMD_ECHO) {
-        st95_state.data_rx = true;
+        if(st95_state.mode != ST95_LISTEN_MODE) {
+            st95_state.data_rx = true;
+        }
+        else if(length_rx == 3) {
+            st95_state.data_rx = true;
+        }
 		return;
 	}
 	
 	if(length_rx >= 2) {
 		if((length_rx - 2) == st95_rxbuf[1]) {
             st95_state.data_rx = true;
+            
+            if(st95_state.mode == ST95_LISTEN_MODE) {
+                if (dev->cb) {
+                    dev->cb(dev->arg);
+                }
+            }         
             
             if(st95_state.mode == ST95_SLEEP_MODE) {
                 if (dev->cb) {
@@ -557,12 +546,11 @@ int _st95_exit_listen(const st95_t * dev)
 
     if(_st95_receive_pack(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF, true) == ST95_OK) {
         if((st95_rxbuf[0] == ST95_CMD_ECHO) && (st95_rxbuf[1] == 0x85) && (st95_rxbuf[2] == 0x00)) {
-            puts("EXIT LISTEN OK");           
+            // puts("EXIT LISTEN OK");           
             return ST95_OK;
         }
-        puts("EXIT LISTEN ERR");
     }
-    puts("EXIT LISTEN ERR RX");
+
     return ST95_ERROR;
 }
 
@@ -865,6 +853,7 @@ uint8_t _st95_cmd_listen(const st95_t * dev)
             cmd_allow = 2;
             return ST95_OK;    
         }
+                    puts("\n[LISTEN ERROR]");
         return ST95_ERROR;
     }
            
@@ -949,15 +938,13 @@ int st95_is_wake_up(const st95_t * dev)
 int st95_is_field_detect(const st95_t * dev)
 {
     if(st95_state.mode == ST95_LISTEN_MODE) {
-        if(_st95_receive_pack(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF, true) == ST95_OK) {           
+        if(_st95_receive_pack(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF, true) == ST95_OK) {
+            if(length_rx > 2) {
+                // puts("\t***\t***\t***\t***\t>>> [FIELD DETECT ERR]");
+                DEBUG("[st95]: Error RF field detect\n");
+            }
+        
             st95_state.mode = ST95_READY_MODE;
-            // if(_st95_cmd_poll_field(dev) != ST95_OK) {
-                 // puts("\t[NO FIELD 1]");
-                 // if(_st95_cmd_poll_field(dev) != ST95_OK) {
-                    // puts("\t[NO FIELD 2]");
-                    // return ST95_NO_FIELD_DET;
-                // }
-            // }
              // puts("\t\t\t\t>>> [FIELD] <<<");
             return ST95_FIELD_DET;
         }
@@ -1072,15 +1059,45 @@ int _st95_cmd_ac_filter(const st95_t * dev, uint8_t length, uint8_t * atqa, uint
 {    
     st95_txbuf[0] = ST95_CMD_ANTICOL_FILTER;
     st95_txbuf[1] = length + 3;             // Data Length
-    
+      
+        /*ATQA first byte. 
+    Default value:  Single size(4 bytes): 0x04 
+                    Double size(7 bytes): 0x44 
+                    Triple size(10 bytes): 0x84*/
     st95_txbuf[2] = *atqa;                  // ATQA
+        /*ATQA second byte. Default value: 0x00 */
     st95_txbuf[3] = *(atqa + 1);            // ATQA
     
+        /*SAK byte. 
+    Single size(4 bytes):   0x08 
+    Double size(7 bytes):   0x20
+    Triple size(10 bytes):  0x00 */
     st95_txbuf[4] = sak;                    // SAK
-
-    memcpy(st95_txbuf + 5, uid, length);    // UID
+      
+    if(length == ISO14443A_UID_SINGLE) {
+        memcpy(st95_txbuf + 5, uid, length);    // UID
+        _st95_send_pack(dev, st95_txbuf, length + 5, false);
+    }
+    else if(length == ISO14443A_UID_DOUBLE) {
+        st95_txbuf[5] = ST95_14443A_CASCADE_TAG; // CT (Cascade tag)
+        st95_txbuf[1]++;
+        memcpy(st95_txbuf + 6, uid, length);    // UID
+        _st95_send_pack(dev, st95_txbuf, length + 6, false);
+    }
+    else if(length == ISO14443A_UID_TRIPLE) {
+        st95_txbuf[5] = ST95_14443A_CASCADE_TAG; // CT (Cascade tag)
+        st95_txbuf[1]++;
+        memcpy(st95_txbuf + 6, uid, 6);    // UID       
+        st95_txbuf[12] = ST95_14443A_CASCADE_TAG; // CT (Cascade tag)
+        st95_txbuf[1]++;
+        memcpy(st95_txbuf + 13, uid + 6, 4);    // UID 
+        _st95_send_pack(dev, st95_txbuf, length + 7, false);
+    }
+    else {
+        DEBUG("Invalid UID size\n");
+        return ST95_ERROR;
+    }
   
-    _st95_send_pack(dev, st95_txbuf, length + 5, false);
     _st95_wait_ready_data();  
     
     if(_st95_receive_pack(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF, false) == ST95_OK) {
@@ -1177,20 +1194,22 @@ cmd_allow = 0;
         return ST95_ERROR;
     }
 
-    if(iso14443a_get_uid(dev, st95_rxbuf, length_uid, uid, sak) == ST95_OK) {
-     // puts("\t\t\t\t\tFIRST");        
+    if(iso14443a_get_uid(dev, st95_rxbuf, length_uid, uid, sak) == ST95_OK) {      
         return ST95_OK;       
     }
-
-    if(iso14443a_get_uid(dev, st95_rxbuf, length_uid, uid, sak) == ST95_OK) {
-    // puts("\t\t\t\t\tSECOND");        
+    if(iso14443a_get_uid(dev, st95_rxbuf, length_uid, uid, sak) == ST95_OK) {     
         return ST95_OK;       
     }
-
-    if(iso14443a_get_uid(dev, st95_rxbuf, length_uid, uid, sak) == ST95_OK) {
-    // puts("\t\t\t\t\tTHIRD");        
+    if(iso14443a_get_uid(dev, st95_rxbuf, length_uid, uid, sak) == ST95_OK) {     
         return ST95_OK;       
     }
+    if(iso14443a_get_uid(dev, st95_rxbuf, length_uid, uid, sak) == ST95_OK) {       
+        return ST95_OK;       
+    }
+    if(iso14443a_get_uid(dev, st95_rxbuf, length_uid, uid, sak) == ST95_OK) {
+        return ST95_OK;       
+    }
+    
     // puts("\t\t\t\tERROR");
     return ST95_ERROR;   
 }

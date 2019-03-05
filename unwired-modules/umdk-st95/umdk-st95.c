@@ -122,7 +122,7 @@ static void *radio_send(void *arg)
         switch(msg.type) {
             case UMDK_ST95_MSG_EVENT: {
                 if(mode == UMDK_ST95_MODE_SET_UID) {
-                    if(st95_is_field_detect(&dev) != ST95_ERROR) {      
+                    if(st95_is_field_detect(&dev) != ST95_ERROR) {   
                         umdk_st95_set_uid();
                     }
                 }
@@ -151,7 +151,7 @@ static void *radio_send(void *arg)
                 DEBUG("RADIO: ");
                 PRINTBUFF(data.data, data.length);
 
-                // callback(&data);
+                callback(&data);
                 
                 if(mode == UMDK_ST95_MODE_DETECT_TAG) {
                     rtctimers_millis_sleep(UMDK_ST95_DELAY_DETECT_MS);
@@ -192,16 +192,36 @@ static void umdk_st95_set_uid(void)
     uint8_t sak = 0;
     uint8_t uid[10] = { 0 };
     
-    atqa[0] = 0x04; // ATQA
+    /*ATQA first byte. 
+    Default value:  Single size(4 bytes): 0x04 
+                    Double size(7 bytes): 0x44 
+                    Triple size(10 bytes): 0x84*/
+    atqa[0] = 0x84; // ATQA
+    /*ATQA second byte. Default value: 0x00 */
     atqa[1] = 0x00; // ATQA
     
-    sak = 0x08; // SAK
+    /*SAK byte. 
+    Single size(4 bytes):  0x08 
+    Double size(7 bytes):   0x20
+    Triple size(10 bytes):   0x00 */
+    sak = 0x00; // SAK
 
     uid[0] = 0xDE; // UID
     uid[1] = 0xAD; // UID
     uid[2] = 0xAB; // UID
     uid[3] = 0xBA; // UID
-    length = 4;
+    
+    uid[4] = 0x11; // CT    
+    uid[5] = 0xFA; // UID  
+    uid[6] = 0xCE; // UID
+
+    uid[7] = 0x55; // UID
+    uid[8] = 0xBE; // UID
+    uid[9] = 0xEF; // UID
+      
+    // length = 4;
+    // length = 7;
+    length = 10;
 
      if(st95_set_uid(&dev, length, atqa, sak, uid) == ST95_OK) {
 

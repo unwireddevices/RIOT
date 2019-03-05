@@ -24,15 +24,15 @@
 #define ENABLE_DEBUG_ST95 (0)
 
 #if ENABLE_DEBUG_ST95
-    // #define PRINTBUFF _printbuff
-    // static void _printbuff(uint8_t *buff, unsigned len)
-    // {
-        // for(uint32_t i = 0; i < len; i++){
-            // printf("%02X ", buff[i]);
-            // if(i < 2) printf("  ");
-        // }
-        // printf("\n");
-    // }
+    #define PRINTBUFF _printbuff
+    static void _printbuff(uint8_t *buff, unsigned len)
+    {
+        for(uint32_t i = 0; i < len; i++){
+            printf("%02X ", buff[i]);
+            if(i < 2) printf("  ");
+        }
+        printf("\n");
+    }
     
     #define PRINTSTR _printstr
     static void _printstr(char * str)
@@ -40,7 +40,7 @@
         printf("%s ", str);
     }
 #else
-    // #define PRINTBUFF(...)
+    #define PRINTBUFF(...)
     #define PRINTSTR(...)
 #endif
 
@@ -619,7 +619,7 @@ static uint8_t _iso14443a_get_uidsize(uint8_t byte_size)
 static uint8_t _iso14443a_is_uid_complete(uint8_t sak_byte)
 {
 	if ((sak_byte & ISO14443A_MASK_SAK_UID_NOT_COMPLETE) == ISO14443A_SAK_UID_NOT_COMPLETE) {
-		return ST95_ERROR;
+        return ST95_ERROR;
     }
 	else {
 		return ST95_OK;

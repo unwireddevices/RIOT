@@ -22,6 +22,8 @@
 #include "nimble_riot.h"
 
 #include "nimble/nimble_port.h"
+#include "host/ble_hs.h"
+#include "host/util/util.h"
 
 #include "services/gap/ble_svc_gap.h"
 #include "services/gatt/ble_svc_gatt.h"
@@ -41,6 +43,8 @@ static char _stack_controller[NIMBLE_CONTROLLER_STACKSIZE];
 
 #ifdef MODULE_NIMBLE_HOST
 static char _stack_host[NIMBLE_HOST_STACKSIZE];
+
+uint8_t nimble_riot_own_addr_type;
 
 static void *_host_thread(void *arg)
 {

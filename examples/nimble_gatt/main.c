@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "nimble_riot.h"
 #include "net/bluetil/ad.h"
 
 #include "host/ble_hs.h"
@@ -32,7 +33,6 @@
 #include "services/gatt/ble_svc_gatt.h"
 
 static const char *device_name = "NimBLE on RIOT";
-static uint8_t own_addr_type;
 
 static void start_advertise(void);
 
@@ -72,7 +72,7 @@ static void start_advertise(void)
     memset(&advp, 0, sizeof advp);
     advp.conn_mode = BLE_GAP_CONN_MODE_UND;
     advp.disc_mode = BLE_GAP_DISC_MODE_GEN;
-    rc = ble_gap_adv_start(own_addr_type, NULL, BLE_HS_FOREVER,
+    rc = ble_gap_adv_start(nimble_riot_own_addr_type, NULL, BLE_HS_FOREVER,
                            &advp, gap_event_cb, NULL);
     assert(rc == 0);
     (void)rc;
@@ -82,28 +82,25 @@ int main(void)
 {
     puts("NimBLE GATT Server Example");
 
+    int rc = 0;
+
+    /* verify and add our custom services */
+    rc = ble_gatts_count_cfg(gatt_svr_svcs);
+    assert(rc == 0);
+    rc = ble_gatts_add_svcs(gatt_svr_svcs);
+    assert(rc == 0);
+
     /* set the device name */
     ble_svc_gap_device_name_set(device_name);
-
-    /* initialize the GAP and GATT services */
-    ble_svc_gap_init();
-    ble_svc_gatt_init();
-    /* XXX: seems to be needed to apply the added services */
+    /* reload the GATT server to link our added services */
     ble_gatts_start();
 
-    /* make sure synchronization of host and controller is done, this should
-     * always be the case */
-    while (!ble_hs_synced()) {}
-
-    /* configure device address */
-    int rc = ble_hs_util_ensure_addr(0);
-    assert(rc == 0);
-    rc = ble_hs_id_infer_auto(0, &own_addr_type);
-    assert(rc == 0);
-    (void)rc;
-
-    /* generate the advertising data */
-    update_ad();
+    /* configure and set the advertising data */
+    uint8_t buf[BLE_HS_ADV_MAX_SZ];
+    bluetil_ad_t ad;
+    bluetil_ad_init_with_flags(&ad, buf, sizeof(buf), BLUETIL_AD_FLAGS_DEFAULT);
+    bluetil_ad_add_name(&ad, device_name);
+    ble_gap_adv_set_data(ad.buf, ad.pos);
 
     /* start to advertise this node */
     start_advertise();

@@ -34,10 +34,12 @@ extern "C" {
 #define ST95_NO_RESPONSE_TIME_MIN_USEC  250
 
 #define ST95_NUMB_TRY_INIT              5
+#define ST95_NUMB_GET_UID               5
 
 #define ST95_SLEEP_MODE                 0
 #define ST95_READY_MODE                 1
 #define ST95_LISTEN_MODE                2
+#define ST95_NONE_MODE                3
 
 /**
  * @brief   ST95 device communincation states

@@ -38,8 +38,6 @@
 extern "C" {
 #endif
 
-static uint8_t cmd_allow = 0;
-
 static uint8_t (*st95_iface_send)(const st95_t *, uint8_t *, uint8_t, bool);
 static uint8_t (*st95_iface_receive)(const st95_t *, uint8_t *, uint16_t, bool);
 
@@ -285,6 +283,7 @@ uint8_t _st95_uart_send(const st95_t * dev, uint8_t * txbuff, uint8_t length_tx,
  */
 uint8_t _st95_send_pack(const st95_t * dev, uint8_t * txbuff, uint8_t length_tx, bool cond)
 {	
+    length_rx = 0;
 	return ((*st95_iface_send)(dev, txbuff, length_tx, cond));
 }
 
@@ -369,6 +368,13 @@ uint8_t _st95_uart_receive(const st95_t * dev, uint8_t * rxbuff, uint16_t size_r
     if(st95_state.timeout == true) {
         return ST95_NO_DEVICE;
 	}
+    
+    if(st95_state.mode == ST95_LISTEN_MODE) {
+        if(length_rx == 2) {
+            length_rx = 0;
+            return ST95_OK;
+        }
+    }
 
     if(rxbuff[0] == ST95_CMD_ECHO) {
         length_rx_tmp = 1;
@@ -468,7 +474,7 @@ static void _st95_uart_rx(void *arg, uint8_t data)
         return;
     }
 
-    st95_rxbuf[length_rx++] = data;
+    st95_rxbuf[length_rx++] = data;    
     
     if(st95_rxbuf[0] == ST95_CMD_ECHO) {
         if(st95_state.mode != ST95_LISTEN_MODE) {
@@ -479,17 +485,18 @@ static void _st95_uart_rx(void *arg, uint8_t data)
         }
 		return;
 	}
-	
+    
 	if(length_rx >= 2) {
-		if((length_rx - 2) == st95_rxbuf[1]) {
-            st95_state.data_rx = true;
-            
-            if(st95_state.mode == ST95_LISTEN_MODE) {
+        if(st95_state.mode == ST95_LISTEN_MODE) {
                 if (dev->cb) {
                     dev->cb(dev->arg);
                 }
-            }         
-            
+                return;
+        }
+       
+		if((length_rx - 2) == st95_rxbuf[1]) {
+            st95_state.data_rx = true;
+                        
             if(st95_state.mode == ST95_SLEEP_MODE) {
                 if (dev->cb) {
                     dev->cb(dev->arg);
@@ -546,11 +553,9 @@ int _st95_exit_listen(const st95_t * dev)
 
     if(_st95_receive_pack(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF, true) == ST95_OK) {
         if((st95_rxbuf[0] == ST95_CMD_ECHO) && (st95_rxbuf[1] == 0x85) && (st95_rxbuf[2] == 0x00)) {
-            // puts("EXIT LISTEN OK");           
             return ST95_OK;
         }
     }
-
     return ST95_ERROR;
 }
 
@@ -650,24 +655,57 @@ uint8_t _st95_set_timer_window(const st95_t * dev, uint8_t timer_w)
 
 uint8_t _st95_read_modulation_gain(const st95_t * dev, uint8_t * modul, uint8_t * gain)
 {
-    uint8_t data = 0x01;
+    uint8_t data = ST95_WR_PTR_MODUL_GAIN;
     if(_st95_cmd_write_reg(dev, 3, ST95_WR_ARC_ADDR, ST95_WR_FLAG_NOT_INC, &data) == ST95_OK) {
         if(_st95_read_reg(dev, st95_rxbuf) == ST95_OK)
         {
             if(modul != NULL) {
                 *modul = (st95_rxbuf[2] >> 4) & 0x0F;
-                DEBUG("Modulation: 0x%02X\t", *modul);
+                DEBUG("Modulation: 0x%02X\n", *modul);
             }
             if(gain != NULL) {
                 *gain = st95_rxbuf[2] & 0x0F;
-                DEBUG("GAIN: 0x%02X", *gain);
+                DEBUG("Gain: 0x%02X\n", *gain);
             }
-            DEBUG("\n");
             return ST95_OK;
         }
     }
 
     return ST95_ERROR; 
+}
+
+uint8_t _st95_read_modulation_sensitivity(const st95_t * dev, uint8_t * modul, uint8_t * sens)
+{
+    uint8_t data = ST95_WR_PTR_MODUL_SENS;
+    if(_st95_cmd_write_reg(dev, 3, ST95_WR_ARC_ADDR, ST95_WR_FLAG_NOT_INC, &data) == ST95_OK) {
+        if(_st95_read_reg(dev, st95_rxbuf) == ST95_OK)
+        {
+            if(modul != NULL) {
+                *modul = st95_rxbuf[2] & 0x0F;
+                DEBUG("Load modulation: 0x%02X\n", *modul);
+            }
+            if(sens != NULL) {              
+                *sens = (st95_rxbuf[2] >> 4) & 0x0F;
+                DEBUG("Sensitivity: 0x%02X\n", *sens);
+            }
+            return ST95_OK;
+        }
+    }
+
+    return ST95_ERROR; 
+}
+
+uint8_t _st95_modify_modulation_sensitivity(const st95_t * dev, uint8_t modul, uint8_t sens)
+{  
+    uint8_t data[2] = { 0 };
+    data[0] = ST95_WR_PTR_MODUL_SENS;
+    data[1] = (sens << 4) | modul;
+        
+    if(_st95_cmd_write_reg(dev, 4, ST95_WR_ARC_ADDR, ST95_WR_FLAG_INC, data) == ST95_OK) {
+        return ST95_OK;
+    }
+
+    return ST95_ERROR;
 }
 
 /**
@@ -804,7 +842,7 @@ uint8_t _st95_cmd_poll_field(const st95_t * dev)
 {    
     st95_txbuf[0] = ST95_CMD_POLL_FIELD;    // Command
     st95_txbuf[1] = 0x00;                // Data Length
-cmd_allow = 1;
+
     _st95_send_pack(dev, st95_txbuf, 2, false);
     
     _st95_wait_ready_data();  
@@ -843,20 +881,24 @@ uint8_t _st95_cmd_listen(const st95_t * dev)
 {    
     st95_txbuf[0] = ST95_CMD_LISTEN;    // Command
     st95_txbuf[1] = 00;                // Data Length
-
+    
+    st95_state.mode = ST95_NONE_MODE;
+    
     _st95_send_pack(dev, st95_txbuf, 2, false);
     
     _st95_wait_ready_data(); 
     if(_st95_receive_pack(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF, false) == ST95_OK) {
         if((st95_rxbuf[0] == 0x00) && (st95_rxbuf[1] == 0x00)) {
-            gpio_irq_enable(dev->params.irq_out);
-            cmd_allow = 2;
+            length_rx = 0;
+            if (dev->params.iface == ST95_IFACE_SPI) {
+                gpio_irq_enable(dev->params.irq_out);
+            }
+                      
+            st95_state.mode = ST95_LISTEN_MODE;
             return ST95_OK;    
         }
-                    puts("\n[LISTEN ERROR]");
         return ST95_ERROR;
     }
-           
     return ST95_ERROR;
 }
 
@@ -940,12 +982,10 @@ int st95_is_field_detect(const st95_t * dev)
     if(st95_state.mode == ST95_LISTEN_MODE) {
         if(_st95_receive_pack(dev, st95_rxbuf, ST95_MAX_BYTE_BUFF, true) == ST95_OK) {
             if(length_rx > 2) {
-                // puts("\t***\t***\t***\t***\t>>> [FIELD DETECT ERR]");
-                DEBUG("[st95]: Error RF field detect\n");
+                PRINTSTR("[st95]: Error RF field detect\n");
+                PRINTBUFF(st95_rxbuf, length_rx);
             }
-        
             st95_state.mode = ST95_READY_MODE;
-             // puts("\t\t\t\t>>> [FIELD] <<<");
             return ST95_FIELD_DET;
         }
     }
@@ -1175,8 +1215,7 @@ int _st95_cmd_send_receive(const st95_t * dev, uint8_t *data_tx, uint8_t size_tx
  * @return  1:  in case of an error
  */
 int st95_get_uid(const st95_t * dev, uint8_t * length_uid, uint8_t * uid, uint8_t * sak)
-{   
-cmd_allow = 0;    
+{      
     if(st95_state.mode == ST95_LISTEN_MODE) {
         st95_state.mode = ST95_READY_MODE;
         if(_st95_exit_listen(dev) != ST95_OK) {
@@ -1186,32 +1225,25 @@ cmd_allow = 0;
 
     st95_state.mode = ST95_READY_MODE;
     
-    if(_st95_select_iso14443a(dev, NULL, 1) == ST95_ERROR) {
+    if(_st95_select_iso14443a(dev, NULL, 0) == ST95_ERROR) {
         return ST95_ERROR;
     }
-
+    
     if(_st95_modify_modulation_gain(dev, ST95_WR_MODULATION_95, ST95_WR_GAIN_32_DB) == ST95_ERROR) {
         return ST95_ERROR;
     }
 
-    if(iso14443a_get_uid(dev, st95_rxbuf, length_uid, uid, sak) == ST95_OK) {      
-        return ST95_OK;       
-    }
-    if(iso14443a_get_uid(dev, st95_rxbuf, length_uid, uid, sak) == ST95_OK) {     
-        return ST95_OK;       
-    }
-    if(iso14443a_get_uid(dev, st95_rxbuf, length_uid, uid, sak) == ST95_OK) {     
-        return ST95_OK;       
-    }
-    if(iso14443a_get_uid(dev, st95_rxbuf, length_uid, uid, sak) == ST95_OK) {       
-        return ST95_OK;       
-    }
-    if(iso14443a_get_uid(dev, st95_rxbuf, length_uid, uid, sak) == ST95_OK) {
-        return ST95_OK;       
-    }
+    uint8_t cnt_get = 0;
+
+    do {
+
+        if(cnt_get >= ST95_NUMB_GET_UID) {
+            return ST95_ERROR;
+        }
+        cnt_get++;
+    } while(iso14443a_get_uid(dev, st95_rxbuf, length_uid, uid, sak) != ST95_OK);
     
-    // puts("\t\t\t\tERROR");
-    return ST95_ERROR;   
+    return ST95_OK;       
 }
 
 /**
@@ -1227,26 +1259,30 @@ cmd_allow = 0;
  */
 int st95_set_uid(const st95_t * dev, uint8_t length, uint8_t * atqa, uint8_t sak, uint8_t * uid)
 {   
-cmd_allow = 0;
-
-     if(st95_state.mode == ST95_LISTEN_MODE) {
-        st95_state.mode = ST95_READY_MODE;
+     if(st95_state.mode == ST95_LISTEN_MODE) {        
         if(_st95_exit_listen(dev) != ST95_OK) {
             return ST95_ERROR;
         }
-     }     
+        st95_state.mode = ST95_NONE_MODE;
+     }
      
-    if(_st95_select_iso14443a_card(dev) != ST95_OK) {
-        return ST95_ERROR;
+     if(st95_state.mode == ST95_NONE_MODE) {
+
+        if(_st95_select_iso14443a_card(dev) != ST95_OK) {
+            return ST95_ERROR;
+        }
+        
+        if(_st95_cmd_ac_filter(dev, length, atqa, sak, uid) != ST95_OK) {
+            return ST95_ERROR;
+        }
+        
+        if(_st95_modify_modulation_sensitivity(dev, ST95_WR_LOAD_MODUL_F, ST95_WR_SENSITIVITY_100) == ST95_ERROR) {
+            return ST95_ERROR;
+        }
+        st95_state.mode = ST95_READY_MODE;
     }
-    if(_st95_cmd_ac_filter(dev, length, atqa, sak, uid) != ST95_OK) {
-        return ST95_ERROR;
-    }
-    
-    // TODO: WriteReg values
     
     if(_st95_cmd_listen(dev) != ST95_OK) {
-
         return ST95_ERROR;
     }
    
@@ -1422,7 +1458,8 @@ int _st95_init_uart(st95_t * dev, st95_params_t * params)
  */
 int st95_init(st95_t * dev, st95_params_t * params)
 {      
-cmd_allow = 0;
+    st95_state.mode = ST95_NONE_MODE;
+
     if (params->iface == ST95_IFACE_SPI) {
         return _st95_init_spi(dev, params);
     }

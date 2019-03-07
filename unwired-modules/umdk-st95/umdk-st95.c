@@ -193,8 +193,8 @@ static void umdk_st95_set_uid(void)
     uint8_t uid[10] = { 0 };
     
     /*ATQA first byte. 
-    Default value:  Single size(4 bytes): 0x04 
-                    Double size(7 bytes): 0x44 
+    Default value:  Single size(4 bytes):  0x04 
+                    Double size(7 bytes):  0x44 
                     Triple size(10 bytes): 0x84*/
     atqa[0] = 0x84; // ATQA
     /*ATQA second byte. Default value: 0x00 */
@@ -202,8 +202,8 @@ static void umdk_st95_set_uid(void)
     
     /*SAK byte. 
     Single size(4 bytes):  0x08 
-    Double size(7 bytes):   0x20
-    Triple size(10 bytes):   0x00 */
+    Double size(7 bytes):  0x20
+    Triple size(10 bytes): 0x00 */
     sak = 0x00; // SAK
 
     uid[0] = 0xDE; // UID
@@ -219,13 +219,11 @@ static void umdk_st95_set_uid(void)
     uid[8] = 0xBE; // UID
     uid[9] = 0xEF; // UID
       
-    // length = 4;
-    // length = 7;
-    length = 10;
+    length = 10; // 4, 7, 10
 
      if(st95_set_uid(&dev, length, atqa, sak, uid) == ST95_OK) {
 
-        }
+    }
 }
 
 static void wake_up_cb(void * arg)
@@ -250,7 +248,7 @@ void umdk_st95_init(uwnds_cb_t *event_callback)
 
     radio_pid = thread_create(stack, UMDK_ST95_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, radio_send, NULL, "st95 thread");
     
-    st95_params.iface = ST95_IFACE_SPI;
+    st95_params.iface = ST95_IFACE_UART;
     mode = UMDK_ST95_MODE_SET_UID;
 
     if(st95_init(&dev, &st95_params) != ST95_OK){

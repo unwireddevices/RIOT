@@ -38,7 +38,7 @@ extern "C" {
 /**
  * @brief   Default transmission power used
  */
-#define NRFBLE_TXPOWER_DEFAULT      (0)                 /* 0dBm */
+#define NRFBLE_TXPOWER_DEFAULT      (4)                 /* 4dBm */
 
 /**
  * @brief   Setup the device driver's data structures

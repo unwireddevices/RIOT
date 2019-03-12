@@ -61,7 +61,9 @@ typedef struct __attribute__((packed)) {
 static const uint8_t _pa[PA_LEN] = { 0x02, 0x01, 0x04, 0x03, 0x03, 0xaa, 0xfe };
 static const uint8_t _pb[PB_LEN] = { 0x16, 0xaa, 0xfe };
 
-static void _init_pre(pre_t *data, uint8_t type, uint8_t len)
+static void _init_pre ( pre_t *data, 
+                        uint8_t type, 
+                        uint8_t len)
 {
     skald_generate_random_addr(data->txadd);
     memcpy(data->pa, _pa, PA_LEN);
@@ -71,7 +73,8 @@ static void _init_pre(pre_t *data, uint8_t type, uint8_t len)
 }
 
 void skald_eddystone_uid_adv(skald_ctx_t *ctx,
-                             const skald_eddystone_uid_t *uid, uint8_t tx_pwr)
+                             const skald_eddystone_uid_t *uid, 
+                             uint8_t tx_pwr)
 {
     assert(ctx && uid);
 
@@ -89,7 +92,9 @@ void skald_eddystone_uid_adv(skald_ctx_t *ctx,
 }
 
 void skald_eddystone_url_adv(skald_ctx_t *ctx,
-                             uint8_t scheme, const char *url, uint8_t tx_pwr)
+                             uint8_t scheme, 
+                             const char *url, 
+                             uint8_t tx_pwr)
 {
     assert(url && ctx);
     size_t len = strlen(url);

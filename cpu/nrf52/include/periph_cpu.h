@@ -68,6 +68,30 @@ enum {
 };
 
 /**
+ * @name    The PWM unit on the nRF52 supports 4 channels per device
+ */
+#define PWM_CHANNELS        (4U)
+
+/**
+ * @brief   PWM channel
+ * @{
+ */
+typedef struct {
+    uint32_t pin;       /* */
+} pwm_chan_t;
+/** @} */
+
+/**
+ * @brief   PWM configuration
+ * @{
+ */
+typedef struct {
+    NRF_PWM_Type *dev;                  /* */
+    pwm_chan_t channel[PWM_CHANNELS];   /* */
+} pwm_conf_t;
+/** @} */
+
+/**
  * @brief   Override ADC resolution values
  * @{
  */
@@ -98,6 +122,7 @@ typedef enum {
 
 /**
  * @brief   I2C (TWI) configuration options
+ * @{
  */
 typedef struct {
     NRF_TWIM_Type *dev;         /**< TWIM hardware device */
@@ -114,48 +139,6 @@ typedef struct {
 #define PERIPH_I2C_NEED_READ_REG
 #define PERIPH_I2C_NEED_WRITE_REG
 /** @} */
-
-/**
- * @name    The PWM unit on the nRF52 supports 4 channels per device
- */
-#define PWM_CHANNELS        (4U)
-
-/**
- * @name    Generate PWM mode values
- *
- * To encode the PWM mode, we use two bit:
- * - bit  0: select up or up-and-down counting
- * - bit 15: select polarity
- */
-#define PWM_MODE(ud, pol)   (ud | (pol << 15))
-
-/**
- * @brief   Override the PWM mode definitions
- * @{
- */
-#define HAVE_PWM_MODE_T
-typedef enum {
-    PWM_LEFT       = PWM_MODE(0, 1),    /**< left aligned PWM */
-    PWM_RIGHT      = PWM_MODE(0, 0),    /**< right aligned PWM */
-    PWM_CENTER     = PWM_MODE(1, 1),    /**< not supported */
-    PWM_CENTER_INV = PWM_MODE(1, 0)     /**< not supported */
-} pwm_mode_t;
-/** @} */
-
-/**
- * @brief   PWM configuration options
- *
- * Each device supports up to 4 channels. If you want to use less than 4
- * channels, just set the unused pins to GPIO_UNDEF.
- *
- * @note    define unused pins only from right to left, so the defined channels
- *          always start with channel 0 to x and the undefined ones are from x+1
- *          to PWM_CHANNELS.
- */
-typedef struct {
-    NRF_PWM_Type *dev;                  /**< PWM device descriptor */
-    uint32_t pin[PWM_CHANNELS];         /**< PWM out pins */
-} pwm_conf_t;
 
 #ifdef CPU_MODEL_NRF52840XXAA
 /**

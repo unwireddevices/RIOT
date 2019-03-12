@@ -59,6 +59,7 @@ typedef enum {
      * IEEE 802.15.4 | 2      | device short address
      * Ethernet      | 6      | device MAC address
      * nrfmin        | 2      | device short address
+     * nrfmax        | 8      | device long address (EUI-64), @ref eui64_t
      * CC110x        | 1      | device address
      */
     NETOPT_ADDRESS,
@@ -70,6 +71,7 @@ typedef enum {
      * ------------- | -------- | -----
      * IEEE 802.15.4 | 8        | device long address (EUI-64), @ref eui64_t
      * nrfmin        | 8        | device long address (based on short address)
+     * nrfmax        | 8        | device long address (EUI-64), @ref eui64_t
      * BLE           | 8        | device long address (EUI-64), @ref eui64_t
      */
     NETOPT_ADDRESS_LONG,

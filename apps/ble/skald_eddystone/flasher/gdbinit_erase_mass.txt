@@ -1,0 +1,7 @@
+target extended-remote \\.\COM12
+mon conn enable
+mon swdp_scan
+attach 1
+mon erase_mass
+load
+quit

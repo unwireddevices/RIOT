@@ -113,6 +113,15 @@ int gnrc_netif_eui64_from_addr(const gnrc_netif_t *netif,
                     return -EINVAL;
                 }
 #endif  /* defined(MODULE_CC110X) || defined(MODULE_NRFMIN) */
+#if defined(MODULE_NRFMAX)
+            case NETDEV_TYPE_NRFMAX:
+                if (addr_len == sizeof(eui64_t)) {
+                    memcpy(eui64, netif->l2addr, sizeof(eui64_t));
+                    return sizeof(eui64_t);
+                } else {
+                    return -EINVAL;
+                }
+#endif /* defined(MODULE_NRFMAX) */
             default:
                 (void)addr;
                 (void)addr_len;
@@ -268,7 +277,13 @@ int gnrc_netif_ipv6_iid_to_addr(const gnrc_netif_t *netif, const eui64_t *iid,
             addr[0] = iid->uint8[6];
             addr[1] = iid->uint8[7];
             return sizeof(uint16_t);
-#endif  /* MODULE_NETDEV_IEEE802154 */
+#endif  /* MODULE_NRFMIN */
+#ifdef MODULE_NRFMAX
+        case NETDEV_TYPE_NRFMAX:
+            memcpy(addr, iid, sizeof(eui64_t));
+            addr[0] ^= 0x02;
+            return sizeof(eui64_t);
+#endif  /* MODULE_NRFMAX */
 #ifdef MODULE_CC110X
         case NETDEV_TYPE_CC110X:
             addr[0] = iid->uint8[7];

@@ -48,15 +48,15 @@ static const pwm_conf_t pwm_config[] =
 {
     {
         .dev     = NRF_PWM0,
-        .channel = { { .pin = GPIO_UNDEF },
-                     { .pin = GPIO_UNDEF },
-                     { .pin = GPIO_UNDEF },
-                     { .pin = GPIO_UNDEF } }
+        .channel = { { .pin = GPIO_PIN(0, 2) },     /* DIO5 */  
+                     { .pin = GPIO_PIN(0, 12) },    /* DIO6 */  
+                     { .pin = GPIO_PIN(0, 13) },    /* DIO7 */  
+                     { .pin = GPIO_PIN(0, 4) } }    /* DIO24 */  
     },
     {
         .dev      = NRF_PWM1,
-        .channel = { { .pin = GPIO_UNDEF },
-                     { .pin = GPIO_UNDEF },
+        .channel = { { .pin = GPIO_PIN(0, 5) },     /* DIO25 */  
+                     { .pin = GPIO_PIN(0, 29) },    /* DIO26 */  
                      { .pin = GPIO_UNDEF },
                      { .pin = GPIO_UNDEF } }
     },
@@ -69,7 +69,7 @@ static const pwm_conf_t pwm_config[] =
     }
 };
 
-#define PWM_CHAN        4
+#define PWM_CHAN        (4)
 #define PWM_NUMOF       (sizeof(pwm_config) / sizeof(pwm_config[0]))
 /** @} */
 
@@ -86,7 +86,7 @@ static const timer_conf_t timer_config[] = {
     }
 };
 
-#define TIMER_0_ISR         isr_timer0
+#define TIMER_0_ISR         (isr_timer0)
 
 #define TIMER_NUMOF         (sizeof(timer_config) / sizeof(timer_config[0]))
 /** @} */
@@ -96,8 +96,8 @@ static const timer_conf_t timer_config[] = {
  * @{
  */
 #define RTT_NUMOF           (1U)
-#define RTT_DEV             (1)             /* NRF_RTC1 */
-#define RTT_MAX_VALUE       (0x00ffffff)
+#define RTT_DEV             (1)                 /* NRF_RTC1 */
+#define RTT_MAX_VALUE       (0x00ffffff)        /* 24 bit */  
 #define RTT_FREQUENCY       (1024)
 /** @} */
 
@@ -106,8 +106,12 @@ static const timer_conf_t timer_config[] = {
  * @{
  */
 #define UART_NUMOF          (1U)
-#define UART_PIN_RX         GPIO_PIN(0,13)
-#define UART_PIN_TX         GPIO_PIN(0,18)
+#define UART_PIN_RX         GPIO_PIN(0, 6)      /* DIO3 */  
+#define UART_PIN_TX         GPIO_PIN(0, 7)      /* DIO2 */  
+
+/* Alt UART */
+// #define UART_PIN_RX         GPIO_PIN(0,5)    /* DIO25 */  
+// #define UART_PIN_TX         GPIO_PIN(0,29)   /* DIO26 */  
 /** @} */
 
 /**
@@ -117,9 +121,14 @@ static const timer_conf_t timer_config[] = {
 static const spi_conf_t spi_config[] = {
     {
         .dev  = NRF_SPI0,
-        .sclk = 15,
-        .mosi = 13,
-        .miso = 14
+        .sclk = GPIO_PIN(0, 2),     /* DIO5 */  
+        .mosi = GPIO_PIN(0, 19),    /* DIO29 */  
+        .miso = GPIO_PIN(0, 30)     /* DIO27 */  
+
+        /* Alt SPI */
+        // .sclk = GPIO_PIN(0,),    /* DIO */  
+        // .mosi = GPIO_PIN(0,),    /* DIO */  
+        // .miso = GPIO_PIN(0,)     /* DIO */  
     }
 };
 
@@ -133,8 +142,13 @@ static const spi_conf_t spi_config[] = {
 static const i2c_conf_t i2c_config[] = {
     {
         .dev = NRF_TWIM1,
-        .scl = 28,
-        .sda = 29
+        .scl = GPIO_PIN(0, 20),     /* DIO30 */     
+        .sda = GPIO_PIN(0, 19)      /* DIO29 */ 
+
+        /* Alt I2C */
+        // .dev = NRF_TWIM1,
+        // .scl = GPIO_PIN(0, 13),  /* DIO7 */     
+        // .sda = GPIO_PIN(0, 12)   /* DIO6 */ 
     }
 };
 

@@ -11,9 +11,9 @@
  * @{
  *
  * @file
- * @brief       Peripheral configuration for the nRF52 DK
+ * @brief       Peripheral configuration for unwd-nrf
  *
- * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
+ * @author      Manchenko Oleg <man4enkoos@gmail.com>
  *
  */
 

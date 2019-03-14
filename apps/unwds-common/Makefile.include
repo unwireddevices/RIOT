@@ -127,6 +127,11 @@ create_module_list:
 	echo -e "\n#endif" >> $(UMDK_MODULES_LIST); \
 	echo " done."
 
+####################### RIOTboot ########################
+FEATURES_REQUIRED += riotboot
+APP_VER=$(shell date +'%Y%m%d%H%M%S')
+$(info $$APP_VER is [${APP_VER}])
+
 ################ Other modules to include ################
 USEMODULE += shell
 USEMODULE += shell_commands

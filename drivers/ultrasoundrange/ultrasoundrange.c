@@ -377,19 +377,13 @@ int ultrasoundrange_measure(ultrasoundrange_t *dev)
         }
     }
     
-    /*
-    for (i = start; i < AMPL_BUF_SIZE; i++) {
-        if (ampl_buf[i] < USOUND_NOISE_THRESHOLD) {
+    for (i = start; i < AMPL_BUF_SIZE - 1; i++) {
+        if (ampl_buf[i] < ampl_buf[i+1]) {
             start = i;
             break;
         }
     }
-    
-    if (i == (AMPL_BUF_SIZE - 1)) {
-        DEBUG("Signal too noisy\n");
-        return -USOUND_NOISY;
-    }
-    */
+
     int max = USOUND_SIGNAL_THRESHOLD;
     int maxindex = 0;
     for (i = start; i < AMPL_BUF_SIZE; i++) {

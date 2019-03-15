@@ -10,6 +10,7 @@ FEATURES_PROVIDED += periph_pwm
 # Various other features (if any)
 FEATURES_PROVIDED += radio_ble
 FEATURES_PROVIDED += radio_nrfble
+FEATURES_PROVIDED += periph_nfc
 
 # The board MPU family (used for grouping by the CI system)
 FEATURES_MCU_GROUP = cortex_m4_3

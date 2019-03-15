@@ -32,17 +32,14 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "board.h" 
+#include "board.h"
+#include "periph/nfc.h"
 
 #define ENABLE_DEBUG        (0)
 #include "debug.h"
 
-#include "nfc.h"
-
-
 void nfc_init(void)
 {
-    puts("NFC init");
-    
-    
+    // puts("NFC init...");
+
 }

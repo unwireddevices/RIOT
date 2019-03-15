@@ -73,14 +73,6 @@ static rtctimers_millis_t timer_24hrs;
 
 static bool is_polled = false;
 
-#define UMDK_USOUND_TRANSMIT_PULSES     10
-#define UMDK_USOUND_SILENCING_PULSES    5
-#define UMDK_USOUND_PERIOD_US           790
-#define UMDK_USOUND_SILENCING_PERIOD_US 800
-#define UMDK_USOUND_IDLE_PERIOD_US      315
-#define UMDK_USOUND_DUTY                350
-#define UMDK_USOUND_DUTY2               300
-
 static struct {
     uint8_t is_valid;
     uint8_t publish_period_min;
@@ -109,19 +101,16 @@ static int prepare_result(module_data_t *buf) {
     dev.pwm_channel = 3;
     dev.adc = 3;
     dev.pulses = 5;
+    dev.frequency = 40000;
+    dev.temperature = ULTRASOUNDRANGE_TEMPERATURE_NONE;
     dev.signal_pin = GPIO_PIN(PORT_A, 1);
     dev.suppress_pin = GPIO_PIN(PORT_A, 2);
     
-    ultrasoundrange_measure(&dev);
-    
-    rtctimers_millis_sleep(1000);
+    ultrasoundrange_init(&dev);
+    //ultrasoundrange_calibrate(&dev);
+    int range = ultrasoundrange_measure(&dev);
     
     gpio_set(GPIO_PIN(PORT_B, 1));
-    
-    puts("MEASUREMENT DONE");
-#if 0
-    int range;
-    range = measure.range;
     
     printf("[umdk-" _UMDK_NAME_ "] Echo distance %d mm\n", range);
 
@@ -133,8 +122,6 @@ static int prepare_result(module_data_t *buf) {
     }
     
     return range;
-#endif
-    return 0;
 }
 
 static void *timer_thread(void *arg) {

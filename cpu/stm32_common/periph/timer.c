@@ -23,6 +23,9 @@
 #include "cpu.h"
 #include "periph/timer.h"
 
+#define ENABLE_DEBUG    (0)
+#include "debug.h"
+
 /**
  * @brief   Interrupt context for each configured timer
  */
@@ -79,7 +82,7 @@ int timer_init_periodic(tim_t tim, uint32_t period, timer_cb_t cb, void *arg, bo
     }
     
     uint32_t freq_uhz = periph_timer_clk(timer_config[tim].bus) / 1000000;
-    uint32_t prescaler = 1 + ((10 * freq_uhz * period) + 5) / (10 * timer_config[tim].max);
+    uint32_t prescaler = ((10 * freq_uhz * period) + 5) / (10 * timer_config[tim].max);
     
     if (prescaler > timer_config[tim].max) {
         return -1;
@@ -99,6 +102,9 @@ int timer_init_periodic(tim_t tim, uint32_t period, timer_cb_t cb, void *arg, bo
         /* enable the timer's update interrupt */
         NVIC_EnableIRQ(timer_config[tim].irqn);
         dev(tim)->DIER |= TIM_DIER_UIE;
+    } else {
+        /* disable update interrupt */
+        dev(tim)->DIER &= ~TIM_DIER_UIE;
     }
     
     /* configure the timer as upcounter in continuous mode */
@@ -109,7 +115,9 @@ int timer_init_periodic(tim_t tim, uint32_t period, timer_cb_t cb, void *arg, bo
     dev(tim)->PSC = prescaler;
     
     /* set reload value */
-    dev(tim)->ARR = ((10 * period * freq_uhz) + 5 ) / (10 * prescaler);
+    dev(tim)->ARR = ((10 * period * freq_uhz) + 5 ) / (20 * (prescaler + 1)) - 1;
+    
+    DEBUG("Freq: %lu, PSC: %d, ARR: %lu\n", periph_timer_clk(timer_config[tim].bus), dev(tim)->PSC, dev(tim)->ARR);
 
     /* generate an update event to apply our configuration */
     dev(tim)->EGR = TIM_EGR_UG;
@@ -118,9 +126,6 @@ int timer_init_periodic(tim_t tim, uint32_t period, timer_cb_t cb, void *arg, bo
     if (signal) {
         dev(tim)->CR2 |= TIM_CR2_MMS_1;
     }
-    
-    /* reset the counter and start the timer */
-    timer_start(tim);
     
     return 0;
 }
@@ -196,6 +201,7 @@ void timer_start(tim_t tim)
 
 void timer_stop(tim_t tim)
 {
+    dev(tim)->DIER &= ~TIM_DIER_UIE;
     dev(tim)->CR1 &= ~(TIM_CR1_CEN);
 }
 

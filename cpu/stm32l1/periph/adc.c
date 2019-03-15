@@ -57,6 +57,22 @@ static mutex_t lock = MUTEX_INIT;
 
 static bool hsi_enabled = true;
 
+static inline void start(void) {
+    /* enable the ADC module */
+    ADC1->CR2 |= ADC_CR2_ADON;
+
+    /* Wait for ADC to become ready */
+	while (!(ADC1->SR & ADC_SR_ADONS)) {};
+}
+
+static inline void stop(void) {
+    /* enable the ADC module */
+    ADC1->CR2 &= ~ADC_CR2_ADON;
+
+    /* Wait for ADC to become ready */
+	while (ADC1->SR & ADC_SR_ADONS) {};
+}
+
 static inline void prep(void)
 {
     mutex_lock(&lock);
@@ -74,6 +90,8 @@ static inline void prep(void)
 
 static inline void done(void)
 {   
+    stop();
+
     periph_clk_dis(APB2, RCC_APB2ENR_ADC1EN);
     
     if (!hsi_enabled) {
@@ -123,37 +141,28 @@ int adc_init(adc_t line)
 
     /* Set 1 us sample time */
     /* Min 4 us needed for temperature sensor (ADC_IN16) measurements */
-    /* Total conversion time is Tsample + 12/Fadc, i.e. 1.75 us with 16 MHz and 16 cycles sampling */
-    switch (ADC->CCR & ADC_CCR_ADCPRE) {
-        case ADC_CLOCK_LOW:
-            /* 4 MHz ADC clock -> 4 cycles */
-            adc_set_sample_time(ADC_SAMPLE_TIME_4C);
-            
-            /* 24 cycles for ADC_IN16 */
-            ADC1->SMPR2 &= ~(0x7 << 18);
-            ADC1->SMPR2 |=  (0x3 << 18);
-            break;
-        case ADC_CLOCK_MEDIUM:
-            /* 8 MHz ADC clock -> 9 cycles */
-            adc_set_sample_time(ADC_SAMPLE_TIME_9C);
-            
-            /* 48 cycles for ADC_IN16 */
-            ADC1->SMPR2 &= ~(0x7 << 18);
-            ADC1->SMPR2 |=  (0x4 << 18);
-            break;
-        default:
-            /* 16 MHz ADC clock -> 16 cycles */
-            adc_set_sample_time(ADC_SAMPLE_TIME_16C);
-            
-            /* 96 cycles for ADC_IN16 */
-            ADC1->SMPR2 &= ~(0x7 << 18);
-            ADC1->SMPR2 |=  (0x5 << 18);
+    /* Total conversion time is Tsample + 12/Fadc, i.e. 1.75 us with 16 MHz and 9 cycles sampling */
+    if (adc_config[line].pin != GPIO_UNDEF) {
+        switch (ADC->CCR & ADC_CCR_ADCPRE) {
+            case ADC_CLOCK_LOW:
+                /* 4 MHz ADC clock -> 4 cycles */
+                adc_set_sample_time(ADC_SAMPLE_TIME_4C);
+                break;
+            case ADC_CLOCK_MEDIUM:
+                /* 8 MHz ADC clock -> 4 cycles */
+                adc_set_sample_time(ADC_SAMPLE_TIME_9C);
+                break;
+            default:
+                /* 16 MHz ADC clock -> 16 cycles */
+                adc_set_sample_time(ADC_SAMPLE_TIME_16C);
+        }
+    } else {
+        /* 96 cycles for 4 us @ 16 MHz minimum sampling time for internal channels */
+        adc_set_sample_time(ADC_SAMPLE_TIME_96C);
     }
-
-    /* enable the ADC module */
-    ADC1->CR2 = ADC_CR2_ADON;
-    /* turn off during idle phase*/
-    ADC1->CR1 = ADC_CR1_PDI;
+    
+    /* don't turn off during idle phase*/
+    ADC1->CR1 &= ~ADC_CR1_PDI;
     
     /* check if this channel is an internal ADC channel, if so
      * enable the internal temperature and Vref */
@@ -161,9 +170,6 @@ int adc_init(adc_t line)
         ADC->CCR |= ADC_CCR_TSVREFE;
         while ((PWR->CSR & PWR_CSR_VREFINTRDYF) == 0);
     }
-    
-    /* Wait for ADC to become ready */
-	while ((ADC1->SR & ADC_SR_ADONS) == 0) {};
 
     /* free the device again */
     done();
@@ -188,7 +194,7 @@ int adc_sample(adc_t line,  adc_res_t res)
 
     /* lock and power on the ADC device  */
     prep();
-    
+
     /* set resolution, conversion channel and single read */
     ADC1->CR1 |= res & ADC_CR1_RES;
     ADC1->SQR1 &= ~ADC_SQR1_L;
@@ -196,6 +202,9 @@ int adc_sample(adc_t line,  adc_res_t res)
 
     /* wait for regular channel to be ready*/
     while (ADC1->SR & ADC_SR_RCNR) {}
+    
+    start();
+
     /* start conversion and wait for results */
     ADC1->CR2 |= ADC_CR2_SWSTART;
     while (!(ADC1->SR & ADC_SR_EOC)) {}
@@ -310,7 +319,7 @@ int adc_sampling_start(adc_t line, adc_res_t res, uint16_t *buf, uint16_t wsize,
 
     /* lock and power on the ADC device  */
     prep();
-    
+
     /* reset DMA bit */
     ADC1->CR2 &= ~ADC_CR2_DMA;
     
@@ -372,6 +381,8 @@ int adc_sampling_start(adc_t line, adc_res_t res, uint16_t *buf, uint16_t wsize,
     
     /* Enable DMA channel */
     DMA1_Channel1->CCR |= DMA_CCR1_EN;
+
+    start();
     
     /* block STOP mode */
     pm_block(PM_SLEEP);
@@ -410,10 +421,10 @@ void isr_dma1_ch1(void) {
         /* transfer completed */
         DMA1->IFCR |= DMA_IFCR_CTCIF1;
         
-        adc_dma_callback(ADC_DMA_CALLBACK_COMPLETED);
-        
         if (!(ADC1->CR2 & ADC_CR2_DDS)) {
             adc_sampling_stop();
         }
+        
+        adc_dma_callback(ADC_DMA_CALLBACK_COMPLETED);
     }
 }

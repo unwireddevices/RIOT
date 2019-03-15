@@ -237,8 +237,9 @@ void pwm_set(pwm_t pwm,
  *
  * @param[in] dev           device to start
  */
-void pwm_start(pwm_t pwm)
+void pwm_start(pwm_t pwm, uint8_t channel)
 {
+    (void) channel;
     assert(pwm < PWM_NUMOF);
     dev(pwm)->TASKS_SEQSTART[0] = 1;
 }
@@ -248,8 +249,9 @@ void pwm_start(pwm_t pwm)
  *
  * @param[in] dev           device to stop
  */
-void pwm_stop(pwm_t pwm)
+void pwm_stop(pwm_t pwm, uint8_t channel)
 {
+    (void) channel;
     assert(pwm < PWM_NUMOF);
     dev(pwm)->TASKS_STOP = 1;
 }

@@ -272,8 +272,15 @@ void auto_init(void)
 #endif
 
 #ifdef MODULE_NRFMIN
+	DEBUG("Auto init NRFMIN module.\n");
     extern void gnrc_nrfmin_init(void);
     gnrc_nrfmin_init();
+#endif
+
+#ifdef MODULE_NRFMAX
+	DEBUG("Auto init NRFMAX module.\n");
+    extern void gnrc_nrfmax_init(void);
+    gnrc_nrfmax_init();
 #endif
 
 #ifdef MODULE_W5100

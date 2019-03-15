@@ -63,7 +63,6 @@ int lis3mdl_init(lis3mdl_t *dev, const lis3mdl_params_t *params)
     dev->params = *params;
 
     uint8_t tmp = 0x00;
-    int ret = 0;
 
     i2c_acquire(DEV_I2C);
     i2c_init(DEV_I2C);

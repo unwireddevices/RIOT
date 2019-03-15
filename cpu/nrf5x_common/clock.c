@@ -14,13 +14,14 @@
  * @brief       Clock initialization code
  *
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
+ * @author      Manchenko Oleg <man4enkoos@gmail.com>
  * @}
  */
 
 #include "cpu.h"
 #include "periph_conf.h"
 
-/* make sure both clocks are configured */
+/* Make sure both clocks are configured */
 #ifndef CLOCK_HFCLK
 #error "Clock init: CLOCK_HFCLK is not defined by your board!"
 #endif
@@ -30,26 +31,26 @@
 
 void clock_init_hf(void)
 {
-    /* for the nRF51 we can chose the XTAL frequency */
+    /* For the nRF51 we can chose the XTAL frequency */
 #ifdef CPU_FAM_NRF51
 #if (CLOCK_HFCLK == 32)
     NRF_CLOCK->XTALFREQ = CLOCK_XTALFREQ_XTALFREQ_32MHz;
 #elif (CLOCK_HFCLK == 16)
     NRF_CLOCK->XTALFREQ = CLOCK_XTALFREQ_XTALFREQ_16MHz;
-#endif
-#endif
+#endif /* CLOCK_HFCLK */
+#endif /* CPU_FAM_NRF51 */
 
 #if CLOCK_HFCLK
-    /* start the HF clock */
+    /* Start the HF clock */
     NRF_CLOCK->EVENTS_HFCLKSTARTED = 0;
     NRF_CLOCK->TASKS_HFCLKSTART = 1;
     while (NRF_CLOCK->EVENTS_HFCLKSTARTED == 0) {}
-#endif
+#endif /* CLOCK_HFCLK */
 }
 
 void clock_start_lf(void)
 {
-    /* abort if LF clock is already running */
+    /* Abort if LF clock is already running */
     if (NRF_CLOCK->LFCLKSTAT & CLOCK_LFCLKSTAT_STATE_Msk) {
         return;
     }
@@ -63,12 +64,12 @@ void clock_start_lf(void)
 #else
 #error "LFCLK init: CLOCK_LFCLK has invalid value"
 #endif
-    /* enable LF clock */
+    /* Enable LF clock */
     NRF_CLOCK->EVENTS_LFCLKSTARTED = 0;
     NRF_CLOCK->TASKS_LFCLKSTART = 1;
     while (NRF_CLOCK->EVENTS_LFCLKSTARTED == 0) {}
 
-    /* calibrate the RC LF clock if applicable */
+    /* Calibrate the RC LF clock if applicable */
 #if (CLOCK_HFCLK && (CLOCK_LFCLK == 0))
     NRF_CLOCK->EVENTS_DONE = 0;
     NRF_CLOCK->TASKS_CAL = 1;
@@ -80,4 +81,10 @@ void clock_stop_lf(void)
 {
     NRF_CLOCK->TASKS_LFCLKSTOP = 1;
     while (NRF_CLOCK->LFCLKSTAT & CLOCK_LFCLKSTAT_STATE_Msk) {}
+}
+
+void clock_stop_hf(void)
+{
+    NRF_CLOCK->TASKS_HFCLKSTOP = 1;
+    // while (NRF_CLOCK->HFCLKSTAT & CLOCK_HFCLKSTAT_STATE_Msk) {}
 }

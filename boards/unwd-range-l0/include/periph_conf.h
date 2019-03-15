@@ -227,22 +227,22 @@ static const i2c_conf_t i2c_config[] = {
  * [ pin, channel ]
  * @{
  */
-#define ADC_CONFIG {            \
-    { GPIO_PIN(PORT_A, 1), 1 },\
-    { GPIO_PIN(PORT_A, 2), 2 },\
-    { GPIO_PIN(PORT_A, 3), 3 },\
-    { GPIO_PIN(PORT_A, 4), 4 },\
-    { GPIO_PIN(PORT_A, 5), 5 },\
-    { GPIO_PIN(PORT_A, 6), 6 }, \
-	{ GPIO_PIN(PORT_A, 7), 7 }, \
-	{ GPIO_UNDEF, ADC_VREF_CHANNEL}, \
-	{ GPIO_UNDEF, ADC_TEMPERATURE_CHANNEL}, \
-}
+static const adc_conf_t adc_config[] = {
+    { .pin = GPIO_PIN(PORT_A, 1), .chan = 1,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+    { .pin = GPIO_PIN(PORT_A, 2), .chan = 2,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+    { .pin = GPIO_PIN(PORT_A, 3), .chan = 3,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+    { .pin = GPIO_PIN(PORT_A, 4), .chan = 4,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+    { .pin = GPIO_PIN(PORT_A, 5), .chan = 5,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+    { .pin = GPIO_PIN(PORT_A, 6), .chan = 6,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+	{ .pin = GPIO_PIN(PORT_A, 7), .chan = 7,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+	{ .pin = GPIO_UNDEF,          .chan = ADC_VREF_CHANNEL,        /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+	{ .pin = GPIO_UNDEF,          .chan = ADC_TEMPERATURE_CHANNEL, /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+};
 
-#define ADC_VREF_INDEX 7
-#define ADC_TEMPERATURE_INDEX 8
+#define ADC_VREF_INDEX          7
+#define ADC_TEMPERATURE_INDEX   8
 
-#define ADC_NUMOF           (9)
+#define ADC_NUMOF           (sizeof(adc_config) / sizeof(adc_config[0]))
 /** @} */
 #ifdef __cplusplus
 }

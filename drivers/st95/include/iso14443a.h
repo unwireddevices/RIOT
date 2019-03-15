@@ -121,6 +121,9 @@ extern "C" {
 #define ST95_14443A_CARD_CLKREC             1
 #define ST95_14443A_CARD_HFO                0
 
+#define ST95_14443A_CASCADE_TAG                0x88
+
+
 /**
  * @brief   ISO14443A card parameters
  */

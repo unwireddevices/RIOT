@@ -45,7 +45,7 @@ static gnrc_netif_t _netifs[GNRC_NETIF_NUMOF];
 static void _update_l2addr_from_dev(gnrc_netif_t *netif);
 static void _configure_netdev(netdev_t *dev);
 static void *_gnrc_netif_thread(void *args);
-static void _event_cb(netdev_t *dev, netdev_event_t event);
+static void _event_cb(netdev_t *dev, netdev_event_t event, void *arg);
 
 gnrc_netif_t *gnrc_netif_create(char *stack, int stacksize, char priority,
                                 const char *name, netdev_t *netdev,
@@ -1273,8 +1273,10 @@ static void _pass_on_packet(gnrc_pktsnip_t *pkt)
     }
 }
 
-static void _event_cb(netdev_t *dev, netdev_event_t event)
+static void _event_cb(netdev_t *dev, netdev_event_t event, void *arg)
 {
+    (void)arg;
+
     gnrc_netif_t *netif = (gnrc_netif_t *) dev->context;
 
     if (event == NETDEV_EVENT_ISR) {

@@ -3,7 +3,7 @@ APPLICATION = unwds_root
 CFLAGS += -DUNWDS_ROOT
 
 CFLAGS += -DNO_RIOT_BANNER
-# CFLAGS += -DCONFIG_GPIO_AS_PINRESET
+CFLAGS += -DCONFIG_GPIO_AS_PINRESET
 
 # If no BOARD is found in the environment, use this default:
 BOARD ?= unwd-nrf
@@ -107,3 +107,4 @@ endif
 all: 
 	@echo "File $(APPLICATION).elf copy to ../flasher"
 	@cp $(ELFFILE) ../flasher
+	@$(OBJCOPY) $(OFLAGS) -Oihex $(ELFFILE) ../flasher/unwds_root.hex

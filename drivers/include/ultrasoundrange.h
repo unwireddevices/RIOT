@@ -31,16 +31,28 @@ typedef struct {
     adc_t   adc;
     uint8_t adc_channel;
     uint8_t pulses;
+    int8_t  temperature;
+    uint32_t frequency;
     timer_t timer;
     gpio_t  signal_pin;
     gpio_t  suppress_pin;
 } ultrasoundrange_t;
 
+#define ULTRASOUNDRANGE_TEMPERATURE_NONE    (-127)
+
+typedef enum {
+    USOUND_OK = 0,
+    USOUND_MINDISTANCE = 1,
+    USOUND_MAXDISTANCE = 2,
+    USOUND_NOISY = 3,
+} ultrasoundrange_errors_t;
+
 int ultrasoundrange_init(ultrasoundrange_t *dev);
 
 void ultrasoundrange_turn_on(ultrasoundrange_t *dev);
 void ultrasoundrange_turn_off(ultrasoundrange_t *dev);
-uint32_t ultrasoundrange_measure(ultrasoundrange_t *dev);
+void ultrasoundrange_calibrate(ultrasoundrange_t *dev);
+int ultrasoundrange_measure(ultrasoundrange_t *dev);
 
 #endif /* ULTRASOUNDRANGE_H_ */
 

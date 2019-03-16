@@ -26,15 +26,30 @@
 
 /* 2*250 samples ADC DMA buffer */
 #define USONICRANGE_DMABUF_SIZE        500
-/* 2 us sampling period */
+
+/* 2 us ADC sampling period */
 #define USONICRANGE_ADC_PERIOD_US      2
+
 /* 20 ms total ADC acquisition time (~6 m range) */
 #define USONICRANGE_TOTAL_ACQ_TIME_MS  20
+
 /* 50 us window amplitude calculation, 25 samples per half of DMA buffer */
 #define USONICRANGE_DMABUF_WINDOW_SIZE (50/USONICRANGE_ADC_PERIOD_US)
+
 /* 2*20000/50 = 800 samples total for < 20 mm resolution */
 #define USONICRANGE_SIGNALBUF_SIZE     ((1000*2*USONICRANGE_TOTAL_ACQ_TIME_MS)/(25*USONICRANGE_ADC_PERIOD_US))
 
+/* minimum measureable distance */
+#define USONICRANGE_MIN_DISTANCE_MM    300
+
+/* ringing suppression period */
+#define USONICRANGE_SUPPRESS_PERIOD_US 350
+
+/* ultrasonic transducer default frequency */
+#define USONICRANGE_DEFAULT_FREQ       40000
+
+#define USONICRANGE_NOISE_THRESHOLD    125
+#define USONICRANGE_SIGNAL_THRESHOLD   150
 #define USONICRANGE_TEMPERATURE_NONE   (-127)
 
 typedef enum {

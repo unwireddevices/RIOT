@@ -34,13 +34,6 @@
 extern "C" {
 #endif
 
-#define USONICRANGE_MIN_DISTANCE_MM      300
-#define USONICRANGE_NOISE_THRESHOLD      125
-#define USONICRANGE_SIGNAL_THRESHOLD     150
-#define USONICRANGE_DEFAULT_FREQ         40000
-#define USONICRANGE_PWRON_DELAY_MS       10
-#define USONICRANGE_SUPRESS_PERIOD_US    350
-
 /* speed of sound at normal pressure and 0 °C */
 #define SOUND_SPEED_AT_0C_100HPA    331
 
@@ -82,14 +75,14 @@ static int mm_to_us(usonicrange_t *dev, int distance) {
 
 /* convert amplitude samples to millimeters */
 static int sample_to_mm(usonicrange_t *dev, int sample) {
-    int us = sample*USONICRANGE_DMABUF_WINDOW_SIZE*USONICRANGE_ADC_PERIOD_US + USONICRANGE_SUPRESS_PERIOD_US;
+    int us = sample*USONICRANGE_DMABUF_WINDOW_SIZE*USONICRANGE_ADC_PERIOD_US + USONICRANGE_SUPPRESS_PERIOD_US;
     return us_to_mm(dev, us);
 }
 
 /* convert millimeters to amplitude samples */
 static int mm_to_sample(usonicrange_t *dev, int distance) {
     int us = mm_to_us(dev, distance);
-    return (us - USONICRANGE_SUPRESS_PERIOD_US)/(USONICRANGE_DMABUF_WINDOW_SIZE*USONICRANGE_ADC_PERIOD_US);
+    return (us - USONICRANGE_SUPPRESS_PERIOD_US)/(USONICRANGE_DMABUF_WINDOW_SIZE*USONICRANGE_ADC_PERIOD_US);
 }
 
 /* initialize hardware */
@@ -303,7 +296,7 @@ static int usound_measure_distance(usonicrange_t *dev) {
 
         /* suppress transducer ringing */
         gpio_set(dev->suppress_pin);
-        xtimer_usleep(USONICRANGE_SUPRESS_PERIOD_US);
+        xtimer_usleep(USONICRANGE_SUPPRESS_PERIOD_US);
         gpio_clear(dev->suppress_pin);
 
         /* enable signal pass-through */

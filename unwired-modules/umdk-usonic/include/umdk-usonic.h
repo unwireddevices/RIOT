@@ -24,39 +24,39 @@
  * @ingroup     
  * @brief       
  * @{
- * @file        umdk-usound.h
- * @brief       umdk-usound driver module definitions
+ * @file        umdk-usonic.h
+ * @brief       umdk-usonic driver module definitions
  * @author      Dmitry Golik
  */
-#ifndef UMDK_USOUND_H
-#define UMDK_USOUND_H
+#ifndef UMDK_USONIC_H
+#define UMDK_USONIC_H
 
 #include "unwds-common.h"
 
-#define UMDK_USOUND_PUBLISH_PERIOD_MIN 1
+#define UMDK_USONIC_PUBLISH_PERIOD_MIN 1
 
-#define UMDK_USOUND_STACK_SIZE 2048
+#define UMDK_USONIC_STACK_SIZE 2048
 
-#define UMDK_USOUND_PWREN       GPIO_PIN(PORT_B, 1)
-#define UMDK_USOUND_ADC_PIN     GPIO_PIN(PORT_A, 5)
-#define UMDK_USOUND_ADC_CH      5
-#define UMDK_USOUND_SILENCE_PIN GPIO_PIN(PORT_A, 2)
-#define UMDK_USOUND_BEEP_PIN    GPIO_PIN(PORT_A, 3)
-#define UMDK_USOUND_DISRUPT_PIN GPIO_PIN(PORT_A, 4)
+#define UMDK_USONIC_PWREN       GPIO_PIN(PORT_B, 1)
+#define UMDK_USONIC_ADC_PIN     GPIO_PIN(PORT_A, 5)
+#define UMDK_USONIC_ADC_CH      5
+#define UMDK_USONIC_SILENCE_PIN GPIO_PIN(PORT_A, 2)
+#define UMDK_USONIC_BEEP_PIN    GPIO_PIN(PORT_A, 3)
+#define UMDK_USONIC_DISRUPT_PIN GPIO_PIN(PORT_A, 4)
 
-
-typedef enum {
-    UMDK_USOUND_CMD_SET_PERIOD = 0,
-    UMDK_USOUND_CMD_POLL = 1,
-    UMDK_USOUND_CMD_INIT_SENSOR = 2,
-} umdk_usound_cmd_t;
 
 typedef enum {
-    UMDK_SOUND_MODE_DISTANCE = 0,
-    UMDK_SOUND_MODE_THRESHOLD = 1,
-} umdk_sound_mode_t;
+    UMDK_USONIC_CMD_SET_PERIOD = 0,
+    UMDK_USONIC_CMD_POLL = 1,
+    UMDK_USONIC_CMD_INIT_SENSOR = 2,
+} umdk_usonic_cmd_t;
 
-void umdk_usound_init(uwnds_cb_t *event_callback);
-bool umdk_usound_cmd(module_data_t *data, module_data_t *reply);
+typedef enum {
+    UMDK_USONIC_MODE_DISTANCE = 0,
+    UMDK_USONIC_MODE_THRESHOLD = 1,
+} umdk_usonic_mode_t;
 
-#endif /* UMDK_USOUND_H */
+void umdk_usonic_init(uwnds_cb_t *event_callback);
+bool umdk_usonic_cmd(module_data_t *data, module_data_t *reply);
+
+#endif /* UMDK_USONIC_H */

@@ -48,7 +48,7 @@ umdk-st95	                = 1
 umdk-uart	   				= 1
 # for a while, umdk-usound supports STM32L1 only
 ifneq (,$(findstring unwd-range-l1,$(BOARD)))
-umdk-usound    				= 1
+umdk-usonic    				= 1
 endif
 
 

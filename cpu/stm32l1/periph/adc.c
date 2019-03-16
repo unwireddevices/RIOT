@@ -299,7 +299,7 @@ int adc_sample(adc_t line,  adc_res_t res)
     return sample;
 }
 
-volatile adc_cb_t adc_dma_callback;
+static adc_cb_t adc_dma_callback;
 
 int adc_sampling_start(adc_t line, adc_res_t res, uint16_t *buf, uint16_t wsize, adc_cb_t adc_cb, adc_conconv_mode_t mode)
 {

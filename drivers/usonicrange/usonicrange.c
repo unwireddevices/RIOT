@@ -91,6 +91,10 @@ int usonicrange_init(usonicrange_t *dev)
     if (dev->frequency == 0) {
         dev->frequency = USONICRANGE_DEFAULT_FREQ;
     }
+    
+    if (dev->suppress_time == 0) {
+        dev->suppress_time = USONICRANGE_SUPPRESS_PERIOD_US;
+    }
 
     dmabuffer_local = dev->dmabuffer;
     signalbuffer_local = dev->signalbuffer;

@@ -267,7 +267,7 @@ int umdk_usonic_shell_cmd(int argc, char **argv) {
         prepare_result(NULL);
         return 1;
     }
-    
+
     if (strcmp(cmd, "send") == 0) {
         is_polled = true;
         /* Send signal to publisher thread */
@@ -388,6 +388,7 @@ void umdk_usonic_init(uwnds_cb_t *event_callback) {
     usonic_dev.mode = USONICRANGE_MODE_STRONGEST_ECHO;
     usonic_dev.signal_pin = GPIO_PIN(PORT_A, 1);
     usonic_dev.suppress_pin = GPIO_PIN(PORT_A, 2);
+    usonic_dev.suppress_time = USONICRANGE_SUPPRESS_PERIOD_US;
     
     usonicrange_init(&usonic_dev);
 

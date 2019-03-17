@@ -97,7 +97,7 @@ int usonicrange_init(usonicrange_t *dev)
 
     /* initialize GPIOs */
     gpio_init(dev->signal_pin, GPIO_OUT);
-    gpio_clear(dev->signal_pin);
+    gpio_set(dev->signal_pin); /* signal to be always on */
 
     gpio_init(dev->suppress_pin, GPIO_OUT);
     gpio_clear(dev->suppress_pin);
@@ -168,16 +168,12 @@ void usonicrange_calibrate(usonicrange_t *dev)
     pwm_set(dev->pwm, dev->pwm_channel, 5);
     pwm_pulses(dev->pwm, dev->pwm_channel, 5);
 
-    /* enable signal pass-through */
-    gpio_set(dev->signal_pin);
-
     /* start ADC acquisition */
     timer_start(dev->timer);
 
     /* wait for acquisition to finish */
     while (!adc_callback_finished) {};
 
-    gpio_clear(dev->signal_pin);
     timer_stop(dev->timer);
 
 #if ENABLE_DEBUG
@@ -240,14 +236,12 @@ static int usound_measure_distance(usonicrange_t *dev) {
     timer_init_periodic(dev->timer, USONICRANGE_ADC_PERIOD_US, NULL, NULL, true);
 
     /* start ADC acquisition */
-    gpio_set(dev->signal_pin);
     timer_start(dev->timer);
 
     /* wait for ADC to complete */
     while (!adc_callback_finished) {};
 
     DEBUG("Zero signal: %d\n", adc_avg_value);
-    gpio_clear(dev->signal_pin);
     timer_stop(dev->timer);
 
     int result = -USONICRANGE_MAXDISTANCE;
@@ -296,11 +290,8 @@ static int usound_measure_distance(usonicrange_t *dev) {
 
         /* suppress transducer ringing */
         gpio_set(dev->suppress_pin);
-        xtimer_usleep(USONICRANGE_SUPPRESS_PERIOD_US);
+        xtimer_usleep(dev->suppress_time);
         gpio_clear(dev->suppress_pin);
-
-        /* enable signal pass-through */
-        gpio_set(dev->signal_pin);
 
         /* start ADC acquisition */
         timer_start(dev->timer);
@@ -308,7 +299,6 @@ static int usound_measure_distance(usonicrange_t *dev) {
         /* wait for acquisition to finish */
         while (ampl_index != 0xFFFF) {};
 
-        gpio_clear(dev->signal_pin);
         timer_stop(dev->timer);
         adc_sampling_stop();
 

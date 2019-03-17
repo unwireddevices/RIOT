@@ -43,7 +43,7 @@
 #define USONICRANGE_MIN_DISTANCE_MM    300
 
 /* ringing suppression period */
-#define USONICRANGE_SUPPRESS_PERIOD_US 350
+#define USONICRANGE_SUPPRESS_PERIOD_US 300
 
 /* ultrasonic transducer default frequency */
 #define USONICRANGE_DEFAULT_FREQ       40000
@@ -82,6 +82,7 @@ typedef struct {
     uint16_t *dmabuffer;    /* USONICRANGE_DMABUF_SIZE elements */
     uint16_t *signalbuffer; /* USONICRANGE_SIGNALBUF_SIZE elements */
     usonicrange_mode_t mode;
+    uint32_t suppress_time;
 } usonicrange_t;
 
 int  usonicrange_init(usonicrange_t *dev);

@@ -75,6 +75,24 @@ extern "C" {
 #define BTN3_MODE           GPIO_IN_PU
 /** @} */
 
+/** GPIO Ports */
+#define UNWD_GPIO_1 		GPIO_PIN(0, 8)
+#define UNWD_GPIO_2 		GPIO_PIN(0, 7)
+#define UNWD_GPIO_3 		GPIO_PIN(0, 6)
+#define UNWD_GPIO_4 		GPIO_PIN(0, 3)
+#define UNWD_GPIO_5 		GPIO_PIN(0, 2)
+#define UNWD_GPIO_6 		GPIO_PIN(0, 12)
+#define UNWD_GPIO_7 		GPIO_PIN(0, 13)
+
+#define UNWD_GPIO_30 		GPIO_PIN(0, 20)
+#define UNWD_GPIO_29 		GPIO_PIN(0, 19)
+#define UNWD_GPIO_28 		GPIO_PIN(0, 31)
+#define UNWD_GPIO_27 		GPIO_PIN(0, 30)
+#define UNWD_GPIO_26 		GPIO_PIN(0, 29)
+#define UNWD_GPIO_25 		GPIO_PIN(0, 5)
+#define UNWD_GPIO_24 		GPIO_PIN(0, 4)
+/** @} */
+
 /**
  * @brief   Initialize the platform
  */

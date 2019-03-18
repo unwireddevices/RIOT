@@ -65,9 +65,9 @@ static const i2c_conf_t i2c_config[] = {
  * @name   PWM configuration
  * @{
  */
-static const pwm_conf_t pwm_config[] = {
-    { NRF_PWM0, { 28, 29, 30, 31 } }
-};
+// static const pwm_conf_t pwm_config[] = {
+    // { NRF_PWM0, { 28, 29, 30, 31 } }
+// };
 #define PWM_NUMOF           (sizeof(pwm_config) / sizeof(pwm_config[0]))
 /** @} */
 

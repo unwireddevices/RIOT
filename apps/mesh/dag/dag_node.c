@@ -308,14 +308,14 @@ void unwds_dag_server(gnrc_pktsnip_t *pkt)
 					} /* header_pack->data_type */
 					break; /* UNWDS_MHZ19_MODULE_ID */
 
-				case UNWDS_USOUND_MODULE_ID: /* ID: 19 */
+				case UNWDS_USONIC_MODULE_ID: /* ID: 19 */
 					switch(header_pack->data_type)
 					{
 						default:
 							print_unknown_command_for_umdk("USOUND");
 							break;
 					} /* header_pack->data_type */
-					break; /* UNWDS_USOUND_MODULE_ID */
+					break; /* UNWDS_USONIC_MODULE_ID */
 
 				case UNWDS_INCLINOMETER_MODULE_ID: /* ID: 20 */
 					switch(header_pack->data_type)

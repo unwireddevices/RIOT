@@ -52,6 +52,7 @@ typedef enum {
 	UMDK_GPIO_SET_1 = 2,
 	UMDK_GPIO_TOGGLE = 3,
     UMDK_GPIO_GET_ALL = 4,
+    UMDK_GPIO_SET_AUTO = 5,
 } umdk_gpio_action_t;
 
 #define UMDK_GPIO_PIN_MASK 0x1F

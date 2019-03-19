@@ -102,6 +102,16 @@ static const timer_conf_t timer_config[] = {
 /** @} */
 
 /**
+ * @name    NFC antenna connection pins
+ * @{
+ */
+#define NFC_NUMOF          (1U)
+#define NFC_PIN_1         GPIO_PIN(0, 9)      
+#define NFC_PIN_2         GPIO_PIN(0, 10)       
+   
+/** @} */
+
+/**
  * @name    UART configuration
  * @{
  */

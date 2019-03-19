@@ -245,6 +245,7 @@ void isr_radio(void)
 			{
                 rx_buf.pkt.hdr.len = 0;
                 NRF_RADIO->TASKS_START = 1;
+                cortexm_isr_end();
                 return;
             }
 			

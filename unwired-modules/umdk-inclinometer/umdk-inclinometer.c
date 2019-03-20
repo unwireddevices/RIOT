@@ -223,6 +223,7 @@ static void *measure_thread(void *arg) {
         
         if (active_sensors & UMDK_INCLINOMETER_ADXL345) {
             adxl345_set_measure(&dev_adxl345);
+            rtctimers_millis_sleep(12);
             adxl345_data_t adxl345_data;
             adxl345_read(&dev_adxl345, &adxl345_data);
             adxl345_set_standby(&dev_adxl345);

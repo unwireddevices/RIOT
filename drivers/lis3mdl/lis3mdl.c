@@ -167,7 +167,7 @@ void lis3mdl_read_temp(const lis3mdl_t *dev, int16_t *value)
     uint8_t tmp[2] = {0, 0};
 
     i2c_acquire(DEV_I2C);
-    i2c_read_regs(DEV_I2C, DEV_ADDR, LIS3MDL_TEMP_OUT_L_REG, (uint8_t*)value, 2, 0);
+    i2c_read_regs(DEV_I2C, DEV_ADDR, LIS3MDL_TEMP_OUT_L_REG, &tmp, 2, 0);
     i2c_release(DEV_I2C);
 
     DEBUG("LIS3MDL: TEMP_OUT %02X %02X\n", tmp[1], tmp[0]);

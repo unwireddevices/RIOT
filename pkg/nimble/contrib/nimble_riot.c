@@ -25,8 +25,12 @@
 #include "host/ble_hs.h"
 #include "host/util/util.h"
 
+#ifdef MODULE_NIMBLE_SVC_GAP
 #include "services/gap/ble_svc_gap.h"
+#endif
+#ifdef MODULE_NIMBLE_SVC_GATT
 #include "services/gatt/ble_svc_gatt.h"
+#endif
 
 #endif
 #ifdef MODULE_NIMBLE_SVC_IPSS

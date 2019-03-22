@@ -25,6 +25,8 @@ FEATURES_REQUIRED += periph_uart
 FEATURES_REQUIRED += periph_pm
 FEATURES_REQUIRED += periph_iwdg
 FEATURES_REQUIRED += periph_cpuid
+FEATURES_REQUIRED += periph_status
+FEATURES_REQUIRED += periph_status_extended
 
 # Modules to include:
 USEMODULE += shell

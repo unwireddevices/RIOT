@@ -40,7 +40,7 @@ extern "C" {
 #include "mutex.h"
 
 #include "periph/adc.h"
-
+#include "net/netdev/lora.h"
 #include "ls-init-device.h"
 #include "ls-mac-types.h"
 #include "ls-mac.h"
@@ -537,7 +537,7 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
     switch (event) {
         case NETDEV_EVENT_RX_COMPLETE: {
             int len;
-            netdev_sx127x_lora_packet_info_t packet_info;
+            netdev_lora_rx_info_t  packet_info;
             uint8_t message[LS_FRAME_SIZE];
     
             len = dev->driver->recv(dev, NULL, 0, 0);

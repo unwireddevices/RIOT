@@ -40,6 +40,7 @@
 
 #include "semtech_loramac.h"
 #include "LoRaMac.h"
+#include "LoRaMacTest.h"
 #include "region/Region.h"
 
 #define ENABLE_DEBUG (0)
@@ -355,6 +356,10 @@ void _init_loramac(semtech_loramac_t *mac,
     if (result != LORAMAC_STATUS_OK) {
         DEBUG("[semtech-loramac] initialization failed with code %d\n", result);
     }
+
+#ifdef DISABLE_LORAMAC_DUTYCYCLE
+    LoRaMacTestSetDutyCycleOn(false);
+#endif
 
     mutex_unlock(&mac->lock);
 

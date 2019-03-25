@@ -1,12 +1,33 @@
+/*
+ * Copyright (C) 2016-2019 Unwired Devices
+ *
+ * This file is subject to the terms and conditions of the GNU Lesser General
+ * Public License v2.1. See the file LICENSE in the top level directory for more
+ * details.
+ */
+
+/**
+ * @ingroup     sys_dsp
+ * @{
+ *
+ * @file
+ * @brief       Fixed-point square root
+ *
+ * @author      Alexander Ugorelov <alex_u@unwds.com>
+ *
+ * @}
+ */
+
+
 #include "dsp/int_sqrt.h"
 
-uint32_t int_sqrt_32(uint32_t n)
+uint8_t int_sqrt_8(uint16_t arg)
 {
-    register uint32_t root, remainder, place;
+    register uint8_t root, remainder, place;
 
     root = 0;
-    remainder = n;
-    place = 0x40000000;
+    remainder = arg;
+    place = 0x40;
 
     while (place > remainder) {
         place = place >> 2;
@@ -22,12 +43,12 @@ uint32_t int_sqrt_32(uint32_t n)
     return root;
 }
 
-uint16_t int_sqrt_16(uint16_t n)
+uint16_t int_sqrt_16(uint32_t arg)
 {
     register uint16_t root, remainder, place;
 
     root = 0;
-    remainder = n;
+    remainder = arg;
     place = 0x4000;
 
     while (place > remainder) {
@@ -44,13 +65,13 @@ uint16_t int_sqrt_16(uint16_t n)
     return root;
 }
 
-uint8_t int_sqrt_8(uint8_t n)
+uint32_t int_sqrt_32(uint64_t arg)
 {
-    register uint8_t root, remainder, place;
+    register uint32_t root, remainder, place;
 
     root = 0;
-    remainder = n;
-    place = 0x40;
+    remainder = arg;
+    place = 0x40000000;
 
     while (place > remainder) {
         place = place >> 2;
@@ -65,3 +86,4 @@ uint8_t int_sqrt_8(uint8_t n)
     }
     return root;
 }
+

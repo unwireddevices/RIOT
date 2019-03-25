@@ -155,7 +155,7 @@ int32_t fft_q15(q15_t fr[], q15_t fi[], int32_t m, int32_t inverse)
 void fft_magnitude_q15 (const q15_t *fx, uint32_t fft_size, uint16_t *mag)
 {
     for (uint32_t i = 0; i < fft_size; i++) {
-        mag[i] = int_sqrt_32((uint32_t)fx[i] * (uint32_t)fx[i] + (uint32_t)fx[fft_size + i] * (uint32_t)fx[fft_size + i]);
+        mag[i] = int_sqrt_16((uint32_t)fx[i] * (uint32_t)fx[i] + (uint32_t)fx[fft_size + i] * (uint32_t)fx[fft_size + i]);
     }
 
     for (uint32_t i = 0; i < fft_size / 2; i++) {
@@ -187,7 +187,7 @@ void hanning_window_q15(q15_t fr[], int32_t n)
     }
 }
 
-uint32_t fft_bin_max_q15(uint16_t *data, uint32_t length, uint16_t *max_value)
+uint32_t fft_bin_max_q15(const uint16_t *data, uint32_t length, uint16_t *max_value)
 {
     uint32_t cnt = 0;
     uint32_t pos = 0;

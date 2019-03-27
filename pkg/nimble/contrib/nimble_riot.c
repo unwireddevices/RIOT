@@ -26,6 +26,11 @@
 #include "services/gap/ble_svc_gap.h"
 #include "services/gatt/ble_svc_gatt.h"
 
+#endif
+#ifdef MODULE_NIMBLE_SVC_IPSS
+#include "services/ipss/ble_svc_ipss.h"
+#endif
+
 #ifdef MODULE_NIMBLE_CONTROLLER
 #ifdef CPU_FAM_NRF52
 #include "nrf_clock.h"

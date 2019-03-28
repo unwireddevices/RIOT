@@ -62,7 +62,6 @@ enum {
     SEMTECH_LORAMAC_JOIN_FAILED,                /**< Join procedure failed */
     SEMTECH_LORAMAC_NOT_JOINED,                 /**< MAC is not joined */
     SEMTECH_LORAMAC_ALREADY_JOINED,             /**< MAC is already joined */
-    SEMTECH_LORAMAC_TX_SCHEDULED,               /**< TX data scheduled */
     SEMTECH_LORAMAC_TX_OK,                      /**< Transmission is in progress */
     SEMTECH_LORAMAC_TX_SCHEDULE,                /**< TX needs reschedule */
     SEMTECH_LORAMAC_TX_DONE,                    /**< Transmission completed */
@@ -494,40 +493,21 @@ void semtech_loramac_set_rx2_dr(semtech_loramac_t *mac, uint8_t dr);
  */
 uint8_t semtech_loramac_get_rx2_dr(semtech_loramac_t *mac);
 
-#ifdef MODULE_PERIPH_EEPROM
 /**
- * @brief   The magic number used to identify the LoRaWAN configuration
- */
-#ifndef SEMTECH_LORAMAC_EEPROM_MAGIC
-#define SEMTECH_LORAMAC_EEPROM_MAGIC        {0x52, 0x49, 0x4F, 0x54} /* RIOT */
-#endif
-
-/**
- * @brief   The magic number length used to identify the LoRaWAN configuration
- */
-#ifndef SEMTECH_LORAMAC_EEPROM_MAGIC_LEN
-#define SEMTECH_LORAMAC_EEPROM_MAGIC_LEN    4
-#endif
-
-/**
- * @brief   Start position of LoRaWAN configuration stored in eeprom
- */
-#ifndef SEMTECH_LORAMAC_EEPROM_START
-#define SEMTECH_LORAMAC_EEPROM_START        (0)
-#endif
-
-/**
- * @brief   Saves the current LoRaWAN configuration to the internal EEPROM
+ * @brief   Gets uplink counter
  *
- * @param[in] mac           Pointer to the mac
+ * @param[in] mac          Pointer to the mac
+ * @return                 Uplink counter value
  */
-void semtech_loramac_save_config(semtech_loramac_t *mac);
+uint32_t semtech_loramac_get_uplink_counter(semtech_loramac_t *mac);
 
 /**
- * @brief   Erases any stored LoRaWAN configuration from the internal EEPROM
+ * @brief   Sets uplink counter
+ *
+ * @param[in] mac          Pointer to the mac
+ * @param[in] counter      Uplink counter value
  */
-void semtech_loramac_erase_config(void);
-#endif
+void semtech_loramac_set_uplink_counter(semtech_loramac_t *mac, uint32_t counter);
 
 #ifdef __cplusplus
 }

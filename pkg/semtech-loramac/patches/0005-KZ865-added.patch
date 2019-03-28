@@ -4,7 +4,6 @@ Date: Mon, 18 Mar 2019 15:43:24 +0300
 Subject: [PATCH 1/1] KZ865 added
 
 ---
- src/mac/LoRaMac.c            |    2 +
  src/mac/LoRaMac.h            |    4 +
  src/mac/region/Region.c      |   75 ++++
  src/mac/region/RegionKZ865.c | 1021 ++++++++++++++++++++++++++++++++++++++++++
@@ -13,26 +12,6 @@ Subject: [PATCH 1/1] KZ865 added
  create mode 100644 src/mac/region/RegionKZ865.c
  create mode 100644 src/mac/region/RegionKZ865.h
 
-diff --git a/src/mac/LoRaMac.c b/src/mac/LoRaMac.c
-index 31b9c9f..3960eb3 100644
---- a/src/mac/LoRaMac.c
-+++ b/src/mac/LoRaMac.c
-@@ -1819,6 +1819,7 @@ static void ProcessMacCommands( uint8_t *payload, uint8_t macIndex, uint8_t comm
-                 break;
-             case SRV_MAC_DUTY_CYCLE_REQ:
-                 MaxDCycle = payload[macIndex++] & 0x0f;
-+                printf("MAC command set MaxDCycle to %d\n", MaxDCycle);
-                 AggregatedDCycle = 1 << MaxDCycle;
-                 AddMacCommand( MOTE_MAC_DUTY_CYCLE_ANS, 0, 0 );
-                 break;
-@@ -1983,6 +1984,7 @@ static LoRaMacStatus_t ScheduleTx( bool allowDelayedTx )
-     TimerTime_t dutyCycleTimeOff = 0;
-     NextChanParams_t nextChan;
- 
-+    printf("ScheduleTX MaxDCycle is %d\n", MaxDCycle);
-     if( MaxDCycle == 0 )
-     {
-         AggregatedTimeOff = 0;
 diff --git a/src/mac/LoRaMac.h b/src/mac/LoRaMac.h
 index 1bee129..a505838 100644
 --- a/src/mac/LoRaMac.h

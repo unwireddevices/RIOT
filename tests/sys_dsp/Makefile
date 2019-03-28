@@ -2,7 +2,7 @@ include ../Makefile.tests_common
 
 USEMODULE += dsp
 USEMODULE += ps
-CFLAGS += -DFFT_SAMPLE=128
+CFLAGS += -DFFT_SAMPLE=256
 
 
 FEATURES_REQUIRED += periph_cpuid

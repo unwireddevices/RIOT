@@ -21,7 +21,7 @@
 
 #include "dsp/int_sqrt.h"
 
-uint8_t int_sqrt_8(uint16_t arg)
+uint8_t int_sqrt_8(uint8_t arg)
 {
     register uint8_t root, remainder, place;
 
@@ -43,7 +43,7 @@ uint8_t int_sqrt_8(uint16_t arg)
     return root;
 }
 
-uint16_t int_sqrt_16(uint32_t arg)
+uint8_t int_sqrt_16(uint16_t arg)
 {
     register uint16_t root, remainder, place;
 
@@ -65,7 +65,7 @@ uint16_t int_sqrt_16(uint32_t arg)
     return root;
 }
 
-uint32_t int_sqrt_32(uint64_t arg)
+uint16_t int_sqrt_32(uint32_t arg)
 {
     register uint32_t root, remainder, place;
 

@@ -29,14 +29,16 @@
 #include <math.h>
 
 
-#define ENABLE_DEBUG (0)
 #include "debug.h"
-
 #include "dsp/int_fft_q15.h"
 
 #ifndef M_PI
-#   define M_PI 3.14159265359
+    #define M_PI 3.14159265359
 #endif
+
+#define APPLY_WINDOW            0
+
+#define SCALE_FLOAT_TO_INT      100
 
 void int_to_float_str(char *buf, int decimal, uint8_t precision) {  
     uint32_t i = 0;
@@ -64,8 +66,8 @@ void int_to_float_str(char *buf, int decimal, uint8_t precision) {
 int main(void) {
 
     uint32_t i;
-    const uint32_t freq_sample = 400;
-    const uint32_t fsine = 50;
+    const uint32_t freq_sample = 200;
+    const uint32_t fsine = 33;
     int16_t fx[FFT_SAMPLE * 2]; 
 
     for (i = FFT_SAMPLE; i < FFT_SAMPLE * 2; i++) {
@@ -73,32 +75,26 @@ int main(void) {
     }
 
     for (i = 0; i < FFT_SAMPLE; i++) {
-        fx[i] = (32767 * sin(i * 2 * M_PI * fsine / freq_sample));
-        fx[i] += (32767 / 3 * sin(i * 2 * M_PI * fsine * 3 / freq_sample));
+        fx[i] = (32767/5 * sin(i * 2 * M_PI * fsine / freq_sample));
+        fx[i] += (32767/3 * sin(i * 2 * M_PI * fsine * 3 / freq_sample));
+        fx[i] = input_signal[i];
     }
-
+#if APPLY_WINDOW == 1
     hanning_window_q15(fx, FFT_SAMPLE);
-    
+#endif    
     if (fft_q15(fx, fx + FFT_SAMPLE, log_base_2(FFT_SAMPLE), 0) < 0)
         return 1;
 
     uint16_t mag[FFT_SAMPLE];
     fft_magnitude_q15(fx, FFT_SAMPLE, mag);
     
-
-    
-
-
     uint32_t fft_bin  = freq_to_fft_bin(freq_sample/2, freq_sample, FFT_SAMPLE);
-    printf("fft bin for %ldHz is %ld\n", freq_sample/2, fft_bin);
-    
-
-
+   
     for(i = 0; i < fft_bin + 1 ; ++i) {
         uint8_t freq[10] = {0x00};
-        float freq_cur = (float)(i * (float)(freq_sample / 2) / (float)(FFT_SAMPLE / 2));
+        uint32_t freq_cur = (i * SCALE_FLOAT_TO_INT * (freq_sample / 2) / (FFT_SAMPLE / 2));
         
-        int_to_float_str((char *)freq, freq_cur, 3);
+        int_to_float_str((char *)freq, freq_cur, 2);
 
         printf("[%ld]\t%s[Hz]\t%hu\n", i, freq, mag[i]);
     }
@@ -106,6 +102,8 @@ int main(void) {
     printf("Maximum magnitude: ");
     uint16_t max_mag;
     uint32_t fft_bin_max =  fft_bin_max_q15(mag, FFT_SAMPLE, &max_mag);
-    printf("%ld[Hz]\t%hu\n", (uint32_t)fft_bin_to_freq(fft_bin_max, freq_sample, FFT_SAMPLE), max_mag);
+    uint8_t freq[10] = {0x00};
+    int_to_float_str((char *)freq, (SCALE_FLOAT_TO_INT * fft_bin_to_freq(fft_bin_max, freq_sample, FFT_SAMPLE)), 2);
+    printf("%s[Hz]\t%hu\n", freq, max_mag);
     return 0;
 }

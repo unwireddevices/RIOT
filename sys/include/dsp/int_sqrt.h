@@ -27,12 +27,20 @@ extern "C" {
 #include <stdint.h>
 
  /**
-  * @brief Computes square root of 16 bits arg.
+  * @brief Computes square root of 8 bits arg.
   * 
   * @param[in] arg -  fixed point value
   * @return    square root of arg (√arg)
   */
-uint8_t int_sqrt_8(uint16_t arg);
+uint8_t int_sqrt_8(uint8_t arg);
+
+/**
+ * @brief Computes square root of 16 bits arg.
+ * 
+ * @param[in] arg - fixed point value
+ * @return    square root of arg (√arg)
+ */
+uint8_t int_sqrt_16(uint16_t arg);
 
 /**
  * @brief Computes square root of 32 bits arg.
@@ -40,15 +48,7 @@ uint8_t int_sqrt_8(uint16_t arg);
  * @param[in] arg - fixed point value
  * @return    square root of arg (√arg)
  */
-uint16_t int_sqrt_16(uint32_t arg);
-
-/**
- * @brief Computes square root of 64 bits arg.
- * 
- * @param[in] arg - fixed point value
- * @return    square root of arg (√arg)
- */
-uint32_t int_sqrt_32(uint64_t arg);
+uint16_t int_sqrt_32(uint32_t arg);
 
 
 

@@ -76,7 +76,20 @@ extern "C" {
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-static msg_t msg_join;
+typedef enum {
+    NODE_MSG_JOIN,
+    NODE_MSG_SEND,
+} node_message_types_t;
+
+typedef struct {
+    uint8_t *buffer;
+    uint32_t length;
+} node_data_t;
+
+static node_data_t node_data;
+
+static msg_t msg_join = { .type = NODE_MSG_JOIN };
+static msg_t msg_data = { .type = NODE_MSG_SEND };
 static kernel_pid_t sender_pid;
 static rtctimers_millis_t send_retry_timer;
 
@@ -141,58 +154,93 @@ static void *sender_thread(void *arg) {
     semtech_loramac_t *ls = (semtech_loramac_t *)arg;
     
     msg_t msg;
+    msg_t msg_queue[8];
+    msg_init_queue(msg_queue, 8);
     
     puts("[LoRa] sender thread started");
     
     while (1) {
         msg_receive(&msg);
-        
+
         if (msg.sender_pid != loramac_pid) {
-            int res = node_join(ls);
+            int res;
             
-            switch (res) {
-            case SEMTECH_LORAMAC_JOIN_SUCCEEDED: {
-                current_join_retries = 0;
-                puts("[LoRa] successfully joined to the network");
-                break;
+            if (msg.type == NODE_MSG_SEND) {
+                node_data_t *data = msg.content.ptr;
+                res = semtech_loramac_send(ls, data->buffer, data->length);
+
+                switch (res) {
+                    case SEMTECH_LORAMAC_BUSY:
+                        puts("[error] MAC already busy");
+                        break;
+                    case SEMTECH_LORAMAC_NOT_JOINED: {
+                        puts("[error] Not joined to the network");
+
+                        if (current_join_retries == 0) {
+                            puts("[info] Attempting to rejoin");
+                            msg_send(&msg_join, sender_pid);
+                        } else {
+                            puts("[info] Waiting for the node to join");
+                        }
+                        break;
+                    }
+                    case SEMTECH_LORAMAC_TX_OK:
+                        puts("[info] TX is in progress");
+                        break;
+                    default:
+                        printf("[warning] Unknown response %d\n", res);
+                        break;
+                }
             }
-            case SEMTECH_LORAMAC_RESTRICTED:
-            case SEMTECH_LORAMAC_BUSY:
-            case SEMTECH_LORAMAC_NOT_JOINED:
-            case SEMTECH_LORAMAC_JOIN_FAILED:
-            case SEMTECH_LORAMAC_DUTYCYCLE_RESTRICTED:
-            {
-                printf("[LoRa] LoRaMAC join failed: code %d\n", res);
-                if ((current_join_retries > unwds_get_node_settings().max_retr) &&
-                    (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A)) {
-                    /* class A node: go to sleep */
-                    puts("[LoRa] maximum join retries exceeded, stopping");
+            
+            if (msg.type == NODE_MSG_JOIN) {
+                res = node_join(ls);
+                
+                switch (res) {
+                case SEMTECH_LORAMAC_JOIN_SUCCEEDED: {
                     current_join_retries = 0;
-                } else {
-                    puts("[LoRa] join request timed out, resending");
-                    
+                    puts("[LoRa] successfully joined to the network");
+                    break;
+                }
+                case SEMTECH_LORAMAC_RESTRICTED:
+                case SEMTECH_LORAMAC_BUSY:
+                case SEMTECH_LORAMAC_NOT_JOINED:
+                case SEMTECH_LORAMAC_JOIN_FAILED:
+                case SEMTECH_LORAMAC_DUTYCYCLE_RESTRICTED:
+                {
+                    printf("[LoRa] LoRaMAC join failed: code %d\n", res);
+                    if ((current_join_retries > unwds_get_node_settings().max_retr) &&
+                        (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A)) {
+                        /* class A node: go to sleep */
+                        puts("[LoRa] maximum join retries exceeded, stopping");
+                        current_join_retries = 0;
+                    } else {
+                        puts("[LoRa] join request timed out, resending");
+                        
+                        /* Pseudorandom delay for collision avoidance */
+                        unsigned int delay = random_uint32_range(30000 + (current_join_retries - 1)*60000, 90000 + (current_join_retries - 1)*60000);
+                        printf("[LoRa] random delay %d s\n", delay/1000);
+                        rtctimers_millis_set_msg(&send_retry_timer, delay, &msg_join, sender_pid);
+                    }
+                    break;
+                }
+                default:
+                    printf("[LoRa] join request: unknown response %d\n", res);
                     /* Pseudorandom delay for collision avoidance */
-                    unsigned int delay = random_uint32_range(30000 + (current_join_retries - 1)*60000, 90000 + (current_join_retries - 1)*60000);
+                    unsigned int delay = random_uint32_range(600000, 1200000);
                     printf("[LoRa] random delay %d s\n", delay/1000);
                     rtctimers_millis_set_msg(&send_retry_timer, delay, &msg_join, sender_pid);
+                    break;
                 }
-                break;
-            }
-            default:
-                printf("[LoRa] join request: unknown response %d\n", res);
-                /* Pseudorandom delay for collision avoidance */
-                unsigned int delay = random_uint32_range(600000, 1200000);
-                printf("[LoRa] random delay %d s\n", delay/1000);
-                rtctimers_millis_set_msg(&send_retry_timer, delay, &msg_join, sender_pid);
-                break;
             }
         } else {
             switch (msg.type) {
                 case MSG_TYPE_LORAMAC_TX_STATUS: {
                     if (msg.content.value == SEMTECH_LORAMAC_TX_DONE) {
                         puts("[LoRa] TX done");
+                        break;
                     }
-                    else
+                    
                     if (msg.content.value == SEMTECH_LORAMAC_TX_CNF_FAILED) {
                         puts("[LoRa] Uplink confirmation failed");
                         uplinks_failed++;
@@ -203,8 +251,10 @@ static void *sender_thread(void *arg) {
                             uplinks_failed = 0;
                             msg_send(&msg_join, sender_pid);
                         }
+                        break;
                     }
                     
+                    printf("[LoRa] Unknown TX status %lu\n", msg.content.value);
                     break;
                 }
                 case MSG_TYPE_LORAMAC_RX: {
@@ -620,31 +670,11 @@ static void unwds_callback(module_data_t *buf)
     }
     printf("\n");
 #endif
-    
-    int res = semtech_loramac_send(&ls, buf->data, buf->length);
 
-    switch (res) {
-        case SEMTECH_LORAMAC_BUSY:
-            puts("[error] MAC already busy");
-            break;
-        case SEMTECH_LORAMAC_NOT_JOINED: {
-            puts("[error] Not joined to the network");
-
-            if (current_join_retries == 0) {
-                puts("[info] Attempting to rejoin");
-                msg_send(&msg_join, sender_pid);
-            } else {
-                puts("[info] Waiting for the node to join");
-            }
-            break;
-        }
-        case SEMTECH_LORAMAC_TX_SCHEDULED:
-            puts("[info] TX scheduled");
-            break;
-        default:
-            puts("[warning] Unknown response");
-            break;
-    }
+    node_data.buffer = buf->data;
+    node_data.length = buf->length;
+    msg_data.content.ptr = &node_data;
+    msg_send(&msg_data, sender_pid);
 
     blink_led(LED0_PIN);
 }

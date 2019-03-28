@@ -77,11 +77,12 @@ int main(void) {
     for (i = 0; i < FFT_SAMPLE; i++) {
         fx[i] = (32767/5 * sin(i * 2 * M_PI * fsine / freq_sample));
         fx[i] += (32767/3 * sin(i * 2 * M_PI * fsine * 3 / freq_sample));
-        fx[i] = input_signal[i];
     }
+
 #if APPLY_WINDOW == 1
     hanning_window_q15(fx, FFT_SAMPLE);
-#endif    
+#endif 
+   
     if (fft_q15(fx, fx + FFT_SAMPLE, log_base_2(FFT_SAMPLE), 0) < 0)
         return 1;
 

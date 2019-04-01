@@ -352,9 +352,20 @@ static void ls_setup(semtech_loramac_t *ls)
     byteorder_swap(appeui, LORAMAC_APPEUI_LEN);
     semtech_loramac_set_appeui(ls, appeui);
     
+    /* set AppKey for OTAA */
     uint8_t appkey[LORAMAC_APPKEY_LEN];
-    memcpy(appkey, config_get_joinkey(), LORAMAC_APPKEY_LEN);
+    memcpy(appkey, config_get_appkey(), LORAMAC_APPKEY_LEN);
     semtech_loramac_set_appkey(ls, appkey);
+    
+    /* set AppSKey for ABP */
+    uint8_t appskey[LORAMAC_APPSKEY_LEN];
+    memcpy(appskey, config_get_appskey(), LORAMAC_APPKEY_LEN);
+    semtech_loramac_set_appkey(ls, appskey);
+    
+    /* set NwkSKey for ABP */
+    uint8_t nwkskey[LORAMAC_NWKSKEY_LEN];
+    memcpy(nwkskey, config_get_nwkskey(), LORAMAC_APPKEY_LEN);
+    semtech_loramac_set_appkey(ls, nwkskey);
     
     semtech_loramac_set_dr(ls, unwds_get_node_settings().dr);
     
@@ -449,15 +460,26 @@ static void print_config(void)
 
     printf("OTAA = %s\n", (unwds_get_node_settings().no_join) ? "no" : "yes");
 
-    if (!unwds_get_node_settings().no_join && DISPLAY_JOINKEY_2BYTES) {
-        uint8_t *key = config_get_joinkey();
-        printf("JOINKEY = 0x....%01X%01X\n", key[14], key[15]);
+#if DISPLAY_JOINKEY_2BYTES
+    uint8_t *key;
+    if (unwds_get_node_settings().no_join) {
+        key = config_get_appskey();
+        printf("AppsKey = 0x....%01X%01X\n", key[14], key[15]);
+        
+        key = config_get_nwkskey();
+        printf("NwksKey = 0x....%01X%01X\n", key[14], key[15]);
+    } else {
+        key = config_get_appkey();
+        printf("AppKey = 0x....%01X%01X\n", key[14], key[15]);
     }
+#endif
 
-    if (unwds_get_node_settings().no_join && DISPLAY_DEVNONCE_BYTE) {
+#if DISPLAY_DEVNONCE_BYTE
+    if (unwds_get_node_settings().no_join) {
     	uint8_t devnonce = config_get_devnonce();
-    	printf("DEVNONCE = 0x...%01X\n", devnonce & 0x0F);
+    	printf("DevAddr = 0x...%01X\n", devnonce & 0x0F);
     }
+#endif
 
     if (unwds_get_node_settings().no_join) {
     	printf("ADDR = 0x%08X\n", (unsigned int) unwds_get_node_settings().dev_addr);

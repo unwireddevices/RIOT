@@ -74,8 +74,6 @@ bool check_crc_eui64(config_eui64_t *cfg, uint32_t crc)
 void config_reset_nvram(void)
 {
     memset(&config, 0, sizeof(nvram_config_t));
-    config.magic = CONFIG_MAGIC;
-    config.version = CONFIG_FORMAT_VER;
 
     config_valid = false;
 
@@ -88,31 +86,30 @@ bool load_config_nvram(void)
     memset(&temp_config, 0, sizeof(nvram_config_t));
 
     if (eeprom_read(CONFIG_ADDR, (uint8_t *)&temp_config, CONFIG_SIZE)) {
-        /* Check magic */
-        if (temp_config.magic != CONFIG_MAGIC) {
-            puts("Magic is wrong");
-            return false;
-        }
-
         /* Check CRC */
         if (!check_crc_config(&temp_config, temp_config.cfg_crc)) {
             /* let's check if it's an old config version */
             
             nvram_old_config_t old_config;
-            if (eeprom_read(CONFIG_ADDR, (uint8_t *) &old_config, CONFIG_SIZE - 4)) {
-                uint16_t actual_crc = get_crc((uint8_t *) &old_config, CONFIG_SIZE - 4 - 4);
+            if (eeprom_read(CONFIG_ADDR, (uint8_t *) &old_config, OLD_CONFIG_SIZE)) {
+                uint16_t actual_crc = get_crc((uint8_t *) &old_config, OLD_CONFIG_SIZE - 4);
+                
                 if (actual_crc != old_config.cfg_crc) {
                     puts("CRC is wrong");
                     return false;
                 } else {
                     puts ("Converting old config to a new one");
-                    memcpy(&config, &temp_config, sizeof(nvram_config_t));
+                    config.appid64 = old_config.appid64;
+                    config.dev_nonce = old_config.dev_nonce;
+
+                    memcpy(&config.nwk_key, &old_config.nwk_key, sizeof(config.nwk_key));
+                    
                     save_config_nvram();
                 }
             }
+        } else {
+            memcpy(&config, &temp_config, sizeof(nvram_config_t));
         }
-
-        memcpy(&config, &temp_config, sizeof(nvram_config_t));
 		
 		for (uint32_t i=0; i<16; i++) {
 			if (config.nwk_key[i] > 0) {
@@ -139,9 +136,6 @@ bool save_eui64_nvram(void)
 
 bool save_config_nvram(void)
 {
-    config.magic = CONFIG_MAGIC;
-    config.version = CONFIG_FORMAT_VER;
-
     /* Calculate checksum excluding old CRC field at the end*/
     config.cfg_crc = get_crc((uint8_t *) &config, CONFIG_SIZE - 4);
 
@@ -187,11 +181,11 @@ config_role_t config_get_role(void)
     return ROLE_NO_CFG;
 }
 
-bool config_write_main_block(uint64_t appid64, uint8_t joinkey[16], uint32_t devnonce)
+bool config_write_main_block(uint64_t appid64, uint8_t appkey[16], uint32_t devnonce)
 {
 	config.dev_nonce = devnonce;
     config.appid64 = appid64;
-    memcpy(config.nwk_key, joinkey, 16);
+    memcpy(config.nwk_key, appkey, 16);
 
     return save_config_nvram();
 }
@@ -233,9 +227,29 @@ uint64_t config_get_appid(void)
     return config.appid64;
 }
 
-uint8_t *config_get_joinkey(void)
+uint8_t *config_get_appkey(void)
 {
     return config.nwk_key;
+}
+
+uint8_t *config_get_appskey(void)
+{
+    return config.apps_key;
+}
+
+uint8_t *config_get_nwkskey(void)
+{
+    return config.nwks_key;
+}
+
+void config_set_appskey(uint8_t *appskey)
+{
+    memcpy(config.apps_key, appskey, sizeof(config.apps_key));
+}
+
+void config_set_nwkskey(uint8_t *nwkskey)
+{
+    memcpy(config.nwks_key, nwkskey, sizeof(config.nwks_key));
 }
 
 uint32_t config_get_devnonce(void)

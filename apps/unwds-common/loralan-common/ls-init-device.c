@@ -73,7 +73,13 @@ static void print_config(void);
 
 static uint64_t eui64 = 0;
 static uint64_t appid = 0;
-static uint8_t joinkey[16] = {};
+
+static uint8_t appkey[16] = {};
+#if defined(UNWDS_MAC_LORAWAN)
+static uint8_t appskey[16] = {};
+static uint8_t nwkskey[16] = {};
+#endif
+
 static uint32_t devnonce = 0;
 
 static rtctimers_millis_t iwdg_timer;
@@ -172,26 +178,49 @@ void init_role(shell_command_t *commands) {
 static void print_help(void) {
     switch (config_get_role()) {
         case ROLE_NO_EUI64:
-            puts("set eui64 <16 hex symbols> -- sets device EUI64 (permanently after save!)");
-            puts("\tExample: set eui64 00000000000011ff");
+            puts("set deveui <16 hex symbols> -- sets DevEUI");
+            puts("\tExample: set deveui 00000000000011ff");
             break;
             
         case ROLE_EMPTY_KEY:
-            puts("set joinkey <32 hex symbols> -- sets network encryption key. Must be shared between all nodes in the same network");
-            puts("\tExample: set joinkey aabbccddeeff00112233445566778899");
+            puts("set appkey <32 hex symbols> -- sets OTAA network encryption key");
             devnonce = config_get_devnonce();
             appid = config_get_appid();
             eui64 = config_get_nodeid();
+            
+            #if defined(UNWDS_MAC_LORAWAN)
+            memcpy(appskey, config_get_appskey(), sizeof(appskey));
+            memcpy(nwkskey, config_get_nwkskey(), sizeof(nwkskey));
+            
+            puts("set appskey <32 hex symbols> -- sets ABP AppSkey encryption key");
+            puts("set nwkskey <32 hex symbols> -- sets ABP NwkSkey encryption key");
+            #endif
+
+            puts("\tExample: set appkey aabbccddeeff00112233445566778899");
             break;
             
         case ROLE_NO_CFG:
-            puts("set appid64 <16 hex symbols> -- sets application ID");
-            puts("\tExample: set appid64 00000000000011ff");
+            puts("set appeui <16 hex symbols> -- sets AppEUI");
+            puts("\tExample: set appeui 00000000000011ff");
             puts("");
-            puts("set joinkey <32 hex symbols> -- sets network encryption key. Must be shared between all nodes in the same network");
-            puts("\tExample: set joinkey aabbccddeeff00112233445566778899");
+
+            puts("set appkey <32 hex symbols> -- sets OTAA network encryption key");
+            
+            #if defined(UNWDS_MAC_LORAWAN)
+            puts("set appskey <32 hex symbols> -- sets ABP AppSkey encryption key");
+            puts("set nwkskey <32 hex symbols> -- sets ABP NwkSkey encryption key");
+            #endif
+            
+            puts("\tExample: set appkey aabbccddeeff00112233445566778899");
             puts("");
+            
+            #if defined(UNWDS_MAC_LORAWAN)
+            puts("set devaddr <8 hex symbols> -- sets network device address DevAddr");
+            #else
             puts("set devnonce <8 hex symbols> -- sets session encryption key for no-join devices");
+            #endif
+
+            
             puts("\tExample: set devnonce aabbccdd");
             eui64 = config_get_nodeid();
             break;
@@ -222,11 +251,11 @@ static int set_cmd(int argc, char **argv)
     char *type = argv[1];
     char *arg = argv[2];
 
-    if ((strcmp(type, "appid64") == 0) && (config_get_role() == ROLE_NO_CFG)) {
+    if ((strcmp(type, "appeui") == 0) && (config_get_role() == ROLE_NO_CFG)) {
         uint64_t id = 0;
 
         if (strlen(arg) != 16) {
-            puts("[error] AppID must be 64 bits (16 hex symbols) long");
+            puts("[error] AppEUI must be 64 bits (16 hex symbols) long");
             return 1;
         }
 
@@ -235,22 +264,69 @@ static int set_cmd(int argc, char **argv)
             return 1;
         }
 
-        printf("[ok] APPID64 = 0x%08x%08x\n", (unsigned int) (id >> 32), (unsigned int) (id & 0xFFFFFFFF));
+        printf("[ok] AppEUI = 0x%08x%08x\n", (unsigned int) (id >> 32), (unsigned int) (id & 0xFFFFFFFF));
         appid = id;
     }
-    else if (strcmp(type, "joinkey") == 0) {
+    else if (strcmp(type, "appkey") == 0) {
         if (strlen(arg) != 32) {
-            puts("[error] Joinkey must be 128 bits (32 hex symbols) long");
+            puts("[error] AppKey must be 128 bits (32 hex symbols) long");
             return 1;
         }
 
-        if (!hex_to_bytes(arg, joinkey, false)) {
+        if (!hex_to_bytes(arg, appkey, false)) {
             puts("[error] Invalid format specified");
             return 1;
         }
 
-        printf("[ok] JOINKEY = %s\n", arg);
-    } 
+        printf("[ok] AppKey = %s\n", arg);
+    }
+#if defined(UNWDS_MAC_LORAWAN)
+    else if (strcmp(type, "appskey") == 0) {
+        if (strlen(arg) != 32) {
+            puts("[error] AppsKey must be 128 bits (32 hex symbols) long");
+            return 1;
+        }
+
+        if (!hex_to_bytes(arg, appskey, false)) {
+            puts("[error] Invalid format specified");
+            return 1;
+        }
+
+        config_set_appskey(appskey);
+        printf("[ok] AppsKey = %s\n", arg);
+    }
+    else if (strcmp(type, "nwkskey") == 0) {
+        if (strlen(arg) != 32) {
+            puts("[error] AppKey must be 128 bits (32 hex symbols) long");
+            return 1;
+        }
+
+        if (!hex_to_bytes(arg, nwkskey, false)) {
+            puts("[error] Invalid format specified");
+            return 1;
+        }
+
+        config_set_nwkskey(nwkskey);
+        printf("[ok] NwksKey = %s\n", arg);
+    }
+    else if ((strcmp(type, "devaddr") == 0) && (config_get_role() == ROLE_NO_CFG)) {
+        if (strlen(arg) != 8) {
+            puts("[error] DevAddr must be 32 bits (8 hex symbols) long");
+            return 1;
+        }
+
+        uint32_t d = 0;
+
+        if (!hex_to_bytesn(arg, 8, (uint8_t *) &d, true)) {
+            puts("[error] Invalid format specified");
+            return 1;
+        }
+
+        printf("[ok] DevAddr = %s\n", arg);
+
+        devnonce = d;
+    }
+#else
     else if ((strcmp(type, "devnonce") == 0) && (config_get_role() == ROLE_NO_CFG)) {
         if (strlen(arg) != 8) {
             puts("[error] Nonce must be 32 bits (8 hex symbols) long");
@@ -268,6 +344,7 @@ static int set_cmd(int argc, char **argv)
 
         devnonce = d;
     }
+#endif
     else if ((strcmp(type, "eui64") == 0) && (config_get_role() == ROLE_NO_EUI64)) {
         uint64_t id = 0;
 
@@ -320,16 +397,16 @@ static int save_cmd(int argc, char **argv)
         
         switch (config_get_role()) {
             case ROLE_EMPTY_KEY:
-                /* Set joinkey */
-                status = config_write_main_block(appid, joinkey, devnonce);
+                /* Set appkey */
+                status = config_write_main_block(appid, appkey, devnonce);
                 break;
             case ROLE_NO_EUI64:
                 /* Set EUI64 */
                 status = write_eui64_nvram(eui64);
                 break;
             case ROLE_NO_CFG:
-                /* Set appID, joinkey and nonce */
-                status = config_write_main_block(appid, joinkey, devnonce);
+                /* Set appID, appkey and nonce */
+                status = config_write_main_block(appid, appkey, devnonce);
                 break;
             default:
                 break;
@@ -373,7 +450,7 @@ static void print_config(void)
     
     printf("EUI64 = 0x%08x%08x\n", (unsigned int) (eui64 >> 32), (unsigned int) (eui64 & 0xFFFFFFFF));
     
-    bytes_to_hex(joinkey, 16, s, false);
+    bytes_to_hex(appkey, 16, s, false);
     printf("JOINKEY = %s\n", s);
     
     printf("DEVNONCE = 0x%08X\n", (unsigned int) devnonce);
@@ -401,9 +478,9 @@ static int init_clear_nvram(int argc, char **argv)
         }
     }
     else if (strcmp(key, "key") == 0) {
-        uint8_t joinkey_zero[16];
-        memset(joinkey_zero, 0, 16);
-        if (config_write_main_block(config_get_appid(), joinkey_zero, 0)) {
+        uint8_t appkey_zero[16];
+        memset(appkey_zero, 0, 16);
+        if (config_write_main_block(config_get_appid(), appkey_zero, 0)) {
             puts("[ok] Security key and device nonce was zeroed. Rebooting.");
             NVIC_SystemReset();
         }

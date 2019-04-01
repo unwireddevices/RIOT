@@ -136,6 +136,13 @@ uint32_t SX127XTimeOnAir(RadioModems_t modem, uint8_t pktLen)
 
 void SX127XSend(uint8_t *buffer, uint8_t size)
 {
+#if ENABLE_DEBUG
+    printf("SX1276: send 0x");
+    for (int i = 0; i < size; i++) {
+        printf("%02X", buffer[i]);
+    }
+    printf("\n");
+#endif
     netdev_t *dev = (netdev_t *)&sx127x;
     iolist_t iol = {
         .iol_base = buffer,

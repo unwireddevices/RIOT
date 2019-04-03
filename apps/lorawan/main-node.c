@@ -356,17 +356,17 @@ static void ls_setup(semtech_loramac_t *ls)
     uint8_t appkey[LORAMAC_APPKEY_LEN];
     memcpy(appkey, config_get_appkey(), LORAMAC_APPKEY_LEN);
     semtech_loramac_set_appkey(ls, appkey);
-    
+
     /* set AppSKey for ABP */
     uint8_t appskey[LORAMAC_APPSKEY_LEN];
     memcpy(appskey, config_get_appskey(), LORAMAC_APPKEY_LEN);
-    semtech_loramac_set_appkey(ls, appskey);
+    semtech_loramac_set_appskey(ls, appskey);
     
     /* set NwkSKey for ABP */
     uint8_t nwkskey[LORAMAC_NWKSKEY_LEN];
     memcpy(nwkskey, config_get_nwkskey(), LORAMAC_APPKEY_LEN);
-    semtech_loramac_set_appkey(ls, nwkskey);
-    
+    semtech_loramac_set_nwkskey(ls, nwkskey);
+
     semtech_loramac_set_dr(ls, unwds_get_node_settings().dr);
     
     semtech_loramac_set_adr(ls, unwds_get_node_settings().adr);

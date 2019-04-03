@@ -449,20 +449,28 @@ static void print_config(void)
 {
     puts("[config] Current configuration:");
     
-    char s[32] = {};
+    char s[33] = {};
     
     printf("DevEUI = 0x%08x%08x\n", (unsigned int) (eui64 >> 32), (unsigned int) (eui64 & 0xFFFFFFFF));
 
-    bytes_to_hex(appkey, 16, s, false);
-    printf("AppKey = %s\n", s);
-
-    #if defined(UNWDS_MAC_LORAWAN)
-    printf("DevAddr = 0x%08X\n", (unsigned int) devnonce);
-    #else
-    printf("DEVNONCE = 0x%08X\n", (unsigned int) devnonce);
-    #endif
-
-    printf("AppEUI = 0x%08x%08x\n", (unsigned int) (appid >> 32), (unsigned int) (appid & 0xFFFFFFFF));
+    if (config_get_role() != ROLE_NO_EUI64) {
+        printf("AppEUI = 0x%08x%08x\n", (unsigned int) (appid >> 32), (unsigned int) (appid & 0xFFFFFFFF));
+        
+        #if defined(UNWDS_MAC_LORAWAN)
+        printf("DevAddr = 0x%08X\n", (unsigned int) devnonce);
+        #else
+        printf("DEVNONCE = 0x%08X\n", (unsigned int) devnonce);
+        #endif
+        
+        bytes_to_hex(appkey, 16, s, false);
+        printf("AppKey = %s\n", s);
+        
+        bytes_to_hex(appskey, 16, s, false);
+        printf("AppsKey = %s\n", s);
+        
+        bytes_to_hex(nwkskey, 16, s, false);
+        printf("NwksKey = %s\n", s);
+    }
 }
 
 static int init_clear_nvram(int argc, char **argv)

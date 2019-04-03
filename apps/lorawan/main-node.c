@@ -147,7 +147,9 @@ static int node_join(semtech_loramac_t *ls) {
         puts("[LoRa] joining");
     }
     
-    return (semtech_loramac_join(ls, LORAMAC_JOIN_OTAA));
+    uint8_t join_type = (unwds_get_node_settings().no_join)? LORAMAC_JOIN_ABP: LORAMAC_JOIN_OTAA;
+
+    return (semtech_loramac_join(ls, join_type));
 }
 
 static void *sender_thread(void *arg) {
@@ -366,6 +368,14 @@ static void ls_setup(semtech_loramac_t *ls)
     uint8_t nwkskey[LORAMAC_NWKSKEY_LEN];
     memcpy(nwkskey, config_get_nwkskey(), LORAMAC_APPKEY_LEN);
     semtech_loramac_set_nwkskey(ls, nwkskey);
+    
+    /* set device address for ABP */
+    uint32_t devaddr_u32 = config_get_devnonce();
+    /* on Little Endian system, we have to reverse byte order for DevAddr */
+    byteorder_swap((void *)&devaddr_u32, sizeof(devaddr_u32));
+    semtech_loramac_set_devaddr(ls, (void *)&devaddr_u32);
+    
+    //semtech_loramac_set_netid(ls, 0xAB130C);
 
     semtech_loramac_set_dr(ls, unwds_get_node_settings().dr);
     
@@ -474,15 +484,8 @@ static void print_config(void)
     }
 #endif
 
-#if DISPLAY_DEVNONCE_BYTE
     if (unwds_get_node_settings().no_join) {
-    	uint8_t devnonce = config_get_devnonce();
-    	printf("DevAddr = 0x...%01X\n", devnonce & 0x0F);
-    }
-#endif
-
-    if (unwds_get_node_settings().no_join) {
-    	printf("DevAddr = 0x%08X\n", (unsigned int) unwds_get_node_settings().dev_addr);
+    	printf("DevAddr = 0x%08X\n", (unsigned)config_get_devnonce());
     }
 
     printf("DevEUI = 0x%08x%08x\n", (unsigned int) (eui64 >> 32), (unsigned int) (eui64 & 0xFFFFFFFF));

@@ -216,12 +216,12 @@ static void print_help(void) {
             
             #if defined(UNWDS_MAC_LORAWAN)
             puts("set devaddr <8 hex symbols> -- sets network device address DevAddr");
+            puts("\tExample: set devaddr aabbccdd");
             #else
             puts("set devnonce <8 hex symbols> -- sets session encryption key for no-join devices");
+            puts("\tExample: set devnonce aabbccdd");
             #endif
 
-            
-            puts("\tExample: set devnonce aabbccdd");
             eui64 = config_get_nodeid();
             break;
         default:
@@ -345,11 +345,11 @@ static int set_cmd(int argc, char **argv)
         devnonce = d;
     }
 #endif
-    else if ((strcmp(type, "eui64") == 0) && (config_get_role() == ROLE_NO_EUI64)) {
+    else if ((strcmp(type, "deveui") == 0) && (config_get_role() == ROLE_NO_EUI64)) {
         uint64_t id = 0;
 
         if (strlen(arg) != 16) {
-            puts("[error] There must be 16 hexadecimal digits in lower case as EUI64 ID");
+            puts("[error] There must be 16 hexadecimal digits in lower case as DevEUI");
             return 1;
         }
 
@@ -358,7 +358,7 @@ static int set_cmd(int argc, char **argv)
             return 1;
         }
 
-        printf("[ok] EUI64 = 0x%08x%08x\n", (unsigned int) (id >> 32), (unsigned int) (id & 0xFFFFFFFF));
+        printf("[ok] DevEUI = 0x%08x%08x\n", (unsigned int) (id >> 32), (unsigned int) (id & 0xFFFFFFFF));
         eui64 = id;
     } else {
         puts("[error] Unknown command");
@@ -438,8 +438,11 @@ static void init_config(shell_command_t *commands)
 
     blink_led(LED0_PIN);
 
+    if (config_get_role() != ROLE_NO_EUI64) {
+        print_config();
+    }
+    
     print_help();
-    print_config();
 }
 
 static void print_config(void)
@@ -448,14 +451,18 @@ static void print_config(void)
     
     char s[32] = {};
     
-    printf("EUI64 = 0x%08x%08x\n", (unsigned int) (eui64 >> 32), (unsigned int) (eui64 & 0xFFFFFFFF));
-    
+    printf("DevEUI = 0x%08x%08x\n", (unsigned int) (eui64 >> 32), (unsigned int) (eui64 & 0xFFFFFFFF));
+
     bytes_to_hex(appkey, 16, s, false);
-    printf("JOINKEY = %s\n", s);
-    
+    printf("AppKey = %s\n", s);
+
+    #if defined(UNWDS_MAC_LORAWAN)
+    printf("DevAddr = 0x%08X\n", (unsigned int) devnonce);
+    #else
     printf("DEVNONCE = 0x%08X\n", (unsigned int) devnonce);
-    
-    printf("APPID64 = 0x%08x%08x\n", (unsigned int) (appid >> 32), (unsigned int) (appid & 0xFFFFFFFF));
+    #endif
+
+    printf("AppEUI = 0x%08x%08x\n", (unsigned int) (appid >> 32), (unsigned int) (appid & 0xFFFFFFFF));
 }
 
 static int init_clear_nvram(int argc, char **argv)
@@ -723,11 +730,17 @@ void unwds_device_init(void *unwds_callback, void *unwds_init, void *unwds_join,
         blink_led(LED0_PIN);
     }
 
+/* even in ABP mode, LoRaWAN must perform join procedure */
+#if !defined(UNWDS_MAC_LORAWAN)
     if (!unwds_get_node_settings().no_join) {
         void (*board_join)(void) = unwds_join;
-        
         board_join();
     }
+#else
+    void (*board_join)(void) = unwds_join;
+    board_join();
+#endif
+
 }
 
 #ifdef __cplusplus

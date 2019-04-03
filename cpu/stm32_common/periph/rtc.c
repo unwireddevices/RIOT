@@ -372,7 +372,7 @@ int rtc_get_alarm(struct tm *time)
     uint32_t alrm = RTC->ALRMAR;
 
     time->tm_year = bcd2val(dr, RTC_DR_YU_Pos, DR_Y_MASK) + YEAR_OFFSET;
-    time->tm_mon  = bcd2val(dr, RTC_DR_MU_Pos, DR_M_MASK);
+    time->tm_mon  = bcd2val(dr, RTC_DR_MU_Pos, DR_M_MASK) - 1;
     
     if ((alrm & RTC_ALRMAR_WDSEL) == RTC_ALRMAR_WDSEL) {
         time->tm_wday = bcd2val(alrm, RTC_DR_WDU_Pos, DR_WDU_MASK);

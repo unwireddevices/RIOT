@@ -189,6 +189,9 @@ static void *sender_thread(void *arg) {
                     case SEMTECH_LORAMAC_TX_OK:
                         puts("[info] TX is in progress");
                         break;
+                    case SEMTECH_LORAMAC_DUTYCYCLE_RESTRICTED:
+                        puts("[error] TX duty cycle restricted");
+                        break;
                     default:
                         printf("[warning] Unknown response %d\n", res);
                         break;

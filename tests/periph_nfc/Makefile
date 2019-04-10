@@ -27,4 +27,4 @@ include $(RIOTBASE)/Makefile.include
 
 .PHONY: all
 all: 
-	@$(OBJCOPY) $(OFLAGS) -Oihex $(ELFFILE) bin/$(BOARD)/nrf-nfc.hex
+	@$(OBJCOPY) $(OFLAGS) -Oihex $(ELFFILE) bin/$(BOARD)/$(APPLICATION).hex

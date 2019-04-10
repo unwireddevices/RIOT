@@ -248,8 +248,8 @@ void umdk_st95_init(uwnds_cb_t *event_callback)
 
     radio_pid = thread_create(stack, UMDK_ST95_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, radio_send, NULL, "st95 thread");
     
-    st95_params.iface = ST95_IFACE_UART;
-    mode = UMDK_ST95_MODE_SET_UID;
+    st95_params.iface = ST95_IFACE_SPI;
+    mode = UMDK_ST95_MODE_DETECT_TAG;
 
     if(st95_init(&dev, &st95_params) != ST95_OK){
         puts("[umdk-" _UMDK_NAME_ "] st95 driver initialization error");

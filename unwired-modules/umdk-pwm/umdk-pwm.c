@@ -45,7 +45,6 @@ extern "C" {
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <limits.h>
 
 #include "board.h"
 #include "periph/gpio.h"

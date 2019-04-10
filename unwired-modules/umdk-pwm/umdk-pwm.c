@@ -48,6 +48,7 @@ extern "C" {
 
 #include "board.h"
 #include "periph/gpio.h"
+#include "rtctimers-millis.h"
 
 #include "umdk-ids.h"
 #include "unwds-common.h"
@@ -57,19 +58,72 @@ extern "C" {
 #include "debug.h"
 
 static uwnds_cb_t *callback;
+static rtctimers_millis_t timer_softstart;
 
-static void set_pwm_value(gpio_t pin, uint32_t freq, uint8_t duty, uint16_t pulses) {
+typedef struct {
+    uint8_t duty_delta;
+    uint8_t target_duty;
+    uint8_t current_duty;
+} timer_soft_t;
+
+static timer_soft_t timer_soft[UMDK_PWM_MAX_PWM_NUMBER];
+
+static void pwm_softstart(void *arg) {
+    uint32_t pwm_number = (uint32_t) arg;
+    
+    uint32_t pwm_dev = pwm_number / pwm_channels(0);
+    uint32_t pwm_chan = pwm_number % pwm_channels(0);
+    
+    if (timer_soft[pwm_number].current_duty != timer_soft[pwm_number].target_duty) {    
+        if (timer_soft[pwm_number].current_duty > timer_soft[pwm_number].target_duty) { /* going down */
+            if ((timer_soft[pwm_number].current_duty - timer_soft[pwm_number].duty_delta) > timer_soft[pwm_number].target_duty) {
+                timer_soft[pwm_number].current_duty -= timer_soft[pwm_number].duty_delta;
+            } else {
+                timer_soft[pwm_number].current_duty = timer_soft[pwm_number].target_duty;
+            }
+        } else { /* going up */
+            if ((timer_soft[pwm_number].current_duty + timer_soft[pwm_number].duty_delta) < timer_soft[pwm_number].target_duty) {
+                timer_soft[pwm_number].current_duty += timer_soft[pwm_number].duty_delta;
+            } else {
+                timer_soft[pwm_number].current_duty = timer_soft[pwm_number].target_duty;
+            }
+        }
+        
+        if (timer_soft[pwm_number].current_duty == 0) { /* stop the PWM completely */
+            pwm_stop(pwm_dev, pwm_chan);
+        } else {
+            pwm_set(pwm_dev, pwm_chan, timer_soft[pwm_number].current_duty);
+        }
+        
+        rtctimers_millis_set(&timer_softstart, UMDK_PWM_SOFTSTART_STEP_MS);
+    } else {
+        pwm_set(pwm_dev, pwm_chan, timer_soft[pwm_number].current_duty);
+    }
+}
+
+static void set_pwm_value(gpio_t pin, uint32_t freq, uint8_t duty, uint16_t pulses, uint8_t soft) {
     for (uint32_t pwm_dev = 0; pwm_dev < PWM_NUMOF; pwm_dev++) {
-        for (uint32_t pwm_chan = 0; pwm_chan < pwm_channels(pwm_dev); pwm_chan++) {
+        for (uint32_t pwm_chan = 0; pwm_chan < pwm_channels(0); pwm_chan++) {
             if (pwm_config[pwm_dev].chan[pwm_chan].pin == pin) {
+                
+                uint32_t pwm_number = (pwm_channels(0) * pwm_dev) + pwm_chan;
+                timer_softstart.arg = (void *)pwm_number;
+                timer_soft[pwm_number].duty_delta = soft;
                 
                 printf("[umdk-" _UMDK_NAME_ "] PWM %lu:%lu", pwm_dev, pwm_chan);
                 
                 if (freq > 0) {
                     /* initialize PWM */
                     pwm_init(pwm_dev, PWM_LEFT, freq, 100);
+                    
                     /* set PWM duty cycle */
-                    pwm_set(pwm_dev, pwm_chan, duty);
+                    if (soft == 0) {
+                        timer_soft[pwm_number].current_duty = duty;
+                        pwm_set(pwm_dev, pwm_chan, duty);
+                    } else {
+                        timer_soft[pwm_number].target_duty = duty;
+                        rtctimers_millis_set(&timer_softstart, UMDK_PWM_SOFTSTART_STEP_MS);
+                    }
                     
                     /* start PWM */
                     if (pulses == 0) {
@@ -82,7 +136,13 @@ static void set_pwm_value(gpio_t pin, uint32_t freq, uint8_t duty, uint16_t puls
                     
                     DEBUG("F %lu Hz, D %d %%, N %d", freq, duty, pulses);
                 } else {
-                    pwm_stop(pwm_dev, pwm_chan);
+                    if (soft == 0) {
+                        timer_soft[pwm_number].current_duty = 0;
+                        pwm_stop(pwm_dev, pwm_chan);
+                    } else {
+                        timer_soft[pwm_number].target_duty = 0;
+                        rtctimers_millis_set(&timer_softstart, UMDK_PWM_SOFTSTART_STEP_MS);
+                    }
                     
                     puts(" stopped");
                 }
@@ -111,8 +171,8 @@ static void reply_ok(module_data_t *reply) {
 
 static int umdk_pwm_shell_cmd(int argc, char **argv) {
     if (argc < 2) {
-        puts (_UMDK_NAME_ " start <pin> <frequency> <duty> <pulses>");
-        puts (_UMDK_NAME_ " stop <pin>");
+        puts (_UMDK_NAME_ " start <pin> <frequency> <duty> <pulses> <softstart>");
+        puts (_UMDK_NAME_ " stop <pin> <softstop>");
         return 0;
     }
 
@@ -127,26 +187,31 @@ static int umdk_pwm_shell_cmd(int argc, char **argv) {
         uint16_t pulses = atoi(argv[5]);
         convert_to_be_sam((void *)&pulses, sizeof(pulses));
         
-        cmd.length = 7;
+        uint8_t soft = atoi(argv[6]);
+        
+        cmd.length = 8;
         cmd.data[0] = UMDK_PWM_COMMAND;
         cmd.data[1] = pin;
         cmd.data[2] = freq & 0xFF;
         cmd.data[3] = freq >> 8;
         cmd.data[4] = duty;
-        cmd.data[2] = pulses & 0xFF;
-        cmd.data[3] = pulses >> 8;
+        cmd.data[5] = pulses & 0xFF;
+        cmd.data[6] = pulses >> 8;
+        cmd.data[7] = soft;
         
         umdk_pwm_cmd(&cmd, NULL);
     }
     
     if (strcmp(argv[1], "stop") == 0) {
         uint8_t pin = atoi(argv[2]);
+        uint8_t soft = atoi(argv[3]);
 
-        cmd.length = 7;
+        cmd.length = 8;
         cmd.data[0] = UMDK_PWM_COMMAND;
         cmd.data[1] = pin;
         cmd.data[2] = 0;
         cmd.data[3] = 0;
+        cmd.data[7] = soft;
         
         umdk_pwm_cmd(&cmd, NULL);
     }
@@ -157,7 +222,7 @@ static int umdk_pwm_shell_cmd(int argc, char **argv) {
 bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply) {
     umdk_pwm_cmd_t c = cmd->data[0];
     
-    if (cmd->length < 7) {
+    if (cmd->length < 8) {
         puts("[umdk-" _UMDK_NAME_ "] Incorrect command");
         reply_fail(reply);
         return true;
@@ -169,7 +234,7 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply) {
             bool pwm_pin_correct = false;
             
             for (uint32_t k = 0; k < PWM_NUMOF; k++) {
-                for (uint32_t m = 0; m < pwm_channels(k); m++) {
+                for (uint32_t m = 0; m < pwm_channels(0); m++) {
                     if (pwm_config[k].chan[m].pin == unwds_gpio_pin(pwm_pin)) {
                         pwm_pin_correct = true;
                         break;
@@ -195,8 +260,10 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply) {
             uint16_t pwm_pulses = cmd->data[5] | cmd->data[6] << 8;
             convert_from_be_sam((void *)&pwm_pulses, sizeof(pwm_pulses));
             
+            uint8_t pwm_soft = cmd->data[7];
+            
             /* setup and start PWM channel */
-			set_pwm_value(unwds_gpio_pin(pwm_pin), pwm_freq, pwm_duty, pwm_pulses);
+			set_pwm_value(unwds_gpio_pin(pwm_pin), pwm_freq, pwm_duty, pwm_pulses, pwm_soft);
 
 			reply_ok(reply);
 			return true;
@@ -210,6 +277,8 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply) {
 
 void umdk_pwm_init(uwnds_cb_t *event_callback) {
     callback = event_callback;
+    
+    timer_softstart.callback = pwm_softstart;
     
     unwds_add_shell_command(_UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_pwm_shell_cmd);
     

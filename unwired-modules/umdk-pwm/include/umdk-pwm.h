@@ -36,6 +36,9 @@
 
 #include "periph/pwm.h"
 
+#define UMDK_PWM_MAX_PWM_NUMBER  16
+#define UMDK_PWM_SOFTSTART_STEP_MS  10
+
 /**
  * @brief UMDK-PWM module commands list
  */

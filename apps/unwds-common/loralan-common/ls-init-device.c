@@ -465,11 +465,13 @@ static void print_config(void)
         bytes_to_hex(appkey, 16, s, false);
         printf("AppKey = %s\n", s);
         
+        #if defined(UNWDS_MAC_LORAWAN)
         bytes_to_hex(appskey, 16, s, false);
         printf("AppsKey = %s\n", s);
         
         bytes_to_hex(nwkskey, 16, s, false);
         printf("NwksKey = %s\n", s);
+        #endif
     }
 }
 

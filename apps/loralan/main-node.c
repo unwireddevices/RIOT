@@ -280,7 +280,7 @@ static void ls_setup(ls_ed_t *ls)
     	ls_derive_keys(config_get_devnonce(), 0, unwds_get_node_settings().dev_addr, ls->settings.crypto.mic_key, ls->settings.crypto.aes_key);
     	ls->_internal.dev_addr = unwds_get_node_settings().dev_addr;
     } else {
-    	memcpy(ls->settings.crypto.join_key, config_get_joinkey(), LS_MIC_KEY_LEN);
+    	memcpy(ls->settings.crypto.join_key, config_get_appkey(), LS_MIC_KEY_LEN);
     }
     ls->join_timeout_cb = joined_timeout_cb;
     ls->joined_cb = joined_cb;
@@ -438,7 +438,7 @@ static void print_config(void)
     printf("NOJOIN = %s\n", (unwds_get_node_settings().no_join) ? "yes" : "no");
 
     if (!unwds_get_node_settings().no_join && DISPLAY_JOINKEY_2BYTES) {
-        uint8_t *key = config_get_joinkey();
+        uint8_t *key = config_get_appkey();
         printf("JOINKEY = 0x....%01X%01X\n", key[14], key[15]);
     }
 

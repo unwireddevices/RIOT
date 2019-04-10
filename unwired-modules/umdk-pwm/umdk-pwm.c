@@ -110,14 +110,15 @@ static void reply_ok(module_data_t *reply) {
 }
 
 static int umdk_pwm_shell_cmd(int argc, char **argv) {
-    if (argc < 5) {
-        puts (_UMDK_NAME_ " set <pin> <frequency> <duty> <pulses>");
+    if (argc < 2) {
+        puts (_UMDK_NAME_ " start <pin> <frequency> <duty> <pulses>");
+        puts (_UMDK_NAME_ " stop <pin>");
         return 0;
     }
-    
-    char *cmd = argv[1];
+
+    module_data_t cmd;
 	
-    if (strcmp(cmd, "set") == 0) {
+    if (strcmp(argv[1], "start") == 0) {
         uint8_t pin = atoi(argv[2]);
         uint16_t freq = atoi(argv[3]);
         convert_to_be_sam((void *)&freq, sizeof(freq));
@@ -125,8 +126,6 @@ static int umdk_pwm_shell_cmd(int argc, char **argv) {
         uint8_t duty = atoi(argv[4]);
         uint16_t pulses = atoi(argv[5]);
         convert_to_be_sam((void *)&pulses, sizeof(pulses));
-        
-        module_data_t cmd;
         
         cmd.length = 7;
         cmd.data[0] = UMDK_PWM_COMMAND;
@@ -136,6 +135,18 @@ static int umdk_pwm_shell_cmd(int argc, char **argv) {
         cmd.data[4] = duty;
         cmd.data[2] = pulses & 0xFF;
         cmd.data[3] = pulses >> 8;
+        
+        umdk_pwm_cmd(&cmd, NULL);
+    }
+    
+    if (strcmp(argv[1], "stop") == 0) {
+        uint8_t pin = atoi(argv[2]);
+
+        cmd.length = 7;
+        cmd.data[0] = UMDK_PWM_COMMAND;
+        cmd.data[1] = pin;
+        cmd.data[2] = 0;
+        cmd.data[3] = 0;
         
         umdk_pwm_cmd(&cmd, NULL);
     }

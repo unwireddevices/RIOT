@@ -54,238 +54,139 @@ extern "C" {
 #include "unwds-common.h"
 #include "include/umdk-pwm.h"
 
-static const uint16_t koeff_duty = (uint16_t)(UMDK_PWM_RES_DEFAULT / UMDK_PWM_DUTY_MAX);
-
-static umdk_pwm_dev_t pwm_devs[UMDK_PWM_NUM_DEVS] = {
-			{
-				.dev      	= UMDK_PWM_0,
-				.num_chan 	= UMDK_PWM_0_NUM_CH_MAX,
-				.mode 	  	= PWM_LEFT,
-				.freq 		= UMDK_PWM_FREQ_DEFAULT,
-				.res 		= UMDK_PWM_RES_DEFAULT,
-
-				.pwm_chs[0] = { UMDK_PWM_CH_0, UMDK_PWM_STATUS_DEFAULT, UMDK_PWM_DUTY_DEFAULT },
-				.pwm_chs[1] = { UMDK_PWM_CH_1, UMDK_PWM_STATUS_DEFAULT, UMDK_PWM_DUTY_DEFAULT },
-				.pwm_chs[2] = { UMDK_PWM_CH_2, UMDK_PWM_STATUS_DEFAULT, UMDK_PWM_DUTY_DEFAULT },
-				.pwm_chs[3] = { UMDK_PWM_CH_3, UMDK_PWM_STATUS_DEFAULT, UMDK_PWM_DUTY_DEFAULT },
-
-				.is_started = false
-			},
-			{
-				.dev      	= UMDK_PWM_1,
-				.num_chan 	= UMDK_PWM_1_NUM_CH_MAX,
-				.mode 	  	= PWM_LEFT,
-				.freq 		= UMDK_PWM_FREQ_DEFAULT,
-				.res 		= UMDK_PWM_RES_DEFAULT,
-
-				.pwm_chs[0] = { UMDK_PWM_CH_0, UMDK_PWM_STATUS_DEFAULT, UMDK_PWM_DUTY_DEFAULT },
-				.pwm_chs[1] = { UMDK_PWM_CH_1, UMDK_PWM_STATUS_DEFAULT, UMDK_PWM_DUTY_DEFAULT },
-
-				.is_started = false
-			},
-			{
-				.dev      	= UMDK_PWM_2,
-				.num_chan 	= UMDK_PWM_2_NUM_CH_MAX,
-				.mode 	  	= PWM_LEFT,
-				.freq 		= UMDK_PWM_FREQ_DEFAULT,
-				.res 		= UMDK_PWM_RES_DEFAULT,
-
-				.pwm_chs[0] = { UMDK_PWM_CH_2, UMDK_PWM_STATUS_DEFAULT, UMDK_PWM_DUTY_DEFAULT },
-				.pwm_chs[1] = { UMDK_PWM_CH_3, UMDK_PWM_STATUS_DEFAULT, UMDK_PWM_DUTY_DEFAULT },
-
-				.is_started = false
-			},
-};
-
+#define ENABLE_DEBUG    (1)
+#include "debug.h"
 
 static uwnds_cb_t *callback;
 
-void umdk_pwm_init(uwnds_cb_t *event_callback)
-{
-
-    callback = event_callback;
-
-    for (int i = 0; i < UMDK_PWM_NUM_DEVS; i++) {
-        umdk_pwm_dev_t *dev = &pwm_devs[i];
-
-        printf("[umdk-" _UMDK_NAME_ "] Initializing PWM#%d with frequency %d Hz and resolution up to %d\n", dev->dev, (int) dev->freq, dev->res);
-
-        pwm_init(dev->dev, dev->mode, dev->freq, dev->res);
-        pwm_stop(dev->dev);
+static void set_pwm_value(gpio_t pin, uint32_t freq, uint8_t duty, uint16_t pulses) {
+    for (uint32_t pwm_dev = 0; pwm_dev < PWM_NUMOF; pwm_dev++) {
+        for (uint32_t pwm_chan = 0; pwm_chan < pwm_channels(pwm_dev); pwm_chan++) {
+            if (pwm_config[pwm_dev].chan[pwm_chan].pin == pin) {
+                
+                printf("[umdk-" _UMDK_NAME_ "] PWM %lu:%lu", pwm_dev, pwm_chan);
+                
+                if (freq > 0) {
+                    /* initialize PWM */
+                    pwm_init(pwm_dev, PWM_LEFT, freq, 100);
+                    /* set PWM duty cycle */
+                    pwm_set(pwm_dev, pwm_chan, duty);
+                    
+                    /* start PWM */
+                    if (pulses == 0) {
+                        pwm_start(pwm_dev, pwm_chan);
+                    } else {
+                        pwm_pulses(pwm_dev, pwm_chan, pulses);
+                    }
+                    
+                    puts(" started");
+                    
+                    DEBUG("F %lu Hz, D %d %%, N %d", freq, duty, pulses);
+                } else {
+                    pwm_stop(pwm_dev, pwm_chan);
+                    
+                    puts(" stopped");
+                }
+                
+                return;
+            }
+        }
     }
 }
 
-static inline void update_pwm_freq(umdk_pwm_dev_t *dev, uint32_t freq)
-{
-    dev->freq = freq;
-
-    pwm_stop(dev->dev);
-    pwm_init(dev->dev, dev->mode, dev->freq, dev->res);
-}
-
-static void set_pwm_value(umdk_pwm_dev_t *dev, umdk_pwm_ch_t *ch, uint8_t value)
-{
-    ch->duty_cycle = (uint16_t)(value * koeff_duty);
-
-    /*
-     * Check that device for corresponding channel is need to be started or can be stopped.
-     * We could stop the PWM device if all it's channels are not initialization
-     */
-    bool need_to_start = !dev->is_started;
-    bool can_be_stopped = true;
-
-    uint8_t channel = ch->ch;
-
-    for (int i = 0; i < dev->num_chan; i++) {
-        umdk_pwm_ch_t *chan = &(dev->pwm_chs[i]);
-		/* Device can't be stopped if it has initialization channels */
-		if (chan->status == UMDK_PWM_CH_TURN_ON) {
-			can_be_stopped = false;
-		}
-    }
-
-    if (can_be_stopped) {
-		/* Stop current device if it was started */
-		if (dev->is_started) {
-			pwm_stop(dev->dev);
-			dev->is_started = false;
-
-			printf("[umdk-" _UMDK_NAME_ "] PWM device #%d is stopped\n", dev->dev);
-		}
-		else {
-			printf("[umdk-" _UMDK_NAME_ "] PWM device #%d is not work now\n", dev->dev);
-		}
-    }
-    else {
-	  /* Start or continue work current PWM device */
-	  if (need_to_start) {
-		pwm_poweron(dev->dev);
-		dev->is_started = true;
-		printf("[umdk-" _UMDK_NAME_ "] PWM device #%d is started\n", dev->dev);
-	  }
-
-	  /* Set value for the current channel in current PWM device if it's running */
-	   if (dev->is_started) {
-		pwm_set(dev->dev, channel, ch->duty_cycle);
-		printf("[umdk-" _UMDK_NAME_ "] Set PWM device #%d channel #%d to %d%%(%d)\n", dev->dev, channel, value, ch->duty_cycle);
-	   }
+static void reply_fail(module_data_t *reply) {
+    if (reply) {
+        reply->length = 2;
+        reply->data[0] = _UMDK_MID_;
+        reply->data[1] = UMDK_PWM_FAIL;
     }
 }
 
-static inline void umdk_pwm_turn_off_pin(gpio_t pin)
-{
-	GPIO_TypeDef *port = (GPIO_TypeDef *)( pin & ~(0x0F));
-	int pin_num =  ( pin & 0x0F );
-
-	/* disable pull-up on GPIO */
-	port->PUPDR &= ~(0x3 << (2 * pin_num));
-	/*  Set analog mode */
-	port->MODER &= ~(0x3 << (2 * pin_num));
-	port->MODER |= (0x3 << (2 * pin_num));
+static void reply_ok(module_data_t *reply) {
+    if (reply) {
+        reply->length = 2;
+        reply->data[0] = _UMDK_MID_;
+        reply->data[1] = UMDK_PWM_COMMAND;
+    }
 }
 
-static inline void reply_error(module_data_t *reply) 
-{
-	reply->as_ack = true;
-	reply->length = 2;
-	reply->data[0] = _UMDK_MID_;
-	reply->data[1] = 1;
+static int umdk_pwm_shell_cmd(int argc, char **argv) {
+    if (argc < 5) {
+        puts (_UMDK_NAME_ " set <pin> <frequency> <duty> <pulses>");
+        return 0;
+    }
+    
+    char *cmd = argv[1];
+	
+    if (strcmp(cmd, "set") == 0) {
+        uint8_t pin = atoi(argv[2]);
+        uint16_t freq = atoi(argv[3]);
+        convert_to_be_sam((void *)&freq, sizeof(freq));
+        
+        uint8_t duty = atoi(argv[4]);
+        uint16_t pulses = atoi(argv[5]);
+        convert_to_be_sam((void *)&pulses, sizeof(pulses));
+        
+        module_data_t cmd;
+        
+        cmd.length = 7;
+        cmd.data[0] = UMDK_PWM_COMMAND;
+        cmd.data[1] = pin;
+        cmd.data[2] = freq & 0xFF;
+        cmd.data[3] = freq >> 8;
+        cmd.data[4] = duty;
+        cmd.data[2] = pulses & 0xFF;
+        cmd.data[3] = pulses >> 8;
+        
+        umdk_pwm_cmd(&cmd, NULL);
+    }
+    
+    return 1;
 }
 
-static inline void reply_ok(module_data_t *reply)
-{
-	reply->as_ack = true;	
-	reply->length = 2;
-	reply->data[0] = _UMDK_MID_;
-	reply->data[1] = 0;
-}
-
-bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
-{
-    /* Check minimum command length */
-    if (cmd->length < 6) {
-		printf("[umdk-" _UMDK_NAME_ "] wrong command length\n");
-		reply_error(reply);
+bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply) {
+    umdk_pwm_cmd_t c = cmd->data[0];
+    
+    if (cmd->length < 7) {
+        puts("[umdk-" _UMDK_NAME_ "] Incorrect command");
+        reply_fail(reply);
         return true;
     }
 
-    umdk_pwm_cmd_t c = (cmd->data[0] >> 4) & 0x0F;
-
     switch (c) {
-        case UMDK_PWM_CMD_SET: {
-			
-			/* Check maximum value of frequency */
-			uint32_t freq = (((cmd->data[0] & 0x0F) << 16) + (cmd->data[1] << 8) + (cmd->data[2])) & 0x000FFFFF;
-			if(freq > UMDK_PWM_FREQ_MAX) {
-				printf("[umdk-" _UMDK_NAME_ "] Error: frequncy is %d, max allowed is %d Hz\n", (int)freq, UMDK_PWM_FREQ_MAX);
-				reply_error(reply);
-				return true;
-			}
-			
-			/* Check maximum value of number of the PWM devices */
-			uint8_t dev_id = cmd->data[3];
-			if (dev_id >= UMDK_PWM_NUM_DEVS) {
-				printf("[umdk-" _UMDK_NAME_ "] Invalid PWM device selected: %d >= %d\n", dev_id, UMDK_PWM_NUM_DEVS);
-				reply_error(reply);
-				return true;
-			}
-			
-			/* Check allowing value of status channel */
-			uint8_t status = (cmd->data[4] >> 4) & 0x0F;
-			if(status > 1) {
-				printf("[umdk-" _UMDK_NAME_ "] Invalid channel turn on/off command: %d (should be 1 or 0 )\n", status);
-				reply_error(reply);
-				return true;
-			}
-			
-			/* Check maximum value of number of the channel */
-			uint8_t ch_num = (cmd->data[4] & 0x0F);
-			if(ch_num >= pwm_devs[dev_id].num_chan) {
-				printf("[umdk-" _UMDK_NAME_ "] Invalid PWM device #%d channel number: %d (maximum is %d)\n", dev_id, ch_num, pwm_devs[dev_id].num_chan);
-				reply_error(reply);
-				return true;
-			}
-			
-			/* Check maximum value of the duty cycle */
-			uint8_t duty_value = cmd->data[5];
-			if(duty_value > UMDK_PWM_DUTY_MAX) {
-				printf("[umdk-" _UMDK_NAME_ "] Invalid duty cycle: %d%% (maximum is %d%%)\n", duty_value, UMDK_PWM_DUTY_MAX);
-				reply_error(reply);
-				return true;
-			}
-
-            /* Update corresponding PWM channel */
-            umdk_pwm_dev_t *dev = &pwm_devs[dev_id];
-            umdk_pwm_ch_t *ch = &(dev->pwm_chs[ch_num]);
-
-			/* Check necessity Turning on/off channel */
-			if(status == UMDK_PWM_CH_TURN_OFF) {
-                printf("[umdk-" _UMDK_NAME_ "] PWM device #%d channel %d turned off\n", dev_id, ch_num);
-                umdk_pwm_turn_off_pin(pwm_config[dev_id].chan[ch->ch].pin);
-                ch->status = UMDK_PWM_CH_TURN_OFF;
-			}
-			else {
-
-				if(status == UMDK_PWM_CH_TURN_ON) {
-					if(ch->status == UMDK_PWM_CH_TURN_OFF) {
-						gpio_init(pwm_config[dev_id].chan[ch->ch].pin, GPIO_OUT);
-						gpio_init_af(pwm_config[dev_id].chan[ch->ch].pin, pwm_config[dev_id].af);
-
-						printf("[umdk-" _UMDK_NAME_ "] PWM device #%d channel %d turned on\n", dev_id, ch_num);
-						ch->status = UMDK_PWM_CH_TURN_ON;
-					}
-					/* Update value of frequency if it's don't same */
-					if (dev->freq != freq) {
-						printf("[umdk-" _UMDK_NAME_ "] Updating PWM device #%d frequency from %d to %d Hz\n", dev->dev, (int) dev->freq, (int) freq);
-						update_pwm_freq(dev, freq);
-					}
-
-					printf("[umdk-" _UMDK_NAME_ "] Setting PWM#%d ch: %d to %d/%d with frequency %d Hz\n",
-					dev->dev, ch_num, duty_value, UMDK_PWM_DUTY_MAX, (int) freq);
-				}
-			}
-			/* Set new value of the duty cycle channel */
-			set_pwm_value(dev, ch, duty_value);
+        case UMDK_PWM_COMMAND: {
+            uint8_t pwm_pin = cmd->data[1];
+            bool pwm_pin_correct = false;
+            
+            for (uint32_t k = 0; k < PWM_NUMOF; k++) {
+                for (uint32_t m = 0; m < pwm_channels(k); m++) {
+                    if (pwm_config[k].chan[m].pin == unwds_gpio_pin(pwm_pin)) {
+                        pwm_pin_correct = true;
+                        break;
+                    }
+                }
+                if (pwm_pin_correct) {
+                    break;
+                }
+            }
+            
+            if (!pwm_pin_correct) {
+                printf("[umdk-" _UMDK_NAME_ "] PWM not available on pin %u\n", pwm_pin);
+                reply_fail(reply);
+                return true;
+            }
+            
+            
+            uint16_t pwm_freq = cmd->data[2] | cmd->data[3] << 8;
+            convert_from_be_sam((void *)&pwm_freq, sizeof(pwm_freq));
+            
+            uint8_t pwm_duty = cmd->data[4];
+            
+            uint16_t pwm_pulses = cmd->data[5] | cmd->data[6] << 8;
+            convert_from_be_sam((void *)&pwm_pulses, sizeof(pwm_pulses));
+            
+            /* setup and start PWM channel */
+			set_pwm_value(unwds_gpio_pin(pwm_pin), pwm_freq, pwm_duty, pwm_pulses);
 
 			reply_ok(reply);
 			return true;
@@ -295,6 +196,14 @@ bool umdk_pwm_cmd(module_data_t *cmd, module_data_t *reply)
     }
 
     return false;
+}
+
+void umdk_pwm_init(uwnds_cb_t *event_callback) {
+    callback = event_callback;
+    
+    unwds_add_shell_command(_UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_pwm_shell_cmd);
+    
+    puts("[umdk-" _UMDK_NAME_ "] PWM is ready");
 }
 
 

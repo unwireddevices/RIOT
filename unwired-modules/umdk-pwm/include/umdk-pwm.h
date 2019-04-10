@@ -94,7 +94,10 @@ typedef struct {
  * @brief UMDK-PWM module commands list
  */
 typedef enum {
-    UMDK_PWM_CMD_SET = 0, /**< Sets frequency and duty cycle for specified PWM channel  */
+    UMDK_PWM_DATA = 0,
+	UMDK_PWM_COMMAND = 1,
+	UMDK_PWM_POLL = 2,
+    UMDK_PWM_FAIL = 0xFF,
 } umdk_pwm_cmd_t;
 
 void umdk_pwm_init(uwnds_cb_t *event_callback);

@@ -453,25 +453,15 @@ int main(void)
     /* generate 64-bit address based on CPUID */    
     luid_get((void *)&address_uart, sizeof(address_uart));
     
-    printf("DevAddr: 0x%16llx\n", address_uart);
+    printf("DevAddr: 0x%08lx%08lx\n", (uint32_t)(address_uart >> 32), (uint32_t)(address_uart & 0xFFFFFFFF));
     
 #if defined(CPU_LINE_STM32F051x8)
-    cpu_status.flash.pages = 32;
-    cpu_status.flash.pagesize = 1024;
-    cpu_status.flash.size = 32768;
-    
     /* enable MCO */
     gpio_init_af(GPIO_PIN(PORT_A, 8), GPIO_AF0);
 #elif defined(CPU_LINE_STM32F030x8) || defined(CPU_LINE_STM32F070xB)
-    cpu_status.flash.pages = 16;
-    cpu_status.flash.pagesize = 1024;
-    cpu_status.flash.size = 16384;
-    /* WARNING: 16384-1024 = 15360 bytes max firmware size */
-    
     /* setup 24 MHz output to feed the sensor */
     pwm_init(SOILSENSOR_PWM_DEV, PWM_RIGHT, 24000000, 2);
     pwm_set(SOILSENSOR_PWM_DEV, 0, 1);
-
 #else
     #error Unsupported CPU model
 #endif
@@ -494,9 +484,9 @@ int main(void)
     }
     
     uart_init(SOILSENSOR_COMM_UART, sensor_settings.baud, uart_input, NULL);
-    
+
     static char stack[SOILSENSOR_STACK_SIZE];
-    process_pid = thread_create(stack, sensor_settings.baud, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, processing_thread, NULL, "data");
+    process_pid = thread_create(stack, SOILSENSOR_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, processing_thread, NULL, "data");
     
     puts("Sending data");
     prepare_data(buf_out);

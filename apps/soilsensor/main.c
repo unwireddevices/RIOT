@@ -453,6 +453,18 @@ int main(void)
     /* generate 64-bit address based on CPUID */    
     luid_get((void *)&address_uart, sizeof(address_uart));
     
+#if defined(CPU_LINE_STM32F051x8)
+    printf("STM32F051x8");
+#elif defined(CPU_LINE_STM32F030x8)
+    printf("STM32F030x8");
+#elif defined(CPU_LINE_STM32F070xB)
+    printf("STM32F070x8");
+#else
+    #error Unsupported CPU model
+#endif
+
+    printf(" (%u kB RAM, %u kB Flash)\n", cpu_status.ram.size/1024, cpu_status.flash.size/1024);
+    
     printf("DevAddr: 0x%08lx%08lx\n", (uint32_t)(address_uart >> 32), (uint32_t)(address_uart & 0xFFFFFFFF));
     
 #if defined(CPU_LINE_STM32F051x8)
@@ -462,8 +474,6 @@ int main(void)
     /* setup 24 MHz output to feed the sensor */
     pwm_init(SOILSENSOR_PWM_DEV, PWM_RIGHT, 24000000, 2);
     pwm_set(SOILSENSOR_PWM_DEV, 0, 1);
-#else
-    #error Unsupported CPU model
 #endif
     
     bool calibration = false;

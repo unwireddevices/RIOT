@@ -91,6 +91,7 @@ static node_data_t node_data;
 static msg_t msg_join = { .type = NODE_MSG_JOIN };
 static msg_t msg_data = { .type = NODE_MSG_SEND };
 static kernel_pid_t sender_pid;
+static rtctimers_millis_t join_retry_timer;
 static rtctimers_millis_t send_retry_timer;
 
 static kernel_pid_t main_thread_pid;
@@ -152,6 +153,13 @@ static int node_join(semtech_loramac_t *ls) {
     return (semtech_loramac_join(ls, join_type));
 }
 
+static void lora_resend_packet(void) {
+    /* schedule packet retransmission */
+    puts("[info] Scheduling packet retransmission in 30 seconds");
+    
+    rtctimers_millis_set_msg(&send_retry_timer, 30000, &msg_data, sender_pid);
+}
+
 static void *sender_thread(void *arg) {
     semtech_loramac_t *ls = (semtech_loramac_t *)arg;
     
@@ -174,12 +182,14 @@ static void *sender_thread(void *arg) {
                 switch (res) {
                     case SEMTECH_LORAMAC_BUSY:
                         puts("[error] MAC already busy");
+                        lora_resend_packet();
                         break;
                     case SEMTECH_LORAMAC_NOT_JOINED: {
                         puts("[error] Not joined to the network");
 
                         if (current_join_retries == 0) {
                             puts("[info] Attempting to rejoin");
+                            lora_resend_packet();
                             msg_send(&msg_join, sender_pid);
                         } else {
                             puts("[info] Waiting for the node to join");
@@ -191,6 +201,7 @@ static void *sender_thread(void *arg) {
                         break;
                     case SEMTECH_LORAMAC_DUTYCYCLE_RESTRICTED:
                         puts("[error] TX duty cycle restricted");
+                        lora_resend_packet();
                         break;
                     default:
                         printf("[warning] Unknown response %d\n", res);
@@ -225,7 +236,7 @@ static void *sender_thread(void *arg) {
                         /* Pseudorandom delay for collision avoidance */
                         unsigned int delay = random_uint32_range(30000 + (current_join_retries - 1)*60000, 90000 + (current_join_retries - 1)*60000);
                         printf("[LoRa] random delay %d s\n", delay/1000);
-                        rtctimers_millis_set_msg(&send_retry_timer, delay, &msg_join, sender_pid);
+                        rtctimers_millis_set_msg(&join_retry_timer, delay, &msg_join, sender_pid);
                     }
                     break;
                 }
@@ -234,7 +245,7 @@ static void *sender_thread(void *arg) {
                     /* Pseudorandom delay for collision avoidance */
                     unsigned int delay = random_uint32_range(600000, 1200000);
                     printf("[LoRa] random delay %d s\n", delay/1000);
-                    rtctimers_millis_set_msg(&send_retry_timer, delay, &msg_join, sender_pid);
+                    rtctimers_millis_set_msg(&join_retry_timer, delay, &msg_join, sender_pid);
                     break;
                 }
             }
@@ -255,6 +266,8 @@ static void *sender_thread(void *arg) {
                             current_join_retries = 0;
                             uplinks_failed = 0;
                             msg_send(&msg_join, sender_pid);
+                        } else {
+                            lora_resend_packet();
                         }
                         break;
                     }
@@ -703,6 +716,11 @@ static void unwds_callback(module_data_t *buf)
     node_data.buffer = buf->data;
     node_data.length = buf->length;
     msg_data.content.ptr = &node_data;
+    
+    /* remove any previously scheduled messages */
+    rtctimers_millis_remove(&send_retry_timer);
+    
+    /* send data */
     msg_send(&msg_data, sender_pid);
 
     blink_led(LED0_PIN);

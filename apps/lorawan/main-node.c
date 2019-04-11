@@ -385,8 +385,9 @@ static void ls_setup(semtech_loramac_t *ls)
     semtech_loramac_set_adr(ls, unwds_get_node_settings().adr);
     semtech_loramac_set_class(ls, unwds_get_node_settings().nodeclass);
     
-    /* Maximum number of confirmed data retransmissions */
-    semtech_loramac_set_retries(ls, unwds_get_node_settings().max_retr);
+    /* Retries will be handled by application */
+    /* semtech_loramac_set_retries(ls, unwds_get_node_settings().max_retr);*/ 
+    semtech_loramac_set_retries(ls, 0);
     
     if (unwds_get_node_settings().confirmation) {
         semtech_loramac_set_tx_mode(ls, LORAMAC_TX_CNF);   /* confirmed packets */

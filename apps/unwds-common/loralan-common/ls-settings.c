@@ -143,7 +143,8 @@ void unwds_config_reset(void) {
 
     node_settings.no_join = 0;
     node_settings.dev_addr = 0;
-    node_settings.confirmation = true; 
+    node_settings.confirmation = true;
+    node_settings.adr = true;
     
     /* Modules enabled by default */
     unwds_set_module(UNWDS_CONFIG_MODULE_ID, true);

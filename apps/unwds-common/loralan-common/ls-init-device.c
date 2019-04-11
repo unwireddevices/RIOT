@@ -183,46 +183,21 @@ static void print_help(void) {
             break;
             
         case ROLE_EMPTY_KEY:
-            puts("set appkey <32 hex symbols> -- sets OTAA network encryption key");
-            devnonce = config_get_devnonce();
-            appid = config_get_appid();
-            eui64 = config_get_nodeid();
-            
-            #if defined(UNWDS_MAC_LORAWAN)
-            memcpy(appskey, config_get_appskey(), sizeof(appskey));
-            memcpy(nwkskey, config_get_nwkskey(), sizeof(nwkskey));
-            
-            puts("set appskey <32 hex symbols> -- sets ABP AppSkey encryption key");
-            puts("set nwkskey <32 hex symbols> -- sets ABP NwkSkey encryption key");
-            #endif
-
-            puts("\tExample: set appkey aabbccddeeff00112233445566778899");
-            break;
-            
         case ROLE_NO_CFG:
             puts("set appeui <16 hex symbols> -- sets AppEUI");
-            puts("\tExample: set appeui 00000000000011ff");
-            puts("");
-
             puts("set appkey <32 hex symbols> -- sets OTAA network encryption key");
             
             #if defined(UNWDS_MAC_LORAWAN)
             puts("set appskey <32 hex symbols> -- sets ABP AppSkey encryption key");
             puts("set nwkskey <32 hex symbols> -- sets ABP NwkSkey encryption key");
             #endif
-            
-            puts("\tExample: set appkey aabbccddeeff00112233445566778899");
-            puts("");
             
             #if defined(UNWDS_MAC_LORAWAN)
             puts("set devaddr <8 hex symbols> -- sets network device address DevAddr");
-            puts("\tExample: set devaddr aabbccdd");
             #else
             puts("set devnonce <8 hex symbols> -- sets session encryption key for no-join devices");
-            puts("\tExample: set devnonce aabbccdd");
             #endif
 
-            eui64 = config_get_nodeid();
             break;
         default:
             puts("Unknown mode");
@@ -364,7 +339,7 @@ static int set_cmd(int argc, char **argv)
         puts("[error] Unknown command");
     }
     
-    print_config();
+    /* print_config(); */
     
     puts("Settings can be changed by calling 'set' command again");
     puts("Invoke 'save' command when finished");
@@ -396,14 +371,11 @@ static int save_cmd(int argc, char **argv)
         bool status = false;
         
         switch (config_get_role()) {
-            case ROLE_EMPTY_KEY:
-                /* Set appkey */
-                status = config_write_main_block(appid, appkey, devnonce);
-                break;
             case ROLE_NO_EUI64:
                 /* Set EUI64 */
                 status = write_eui64_nvram(eui64);
                 break;
+            case ROLE_EMPTY_KEY:
             case ROLE_NO_CFG:
                 /* Set appID, appkey and nonce */
                 status = config_write_main_block(appid, appkey, devnonce);
@@ -437,8 +409,18 @@ static void init_config(shell_command_t *commands)
     memcpy(commands, shell_commands_cfg, sizeof(shell_commands_cfg));
 
     blink_led(LED0_PIN);
-
+    
     if (config_get_role() != ROLE_NO_EUI64) {
+        eui64 = config_get_nodeid();
+        appid = config_get_appid();
+        
+        memcpy(appkey, config_get_appkey(), sizeof(appkey));
+        
+    #if defined(UNWDS_MAC_LORAWAN)
+        memcpy(appskey, config_get_appskey(), sizeof(appskey));
+        memcpy(nwkskey, config_get_nwkskey(), sizeof(nwkskey));
+    #endif
+        
         print_config();
     }
     

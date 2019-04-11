@@ -43,7 +43,7 @@
  * @brief UMDK-PWM module commands list
  */
 typedef enum {
-    UMDK_PWM_DATA = 0,
+    UMDK_PWM_OK = 0,
 	UMDK_PWM_COMMAND = 1,
 	UMDK_PWM_POLL = 2,
     UMDK_PWM_FAIL = 0xFF,

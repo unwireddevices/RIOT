@@ -155,17 +155,19 @@ static void set_pwm_value(gpio_t pin, uint32_t freq, uint8_t duty, uint16_t puls
 
 static void reply_fail(module_data_t *reply) {
     if (reply) {
-        reply->length = 2;
+        reply->length = 3;
         reply->data[0] = _UMDK_MID_;
-        reply->data[1] = UMDK_PWM_FAIL;
+        reply->data[1] = UMDK_PWM_COMMAND;
+        reply->data[2] = UMDK_PWM_FAIL;
     }
 }
 
 static void reply_ok(module_data_t *reply) {
     if (reply) {
-        reply->length = 2;
+        reply->length = 3;
         reply->data[0] = _UMDK_MID_;
         reply->data[1] = UMDK_PWM_COMMAND;
+        reply->data[2] = UMDK_PWM_OK;
     }
 }
 

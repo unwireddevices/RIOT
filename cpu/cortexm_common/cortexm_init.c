@@ -127,12 +127,15 @@ bool cpu_check_address(volatile const char *address)
     
     /* R5 will be set to 0 by HardFault handler */
     /* to indicate HardFault has occured */
-    register uint32_t result __asm("r5") = 1;
+    register bool result __asm("r5") = 1;             /* set default return value   */
+    register uint32_t sign1 __asm("r1") = 0xDEADF00D; /* set magic number           */
+    register uint32_t sign2 __asm("r2") = 0xCAFEBABE; /* 2nd magic to be sure       */
+    uint32_t scratch;
 
     __asm__ volatile (
-        "ldr  r1, =0xDEADF00D   \n" /* set magic number     */
-        "ldr  r2, =0xCAFEBABE   \n" /* 2nd magic to be sure */
-        "ldrb r3, [r0]          \n" /* probe address        */
+        "ldrb %[scratch], [%[address]]  \n"           /* probe address              */
+        :"=r"(result),[scratch]"=l"(scratch)
+        :[address]"l"(address),"r"(result),"r"(sign1), "r"(sign2)
     );
 
     return result;

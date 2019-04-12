@@ -27,7 +27,8 @@
 #include "bmx280_internals.h"
 #include "bmx280_params.h"
 #include "periph/i2c.h"
-#include "xtimer.h"
+
+#include "rtctimers-millis.h"
 
 #define ENABLE_DEBUG        (0)
 #include "debug.h"
@@ -319,11 +320,17 @@ static int do_measurement(const bmx280_t* dev)
         write_u8_reg(dev, BMX280_CTRL_MEAS_REG, ctrl_meas);
 
         /* Wait for measurement ready? */
-        size_t count = 0;
-        while (count < 10 && (get_status(dev) & 0x08) != 0) {
+        size_t count = 20;
+        while (count && (get_status(dev) & 0x08) != 0) {
+            rtctimers_millis_sleep(10);
             ++count;
         }
         /* What to do when measuring is still on? */
+        if (!count) {
+            LOG_ERROR("Reading time expired\n");
+            i2c_release(dev->params.i2c_dev);
+            return -1;
+        }
     }
     int result;
     int nr_bytes_to_read = sizeof(measurement_regs);

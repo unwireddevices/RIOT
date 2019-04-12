@@ -103,6 +103,28 @@ static const uart_conf_t uart_config[] = {
 /** @} */
 
 /**
+ * @brief   PWM configuration
+ * @{
+ */
+static const pwm_conf_t pwm_config[] = {
+    {
+        .dev      = TIM1,
+        .rcc_mask = RCC_APB2ENR_TIM1EN,
+        .chan     = { { .pin = GPIO_PIN(PORT_A, 8),  .cc_chan = 0 },
+                      { .pin = GPIO_PIN(PORT_A, 9),  .cc_chan = 1 },
+                      { .pin = GPIO_PIN(PORT_A, 10), .cc_chan = 2 },
+                      { .pin = GPIO_PIN(PORT_A, 11), .cc_chan = 3 }, },
+        .af       = GPIO_AF2,
+        .bus      = APB2,
+        .irqn     = TIM1_CC_IRQn
+    }
+};
+
+#define TIM_0_ISR           isr_tim1
+
+#define PWM_NUMOF           (sizeof(pwm_config) / sizeof(pwm_config[0]))
+
+/**
  * @brief   ADC configuration
  * @{
  */

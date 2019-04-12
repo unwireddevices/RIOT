@@ -208,7 +208,7 @@ static void set_period(uint32_t period) {
 
 int umdk_soil_shell_cmd(int argc, char **argv) {
     if (argc == 1) {
-        puts ("soil send - obtain data from sensor");
+        puts ("soil get - obtain data from sensor");
         puts ("soil send - obtain and send data");
         puts ("soil period <period> - set publishing period in seconds");
         puts ("soil reset - reset settings to default");

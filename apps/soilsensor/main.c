@@ -118,7 +118,7 @@ static void cpu_switch_idle(bool idle) {
 
     uint32_t irqs = irq_disable();
     uint32_t reg = RCC->CFGR;
-    reg &= ~RCC_CFGR_HPRE_Msk;
+    reg &= ~RCC_CFGR_HPRE;
     
     if (idle) {
         /* switch core to 48/16 = 3 MHz */
@@ -187,11 +187,7 @@ static sensor_data_t readval(void)
     if (moisture < 0) {
         moisture = 0;
     }
-#if ENABLE_DEBUG
     printf("Moisture: %d %% (%d)\n", moisture, data.moisture_raw);
-#else
-    printf("Moisture: %d %%\n", moisture);
-#endif
     
     temp = (10*vdda*temp)/(4096 * n); /* mV*10 */
     
@@ -299,11 +295,11 @@ static void prepare_data(uint8_t *buf)
 {
     cpu_switch_idle(false);
     pwm_start(SOILSENSOR_PWM_DEV, 0);
-    
+    puts("Warming up sensor");
     xtimer_sleep(SOILSENSOR_SENSOR_WARMUP);
     sensor_data_t data = readval();
+
     pwm_stop(SOILSENSOR_PWM_DEV, 0);
-    
     cpu_switch_idle(true);
     
     buf[0] = START_BYTE;
@@ -466,15 +462,10 @@ int main(void)
     printf(" (%u kB RAM, %u kB Flash)\n", cpu_status.ram.size/1024, cpu_status.flash.size/1024);
     
     printf("DevAddr: 0x%08lx%08lx\n", (uint32_t)(address_uart >> 32), (uint32_t)(address_uart & 0xFFFFFFFF));
-    
-#if defined(CPU_LINE_STM32F051x8)
-    /* enable MCO */
-    gpio_init_af(GPIO_PIN(PORT_A, 8), GPIO_AF0);
-#elif defined(CPU_LINE_STM32F030x8) || defined(CPU_LINE_STM32F070xB)
+
     /* setup 24 MHz output to feed the sensor */
     pwm_init(SOILSENSOR_PWM_DEV, PWM_RIGHT, 24000000, 2);
     pwm_set(SOILSENSOR_PWM_DEV, 0, 1);
-#endif
     
     bool calibration = false;
     flashpage_read(cpu_status.flash.pages - 1, (void *)&sensor_settings, sizeof(sensor_settings));
@@ -503,7 +494,7 @@ int main(void)
     send_data(buf_out);
     
     puts("Data sent");
-    
+
     while (1) {
         xtimer_sleep(sensor_settings.period - SOILSENSOR_SENSOR_WARMUP);
         puts("Sending data");

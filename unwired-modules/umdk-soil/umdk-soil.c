@@ -76,17 +76,15 @@ static kernel_pid_t timer_pid;
 #define ADDRESS_SIZE                8   // bytes 1-8 are for the device address
 #define OFFSET_TYPE                 9   // byte 9 is device type
 #define OFFSET_CMD                  10  // byte 10 is command code
-#define OFFSET_BYTE_MOISTURE        11  // byte 11 is for moisture
-#define OFFSET_BYTE_TEMP            12  // byte 12 is for temperature
-#define OFFSET_BYTE_CRC             13  // bytes 13-14 is for CRC
+#define OFFSET_SIZE                 11  // byte 11 is data size
+#define OFFSET_BYTE_MOISTURE        12  // byte 12 is for moisture
+#define OFFSET_BYTE_TEMP            13  // byte 13 is for temperature
+#define OFFSET_BYTE_CRC             14  // bytes 13-14 is for CRC
 #define CRC_SIZE                    2
 #define BUF_SIZE                    OFFSET_BYTE_CRC + CRC_SIZE
 
 enum {
-    TYPE_NODATA         = 0,
-    TYPE_ASK            = 1,
-    TYPE_ADDRESS        = 2,
-    TYPE_SOIL_SENSOR    = 3,
+    TYPE_SOIL_SENSOR    = 1,
 } data_types_t;
 
 static volatile int rx_cnt = 0;

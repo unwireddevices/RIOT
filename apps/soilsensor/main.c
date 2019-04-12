@@ -100,9 +100,11 @@ typedef struct {
     uint32_t magic;
     uint32_t baud;
     uint16_t period;
+    int moisture_min;
+    int moisture_max;
 } sensor_settings_t;
 
-static sensor_settings_t sensor_settings = { 0xCAFEBABE, 0, 0 };
+static sensor_settings_t sensor_settings = { 0xCAFEBABE, 0, 0, 0, 0};
 
 typedef struct {
     int moisture_raw;
@@ -175,11 +177,8 @@ static sensor_data_t readval(void)
     vdda /= n;
     printf("VDD: %d mV\n", vdda);
 
-    /*
-    moisture -= (100*sensor_settings.moisture_min);
-    moisture /= (sensor_settings.moisture_max - sensor_settings.moisture_min);
-    */
-    
+    moisture = (100*sensor_settings.moisture_min - moisture) / (sensor_settings.moisture_min - sensor_settings.moisture_max);
+
     if (moisture > 100) {
         moisture = 100;
     }
@@ -187,6 +186,7 @@ static sensor_data_t readval(void)
     if (moisture < 0) {
         moisture = 0;
     }
+    
     printf("Moisture: %d %% (%d)\n", moisture, data.moisture_raw);
     
     temp = (10*vdda*temp)/(4096 * n); /* mV*10 */
@@ -466,23 +466,22 @@ int main(void)
     /* setup 24 MHz output to feed the sensor */
     pwm_init(SOILSENSOR_PWM_DEV, PWM_RIGHT, 24000000, 2);
     pwm_set(SOILSENSOR_PWM_DEV, 0, 1);
-    
-    bool calibration = false;
+
     flashpage_read(cpu_status.flash.pages - 1, (void *)&sensor_settings, sizeof(sensor_settings));
     
     if (sensor_settings.magic != 0xCAFEBABE) {
         sensor_settings.magic = 0xCAFEBABE;
         sensor_settings.baud = SOILSENSOR_COMM_DEF_BAUD;
         sensor_settings.period = SOILSENSOR_COMM_DEF_PERIOD;
+        sensor_settings.moisture_min = 1665;
+        sensor_settings.moisture_max = 500;
+        
+        puts("(!!!) UNCALIBRATED SENSOR (!!!)");
     }
     
     puts("*****************************");
     
     uint8_t buf_out[BUF_SIZE];
-    
-    if (!calibration) {
-        puts("(!!!) UNCALIBRATED SENSOR (!!!)");
-    }
     
     uart_init(SOILSENSOR_COMM_UART, sensor_settings.baud, uart_input, NULL);
 

@@ -310,10 +310,11 @@ void isr_radio(void)
             if ((NRF_RADIO->CRCSTATUS != 1) || !(nrfmin_dev.event_callback)) {
                 rx_buf.pkt.hdr.len = 0;
                 NRF_RADIO->TASKS_START = 1;
-                return;
             }
-            rx_lock = 0;
-            nrfmin_dev.event_callback(&nrfmin_dev, NETDEV_EVENT_ISR, NULL);
+            else {
+                rx_lock = 0;
+                nrfmin_dev.event_callback(&nrfmin_dev, NETDEV_EVENT_ISR);
+            }
         }
         else if (state == STATE_TX) {
             goto_target_state();

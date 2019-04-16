@@ -1051,10 +1051,6 @@ int ls_ed_init(ls_ed_t *ls)
     ls->_internal.device->event_callback = sx127x_handler;
     ls->_internal.device->event_callback_arg = ls;
 
-    DEBUG("[LoRa] init RNG\n");
-    /* Initialize random number generator */
-    random_init(sx127x_random((sx127x_t *)ls->_internal.device));
-
     ls_ed_sleep(ls);
 
     return LS_OK;

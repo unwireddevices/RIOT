@@ -50,6 +50,7 @@ extern "C" {
 #include "periph/wdg.h"
 #include "random.h"
 #include "cpu.h"
+#include "luid.h"
 #include "xtimer.h"
 #include "rtctimers-millis.h"
 #include "unwds-common.h"
@@ -405,6 +406,11 @@ static const shell_command_t shell_commands_cfg[] = {
 
 static void init_config(shell_command_t *commands)
 {
+    /* Initialize random number generator with CPUID-derived value */
+    uint32_t prng_seed;
+    luid_base(&prng_seed, 4);
+    random_init(prng_seed);
+    
     /* Set our commands for shell */
     memcpy(commands, shell_commands_cfg, sizeof(shell_commands_cfg));
 
@@ -417,8 +423,20 @@ static void init_config(shell_command_t *commands)
         memcpy(appkey, config_get_appkey(), sizeof(appkey));
         
     #if defined(UNWDS_MAC_LORAWAN)
-        memcpy(appskey, config_get_appskey(), sizeof(appskey));
-        memcpy(nwkskey, config_get_nwkskey(), sizeof(nwkskey));
+        if ((config_get_role() == ROLE_NO_CFG) || (config_get_role() == ROLE_EMPTY_KEY)) {
+            /* Generate ABP keys */
+            uint32_t rand = 0;
+            for (uint32_t i = 0; i < 16; i += sizeof(rand)) {
+                rand = random_uint32();
+                memcpy(appskey + i, (void *)&rand, sizeof(rand));
+                
+                rand = random_uint32();
+                memcpy(nwkskey + i, (void *)&rand, sizeof(rand));
+            }
+        } else {
+            memcpy(appskey, config_get_appskey(), sizeof(appskey));
+            memcpy(nwkskey, config_get_nwkskey(), sizeof(nwkskey));
+        }
     #endif
         
         print_config();

@@ -142,6 +142,11 @@ void init_role(shell_command_t *commands) {
     print_logo();
     xtimer_init();
     rtctimers_millis_init();
+    
+    /* Initialize random number generator with CPUID-derived value */
+    uint32_t prng_seed;
+    luid_base(&prng_seed, 4);
+    random_init(prng_seed);
 
     /* Check EUI64 */
     if (!load_eui64_nvram()) {
@@ -406,11 +411,6 @@ static const shell_command_t shell_commands_cfg[] = {
 
 static void init_config(shell_command_t *commands)
 {
-    /* Initialize random number generator with CPUID-derived value */
-    uint32_t prng_seed;
-    luid_base(&prng_seed, 4);
-    random_init(prng_seed);
-    
     /* Set our commands for shell */
     memcpy(commands, shell_commands_cfg, sizeof(shell_commands_cfg));
 

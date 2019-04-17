@@ -57,6 +57,10 @@ extern int _at30tse75x_handler(int argc, char **argv);
 extern int _saul(int argc, char **argv);
 #endif
 
+#ifdef MODULE_SHELL_PASSWORD
+extern int _password_handler(int argc, char **argv);
+#endif
+
 #ifdef MODULE_PERIPH_RTC
 extern int _rtc_handler(int argc, char **argv);
 #endif
@@ -154,14 +158,17 @@ const shell_command_t _shell_command_list[] = {
 #ifdef MODULE_LPC_COMMON
     {"heap", "Shows the heap state for the LPC2387 on the command shell.", _heap_handler},
 #endif
-#ifdef MODULE_PS
-    {"ps", "Prints information about running threads.", _ps_handler},
+#ifdef MODULE_SHELL_PASSWORD
+    {"password", "Shell password protection.", _password_handler},
 #endif
 #ifdef MODULE_SHT1X
     {"temp", "Prints measured temperature.", _get_temperature_handler},
     {"hum", "Prints measured humidity.", _get_humidity_handler},
     {"weather", "Prints measured humidity and temperature.", _get_weather_handler},
     {"sht-config", "Get/set SHT10/11/15 sensor configuration.", _sht_config_handler},
+#endif
+#ifdef MODULE_PS
+    {"ps", "Prints information about running threads.", _ps_handler},
 #endif
 #ifdef MODULE_LTC4150
     {"cur", "Prints current and average power consumption.", _get_current_handler},

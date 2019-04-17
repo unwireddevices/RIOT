@@ -28,9 +28,14 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include "shell.h"
 #include "shell_commands.h"
+
+#ifdef MODULE_SHELL_PASSWORD
+extern bool shell_password_entered;
+#endif
 
 #if !defined(SHELL_NO_ECHO) || !defined(SHELL_NO_PROMPT)
 #ifdef MODULE_NEWLIB
@@ -202,8 +207,15 @@ static void handle_input_line(const shell_command_t *command_list, char *line)
         }
     }
 
+#ifdef MODULE_SHELL_PASSWORD
+    if (!shell_password_entered && (strcmp(argv[0], "password") != 0)) {
+        puts("Shell is locked. Use 'password' to unlock");
+        return;
+    }
+#endif
+
     /* then we call the appropriate handler */
-    shell_command_handler_t handler = find_handler(command_list, argv[0]);
+    shell_command_handler_t handler = find_handler(command_list, argv[0]);    
     if (handler != NULL) {
         handler(argc, argv);
     }
@@ -282,6 +294,10 @@ static inline void print_prompt(void)
 
 void shell_run(const shell_command_t *shell_commands, char *line_buf, int len)
 {
+#ifdef MODULE_SHELL_PASSWORD
+    puts("Shell is locked. Use 'password' to unlock");
+#endif
+    
     print_prompt();
 
     while (1) {

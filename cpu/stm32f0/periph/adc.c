@@ -71,10 +71,22 @@ int adc_init(adc_t line)
         gpio_init_analog(adc_config[line].pin);
     }
     
+    /* disable ADC */
+    if (ADC1->CR & ADC_CR_ADEN) {
+        ADC1->CR |= ADC_CR_ADDIS;
+        while (ADC1->CR & ADC_CR_ADEN) {}
+    }
+    
+    /* calibrate ADC */
+    ADC1->CR |= ADC_CR_ADCAL;
+    while(ADC1->CR & ADC_CR_ADCAL) {}
+    
     /* reset configuration */
     ADC1->CFGR2 = 0;
     /* enable device */
     ADC1->CR = ADC_CR_ADEN;
+    while(!(ADC1->ISR & ADC_ISR_ADRDY));
+    
     /* configure sampling time to save value */
     ADC1->SMPR = 0x3;       /* 28.5 ADC clock cycles */
     /* power off an release device for now */

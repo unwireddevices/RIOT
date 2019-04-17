@@ -129,6 +129,7 @@ create_module_list:
 ################ Other modules to include ################
 USEMODULE += shell
 USEMODULE += shell_commands
+USEMODULE += shell_password
 USEMODULE += ps
 USEMODULE += od
 USEMODULE += xtimer

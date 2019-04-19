@@ -232,7 +232,7 @@ static int set_cmd(int argc, char **argv)
     char *type = argv[1];
     char *arg = argv[2];
 
-    if ((strcmp(type, "appeui") == 0) && (config_get_role() == ROLE_NO_CFG)) {
+    if (strcmp(type, "appeui") == 0) {
         uint64_t id = 0;
 
         if (strlen(arg) != 16) {
@@ -290,7 +290,7 @@ static int set_cmd(int argc, char **argv)
         config_set_nwkskey(nwkskey);
         printf("[ok] NwksKey = %s\n", arg);
     }
-    else if ((strcmp(type, "devaddr") == 0) && (config_get_role() == ROLE_NO_CFG)) {
+    else if (strcmp(type, "devaddr") == 0) {
         if (strlen(arg) != 8) {
             puts("[error] DevAddr must be 32 bits (8 hex symbols) long");
             return 1;

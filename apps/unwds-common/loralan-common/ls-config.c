@@ -181,11 +181,14 @@ config_role_t config_get_role(void)
     return ROLE_NO_CFG;
 }
 
-bool config_write_main_block(uint64_t appid64, uint8_t appkey[16], uint32_t devnonce)
+bool config_write_main_block(uint64_t appid64, uint8_t appkey[16], uint8_t appskey[8], uint8_t nwkskey[8], uint32_t devnonce)
 {
 	config.dev_nonce = devnonce;
     config.appid64 = appid64;
+    
     memcpy(config.nwk_key, appkey, 16);
+    memcpy(config.apps_key, appskey, 16);
+    memcpy(config.nwks_key, nwkskey, 16);
 
     return save_config_nvram();
 }

@@ -96,7 +96,7 @@ void config_reset_nvram(void);
 config_role_t config_get_role(void);
 
 /* Device specific settings */
-bool config_write_main_block(uint64_t appid64, uint8_t joinkey[16], uint32_t devnonce);
+bool config_write_main_block(uint64_t appid64, uint8_t joinkey[16], uint8_t appskey[8], uint8_t nwkskey[8], uint32_t devnonce);
 uint64_t config_get_nodeid(void);
 uint64_t config_get_appid(void);
 uint8_t *config_get_appkey(void);

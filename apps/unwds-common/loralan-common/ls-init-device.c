@@ -384,7 +384,7 @@ static int save_cmd(int argc, char **argv)
             case ROLE_EMPTY_KEY:
             case ROLE_NO_CFG:
                 /* Set appID, appkey and nonce */
-                status = config_write_main_block(appid, appkey, devnonce);
+                status = config_write_main_block(appid, appkey, appskey, nwkskey, devnonce);
                 break;
             default:
                 break;
@@ -419,6 +419,7 @@ static void init_config(shell_command_t *commands)
     if (config_get_role() != ROLE_NO_EUI64) {
         eui64 = config_get_nodeid();
         appid = config_get_appid();
+        devnonce = config_get_devnonce();
         
         memcpy(appkey, config_get_appkey(), sizeof(appkey));
         
@@ -497,8 +498,8 @@ static int init_clear_nvram(int argc, char **argv)
     else if (strcmp(key, "key") == 0) {
         uint8_t appkey_zero[16];
         memset(appkey_zero, 0, 16);
-        if (config_write_main_block(config_get_appid(), appkey_zero, 0)) {
-            puts("[ok] Security key and device nonce was zeroed. Rebooting.");
+        if (config_write_main_block(config_get_appid(), appkey_zero, appskey, nwkskey, devnonce)) {
+            puts("[ok] Security key was zeroed. Rebooting.");
             NVIC_SystemReset();
         }
         else {

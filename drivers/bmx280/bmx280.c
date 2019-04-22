@@ -15,6 +15,7 @@
  * @brief       Device driver implementation for sensors BMX280 (BME280 and BMP280).
  *
  * @author      Kees Bakker <kees@sodaq.com>
+ * @author      Alexander Ugorelov <info@unwds.com>
  *
  * @}
  */
@@ -320,13 +321,21 @@ static int do_measurement(const bmx280_t* dev)
         write_u8_reg(dev, BMX280_CTRL_MEAS_REG, ctrl_meas);
 
         /* Wait for measurement ready? */
-        size_t count = 20;
-        while (count && (get_status(dev) & 0x08) != 0) {
+        DEBUG("Wait for measurement ready?\n");
+
+        uint32_t current_timestamp = 0;
+        uint8_t reg_status = 0x00;
+        const uint32_t start_timestamp = rtctimers_millis_now();
+        
+        do {
             rtctimers_millis_sleep(10);
-            ++count;
-        }
+            reg_status = (get_status(dev) & 0x08);
+            current_timestamp = rtctimers_millis_now();
+
+        } while (((current_timestamp - start_timestamp) < 500) && (reg_status != 0));
+
         /* What to do when measuring is still on? */
-        if (!count) {
+        if (((current_timestamp - start_timestamp) > 500) || (reg_status != 0)) {
             LOG_ERROR("Reading time expired\n");
             i2c_release(dev->params.i2c_dev);
             return -1;

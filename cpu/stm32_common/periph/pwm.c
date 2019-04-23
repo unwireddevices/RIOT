@@ -51,12 +51,6 @@ uint32_t pwm_init(pwm_t pwm, pwm_mode_t mode, uint32_t freq, uint16_t res)
 
     /* power on the used timer */
     periph_clk_en(pwm_config[pwm].bus, pwm_config[pwm].rcc_mask);
-    /* reset configuration and CC channels */
-    dev(pwm)->CR1 = 0;
-    dev(pwm)->CR2 = 0;
-    for (unsigned i = 0; i < TIMER_CHAN; ++i) {
-        dev(pwm)->CCR[i] = 0;
-    }
 
     /* configure the PWM frequency and resolution by setting the auto-reload
      * and prescaler registers */
@@ -68,10 +62,12 @@ uint32_t pwm_init(pwm_t pwm, pwm_mode_t mode, uint32_t freq, uint16_t res)
         case PWM_LEFT:
             dev(pwm)->CCMR1 = CCMR_LEFT;
             dev(pwm)->CCMR2 = CCMR_LEFT;
+            dev(pwm)->CR1 &= ~(TIM_CR1_CMS_0 | TIM_CR1_CMS_1);
             break;
         case PWM_RIGHT:
             dev(pwm)->CCMR1 = CCMR_RIGHT;
             dev(pwm)->CCMR2 = CCMR_RIGHT;
+            dev(pwm)->CR1 &= ~(TIM_CR1_CMS_0 | TIM_CR1_CMS_1);
             break;
         case PWM_CENTER:
             dev(pwm)->CCMR1 = 0;

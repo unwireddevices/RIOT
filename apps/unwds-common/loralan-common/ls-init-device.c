@@ -76,10 +76,8 @@ static uint64_t eui64 = 0;
 static uint64_t appid = 0;
 
 static uint8_t appkey[16] = {};
-#if defined(UNWDS_MAC_LORAWAN)
 static uint8_t appskey[16] = {};
 static uint8_t nwkskey[16] = {};
-#endif
 
 static uint32_t devnonce = 0;
 
@@ -422,8 +420,7 @@ static void init_config(shell_command_t *commands)
         devnonce = config_get_devnonce();
         
         memcpy(appkey, config_get_appkey(), sizeof(appkey));
-        
-    #if defined(UNWDS_MAC_LORAWAN)
+
         if ((config_get_role() == ROLE_NO_CFG) || (config_get_role() == ROLE_EMPTY_KEY)) {
             /* Generate ABP keys */
             uint32_t rand = 0;
@@ -438,8 +435,7 @@ static void init_config(shell_command_t *commands)
             memcpy(appskey, config_get_appskey(), sizeof(appskey));
             memcpy(nwkskey, config_get_nwkskey(), sizeof(nwkskey));
         }
-    #endif
-        
+
         print_config();
     }
     

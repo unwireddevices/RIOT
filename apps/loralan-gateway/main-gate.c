@@ -315,7 +315,7 @@ static void pending_frames_req_cb(ls_gate_node_t *node) {
 static void ls_setup(ls_gate_t *ls)
 {
     ls->settings.gate_id = config_get_nodeid();
-    ls->settings.join_key = config_get_joinkey();
+    ls->settings.join_key = config_get_appkey();
 
     channels[0].frequency = regions[unwds_get_node_settings().region_index].channels[unwds_get_node_settings().channel];
     channels[0].dr = unwds_get_node_settings().dr;
@@ -446,7 +446,7 @@ static void print_config(void)
     uint64_t appid = config_get_appid();
 
     if (DISPLAY_JOINKEY_2BYTES) {
-        uint8_t *key = config_get_joinkey();
+        uint8_t *key = config_get_appkey();
         printf("JOINKEY = 0x....%01X%01X\n", key[14], key[15]);
     }
 

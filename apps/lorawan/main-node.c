@@ -84,6 +84,9 @@ typedef enum {
 typedef struct {
     uint8_t *buffer;
     uint32_t length;
+#if !defined LORAWAN_DONT_USE_FPORT
+    uint8_t fport;
+#endif
 } node_data_t;
 
 static node_data_t node_data;
@@ -104,7 +107,7 @@ static semtech_loramac_t ls;
 static uint8_t current_join_retries = 0;
 static uint8_t uplinks_failed = 0;
 
-static bool appdata_received(uint8_t *buf, size_t buflen);
+static bool appdata_received(uint8_t *buf, size_t buflen, uint8_t fport);
 static void unwds_callback(module_data_t *buf);
 
 void radio_init(void)
@@ -293,7 +296,7 @@ static void *sender_thread(void *arg) {
                         }
                         printf("\n");
 #endif
-                        appdata_received(ls->rx_data.payload, ls->rx_data.payload_len);
+                        appdata_received(ls->rx_data.payload, ls->rx_data.payload_len, ls->rx_data.port);
                     }
                     break;
                 }
@@ -309,7 +312,7 @@ static void *sender_thread(void *arg) {
     return NULL;
 }
 
-static bool appdata_received(uint8_t *buf, size_t buflen)
+static bool appdata_received(uint8_t *buf, size_t buflen, uint8_t fport)
 {
     char hex[100] = {};
 
@@ -322,12 +325,23 @@ static bool appdata_received(uint8_t *buf, size_t buflen)
         return true;
     }
 
+#if defined LORAWAN_DONT_USE_FPORT
+    (void)fport;
+
     unwds_module_id_t modid = buf[0];
 
     module_data_t cmd;
     /* Save command data */
     memcpy(cmd.data, buf + 1, buflen - 1);
     cmd.length = buflen - 1;
+#else
+    unwds_module_id_t modid = fport;
+
+    module_data_t cmd;
+    /* Save command data */
+    memcpy(cmd.data, buf, buflen);
+    cmd.length = buflen;
+#endif
 
     /* Save RSSI value */
     /* cmd.rssi = ls._internal.last_rssi; */
@@ -677,6 +691,7 @@ static void unwds_callback(module_data_t *buf)
 {
     uint8_t bytes = 0;
     
+#if defined LORAWAN_DONT_USE_FPORT
     if (buf->length < 15) {
         bytes = 16;
     } else {
@@ -689,6 +704,24 @@ static void unwds_callback(module_data_t *buf)
     }
     
     printf("[LoRa] Payload size %d bytes + 2 status bytes -> %d bytes\n", buf->length, bytes);
+#else
+    if (buf->length < 16) {
+        bytes = 16;
+    } else {
+        if (buf->length < 32) {
+            bytes = 32;
+        } else {
+            printf("[LoRa] Payload too big: %d bytes (should be 31 bytes max)\n", buf->length);
+            return;
+        }
+    }
+    
+    /* move module ID to FPort */
+    node_data.fport = buf->data[0];
+    memmove(&buf->data[0], &buf->data[1], buf->length - 1);
+    
+    printf("[LoRa] Payload size %d bytes + 2 status bytes -> %d bytes\n", buf->length - 1, bytes);
+#endif
     buf->length = bytes;
     
     if (adc_init(ADC_LINE(ADC_TEMPERATURE_INDEX)) == 0) {

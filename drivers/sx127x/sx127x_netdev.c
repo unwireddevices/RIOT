@@ -86,10 +86,6 @@ static int _send(netdev_t *netdev, const iolist_t *iolist)
 
     sx127x_set_tx(dev);
 
-    /* Put chip into transfer mode */
-    sx127x_set_state(dev, SX127X_RF_TX_RUNNING);
-    sx127x_set_op_mode(dev, SX127X_RF_OPMODE_TRANSMITTER);
-
     return 0;
 }
 

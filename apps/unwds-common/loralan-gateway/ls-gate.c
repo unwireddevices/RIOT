@@ -61,6 +61,9 @@ static kernel_pid_t isr_pid;
 static msg_t msg_ping;
 static msg_t msg_rx1_expired;
 
+static rtctimers_millis_t uq_send_delay_timer;
+#define UQ_SEND_DELAY_MS    1000
+
 static void schedule_tx(ls_gate_channel_t *ch) {
 	/* Can send next frame only if channel is doing nothing */
 	if (ch->state != LS_GATE_CHANNEL_STATE_IDLE) {
@@ -70,8 +73,7 @@ static void schedule_tx(ls_gate_channel_t *ch) {
 
 	msg_t msg;
 	msg.content.ptr = (void *) ch;
-
-	msg_try_send(&msg, ((ls_gate_t *)ch->_internal.gate)->_internal.uq_thread_pid);
+    rtctimers_millis_set_msg(&uq_send_delay_timer, UQ_SEND_DELAY_MS, &msg, ((ls_gate_t *)ch->_internal.gate)->_internal.uq_thread_pid);
 }
 
 static void prepare_sx127x(ls_gate_channel_t *ch)

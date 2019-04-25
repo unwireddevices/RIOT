@@ -166,10 +166,10 @@ typedef struct {
 } ls_gate_channel_t;
 
 #define LS_UQ_HANDLER_STACKSIZE            (2048)
-#define LS_UQ_MSG_QUEUE_SIZE 8
+#define LS_UQ_MSG_QUEUE_SIZE            64
 
 #define LS_TIM_HANDLER_STACKSIZE        (2048)
-#define LS_TIM_MSG_QUEUE_SIZE 8
+#define LS_TIM_MSG_QUEUE_SIZE           8
 
 /**
  * @brief Lora-Star gate stack internal data.

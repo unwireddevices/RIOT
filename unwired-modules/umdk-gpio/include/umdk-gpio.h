@@ -55,10 +55,6 @@ typedef enum {
     UMDK_GPIO_SET_AUTO = 5,
 } umdk_gpio_action_t;
 
-#define UMDK_GPIO_PIN_MASK 0x1F
-#define UMDK_GPIO_ACT_MASK ~UMDK_GPIO_PIN_MASK
-#define UMDK_GPIO_ACT_SHIFT 5
-
 void umdk_gpio_init(uwnds_cb_t *event_callback);
 bool umdk_gpio_broadcast(module_data_t *cmd, module_data_t *reply);
 bool umdk_gpio_cmd(module_data_t *cmd, module_data_t *reply);

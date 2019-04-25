@@ -175,20 +175,18 @@ static bool check_pin(module_data_t *reply, int pin)
 
 static bool gpio_cmd(module_data_t *cmd, module_data_t *reply, bool with_reply)
 {
-    if (cmd->length != UMDK_GPIO_DATA_LEN) {
-        if (with_reply) {
-            do_reply(reply, UMDK_GPIO_REPLY_ERR_FORMAT);
+    umdk_gpio_action_t act = cmd->data[0];
+    
+    uint8_t pin = 0;
+    
+    if (cmd->length > 1) {
+        pin = cmd->data[1];
+
+        if ((pin != 0) && (!check_pin(reply, pin))) {
+            DEBUG("umdk-gpio: pin check failed, pin %d\n", (int)pin);
+            do_reply(reply, UMDK_GPIO_REPLY_ERR_PIN);
+            return false;
         }
-        return false;
-    }
-
-    uint8_t value = cmd->data[0];
-    uint8_t pin = value & UMDK_GPIO_PIN_MASK;
-    umdk_gpio_action_t act = (value & UMDK_GPIO_ACT_MASK) >> UMDK_GPIO_ACT_SHIFT;
-
-    if ((pin != 0) && (!check_pin(reply, pin))) {
-        DEBUG("umdk-gpio: pin check failed, pin %d\n", (int)pin);
-        return false;
     }
     
     DEBUG("umdk-gpio: pin %d, act %d\n", (int)pin, (int)act);
@@ -270,7 +268,7 @@ static bool gpio_cmd(module_data_t *cmd, module_data_t *reply, bool with_reply)
             break;
         case UMDK_GPIO_SET_AUTO:
             DEBUG("umdk-gpio: GPIO SET AUTO command\n");
-            uint16_t period = cmd->data[1] | cmd->data[2] << 8;
+            uint16_t period = cmd->data[2] | cmd->data[3] << 8;
             convert_from_be_sam((void *)&period, sizeof(period));
             
             if (set(pin, true)) {

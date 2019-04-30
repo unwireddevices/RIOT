@@ -319,11 +319,6 @@ int main(void)
     puts("NimBLE GATT Server Example");
 
     int rc = 0;
-<<<<<<< HEAD
-
-    /* verify and add our custom services */
-    rc = ble_gatts_count_cfg(gatt_svr_svcs);
-=======
 
     rc = ble_gatts_count_cfg(gatt_svr_svcs);
     assert(rc == 0);
@@ -346,7 +341,6 @@ int main(void)
 
     /* configure device address */
     rc = ble_hs_util_ensure_addr(0);
->>>>>>> b5dacb6... examples/nimble_gatt: extend application with ble characteristics
     assert(rc == 0);
     rc = ble_gatts_add_svcs(gatt_svr_svcs);
     assert(rc == 0);

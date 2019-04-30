@@ -67,8 +67,6 @@ nimble_drivers_nrf52:
 # additional, RIOT specific nimble modules
 nimble_addr:
 	"$(MAKE)" -C $(TDIR)/addr/
-<<<<<<< HEAD
-=======
 
 nimble_scanlist:
 	"$(MAKE)" -C $(TDIR)/scanlist
@@ -76,5 +74,4 @@ nimble_scanlist:
 nimble_scanner:
 	"$(MAKE)" -C $(TDIR)/scanner
 
->>>>>>> 42c6702... ble/nimble: add scanner submodule
 include $(RIOTBASE)/pkg/pkg.mk

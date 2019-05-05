@@ -41,6 +41,9 @@
 #define UART_IRQN       uart_config[uart].irqn
 #define UART_PIN_RX     uart_config[uart].rx_pin
 #define UART_PIN_TX     uart_config[uart].tx_pin
+#define UART_PIN_RXMODE uart_config[uart].rx_mode
+#define UART_PIN_TXMODE uart_config[uart].tx_mode
+
 #define UART_PIN_RTS    uart_config[uart].rts_pin
 #define UART_PIN_CTS    uart_config[uart].cts_pin
 #define UART_HWFLOWCTRL (uart_config[uart].rts_pin != (uint8_t)GPIO_UNDEF && \
@@ -60,11 +63,24 @@ static inline NRF_UARTE_Type *dev(uart_t uart)
 
 #else /* nrf51 and nrf52832 etc */
 
+#if defined(UART_NUMOF)
+#define UART_INVALID    (uart >= UART_NUMOF)
+#else
 #define UART_INVALID    (uart != 0)
+#endif
+
 #define REG_BAUDRATE    NRF_UART0->BAUDRATE
 #define REG_CONFIG      NRF_UART0->CONFIG
 #define PSEL_RXD        NRF_UART0->PSELRXD
 #define PSEL_TXD        NRF_UART0->PSELTXD
+
+#if defined(UART_NUMOF)
+#define UART_PIN_RX     uart_config[uart].rx_pin
+#define UART_PIN_RXMODE uart_config[uart].rx_mode
+#define UART_PIN_TX     uart_config[uart].tx_pin
+#define UART_PIN_TXMODE uart_config[uart].tx_mode
+#endif
+
 #define UART_0_ISR      isr_uart0
 #define ISR_CTX         isr_ctx
 
@@ -96,12 +112,12 @@ int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
 
     /* configure RX pin */
     if (rx_cb) {
-        gpio_init(UART_PIN_RX, GPIO_IN);
+        gpio_init(UART_PIN_RX, UART_PIN_RXMODE);
         PSEL_RXD = UART_PIN_RX;
     }
 
     /* configure TX pin */
-    gpio_init(UART_PIN_TX, GPIO_OUT);
+    gpio_init(UART_PIN_TX, UART_PIN_TXMODE);
     PSEL_TXD = UART_PIN_TX;
 
 #ifdef CPU_MODEL_NRF52840XXAA
@@ -265,7 +281,14 @@ static inline void irq_handler(uart_t uart)
 
 void uart_write(uart_t uart, const uint8_t *data, size_t len)
 {
+#if defined(UART_NUMOF)
+    assert(uart < UART_NUMOF);
+   
+    gpio_init(UART_PIN_TX, UART_PIN_TXMODE);
+    PSEL_TXD = UART_PIN_TX;
+#else
     (void)uart;
+#endif
 
     for (size_t i = 0; i < len; i++) {
         /* This section of the function is not thread safe:

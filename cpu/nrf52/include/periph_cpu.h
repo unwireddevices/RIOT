@@ -140,7 +140,6 @@ typedef struct {
 #define PERIPH_I2C_NEED_WRITE_REG
 /** @} */
 
-#ifdef CPU_MODEL_NRF52840XXAA
 /**
  * @brief   Structure for UART configuration data
  */
@@ -148,11 +147,12 @@ typedef struct {
     NRF_UARTE_Type *dev;    /**< UART with EasyDMA device base register address */
     uint8_t rx_pin;         /**< RX pin */
     uint8_t tx_pin;         /**< TX pin */
+    uint8_t rx_mode;        /**< RX pin mode */
+    uint8_t tx_mode;        /**< TX pin mode */
     uint8_t rts_pin;        /**< RTS pin - set to GPIO_UNDEF when not using HW flow control */
     uint8_t cts_pin;        /**< CTS pin - set to GPIO_UNDEF when not using HW flow control */
     uint8_t irqn;           /**< IRQ channel */
 } uart_conf_t;
-#endif
 
 #ifdef __cplusplus
 }

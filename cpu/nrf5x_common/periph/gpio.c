@@ -93,6 +93,10 @@ static inline int pin_num(gpio_t pin)
 
 int gpio_init(gpio_t pin, gpio_mode_t mode)
 {
+    if (pin == GPIO_UNDEF) {
+        return -1;
+    }
+    
     switch (mode) {
         case GPIO_IN:
         case GPIO_IN_PD:
@@ -110,6 +114,10 @@ int gpio_init(gpio_t pin, gpio_mode_t mode)
 
 int gpio_read(gpio_t pin)
 {
+    if (pin == GPIO_UNDEF) {
+        return -1;
+    }
+    
     if (port(pin)->DIR & (1 << pin_num(pin))) {
         return (port(pin)->OUT & (1 << pin_num(pin))) ? 1 : 0;
     }
@@ -120,11 +128,19 @@ int gpio_read(gpio_t pin)
 
 void gpio_set(gpio_t pin)
 {
+    if (pin == GPIO_UNDEF) {
+        return;
+    }
+    
     port(pin)->OUTSET = (1 << pin_num(pin));
 }
 
 void gpio_clear(gpio_t pin)
 {
+    if (pin == GPIO_UNDEF) {
+        return;
+    }
+    
     port(pin)->OUTCLR = (1 << pin_num(pin));
 }
 
@@ -135,6 +151,10 @@ void gpio_toggle(gpio_t pin)
 
 void gpio_write(gpio_t pin, int value)
 {
+    if (pin == GPIO_UNDEF) {
+        return;
+    }
+    
     if (value) {
         port(pin)->OUTSET = (1 << pin_num(pin));
     }
@@ -147,6 +167,10 @@ void gpio_write(gpio_t pin, int value)
 int gpio_init_int(gpio_t pin, gpio_mode_t mode, gpio_flank_t flank,
                   gpio_cb_t cb, void *arg)
 {
+    if (pin == GPIO_UNDEF) {
+        return -1;
+    }
+    
     uint8_t _pin_index = 0xff;
     /* Looking for already known pin in exti table */
     for (unsigned int i = 0; i < _gpiote_next_index; i++) {
@@ -188,6 +212,10 @@ int gpio_init_int(gpio_t pin, gpio_mode_t mode, gpio_flank_t flank,
 
 void gpio_irq_enable(gpio_t pin)
 {
+    if (pin == GPIO_UNDEF) {
+        return;
+    }
+    
     for (unsigned int i = 0; i < _gpiote_next_index; i++) {
         if (_exti_pins[i] == pin) {
             NRF_GPIOTE->CONFIG[i] |= GPIOTE_CONFIG_MODE_Event;
@@ -199,6 +227,10 @@ void gpio_irq_enable(gpio_t pin)
 
 void gpio_irq_disable(gpio_t pin)
 {
+    if (pin == GPIO_UNDEF) {
+        return;
+    }
+    
     for (unsigned int i = 0; i < _gpiote_next_index; i++) {
         if (_exti_pins[i] == pin) {
             /* Clear mode configuration: 00 = Disabled */

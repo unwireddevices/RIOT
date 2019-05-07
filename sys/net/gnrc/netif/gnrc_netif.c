@@ -1156,8 +1156,6 @@ static void _configure_netdev(netdev_t *dev)
 #endif
 }
 
-<<<<<<< HEAD
-=======
 #ifdef DEVELHELP
 /* checks if a device supports all required options and functions */
 static void _test_options(gnrc_netif_t *netif)
@@ -1263,7 +1261,6 @@ static void _test_options(gnrc_netif_t *netif)
 }
 #endif /* DEVELHELP */
 
->>>>>>> 83ba971... gnrc_netif: add NETDEV_TYPE_LORA to L2ADDR check
 static void *_gnrc_netif_thread(void *args)
 {
     gnrc_netapi_opt_t *opt;

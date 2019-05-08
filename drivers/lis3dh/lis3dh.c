@@ -2918,12 +2918,11 @@ int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params, lis3dh_int1_cb_t c
         return LIS3DH_NOCOM;
     }
 
-    // /* Enable temperature sensor */
-    // DEBUG("Enable temperature sensor\n");
-    // puts("Enable temperature sensor");   
-    // if (lis3dh_aux_adc_set(dev, LIS3DH_AUX_ON_TEMPERATURE) < 0) {
-    //     return LIS3DH_NOCOM;
-    // }
+    /* Enable temperature sensor */
+    DEBUG("Enable temperature sensor\n");
+    if (lis3dh_aux_adc_set(dev, LIS3DH_AUX_ON_TEMPERATURE) < 0) {
+        return LIS3DH_NOCOM;
+    }
 
     /* Set device operation mode */
     DEBUG("Set device operation mode [%d]\n", dev->params.op_mode);

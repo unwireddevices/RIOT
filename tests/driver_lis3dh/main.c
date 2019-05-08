@@ -28,12 +28,12 @@
 
 lis3dh_t dev;
 lis3dh_acceleration_t acc_data;
+int16_t deg_celsius;
 
 static void _int1_handler(void *arg)
 {
     (void)arg;
 
-    puts("iRQ");
     gpio_irq_disable(dev.params.int1);
 
     if (lis3dh_read_xyz(&dev, &acc_data) == 0) {
@@ -41,6 +41,14 @@ static void _int1_handler(void *arg)
         printf("X: %d[milli-G] Y: %d[milli-G] Z: %d[milli-G]\n", acc_data.axis_x, acc_data.axis_y, acc_data.axis_z);
     } else {
         puts("Reading acceleration data... ");
+        puts("[Failed]\n");
+    }
+
+    if (lis3dh_read_temp(&dev, &deg_celsius) == 0) {
+        /* print values */
+        printf("Temperature %d Celsius\n", deg_celsius);
+    } else {
+         puts("Reading temperature... ");
         puts("[Failed]\n");
     }
     gpio_irq_enable(dev.params.int1);
@@ -54,7 +62,7 @@ int main(void)
         .int1      = GPIO_PIN(PORT_A, 14),  
         .int1_mode = I1_ZYXDA,  
         .scale     = LIS3DH_2g,
-        .odr       = LIS3DH_ODR_10Hz,
+        .odr       = LIS3DH_ODR_1Hz,
         .op_mode   = LIS3DH_HR_12bit},
     };
 
@@ -68,21 +76,14 @@ int main(void)
         puts("[Failed]\n");
         return 1;
     }
-
     puts("LIS3DH init done.\n");
 
-    puts("LIS3DH power off...\n");
-    if (lis3dh_power_off(&dev) != 0) {
-        puts("[Failed]\n");
-        return 1;
-    }
-    xtimer_usleep(500 * 1000U);
-
-    puts("LIS3DH power on...\n");
+    puts("LIS3DH power on...");
     if (lis3dh_power_on(&dev) != 0) {
         puts("[Failed]\n");
         return 1;
     }
+    xtimer_usleep(500 * 1000U);
 
     while (1) {     
         //do Nothing

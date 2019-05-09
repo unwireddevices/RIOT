@@ -103,15 +103,16 @@ uint8_t pwm_channels(pwm_t pwm)
 void pwm_set(pwm_t pwm, uint8_t channel, uint16_t value)
 {
     assert((pwm < PWM_NUMOF) &&
-           (channel < TIMER_CHAN) &&
-           (pwm_config[pwm].chan[channel].pin != GPIO_UNDEF));
+           (channel < TIMER_CHAN));
 
-    /* norm value to maximum possible value */
-    if (value > dev(pwm)->ARR) {
-        value = (uint16_t)dev(pwm)->ARR;
+    if (pwm_config[pwm].chan[channel].pin != GPIO_UNDEF) {
+        /* norm value to maximum possible value */
+        if (value > dev(pwm)->ARR) {
+            value = (uint16_t)dev(pwm)->ARR;
+        }
+        /* set new value */
+        dev(pwm)->CCR[pwm_config[pwm].chan[channel].cc_chan] = value;
     }
-    /* set new value */
-    dev(pwm)->CCR[pwm_config[pwm].chan[channel].cc_chan] = value;
 }
 
 void pwm_start(pwm_t pwm, uint8_t channel)

@@ -94,16 +94,14 @@ static inline void uart_init_pins(uart_t uart, uart_rx_cb_t rx_cb)
 #endif
     }
 #ifdef MODULE_STM32_PERIPH_UART_HW_FC
-    if (uart_config[uart].cts_pin != GPIO_UNDEF) {
-        gpio_init(uart_config[uart].cts_pin, GPIO_IN);
-        gpio_init(uart_config[uart].rts_pin, GPIO_OUT);
+    gpio_init(uart_config[uart].cts_pin, GPIO_IN);
+    gpio_init(uart_config[uart].rts_pin, GPIO_OUT);
 #ifdef CPU_FAM_STM32F1
-        gpio_init_af(uart_config[uart].rts_pin, GPIO_AF_OUT_PP);
+    gpio_init_af(uart_config[uart].rts_pin, GPIO_AF_OUT_PP);
 #else
-        gpio_init_af(uart_config[uart].cts_pin, uart_config[uart].cts_af);
-        gpio_init_af(uart_config[uart].rts_pin, uart_config[uart].rts_af);
+    gpio_init_af(uart_config[uart].cts_pin, uart_config[uart].cts_af);
+    gpio_init_af(uart_config[uart].rts_pin, uart_config[uart].rts_af);
 #endif
-    }
 #endif
 }
 
@@ -153,10 +151,8 @@ int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
     }
 
 #ifdef MODULE_STM32_PERIPH_UART_HW_FC
-    if (uart_config[uart].cts_pin != GPIO_UNDEF) {
-        /* configure hardware flow control */
-        dev(uart)->CR3 = (USART_CR3_RTSE | USART_CR3_CTSE);
-    }
+    /* configure hardware flow control */
+    dev(uart)->CR3 = (USART_CR3_RTSE | USART_CR3_CTSE);
 #endif
 
     return UART_OK;
@@ -421,14 +417,12 @@ void uart_poweron(uart_t uart)
     }
 #endif
 #ifdef MODULE_STM32_PERIPH_UART_HW_FC
-    if (uart_config[uart].cts_pin != GPIO_UNDEF) {
-        gpio_init(uart_config[uart].rts_pin, GPIO_OUT);
+    gpio_init(uart_config[uart].rts_pin, GPIO_OUT);
 #ifdef CPU_FAM_STM32F1
-        gpio_init_af(uart_config[uart].rts_pin, GPIO_AF_OUT_PP);
+    gpio_init_af(uart_config[uart].rts_pin, GPIO_AF_OUT_PP);
 #else
-        gpio_init_af(uart_config[uart].rts_pin, uart_config[uart].rts_af);
+    gpio_init_af(uart_config[uart].rts_pin, uart_config[uart].rts_af);
 #endif
-    }
 #endif
     periph_clk_en(uart_config[uart].bus, uart_config[uart].rcc_mask);
 }
@@ -439,10 +433,8 @@ void uart_poweroff(uart_t uart)
 
     periph_clk_dis(uart_config[uart].bus, uart_config[uart].rcc_mask);
 #ifdef MODULE_STM32_PERIPH_UART_HW_FC
-    if (uart_config[uart].cts_pin != GPIO_UNDEF) {
-        gpio_init(uart_config[uart].rts_pin, GPIO_OUT);
-        gpio_set(uart_config[uart].rts_pin);
-    }
+    gpio_init(uart_config[uart].rts_pin, GPIO_OUT);
+    gpio_set(uart_config[uart].rts_pin);
 #endif
 #ifdef STM32_PM_STOP
     if (isr_ctx[uart].rx_cb) {

@@ -590,7 +590,7 @@ static uint8_t _iso14443a_get_uidsize(uint8_t byte_size)
 {   
     uint8_t size = 0;
     size = (byte_size >> ISO14443A_OFFSET_UID_SIZE) & ISO14443A_MASK_UID_SIZE;
-   
+
     if(size == ISO14443A_ATQA_SINGLE) { 
         picc.uid_length = ISO14443A_UID_SINGLE;
     }
@@ -996,7 +996,7 @@ static int _iso14443a_anticoll_algorithm(const st95_t * dev, uint8_t * iso_rxbuf
     else {
         memcpy(picc.uid, &iso_rxbuf[ST95_DATA_OFFSET + 1], ISO14443A_UID_SINGLE - 1 );
     }
-
+        
     // Send Select command 1
     if(_iso14443a_select(dev, ISO14443A_SELECT_LVL1, ISO14443A_NUM_BYTE_SELECT, &iso_rxbuf[ISO14443A_OFFSET_UID_SELECT], iso_rxbuf, ISO14443A_ANSWER_MAX_BYTE) != ST95_OK) {
         return ST95_ERROR;
@@ -1023,7 +1023,7 @@ static int _iso14443a_anticoll_algorithm(const st95_t * dev, uint8_t * iso_rxbuf
         memcpy(&picc.uid[ISO14443A_UID_SINGLE - 1], &iso_rxbuf[ST95_DATA_OFFSET], ISO14443A_UID_SINGLE );
     }
     else {
-        memcpy(&picc.uid[ISO14443A_UID_SINGLE - 1], &iso_rxbuf[ST95_DATA_OFFSET], ISO14443A_UID_SINGLE - 1);
+        memcpy(&picc.uid[ISO14443A_UID_SINGLE - 1], &iso_rxbuf[ST95_DATA_OFFSET + 1], ISO14443A_UID_SINGLE - 1);
     }
     // Send Select command 2
     if(_iso14443a_select(dev, ISO14443A_SELECT_LVL2, ISO14443A_NUM_BYTE_SELECT, &iso_rxbuf[ISO14443A_OFFSET_UID_SELECT], iso_rxbuf, ISO14443A_ANSWER_MAX_BYTE) != ST95_OK) {
@@ -1035,7 +1035,7 @@ static int _iso14443a_anticoll_algorithm(const st95_t * dev, uint8_t * iso_rxbuf
         picc.uid_length = ISO14443A_UID_DOUBLE;
         return ST95_OK;
     }
-
+    
     // Select cascade level 3
     if(_iso14443a_anticollision(dev, ISO14443A_SELECT_LVL3, iso_rxbuf, ISO14443A_ANSWER_MAX_BYTE) != ST95_OK) {
         return ST95_ERROR;

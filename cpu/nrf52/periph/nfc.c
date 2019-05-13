@@ -204,13 +204,15 @@ void nfc_init(void)
     
     
     /* SENSRES SDD */
-    // TODO: NRF_NFCT->SENSRES =   NFCT_SENSRES_BITFRAMESDD_SDD00001 |
-                                // (0x0UL << NFCT_SENSRES_RFU5_Pos) |
-                                // (NFCT_SENSRES_NFCIDSIZE_NFCID1Single << NFCT_SENSRES_NFCIDSIZE_Pos) |
-                                // (0x0UL << NFCT_SENSRES_PLATFCONFIG_Msk) |
-                                // (0x0UL << NFCT_SENSRES_RFU74_Pos);
-    
-    NRF_NFCT->NFCID1_LAST = 0xAABBCCDD;
+    NRF_NFCT->SENSRES =   NFCT_SENSRES_BITFRAMESDD_SDD00001 |
+                                (0x0UL << NFCT_SENSRES_RFU5_Pos) |
+                                (NFCT_SENSRES_NFCIDSIZE_NFCID1Triple << NFCT_SENSRES_NFCIDSIZE_Pos) |
+                                /* (0x0UL << NFCT_SENSRES_PLATFCONFIG_Msk) |*/
+                                (0x0UL << NFCT_SENSRES_RFU74_Pos);
+    /* UID(10 bytes): DD EE FF AA BB CC 11 22 33 44 */
+    NRF_NFCT->NFCID1_LAST = 0x11223344;
+    NRF_NFCT->NFCID1_2ND_LAST = 0xAABBCC;
+    NRF_NFCT->NFCID1_3RD_LAST = 0xDDEEFF;
     // NRF_NFCT->SELRES = 
     
         /* Clear error status */
@@ -234,5 +236,6 @@ void nfc_init(void)
     NVIC_EnableIRQ(NFCT_IRQn);
        
     NRF_NFCT->TASKS_SENSE = 1;
+    puts("Start test NFC...\n");
 
 }

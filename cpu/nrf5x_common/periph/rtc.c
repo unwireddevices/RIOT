@@ -169,5 +169,3 @@ void rtc_poweroff(void)
 {
     rtt_poweroff();
 }
-
-#endif /* RTC */

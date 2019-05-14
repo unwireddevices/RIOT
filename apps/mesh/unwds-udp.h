@@ -30,7 +30,7 @@
 #endif /* UNWDS_ROOT */
 
 #ifdef UNWDS_DAG
-	#include "dag/dag_node.h"
+	#include "node/dag_node.h"
 #endif /* UNWDS_DAG */
 
 #ifdef __cplusplus

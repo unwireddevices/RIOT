@@ -112,16 +112,30 @@ static const timer_conf_t timer_config[] = {
 /** @} */
 
 /**
- * @name    UART configuration
- * @{
+ * @brief UART configuration
  */
-#define UART_NUMOF          (1U)
-#define UART_PIN_RX         GPIO_PIN(0, 7)      /* DIO2 */ 
-#define UART_PIN_TX         GPIO_PIN(0, 6)      /* DIO3 */  
+static const uart_conf_t uart_config[] = {
+    {
+        .rx_pin   = GPIO_PIN(0, 23),
+        .tx_pin   = GPIO_PIN(0, 22),
+        .rx_mode  = GPIO_IN_PU,
+        .tx_mode  = GPIO_OUT,
+    },
+    {
+        .rx_pin   = GPIO_PIN(0, 12),
+        .tx_pin   = GPIO_PIN(0, 13),
+        .rx_mode  = GPIO_IN_PU,
+        .tx_mode  = GPIO_OUT,
+    },
+    {
+        .rx_pin   = GPIO_PIN(0, 19),
+        .tx_pin   = GPIO_PIN(0, 20),
+        .rx_mode  = GPIO_IN_PU,
+        .tx_mode  = GPIO_OUT,
+    }
+};
 
-/* Alt UART */
-// #define UART_PIN_RX      GPIO_PIN(0,29)   	/* DIO26 */
-// #define UART_PIN_TX      GPIO_PIN(0,5)    	/* DIO25 */    
+#define UART_NUMOF          (sizeof(uart_config) / sizeof(uart_config[0]))
 /** @} */
 
 /**

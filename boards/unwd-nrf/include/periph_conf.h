@@ -116,20 +116,14 @@ static const timer_conf_t timer_config[] = {
  */
 static const uart_conf_t uart_config[] = {
     {
-        .rx_pin   = GPIO_PIN(0, 23),
-        .tx_pin   = GPIO_PIN(0, 22),
+        .rx_pin   = GPIO_PIN(0, 7),
+        .tx_pin   = GPIO_PIN(0, 6),
         .rx_mode  = GPIO_IN_PU,
         .tx_mode  = GPIO_OUT,
     },
     {
-        .rx_pin   = GPIO_PIN(0, 12),
-        .tx_pin   = GPIO_PIN(0, 13),
-        .rx_mode  = GPIO_IN_PU,
-        .tx_mode  = GPIO_OUT,
-    },
-    {
-        .rx_pin   = GPIO_PIN(0, 19),
-        .tx_pin   = GPIO_PIN(0, 20),
+        .rx_pin   = GPIO_PIN(0, 29),
+        .tx_pin   = GPIO_PIN(0, 5),
         .rx_mode  = GPIO_IN_PU,
         .tx_mode  = GPIO_OUT,
     }

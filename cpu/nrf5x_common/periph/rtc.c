@@ -30,7 +30,6 @@
  * With 1024 Hz RTT frequency one tick is 976.5625 us
  */
 
-#define RTT_TICK_US (1000000UL / RTT_FREQUENCY)
 #define RTC_WEEK_MILLISECONDS    604800000
 
 static mutex_t rtc_mutex;
@@ -58,9 +57,9 @@ void rtc_ovf_callback(void* arg)
     time_epoch_us += 16384000000;
     
     if ((rtc_next_timer_millis.alarm != 0) &&
-       ((rtc_next_timer_millis.alarm - time_epoch_us) <= (RTT_MAX_VALUE * RTT_TICK_US))) {
+       ((rtc_next_timer_millis.alarm - time_epoch_us) <= RTT_TICKS_TO_US(RTT_MAX_VALUE))) {
         
-        uint32_t target = (rtc_next_timer_millis.alarm - time_epoch_us) / RTT_TICK_US;
+        uint32_t target = RTT_US_TO_TICKS(rtc_next_timer_millis.alarm - time_epoch_us);
         
         rtt_set_alarm(target, rtc_next_timer_millis.cb, rtc_next_timer_millis.arg);
     }
@@ -98,7 +97,8 @@ int rtc_get_time(struct tm *time)
 {
     rtc_acquire();
     
-    time_t epoch = (time_epoch_us + ((uint64_t)rtt_get_counter() * RTT_TICK_US)) / 1000000;
+    uint32_t ticks = rtt_get_counter();
+    time_t epoch = (time_epoch_us + RTT_TICKS_TO_US(ticks)) / 1000000;
     memcpy(&time, gmtime(&epoch), sizeof(struct tm));
     
     rtc_release();
@@ -145,12 +145,12 @@ int rtc_millis_set_alarm(uint32_t milliseconds, rtc_alarm_cb_t cb, void *arg)
     rtc_acquire();
     
     uint32_t now = rtt_get_counter();
-    uint32_t target = now + ((uint64_t)milliseconds * 1000)/RTT_TICK_US;
+    uint32_t target = now + RTT_MS_TO_TICKS(milliseconds);
     
     if (target <= RTT_MAX_VALUE) {
         rtt_set_alarm(target - now, cb, arg);
     } else {
-        rtc_next_timer_millis.alarm = time_epoch_us + now*RTT_TICK_US + milliseconds*1000;
+        rtc_next_timer_millis.alarm = time_epoch_us + RTT_TICKS_TO_US(now) + milliseconds*1000;
         rtc_next_timer_millis.arg = arg;
         rtc_next_timer_millis.cb = cb;
     }
@@ -174,7 +174,7 @@ int rtc_millis_get_time(uint32_t *millis)
     rtc_acquire();
     
     /* 1 week overflow */
-    *millis = ((time_epoch_us + rtt_get_counter() * RTT_TICK_US)/1000) % RTC_WEEK_MILLISECONDS;
+    *millis = (RTT_TICKS_TO_MS(rtt_get_counter()) +  time_epoch_us/1000) % RTC_WEEK_MILLISECONDS;
     
     rtc_release();
     return 0;

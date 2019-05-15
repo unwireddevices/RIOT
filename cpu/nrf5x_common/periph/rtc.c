@@ -37,20 +37,10 @@ static mutex_t rtc_mutex;
 static uint64_t time_epoch_us = 0;
 
 static struct {
-    uint64_t        time_next_alarm;
+    uint64_t        alarm;
     rtc_alarm_cb_t  cb;
     void*           arg;
-} rtc_next_timer;
-
-static struct {
-    rtc_alarm_cb_t cb_a;        /**< callback called from RTC interrupt */
-    rtc_alarm_cb_t cb_b;        /**< Subseconds alarm callback */
-    rtc_wkup_cb_t  cb_wkup;     /**< Wake up timer callback */
-    
-    void *arg_a;                /**< argument passed to the callback */
-    void *arg_b;                /**< argument passed to subseconds alarm callback */
-    void *arg_wkup;             /**< argument passed to wakeup callback */
-} isr_ctx;
+} rtc_next_timer_millis;
 
 void rtc_release(void) {
     mutex_unlock(&rtc_mutex);
@@ -67,11 +57,12 @@ void rtc_ovf_callback(void* arg)
     /* timer overflows every 2e24 * 976.5625 us = 16 384 000 000 us = ~4.55 hours */
     time_epoch_us += 16384000000;
     
-    if ((rtc_next_timer.time_next_alarm - time_epoch_us) <= (RTT_MAX_VALUE * RTT_TICK_US)) {
+    if ((rtc_next_timer_millis.alarm != 0) &&
+       ((rtc_next_timer_millis.alarm - time_epoch_us) <= (RTT_MAX_VALUE * RTT_TICK_US))) {
         
-        uint32_t target = (rtc_next_timer.time_next_alarm - time_epoch_us) / RTT_TICK_US;
+        uint32_t target = (rtc_next_timer_millis.alarm - time_epoch_us) / RTT_TICK_US;
         
-        rtt_set_alarm(target, rtc_next_timer.cb, rtc_next_timer.arg);
+        rtt_set_alarm(target, rtc_next_timer_millis.cb, rtc_next_timer_millis.arg);
     }
 }
 
@@ -79,6 +70,8 @@ void rtc_init(void)
 {
     mutex_init(&rtc_mutex);
     rtc_acquire();
+    
+    rtc_next_timer_millis.alarm = 0;
     
     /* enable low frequency clock */
     rtt_init();
@@ -143,9 +136,6 @@ void rtc_clear_alarm(void)
 {
     /* not implemented yet */
     rtc_acquire();
-
-    isr_ctx.cb_a = NULL;
-    isr_ctx.arg_a = NULL;
     
     rtc_release();
 }
@@ -160,9 +150,9 @@ int rtc_millis_set_alarm(uint32_t milliseconds, rtc_alarm_cb_t cb, void *arg)
     if (target <= RTT_MAX_VALUE) {
         rtt_set_alarm(target - now, cb, arg);
     } else {
-        rtc_next_timer.time_next_alarm = time_epoch_us + now*RTT_TICK_US + milliseconds*1000;
-        rtc_next_timer.arg = arg;
-        rtc_next_timer.cb = cb;
+        rtc_next_timer_millis.alarm = time_epoch_us + now*RTT_TICK_US + milliseconds*1000;
+        rtc_next_timer_millis.arg = arg;
+        rtc_next_timer_millis.cb = cb;
     }
 
     rtc_release();
@@ -172,9 +162,9 @@ int rtc_millis_set_alarm(uint32_t milliseconds, rtc_alarm_cb_t cb, void *arg)
 void rtc_millis_clear_alarm(void)
 {
     rtc_acquire();
-
-    isr_ctx.cb_b = NULL;
-    isr_ctx.arg_b = NULL;
+    
+    rtt_clear_alarm();
+    rtc_next_timer_millis.alarm = 0;
 
     rtc_release();
 }
@@ -199,9 +189,6 @@ int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg)
     (void) cb;
     (void) arg;
 
-    isr_ctx.cb_wkup = cb;
-    isr_ctx.arg_wkup = arg;
-    
     rtc_release();
 
     return 0;

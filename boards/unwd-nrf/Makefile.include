@@ -26,3 +26,6 @@ ifneq (,$(filter nordic_softdevice_ble,$(USEPKG)))
   export LINKER_SCRIPT ?= $(RIOTCPU)/$(CPU)/ldscripts/$(CPU_MODEL)_sd.ld
 endif
 include $(RIOTMAKE)/tools/jlink.inc.mk
+
+# load the common Makefile.include for Unwired Devices boards
+include $(RIOTBOARD)/common/unwd/Makefile.include

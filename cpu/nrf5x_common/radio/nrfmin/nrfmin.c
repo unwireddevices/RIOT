@@ -163,7 +163,9 @@ static void goto_target_state(void)
         NRF_RADIO->PACKETPTR = (uint32_t)(&rx_buf);
         NRF_RADIO->BASE0 = (CONF_ADDR_BASE | my_addr);
         /* goto RX mode */
+        NRF_RADIO->EVENTS_READY = 0;
         NRF_RADIO->TASKS_RXEN = 1;
+        while (NRF_RADIO->EVENTS_READY == 0) {}
         state = STATE_RX;
     }
 
@@ -355,16 +357,10 @@ static int nrfmin_send(netdev_t *dev, const iolist_t *iolist)
 
     /* trigger the actual transmission */
     DEBUG("[nrfmin] send: putting %i byte into the ether\n", (int)hdr->len);
-#if ENABLE_DEBUG
-	DEBUG("[nrfmin] pack: ");
-	for(uint8_t i = 0; i < hdr->len; i++)
-	{
-		printf("%x ", rx_buf.raw[i]);
-	}
-	printf("\n");
-#endif
-    state = STATE_TX;
+    NRF_RADIO->EVENTS_READY = 0;
     NRF_RADIO->TASKS_TXEN = 1;
+    while (NRF_RADIO->EVENTS_READY == 0) {}
+    state = STATE_TX;
 
     return (int)pos;
 }

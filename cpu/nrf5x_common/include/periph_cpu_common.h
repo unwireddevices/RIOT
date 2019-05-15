@@ -30,7 +30,8 @@ extern "C" {
  * @name    Power management configuration
  * @{
  */
-#define PROVIDES_PM_OFF
+#define PROVIDES_PM_LAYERED_OFF
+#define PM_NUM_MODES    3
 /** @} */
 
 /**

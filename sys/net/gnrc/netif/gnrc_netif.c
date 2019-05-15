@@ -1294,6 +1294,9 @@ static void *_gnrc_netif_thread(void *args)
     }
     _configure_netdev(dev);
     _init_from_device(netif);
+#ifdef DEVELHELP
+    _test_options(netif);
+#endif
     netif->cur_hl = GNRC_NETIF_DEFAULT_HL;
 #ifdef MODULE_GNRC_IPV6_NIB
     gnrc_ipv6_nib_init_iface(netif);

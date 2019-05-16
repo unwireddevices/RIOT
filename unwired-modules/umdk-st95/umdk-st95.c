@@ -249,15 +249,21 @@ void umdk_st95_init(uwnds_cb_t *event_callback)
     radio_pid = thread_create(stack, UMDK_ST95_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, radio_send, NULL, "st95 thread");
     
     st95_params.iface = ST95_IFACE_SPI;
+
     mode = UMDK_ST95_MODE_DETECT_TAG;
 
     if(st95_init(&dev, &st95_params) != ST95_OK){
         puts("[umdk-" _UMDK_NAME_ "] st95 driver initialization error");
         return;
     }
-    else {   
-        puts("[umdk-" _UMDK_NAME_ "] st95 driver initialization success");
-
+    else {
+        if(st95_params.iface == ST95_IFACE_SPI) {
+            puts("[umdk-" _UMDK_NAME_ "] st95 driver over SPI initialization success");
+        }
+        else {
+            puts("[umdk-" _UMDK_NAME_ "] st95 driver over UART initialization success");
+        }
+        
         if(mode == UMDK_ST95_MODE_SET_UID) {
             puts("[umdk-" _UMDK_NAME_ "] card emulation mode");
             umdk_st95_set_uid();

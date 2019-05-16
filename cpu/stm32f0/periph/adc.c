@@ -28,11 +28,6 @@
 #define ADC_TSENSE_CAL1     (0x1FFFF7B8UL)
 
 /**
- * @brief   Maximum allowed ADC clock speed
- */
-#define MAX_ADC_SPEED           (12000000U)
-
-/**
  * @brief   Load the ADC configuration
  */
 static const adc_conf_t adc_config[] = ADC_CONFIG;
@@ -66,32 +61,27 @@ int adc_init(adc_t line)
     /* lock and power on the device */
     prep();
     
+    /* ADC auto enable */
+    ADC1->CFGR1 |= ADC_CFGR1_AUTOFF;
+    
+    /* reset configuration */
+    ADC1->CFGR2 = 0;
+    
+    /* configure sampling time */
+    ADC1->SMPR = 0x6;   /* 71.5 ADC clock cycles = 5 us */
+    
     if (adc_config[line].pin != GPIO_UNDEF) {
         /*configure the pin */
         gpio_init_analog(adc_config[line].pin);
-    }
-    
-    /* disable ADC */
-    if (ADC1->CR & ADC_CR_ADEN) {
-        ADC1->CR |= ADC_CR_ADDIS;
-        while (ADC1->CR & ADC_CR_ADEN) {}
     }
     
     /* calibrate ADC */
     ADC1->CR |= ADC_CR_ADCAL;
     while(ADC1->CR & ADC_CR_ADCAL) {}
     
-    /* reset configuration */
-    ADC1->CFGR2 = 0;
-    /* enable device */
-    ADC1->CR = ADC_CR_ADEN;
-    while(!(ADC1->ISR & ADC_ISR_ADRDY));
-    
-    /* configure sampling time to save value */
-    ADC1->SMPR = 0x3;       /* 28.5 ADC clock cycles */
-    /* power off an release device for now */
+    /* power off and release device for now */
     done();
-
+    
     return 0;
 }
 
@@ -104,29 +94,31 @@ int adc_sample(adc_t line,  adc_res_t res)
     if (res > 0xf0) {
         return -1;
     }
-
+    
     /* lock and power on the ADC device  */
     prep();
     
     /* Reactivate VREFINT and temperature sensor if necessary */
     if ((adc_config[line].chan == ADC_VREF_CHANNEL) || (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL)) {
-        ADC->CCR = (ADC_CCR_VREFEN | ADC_CCR_TSEN);
+        ADC->CCR |= (ADC_CCR_VREFEN | ADC_CCR_TSEN);
         
-        /* there's not PWR_CSR_VREFINTRDYF on STM32F030 and STM32F070 */
+        /* there's no PWR_CSR_VREFINTRDYF on STM32F030 and STM32F070 */
         #if defined(PWR_CSR_VREFINTRDYF)
             while ((PWR->CSR & PWR_CSR_VREFINTRDYF) == 0);
         #endif
     }
-
+    
     /* set resolution and channel */
-    ADC1->CFGR1 = res;
+    ADC1->CFGR1 &= ~ADC_RES_6BIT;
+    ADC1->CFGR1 |= res;
     ADC1->CHSELR = (1 << adc_config[line].chan);
+
     /* start conversion and wait for results */
     ADC1->CR |= ADC_CR_ADSTART;
     while (!(ADC1->ISR & ADC_ISR_EOC)) {}
     /* read result */
     sample = (int)ADC1->DR;
-    
+
     /* in case of temperature channel sample VDD too */
     int sample_vref = 0;
     if (adc_config[line].chan == ADC_TEMPERATURE_CHANNEL) {
@@ -192,9 +184,9 @@ int adc_sample(adc_t line,  adc_res_t res)
         /* return Vdd in mV instead of Vref in ADC counts*/
         sample = (3300 * cal_vref) / sample;
 	}
-
+    
     /* unlock and power off device again */
     done();
-
+    
     return sample;
 }

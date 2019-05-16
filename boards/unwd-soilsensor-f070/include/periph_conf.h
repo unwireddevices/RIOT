@@ -147,7 +147,7 @@ static const pwm_conf_t pwm_config[] = {
     { GPIO_UNDEF, 17 },\
 }
 
-#define ADC_NUMOF           (2)
+#define ADC_NUMOF           (3)
 
 /** @} */
 

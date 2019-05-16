@@ -19,7 +19,7 @@
  */
 
 
-#include "dsp/int_sqrt.h"
+#include "dsp/int_math/int_sqrt.h"
 
 uint8_t int_sqrt_8(uint8_t arg)
 {

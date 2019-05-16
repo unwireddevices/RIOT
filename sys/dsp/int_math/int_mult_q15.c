@@ -17,7 +17,7 @@
  *
  * @}
  */
-#include "dsp/int_mult_q15.h"
+#include "dsp/int_math/int_mult_q15.h"
 
 /**
  * @brief       Signed Saturate

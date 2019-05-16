@@ -29,7 +29,9 @@
 extern "C" {
 #endif
 
+#include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #define PROX_INTEGRAL_THRESHOLD         200
 #define PROX_INTEGRAL_HYS               1.2
@@ -44,17 +46,34 @@ typedef struct {
     int32_t  integral;
     int32_t  prev_integral;
     uint16_t integral_hys;
-    bool data_ready;// = false;
-    bool init_baseline;// = true;
-    bool is_active;// = false;
-
-    //TODO: Insert a pointer to the prototype of the measurement reading function
-    //TODO: Insert a pointer to the prototype of the clear drdy flag function
+    bool     init_baseline;
+    bool     is_active;
 } int_dia_t;
 
+/**
+ * @brief 
+ * 
+ * @param int_dia 
+ */
+void int_dia_init(int_dia_t *int_dia);
 
-void int_dia_init(uint8_t max_samples);
-int int_dia_main(void);
+/**
+ * @brief 
+ * 
+ * @param int_dia 
+ * @param data_set 
+ * @param max_samples 
+ */
+void int_dia_get_baseline(int_dia_t *int_dia, uint32_t *data_set, uint8_t max_samples);
+
+/**
+ * @brief 
+ * 
+ * @param int_dia 
+ * @param value 
+ * @return int 
+ */
+void int_dia_main(int_dia_t *int_dia, uint32_t value);
 
 #ifdef __cplusplus
 }

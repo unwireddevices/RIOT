@@ -42,14 +42,19 @@
 #define ENABLE_DEBUG        (0)
 #include "debug.h"
 
-#define NFCT_ALL_INTERRUPTS 0x001D5CFF
-#define NFCT_ENABLE_ALL_INT NFCT_ALL_INTERRUPTS
-#define NFCT_DISABLE_ALL_INT NFCT_ALL_INTERRUPTS
+#define NRF_NFC_OK 		0
+#define NRF_NFC_ERROR 	1
 
-#define NFCT_ALL_ERRORS 0xDUL
-#define NFCT_ALL_RX_STATUS 0xDUL
+#define NFCT_ALL_INTERRUPTS 	0x001D5CFF
+#define NFCT_ENABLE_ALL_INT 	NFCT_ALL_INTERRUPTS
+#define NFCT_DISABLE_ALL_INT 	NFCT_ALL_INTERRUPTS
+
+#define NFCT_ALL_ERRORS 	0xDUL
+#define NFCT_ALL_RX_STATUS 	0xDUL
 
 static uint8_t field_on = 0;
+
+static uint8_t uid_test[10] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0xAA, 0xBB, 0xCC };
 
 static inline void nrf_nfc_enable_int(uint32_t interrupt);
 static inline void nrf_nfc_disable_int(uint32_t interrupt);
@@ -59,24 +64,26 @@ static inline void nrf_nfc_clear_rx_status(void);
 static inline bool nrf_nfc_get_event(volatile uint32_t * event);
 static inline void nrf_nfc_task(volatile uint32_t * task);
 
+static uint8_t nrf_nfc_set_uid(uint8_t * uid, uint8_t length);
+
 static inline void nrf_nfc_enable_int(uint32_t interrupt)
 {   
     if(interrupt == NFCT_ENABLE_ALL_INT) {
         NRF_NFCT->INTENSET =    //(NFCT_INTENSET_READY_Set << NFCT_INTENSET_READY_Pos) |
                                 (NFCT_INTENSET_FIELDDETECTED_Set << NFCT_INTENSET_FIELDDETECTED_Pos) |
                                 (NFCT_INTENSET_FIELDLOST_Set << NFCT_INTENSET_FIELDLOST_Pos);// |
-                                // ( << NFCT_INTENSET_TXFRAMESTART_Pos) |
-                                // ( << NFCT_INTENSET_TXFRAMEEND_Pos) |
-                                // ( << NFCT_INTENSET_RXFRAMESTART_Pos) |
-                                // ( << NFCT_INTENSET_RXFRAMEEND_Pos) |
+                                // (NFCT_INTENSET_TXFRAMESTART_Set << NFCT_INTENSET_TXFRAMESTART_Pos) |
+                                // (NFCT_INTENSET_TXFRAMEEND_Set << NFCT_INTENSET_TXFRAMEEND_Pos) |
+                                // (NFCT_INTENSET_RXFRAMESTART_Set << NFCT_INTENSET_RXFRAMESTART_Pos) |
+                                // (NFCT_INTENSET_RXFRAMEEND_Set << NFCT_INTENSET_RXFRAMEEND_Pos) |
                                 // (NFCT_INTENSET_ERROR_Set << NFCT_INTENSET_ERROR_Pos);// |
                                 // (NFCT_INTENSET_RXERROR_Set << NFCT_INTENSET_RXERROR_Pos) |
-                                // ( << NFCT_INTENSET_ENDRX_Pos) |
-                                // ( << NFCT_INTENSET_ENDTX_Pos) |
-                                // ( << NFCT_INTENSET_AUTOCOLRESSTARTED_Pos) |
-                                // ( << NFCT_INTENSET_COLLISION_Pos) |
-                                // ( << NFCT_INTENSET_SELECTED_Pos) |
-                                // ( << NFCT_INTENSET_STARTED_Pos);
+                                // (NFCT_INTENSET_ENDRX_Set << NFCT_INTENSET_ENDRX_Pos) |
+                                // (NFCT_INTENSET_ENDTX_Set << NFCT_INTENSET_ENDTX_Pos) |
+                                // (NFCT_INTENSET_AUTOCOLRESSTARTED_Set << NFCT_INTENSET_AUTOCOLRESSTARTED_Pos) |
+                                // (NFCT_INTENSET_COLLISION_Set << NFCT_INTENSET_COLLISION_Pos) |
+                                // (NFCT_INTENSET_SELECTED_Set << NFCT_INTENSET_SELECTED_Pos) |
+                                // (NFCT_INTENSET_STARTED_Set << NFCT_INTENSET_STARTED_Pos);
     }
     else {
         NRF_NFCT->INTENSET = interrupt;
@@ -163,32 +170,33 @@ static inline void nrf_nfc_task(volatile uint32_t * task)
 
 void isr_nfct(void)
 {
-    if((NRF_NFCT->EVENTS_FIELDDETECTED) && (field_on == 0)) {
-        field_on = 1;
-        nrf_nfc_disable_int(NFCT_INTENCLR_FIELDDETECTED_Msk);
-        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_FIELDDETECTED);
-            /* Clear error status */ 
-        nrf_nfc_clear_errors();
-            /* Clear RX status */   
-        nrf_nfc_clear_rx_status();   
-        nrf_nfc_task(&NRF_NFCT->TASKS_ACTIVATE);
-       
-        puts(">>>\t\tEVENTS_FIELDDETECTED");
+    if(NRF_NFCT->EVENTS_FIELDDETECTED) {
+		nrf_nfc_clear_event(&NRF_NFCT->EVENTS_FIELDDETECTED);
+		if(field_on == 0) {
+			nrf_nfc_disable_int(NFCT_INTENCLR_FIELDDETECTED_Msk);			
+				/* Clear error status */ 
+			nrf_nfc_clear_errors();
+				/* Clear RX status */   
+			nrf_nfc_clear_rx_status();
+			
+			if(nrf_nfc_set_uid(uid_test, 4) == NRF_NFC_ERROR) {
+				puts("Invalid UID");
+			}
+			field_on = 1;
+			nrf_nfc_task(&NRF_NFCT->TASKS_ACTIVATE);
+		   
+			puts(">>>\t\tEVENTS_FIELDDETECTED");
+		}
     }
-    else if(field_on == 1) {
-        puts(">>> Field ON yet");
-    }
-    
+
     if(NRF_NFCT->EVENTS_READY) {
         nrf_nfc_clear_event(&NRF_NFCT->EVENTS_READY);
-
-        // nrf_nfc_task(&NRF_NFCT->TASKS_STARTTX);
+        nrf_nfc_task(&NRF_NFCT->TASKS_STARTTX);
          puts("EVENTS_READY");       
     }
     
     if(NRF_NFCT->EVENTS_FIELDLOST) {
-        field_on = 0;
-        
+        field_on = 0;       
         nrf_nfc_clear_event(&NRF_NFCT->EVENTS_FIELDLOST);
         nrf_nfc_enable_int(NFCT_INTENCLR_FIELDDETECTED_Msk);
 
@@ -256,6 +264,53 @@ void isr_nfct(void)
     cortexm_isr_end();
 }
 
+static uint8_t nrf_nfc_set_uid(uint8_t * uid, uint8_t length)
+{
+	if(length == 4) {
+			    /* SENSRES SDD */
+		NRF_NFCT->SENSRES =   NFCT_SENSRES_BITFRAMESDD_SDD00001 |
+							(0x0UL << NFCT_SENSRES_RFU5_Pos) |
+							(NFCT_SENSRES_NFCIDSIZE_NFCID1Single << NFCT_SENSRES_NFCIDSIZE_Pos) |
+							/* (0x0UL << NFCT_SENSRES_PLATFCONFIG_Msk) |*/
+							(0x0UL << NFCT_SENSRES_RFU74_Pos);
+								
+		NRF_NFCT->NFCID1_LAST = (uid[0] << 24) | (uid[1] << 16) | (uid[2] << 8) | uid[3];
+
+		// NRF_NFCT->SELRES = 
+	}
+	else if(length == 7) {
+					    /* SENSRES SDD */
+		NRF_NFCT->SENSRES =   NFCT_SENSRES_BITFRAMESDD_SDD00001 |
+							(0x0UL << NFCT_SENSRES_RFU5_Pos) |
+							(NFCT_SENSRES_NFCIDSIZE_NFCID1Double << NFCT_SENSRES_NFCIDSIZE_Pos) |
+							/* (0x0UL << NFCT_SENSRES_PLATFCONFIG_Msk) |*/
+							(0x0UL << NFCT_SENSRES_RFU74_Pos);
+								
+		NRF_NFCT->NFCID1_2ND_LAST =	(uid[0] << 16) | (uid[1] << 8) | uid[2];		
+		NRF_NFCT->NFCID1_LAST = (uid[3] << 24) | (uid[4] << 16) | (uid[5] << 8) | uid[6];
+
+		// NRF_NFCT->SELRES = 
+	}
+	else if(length == 10) {
+					    /* SENSRES SDD */
+		NRF_NFCT->SENSRES =   NFCT_SENSRES_BITFRAMESDD_SDD00001 |
+							(0x0UL << NFCT_SENSRES_RFU5_Pos) |
+							(NFCT_SENSRES_NFCIDSIZE_NFCID1Triple << NFCT_SENSRES_NFCIDSIZE_Pos) |
+							/* (0x0UL << NFCT_SENSRES_PLATFCONFIG_Msk) |*/
+							(0x0UL << NFCT_SENSRES_RFU74_Pos);
+							
+		NRF_NFCT->NFCID1_3RD_LAST = (uid[0] << 16) | (uid[1] << 8) | uid[2];
+		NRF_NFCT->NFCID1_2ND_LAST =	(uid[3] << 16) | (uid[4] << 8) | uid[5];		
+		NRF_NFCT->NFCID1_LAST = (uid[6] << 24) | (uid[7] << 16) | (uid[8] << 8) | uid[9];
+
+		// NRF_NFCT->SELRES = 
+	}
+	else {
+		return NRF_NFC_ERROR;
+	}
+	
+	return NRF_NFC_OK;
+}
 
 void nfc_init(void)
 {
@@ -263,10 +318,8 @@ void nfc_init(void)
        
      /* Checking setting of pins dedicated to NFC functionality */
     if((NRF_UICR->NFCPINS & UICR_NFCPINS_PROTECT_Msk) != UICR_NFCPINS_PROTECT_NFC) {
-        // DEBUG("[NRF_UICR->NFCPINS]: ERROR %08lX\n", NRF_UICR->NFCPINS);
          /* Setting of pins dedicated to NFC functionality */
-        NRF_UICR->NFCPINS |= UICR_NFCPINS_PROTECT_Msk;
-        // DEBUG("[NRF_UICR->NFCPINS]: OK %08lX\n", NRF_UICR->NFCPINS);
+        NRF_UICR->NFCPINS |= (0x1UL << UICR_NFCPINS_PROTECT_Pos);
     }
   
     /* TODO: Frame delay mode */
@@ -277,22 +330,12 @@ void nfc_init(void)
         /*  Frame is transmitted between FRAMEDELAYMIN and FRAMEDELAYMAX */
     NRF_NFCT->FRAMEDELAYMODE = NFCT_FRAMEDELAYMODE_FRAMEDELAYMODE_Window;
 
-        NRF_NFCT->TASKS_DISABLE = 1;
-        /*  No timeout */
-    // NRF_NFCT->FRAMEDELAYMODE = NFCT_FRAMEDELAYMODE_FRAMEDELAYMODE_FreeRun;
-    
-    
-    /* SENSRES SDD */
-    NRF_NFCT->SENSRES =   NFCT_SENSRES_BITFRAMESDD_SDD00001 |
-                                (0x0UL << NFCT_SENSRES_RFU5_Pos) |
-                                (NFCT_SENSRES_NFCIDSIZE_NFCID1Single << NFCT_SENSRES_NFCIDSIZE_Pos) |
-                                /* (0x0UL << NFCT_SENSRES_PLATFCONFIG_Msk) |*/
-                                (0x0UL << NFCT_SENSRES_RFU74_Pos);
-    /* UID(10 bytes): DD EE FF AA BB CC 11 22 33 44 */
-    NRF_NFCT->NFCID1_LAST = 0x11223344;
-    NRF_NFCT->NFCID1_2ND_LAST = 0xAABBCC;
-    NRF_NFCT->NFCID1_3RD_LAST = 0xDDEEFF;
-    // NRF_NFCT->SELRES = 
+	nrf_nfc_task(&NRF_NFCT->TASKS_DISABLE);
+
+    /* Set UID */
+	// if(nrf_nfc_set_uid(uid_test, 4) == NRF_NFC_ERROR) {
+		// puts("Invalid UID");
+	// }
     
     nrf_nfc_disable_int(NFCT_ALL_INTERRUPTS);
     
@@ -300,16 +343,14 @@ void nfc_init(void)
     nrf_nfc_clear_errors();
         /* Clear RX status */   
     nrf_nfc_clear_rx_status();    
-        /*  Enable NFC sense field mode, change state to sense mode */
   
-        /* Enable NFCT interrupts */
     field_on = 0;
-
+        /* Enable NFCT interrupts */
     nrf_nfc_enable_int(NFCT_ALL_INTERRUPTS);
 
-        /* Enable interrupts */
+	/* Enable interrupts */
     NVIC_EnableIRQ(NFCT_IRQn);
-    
+	/*  Enable NFC sense field mode, change state to sense mode */
     nrf_nfc_task(&NRF_NFCT->TASKS_SENSE);
 
     puts("Start test NFC...\n");

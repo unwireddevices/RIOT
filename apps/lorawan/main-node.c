@@ -441,6 +441,7 @@ int ls_set_cmd(int argc, char **argv)
         puts("\tmaxretr <0-5> -- sets maximum number of retransmissions of confirmed app. data [2 is recommended]");
         puts("\tclass <A/C> -- sets device class");
         puts("\tadr <0/1> -- enable or disable ADR");
+        puts("\tcnf <0/1> -- enable or disable messages confirmation");
     }
     
     char *key = argv[1];
@@ -452,6 +453,15 @@ int ls_set_cmd(int argc, char **argv)
             unwds_set_nojoin(false);
         } else {
             unwds_set_nojoin(true);
+        }
+    }
+    
+    if (strcmp(key, "cnf") == 0) {
+        int v = atoi(value);
+        if (v) {
+            unwds_set_cnf(true);
+        } else {
+            unwds_set_cnf(false);
         }
     }
     

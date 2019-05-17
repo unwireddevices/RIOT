@@ -180,7 +180,8 @@ void pwm_stop(pwm_t pwm, uint8_t channel)
     assert(pwm < PWM_NUMOF);
     
     /* disable corresponding pin */
-    gpio_init(pwm_config[pwm].chan[channel].pin, GPIO_AIN);
+    gpio_init(pwm_config[pwm].chan[channel].pin, GPIO_OUT);
+    gpio_clear(pwm_config[pwm].chan[channel].pin);
 }
 
 void pwm_poweron(pwm_t pwm)

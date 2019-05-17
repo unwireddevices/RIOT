@@ -40,6 +40,8 @@ extern "C" {
                                              *         2: derived from HFCLK */
 /** @} */
 
+#define EEPROM_SIZE     FLASHPAGE_SIZE*2
+
 /**
  * @brief   PWM configuration
  * @{

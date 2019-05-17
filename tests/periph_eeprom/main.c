@@ -27,6 +27,8 @@
 
 #include "periph/eeprom.h"
 
+#include "periph_conf.h"
+
 #ifndef BUFFER_SIZE
 #define BUFFER_SIZE     (42U)
 #endif

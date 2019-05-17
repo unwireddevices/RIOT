@@ -1,7 +1,8 @@
-BOARD ?= b-l072z-lrwan1
+BOARD ?= unwd-nrf
 include ../Makefile.tests_common
 
 FEATURES_REQUIRED += periph_eeprom
+FEATURES_REQUIRED += periph_flashpage
 
 BOARD_INSUFFICIENT_MEMORY := arduino-duemilanove arduino-uno
 

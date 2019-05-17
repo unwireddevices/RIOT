@@ -78,6 +78,7 @@ static const uart_conf_t uart_config[] = {
         .rx_pin     = GPIO_PIN(PORT_A, 10),
         .tx_pin     = GPIO_PIN(PORT_A, 9),
         .tx_mode    = GPIO_OUT,
+        .rx_mode    = GPIO_IN,
         .rx_af      = GPIO_AF1,
         .tx_af      = GPIO_AF1,
         .bus        = APB2,
@@ -89,6 +90,7 @@ static const uart_conf_t uart_config[] = {
         .rx_pin     = GPIO_PIN(PORT_A, 3),
         .tx_pin     = GPIO_PIN(PORT_A, 2),
         .tx_mode    = GPIO_OD,
+        .rx_mode    = GPIO_IN_PU,
         .rx_af      = GPIO_AF1,
         .tx_af      = GPIO_AF1,
         .bus        = APB1,
@@ -147,7 +149,7 @@ static const pwm_conf_t pwm_config[] = {
     { GPIO_UNDEF, 17 },\
 }
 
-#define ADC_NUMOF           (2)
+#define ADC_NUMOF           (3)
 
 /** @} */
 

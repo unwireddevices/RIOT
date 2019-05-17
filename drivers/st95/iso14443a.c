@@ -955,7 +955,9 @@ int iso14443a_get_uid(const st95_t * dev, uint8_t * iso_rxbuf, uint8_t * length_
     if(_iso14443a_anticoll_algorithm(dev, iso_rxbuf) == ST95_OK) {
         _iso14443a_hlta(dev, iso_rxbuf, ISO14443A_ANSWER_MAX_BYTE);
         *length_uid = picc.uid_length;
-        *sak = picc.sak;
+        if(sak != NULL) {
+            *sak = picc.sak;
+        }
         for(uint32_t i = 0; i < picc.uid_length; i++) {
             uid[i] = picc.uid[i];
         }

@@ -41,7 +41,6 @@
 #include "periph/uart.h"
 #include "periph/gpio.h"
 #include "periph/pwm.h"
-#include "periph/pm.h"
 #include "pm_layered.h"
 #include "periph/flashpage.h"
 #include "stdio_uart.h"
@@ -61,7 +60,7 @@
 #define SOILSENSOR_COMM_DEF_BAUD    9600
 #define SOILSENSOR_COMM_DEF_PERIOD  15
 
-#define SOILSENSOR_SENSOR_WARMUP    3
+#define SOILSENSOR_SENSOR_WARMUP    1
 
 #define START_BYTE                  0x55 // byte 0
 #define ADDRESS_SIZE                8   // bytes 1-8 are for the device address
@@ -148,9 +147,18 @@ static sensor_data_t readval(void)
 {
     sensor_data_t data;
     
-    int moisture = 0, temp = 0;
+    int moisture = 0, temp = 0, vdda = 0;
     int n = 10;
     
+    /* Vref ADC channel */
+    adc_init(ADC_VREF);
+    for (int i = 0; i < n; i++) {
+        vdda += adc_sample(ADC_VREF, ADC_RES_12BIT);
+        xtimer_usleep(1000);
+    }
+    vdda /= n;
+    printf("VDD: %d mV\n", vdda);
+
     adc_init(ADC_MOIST);
     for (int i = 0; i < n; i++) {
         moisture += adc_sample(ADC_MOIST, ADC_RES_12BIT);
@@ -167,16 +175,6 @@ static sensor_data_t readval(void)
     
     data.moisture_raw = moisture/100;
     
-    /* Vref ADC channel */
-    adc_init(ADC_VREF);
-    int vdda = 0;
-    for (int i = 0; i < n; i++) {
-        vdda += adc_sample(ADC_VREF, ADC_RES_12BIT);
-        xtimer_usleep(1000);
-    }
-    vdda /= n;
-    printf("VDD: %d mV\n", vdda);
-
     moisture = (100*sensor_settings.moisture_min - moisture) / (sensor_settings.moisture_min - sensor_settings.moisture_max);
 
     if (moisture > 100) {
@@ -487,6 +485,9 @@ int main(void)
 
     static char stack[SOILSENSOR_STACK_SIZE];
     process_pid = thread_create(stack, SOILSENSOR_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, processing_thread, NULL, "data");
+    
+    adc_init(ADC_VREF);
+    adc_sample(ADC_VREF, ADC_RES_12BIT);
     
     puts("Sending data");
     prepare_data(buf_out);

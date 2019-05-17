@@ -39,136 +39,215 @@
 #include "periph/gpio.h"
 #include "periph/nfc.h"
 
-#define ENABLE_DEBUG        (1)
+#define ENABLE_DEBUG        (0)
 #include "debug.h"
 
+#define NFCT_ALL_INTERRUPTS 0x001D5CFF
+#define NFCT_ENABLE_ALL_INT NFCT_ALL_INTERRUPTS
+#define NFCT_DISABLE_ALL_INT NFCT_ALL_INTERRUPTS
 
-static void enable_intenset_all(void)
+#define NFCT_ALL_ERRORS 0xDUL
+#define NFCT_ALL_RX_STATUS 0xDUL
+
+static uint8_t field_on = 0;
+
+static inline void nrf_nfc_enable_int(uint32_t interrupt);
+static inline void nrf_nfc_disable_int(uint32_t interrupt);
+static inline void nrf_nfc_clear_event(volatile uint32_t * event);
+static inline void nrf_nfc_clear_errors(void);
+static inline void nrf_nfc_clear_rx_status(void);
+static inline bool nrf_nfc_get_event(volatile uint32_t * event);
+static inline void nrf_nfc_task(volatile uint32_t * task);
+
+static inline void nrf_nfc_enable_int(uint32_t interrupt)
+{   
+    if(interrupt == NFCT_ENABLE_ALL_INT) {
+        NRF_NFCT->INTENSET =    //(NFCT_INTENSET_READY_Set << NFCT_INTENSET_READY_Pos) |
+                                (NFCT_INTENSET_FIELDDETECTED_Set << NFCT_INTENSET_FIELDDETECTED_Pos) |
+                                (NFCT_INTENSET_FIELDLOST_Set << NFCT_INTENSET_FIELDLOST_Pos);// |
+                                // ( << NFCT_INTENSET_TXFRAMESTART_Pos) |
+                                // ( << NFCT_INTENSET_TXFRAMEEND_Pos) |
+                                // ( << NFCT_INTENSET_RXFRAMESTART_Pos) |
+                                // ( << NFCT_INTENSET_RXFRAMEEND_Pos) |
+                                // (NFCT_INTENSET_ERROR_Set << NFCT_INTENSET_ERROR_Pos);// |
+                                // (NFCT_INTENSET_RXERROR_Set << NFCT_INTENSET_RXERROR_Pos) |
+                                // ( << NFCT_INTENSET_ENDRX_Pos) |
+                                // ( << NFCT_INTENSET_ENDTX_Pos) |
+                                // ( << NFCT_INTENSET_AUTOCOLRESSTARTED_Pos) |
+                                // ( << NFCT_INTENSET_COLLISION_Pos) |
+                                // ( << NFCT_INTENSET_SELECTED_Pos) |
+                                // ( << NFCT_INTENSET_STARTED_Pos);
+    }
+    else {
+        NRF_NFCT->INTENSET = interrupt;
+    }
+}
+
+static inline void nrf_nfc_disable_int(uint32_t interrupt)
+{   
+    if(interrupt == NFCT_ENABLE_ALL_INT) {
+        NRF_NFCT->INTENCLR =    //(NFCT_INTENCLR_READY_Clear << NFCT_INTENCLR_READY_Pos) |
+                                (NFCT_INTENCLR_FIELDDETECTED_Clear << NFCT_INTENCLR_FIELDDETECTED_Pos) |
+                                (NFCT_INTENCLR_FIELDLOST_Clear << NFCT_INTENCLR_FIELDLOST_Pos);// |
+                                // (NFCT_INTENCLR_TXFRAMESTART_Clear << NFCT_INTENCLR_TXFRAMESTART_Pos) |
+                                // (NFCT_INTENCLR_TXFRAMEEND_Clear << NFCT_INTENCLR_TXFRAMEEND_Pos) |
+                                // (NFCT_INTENCLR_RXFRAMESTART_Clear<< NFCT_INTENCLR_RXFRAMESTART_Pos) |
+                                // (NFCT_INTENCLR_RXFRAMEEND_Clear << NFCT_INTENCLR_RXFRAMEEND_Pos) |
+                                // (NFCT_INTENCLR_ERROR_Clear << NFCT_INTENCLR_ERROR_Pos);// |
+                                // (NFCT_INTENCLR_RXERROR_Clear << NFCT_INTENCLR_RXERROR_Pos) |
+                                // (NFCT_INTENCLR_ENDRX_Clear << NFCT_INTENCLR_ENDRX_Pos) |
+                                // (NFCT_INTENCLR_ENDTX_Clear << NFCT_INTENCLR_ENDTX_Pos) |
+                                // (NFCT_INTENCLR_AUTOCOLRESSTARTED_Clear << NFCT_INTENCLR_AUTOCOLRESSTARTED_Pos) |
+                                // (NFCT_INTENCLR_COLLISION_Clear << NFCT_INTENCLR_COLLISION_Pos) |
+                                // (NFCT_INTENCLR_SELECTED_Clear << NFCT_INTENCLR_SELECTED_Pos) |
+                                // (NFCT_INTENCLR_STARTED_Clear << NFCT_INTENCLR_STARTED_Pos);
+    }
+    else {
+        NRF_NFCT->INTENCLR = interrupt;
+    }
+}
+
+static inline void nrf_nfc_clear_event(volatile uint32_t * event)
+{   
+    *event = 0x0UL;
+    __DSB();
+}
+
+static inline bool nrf_nfc_get_event(volatile uint32_t * event)
 {
-    // DEBUG("[NRF_NFCT->INTENSET]: %08lX\n", NRF_NFCT->INTENSET);
+    return (bool)(* event);
+}
+
+static inline void nrf_nfc_clear_errors(void) 
+{  
+    if(NRF_NFCT->ERRORSTATUS & NFCT_ERRORSTATUS_NFCFIELDTOOWEAK_Msk) {
+        puts("[ERROR]: Field level is too LOW at MIN load resistance");
+    }
+    if(NRF_NFCT->ERRORSTATUS & NFCT_ERRORSTATUS_NFCFIELDTOOSTRONG_Msk) {
+        puts("[ERROR]: Field level is too HIGH at MAX load resistance");
+    }
+    if(NRF_NFCT->ERRORSTATUS & NFCT_ERRORSTATUS_FRAMEDELAYTIMEOUT_Msk) {
+        puts("[ERROR]: No STARTTX task triggered before expiration of the time set in FRAMEDELAYMAX");
+    }
     
-    NRF_NFCT->INTENSET =    NFCT_INTENSET_READY_Msk |
-                            NFCT_INTENSET_FIELDDETECTED_Msk |
-                            NFCT_INTENSET_FIELDLOST_Msk |
-                            NFCT_INTENSET_TXFRAMESTART_Msk |
-                            NFCT_INTENSET_TXFRAMEEND_Msk |
-                            NFCT_INTENSET_RXFRAMESTART_Msk |
-                            NFCT_INTENSET_RXFRAMEEND_Msk |
-                            NFCT_INTENSET_ERROR_Msk |
-                            NFCT_INTENSET_RXERROR_Msk |
-                            NFCT_INTENSET_ENDRX_Msk |
-                            NFCT_INTENSET_ENDTX_Msk |
-                            NFCT_INTENSET_AUTOCOLRESSTARTED_Msk |
-                            NFCT_INTENSET_COLLISION_Msk |
-                            NFCT_INTENSET_SELECTED_Msk |
-                            NFCT_INTENSET_STARTED_Msk;
-                            
-    // DEBUG("[NRF_NFCT->INTENSET]: %08lX\n", NRF_NFCT->INTENSET);
+    NRF_NFCT->ERRORSTATUS = NFCT_ALL_ERRORS;
     
-    NRF_NFCT->INTENCLR = NFCT_INTENCLR_TXFRAMESTART_Msk;
-    NRF_NFCT->INTENCLR = NFCT_INTENCLR_TXFRAMEEND_Msk;
-    NRF_NFCT->INTENCLR = NFCT_INTENCLR_RXFRAMESTART_Msk;
-    NRF_NFCT->INTENCLR = NFCT_INTENCLR_RXFRAMEEND_Msk;
-        
-    // DEBUG("[NRF_NFCT->INTENSET]: %08lX\n", NRF_NFCT->INTENSET);
+    // NRF_NFCT->ERRORSTATUS = (0x1UL << NFCT_ERRORSTATUS_NFCFIELDTOOWEAK_Pos) |
+                            // (0x1UL << NFCT_ERRORSTATUS_NFCFIELDTOOSTRONG_Pos) |
+                            // (0x1UL << NFCT_ERRORSTATUS_FRAMEDELAYTIMEOUT_Pos);
+}
+
+static inline void nrf_nfc_clear_rx_status(void) 
+{   
+    if(NRF_NFCT->FRAMESTATUS.RX & NFCT_FRAMESTATUS_RX_OVERRUN_Msk) {
+        puts("[RX STATUS]: Overrun");
+    }
+    if(NRF_NFCT->FRAMESTATUS.RX & NFCT_FRAMESTATUS_RX_PARITYSTATUS_Msk) {
+        puts("[RX STATUS]: Parity Error");
+    }
+    if(NRF_NFCT->FRAMESTATUS.RX & NFCT_FRAMESTATUS_RX_CRCERROR_Msk) {
+        puts("[RX STATUS]: CRC Error");
+    }
+    
+    NRF_NFCT->FRAMESTATUS.RX = NFCT_ALL_RX_STATUS;
+    
+    // NRF_NFCT->FRAMESTATUS.RX = (0x1UL << NFCT_FRAMESTATUS_RX_OVERRUN_Pos) |
+                               // (0x1UL << NFCT_FRAMESTATUS_RX_PARITYSTATUS_Pos) |
+                               // (0x1UL << NFCT_FRAMESTATUS_RX_CRCERROR_Pos);                            
+}
+
+static inline void nrf_nfc_task(volatile uint32_t * task)
+{
+    *task = 0x1UL;
 }
 
 void isr_nfct(void)
-{   
+{
+    if((NRF_NFCT->EVENTS_FIELDDETECTED) && (field_on == 0)) {
+        field_on = 1;
+        nrf_nfc_disable_int(NFCT_INTENCLR_FIELDDETECTED_Msk);
+        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_FIELDDETECTED);
+            /* Clear error status */ 
+        nrf_nfc_clear_errors();
+            /* Clear RX status */   
+        nrf_nfc_clear_rx_status();   
+        nrf_nfc_task(&NRF_NFCT->TASKS_ACTIVATE);
+       
+        puts(">>>\t\tEVENTS_FIELDDETECTED");
+    }
+    else if(field_on == 1) {
+        puts(">>> Field ON yet");
+    }
+    
     if(NRF_NFCT->EVENTS_READY) {
-        NRF_NFCT->EVENTS_READY = 0UL;
-        __DSB();
-         puts("EVENTS_READY");
-       
+        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_READY);
+
+        // nrf_nfc_task(&NRF_NFCT->TASKS_STARTTX);
+         puts("EVENTS_READY");       
     }
-    if(NRF_NFCT->EVENTS_FIELDDETECTED) {
-        NRF_NFCT->EVENTS_FIELDDETECTED = 0UL;
-        __DSB();
-                
-        NRF_NFCT->TASKS_ACTIVATE = 1;
-       
-        puts("EVENTS_FIELDDETECTED");
-    }
-    if(NRF_NFCT->EVENTS_FIELDLOST) {    
-        NRF_NFCT->EVENTS_FIELDLOST  = 0UL;
-        __DSB();
-        puts("EVENTS_FIELDLOST"); 
-        NRF_NFCT->TASKS_SENSE = 1;
+    
+    if(NRF_NFCT->EVENTS_FIELDLOST) {
+        field_on = 0;
+        
+        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_FIELDLOST);
+        nrf_nfc_enable_int(NFCT_INTENCLR_FIELDDETECTED_Msk);
+
+        puts(">>>\t\tEVENTS_FIELDLOST");
+        nrf_nfc_task(&NRF_NFCT->TASKS_SENSE);
     }
     if(NRF_NFCT->EVENTS_TXFRAMESTART) {
-        NRF_NFCT->EVENTS_TXFRAMESTART  = 0UL;
-        __DSB();
-         // NRF_NFCT->TASKS_DISABLE = 1;
+        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_TXFRAMESTART);
         puts("EVENTS_TXFRAMESTART");
     }
     if(NRF_NFCT->EVENTS_TXFRAMEEND) {
-        NRF_NFCT->EVENTS_TXFRAMEEND  = 0UL;
-        __DSB();
-         // NRF_NFCT->TASKS_DISABLE = 1;
+        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_TXFRAMEEND);
         puts("EVENTS_TXFRAMEEND");
     }
     if(NRF_NFCT->EVENTS_RXFRAMESTART) {
-        NRF_NFCT->EVENTS_RXFRAMESTART  = 0UL;
-        __DSB();
-         // NRF_NFCT->TASKS_DISABLE = 1;
+        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_RXFRAMESTART);
         puts("EVENTS_RXFRAMESTART");
     }
     if(NRF_NFCT->EVENTS_RXFRAMEEND) {       
-        NRF_NFCT->EVENTS_RXFRAMEEND  = 0UL;
-        __DSB();
-         // NRF_NFCT->TASKS_DISABLE = 1;
+        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_RXFRAMEEND);
         puts("EVENTS_RXFRAMEEND"); 
     }
     if(NRF_NFCT->EVENTS_ERROR) {        
-        NRF_NFCT->EVENTS_ERROR  = 0UL;
-        __DSB();
-        // NRF_NFCT->TASKS_DISABLE = 1;        
+        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_ERROR);
         puts("EVENTS_ERROR");
-        printf("[NRF_NFCT->ERROR]: %08lX\n", NRF_NFCT->ERRORSTATUS);
-        NRF_NFCT->TASKS_SENSE = 1;
+        nrf_nfc_enable_int(NFCT_INTENCLR_FIELDDETECTED_Msk);
+        nrf_nfc_clear_errors();
+        nrf_nfc_task(&NRF_NFCT->TASKS_SENSE);
     }
     if(NRF_NFCT->EVENTS_RXERROR) {      
-        NRF_NFCT->EVENTS_RXERROR  = 0UL;
-        __DSB();
-        // NRF_NFCT->TASKS_DISABLE = 1;
+        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_RXERROR);
         puts("EVENTS_RXERROR");  
-        printf("[NRF_NFCT->RXERROR]: %08lX\n", NRF_NFCT->FRAMESTATUS.RX);
-        NRF_NFCT->TASKS_SENSE = 1;
+        nrf_nfc_enable_int(NFCT_INTENCLR_FIELDDETECTED_Msk);
+        nrf_nfc_clear_rx_status();
+       
+        nrf_nfc_task(&NRF_NFCT->TASKS_SENSE);
     }
     if(NRF_NFCT->EVENTS_ENDRX) {        
-        NRF_NFCT->EVENTS_ENDRX  = 0UL;
-        __DSB();
-         // NRF_NFCT->TASKS_DISABLE = 1;
+        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_ENDRX);
         puts("EVENTS_ENDRX");
     }
-    if(NRF_NFCT->EVENTS_ENDTX) {        
-        NRF_NFCT->EVENTS_ENDTX  = 0UL;
-        __DSB();
-         // NRF_NFCT->TASKS_DISABLE = 1;
+    if(NRF_NFCT->EVENTS_ENDTX) {      
+        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_ENDTX);    
         puts("EVENTS_ENDTX");
     }
     if(NRF_NFCT->EVENTS_AUTOCOLRESSTARTED) {
-        NRF_NFCT->EVENTS_AUTOCOLRESSTARTED  = 0UL;
-        __DSB();
-         // NRF_NFCT->TASKS_DISABLE = 1;
+        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_AUTOCOLRESSTARTED);
         puts("EVENTS_AUTOCOLRESSTARTED"); 
     }
     if(NRF_NFCT->EVENTS_COLLISION) {       
-        NRF_NFCT->EVENTS_COLLISION  = 0UL;
-        __DSB();
-         NRF_NFCT->TASKS_SENSE = 1;
+        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_COLLISION);
         puts("EVENTS_COLLISION"); 
     }
     if(NRF_NFCT->EVENTS_SELECTED) {
-        NRF_NFCT->EVENTS_SELECTED  = 0UL;
-        __DSB();
-         NRF_NFCT->TASKS_DISABLE = 1;
+        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_SELECTED);
         puts("EVENTS_SELECTED");
     }
     if(NRF_NFCT->EVENTS_STARTED) {       
-        NRF_NFCT->EVENTS_STARTED  = 0UL;
-        __DSB();
-         NRF_NFCT->TASKS_DISABLE = 1;
+        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_STARTED);
         puts("EVENTS_STARTED"); 
     }
 
@@ -192,9 +271,9 @@ void nfc_init(void)
   
     /* TODO: Frame delay mode */
         /* Minimum frame delay */
-    // NRF_NFCT->FRAMEDELAYMIN = ;
+    // NRF_NFCT->FRAMEDELAYMIN = 0x00000001;
         /* Maximum frame delay */
-    // NRF_NFCT->FRAMEDELAYMAX = ;
+    NRF_NFCT->FRAMEDELAYMAX = 0x00007FFF;
         /*  Frame is transmitted between FRAMEDELAYMIN and FRAMEDELAYMAX */
     NRF_NFCT->FRAMEDELAYMODE = NFCT_FRAMEDELAYMODE_FRAMEDELAYMODE_Window;
 
@@ -206,7 +285,7 @@ void nfc_init(void)
     /* SENSRES SDD */
     NRF_NFCT->SENSRES =   NFCT_SENSRES_BITFRAMESDD_SDD00001 |
                                 (0x0UL << NFCT_SENSRES_RFU5_Pos) |
-                                (NFCT_SENSRES_NFCIDSIZE_NFCID1Triple << NFCT_SENSRES_NFCIDSIZE_Pos) |
+                                (NFCT_SENSRES_NFCIDSIZE_NFCID1Single << NFCT_SENSRES_NFCIDSIZE_Pos) |
                                 /* (0x0UL << NFCT_SENSRES_PLATFCONFIG_Msk) |*/
                                 (0x0UL << NFCT_SENSRES_RFU74_Pos);
     /* UID(10 bytes): DD EE FF AA BB CC 11 22 33 44 */
@@ -215,27 +294,24 @@ void nfc_init(void)
     NRF_NFCT->NFCID1_3RD_LAST = 0xDDEEFF;
     // NRF_NFCT->SELRES = 
     
-        /* Clear error status */
-    NRF_NFCT->ERRORSTATUS = NFCT_ERRORSTATUS_FRAMEDELAYTIMEOUT_Msk |
-                            NFCT_ERRORSTATUS_NFCFIELDTOOSTRONG_Msk |
-                            NFCT_ERRORSTATUS_NFCFIELDTOOWEAK_Msk;
-                            
-    NRF_NFCT->FRAMESTATUS.RX = 0xD;;                         
-        /*  Enable NFC sense field mode, change state to sense mode */
-    // NRF_NFCT->TASKS_SENSE = 1;
-  
-
-        /* Enable NFCT interrupts */
-                                                 
-    enable_intenset_all();
-                                                  
-
-    // NRF_NFCT->SHORTS |= 0x3;   
+    nrf_nfc_disable_int(NFCT_ALL_INTERRUPTS);
     
+        /* Clear error status */ 
+    nrf_nfc_clear_errors();
+        /* Clear RX status */   
+    nrf_nfc_clear_rx_status();    
+        /*  Enable NFC sense field mode, change state to sense mode */
+  
+        /* Enable NFCT interrupts */
+    field_on = 0;
+
+    nrf_nfc_enable_int(NFCT_ALL_INTERRUPTS);
+
         /* Enable interrupts */
     NVIC_EnableIRQ(NFCT_IRQn);
-       
-    NRF_NFCT->TASKS_SENSE = 1;
+    
+    nrf_nfc_task(&NRF_NFCT->TASKS_SENSE);
+
     puts("Start test NFC...\n");
 
 }

@@ -34,9 +34,7 @@
 #include "periph/nfc.h"
 
 int main(void)
-{
-    // puts("TEST NFC nRF52");
-    
+{   
     nfc_init();
 
     return 0;

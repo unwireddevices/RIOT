@@ -30,16 +30,13 @@
 
 void flashpage_read(uint32_t page, void *data, uint32_t size)
 {
-    assert(page < (cpu_status.flash.size / FLASHPAGE_SIZE));
-    assert(size < FLASHPAGE_SIZE);
+    assert(size <= FLASHPAGE_SIZE);
 
     memcpy(data, flashpage_addr(page), size);
 }
 
 int flashpage_verify(uint32_t page, const void *data, uint32_t size)
 {
-    assert(page < (cpu_status.flash.size / FLASHPAGE_SIZE));
-
     if (memcmp(flashpage_addr(page), data, size) == 0) {
         return FLASHPAGE_OK;
     }

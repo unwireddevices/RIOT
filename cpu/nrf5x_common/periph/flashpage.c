@@ -23,9 +23,9 @@
 #include "assert.h"
 #include "periph/flashpage.h"
 
-void flashpage_write(int page, const void *data)
+void flashpage_write(uint32_t page, const void *data, uint32_t data_size)
 {
-    assert(page < (int)FLASHPAGE_NUMOF);
+    assert(page < FLASHPAGE_NUMOF);
 
     uint32_t *page_addr = (uint32_t *)flashpage_addr(page);
     const uint32_t *data_addr = data;
@@ -38,7 +38,7 @@ void flashpage_write(int page, const void *data)
     /* write data to page */
     if (data != NULL) {
         NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen;
-        for (unsigned i = 0; i < (FLASHPAGE_SIZE / 4); i++) {
+        for (unsigned i = 0; i < (data_size / 4); i++) {
             *page_addr++ = data_addr[i];
         }
     }

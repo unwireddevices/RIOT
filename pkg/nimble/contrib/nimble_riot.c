@@ -76,5 +76,32 @@ void nimble_riot_init(void)
                   THREAD_CREATE_STACKTEST,
                   _host_thread, NULL,
                   "nimble_host");
+
+    /* make sure synchronization of host and controller is done, this should
+     * always be the case at this point */
+    while (!ble_hs_synced()) {}
+
+    /* for reducing code duplication, we read our own address type once here
+     * so it can be re-used later on */
+    int res = ble_hs_util_ensure_addr(0);
+    assert(res == 0);
+    res = ble_hs_id_infer_auto(0, &nimble_riot_own_addr_type);
+    assert(res == 0);
+    (void)res;
+
+#ifdef MODULE_NIMBLE_NETIF
+    extern void nimble_netif_init(void);
+    nimble_netif_init();
+#endif
+
+    /* initialize the configured, build-in services */
+#ifdef MODULE_NIMBLE_SVC_GAP
+    ble_svc_gap_init();
+#endif
+#ifdef MODULE_NIMBLE_SVC_GATT
+    ble_svc_gatt_init();
+#endif
+#ifdef MODULE_NIMBLE_SVC_IPSS
+    ble_svc_ipss_init();
 #endif
 }

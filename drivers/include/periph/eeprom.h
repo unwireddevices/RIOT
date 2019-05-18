@@ -80,7 +80,7 @@ void eeprom_write_byte(uint32_t pos, uint8_t data);
  *
  * @return the number of bytes written
  */
-size_t eeprom_write(uint32_t pos, const uint8_t *data, size_t len);
+size_t eeprom_write(uint32_t pos, uint8_t *data, size_t len);
 
 /**
  * @brief   Set @p len bytes from the given position @p pos with value @p val

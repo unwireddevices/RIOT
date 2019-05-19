@@ -48,12 +48,44 @@ void eeprom_write_byte(uint32_t pos, uint8_t byte)
 size_t eeprom_set(uint32_t pos, uint8_t val, size_t len)
 {
     assert(pos + len <= EEPROM_SIZE);
-
-    for (size_t i = 0; i < len; i++) {
-        eeprom_write_byte(pos++, val);
+    
+    uint8_t tmpval[4];
+    memset(tmpval, val, 4);
+    
+    /* optimized to use word-sized writes whenever possible */
+    
+    /* write first bytes in case of unaligned access */
+    uint32_t shift = pos & 0x3;
+    uint32_t bytes = 4 - shift;
+    if (shift > 0) {
+        if (len < bytes) {
+            bytes = len;
+        }
+        memset(tmpval, val, 4);
+        eeprom_write(pos, tmpval, bytes);
     }
+    
+    uint32_t rem = len - bytes;
+    
+    /* word-sized writes */
+    if (rem > 0) {
+        uint32_t blocks = len / 4;
+        if (blocks > 0) {
+            for (uint32_t i = 0; i < blocks; i++) {
+                eeprom_write(pos + bytes, tmpval, 4);
+                bytes += 4;
+            }
+        }
+    }
+    
+    rem = len - bytes;
+    
+    /* remaining unaligned writes */
+    eeprom_write(pos + bytes, tmpval, 4);
+    
+    bytes += rem;
 
-    return len;
+    return bytes;
 }
 
 size_t eeprom_clear(uint32_t pos, size_t len)

@@ -52,7 +52,11 @@
 #define NFCT_ALL_ERRORS 	0xDUL
 #define NFCT_ALL_RX_STATUS 	0xDUL
 
+#define MODE_UID_TAG 1
+#define MODE_DATA_RXTX 0
+
 static uint8_t field_on = 0;
+static uint8_t nfc_mode_operation = MODE_UID_TAG;
 
 static uint8_t uid_test[10] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0xAA, 0xBB, 0xCC };
 
@@ -128,13 +132,13 @@ static inline bool nrf_nfc_get_event(volatile uint32_t * event)
 static inline void nrf_nfc_clear_errors(void) 
 {  
     if(NRF_NFCT->ERRORSTATUS & NFCT_ERRORSTATUS_NFCFIELDTOOWEAK_Msk) {
-        puts("[ERROR]: Field level is too LOW at MIN load resistance");
+        // puts("[ERROR]: Field level is too LOW at MIN load resistance");
     }
     if(NRF_NFCT->ERRORSTATUS & NFCT_ERRORSTATUS_NFCFIELDTOOSTRONG_Msk) {
-        puts("[ERROR]: Field level is too HIGH at MAX load resistance");
+        // puts("[ERROR]: Field level is too HIGH at MAX load resistance");
     }
     if(NRF_NFCT->ERRORSTATUS & NFCT_ERRORSTATUS_FRAMEDELAYTIMEOUT_Msk) {
-        puts("[ERROR]: No STARTTX task triggered before expiration of the time set in FRAMEDELAYMAX");
+        // puts("[ERROR]: No STARTTX task triggered before expiration of the time set in FRAMEDELAYMAX");
     }
     
     NRF_NFCT->ERRORSTATUS = NFCT_ALL_ERRORS;
@@ -147,7 +151,7 @@ static inline void nrf_nfc_clear_errors(void)
 static inline void nrf_nfc_clear_rx_status(void) 
 {   
     if(NRF_NFCT->FRAMESTATUS.RX & NFCT_FRAMESTATUS_RX_OVERRUN_Msk) {
-        puts("[RX STATUS]: Overrun");
+        // puts("[RX STATUS]: Overrun");
     }
     if(NRF_NFCT->FRAMESTATUS.RX & NFCT_FRAMESTATUS_RX_PARITYSTATUS_Msk) {
         puts("[RX STATUS]: Parity Error");
@@ -171,77 +175,33 @@ static inline void nrf_nfc_task(volatile uint32_t * task)
 void isr_nfct(void)
 {
     if(NRF_NFCT->EVENTS_FIELDDETECTED) {
-		nrf_nfc_clear_event(&NRF_NFCT->EVENTS_FIELDDETECTED);
-		if(field_on == 0) {
-			nrf_nfc_disable_int(NFCT_INTENCLR_FIELDDETECTED_Msk);			
+        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_FIELDDETECTED);
+		if(field_on == 0) {		
 				/* Clear error status */ 
 			nrf_nfc_clear_errors();
 				/* Clear RX status */   
 			nrf_nfc_clear_rx_status();
-			
-			if(nrf_nfc_set_uid(uid_test, 4) == NRF_NFC_ERROR) {
-				puts("Invalid UID");
-			}
+            nrf_nfc_enable_int(NFCT_INTENSET_FIELDLOST_Msk);
+			nrf_nfc_disable_int(NFCT_INTENCLR_FIELDDETECTED_Msk);	
 			field_on = 1;
-			nrf_nfc_task(&NRF_NFCT->TASKS_ACTIVATE);
-		   
-			puts(">>>\t\tEVENTS_FIELDDETECTED");
-		}
-    }
 
-    if(NRF_NFCT->EVENTS_READY) {
-        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_READY);
-        nrf_nfc_task(&NRF_NFCT->TASKS_STARTTX);
-         puts("EVENTS_READY");       
+           	// nrf_nfc_task(&NRF_NFCT->TASKS_ACTIVATE);
+            // nrf_nfc_clear_event(&NRF_NFCT->EVENTS_FIELDDETECTED);
+            puts("\t\tEVENTS_FIELDDETECTED");
+            
+		}
+        else {
+            // puts("Field ON");
+        }
     }
     
-    if(NRF_NFCT->EVENTS_FIELDLOST) {
-        field_on = 0;       
-        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_FIELDLOST);
-        nrf_nfc_enable_int(NFCT_INTENCLR_FIELDDETECTED_Msk);
+    if(NRF_NFCT->EVENTS_READY) {
+        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_READY);
+        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_FIELDDETECTED);
+        // nrf_nfc_task(&NRF_NFCT->TASKS_STARTTX);
+         puts("EVENTS_READY");       
+    }
 
-        puts(">>>\t\tEVENTS_FIELDLOST");
-        nrf_nfc_task(&NRF_NFCT->TASKS_SENSE);
-    }
-    if(NRF_NFCT->EVENTS_TXFRAMESTART) {
-        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_TXFRAMESTART);
-        puts("EVENTS_TXFRAMESTART");
-    }
-    if(NRF_NFCT->EVENTS_TXFRAMEEND) {
-        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_TXFRAMEEND);
-        puts("EVENTS_TXFRAMEEND");
-    }
-    if(NRF_NFCT->EVENTS_RXFRAMESTART) {
-        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_RXFRAMESTART);
-        puts("EVENTS_RXFRAMESTART");
-    }
-    if(NRF_NFCT->EVENTS_RXFRAMEEND) {       
-        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_RXFRAMEEND);
-        puts("EVENTS_RXFRAMEEND"); 
-    }
-    if(NRF_NFCT->EVENTS_ERROR) {        
-        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_ERROR);
-        puts("EVENTS_ERROR");
-        nrf_nfc_enable_int(NFCT_INTENCLR_FIELDDETECTED_Msk);
-        nrf_nfc_clear_errors();
-        nrf_nfc_task(&NRF_NFCT->TASKS_SENSE);
-    }
-    if(NRF_NFCT->EVENTS_RXERROR) {      
-        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_RXERROR);
-        puts("EVENTS_RXERROR");  
-        nrf_nfc_enable_int(NFCT_INTENCLR_FIELDDETECTED_Msk);
-        nrf_nfc_clear_rx_status();
-       
-        nrf_nfc_task(&NRF_NFCT->TASKS_SENSE);
-    }
-    if(NRF_NFCT->EVENTS_ENDRX) {        
-        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_ENDRX);
-        puts("EVENTS_ENDRX");
-    }
-    if(NRF_NFCT->EVENTS_ENDTX) {      
-        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_ENDTX);    
-        puts("EVENTS_ENDTX");
-    }
     if(NRF_NFCT->EVENTS_AUTOCOLRESSTARTED) {
         nrf_nfc_clear_event(&NRF_NFCT->EVENTS_AUTOCOLRESSTARTED);
         puts("EVENTS_AUTOCOLRESSTARTED"); 
@@ -252,11 +212,67 @@ void isr_nfct(void)
     }
     if(NRF_NFCT->EVENTS_SELECTED) {
         nrf_nfc_clear_event(&NRF_NFCT->EVENTS_SELECTED);
+        nrf_nfc_task(&NRF_NFCT->TASKS_STARTTX);
         puts("EVENTS_SELECTED");
     }
-    if(NRF_NFCT->EVENTS_STARTED) {       
-        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_STARTED);
-        puts("EVENTS_STARTED"); 
+    
+    if(NRF_NFCT->EVENTS_FIELDLOST) {
+        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_FIELDLOST);
+        field_on = 0;
+        /* Clear error status */ 
+        nrf_nfc_clear_errors();
+            /* Clear RX status */   
+        nrf_nfc_clear_rx_status();
+        nrf_nfc_enable_int(NFCT_INTENSET_FIELDDETECTED_Msk);
+        puts("\t\tEVENTS_FIELDLOST\t\t>>>>>>>\t>>>>>>>");
+        nrf_nfc_task(&NRF_NFCT->TASKS_SENSE);
+    }
+    
+    if(nfc_mode_operation == MODE_DATA_RXTX) {  
+        if(NRF_NFCT->EVENTS_ERROR) {        
+            nrf_nfc_clear_event(&NRF_NFCT->EVENTS_ERROR);
+            puts("EVENTS_ERROR");
+            nrf_nfc_enable_int(NFCT_INTENSET_FIELDDETECTED_Msk);
+            nrf_nfc_clear_errors();
+            nrf_nfc_task(&NRF_NFCT->TASKS_SENSE);
+        }
+    
+        if(NRF_NFCT->EVENTS_TXFRAMESTART) {
+            nrf_nfc_clear_event(&NRF_NFCT->EVENTS_TXFRAMESTART);
+            puts("EVENTS_TXFRAMESTART");
+        }
+        if(NRF_NFCT->EVENTS_TXFRAMEEND) {
+            nrf_nfc_clear_event(&NRF_NFCT->EVENTS_TXFRAMEEND);
+            puts("EVENTS_TXFRAMEEND");
+        }
+        if(NRF_NFCT->EVENTS_RXFRAMESTART) {
+            nrf_nfc_clear_event(&NRF_NFCT->EVENTS_RXFRAMESTART);
+            puts("EVENTS_RXFRAMESTART");
+        }
+        if(NRF_NFCT->EVENTS_RXFRAMEEND) {       
+            nrf_nfc_clear_event(&NRF_NFCT->EVENTS_RXFRAMEEND);
+            puts("EVENTS_RXFRAMEEND"); 
+        }
+        
+        if(NRF_NFCT->EVENTS_RXERROR) {      
+            nrf_nfc_clear_event(&NRF_NFCT->EVENTS_RXERROR);
+            puts("EVENTS_RXERROR");  
+            nrf_nfc_enable_int(NFCT_INTENSET_FIELDDETECTED_Msk);
+            nrf_nfc_clear_rx_status();           
+            nrf_nfc_task(&NRF_NFCT->TASKS_SENSE);
+        }
+        if(NRF_NFCT->EVENTS_ENDRX) {        
+            nrf_nfc_clear_event(&NRF_NFCT->EVENTS_ENDRX);
+            puts("EVENTS_ENDRX");
+        }
+        if(NRF_NFCT->EVENTS_ENDTX) {      
+            nrf_nfc_clear_event(&NRF_NFCT->EVENTS_ENDTX);    
+            puts("EVENTS_ENDTX");
+        }
+        if(NRF_NFCT->EVENTS_STARTED) {       
+            nrf_nfc_clear_event(&NRF_NFCT->EVENTS_STARTED);
+            puts("EVENTS_STARTED"); 
+        }
     }
 
      puts(">>> [IRQ END] <<<\n");
@@ -266,7 +282,7 @@ void isr_nfct(void)
 
 static uint8_t nrf_nfc_set_uid(uint8_t * uid, uint8_t length)
 {
-	if(length == 4) {
+	if(length == NFC_UID_4_BYTES) {
 			    /* SENSRES SDD */
 		NRF_NFCT->SENSRES =   NFCT_SENSRES_BITFRAMESDD_SDD00001 |
 							(0x0UL << NFCT_SENSRES_RFU5_Pos) |
@@ -278,7 +294,7 @@ static uint8_t nrf_nfc_set_uid(uint8_t * uid, uint8_t length)
 
 		// NRF_NFCT->SELRES = 
 	}
-	else if(length == 7) {
+	else if(length == NFC_UID_7_BYTES) {
 					    /* SENSRES SDD */
 		NRF_NFCT->SENSRES =   NFCT_SENSRES_BITFRAMESDD_SDD00001 |
 							(0x0UL << NFCT_SENSRES_RFU5_Pos) |
@@ -291,7 +307,7 @@ static uint8_t nrf_nfc_set_uid(uint8_t * uid, uint8_t length)
 
 		// NRF_NFCT->SELRES = 
 	}
-	else if(length == 10) {
+	else if(length == NFC_UID_10_BYTES) {
 					    /* SENSRES SDD */
 		NRF_NFCT->SENSRES =   NFCT_SENSRES_BITFRAMESDD_SDD00001 |
 							(0x0UL << NFCT_SENSRES_RFU5_Pos) |
@@ -333,9 +349,9 @@ void nfc_init(void)
 	nrf_nfc_task(&NRF_NFCT->TASKS_DISABLE);
 
     /* Set UID */
-	// if(nrf_nfc_set_uid(uid_test, 4) == NRF_NFC_ERROR) {
-		// puts("Invalid UID");
-	// }
+	if(nrf_nfc_set_uid(uid_test, NFC_UID_10_BYTES) == NRF_NFC_ERROR) {
+		puts("Invalid UID");
+	}
     
     nrf_nfc_disable_int(NFCT_ALL_INTERRUPTS);
     
@@ -346,8 +362,11 @@ void nfc_init(void)
   
     field_on = 0;
         /* Enable NFCT interrupts */
-    nrf_nfc_enable_int(NFCT_ALL_INTERRUPTS);
+    // nrf_nfc_enable_int(NFCT_ALL_INTERRUPTS);
+nrf_nfc_enable_int(NFCT_INTENSET_FIELDDETECTED_Msk);
 
+NRF_NFCT->SHORTS = NFCT_SHORTS_FIELDDETECTED_ACTIVATE_Enabled << NFCT_SHORTS_FIELDDETECTED_ACTIVATE_Pos;
+    
 	/* Enable interrupts */
     NVIC_EnableIRQ(NFCT_IRQn);
 	/*  Enable NFC sense field mode, change state to sense mode */

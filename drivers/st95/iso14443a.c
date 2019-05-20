@@ -953,7 +953,15 @@ int iso14443a_get_uid(const st95_t * dev, uint8_t * iso_rxbuf, uint8_t * length_
     }
 
     if(_iso14443a_anticoll_algorithm(dev, iso_rxbuf) == ST95_OK) {
-        _iso14443a_hlta(dev, iso_rxbuf, ISO14443A_ANSWER_MAX_BYTE);
+        _iso14443a_hlta(dev, iso_rxbuf, ISO14443A_ANSWER_MAX_BYTE);        
+        if(picc.sak == 0x00) {
+            uint32_t check_uid = picc.uid[0] + picc.uid[1] + picc.uid[2] + picc.uid[3];
+            if(check_uid == 0) {
+                _iso14443a_hlta(dev, iso_rxbuf, ISO14443A_ANSWER_MAX_BYTE);
+                return ST95_ERROR;
+            }
+        }
+        
         *length_uid = picc.uid_length;
         if(sak != NULL) {
             *sak = picc.sak;

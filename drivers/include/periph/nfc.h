@@ -35,6 +35,10 @@
 extern "C" {
 #endif
 
+#define NFC_UID_4_BYTES 4
+#define NFC_UID_7_BYTES 7
+#define NFC_UID_10_BYTES 10
+
 void nfc_init(void);
 
 #ifdef __cplusplus

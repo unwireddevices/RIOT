@@ -25,6 +25,7 @@ USEMODULE += checksum
 
 FEATURES_REQUIRED += periph_rtt
 FEATURES_REQUIRED += periph_rtc
+FEATURES_REQUIRED += periph_iwdg
 							 
 ############ UMDK MODULES USED #####################
 # variable in the list below must match modules'

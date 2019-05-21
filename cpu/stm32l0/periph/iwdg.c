@@ -60,14 +60,14 @@ void wdg_set_prescaler(uint8_t prescaler)
     iwdg_lock();
 }
 
-void wdg_set_reload(uint16_t reload)
+void wdg_set_reload(uint32_t reload)
 {
     /* Check reload value limit */
     assert(reload <= IWDG_RLR_RL);
 
     /* Unlock IWDG and write new reload value */
     iwdg_unlock();
-    IWDG->RLR = reload;
+    IWDG->RLR = (uint16_t)reload;
     iwdg_lock();
 }
 

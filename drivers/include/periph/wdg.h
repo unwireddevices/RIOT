@@ -28,11 +28,11 @@
 void wdg_set_prescaler(uint8_t prescaler);
 
 /**
- * @brief Sets watchdog timer reload value.
+ * @brief Sets watchdog timer reload time.
  *
- * @param reload watchdog timer reload value
+ * @param reload watchdog timer reload time
  */
-void wdg_set_reload(uint16_t reload);
+void wdg_set_reload(uint32_t seconds);
 
 /**
  * @brief Enables watchdog timer. Once enabled, it cannot be disabled.

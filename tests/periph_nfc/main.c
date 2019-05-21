@@ -35,27 +35,25 @@
 #include "xtimer.h"
 
 static uint8_t uid_test[10] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0xAA, 0xBB, 0xCC };
-// static uint8_t uid_test1[10] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x0A, 0x0B, 0x0C };
+static uint8_t uid_test1[10] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x0A, 0x0B, 0x0C };
 
 int main(void)
 {   
+    puts("Start test NFC UID...\n");
     nfc_init();
 
-    uint8_t len = NFC_UID_7_BYTES;
     // /* Set UID 7 bytes */
-    nfc_set_uid(uid_test, len);
+    nfc_set_uid(uid_test, NFC_UID_4_BYTES, NFC_PROTOCOL_TYPE2_TAG);
     
-    // /* delay between changing */
-    // xtimer_sleep(10);
-    // /* Change UID to 10 bytes */
-    // len = NFC_UID_7_BYTES;
-    // nfc_set_uid(uid_test1, len);
+    /* delay between changing */
+    xtimer_sleep(10);
+    /* Change UID to 10 bytes */
+    nfc_set_uid(uid_test1, NFC_UID_7_BYTES, NFC_PROTOCOL_TYPE2_TAG);
 
-    // /* delay between changing */
-    // xtimer_sleep(10);
-    // /* Change UID to 4 bytes */
-    // len = NFC_UID_4_BYTES;
-    // nfc_set_uid(uid_test, len);
+    /* delay between changing */
+    xtimer_sleep(10);
+    /* Change UID to 4 bytes */
+    nfc_set_uid(uid_test, NFC_UID_10_BYTES, NFC_PROTOCOL_TYPE2_TAG);
     
     return 0;
 }

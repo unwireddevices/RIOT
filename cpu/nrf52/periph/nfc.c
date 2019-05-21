@@ -52,6 +52,7 @@
 #define MODE_UID_TAG 1
 #define MODE_DATA_RXTX 0
 
+
 static uint8_t nfc_mode_operation = MODE_UID_TAG;
 
 static inline void nrf_nfc_enable_int(uint32_t interrupt);
@@ -242,56 +243,36 @@ void isr_nfct(void)
     cortexm_isr_end();
 }
 
-uint8_t nfc_set_uid(uint8_t * uid, uint8_t length)
-{
-    
+uint8_t nfc_set_uid(uint8_t * uid, nfc_id_size_t size, nfc_type_tag_t tag_type)
+{        
     nfc_mode_operation = MODE_UID_TAG;
-    /*  Disable NFC peripheral */
-    nrf_nfc_task(&NRF_NFCT->TASKS_DISABLE);
     
+    /*  Disable NFC peripheral */
+    nrf_nfc_task(&NRF_NFCT->TASKS_DISABLE);    
     /* Disable Shortcut between FIELDDETECTED event and ACTIVATE task */
     NRF_NFCT->SHORTS = NFCT_SHORTS_FIELDDETECTED_ACTIVATE_Disabled << NFCT_SHORTS_FIELDDETECTED_ACTIVATE_Pos;
     /* Disable Shortcut between FIELDLOST event and SENSE task */
     NRF_NFCT->SHORTS |= NFCT_SHORTS_FIELDLOST_SENSE_Disabled << NFCT_SHORTS_FIELDLOST_SENSE_Pos;
     
-	if(length == NFC_UID_4_BYTES) {
-			    /* SENSRES SDD */
-		NRF_NFCT->SENSRES =   NFCT_SENSRES_BITFRAMESDD_SDD00001 |
-							(0x0UL << NFCT_SENSRES_RFU5_Pos) |
-							(NFCT_SENSRES_NFCIDSIZE_NFCID1Single << NFCT_SENSRES_NFCIDSIZE_Pos) |
-							/* (0x0UL << NFCT_SENSRES_PLATFCONFIG_Msk) |*/
-							(0x0UL << NFCT_SENSRES_RFU74_Pos);
-								
-		NRF_NFCT->NFCID1_LAST = (uid[0] << 24) | (uid[1] << 16) | (uid[2] << 8) | uid[3];
-
-		// NRF_NFCT->SELRES = 
+    /* Set ID size and SDD (Single Device Detection) */
+    // NRF_NFCT->SENSRES = NFCT_SENSRES_BITFRAMESDD_SDD00001 | (0x0UL << NFCT_SENSRES_RFU5_Pos) |
+                        // (size << NFCT_SENSRES_NFCIDSIZE_Pos) | (0x0UL << NFCT_SENSRES_RFU74_Pos);
+    NRF_NFCT->SENSRES = NFCT_SENSRES_BITFRAMESDD_SDD00001 | (size << NFCT_SENSRES_NFCIDSIZE_Pos);
+    
+    /* Set type tag */
+    NRF_NFCT->SELRES = tag_type << NFCT_SELRES_PROTOCOL_Pos;
+    
+	if(size == NFC_UID_4_BYTES) {								
+		NRF_NFCT->NFCID1_LAST = (uid[0] << 24) | (uid[1] << 16) | (uid[2] << 8) | uid[3];	
 	}
-	else if(length == NFC_UID_7_BYTES) {
-					    /* SENSRES SDD */
-		NRF_NFCT->SENSRES =   NFCT_SENSRES_BITFRAMESDD_SDD00001 |
-							(0x0UL << NFCT_SENSRES_RFU5_Pos) |
-							(NFCT_SENSRES_NFCIDSIZE_NFCID1Double << NFCT_SENSRES_NFCIDSIZE_Pos) |
-							/* (0x0UL << NFCT_SENSRES_PLATFCONFIG_Msk) |*/
-							(0x0UL << NFCT_SENSRES_RFU74_Pos);
-								
+	else if(size == NFC_UID_7_BYTES) {								
 		NRF_NFCT->NFCID1_2ND_LAST =	(uid[0] << 16) | (uid[1] << 8) | uid[2];		
 		NRF_NFCT->NFCID1_LAST = (uid[3] << 24) | (uid[4] << 16) | (uid[5] << 8) | uid[6];
-
-		// NRF_NFCT->SELRES = 
 	}
-	else if(length == NFC_UID_10_BYTES) {
-					    /* SENSRES SDD */
-		NRF_NFCT->SENSRES =   NFCT_SENSRES_BITFRAMESDD_SDD00001 |
-							(0x0UL << NFCT_SENSRES_RFU5_Pos) |
-							(NFCT_SENSRES_NFCIDSIZE_NFCID1Triple << NFCT_SENSRES_NFCIDSIZE_Pos) |
-							/* (0x0UL << NFCT_SENSRES_PLATFCONFIG_Msk) |*/
-							(0x0UL << NFCT_SENSRES_RFU74_Pos);
-							
+	else if(size == NFC_UID_10_BYTES) {							
 		NRF_NFCT->NFCID1_3RD_LAST = (uid[0] << 16) | (uid[1] << 8) | uid[2];
 		NRF_NFCT->NFCID1_2ND_LAST =	(uid[3] << 16) | (uid[4] << 8) | uid[5];		
 		NRF_NFCT->NFCID1_LAST = (uid[6] << 24) | (uid[7] << 16) | (uid[8] << 8) | uid[9];
-
-		// NRF_NFCT->SELRES = 
 	}
 	else {
 		return NRF_NFC_ERROR;
@@ -309,8 +290,6 @@ uint8_t nfc_set_uid(uint8_t * uid, uint8_t length)
 
 void nfc_init(void)
 {
-    puts("NFC init...");
-       
      /* Checking setting of pins dedicated to NFC functionality */
     if((NRF_UICR->NFCPINS & UICR_NFCPINS_PROTECT_Msk) != UICR_NFCPINS_PROTECT_NFC) {
          /* Setting of pins dedicated to NFC functionality */
@@ -352,7 +331,4 @@ void nfc_init(void)
     /* TODO:  */
     // nrf_nfc_task(&NRF_NFCT->TASKS_GOIDLE);
     // nrf_nfc_task(&NRF_NFCT->TASKS_GOSLEEP);    
-   
-    puts("Start test NFC UID...\n");
-
 }

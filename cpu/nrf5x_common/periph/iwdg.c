@@ -63,8 +63,7 @@ bool wdg_reset_occurred(void)
 
 uint32_t wdg_get_value(void)
 {
-    /* not supported */
-    return 0;
+    return NRF_WDT->CRV/32768;
 }
 
 #ifdef __cplusplus

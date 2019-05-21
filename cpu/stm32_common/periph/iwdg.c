@@ -11,8 +11,8 @@
  * @ingroup
  * @brief
  * @{
- * @file		iwdg.com
- * @brief       STM32L1 Independent Watchdog
+ * @file		iwdg.c
+ * @brief       STM32 Independent Watchdog
  * @author      EP [ep@unwds.com]
  */
 
@@ -20,7 +20,7 @@
 
 #include "assert.h"
 
-#include "cpu.h"
+#include "periph_cpu_common.h"
 #include "periph/wdg.h"
 
 #ifdef __cplusplus
@@ -43,25 +43,10 @@ static inline void iwdg_lock(void)
     IWDG->KR = IWDG_LOCK;
 }
 
-void wdg_set_prescaler(uint8_t prescaler)
+void wdg_set_reload(uint32_t seconds)
 {
-    /* Check valid prescaler values */
-    assert(prescaler == 0x00   ||
-           prescaler == 0x01   ||
-           prescaler == 0x02   ||
-           prescaler == 0x03   ||
-           prescaler == 0x04   ||
-           prescaler == 0x05   ||
-           prescaler == 0x06);
-
-    /* Unlock IWDG and write new prescaler value */
-    iwdg_unlock();
-    IWDG->PR = prescaler;
-    iwdg_lock();
-}
-
-void wdg_set_reload(uint16_t reload)
-{
+    uint32_t reload = seconds*(CLOCK_LSI/256);
+    
     /* Check reload value limit */
     assert(reload <= IWDG_RLR_RL);
 
@@ -73,6 +58,11 @@ void wdg_set_reload(uint16_t reload)
 
 void wdg_enable(void)
 {
+    /* Unlock IWDG and write new prescaler value */
+    iwdg_unlock();
+    IWDG->PR = 0x06; /* prescaler 256 */
+    iwdg_lock();
+    
     /* Enable IWDG */
     IWDG->KR = IWDG_KR_KEY_ENABLE;
 }
@@ -89,7 +79,7 @@ bool wdg_reset_occurred(void)
 
 uint32_t wdg_get_value(void)
 {
-    return IWDG->RLR;
+    return IWDG->RLR * 256 / CLOCK_LSI;
 }
 
 #ifdef __cplusplus

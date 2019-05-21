@@ -21,13 +21,6 @@
 #include <stdbool.h>
 
 /**
- * @brief Sets watchdog timer prescaler.
- *
- * @param prescaler watchdog timer prescaler value
- */
-void wdg_set_prescaler(uint8_t prescaler);
-
-/**
  * @brief Sets watchdog timer reload time.
  *
  * @param reload watchdog timer reload time
@@ -54,9 +47,9 @@ void wdg_reload(void);
 bool wdg_reset_occurred(void);
 
 /**
- * @brief Gets current reload value in watchdog timer.
+ * @brief Gets current reload time in watchdog timer.
  *
- * @return current reload value
+ * @return current reload time
  */
 uint32_t wdg_get_value(void);
 

@@ -724,8 +724,7 @@ void unwds_device_init(void *unwds_callback, void *unwds_init, void *unwds_join,
         rtctimers_millis_set(&iwdg_timer, 15000);
         
         /* IWDG period is 18 seconds minimum, 28 seconds typical */
-        wdg_set_prescaler(6);
-        wdg_set_reload(0x0FFF);
+        wdg_set_reload(30);
         wdg_reload();
         wdg_enable();
 

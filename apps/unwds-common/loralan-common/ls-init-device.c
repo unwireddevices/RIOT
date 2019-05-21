@@ -38,7 +38,7 @@ extern "C" {
 #include <string.h>
 
 #include "cpu.h"
-#include "eeprom.h"
+#include "periph/eeprom.h"
 #include "shell.h"
 #include "utils.h"
 
@@ -535,8 +535,10 @@ static int init_update_cmd(int argc, char **argv) {
     (void) argc;
     (void) argv;
     
+#if defined(RTC_REGBACKUP_BOOTLOADER)
     puts("[*] Rebooting to UART bootloader...");
     rtc_save_backup(RTC_REGBACKUP_BOOTLOADER_VALUE, RTC_REGBACKUP_BOOTLOADER);
+#endif
     
     NVIC_SystemReset();
     
@@ -682,7 +684,7 @@ static void ls_delayed_setup (void *arg) {
     if (!gpio_init_int(UNWD_CONNECT_BTN, GPIO_IN_PU, GPIO_BOTH, connect_btn_pressed, arg)) {
 #endif
         puts("Safe/Connect button active");
-    }
+}
     
     return;
 }
@@ -704,11 +706,17 @@ void unwds_device_init(void *unwds_callback, void *unwds_init, void *unwds_join,
 
     unwds_setup_nvram_config(UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
 
+#if defined(RTC_REGBACKUP_BOOTLOADER)
     uint32_t bootmode = rtc_restore_backup(RTC_REGBACKUP_BOOTLOADER);
+#else
+    uint32_t bootmode = UNWDS_BOOT_NORMAL_MODE;
+#endif
     
     if (is_connect_button_pressed() || (bootmode == UNWDS_BOOT_SAFE_MODE)) {
-        uint32_t bootmode = UNWDS_BOOT_NORMAL_MODE;
+        bootmode = UNWDS_BOOT_NORMAL_MODE;
+#if defined(RTC_REGBACKUP_BOOTMODE)
         rtc_save_backup(bootmode, RTC_REGBACKUP_BOOTMODE);
+#endif
         
         puts("[!] Entering Safe Mode, all modules disabled, class C.");
         blink_led(LED0_PIN);

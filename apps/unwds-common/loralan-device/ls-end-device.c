@@ -151,9 +151,8 @@ static void send_next(ls_ed_t *ls) {
 static uint8_t get_node_status(void)
 {
     DEBUG("[LoRa] battery and voltage\n");
-    
-    return 0;
-    
+
+#if defined(ADC_VREF_INDEX) && defined(ADC_TEMPERATURE_INDEX)
     if (adc_init(ADC_LINE(ADC_VREF_INDEX)) < 0) {
         DEBUG("[LoRa] ADC init error\n");
         return 0;
@@ -176,6 +175,9 @@ static uint8_t get_node_status(void)
     DEBUG("[LoRa] V = %d, T = %d\n", vdd, temp);
     
     return (uint8_t)((vdd & 0x1F) | ((temp & 0x7) << 5));
+#else
+    return 0;
+#endif
 }
 
 static int send_frame(ls_ed_t *ls, ls_type_t type, uint8_t *buf, size_t buflen)

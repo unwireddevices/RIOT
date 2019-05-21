@@ -77,6 +77,7 @@ typedef enum {
     UNWDS_GARBAGE_MODULE_ID = 61,
     UNWDS_URF_MODULE_ID = 62,
     UNWDS_COW_MODULE_ID = 63,
+    UNWDS_HARDCAP_ID = 64,
     /* Customer 100 to 124 */
     UNWDS_CUSTOMER_MODULE_ID = 100,
     /* System module 125 to 126 */

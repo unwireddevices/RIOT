@@ -3,5 +3,7 @@ FEATURES_PROVIDED += periph_adc
 
 FEATURES_PROVIDED += periph_pwm
 FEATURES_PROVIDED += periph_nfc
+FEATURES_PROVIDED += periph_status
+FEATURES_PROVIDED += periph_status_extended
 
 -include $(RIOTCPU)/nrf5x_common/Makefile.features

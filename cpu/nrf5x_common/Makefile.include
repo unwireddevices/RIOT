@@ -8,6 +8,8 @@ USEMODULE += periph_common
 # include nrf5x common periph drivers
 USEMODULE += nrf5x_common_periph
 
+USEMODULE += pm_layered
+
 # link common cpu code
 USEMODULE += cpu_common
 

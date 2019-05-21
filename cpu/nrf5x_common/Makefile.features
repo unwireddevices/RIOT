@@ -10,5 +10,6 @@ FEATURES_PROVIDED += periph_temperature
 FEATURES_PROVIDED += radio_nrfmin
 FEATURES_PROVIDED += radio_nrfmax
 FEATURES_PROVIDED += puf_sram
+FEATURES_PROVIDED += pm
 
 -include $(RIOTCPU)/cortexm_common/Makefile.features

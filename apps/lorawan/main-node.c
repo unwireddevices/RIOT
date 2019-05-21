@@ -671,8 +671,10 @@ static int ls_safe_cmd(int argc, char **argv) {
     (void)argc;
     (void)argv;
 
+#if defined RTC_REGBACKUP_BOOTMODE
     uint32_t bootmode = UNWDS_BOOT_SAFE_MODE;
     rtc_save_backup(bootmode, RTC_REGBACKUP_BOOTMODE);
+#endif
     puts("Rebooting in safe mode");
     NVIC_SystemReset();
     return 0;
@@ -734,6 +736,7 @@ static void unwds_callback(module_data_t *buf)
 #endif
     buf->length = bytes;
     
+#if defined(ADC_TEMPERATURE_INDEX) && defined(ADC_VREF_INDEX)
     if (adc_init(ADC_LINE(ADC_TEMPERATURE_INDEX)) == 0) {
         int8_t temperature = adc_sample(ADC_LINE(ADC_TEMPERATURE_INDEX), ADC_RES_12BIT);
         
@@ -748,6 +751,7 @@ static void unwds_callback(module_data_t *buf)
         buf->data[bytes - 1] = adc_sample(ADC_LINE(ADC_VREF_INDEX), ADC_RES_12BIT)/50;
         printf("Battery voltage %d mV\n", buf->data[bytes - 1] * 50);
     }
+#endif
     
 #if ENABLE_DEBUG
     for (int k = 0; k < buf->length; k++) {

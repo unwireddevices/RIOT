@@ -117,3 +117,7 @@ enum pm_mode pm_set(enum pm_mode mode)
 
     return PM_UNKNOWN;
 }
+
+void pm_init(void) {
+    /* do nothing */
+}

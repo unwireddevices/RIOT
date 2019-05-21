@@ -35,11 +35,15 @@
 extern "C" {
 #endif
 
+#define NRF_NFC_OK 		0
+#define NRF_NFC_ERROR 	1
+
 #define NFC_UID_4_BYTES 4
 #define NFC_UID_7_BYTES 7
 #define NFC_UID_10_BYTES 10
 
 void nfc_init(void);
+uint8_t nfc_set_uid(uint8_t * uid, uint8_t length);
 
 #ifdef __cplusplus
 }

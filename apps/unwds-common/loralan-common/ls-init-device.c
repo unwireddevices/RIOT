@@ -139,8 +139,6 @@ void init_role(shell_command_t *commands) {
     pm_unblock(PM_IDLE);
     
     print_logo();
-    xtimer_init();
-    rtctimers_millis_init();
     
     /* Initialize random number generator with CPUID-derived value */
     uint32_t prng_seed;

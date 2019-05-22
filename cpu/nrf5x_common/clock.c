@@ -50,11 +50,6 @@ void clock_init_hf(void)
 
 void clock_start_lf(void)
 {
-    /* Abort if LF clock is already running */
-    if (NRF_CLOCK->LFCLKSTAT & CLOCK_LFCLKSTAT_STATE_Msk) {
-        return;
-    }
-
 #if (CLOCK_LFCLK == 0)
     NRF_CLOCK->LFCLKSRC = (CLOCK_LFCLKSRC_SRC_RC);
 #elif (CLOCK_LFCLK == 1)

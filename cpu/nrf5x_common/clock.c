@@ -46,6 +46,12 @@ void clock_init_hf(void)
     NRF_CLOCK->TASKS_HFCLKSTART = 1;
     while (NRF_CLOCK->EVENTS_HFCLKSTARTED == 0) {}
 #endif /* CLOCK_HFCLK */
+
+    cpu_status.clock.coreclock = CLOCK_CORECLOCK;
+
+#if defined(MODULE_PERIPH_STATUS_EXTENDED)
+    snprintf(cpu_status.clock.source, CPU_CLOCK_SOURCE_MAX_SIZE + 1, "HSE");
+#endif
 }
 
 void clock_start_lf(void)

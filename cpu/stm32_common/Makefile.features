@@ -7,4 +7,7 @@ ifneq (,$(filter $(BOARDS_WITHOUT_HWRNG),$(BOARD)))
   FEATURES_PROVIDED := $(filter-out periph_hwrng,$(FEATURES_PROVIDED))
 endif
 
+# always needed to compile
+USEMODULE += periph_status
+
 -include $(RIOTCPU)/cortexm_common/Makefile.features

@@ -165,6 +165,12 @@ ifneq (,$(filter ethos,$(USEMODULE)))
   USEMODULE += tsrb
 endif
 
+ifneq (,$(filter fdc1004,$(USEMODULE)))
+  FEATURES_REQUIRED += periph_i2c
+  FEATURES_REQUIRED += periph_rtc
+  USEMODULE += rtctimers-millis
+endif
+
 ifneq (,$(filter feetech,$(USEMODULE)))
   USEMODULE += uart_half_duplex
 endif

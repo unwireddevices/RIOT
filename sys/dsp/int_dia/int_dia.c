@@ -23,53 +23,64 @@
  * @}
  */
 
-#include "dsp/int_dia.h"
-
 #include <math.h>
 #include <string.h>
+
+#include "dsp/int_dia/int_dia.h"
+
+#define ENABLE_DEBUG            (0)
+#include "debug.h"
 
 void int_dia_main(int_dia_t *int_dia, uint32_t value)
 {
     //Collect measurements
     int_dia->measure_sample = value;
+    DEBUG("Measure Sample: %" PRIu32 "\n", int_dia->measure_sample);
 
     //Process Data using Derivative/Integration Algorithm
-    //Moving Average using IIR filter of 8 samples
+    //Moving Average using IIR filter
     int_dia->prev_moving_avg = int_dia->moving_avg;
 
-    int_dia->moving_avg = ((int_dia->moving_avg << 2) - int_dia->moving_avg + int_dia->measure_sample) >> 2;
+    if (int_dia->with_iir) {
+        int_dia->moving_avg = ((int_dia->moving_avg << 2) - int_dia->moving_avg + int_dia->measure_sample) >> 2;
+    } else {
+        int_dia->moving_avg = int_dia->measure_sample;
+    }
 
-    int_dia->derivative = int_dia->moving_avg - int_dia->prev_moving_avg;
+    int_dia->derivative = (int32_t)int_dia->moving_avg - (int32_t)int_dia->prev_moving_avg;
+    DEBUG("Derivative Value: %" PRIi32 "\n", int_dia->derivative);
 
-    if ((abs(int_dia->derivative) > PROX_DERIVATIVE_THRESHOLD)) {
+    if ((abs(int_dia->derivative) > int_dia->derivative_ths)) {
         int_dia->integral = int_dia->prev_integral + int_dia->derivative;
     } else {
         int_dia->integral = int_dia->prev_integral;
     }
+    DEBUG("Integral Value: %" PRIi32 "\n", int_dia->integral);
 
-    if (int_dia->is_active) {
-        int_dia->integral_hys = PROX_INTEGRAL_THRESHOLD / PROX_INTEGRAL_HYS;
-    } else {
-        int_dia->integral_hys = PROX_INTEGRAL_THRESHOLD * PROX_INTEGRAL_HYS;
-    }
-
-    if (int_dia->integral_hys <= -(int_dia->integral)) {
+    if (int_dia->integral_ths <= (int_dia->integral)) {
         //Object detected for Sensor
         int_dia->prev_integral = int_dia->integral;
-        int_dia->is_active = true;
+        int_dia->is_detected = true;
+        DEBUG("Is detected\n");
     } else {
         //Object not detected
-        int_dia->prev_integral = int_dia->integral * LEAKAGE_FACTOR_PROX;
-        int_dia->is_active = false;
+        int_dia->prev_integral = (float)int_dia->integral * int_dia->leakage_factor;
+        int_dia->is_detected = false;
+        DEBUG("Is not detected\n");
     }
 }
 
-void int_dia_init(int_dia_t *int_dia)
+void int_dia_init(int_dia_t *int_dia,  int32_t  integral_ths, int32_t  derivative_ths, int32_t  leakage_factor, bool with_iir)
 {
     memset(int_dia, 0x00, sizeof(int_dia_t));
 
-    int_dia->init_baseline = true;
-    int_dia->is_active     = false;
+    int_dia->init_baseline  = true;
+    int_dia->is_detected    = false;
+    int_dia->with_iir       = with_iir;
+    int_dia->integral_ths   = integral_ths;
+    int_dia->derivative_ths = derivative_ths;
+    int_dia->leakage_factor = leakage_factor;
+
 }
 
 void int_dia_get_baseline(int_dia_t *int_dia, uint32_t *data_set, uint8_t max_samples)
@@ -88,4 +99,5 @@ void int_dia_get_baseline(int_dia_t *int_dia, uint32_t *data_set, uint8_t max_sa
 
         int_dia->moving_avg = ((int_dia->moving_avg << 2) - int_dia->moving_avg + int_dia->measure_sample) >> 2;
     }
+    DEBUG("Baseline Value: %" PRIu32 "\n", int_dia->moving_avg);
 }

@@ -33,29 +33,31 @@ extern "C" {
 #include <stdint.h>
 #include <stdbool.h>
 
-#define PROX_INTEGRAL_THRESHOLD         200
-#define PROX_INTEGRAL_HYS               1.2
-#define PROX_DERIVATIVE_THRESHOLD       0
-#define LEAKAGE_FACTOR_PROX             0.99
-
 typedef struct {
-    uint32_t measure_sample;
-    uint32_t moving_avg;
-    uint32_t prev_moving_avg;
-    int32_t  derivative;
-    int32_t  integral;
-    int32_t  prev_integral;
-    uint16_t integral_hys;
-    bool     init_baseline;
-    bool     is_active;
+    uint32_t measure_sample;        /**< */
+    uint32_t moving_avg;            /**< */
+    uint32_t prev_moving_avg;       /**< */
+    int32_t  derivative;            /**< */
+    int32_t  integral;              /**< */
+    int32_t  prev_integral;         /**< */
+    int32_t  integral_ths;          /**< */
+    int32_t  derivative_ths;        /**< */
+    float    leakage_factor;        /**< */
+    bool     init_baseline;         /**< */
+    bool     is_detected;             /**< */
+    bool     with_iir;              /**< */
 } int_dia_t;
 
 /**
  * @brief 
  * 
  * @param int_dia 
+ * @param integral_ths 
+ * @param derivative_ths 
+ * @param leakage_factor 
+ * @param with_iir 
  */
-void int_dia_init(int_dia_t *int_dia);
+void int_dia_init(int_dia_t *int_dia, int32_t  integral_ths, int32_t  derivative_ths, int32_t  leakage_factor, bool with_iir);
 
 /**
  * @brief 

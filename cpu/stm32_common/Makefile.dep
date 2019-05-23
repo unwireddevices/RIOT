@@ -11,3 +11,11 @@ endif
 ifneq (,$(filter periph_flashpage periph_eeprom,$(FEATURES_REQUIRED)))
   USEMODULE += periph_flash_common
 endif
+
+# EEPROM emulation support
+ifneq (,$(filter periph_eeprom,$(USEMODULE)))
+  ifeq (,$(filter $(CPU),stm32l0 stm32l1))
+    USEMODULE += periph_flashpage
+    USEMODULE += periph_flash_common
+  endif
+endif

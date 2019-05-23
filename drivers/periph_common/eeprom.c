@@ -155,10 +155,33 @@ static size_t _eeprom_operation(uint32_t pos, uint8_t *data, size_t len, _eeprom
         
         switch (type) {
             case FLASH_EEPROM_WRITE:
-                /* read-modify-write */
                 flashpage_read(page + i, ram_buffer, FLASHPAGE_SIZE);
-                memcpy(&ram_buffer[start], &data[transferred], size);
-                flashpage_write(page + i, ram_buffer, FLASHPAGE_SIZE);
+                bool flash_is_dirty = false;
+            
+                /* write to previously erased flash area */
+                if (((start % FLASHPAGE_RAW_ALIGNMENT) == 0) &&
+                    ((size % FLASHPAGE_RAW_BLOCKSIZE) == 0)) { /* check data alignment */
+
+                    for (unsigned k = 0; k < size; k++) {
+                        if (ram_buffer[start + k] != 0xFF) {
+                            flash_is_dirty = true;
+                        }
+                    }
+                } else {
+                    flash_is_dirty = true;
+                }
+            
+                if (flash_is_dirty) {
+                    puts("Dirty flash");
+                    /* dirty flash areas: read-modify-write */
+                    memcpy(&ram_buffer[start], &data[transferred], size);
+                    flashpage_write(page + i, ram_buffer, FLASHPAGE_SIZE);
+                } else {
+                    puts("Clean flash");
+                    /* clean flash areas: just write */
+                    void *target_addr = flashpage_addr(page + i) + start;
+                    flashpage_write_raw(target_addr, &data[transferred], size);
+                }
                 break;
                 
             case FLASH_EEPROM_READ:
@@ -209,13 +232,13 @@ uint8_t eeprom_read_byte(uint32_t pos)
 
 size_t eeprom_erase(void)
 {
-    uint8_t val = 0;
+    uint8_t val = 0xFF; /* default flash value */
     return _eeprom_operation(0, &val, EEPROM_SIZE, FLASH_EEPROM_SET);
 }
 
 size_t eeprom_clear(uint32_t pos, size_t len)
 {
-    uint8_t val = 0;
+    uint8_t val = 0xFF; /* default flash value */
     return _eeprom_operation(pos, &val, len, FLASH_EEPROM_SET);
 }
 

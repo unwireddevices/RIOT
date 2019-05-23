@@ -34,15 +34,41 @@ void flashpage_write(uint32_t page, const void *data, uint32_t data_size)
     NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Een;
     NRF_NVMC->ERASEPAGE = (uint32_t)page_addr;
     while (NRF_NVMC->READY == 0) {}
+    
+    bool erase_is_enough = true;
+    for (unsigned i = 0; i < (data_size/4); i++) {
+        if (data_addr[i] != 0xFFFFFFFF) {
+            erase_is_enough = false;
+        }
+    }
 
     /* write data to page */
-    if (data != NULL) {
+    if ((data != NULL) && !erase_is_enough) {
         NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen;
         for (unsigned i = 0; i < (data_size / 4); i++) {
             *page_addr++ = data_addr[i];
         }
     }
 
+    /* finish up */
+    NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren;
+}
+
+void flashpage_write_raw(void *target_addr, const void *data, size_t len) {
+    uint32_t *page_addr = target_addr;
+    const uint32_t *data_addr = data;
+    
+    NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Een;
+    while (NRF_NVMC->READY == 0) {}
+    
+    /* write data to page */
+    if (data != NULL) {
+        NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen;
+        for (unsigned i = 0; i < (len / 4); i++) {
+            *page_addr++ = data_addr[i];
+        }
+    }
+    
     /* finish up */
     NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren;
 }

@@ -62,6 +62,9 @@ extern "C" {
 #elif defined(CPU_MODEL_NRF52840XXAA)
 #define FLASHPAGE_NUMOF                 (256U)
 #endif
+
+#define FLASHPAGE_RAW_ALIGNMENT         (4U)
+#define FLASHPAGE_RAW_BLOCKSIZE         (4U)
 /** @} */
 
 /**

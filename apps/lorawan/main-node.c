@@ -736,22 +736,21 @@ static void unwds_callback(module_data_t *buf)
 #endif
     buf->length = bytes;
     
-#if defined(ADC_TEMPERATURE_INDEX) && defined(ADC_VREF_INDEX)
-    if (adc_init(ADC_LINE(ADC_TEMPERATURE_INDEX)) == 0) {
-        int8_t temperature = adc_sample(ADC_LINE(ADC_TEMPERATURE_INDEX), ADC_RES_12BIT);
-        
-        /* convert to sign-and-magnitude format */
-        convert_to_be_sam((void *)&temperature, 1);
-        
-        buf->data[bytes - 2] = (uint8_t)temperature;
-        printf("MCU temperature is %d C\n", buf->data[bytes - 2]);
-    }
+    cpu_update_status();
+    int8_t temperature = INT8_MIN;
+    uint8_t voltage = 0;
     
-    if (adc_init(ADC_LINE(ADC_VREF_INDEX)) == 0) {
-        buf->data[bytes - 1] = adc_sample(ADC_LINE(ADC_VREF_INDEX), ADC_RES_12BIT)/50;
-        printf("Battery voltage %d mV\n", buf->data[bytes - 1] * 50);
+    if (cpu_status.temp.core_temp != INT16_MIN) {
+        temperature = cpu_status.temp.core_temp;
+        printf("MCU temperature is %d C\n", temperature);
     }
-#endif
+    if (cpu_status.voltage.vdd != INT16_MIN) {
+        voltage = cpu_status.voltage.vdd/50;
+        printf("Battery voltage %d mV\n", voltage * 50);
+    }
+    convert_to_be_sam((void *)&temperature, 1);
+    buf->data[bytes - 2] = temperature;
+    buf->data[bytes - 1] = voltage;
     
 #if ENABLE_DEBUG
     for (int k = 0; k < buf->length; k++) {

@@ -76,7 +76,18 @@ static void get_cpu_voltage(cpu_status_t* status) {
 }
 
 static void get_cpu_temp(cpu_status_t* status) {
-    status->temp.core_temp = INT16_MIN;
+    /* Start temperature measurement task */
+    NRF_TEMP->TASKS_START = 1;
+
+    /* Wait for temperature measurement to be ready */
+    while (!NRF_TEMP->EVENTS_DATARDY); /* takes 36us according to manual */
+
+    /* temperature is in 0.25°C step, so just divide by 4 */
+    status->temp.core_temp = (int16_t)NRF_TEMP->TEMP >> 2;
+
+    /* Clear data ready bit and stop temperature measurement task */
+    NRF_TEMP->EVENTS_DATARDY = 0;
+    NRF_TEMP->TASKS_STOP = 1;
 }
 #endif
 

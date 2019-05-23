@@ -33,4 +33,7 @@ void cpu_init(void)
     clock_init_hf();
     /* trigger static peripheral initialization */
     periph_init();
+    
+    /* fill CPU status data */
+    cpu_init_status();
 }

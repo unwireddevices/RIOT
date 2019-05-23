@@ -7,11 +7,11 @@
  */
 
 /**
- * @ingroup     cpu_nrf52
+ * @ingroup     cpu_nrf5x
  * @{
  *
  * @file
- * @brief       Implementation of nRF52 CPU identification and status data
+ * @brief       Implementation of nRF5x CPU identification and status data
  *
  * @author      Oleg Artamonov <oleg@unwds.com>
  *

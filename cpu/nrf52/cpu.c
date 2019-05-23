@@ -181,6 +181,9 @@ void cpu_init(void)
 
     /* trigger static peripheral initialization */
     periph_init();
+    
+    /* fill CPU status data */
+    cpu_init_status();
 }
 
 static bool errata_12(void)

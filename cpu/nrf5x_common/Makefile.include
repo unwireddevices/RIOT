@@ -10,6 +10,9 @@ USEMODULE += nrf5x_common_periph
 
 USEMODULE += pm_layered
 
+# always needed to compile
+USEMODULE += periph_status
+
 # link common cpu code
 USEMODULE += cpu_common
 

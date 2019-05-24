@@ -48,7 +48,7 @@ extern "C" {
  * @param[in]   ms      number of milliseconds
  * @return              rtt ticks
  */
-#define RTT_MS_TO_TICKS(ms)     ( RTT_US_TO_TICKS((ms) * 1000) )
+#define RTT_MS_TO_TICKS(ms)     ((uint32_t)(RTT_US_TO_TICKS((uint64_t)(ms) * 1000ULL)))
 
 /**
  * @brief       Convert seconds to rtt ticks

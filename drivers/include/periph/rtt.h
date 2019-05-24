@@ -69,14 +69,14 @@ extern "C" {
  * @param[in]   ticks   rtt ticks
  * @return              number of microseconds
  */
-#define RTT_TICKS_TO_US(ticks)  ((uint32_t)((uint64_t)(ticks) * 1000000UL / RTT_FREQUENCY))
+#define RTT_TICKS_TO_US(ticks)  ((uint64_t)(ticks) * 1000000ULL / RTT_FREQUENCY)
 
 /**
  * @brief       Convert rtt ticks to milliseconds
  * @param[in]   ticks   rtt ticks
  * @return              number of milliseconds
  */
-#define RTT_TICKS_TO_MS(ticks)  (RTT_TICKS_TO_US(ticks) / 1000)
+#define RTT_TICKS_TO_MS(ticks)  (uint32_t)(RTT_TICKS_TO_US(ticks) / 1000)
 
 /**
  * @brief       Convert rtt ticks to seconds

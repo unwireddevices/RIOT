@@ -56,6 +56,8 @@ void rtc_ovf_callback(void* arg)
     /* timer overflows every 2e24 * 976.5625 us = 16 384 000 000 us = ~4.55 hours */
     time_epoch_us += 16384000000;
     
+    DEBUG("Timer overflow\n");
+    
     if ((rtc_next_timer_millis.alarm != 0) &&
        ((rtc_next_timer_millis.alarm - time_epoch_us) <= RTT_TICKS_TO_US(RTT_MAX_VALUE))) {
            
@@ -103,6 +105,8 @@ int rtc_get_time(struct tm *time)
     time_t epoch = (time_epoch_us + RTT_TICKS_TO_US(ticks)) / 1000000;
     memcpy(&time, gmtime(&epoch), sizeof(struct tm));
     
+    DEBUG("Epoch time: %" PRIu64 " ms\n", epoch);
+    
     rtc_release();
 
     return 0;
@@ -145,17 +149,20 @@ void rtc_clear_alarm(void)
 int rtc_millis_set_alarm(uint32_t milliseconds, rtc_alarm_cb_t cb, void *arg)
 {   
     rtc_acquire();
+
+    uint32_t target = RTT_MS_TO_TICKS(milliseconds - (uint32_t)(time_epoch_us/1000));
     
-    uint32_t now = rtt_get_counter();
-    uint32_t target = now + RTT_MS_TO_TICKS(milliseconds);
+    DEBUG("Alarm at %lu ms\n", milliseconds);
 
     if (target <= RTT_MAX_VALUE) {
-        rtt_set_alarm(target - now, cb, arg);
+        DEBUG("Alarm now at %lu ticks\n", target);
+        rtt_set_alarm(target, cb, arg);
     } else {
         /* alarm absolute time */
-        rtc_next_timer_millis.alarm = time_epoch_us + RTT_TICKS_TO_US(now) + milliseconds*1000;
+        rtc_next_timer_millis.alarm = (uint64_t)(milliseconds) * 1000;
         rtc_next_timer_millis.arg = arg;
         rtc_next_timer_millis.cb = cb;
+        DEBUG("Alarm next period: %lu ms\n", (uint32_t)(rtc_next_timer_millis.alarm/1000));
     }
 
     rtc_release();
@@ -180,6 +187,8 @@ int rtc_millis_get_time(uint32_t *millis)
     /* 1 week overflow */
     uint32_t now = rtt_get_counter();
     *millis = (RTT_TICKS_TO_MS(now) +  time_epoch_us/1000) % RTC_WEEK_MILLISECONDS;
+    
+    DEBUG("Now %lu ticks (%lu ms)\n", now, *millis);
     
     rtc_release();
     return 0;

@@ -7,14 +7,10 @@ include ../Makefile.tests_common
 
 USEMODULE += od
 USEMODULE += ps
-USEMODULE += rtctimers
 USEMODULE += rtctimers-millis
 USEMODULE += xtimer
-USEMODULE += pm_layered
 
-FEATURES_REQUIRED += periph_rtt
 FEATURES_REQUIRED += periph_rtc
-FEATURES_REQUIRED += periph_pm
 
 #CFLAGS += -DDEVELHELP
 

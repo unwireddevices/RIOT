@@ -91,7 +91,10 @@ void rtt_set_alarm(uint32_t alarm, rtt_cb_t cb, void *arg)
 {
     alarm_cb = cb;
     alarm_arg = arg;
-    DEV->CC[0] = (alarm & RTT_MAX_VALUE);
+    if (alarm > RTT_MAX_VALUE) {
+        alarm = RTT_MAX_VALUE;
+    }
+    DEV->CC[0] = alarm;
     DEV->INTENSET = RTC_INTENSET_COMPARE0_Msk;
 }
 

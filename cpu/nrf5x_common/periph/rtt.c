@@ -59,7 +59,7 @@ void rtt_init(void)
     /* configure interrupt */
     NVIC_EnableIRQ(IRQn);
     /* set prescaler */
-    DEV->PRESCALER = 0; //(LFCLK_FREQ / RTT_FREQUENCY) - 1;
+    DEV->PRESCALER = (LFCLK_FREQ / RTT_FREQUENCY) - 1;
     /* start the actual RTT thing */
     DEV->TASKS_START = 1;
 }

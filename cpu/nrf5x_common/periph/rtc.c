@@ -58,9 +58,11 @@ void rtc_ovf_callback(void* arg)
     
     if ((rtc_next_timer_millis.alarm != 0) &&
        ((rtc_next_timer_millis.alarm - time_epoch_us) <= RTT_TICKS_TO_US(RTT_MAX_VALUE))) {
-        
+           
         uint32_t target = RTT_US_TO_TICKS(rtc_next_timer_millis.alarm - time_epoch_us);
         
+        rtc_next_timer_millis.alarm = 0;
+
         rtt_set_alarm(target, rtc_next_timer_millis.cb, rtc_next_timer_millis.arg);
     }
 }
@@ -146,16 +148,18 @@ int rtc_millis_set_alarm(uint32_t milliseconds, rtc_alarm_cb_t cb, void *arg)
     
     uint32_t now = rtt_get_counter();
     uint32_t target = now + RTT_MS_TO_TICKS(milliseconds);
-    
+
     if (target <= RTT_MAX_VALUE) {
         rtt_set_alarm(target - now, cb, arg);
     } else {
+        /* alarm absolute time */
         rtc_next_timer_millis.alarm = time_epoch_us + RTT_TICKS_TO_US(now) + milliseconds*1000;
         rtc_next_timer_millis.arg = arg;
         rtc_next_timer_millis.cb = cb;
     }
 
     rtc_release();
+
     return 0;
 }
 
@@ -174,7 +178,8 @@ int rtc_millis_get_time(uint32_t *millis)
     rtc_acquire();
     
     /* 1 week overflow */
-    *millis = (RTT_TICKS_TO_MS(rtt_get_counter()) +  time_epoch_us/1000) % RTC_WEEK_MILLISECONDS;
+    uint32_t now = rtt_get_counter();
+    *millis = (RTT_TICKS_TO_MS(now) +  time_epoch_us/1000) % RTC_WEEK_MILLISECONDS;
     
     rtc_release();
     return 0;

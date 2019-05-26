@@ -13,7 +13,8 @@
  * @{
  * @file        fdc1004.h
  * @brief       FDC1004 capacitive sensor driver implementation
- * @author      Oleg Artamonov
+ * @author      Oleg Artamonov     <info@unwds.com>
+ * @author      Alexander Ugorelov <info@unwds.com>
  */
 
 #include <stdlib.h>
@@ -74,7 +75,14 @@ int fdc1004_init(fdc1004_t *dev)
     return 0;
 }
 
-uint32_t fdc1004_get_capacitance(fdc1004_t *dev, uint8_t channel)
+uint32_t fdc1004_get_capacitance(fdc1004_t *dev, uint8_t channel) 
+{
+    uint32_t capacitance = fdc1004_get_raw_data(dev, channel);
+    capacitance = UINT32_MAX;
+    return capacitance;
+}
+
+uint32_t fdc1004_get_raw_data(fdc1004_t *dev, uint8_t channel)
 {
     assert(dev != NULL);
     

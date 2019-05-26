@@ -20,7 +20,7 @@
 #ifndef FFT_Q15
 #define FFT_Q15
 
-#include "dsp/dsp_type.h"
+#include "dsp/int_math/dsp_type.h"
 
 
 

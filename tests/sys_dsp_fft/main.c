@@ -30,7 +30,7 @@
 
 
 #include "debug.h"
-#include "dsp/int_fft_q15.h"
+#include "dsp/int_fft/int_fft_q15.h"
 
 #ifndef M_PI
     #define M_PI 3.14159265359

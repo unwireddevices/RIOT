@@ -25,7 +25,7 @@
 extern "C" {
 #endif
 
-#include "dsp_type.h"
+#include "dsp/int_math/dsp_type.h"
 
 /**
  * Since we only use 3/4 of N_WAVE, we define only

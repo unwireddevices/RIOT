@@ -144,8 +144,16 @@ ifneq (,$(filter rtctimers-millis,$(USEMODULE)))
     DIRS += rtctimers-millis
 endif
 
-ifneq (,$(filter dsp,$(USEMODULE)))
-  DIRS += dsp
+ifneq (,$(filter dsp_fft,$(USEMODULE)))
+  DIRS += dsp/int_fft
+endif
+
+ifneq (,$(filter dsp_math,$(USEMODULE)))
+  DIRS += dsp/int_math
+endif
+
+ifneq (,$(filter dsp_dia,$(USEMODULE)))
+  DIRS += dsp/int_dia
 endif
 
 DIRS += $(dir $(wildcard $(addsuffix /Makefile, $(USEMODULE))))

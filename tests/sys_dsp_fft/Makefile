@@ -1,6 +1,7 @@
 include ../Makefile.tests_common
 
-USEMODULE += dsp
+USEMODULE += dsp_fft
+USEMODULE += dsp_math
 USEMODULE += ps
 CFLAGS += -DFFT_SAMPLE=256
 

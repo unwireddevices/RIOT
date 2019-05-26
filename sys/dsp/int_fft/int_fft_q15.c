@@ -20,11 +20,11 @@
 
 #include <math.h>
 
-#include "dsp/int_fft_q15.h"
+#include "dsp/int_fft/int_fft_q15.h"
 
-#include "dsp/twiddle_coef.h"
-#include "dsp/int_sqrt.h"
-#include "dsp/int_mult_q15.h"
+#include "dsp/int_fft/twiddle_coef.h"
+#include "dsp/int_math/int_sqrt.h"
+#include "dsp/int_math/int_mult_q15.h"
 
 
 uint32_t log_base_2 (uint32_t n)

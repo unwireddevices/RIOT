@@ -24,7 +24,7 @@
 extern "C" {
 #endif
 
-#include "dsp/dsp_type.h"
+#include "dsp/int_math/dsp_type.h"
     
 /**
  * @brief           Q15 multiplication numbers

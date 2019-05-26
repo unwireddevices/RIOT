@@ -88,7 +88,7 @@ static void prepare_result(module_data_t *buf) {
 	uint32_t capacitance[4];
     
     for (int i = 0; i < 4; i++) {
-        capacitance[i] = fdc1004_get_capacitance(&dev, i+1);
+        capacitance[i] = fdc1004_get_raw_data(&dev, i+1);
         printf("[umdk-" _UMDK_NAME_ "] Channel %d: %" PRIu32 "\n", i+1, capacitance[i]);
     }
 

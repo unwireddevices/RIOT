@@ -18,7 +18,7 @@
  *              September 2015
  *              Texas Instruments
  *
- * @author      Alexander Ugorelov <alex_u@unwds.com>
+ * @author      Alexander Ugorelov <info@unwds.com>
  *
  * @}
  */
@@ -34,46 +34,45 @@ extern "C" {
 #include <stdbool.h>
 
 typedef struct {
-    uint32_t measure_sample;        /**< */
-    uint32_t moving_avg;            /**< */
-    uint32_t prev_moving_avg;       /**< */
-    int32_t  derivative;            /**< */
-    int32_t  integral;              /**< */
-    int32_t  prev_integral;         /**< */
-    int32_t  integral_ths;          /**< */
-    int32_t  derivative_ths;        /**< */
-    float    leakage_factor;        /**< */
-    bool     init_baseline;         /**< */
-    bool     is_detected;             /**< */
-    bool     with_iir;              /**< */
+    uint32_t measure_sample;        /**< current measured value                      */
+    uint32_t moving_avg;            /**< current value of the moving average         */
+    uint32_t prev_moving_avg;       /**< previous value of the moving average        */
+    int32_t  derivative;            /**< current value of the differential component */
+    int32_t  integral;              /**< current value of the integral component     */
+    int32_t  prev_integral;         /**< previous value of the integral component    */
+    int32_t  integral_ths;          /**< integration threshold                       */
+    int32_t  derivative_ths;        /**< derivative threshold                        */
+    float    leakage_factor;        /**< leakage_factor                              */
+    bool     init_baseline;         /**< measure the baseline                        */
+    bool     is_detected;           /**< object was detected                         */
+    bool     with_iir;              /**< use IRR filer                               */
 } int_dia_t;
 
 /**
- * @brief 
+ * @brief Initialize the Derivative Integration Algorithm state
  * 
- * @param int_dia 
- * @param integral_ths 
- * @param derivative_ths 
- * @param leakage_factor 
- * @param with_iir 
+ * @param[in/out] int_dia          DIA structure pointer
+ * @param[in]     integ_ths        integration threshold
+ * @param[in]     deriv_ths        derivative threshold
+ * @param[in]     leakage_factor   leakage factor
+ * @param[in]     with_iir         use IRR filer
  */
-void int_dia_init(int_dia_t *int_dia, int32_t  integral_ths, int32_t  derivative_ths, int32_t  leakage_factor, bool with_iir);
+void int_dia_init(int_dia_t *int_dia, int32_t  integ_ths, int32_t  deriv_ths, int32_t  leakage_factor, bool with_iir);
 
 /**
- * @brief 
+ * @brief Gets the baseline for the Derivative Integration Algorithm
  * 
- * @param int_dia 
- * @param data_set 
- * @param max_samples 
+ * @param[in/out] int_dia    DIA structure pointer
+ * @param[in]     data_set   raw data set
+ * @param[in]     samples    number of samples of the source data array
  */
-void int_dia_get_baseline(int_dia_t *int_dia, uint32_t *data_set, uint8_t max_samples);
+void int_dia_get_baseline(int_dia_t *int_dia, uint32_t *data_set, uint8_t samples);
 
 /**
- * @brief 
+ * @brief Main function of the Derivative Integration Algorithm
  * 
- * @param int_dia 
- * @param value 
- * @return int 
+ * @param[in/out] int_dia   DIA structure pointer
+ * @param[in]     value     current measured value
  */
 void int_dia_main(int_dia_t *int_dia, uint32_t value);
 

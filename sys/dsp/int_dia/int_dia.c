@@ -18,7 +18,7 @@
  *              September 2015
  *              Texas Instruments
  *
- * @author      Alexander Ugorelov <alex_u@unwds.com>
+ * @author      Alexander Ugorelov <info@unwds.com>
  *
  * @}
  */
@@ -70,26 +70,26 @@ void int_dia_main(int_dia_t *int_dia, uint32_t value)
     }
 }
 
-void int_dia_init(int_dia_t *int_dia,  int32_t  integral_ths, int32_t  derivative_ths, int32_t  leakage_factor, bool with_iir)
+void int_dia_init(int_dia_t *int_dia,  int32_t  integ_ths, int32_t  deriv_ths, int32_t  leakage_factor, bool with_iir)
 {
     memset(int_dia, 0x00, sizeof(int_dia_t));
 
     int_dia->init_baseline  = true;
     int_dia->is_detected    = false;
     int_dia->with_iir       = with_iir;
-    int_dia->integral_ths   = integral_ths;
-    int_dia->derivative_ths = derivative_ths;
+    int_dia->integral_ths   = integ_ths;
+    int_dia->derivative_ths = deriv_ths;
     int_dia->leakage_factor = leakage_factor;
 
 }
 
-void int_dia_get_baseline(int_dia_t *int_dia, uint32_t *data_set, uint8_t max_samples)
+void int_dia_get_baseline(int_dia_t *int_dia, uint32_t *data_set, uint8_t samples)
 {
-    //Collect first 128 samples for moving average to have int_dia_baseline == ~measure_sample
-    for (uint8_t sample = 0; sample < max_samples; sample++)
+    //Collect first any samples for moving average to have int_dia_baseline == ~measure_sample
+    for (uint8_t i = 0; i < samples; i++)
     {
         //Collect measurements for moving average
-        int_dia->measure_sample = data_set[sample];
+        int_dia->measure_sample = data_set[i];
 
         if (int_dia->init_baseline)
         {

@@ -12,7 +12,7 @@
  * @file
  * @brief       Test application for the FDC1004 4-Channel Capacitance-to-Digital Converter
  *
- * @author      Alexander Ugorelov <alex_u@unwds.com>
+ * @author      Alexander Ugorelov <info@unwds.com>
  *
  * @}
  */
@@ -66,21 +66,21 @@ int main(void)
     /* initialized baseline for DIA */
     if (int_dia.init_baseline) {
         for (int i = 0; i < FDC1004_INIT_DATASET_LEN; i++) {
-            data_set[i] = fdc1004_get_capacitance(&dev, FDC1004_CH);
+            data_set[i] = fdc1004_get_raw_data(&dev, FDC1004_CH);
         }
         int_dia_get_baseline(&int_dia, data_set, FDC1004_INIT_DATASET_LEN);
     }
 
     xtimer_ticks32_t last_wakeup = xtimer_now();
 
-    printf("Sample\tAVG\tMeasure\tDerivative\tIntegral\tIs detected\n");
+    printf("Sample\tMov_AVG\tMeasure\tDerivative\tIntegral\tWas detected?\n");
     while (1) {
 
         uint32_t capacitance = 0;
         uint32_t sample = 0;
 
         /* read sensor data */
-        capacitance = fdc1004_get_capacitance(&dev, FDC1004_CH);
+        capacitance = fdc1004_get_raw_data(&dev, FDC1004_CH);
         /* print data to STDIO */
         // printf("Capacitance channel %d [F]: %" PRIu32 "\n", FDC1004_CH, capacitance);
         int_dia_main(&int_dia, capacitance);

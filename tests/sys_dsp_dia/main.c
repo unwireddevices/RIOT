@@ -19,73 +19,36 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
-#include <ctype.h>
+#include <inttypes.h>
 
-#include "random.h"
 #include "dsp/int_dia/int_dia.h"
+#include "dataset.h"
 
-#define DATA_SET_LEN      128
-
-/**
- * @brief xxd-like printing of a binary buffer
- */
-static void print_buffer(const uint8_t * buf, size_t length) {
-    static const unsigned int bytes_per_line = 16;
-    static const unsigned int bytes_per_group = 16;
-    unsigned long i = 0;
-    while (i < length) {
-        unsigned int col;
-        for (col = 0; col < bytes_per_line; ++col) {
-            /* Print hex data */
-            if (col == 0) {
-                printf("\n%08" PRIx32 ": ", i);
-            }
-            else if ((col % bytes_per_group) == 0) {
-                putchar(' ');
-            }
-            if ((i + col) < length) {
-                printf("%02x ", buf[i + col]);
-            } else {
-                putchar(' ');
-                putchar(' ');
-            }
-        }
-        putchar(' ');
-        for (col = 0; col < bytes_per_line; ++col) {
-            if ((i + col) < length) {
-                /* Echo only printable chars */
-                if (isprint(buf[i + col])) {
-                    putchar(buf[i + col]);
-                } else {
-                    putchar('.');
-                }
-            } else {
-                putchar(' ');
-            }
-        }
-        i += bytes_per_line;
-    }
-    /* end with a newline */
-    puts("\n");
-}
+#define PROX_INTEGRAL_THRESHOLD         7000
+#define PROX_DERIVATIVE_THRESHOLD       0
+#define LEAKAGE_FACTOR_PROX             0.99
+#define NELEMS(x)                       (sizeof(x) / sizeof((x)[0]))
 
 int main(void) {
     int_dia_t int_dia;
-    uint32_t data_set[DATA_SET_LEN];
+    uint32_t size_data_set = NELEMS(data_set);
+    uint32_t sample = 0;
+    uint32_t capacitance = 0;
 
-    random_init(0);
-    int_dia_init(&int_dia);
+    puts("Test application for Derivative/Integration Algorithm");
+    int_dia_get_baseline(&int_dia, data_set, size_data_set);
+    printf("Baseline value is ");
+    printf("%"PRIu32"\n", int_dia.moving_avg);
 
-    for (uint32_t sample = 0; sample < DATA_SET_LEN; sample++) {
-        data_set[sample] = random_uint32_range(0x00000000, 0x0000FFFF);
+    printf("Sample\tMov_AVG\tMeasure\tDerivative\tIntegral\tWas detected?\n");
+    while (sample < size_data_set) {
+         capacitance = data_set[sample];
+        int_dia_main(&int_dia, capacitance);
+        /* print data to STDIO */
+        printf("%"PRIu32"\t""%"PRIu32"\t""%"PRIu32"\t""%"PRIi32"\t""%"PRIi32"\t", 
+               sample++, int_dia.moving_avg, capacitance, int_dia.derivative, int_dia.integral);
+        printf(" %s\n", (int_dia.is_detected == true)?("detected"):("not detected"));
     }
-    puts("Data Set for Baseline:");
-    print_buffer((uint8_t *)data_set, (DATA_SET_LEN * sizeof(uint32_t)));
 
-    int_dia_get_baseline(&int_dia, data_set, DATA_SET_LEN);
-    printf("Value baseline: %ld", int_dia.moving_avg); 
     return 0;
 }

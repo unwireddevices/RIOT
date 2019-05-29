@@ -40,7 +40,11 @@ static size_t get_cpu_flash_size(void) {
 
 static size_t get_cpu_eeprom_size(void) {
     /* emulated */
+#if defined(EEPROM_SIZE)
     return EEPROM_SIZE;
+#else
+    return 0;
+#endif
 }
 
 #if defined(MODULE_PERIPH_STATUS_EXTENDED)

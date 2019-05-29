@@ -61,7 +61,7 @@
 bool atmodem_get_internet_settings(void);
 
 /* Check the connection of the selected SIM card */
-bool atmodem_test_connection(void);
+bool atmodem_test_connection(uint8_t *rssi);
 
 /* Processing incoming SMS commands */
 void atmodem_get_sms_command(void);

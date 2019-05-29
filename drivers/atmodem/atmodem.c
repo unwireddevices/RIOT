@@ -334,7 +334,7 @@ bool atmodem_get_internet_settings(void) {
 
 /*---------------------------------------------------------------------------*/
 /* Check the connection of the selected SIM card */
-bool atmodem_test_connection(void) {
+bool atmodem_test_connection(uint8_t *rssi) {
     /* Is the modem initialized? */
     if (sim_status.modem < 0) {
         return false;
@@ -430,6 +430,8 @@ bool atmodem_test_connection(void) {
         sim_status.network_signal = 115;
 
     DEBUG("[ATMODEM] Signal: -%idBm\n", sim_status.network_signal);
+    
+    *rssi = sim_status.network_signal;
 
 	/* Which operator name? */
     at_send_cmd_get_resp(&at_dev, "AT+COPS?", at_dev_resp, ATMODEM_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);

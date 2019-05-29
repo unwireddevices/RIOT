@@ -46,9 +46,23 @@
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
 
+#define ATMODEM_DEV_BUF_SIZE        (2048)      /* The size of the buffer for all incoming data from modem */
+#define ATMODEM_DEV_RESP_SIZE       (1024)      /* The size of the buffer to answer the command from the modem */
+
+#define ATMODEM_READY               (0)
+#define ATMODEM_NOT_INITIALIZED     (-1)        /* Modem is not initialized */
+#define ATMODEM_NOT_ANSWERING       (-2)        /* If there is no modem, then sim_status.modem = ATMODEM_NOT_ANSWERING and display N/A on the screen. */
+#define ATMODEM_WAIT_SMS_TIMEOUT    (400)       /* SMS waiting time with Internet settings in seconds */
+
+#define ATMODEM_BAUDRATE            (115200)    /* UART baudrate for modem*/
+#define ATMODEM_MAX_TIMEOUT         (1000000)   /* Maximum time waiting for a response */ 
+#define ATMODEM_TIME_ON             (500)       /* The time of active low level impulse of PWRKEY pin to power on module. Min: 50ms, typ: 100ms */
+#define ATMODEM_TIME_ON_UART        (3000)      /* The time from power-on issue to UART port ready. Min: 3s, max: 5s */
+#define ATMODEM_CMD_TIMEOUT         (10)        /* Command timeout 10ms */
+
 static at_dev_t at_dev;                         /* Struct for AT device */
-static char at_dev_buf[AT_DEV_BUF_SIZE];        /* Buffer for incoming data */
-static char at_dev_resp[AT_DEV_RESP_SIZE];      /* Buffer for outgoing commands */
+static char at_dev_buf[ATMODEM_DEV_BUF_SIZE];   /* Buffer for incoming data */
+static char at_dev_resp[ATMODEM_DEV_RESP_SIZE]; /* Buffer for outgoing commands */
 
 static gpio_t atmodem_enable_pin;
 static gpio_t atmodem_power_pin;
@@ -76,7 +90,7 @@ typedef struct {
     char password[32];              /* Password */
 } sim_status_t;
 
-static sim_status_t sim_status = { .modem = ATMODEM_NOT_INITIALIZED }; /* Network Test Result */
+static sim_status_t sim_status = { .modem = ATATMODEM_NOT_INITIALIZED }; /* Network Test Result */
 
 /* Ping function */
 static bool atmodem_ping(char *ip_addr) {
@@ -619,15 +633,15 @@ void atmodem_power_on(void) {
     DEBUG("[ATMODEM] Power on\n");
 
     /* ATMODEM_POWER_ENABLE to Hi */
-    gpio_init(atmodem_pwr_pin, GPIO_OUT);
-    gpio_set(atmodem_pwr_pin);
+    gpio_init(atmodem_power_pin, GPIO_OUT);
+    gpio_set(atmodem_power_pin);
 
     /* 3G_PWR to Hi on 100 ms*/
     gpio_init(atmodem_enable_pin, GPIO_OUT);
     gpio_set(atmodem_enable_pin);
 
     /* 500ms sleep and clear */
-    rtctimers_millis_sleep(MODEM_TIME_ON);
+    rtctimers_millis_sleep(ATMODEM_TIME_ON);
     gpio_clear(atmodem_enable_pin);
 }
 
@@ -638,11 +652,11 @@ void atmodem_power_off(void) {
     uart_poweroff(at_dev.uart);
 
     /* Power pin to Low */
-    gpio_init(atmodem_pwr_pin, GPIO_OUT);
-    gpio_clear(atmodem_pwr_pin);
+    gpio_init(atmodem_power_pin, GPIO_OUT);
+    gpio_clear(atmodem_power_pin);
 
     /* Modem is not initialized */
-    sim_status.modem = ATMODEM_NOT_INITIALIZED;
+    sim_status.modem = ATATMODEM_NOT_INITIALIZED;
     DEBUG("[ATMODEM] Power off\n");
 }
 
@@ -659,11 +673,11 @@ bool atmodem_init(uart_t modem_uart, gpio_t power_pin, gpio_t enable_pin) {
     atmodem_power_on();
     
     /* We wait while modem is initialized */
-    rtctimers_millis_sleep(MODEM_TIME_ON_UART);
+    rtctimers_millis_sleep(ATMODEM_TIME_ON_UART);
 
     int res = at_dev_init(&at_dev, ATMODEM_UART, ATMODEM_BAUDRATE, at_dev_buf, AT_DEV_RESP_SIZE);
     
-    sim_status.modem = ATMODEM_READY;
+    sim_status.modem = ATATMODEM_READY;
     
     if (!res) {
         for(int i = 0; i < 5; i++) {
@@ -673,8 +687,8 @@ bool atmodem_init(uart_t modem_uart, gpio_t power_pin, gpio_t enable_pin) {
                 break;
             }
             if (i == 4) {
-                /* If there is no modem, then sim_status.modem = ATMODEM_NOT_ANSWERING and display N/A on the screen */
-                sim_status.modem = ATMODEM_NOT_ANSWERING;
+                /* If there is no modem, then sim_status.modem = ATATMODEM_NOT_ANSWERING and display N/A on the screen */
+                sim_status.modem = ATATMODEM_NOT_ANSWERING;
 
                 DEBUG("[ATMODEM] Not answering\n");
                 return false;
@@ -688,8 +702,8 @@ bool atmodem_init(uart_t modem_uart, gpio_t power_pin, gpio_t enable_pin) {
     else {
         DEBUG("[ATMODEM] Init ERROR: %i\n", res);
 
-        /* If there is no modem, then sim_status.modem = ATMODEM_NOT_ANSWERING and display N/A on the screen */
-        sim_status.modem = ATMODEM_NOT_ANSWERING;
+        /* If there is no modem, then sim_status.modem = ATATMODEM_NOT_ANSWERING and display N/A on the screen */
+        sim_status.modem = ATATMODEM_NOT_ANSWERING;
 
         return false;
     }
@@ -700,7 +714,7 @@ bool atmodem_init(uart_t modem_uart, gpio_t power_pin, gpio_t enable_pin) {
 int8_t atmodem_wait_sms_with_cmd(void) {
     uint16_t counter = 0; 
     while (!sim_status.is_new_internet_settings) {
-        if (counter < ATMODEM_WAIT_SMS_TIMEOUT) {
+        if (counter < ATATMODEM_WAIT_SMS_TIMEOUT) {
             atmodem_get_sms_command();
             counter++;
             rtctimers_millis_sleep(1000);
@@ -1068,7 +1082,7 @@ bool atmodem_send_tcpudp(char    *server_addr,
         return false;
     } 
     DEBUG("[ATMODEM] %s OK\n", cmd_CIPSEND);
-    rtctimers_millis_sleep(MODEM_CMD_TIMEOUT);
+    rtctimers_millis_sleep(ATMODEM_CMD_TIMEOUT);
 
     /* Send data */
     DEBUG("[ATMODEM] Send data:\n");
@@ -1078,7 +1092,7 @@ bool atmodem_send_tcpudp(char    *server_addr,
 
     /* Close connection */
     at_send_cmd(&at_dev, "AT+CIPCLOSE=0", ATMODEM_MAX_TIMEOUT);
-    rtctimers_millis_sleep(MODEM_CMD_TIMEOUT);
+    rtctimers_millis_sleep(ATMODEM_CMD_TIMEOUT);
     DEBUG("[ATMODEM] Close TCP or UDP Connection OK\n");
 
     // res = at_readline(&at_dev, at_dev_resp, AT_DEV_RESP_SIZE, false, ATMODEM_MAX_TIMEOUT);

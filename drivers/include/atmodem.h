@@ -57,6 +57,8 @@
 #define ATMODEM_WAITING_SMS_INTERNET_SETTINGS_TIMEOUT (-1)
 #define ATMODEM_ERROR_NEW_INTERNET_SETTINGS           (-2)
 
+#include "periph/gpio.h"
+
 /* Get settings for selected SIM card */
 bool atmodem_get_internet_settings(void);
 
@@ -73,7 +75,7 @@ void atmodem_power_on(void);
 void atmodem_power_off(void);
 
 /* Modem initialization */
-bool atmodem_init(void);
+bool atmodem_init(uart_t modem_uart, gpio_t power_pin, gpio_t enable_pin);
 
 /*  */
 int8_t atmodem_wait_sms_with_cmd(void);

@@ -60,6 +60,10 @@
 #define ATMODEM_TIME_ON_UART        (3000)      /* The time from power-on issue to UART port ready. Min: 3s, max: 5s */
 #define ATMODEM_CMD_TIMEOUT         (10)        /* Command timeout 10ms */
 
+#define ATMODEM_NEW_INTERNET_SETTINGS_OK              (0)
+#define ATMODEM_WAITING_SMS_INTERNET_SETTINGS_TIMEOUT (-1)
+#define ATMODEM_ERROR_NEW_INTERNET_SETTINGS           (-2)
+
 static at_dev_t at_dev;                         /* Struct for AT device */
 static char at_dev_buf[ATMODEM_DEV_BUF_SIZE];   /* Buffer for incoming data */
 static char at_dev_resp[ATMODEM_DEV_RESP_SIZE]; /* Buffer for outgoing commands */
@@ -90,7 +94,7 @@ typedef struct {
     char password[32];              /* Password */
 } sim_status_t;
 
-static sim_status_t sim_status = { .modem = ATATMODEM_NOT_INITIALIZED }; /* Network Test Result */
+static sim_status_t sim_status = { .modem = ATMODEM_NOT_INITIALIZED }; /* Network Test Result */
 
 /* Ping function */
 static bool atmodem_ping(char *ip_addr) {
@@ -107,7 +111,7 @@ static bool atmodem_ping(char *ip_addr) {
         /* the response will contains <replyTime> setting to 600 and <ttl> setting to 255 */
         /* Example error resp: +CIPPING: 1,"176.15.4.218",600,255*/ 
 
-        int res = at_send_cmd_get_resp(&at_dev, cmd_with_ping, at_dev_resp, AT_DEV_RESP_SIZE, 7000000);
+        int res = at_send_cmd_get_resp(&at_dev, cmd_with_ping, at_dev_resp, ATMODEM_DEV_RESP_SIZE, 7000000);
         if (res > 0) {
             if (strcmp(at_dev_resp, "ERROR") == 0) {
                 /* Ping ERROR */
@@ -345,10 +349,10 @@ bool atmodem_test_connection(void) {
     DEBUG("[ATMODEM] Test connection\n");
 
     /* Switch on Detecting SIM Card */ 
-    at_send_cmd_get_resp(&at_dev, "AT+CSDT=1", at_dev_resp, AT_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
+    at_send_cmd_get_resp(&at_dev, "AT+CSDT=1", at_dev_resp, ATMODEM_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
 
 	/* Is SIM card inserted? */
-    at_send_cmd_get_resp(&at_dev, "AT+CSMINS?", at_dev_resp, AT_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
+    at_send_cmd_get_resp(&at_dev, "AT+CSMINS?", at_dev_resp, ATMODEM_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
     if (strcmp("+CSMINS: 0,1", at_dev_resp) != 0) {
         DEBUG("[ATMODEM] SIM card is not inserted\n");
         sim_status.is_inserted = false;
@@ -366,7 +370,7 @@ bool atmodem_test_connection(void) {
             return false;
         }
 
-        res = at_send_cmd_get_resp(&at_dev, "AT+CPIN?", at_dev_resp, AT_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
+        res = at_send_cmd_get_resp(&at_dev, "AT+CPIN?", at_dev_resp, ATMODEM_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
         if (res >= 0) {
             if(strcmp("+CPIN: READY", at_dev_resp) == 0)
             {
@@ -389,7 +393,7 @@ bool atmodem_test_connection(void) {
             return false;
         }
 
-        res = at_send_cmd_get_resp(&at_dev, "AT+CREG?", at_dev_resp, AT_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
+        res = at_send_cmd_get_resp(&at_dev, "AT+CREG?", at_dev_resp, ATMODEM_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
         if (res >= 0) {
             if(strcmp("+CREG: 0,1", at_dev_resp) == 0)
             {
@@ -409,7 +413,7 @@ bool atmodem_test_connection(void) {
     }
 
 	/* Signal strength */ 
-    at_send_cmd_get_resp(&at_dev, "AT+CSQ", at_dev_resp, AT_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
+    at_send_cmd_get_resp(&at_dev, "AT+CSQ", at_dev_resp, ATMODEM_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
 
     uint8_t signal_quality;
     sscanf(at_dev_resp,"%*s %hhi", &signal_quality);
@@ -428,7 +432,7 @@ bool atmodem_test_connection(void) {
     DEBUG("[ATMODEM] Signal: -%idBm\n", sim_status.network_signal);
 
 	/* Which operator name? */
-    at_send_cmd_get_resp(&at_dev, "AT+COPS?", at_dev_resp, AT_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
+    at_send_cmd_get_resp(&at_dev, "AT+COPS?", at_dev_resp, ATMODEM_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
     sscanf(at_dev_resp, "%*s %*i,%*i,\"%[^\"]s,%*i", sim_status.operator); 
     DEBUG("[ATMODEM] Operator: %s\n", sim_status.operator);
 
@@ -450,7 +454,7 @@ bool atmodem_test_connection(void) {
     }
 
     /* Get Home Network Identity is the combination of the MCC and the MNC */
-    res = at_send_cmd_get_resp(&at_dev, "AT+CIMI", at_dev_resp, AT_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
+    res = at_send_cmd_get_resp(&at_dev, "AT+CIMI", at_dev_resp, ATMODEM_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
     if (res > 0) {
         DEBUG("[ATMODEM] IMSI: %s\n", at_dev_resp);
         char hni[6];
@@ -511,7 +515,7 @@ bool atmodem_test_connection(void) {
     }
 
     /* Get local IP address */
-    res = at_send_cmd_get_resp(&at_dev, "AT+CIFSR", at_dev_resp, AT_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
+    res = at_send_cmd_get_resp(&at_dev, "AT+CIFSR", at_dev_resp, ATMODEM_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
     if (res > 0) {
         DEBUG("[ATMODEM] Local IP address: %s\n", at_dev_resp);
     } else {
@@ -572,9 +576,9 @@ void atmodem_get_sms_command(void) {
 
     /* Find unread SMS */
     do {
-        res = at_readline(&at_dev, at_dev_resp, AT_DEV_RESP_SIZE, false, ATMODEM_MAX_TIMEOUT);
+        res = at_readline(&at_dev, at_dev_resp, ATMODEM_DEV_RESP_SIZE, false, ATMODEM_MAX_TIMEOUT);
         if (memcmp(at_dev_resp, "+CMGL:", 6) == 0) {
-            res = at_readline(&at_dev, at_dev_resp, AT_DEV_RESP_SIZE, false, ATMODEM_MAX_TIMEOUT);
+            res = at_readline(&at_dev, at_dev_resp, ATMODEM_DEV_RESP_SIZE, false, ATMODEM_MAX_TIMEOUT);
             if(res >= 0) {
                 if((memcmp(at_dev_resp, "cmd", 3) == 0)) {
                     DEBUG("[ATMODEM] SMS with cmd: %s\n", at_dev_resp);
@@ -656,7 +660,7 @@ void atmodem_power_off(void) {
     gpio_clear(atmodem_power_pin);
 
     /* Modem is not initialized */
-    sim_status.modem = ATATMODEM_NOT_INITIALIZED;
+    sim_status.modem = ATMODEM_NOT_INITIALIZED;
     DEBUG("[ATMODEM] Power off\n");
 }
 
@@ -675,9 +679,9 @@ bool atmodem_init(uart_t modem_uart, gpio_t power_pin, gpio_t enable_pin) {
     /* We wait while modem is initialized */
     rtctimers_millis_sleep(ATMODEM_TIME_ON_UART);
 
-    int res = at_dev_init(&at_dev, ATMODEM_UART, ATMODEM_BAUDRATE, at_dev_buf, AT_DEV_RESP_SIZE);
+    int res = at_dev_init(&at_dev, modem_uart, ATMODEM_BAUDRATE, at_dev_buf, ATMODEM_DEV_RESP_SIZE);
     
-    sim_status.modem = ATATMODEM_READY;
+    sim_status.modem = ATMODEM_READY;
     
     if (!res) {
         for(int i = 0; i < 5; i++) {
@@ -687,8 +691,8 @@ bool atmodem_init(uart_t modem_uart, gpio_t power_pin, gpio_t enable_pin) {
                 break;
             }
             if (i == 4) {
-                /* If there is no modem, then sim_status.modem = ATATMODEM_NOT_ANSWERING and display N/A on the screen */
-                sim_status.modem = ATATMODEM_NOT_ANSWERING;
+                /* If there is no modem, then sim_status.modem = ATMODEM_NOT_ANSWERING and display N/A on the screen */
+                sim_status.modem = ATMODEM_NOT_ANSWERING;
 
                 DEBUG("[ATMODEM] Not answering\n");
                 return false;
@@ -702,8 +706,8 @@ bool atmodem_init(uart_t modem_uart, gpio_t power_pin, gpio_t enable_pin) {
     else {
         DEBUG("[ATMODEM] Init ERROR: %i\n", res);
 
-        /* If there is no modem, then sim_status.modem = ATATMODEM_NOT_ANSWERING and display N/A on the screen */
-        sim_status.modem = ATATMODEM_NOT_ANSWERING;
+        /* If there is no modem, then sim_status.modem = ATMODEM_NOT_ANSWERING and display N/A on the screen */
+        sim_status.modem = ATMODEM_NOT_ANSWERING;
 
         return false;
     }
@@ -714,7 +718,7 @@ bool atmodem_init(uart_t modem_uart, gpio_t power_pin, gpio_t enable_pin) {
 int8_t atmodem_wait_sms_with_cmd(void) {
     uint16_t counter = 0; 
     while (!sim_status.is_new_internet_settings) {
-        if (counter < ATATMODEM_WAIT_SMS_TIMEOUT) {
+        if (counter < ATMODEM_WAIT_SMS_TIMEOUT) {
             atmodem_get_sms_command();
             counter++;
             rtctimers_millis_sleep(1000);
@@ -731,7 +735,7 @@ int8_t atmodem_wait_sms_with_cmd(void) {
 /* Sending data via Modem (HTTP GET) */
 bool atmodem_send_httpget(uint8_t *data_for_send, size_t data_size) {
     /* Check whether bearer 1 is open */
-    int res = at_send_cmd_get_resp(&at_dev, "AT+SAPBR=2,1", at_dev_resp, AT_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
+    int res = at_send_cmd_get_resp(&at_dev, "AT+SAPBR=2,1", at_dev_resp, ATMODEM_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
     if (res <= 0) {
         DEBUG("[ATMODEM] AT+SAPBR=2,1 ERROR: %i\n", res);
         return false;
@@ -804,7 +808,7 @@ bool atmodem_send_httpget(uint8_t *data_for_send, size_t data_size) {
     
     for(uint8_t i = 0; i < tries; i++) {
         /* Set up the HTTP action */
-        res = at_send_cmd_get_resp(&at_dev, "AT+HTTPACTION=0", at_dev_resp, AT_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
+        res = at_send_cmd_get_resp(&at_dev, "AT+HTTPACTION=0", at_dev_resp, ATMODEM_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
         if (res <= 0) {
             DEBUG("[ATMODEM] AT+HTTPACTION=0 ERROR: %i\n", res);
             DEBUG("[ATMODEM] Try: %i of %i\n", i+2, tries);
@@ -848,7 +852,7 @@ bool atmodem_send_httppost(char *url, uint8_t *data_for_send, size_t data_size) 
     sim_status.is_server_connect = false;
 
     /* Check whether bearer 1 is open */
-    int res = at_send_cmd_get_resp(&at_dev, "AT+SAPBR=2,1", at_dev_resp, AT_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
+    int res = at_send_cmd_get_resp(&at_dev, "AT+SAPBR=2,1", at_dev_resp, ATMODEM_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
     if (res <= 0) {
         DEBUG("[ATMODEM] AT+SAPBR=2,1 ERROR: %i\n", res);
         return false;
@@ -926,7 +930,7 @@ bool atmodem_send_httppost(char *url, uint8_t *data_for_send, size_t data_size) 
     rtctimers_millis_sleep(1000);
 
     //AT+HTTPACTION=1
-    // res = at_send_cmd_get_resp(&at_dev, "AT+HTTPACTION=1", at_dev_resp, AT_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
+    // res = at_send_cmd_get_resp(&at_dev, "AT+HTTPACTION=1", at_dev_resp, ATMODEM_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
     // if (res <= 0) {
     //     DEBUG("[ATMODEM] AT+HTTPACTION=0 ERROR: %i\n", res);
     //     return false;
@@ -935,7 +939,7 @@ bool atmodem_send_httppost(char *url, uint8_t *data_for_send, size_t data_size) 
     // rtctimers_millis_sleep(7000);
 
     // do {
-    //     res = at_readline(&at_dev, at_dev_resp, AT_DEV_RESP_SIZE, false, ATMODEM_MAX_TIMEOUT);
+    //     res = at_readline(&at_dev, at_dev_resp, ATMODEM_DEV_RESP_SIZE, false, ATMODEM_MAX_TIMEOUT);
     //     if (res >= 0) {
     //         // DEBUG("res: %i, line %i: %s\n", res, i, at_dev_resp);
     //         if (memcmp(at_dev_resp, "+HTTPACTION:", 12) == 0) {
@@ -952,7 +956,7 @@ bool atmodem_send_httppost(char *url, uint8_t *data_for_send, size_t data_size) 
 
     for(uint8_t i = 0; i < tries; i++) {
         /* Set up the HTTP action */
-        res = at_send_cmd_get_resp(&at_dev, "AT+HTTPACTION=1", at_dev_resp, AT_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
+        res = at_send_cmd_get_resp(&at_dev, "AT+HTTPACTION=1", at_dev_resp, ATMODEM_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
         if (res <= 0) {
             DEBUG("[ATMODEM] AT+HTTPACTION=1 ERROR: %i\n", res);
             DEBUG("[ATMODEM] Try: %i of %i\n", i+2, tries);
@@ -963,7 +967,7 @@ bool atmodem_send_httppost(char *url, uint8_t *data_for_send, size_t data_size) 
         rtctimers_millis_sleep(6000);  /* 6s = 2% error */
 
         do {
-            res = at_readline(&at_dev, at_dev_resp, AT_DEV_RESP_SIZE, false, ATMODEM_MAX_TIMEOUT);
+            res = at_readline(&at_dev, at_dev_resp, ATMODEM_DEV_RESP_SIZE, false, ATMODEM_MAX_TIMEOUT);
             if (res >= 0) {
                 // DEBUG("res: %i, line %i: %s\n", res, i, at_dev_resp);
                 if (memcmp(at_dev_resp, "+HTTPACTION:", 12) == 0) {
@@ -994,7 +998,7 @@ bool atmodem_send_httppost(char *url, uint8_t *data_for_send, size_t data_size) 
         }
 
         //AT+HTTPREAD
-        res = at_send_cmd_get_lines(&at_dev, "AT+HTTPREAD", at_dev_resp, AT_DEV_RESP_SIZE, true, ATMODEM_MAX_TIMEOUT);
+        res = at_send_cmd_get_lines(&at_dev, "AT+HTTPREAD", at_dev_resp, ATMODEM_DEV_RESP_SIZE, true, ATMODEM_MAX_TIMEOUT);
         if (res < 0) {
             DEBUG("[ATMODEM] AT+HTTPREAD ERROR: %i\n", res);
             DEBUG("[ATMODEM] Try: %i of %i\n", i+2, tries);
@@ -1031,7 +1035,7 @@ bool atmodem_send_httppost(char *url, uint8_t *data_for_send, size_t data_size) 
     }
 
     // //AT+HTTPREAD
-    // res = at_send_cmd_get_lines(&at_dev, "AT+HTTPREAD", at_dev_resp, AT_DEV_RESP_SIZE, true, ATMODEM_MAX_TIMEOUT);
+    // res = at_send_cmd_get_lines(&at_dev, "AT+HTTPREAD", at_dev_resp, ATMODEM_DEV_RESP_SIZE, true, ATMODEM_MAX_TIMEOUT);
     // if (res < 0) {
     //     DEBUG("[ATMODEM] AT+HTTPREAD ERROR: %i\n", res);
     //     return false;
@@ -1095,7 +1099,7 @@ bool atmodem_send_tcpudp(char    *server_addr,
     rtctimers_millis_sleep(ATMODEM_CMD_TIMEOUT);
     DEBUG("[ATMODEM] Close TCP or UDP Connection OK\n");
 
-    // res = at_readline(&at_dev, at_dev_resp, AT_DEV_RESP_SIZE, false, ATMODEM_MAX_TIMEOUT);
+    // res = at_readline(&at_dev, at_dev_resp, ATMODEM_DEV_RESP_SIZE, false, ATMODEM_MAX_TIMEOUT);
     // if (res < 0) {
     //     DEBUG("[ATMODEM] Close TCP or UDP Connection ERROR, no answer\n");
     //     return false;
@@ -1108,7 +1112,7 @@ bool atmodem_send_tcpudp(char    *server_addr,
     // } 
 
     // do {
-    //     res = at_readline(&at_dev, at_dev_resp, AT_DEV_RESP_SIZE, false, ATMODEM_MAX_TIMEOUT);
+    //     res = at_readline(&at_dev, at_dev_resp, ATMODEM_DEV_RESP_SIZE, false, ATMODEM_MAX_TIMEOUT);
     //     if (res >= 0) {
     //         DEBUG("res: %i, line %i: %s\n", res, i, at_dev_resp);
     //         if (memcmp(at_dev_resp, "+HTTPACTION:", 12) == 0) {

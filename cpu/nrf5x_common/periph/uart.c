@@ -91,6 +91,58 @@ static uart_isr_ctx_t isr_ctx;
 
 #endif  /* CPU_MODEL_NRF52840XXAA */
 
+int uart_set_baudrate(uart_t uart, uint32_t baudrate) {
+    /* select baudrate */
+    switch (baudrate) {
+        case 1200:
+            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud1200;
+            break;
+        case 2400:
+            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud2400;
+            break;
+        case 4800:
+            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud4800;
+            break;
+        case 9600:
+            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud9600;
+            break;
+        case 14400:
+            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud14400;
+            break;
+        case 19200:
+            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud19200;
+            break;
+        case 28800:
+            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud28800;
+            break;
+        case 38400:
+            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud38400;
+            break;
+        case 57600:
+            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud57600;
+            break;
+        case 76800:
+            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud76800;
+            break;
+        case 115200:
+            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud115200;
+            break;
+        case 230400:
+            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud230400;
+            break;
+        case 250000:
+            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud250000;
+            break;
+        case 460800:
+            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud460800;
+            break;
+        case 921600:
+            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud921600;
+            break;
+        default:
+            return UART_NOBAUD;
+    }
+}
 
 int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
 {
@@ -150,54 +202,8 @@ int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
 #endif
 
     /* select baudrate */
-    switch (baudrate) {
-        case 1200:
-            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud1200;
-            break;
-        case 2400:
-            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud2400;
-            break;
-        case 4800:
-            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud4800;
-            break;
-        case 9600:
-            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud9600;
-            break;
-        case 14400:
-            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud14400;
-            break;
-        case 19200:
-            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud19200;
-            break;
-        case 28800:
-            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud28800;
-            break;
-        case 38400:
-            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud38400;
-            break;
-        case 57600:
-            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud57600;
-            break;
-        case 76800:
-            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud76800;
-            break;
-        case 115200:
-            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud115200;
-            break;
-        case 230400:
-            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud230400;
-            break;
-        case 250000:
-            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud250000;
-            break;
-        case 460800:
-            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud460800;
-            break;
-        case 921600:
-            REG_BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud921600;
-            break;
-        default:
-            return UART_NOBAUD;
+    if (uart_set_baudrate(uart, baudrate) == UART_NOBAUD) {
+        return UART_NOBAUD;
     }
 
     /* enable the UART device */
@@ -226,7 +232,6 @@ int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
 
     return UART_OK;
 }
-
 
 #ifdef CPU_MODEL_NRF52840XXAA /* nrf52840 (using EasyDMA) */
 

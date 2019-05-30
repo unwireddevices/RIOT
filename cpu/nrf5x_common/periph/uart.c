@@ -92,6 +92,10 @@ static uart_isr_ctx_t isr_ctx;
 #endif  /* CPU_MODEL_NRF52840XXAA */
 
 int uart_set_baudrate(uart_t uart, uint32_t baudrate) {
+#if !defined(CPU_MODEL_NRF52840XXAA)
+    (void) uart;
+#endif
+    
     /* select baudrate */
     switch (baudrate) {
         case 1200:
@@ -142,6 +146,8 @@ int uart_set_baudrate(uart_t uart, uint32_t baudrate) {
         default:
             return UART_NOBAUD;
     }
+    
+    return UART_OK;
 }
 
 int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)

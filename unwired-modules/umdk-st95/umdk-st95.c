@@ -58,7 +58,7 @@ extern "C" {
 #include "thread.h"
 #include "rtctimers-millis.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
 static msg_t msg_wu = { .type = UMDK_ST95_MSG_EVENT, };
@@ -128,7 +128,21 @@ static void *radio_send(void *arg)
                 }
                 else {
                     if(st95_is_wake_up(&dev) == ST95_WAKE_UP) {
-                        umdk_st95_get_uid();
+                        if(mode == UMDK_ST95_MODE_READ_DATA) {
+                            uint8_t buff_data[10] = { 0x00 };
+                            if(st95_read_data(&dev, buff_data ,sizeof(buff_data)== ST95_ERROR)) {
+                                DEBUG("Read ERR");
+                            }
+                            else {
+                                DEBUG("Data: ");
+                                PRINTBUFF(buff_data, sizeof(buff_data));
+                            }
+                        rtctimers_millis_sleep(UMDK_ST95_DELAY_DETECT_MS);
+                        st95_sleep(&dev);
+                        }
+                        else {
+                            umdk_st95_get_uid();
+                        }                     
                     }                       
                 }
                                 
@@ -235,7 +249,6 @@ static void wake_up_cb(void * arg)
 
 void umdk_st95_init(uwnds_cb_t *event_callback)
 {
-    (void)event_callback;
     callback = event_callback;
    
     dev.cb = wake_up_cb;
@@ -247,10 +260,12 @@ void umdk_st95_init(uwnds_cb_t *event_callback)
     }
 
     radio_pid = thread_create(stack, UMDK_ST95_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, radio_send, NULL, "st95 thread");
-    
-    st95_params.iface = ST95_IFACE_SPI;
+    puts("UMDK");
 
-    mode = UMDK_ST95_MODE_DETECT_TAG;
+    st95_params.iface = ST95_IFACE_UART;
+
+    // mode = UMDK_ST95_MODE_DETECT_TAG;
+    mode = UMDK_ST95_MODE_READ_DATA;
 
     if(st95_init(&dev, &st95_params) != ST95_OK){
         puts("[umdk-" _UMDK_NAME_ "] st95 driver initialization error");
@@ -265,11 +280,15 @@ void umdk_st95_init(uwnds_cb_t *event_callback)
         }
         
         if(mode == UMDK_ST95_MODE_SET_UID) {
-            puts("[umdk-" _UMDK_NAME_ "] card emulation mode");
+            puts("[umdk-" _UMDK_NAME_ "] Card emulation mode");
             umdk_st95_set_uid();
         }
         else if(mode == UMDK_ST95_MODE_DETECT_TAG) {
-            puts("[umdk-" _UMDK_NAME_ "] reader mode");
+            puts("[umdk-" _UMDK_NAME_ "] UID reader mode");
+            st95_sleep(&dev);
+        }
+        else if(mode == UMDK_ST95_MODE_READ_DATA) {
+            puts("[umdk-" _UMDK_NAME_ "] Data reader mode");
             st95_sleep(&dev);
         }
     }
@@ -297,7 +316,7 @@ bool umdk_st95_cmd(module_data_t *cmd, module_data_t *reply)
             reply_code(reply, UMDK_ST95_ERROR_REPLY);
             return true;        
         }
-        puts("[umdk-" _UMDK_NAME_ "] st95 reader mode");
+        puts("[umdk-" _UMDK_NAME_ "] UID reader mode");
         mode = UMDK_ST95_MODE_DETECT_TAG;
         status = UMDK_ST95_STATUS_PROCCESSING;
         umdk_st95_get_uid();
@@ -323,14 +342,45 @@ bool umdk_st95_cmd(module_data_t *cmd, module_data_t *reply)
  
         return false;       
     }
-    else if(cmd->data[0] == 0x05) {
-        puts("[umdk-" _UMDK_NAME_ "] st95 card emulation mode");
+    else if(cmd->data[0] == UMDK_ST95_CARD_EMUL) {
+        puts("[umdk-" _UMDK_NAME_ "] Card emulation mode");
         mode = UMDK_ST95_MODE_SET_UID;
         umdk_st95_set_uid();
 
         reply_code(reply, UMDK_ST95_OK_REPLY);
         return true;      
     }
+    // else if(cmd->data[0] == 0x06) {
+        // mode = UMDK_ST95_MODE_DETECT_TAG;
+
+        // if(st95_init(&dev, &st95_params) != ST95_OK){
+            // puts("[umdk-" _UMDK_NAME_ "] st95 driver initialization error");
+        // }
+        // else {
+            // if(st95_params.iface == ST95_IFACE_SPI) {
+                // puts("[umdk-" _UMDK_NAME_ "] st95 driver over SPI initialization success");
+            // }
+            // else {
+                // puts("[umdk-" _UMDK_NAME_ "] st95 driver over UART initialization success");
+            // }
+            
+            // if(mode == UMDK_ST95_MODE_SET_UID) {
+                // puts("[umdk-" _UMDK_NAME_ "] Card emulation mode");
+                // umdk_st95_set_uid();
+            // }
+            // else if(mode == UMDK_ST95_MODE_DETECT_TAG) {
+                // puts("[umdk-" _UMDK_NAME_ "] UID reader mode");
+                // st95_sleep(&dev);
+            // }
+            // else if(mode == UMDK_ST95_MODE_READ_DATA) {
+                // puts("[umdk-" _UMDK_NAME_ "] Data reader mode");
+                // st95_sleep(&dev);
+            // }
+        // }
+
+        // reply_code(reply, UMDK_ST95_OK_REPLY);
+        // return true;      
+    // }
     else {
         reply_code(reply, UMDK_ST95_ERROR_REPLY);
         return true;  

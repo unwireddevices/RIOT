@@ -125,6 +125,9 @@ void pwm_start(pwm_t pwm, uint8_t channel)
         return;
     }
     
+    /* initialize GPIO clock and other settings */
+    gpio_init(pin, GPIO_OUT);
+    
     /* reimplementing gpio_init_af here to split computations and register writes */
     GPIO_TypeDef *port = (GPIO_TypeDef *)(pin & ~(0x0f));
     uint32_t pin_num = (pin & 0x0f);

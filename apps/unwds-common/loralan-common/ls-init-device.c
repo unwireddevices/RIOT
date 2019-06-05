@@ -83,7 +83,6 @@ static uint32_t devnonce = 0;
 
 static rtctimers_millis_t iwdg_timer;
 static rtctimers_millis_t delayed_setup_timer;
-static rtctimers_millis_t delayed_init_timer;
 
 /**
  * Data rates table.
@@ -666,11 +665,6 @@ static void iwdg_reset (void *arg) {
     return;
 }
 
-static void ls_delayed_init (void *arg) {
-    /* initialize modules */
-    unwds_init_modules(arg);
-}
-
 static void ls_delayed_setup (void *arg) {
     if (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A) {
         pm_unblock(PM_SLEEP);
@@ -742,11 +736,8 @@ void unwds_device_init(void *unwds_callback, void *unwds_init, void *unwds_join,
         delayed_setup_timer.callback = ls_delayed_setup;
         delayed_setup_timer.arg = unwds_sleep;
         rtctimers_millis_set(&delayed_setup_timer, 15000);
-        
-        /* delayed module init */
-        delayed_init_timer.callback = ls_delayed_init;
-        delayed_init_timer.arg = unwds_callback;
-        rtctimers_millis_set(&delayed_init_timer, 7500);
+
+        unwds_init_modules(unwds_callback);
         
         blink_led(LED0_PIN);
     }

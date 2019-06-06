@@ -172,12 +172,10 @@ static size_t _eeprom_operation(uint32_t pos, uint8_t *data, size_t len, _eeprom
                 }
             
                 if (flash_is_dirty) {
-                    puts("Dirty flash");
                     /* dirty flash areas: read-modify-write */
                     memcpy(&ram_buffer[start], &data[transferred], size);
                     flashpage_write(page + i, ram_buffer, FLASHPAGE_SIZE);
                 } else {
-                    puts("Clean flash");
                     /* clean flash areas: just write */
                     void *target_addr = flashpage_addr(page + i) + start;
                     flashpage_write_raw(target_addr, &data[transferred], size);

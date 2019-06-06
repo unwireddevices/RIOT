@@ -58,12 +58,12 @@ static int16_t result;
 static inline void prep(void)
 {
     mutex_lock(&lock);
-    NRF_SAADC->ENABLE = 1;
+    NRF_SAADC->ENABLE = (SAADC_ENABLE_ENABLE_Enabled << SAADC_ENABLE_ENABLE_Pos);
 }
 
 static inline void done(void)
 {
-    NRF_SAADC->ENABLE = 0;
+    NRF_SAADC->ENABLE = (SAADC_ENABLE_ENABLE_Disabled << SAADC_ENABLE_ENABLE_Pos);
     mutex_unlock(&lock);
 }
 
@@ -100,9 +100,10 @@ int adc_init(adc_t line)
         NRF_SAADC->OVERSAMPLE = SAADC_OVERSAMPLE_OVERSAMPLE_Bypass;
 
         /* calibrate SAADC */
-        NRF_SAADC->EVENTS_CALIBRATEDONE = 0;
         NRF_SAADC->TASKS_CALIBRATEOFFSET = 1;
-        while (NRF_SAADC->EVENTS_CALIBRATEDONE == 0) {}
+        while (NRF_SAADC->EVENTS_CALIBRATEDONE == 0);
+        NRF_SAADC->EVENTS_CALIBRATEDONE = 0;
+        while (NRF_SAADC->STATUS == (SAADC_STATUS_STATUS_Busy << SAADC_STATUS_STATUS_Pos));
     }
 
     done();
@@ -144,7 +145,7 @@ int adc_sample(adc_t line, adc_res_t res)
 
     /* free device */
     done();
-    
+
     if (line == NRF52_VDD) {
         int max;
         switch (res) {

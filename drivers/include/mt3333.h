@@ -39,6 +39,8 @@
 #define MT3333_UART_BAUDRATE_DEFAULT 9600
 #define MT3333_EOL '\n'
 
+#define MT3333_READY_STR   "$PMTK010,002*2D\r\n"
+
 /**
  * @brief Input ring buffer size in bytes
  */
@@ -73,6 +75,7 @@ typedef struct {
 typedef struct {
 	mt3333_param_t params;					/**< Holds driver parameters */
 	char *reader_stack;	                    /**< Reader thread stack, has to be allocated by the application */
+    bool ready;                             /**< GPS is ready to accept commands */
 } mt3333_t;
 
 typedef enum {
@@ -80,6 +83,11 @@ typedef enum {
     MT3333_POWERSAVE_BACKUP,
     MT3333_POWERSAVE_FULLON,
 } mt3333_powersave_mode_t;
+
+typedef enum {
+    MT3333_READY,
+    MT3333_TIMEOUT,
+} mt3333_status_t;
 
 /**
  * @brief MT3333 driver initialization routine
@@ -100,11 +108,6 @@ int mt3333_init(mt3333_t *dev, mt3333_param_t *param);
 void mt3333_set_baudrate(mt3333_t *dev, int baudrate);
 
 /**
- * @brief Set MT3333 to low-power GLP mode (support depends on core firmware version)
- */
-void mt3333_set_glp(mt3333_t *dev, bool enabled);
-
-/**
  * @brief Set MT3333 to the specified power mode
  */
 void mt3333_set_powersave(mt3333_t *dev, mt3333_powersave_mode_t mode);
@@ -113,5 +116,15 @@ void mt3333_set_powersave(mt3333_t *dev, mt3333_powersave_mode_t mode);
  * @brief Set MT3333 to periodic mode with specified parameters
  */
 void mt3333_set_periodic(mt3333_t *dev, mt3333_powersave_mode_t mode, int run, int sleep, int run_ext, int sleep_ext);
+
+/**
+ * @brief Checks if MT3333 is ready to accept commands
+ *
+ * @param[out] dev device structure pointer
+ *
+ * @return MT3333_READY if modem is ready
+ * @return MT3333_TIMEOUT in case of error
+ */
+int mt3333_is_ready(mt3333_t *dev);
 
 #endif /* mt3333_H_ */

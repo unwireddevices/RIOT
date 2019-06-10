@@ -260,9 +260,8 @@ void umdk_st95_init(uwnds_cb_t *event_callback)
     }
 
     radio_pid = thread_create(stack, UMDK_ST95_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, radio_send, NULL, "st95 thread");
-    puts("UMDK");
 
-    st95_params.iface = ST95_IFACE_UART;
+    st95_params.iface = ST95_IFACE_SPI;
 
     // mode = UMDK_ST95_MODE_DETECT_TAG;
     mode = UMDK_ST95_MODE_READ_DATA;
@@ -291,6 +290,11 @@ void umdk_st95_init(uwnds_cb_t *event_callback)
             puts("[umdk-" _UMDK_NAME_ "] Data reader mode");
             st95_sleep(&dev);
         }
+        else if(mode == UMDK_ST95_MODE_WRITE_DATA) {
+            puts("[umdk-" _UMDK_NAME_ "] Data writer mode");
+            // st95_sleep(&dev);
+        }
+        
     }
  
 }
@@ -350,37 +354,13 @@ bool umdk_st95_cmd(module_data_t *cmd, module_data_t *reply)
         reply_code(reply, UMDK_ST95_OK_REPLY);
         return true;      
     }
-    // else if(cmd->data[0] == 0x06) {
-        // mode = UMDK_ST95_MODE_DETECT_TAG;
-
-        // if(st95_init(&dev, &st95_params) != ST95_OK){
-            // puts("[umdk-" _UMDK_NAME_ "] st95 driver initialization error");
-        // }
-        // else {
-            // if(st95_params.iface == ST95_IFACE_SPI) {
-                // puts("[umdk-" _UMDK_NAME_ "] st95 driver over SPI initialization success");
-            // }
-            // else {
-                // puts("[umdk-" _UMDK_NAME_ "] st95 driver over UART initialization success");
-            // }
-            
-            // if(mode == UMDK_ST95_MODE_SET_UID) {
-                // puts("[umdk-" _UMDK_NAME_ "] Card emulation mode");
-                // umdk_st95_set_uid();
-            // }
-            // else if(mode == UMDK_ST95_MODE_DETECT_TAG) {
-                // puts("[umdk-" _UMDK_NAME_ "] UID reader mode");
-                // st95_sleep(&dev);
-            // }
-            // else if(mode == UMDK_ST95_MODE_READ_DATA) {
-                // puts("[umdk-" _UMDK_NAME_ "] Data reader mode");
-                // st95_sleep(&dev);
-            // }
-        // }
-
-        // reply_code(reply, UMDK_ST95_OK_REPLY);
-        // return true;      
-    // }
+    else if(cmd->data[0] == UMDK_ST95_WRITE_DATA) {
+        puts("[WRITing...]");
+        uint8_t buff_data[5] = { 0x4E, 0x49, 0x53, 0x48, 0x41 };
+        if(st95_write_data(&dev, buff_data ,sizeof(buff_data)== ST95_ERROR)) {
+            puts("Write ERR");
+        }
+    }
     else {
         reply_code(reply, UMDK_ST95_ERROR_REPLY);
         return true;  

@@ -743,9 +743,11 @@ static void _iso14443a_support_ats(void)
 {
     /* Checks if the RATS command is supported by the card */
 	if(picc.sak & ISO14443A_FLAG_ATS_SUPPORTED) {
+        puts("Support ATS");
         picc.is_ats = true;
 	}
     else {
+        puts("Not support ATS");
         picc.is_ats = false;
     }
 }
@@ -769,10 +771,12 @@ uint8_t _iso14443a_type_tag(void)
     /* Check the Tag type found */
     if((picc.sak & 0x60) == 0x00) {
         picc.type = ISO14443A_TYPE_2;
+        printf(" Type 2 -> ");
         return ST95_OK;
     }
     else if((picc.sak & 0x20) == 0x20) {
         picc.type = ISO14443A_TYPE_4;
+        printf(" Type 4-> ");
         return ST95_OK;
     }
     return ST95_ERROR;
@@ -815,16 +819,19 @@ int iso14443a_read_tag(const st95_t * dev, uint8_t * data, uint16_t length, uint
 {
     if(_iso14443a_get_ats(dev, rxbuff) == ST95_ERROR) {
         _iso14443a_hlta(dev, rxbuff, ISO14443A_ANSWER_MAX_BYTE);
+        puts("Get ATS ERR");
         return ST95_ERROR;
     }
 
     if(_select_app(dev, rxbuff) == ST95_ERROR) {
+        puts("Sel APP ERR");
          _deselect_ndef(dev, rxbuff);
          _iso14443a_hlta(dev, rxbuff, ISO14443A_ANSWER_MAX_BYTE);
         return ST95_ERROR;
     }
 
     if(_select_cc_file(dev, rxbuff) == ST95_ERROR) {
+        puts("Sel CC ERR");
          _deselect_ndef(dev, rxbuff);
          _iso14443a_hlta(dev, rxbuff, ISO14443A_ANSWER_MAX_BYTE);
         return ST95_ERROR;
@@ -916,6 +923,22 @@ uint8_t _iso14443a_get_ats(const st95_t * dev, uint8_t * rxbuff)
     if(_iso14443a_anticoll_algorithm(dev, rxbuff) == ST95_ERROR) {
         return ST95_ERROR;
     }
+       
+    if(picc.sak == 0x00) {
+        uint32_t check_uid = picc.uid[0] + picc.uid[1] + picc.uid[2] + picc.uid[3];
+        if(check_uid == 0) {
+            puts("Invalid UID");
+            _iso14443a_hlta(dev, rxbuff, ISO14443A_ANSWER_MAX_BYTE);
+            return ST95_ERROR;
+        }
+    }
+    
+    printf("UID:");
+    for(uint32_t i = 0; i < picc.uid_length; i++) {
+        printf("%02X ",picc.uid[i]);
+    }
+    printf("\t");
+    
     
     if(_iso14443a_type_tag() == ST95_ERROR) {
         return ST95_ERROR;

@@ -59,6 +59,7 @@ typedef enum
 
 void nfc_init(void);
 uint8_t nfc_set_uid(uint8_t * uid, nfc_id_size_t size, nfc_type_tag_t tag_type);
+uint8_t nfc_send_data(uint8_t * uid, nfc_id_size_t size, nfc_type_tag_t tag_type, uint8_t * data, uint8_t length);
 
 #ifdef __cplusplus
 }

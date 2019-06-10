@@ -123,7 +123,7 @@ int st95_read_data(const st95_t * dev, uint8_t * data, uint16_t length)
     if(iso14443a_read_tag(dev, data, length, st95_rxbuf) == ST95_OK) {
         return ST95_OK;
     }
-
+puts("READ DATA ERR");
     return ST95_ERROR;
 }    
 
@@ -317,6 +317,7 @@ static uint8_t _st95_spi_receive(const st95_t * dev, uint8_t * rxbuff, uint16_t 
     memset(rxbuff, 0x00, size_rx_buff);
          
     if(st95_state.timeout == true) {
+        puts("TimeOut");
         return ST95_NO_DEVICE;
 	}
      
@@ -1002,9 +1003,10 @@ int st95_is_field_detect(const st95_t * dev)
 void st95_sleep(st95_t * dev)
 {
     if(st95_state.mode == ST95_SLEEP_MODE) {
+        puts("Sleep YET");
         return;
     }
-
+    puts("Sleep");
     _st95_cmd_idle(dev, dev->params.dac_l, dev->params.dac_h);
 }
 

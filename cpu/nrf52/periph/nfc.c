@@ -53,7 +53,7 @@
 #define MODE_DATA_RXTX 0
 
 
-static uint8_t nfc_mode_operation = MODE_UID_TAG;
+static volatile uint8_t nfc_mode_operation = MODE_UID_TAG;
 
 static inline void nrf_nfc_enable_int(uint32_t interrupt);
 static inline void nrf_nfc_disable_int(uint32_t interrupt);
@@ -163,14 +163,16 @@ static inline void nrf_nfc_task(volatile uint32_t * task)
 
 void isr_nfct(void)
 {
-    // if(NRF_NFCT->EVENTS_FIELDDETECTED) {
+    // if(nrf_nfc_get_event(&NRF_NFCT->EVENTS_FIELDDETECTED)) {
         // nrf_nfc_clear_event(&NRF_NFCT->EVENTS_FIELDDETECTED);
+        // nrf_nfc_disable_int(NFCT_INTENSET_FIELDDETECTED_Msk);
+        // nrf_nfc_task(&NRF_NFCT->TASKS_ACTIVATE);
         // puts("\t\tEVENTS_FIELDDETECTED");
     // }
     
     // if(NRF_NFCT->EVENTS_READY) {
         // nrf_nfc_clear_event(&NRF_NFCT->EVENTS_READY);
-         // puts("EVENTS_READY");       
+         // puts("EVENTS_READY");
     // }
 
     // if(NRF_NFCT->EVENTS_AUTOCOLRESSTARTED) {
@@ -181,15 +183,22 @@ void isr_nfct(void)
         // nrf_nfc_clear_event(&NRF_NFCT->EVENTS_COLLISION);
         // puts("EVENTS_COLLISION"); 
     // }
-    // if(NRF_NFCT->EVENTS_SELECTED) {
-        // nrf_nfc_clear_event(&NRF_NFCT->EVENTS_SELECTED);
-        // nrf_nfc_clear_errors();
-        // puts("EVENTS_SELECTED");
-    // }
+    if(NRF_NFCT->EVENTS_SELECTED) {
+        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_SELECTED);
+        nrf_nfc_clear_errors();
+        nrf_nfc_clear_rx_status();
+        nfc_mode_operation = MODE_DATA_RXTX;
+        nrf_nfc_enable_int(NFCT_INTENSET_STARTED_Msk);  
+        nrf_nfc_task(&NRF_NFCT->TASKS_STARTTX);
+        
+        puts("\t>>> EVENTS_SELECTED <<<\n");
+    }
     
     // if(NRF_NFCT->EVENTS_FIELDLOST) {
         // nrf_nfc_clear_event(&NRF_NFCT->EVENTS_FIELDLOST);
-        // puts("\t\tEVENTS_FIELDLOST\t\t>>>>>>>\t>>>>>>>");
+        // puts("\t\tEVENTS_FIELDLOST\t>>>>>>>>>>>>>>");
+        // nrf_nfc_enable_int(NFCT_INTENSET_FIELDDETECTED_Msk);  
+        // nrf_nfc_task(&NRF_NFCT->TASKS_SENSE);
     // }
     
     if(NRF_NFCT->EVENTS_ERROR) {
@@ -200,7 +209,7 @@ void isr_nfct(void)
     }
     if(NRF_NFCT->EVENTS_RXERROR) {
         nrf_nfc_clear_event(&NRF_NFCT->EVENTS_RXERROR);
-        puts("EVENTS_RXERROR");  
+        puts("EVENTS_RX_ERROR");  
         nrf_nfc_clear_rx_status();
         // nrf_nfc_task(&NRF_NFCT->TASKS_SENSE);
     }
@@ -238,15 +247,68 @@ void isr_nfct(void)
         }
     }
 
-     // puts(">>> [IRQ END] <<<\n");
+     puts(">>> [IRQ END] <<<\n");
     
     cortexm_isr_end();
+}
+
+uint8_t nfc_send_data(uint8_t * uid, nfc_id_size_t size, nfc_type_tag_t tag_type, uint8_t * data, uint8_t length)
+{        
+    // (void) data;
+    // (void) length; 
+    nfc_mode_operation = MODE_UID_TAG;
+        
+    /*  Disable NFC peripheral */
+    nrf_nfc_task(&NRF_NFCT->TASKS_DISABLE);   
+    /* Disable Shortcut between FIELDDETECTED event and ACTIVATE task */
+    NRF_NFCT->SHORTS = NFCT_SHORTS_FIELDDETECTED_ACTIVATE_Disabled << NFCT_SHORTS_FIELDDETECTED_ACTIVATE_Pos;
+    /* Disable Shortcut between FIELDLOST event and SENSE task */
+    NRF_NFCT->SHORTS |= NFCT_SHORTS_FIELDLOST_SENSE_Disabled << NFCT_SHORTS_FIELDLOST_SENSE_Pos;
+    /* Set ID size and SDD (Single Device Detection) */
+    NRF_NFCT->SENSRES = NFCT_SENSRES_BITFRAMESDD_SDD00001 | (size << NFCT_SENSRES_NFCIDSIZE_Pos);
+    
+    /* Set type tag */
+    NRF_NFCT->SELRES = tag_type << NFCT_SELRES_PROTOCOL_Pos;
+    
+	if(size == NFC_UID_4_BYTES) {								
+		NRF_NFCT->NFCID1_LAST = (uid[0] << 24) | (uid[1] << 16) | (uid[2] << 8) | uid[3];	
+	}
+	else if(size == NFC_UID_7_BYTES) {								
+		NRF_NFCT->NFCID1_2ND_LAST =	(uid[0] << 16) | (uid[1] << 8) | uid[2];		
+		NRF_NFCT->NFCID1_LAST = (uid[3] << 24) | (uid[4] << 16) | (uid[5] << 8) | uid[6];
+	}
+	else if(size == NFC_UID_10_BYTES) {							
+		NRF_NFCT->NFCID1_3RD_LAST = (uid[0] << 16) | (uid[1] << 8) | uid[2];
+		NRF_NFCT->NFCID1_2ND_LAST =	(uid[3] << 16) | (uid[4] << 8) | uid[5];		
+		NRF_NFCT->NFCID1_LAST = (uid[6] << 24) | (uid[7] << 16) | (uid[8] << 8) | uid[9];
+	}
+	else {
+		return NRF_NFC_ERROR;
+	}
+
+    
+    NRF_NFCT->PACKETPTR = (uint32_t)data;
+    NRF_NFCT->MAXLEN = length;
+
+        /* Enable NFC field detect interrupt*/
+    // nrf_nfc_enable_int(NFCT_INTENSET_FIELDDETECTED_Msk); 
+    // nrf_nfc_enable_int(NFCT_INTENSET_FIELDLOST_Msk);     
+    nrf_nfc_enable_int(NFCT_INTENSET_SELECTED_Msk);
+    
+    /* Enable Shortcut between FIELDDETECTED event and ACTIVATE task */
+    NRF_NFCT->SHORTS = NFCT_SHORTS_FIELDDETECTED_ACTIVATE_Enabled << NFCT_SHORTS_FIELDDETECTED_ACTIVATE_Pos;
+    /* Enable  Shortcut between FIELDLOST event and SENSE task */
+    NRF_NFCT->SHORTS |= NFCT_SHORTS_FIELDLOST_SENSE_Enabled << NFCT_SHORTS_FIELDLOST_SENSE_Pos;
+	/*  Enable NFC sense field mode, change state to sense mode */
+    nrf_nfc_task(&NRF_NFCT->TASKS_SENSE);
+	
+	return NRF_NFC_OK;
 }
 
 uint8_t nfc_set_uid(uint8_t * uid, nfc_id_size_t size, nfc_type_tag_t tag_type)
 {        
     nfc_mode_operation = MODE_UID_TAG;
-    
+        
     /*  Disable NFC peripheral */
     nrf_nfc_task(&NRF_NFCT->TASKS_DISABLE);    
     /* Disable Shortcut between FIELDDETECTED event and ACTIVATE task */
@@ -255,8 +317,6 @@ uint8_t nfc_set_uid(uint8_t * uid, nfc_id_size_t size, nfc_type_tag_t tag_type)
     NRF_NFCT->SHORTS |= NFCT_SHORTS_FIELDLOST_SENSE_Disabled << NFCT_SHORTS_FIELDLOST_SENSE_Pos;
     
     /* Set ID size and SDD (Single Device Detection) */
-    // NRF_NFCT->SENSRES = NFCT_SENSRES_BITFRAMESDD_SDD00001 | (0x0UL << NFCT_SENSRES_RFU5_Pos) |
-                        // (size << NFCT_SENSRES_NFCIDSIZE_Pos) | (0x0UL << NFCT_SENSRES_RFU74_Pos);
     NRF_NFCT->SENSRES = NFCT_SENSRES_BITFRAMESDD_SDD00001 | (size << NFCT_SENSRES_NFCIDSIZE_Pos);
     
     /* Set type tag */
@@ -315,12 +375,12 @@ void nfc_init(void)
     /* Clear RX status */   
     nrf_nfc_clear_rx_status();    
     
-    /* Enable NFCT interrupts */    
+    /* Enable NFCT interrupts */
     /* Enable NFC error interrupt*/
     nrf_nfc_enable_int(NFCT_INTENSET_ERROR_Msk);
     /* Enable NFC RX frame error interrupt*/
     nrf_nfc_enable_int(NFCT_INTENSET_RXERROR_Msk);
-        
+            
 	/* Enable interrupts */
     NVIC_EnableIRQ(NFCT_IRQn);
     

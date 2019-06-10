@@ -178,6 +178,9 @@ void cpu_init(void)
 
     /* enable wake up on events for __WFE CPU sleep */
     SCB->SCR |= SCB_SCR_SEVONPEND_Msk;
+    
+    /* switch to DC/DC */
+    NRF_POWER->DCDCEN = POWER_DCDCEN_DCDCEN_Enabled << POWER_DCDCEN_DCDCEN_Pos;
 
     /* trigger static peripheral initialization */
     periph_init();

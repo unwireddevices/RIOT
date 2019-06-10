@@ -59,11 +59,20 @@
 #define FDC1004_VENDOR_ID               0x4954
 #define FDC1004_DEVICE_ID               0x0410
 
+typedef enum {
+    FDC1004_RATE_100SS = 1,
+    FDC1004_RATE_200SS = 2,
+    FDC1004_RATE_400SS = 3
+} fdc1004_rate_t;
+
 /**
  * @brief Structure that holds the FDC1004 driver internal state and parameters
  */
 typedef struct {
-    i2c_t i2c;                      /**< Holds I2C bus number */
+    i2c_t    i2c;                   /**< Holds I2C bus number */
+    uint8_t  offset[4];             /**< Channel offset, pF, 0-96 */
+    uint16_t gain[4];               /**< Channel gain, x1E3, 0-3163 */
+    fdc1004_rate_t rate;            /**< FDC1004 sampling rate */
 } fdc1004_t;
 
 /**
@@ -88,13 +97,14 @@ int fdc1004_init(fdc1004_t *dev);
  * 
  * TODO: Does not work for future use.
  */
-uint32_t fdc1004_get_capacitance(fdc1004_t *dev, uint8_t channel);
+uint32_t fdc1004_get_capacitance(fdc1004_t *dev, uint8_t channeln);
 
 /**
  * @brief Get raw measurement
  * 
  * @param dev      pointer to the initialized FDC1004 device
  * @param channel  FDC1004 channel number (1-4)
+ *
  * @return         raw data for channel number
  */
 uint32_t fdc1004_get_raw_data(fdc1004_t *dev, uint8_t channel);

@@ -52,6 +52,12 @@
 #define MODE_UID_TAG 1
 #define MODE_DATA_RXTX 0
 
+#define NFC_CRC_SIZE 2
+#define NFC_RX_BUFFER_SIZE          256      /**< NFC Rx data buffer size */
+
+#define NFC_T4T_RATS_CMD 0xE0
+
+static volatile uint8_t rx_buffer[NFC_RX_BUFFER_SIZE] = { 0x00 };
 
 static volatile uint8_t nfc_mode_operation = MODE_UID_TAG;
 
@@ -60,8 +66,9 @@ static inline void nrf_nfc_disable_int(uint32_t interrupt);
 static inline void nrf_nfc_clear_event(volatile uint32_t * event);
 static inline void nrf_nfc_clear_errors(void);
 static inline void nrf_nfc_clear_rx_status(void);
-static inline bool nrf_nfc_get_event(volatile uint32_t * event);
+// static inline bool nrf_nfc_get_event(volatile uint32_t * event);
 static inline void nrf_nfc_task(volatile uint32_t * task);
+
 
 static inline void nrf_nfc_enable_int(uint32_t interrupt)
 {   
@@ -117,10 +124,10 @@ static inline void nrf_nfc_clear_event(volatile uint32_t * event)
     __DSB();
 }
 
-static inline bool nrf_nfc_get_event(volatile uint32_t * event)
-{
-    return (bool)(* event);
-}
+// static inline bool nrf_nfc_get_event(volatile uint32_t * event)
+// {
+    // return (bool)(* event);
+// }
 
 static inline void nrf_nfc_clear_errors(void) 
 {  
@@ -163,12 +170,12 @@ static inline void nrf_nfc_task(volatile uint32_t * task)
 
 void isr_nfct(void)
 {
-    // if(nrf_nfc_get_event(&NRF_NFCT->EVENTS_FIELDDETECTED)) {
-        // nrf_nfc_clear_event(&NRF_NFCT->EVENTS_FIELDDETECTED);
-        // nrf_nfc_disable_int(NFCT_INTENSET_FIELDDETECTED_Msk);
+    if(NRF_NFCT->EVENTS_FIELDDETECTED && (NRF_NFCT->INTEN & NFCT_INTEN_FIELDDETECTED_Msk)) {
+        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_FIELDDETECTED);
+        nrf_nfc_disable_int(NFCT_INTENSET_FIELDDETECTED_Msk);
         // nrf_nfc_task(&NRF_NFCT->TASKS_ACTIVATE);
-        // puts("\t\tEVENTS_FIELDDETECTED");
-    // }
+        puts("\t\tEVENTS_FIELDDETECTED");
+    }
     
     // if(NRF_NFCT->EVENTS_READY) {
         // nrf_nfc_clear_event(&NRF_NFCT->EVENTS_READY);
@@ -183,31 +190,39 @@ void isr_nfct(void)
         // nrf_nfc_clear_event(&NRF_NFCT->EVENTS_COLLISION);
         // puts("EVENTS_COLLISION"); 
     // }
-    if(NRF_NFCT->EVENTS_SELECTED) {
+    if(NRF_NFCT->EVENTS_SELECTED && (NRF_NFCT->INTEN & NFCT_INTEN_SELECTED_Msk)) {
         nrf_nfc_clear_event(&NRF_NFCT->EVENTS_SELECTED);
         nrf_nfc_clear_errors();
         nrf_nfc_clear_rx_status();
+        
         nfc_mode_operation = MODE_DATA_RXTX;
-        nrf_nfc_enable_int(NFCT_INTENSET_STARTED_Msk);  
-        nrf_nfc_task(&NRF_NFCT->TASKS_STARTTX);
+        
+        /* Set up registers for EasyDMA and start receiving packets */
+        NRF_NFCT->PACKETPTR          = (uint32_t) rx_buffer;
+        NRF_NFCT->MAXLEN             = NFC_RX_BUFFER_SIZE;
+        nrf_nfc_task(&NRF_NFCT->TASKS_ENABLERXDATA);
+        
+        nrf_nfc_enable_int(NFCT_INTENSET_RXFRAMEEND_Msk);
+        nrf_nfc_enable_int(NFCT_INTENSET_RXERROR_Msk);
+        
         
         puts("\t>>> EVENTS_SELECTED <<<\n");
     }
     
-    // if(NRF_NFCT->EVENTS_FIELDLOST) {
-        // nrf_nfc_clear_event(&NRF_NFCT->EVENTS_FIELDLOST);
-        // puts("\t\tEVENTS_FIELDLOST\t>>>>>>>>>>>>>>");
-        // nrf_nfc_enable_int(NFCT_INTENSET_FIELDDETECTED_Msk);  
-        // nrf_nfc_task(&NRF_NFCT->TASKS_SENSE);
-    // }
+    if(NRF_NFCT->EVENTS_FIELDLOST && (NRF_NFCT->INTEN & NFCT_INTEN_FIELDLOST_Msk)) {
+        nrf_nfc_clear_event(&NRF_NFCT->EVENTS_FIELDLOST);
+        puts("\t\tEVENTS_FIELDLOST\t>>>>>>>>>>>>>>");
+        nrf_nfc_enable_int(NFCT_INTENSET_FIELDDETECTED_Msk);  
+        nrf_nfc_task(&NRF_NFCT->TASKS_SENSE);
+    }
     
-    if(NRF_NFCT->EVENTS_ERROR) {
+    if(NRF_NFCT->EVENTS_ERROR && (NRF_NFCT->INTEN & NFCT_INTEN_ERROR_Msk)) {
         nrf_nfc_clear_event(&NRF_NFCT->EVENTS_ERROR);
         puts("EVENTS_ERROR");
         nrf_nfc_clear_errors();
         // nrf_nfc_task(&NRF_NFCT->TASKS_SENSE);
     }
-    if(NRF_NFCT->EVENTS_RXERROR) {
+    if(NRF_NFCT->EVENTS_RXERROR && (NRF_NFCT->INTEN & NFCT_INTEN_RXERROR_Msk)) {
         nrf_nfc_clear_event(&NRF_NFCT->EVENTS_RXERROR);
         puts("EVENTS_RX_ERROR");  
         nrf_nfc_clear_rx_status();
@@ -216,46 +231,64 @@ void isr_nfct(void)
         
     if(nfc_mode_operation == MODE_DATA_RXTX) {  
     
-        if(NRF_NFCT->EVENTS_TXFRAMESTART) {
+        if(NRF_NFCT->EVENTS_TXFRAMESTART && (NRF_NFCT->INTEN & NFCT_INTEN_TXFRAMESTART_Msk)) {
             nrf_nfc_clear_event(&NRF_NFCT->EVENTS_TXFRAMESTART);
             puts("EVENTS_TXFRAMESTART");
         }
-        if(NRF_NFCT->EVENTS_TXFRAMEEND) {
+        if(NRF_NFCT->EVENTS_TXFRAMEEND && (NRF_NFCT->INTEN & NFCT_INTEN_TXFRAMEEND_Msk)) {
             nrf_nfc_clear_event(&NRF_NFCT->EVENTS_TXFRAMEEND);
             puts("EVENTS_TXFRAMEEND");
         }
-        if(NRF_NFCT->EVENTS_RXFRAMESTART) {
-            nrf_nfc_clear_event(&NRF_NFCT->EVENTS_RXFRAMESTART);
-            puts("EVENTS_RXFRAMESTART");
-        }
-        if(NRF_NFCT->EVENTS_RXFRAMEEND) {       
+        // if(NRF_NFCT->EVENTS_RXFRAMESTART) && (NRF_NFCT->INTEN & NFCT_INTEN_RXFRAMESTART_Msk)) {
+            // nrf_nfc_clear_event(&NRF_NFCT->EVENTS_RXFRAMESTART);
+            // puts("EVENTS_RXFRAMESTART");
+        // }
+        if(NRF_NFCT->EVENTS_RXFRAMEEND && (NRF_NFCT->INTEN & NFCT_INTEN_RXFRAMEEND_Msk)) {       
             nrf_nfc_clear_event(&NRF_NFCT->EVENTS_RXFRAMEEND);
             puts("EVENTS_RXFRAMEEND"); 
+            
+            /* Take into account only number of whole bytes */
+            uint32_t rx_data_size = ((NRF_NFCT->RXD.AMOUNT & NFCT_RXD_AMOUNT_RXDATABYTES_Msk) >>
+                                 NFCT_RXD_AMOUNT_RXDATABYTES_Pos) - NFC_CRC_SIZE;
+            printf("RX size: %ld\n", rx_data_size);
+            /* Look for Tag 4 Type Commands */
+            for(uint32_t i = 0; i < rx_data_size; i++) {
+                printf("%02X ", rx_buffer[i]);
+            }
+            printf("\n");
+            if (rx_buffer[0] == NFC_T4T_RATS_CMD) {
+                /* Disable Auto Collision Resolution */
+                // NRF_NFCT_AUTOCOLRESCONFIG = NRF_NFCT_AUTOCOLRESCONFIG | (1u << NRF_NFCT_AUTOCOLRESCONFIG_Pos);
+                puts("RX: T4T Activate\r\n");
+            }
+            else {
+                puts("[TODO]");
+            }         
         }
         
-        if(NRF_NFCT->EVENTS_ENDRX) {        
-            nrf_nfc_clear_event(&NRF_NFCT->EVENTS_ENDRX);
-            puts("EVENTS_ENDRX");
-        }
-        if(NRF_NFCT->EVENTS_ENDTX) {      
-            nrf_nfc_clear_event(&NRF_NFCT->EVENTS_ENDTX);    
-            puts("EVENTS_ENDTX");
-        }
-        if(NRF_NFCT->EVENTS_STARTED) {       
-            nrf_nfc_clear_event(&NRF_NFCT->EVENTS_STARTED);
-            puts("EVENTS_STARTED"); 
-        }
+        // if(NRF_NFCT->EVENTS_ENDRX) {        
+            // nrf_nfc_clear_event(&NRF_NFCT->EVENTS_ENDRX);
+            // puts("EVENTS_ENDRX");
+        // }
+        // if(NRF_NFCT->EVENTS_ENDTX) {      
+            // nrf_nfc_clear_event(&NRF_NFCT->EVENTS_ENDTX);    
+            // puts("EVENTS_ENDTX");
+        // }
+        // if(NRF_NFCT->EVENTS_STARTED) {       
+            // nrf_nfc_clear_event(&NRF_NFCT->EVENTS_STARTED);
+            // puts("EVENTS_STARTED"); 
+        // }
     }
 
-     puts(">>> [IRQ END] <<<\n");
+     // puts(">>> [IRQ END] <<<\n");
     
     cortexm_isr_end();
 }
 
 uint8_t nfc_send_data(uint8_t * uid, nfc_id_size_t size, nfc_type_tag_t tag_type, uint8_t * data, uint8_t length)
 {        
-    // (void) data;
-    // (void) length; 
+    (void) data;
+    (void) length; 
     nfc_mode_operation = MODE_UID_TAG;
         
     /*  Disable NFC peripheral */
@@ -287,8 +320,8 @@ uint8_t nfc_send_data(uint8_t * uid, nfc_id_size_t size, nfc_type_tag_t tag_type
 	}
 
     
-    NRF_NFCT->PACKETPTR = (uint32_t)data;
-    NRF_NFCT->MAXLEN = length;
+    // NRF_NFCT->PACKETPTR = (uint32_t)data;
+    // NRF_NFCT->MAXLEN = length;
 
         /* Enable NFC field detect interrupt*/
     // nrf_nfc_enable_int(NFCT_INTENSET_FIELDDETECTED_Msk); 

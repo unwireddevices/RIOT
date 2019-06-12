@@ -14,8 +14,6 @@ LORA_REGION ?= RU864
 #LORA_REGION ?= EU868
 #LORA_REGION ?= KZ865
 CFLAGS += -DLORA_REGION=\"$(LORA_REGION)\"
-CFLAGS += -DREGION_$(LORA_REGION)
-CFLAGS += -DLORAMAC_ACTIVE_REGION=LORAMAC_REGION_$(LORA_REGION)
 
 ############ UMDK MODULES USED #####################
 # variables in the list below must match modules'

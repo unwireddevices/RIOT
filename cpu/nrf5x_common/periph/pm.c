@@ -26,33 +26,48 @@
 #include "periph/pm.h"
 #include "nrf_clock.h"
 
+#include "periph_conf.h"
+
 static inline void _pm_before(void) 
 {
-    /* UART off */
+    uint32_t i;
+    
+    /* Stop UARTs */
+#ifdef CPU_MODEL_NRF52840XXAA
+    for (i = 0; i < UART_NUMOF; i++) {
+        uart_config[i].dev->TASKS_SUSPEND = 1;
+    }
+#else
     NRF_UART0->TASKS_SUSPEND = 1;
+#endif
 
-    /* Timer off */
-    NRF_TIMER0->TASKS_STOP = 1;
-    // NRF_TIMER1->TASKS_STOP = 1;
-    // NRF_TIMER2->TASKS_STOP = 1;
-    // NRF_TIMER3->TASKS_STOP = 1;
-    // NRF_TIMER4->TASKS_STOP = 1;
+    /* Stop timers */
+    for (i = 0; i < TIMER_NUMOF; i++) {
+        timer_config[i].dev->TASKS_STOP = 1;
+    }
 
     clock_stop_hf();
 }
 
 static inline void _pm_after(void) 
 {
-    /* UART on */
+    uint32_t i;
+    
+    /* Start UARTs */
+#ifdef CPU_MODEL_NRF52840XXAA
+    for (i = 0; i < UART_NUMOF; i++) {
+        uart_config[i].dev->TASKS_STARTTX = 1;
+        uart_config[i].dev->TASKS_STARTRX = 1;
+    }
+#else
     NRF_UART0->TASKS_STARTTX = 1;
     NRF_UART0->TASKS_STARTRX = 1;
+#endif
 
-    /* Timer on */
-    NRF_TIMER0->TASKS_START = 1;
-    // NRF_TIMER1->TASKS_START = 1;
-    // NRF_TIMER2->TASKS_START = 1;
-    // NRF_TIMER3->TASKS_START = 1;
-    // NRF_TIMER4->TASKS_START = 1;
+    /* Stop timers */
+    for (i = 0; i < TIMER_NUMOF; i++) {
+        timer_config[i].dev->TASKS_START = 1;
+    }
 }
 
 void pm_off(void)

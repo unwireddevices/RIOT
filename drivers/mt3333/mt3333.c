@@ -38,6 +38,16 @@ extern "C" {
 static kernel_pid_t reader_pid;
 static char *rxbuf;
 static char *nmea_buf;
+static rtctimers_millis_t timer_cback;
+static uint32_t time_previous;
+
+typedef enum {
+    MT3333_MSG_PARSE,
+    MT3333_MSG_CBACK,
+} mt3333_int_msg_t;
+
+static msg_t parse_msg = { .type = MT3333_MSG_PARSE };
+static msg_t cback_msg = { .type = MT3333_MSG_CBACK };
 
 static void rx_cb(void *arg, uint8_t data)
 {
@@ -50,14 +60,29 @@ static void rx_cb(void *arg, uint8_t data)
     if (data == MT3333_EOL) {
         memcpy(nmea_buf, rxbuf, rx_cnt);
         nmea_buf[rx_cnt] = 0;
-        msg_t msg;
-        msg_send(&msg, reader_pid);
+        msg_send(&parse_msg, reader_pid);
         rx_cnt = 0;
     }
     
     if (rx_cnt == MT3333_RXBUF_SIZE_BYTES) {
         rx_cnt = 0;
     }
+}
+
+static bool nmea_crc_check(char *buf) {
+    int i = 0;
+    while (buf[i] != '*') {
+        if (!buf[++i]) {
+            return false;
+        }
+    }
+    
+    uint8_t crc_calc = 0;
+    for (int k = 1; k < i; k++) {
+        crc_calc ^= (uint8_t)buf[k];
+    }
+
+    return (strtoul(&buf[i + 1], NULL, 16) == crc_calc);
 }
 
 static int get_csv_field(char *buf, int fieldno, char *field, int maxlen) {
@@ -93,183 +118,208 @@ static int get_csv_field(char *buf, int fieldno, char *field, int maxlen) {
 /**
  * @brief Parses GPS data in NMEA format
  */
-static bool parse_rmc(char *buf, mt3333_gps_data_t *data) {
+static bool parse_nmea(char *buf, mt3333_gps_data_t *data) {
+    typedef enum {
+        NMEA_RMC,
+        NMEA_GGA,
+        NMEA_UNKNOWN,
+    } nmea_message_type_t;
+    
+    nmea_message_type_t nmea_type = NMEA_UNKNOWN;
+    
+    if (memcmp(&nmea_buf[3], "RMC", 3) == 0) {
+        nmea_type = NMEA_RMC;
+        DEBUG("[mt3333] RMC message\n");
+    }
+    else
+    if (memcmp(&nmea_buf[3], "GGA", 3) == 0) {
+        nmea_type = NMEA_GGA;
+        DEBUG("[mt3333] GGA message\n");
+    }
+    else {
+        DEBUG("[mt3333] Unknown message\n");
+        return false;
+    }
+
+    if ((rtctimers_millis_now() - time_previous) > 500) {
+        memset((void*) data, 0, sizeof(mt3333_gps_data_t));
+    }
+    time_previous = rtctimers_millis_now();
+
     /* Check validity sign */
     char valid;
-    if (get_csv_field(buf, MT3333_RMC_VALID_FIELD_IDX, &valid, 1)) {
-        if (valid != 'A') {
-            data->valid = false;
-            DEBUG("[gps] Data not valid\n");
-        } else {
+    if (((nmea_type == NMEA_RMC) && get_csv_field(buf, MT3333_RMC_VALID_FIELD_IDX, &valid, 1)) ||
+        ((nmea_type == NMEA_GGA) && get_csv_field(buf, MT3333_GGA_VALID_FIELD_IDX, &valid, 1)))
+    {
+        if ((valid == 'A') || (valid == '1') || (valid == '2')) {
             data->valid = true;
-            DEBUG("[gps] Data valid\n");
+            DEBUG("[mt3333] Data valid\n");
+        } else {
+            data->valid = false;
+            DEBUG("[mt3333] Data not valid\n");
         }
     }
 
     char sign = 'N';
     char tmp[15];
-    
-    if (!get_csv_field(buf, MT3333_RMC_NS_FIELD_IDX, &sign, 1))
-        return false;
-    
     int s1, s2, s3;
-    if (get_csv_field(buf, MT3333_RMC_LAT_FIELD_IDX, tmp, sizeof(tmp))) {
-        sscanf(tmp, "%d.%04d", &s1, &s2);
-    }
-    
-    data->lat = (s1/100);
-    s1 -= data->lat * 100;
-    data->lat *= 1000000;
-    data->lat += (1000000*s1)/60;
-    data->lat += (10*s2)/6;
-    
-    if (sign == 'S') {
-        data->lat = -data->lat;
-    }
-    
-    DEBUG("[gps] Latitude: %d\n", data->lat);
-    
-    if (!get_csv_field(buf, MT3333_RMC_LON_FIELD_IDX, tmp, sizeof(tmp)))
-        return false;
-    if (!get_csv_field(buf, MT3333_RMC_EW_FIELD_IDX, &sign, 1))
-        return false;
-    
-    if (sscanf(tmp, "%d.%04d", &s1, &s2) != 2)
-        return false;
-    
-    data->lon = (s1/100);
-    s1 -= data->lon * 100;
-    data->lon *= 1000000;
-    data->lon += (1000000*s1)/60;
-    data->lon += (10*s2)/6;
-    
-    if (sign == 'W') {
-        data->lon = -data->lon;
-    }
-    
-    DEBUG("[gps] Longitude: %d\n", data->lon);
+    uint8_t field;
 
-    struct tm time;
-    if (get_csv_field(buf, MT3333_RMC_DATE_FIELD_IDX, tmp, sizeof(tmp))) {
-        sscanf(tmp, "%02d%02d%02d", &s1, &s2, &s3);
-    }
-    
-    time.tm_mday = s1;
-    time.tm_mon = s2;
-    time.tm_year = 100 + s3;
-    
-    DEBUG("[gps] Date: %d.%d.%d\n", s1, s2, s3);
-    
-    if (get_csv_field(buf, MT3333_RMC_TIME_FIELD_IDX, tmp, sizeof(tmp))) {
-        sscanf(tmp, "%02d%02d%02d", &s1, &s2, &s3);
-    }
-    
-    time.tm_hour = s1;
-    time.tm_min = s2;
-    time.tm_sec = 100 + s3;
-    
-    data->time = mktime(&time);
-    
-    DEBUG("[gps] Time: %d:%d:%d\n", s1, s2, s3);
-    
-    if (!get_csv_field(buf, MT3333_RMC_VELOCITY_FIELD_IDX, tmp, sizeof(tmp)))
-        return false;
-    
-    if (sscanf(tmp, "%d.%02d", &s1, &s2) != 2)
-        return false;
-    
-    data->velocity = ((1000*s1 + 10*s2)*514)/1000; // mm/s
-    DEBUG("[gps] Velocity: %d mm/s\n", data->velocity);
-    
-    if (!get_csv_field(buf, MT3333_RMC_DIRECTION_FIELD_IDX, tmp, sizeof(tmp)))
-        return false;
-    
-    if (sscanf(tmp, "%d.%02d", &s1, &s2) != 2)
-        return false;
-    data->direction = (1000*s1 + 10*s2);
-    DEBUG("[gps] Direction: %d millidegrees\n", data->direction);
+    if (data->lat == 0) {
+        switch (nmea_type) {
+            case NMEA_RMC:
+                field = MT3333_RMC_LAT_FIELD_IDX;
+                break;
+            case NMEA_GGA:
+                field = MT3333_GGA_LAT_FIELD_IDX;
+                break;
+            default:
+                field = 0;
+                break;
+        }
+        
+        if (field) {
+            get_csv_field(buf, field, tmp, sizeof(tmp));
+            get_csv_field(buf, field + 1, &sign, 1);
+            
+            if (sscanf(tmp, "%d.%04d", &s1, &s2) != 2) {
+                return false;
+            }
 
-    return true;
-}
-
-/**
- * @brief Parses GPS data in NMEA format
- */
-static bool parse_gga(char *buf, mt3333_gps_data_t *data) {
-    /* Check validity sign */
-    char valid;
-    if (get_csv_field(buf, MT3333_GGA_VALID_FIELD_IDX, &valid, 1)) {
-        if ((valid != '1') || (valid != '2')) {
-            data->valid = false;
-            DEBUG("[gps] Data not valid\n");
-        } else {
-            data->valid = true;
-            DEBUG("[gps] Data valid\n");
+            data->lat = (s1/100);
+            s1 -= data->lat * 100;
+            data->lat *= 1000000;
+            data->lat += (1000000*s1)/60;
+            data->lat += (10*s2)/6;
+            
+            if (sign == 'S') {
+                data->lat = -data->lat;
+            }
+            
+            DEBUG("[mt3333] Latitude: %d\n", data->lat);
         }
     }
+    
+    if (data->lon == 0) {
+        switch (nmea_type) {
+            case NMEA_RMC:
+                field = MT3333_RMC_LON_FIELD_IDX;
+                break;
+            case NMEA_GGA:
+                field = MT3333_GGA_LON_FIELD_IDX;
+                break;
+            default:
+                field = 0;
+                break;
+        }
+        
+        if (field) {
+            get_csv_field(buf, field, tmp, sizeof(tmp));
+            get_csv_field(buf, field + 1, &sign, 1);
 
-    char sign = 'N';
-    char tmp[15];
-    
-    if (!get_csv_field(buf, MT3333_GGA_NS_FIELD_IDX, &sign, 1))
-        return false;
-    
-    int s1, s2, s3;
-    if (get_csv_field(buf, MT3333_GGA_LAT_FIELD_IDX, tmp, sizeof(tmp))) {
-        sscanf(tmp, "%d.%04d", &s1, &s2);
+            if (sscanf(tmp, "%d.%04d", &s1, &s2) != 2) {
+                return false;
+            }
+            
+            data->lon = (s1/100);
+            s1 -= data->lon * 100;
+            data->lon *= 1000000;
+            data->lon += (1000000*s1)/60;
+            data->lon += (10*s2)/6;
+            
+            if (sign == 'W') {
+                data->lon = -data->lon;
+            }
+            
+            DEBUG("[mt3333] Longitude: %d\n", data->lon);
+        }
     }
     
-    data->lat = (s1/100);
-    s1 -= data->lat * 100;
-    data->lat *= 1000000;
-    data->lat += (1000000*s1)/60;
-    data->lat += (10*s2)/6;
-    
-    if (sign == 'S') {
-        data->lat = -data->lat;
-    }
-    
-    DEBUG("[gps] Latitude: %d\n", data->lat);
-    
-    if (!get_csv_field(buf, MT3333_GGA_LON_FIELD_IDX, tmp, sizeof(tmp)))
-        return false;
-    if (!get_csv_field(buf, MT3333_GGA_EW_FIELD_IDX, &sign, 1))
-        return false;
-    
-    if (sscanf(tmp, "%d.%04d", &s1, &s2) != 2)
-        return false;
-    
-    data->lon = (s1/100);
-    s1 -= data->lon * 100;
-    data->lon *= 1000000;
-    data->lon += (1000000*s1)/60;
-    data->lon += (10*s2)/6;
-    
-    if (sign == 'W') {
-        data->lon = -data->lon;
-    }
-    
-    DEBUG("[gps] Longitude: %d\n", data->lon);
-
     struct tm time;
-    time.tm_mday = 1;
-    time.tm_mon = 0;
-    time.tm_year = 0;
-    
-    if (get_csv_field(buf, MT3333_GGA_TIME_FIELD_IDX, tmp, sizeof(tmp))) {
-        sscanf(tmp, "%02d%02d%02d", &s1, &s2, &s3);
+
+    if (data->time == 0) {
+        switch (nmea_type) {
+            case NMEA_RMC:
+                field = MT3333_RMC_TIME_FIELD_IDX;
+                break;
+            case NMEA_GGA:
+                field = MT3333_GGA_TIME_FIELD_IDX;
+                break;
+            default:
+                field = 0;
+                break;
+        }
+        
+        if (field) {
+            get_csv_field(buf, field, tmp, sizeof(tmp));
+            
+            if (sscanf(tmp, "%02d%02d%02d", &s1, &s2, &s3) != 3) {
+                return false;
+            }
+            
+            time.tm_hour = s1;
+            time.tm_min = s2;
+            time.tm_sec = 100 + s3;
+            
+            DEBUG("[mt3333] Time: %d:%d:%d\n", s1, s2, s3);
+        }
     }
     
-    time.tm_hour = s1;
-    time.tm_min = s2;
-    time.tm_sec = 100 + s3;
+    /* RMC only data */
+    if (nmea_type == NMEA_RMC) {
+        if (get_csv_field(buf, MT3333_RMC_VELOCITY_FIELD_IDX, tmp, sizeof(tmp))) {
+            if (sscanf(tmp, "%d.%02d", &s1, &s2) != 2) {
+                return false;
+            }
+            
+            data->velocity = ((1000*s1 + 10*s2)*514)/1000; // mm/s
+            DEBUG("[mt3333] Velocity: %d mm/s\n", data->velocity);
+        }
+        
+        if (get_csv_field(buf, MT3333_RMC_DIRECTION_FIELD_IDX, tmp, sizeof(tmp))) {
+            if (sscanf(tmp, "%d.%02d", &s1, &s2) != 2) {
+                return false;
+            }
+            
+            data->direction = (1000*s1 + 10*s2);
+            DEBUG("[mt3333] Direction: %d millidegrees\n", data->direction);
+        }
+        
+        if (get_csv_field(buf, MT3333_RMC_DATE_FIELD_IDX, tmp, sizeof(tmp))) {
+            if (sscanf(tmp, "%02d%02d%02d", &s1, &s2, &s3) != 3) {
+                return false;
+            }
+            
+            time.tm_mday = s1;
+            time.tm_mon = s2;
+            time.tm_year = 100 + s3;
+        
+            DEBUG("[mt3333] Date: %d.%d.%d\n", s1, s2, s3);
+        }
+    }
+    
+    /* GGA only data */
+    if (nmea_type == NMEA_GGA) {
+        if (get_csv_field(buf, MT3333_GGA_HEIGHT_FIELD_IDX, tmp, sizeof(tmp))) {
+            if (sscanf(tmp, "%d.%01d", &s1, &s2) != 2) {
+                return false;
+            }
+            
+            data->height = s1*100 + s2*10; // cm
+            DEBUG("[mt3333] Height: %d cm\n", data->height);
+        }
+        
+        if (get_csv_field(buf, MT3333_GGA_SATS_FIELD_IDX, tmp, sizeof(tmp))) {
+            if (sscanf(tmp, "%d", &s1) != 1) {
+                return false;
+            }
+            
+            data->satellites = s1;
+            DEBUG("[mt3333] Satellites: %d\n", data->satellites);
+        }
+    }
     
     data->time = mktime(&time);
-    
-    DEBUG("[gps] Time: %d:%d:%d\n", s1, s2, s3);
-    
-    data->velocity = 0; /* no velocity in GGA data */
-    data->direction = 0; /* no direction in GGA data */
 
     return true;
 }
@@ -285,39 +335,28 @@ static void *reader(void *arg) {
 
     while (1) {
         msg_receive(&msg);
-
-        /* filter out non-RMC messages */
-        /* proper message is $GPRMC/$GNRMC/$GLRMC */
-        /* so we are skipping first 3 symbols and looking for 'RMC' */
-        DEBUG("[GPS] %s", nmea_buf);
-        if (memcmp(&nmea_buf[3], "RMC", 3) == 0) {
-            dev->ready = true;
-            /* parse RMC message */
-            if (parse_rmc(nmea_buf, &data)) {
-                if (dev->params.gps_cb != NULL)
-                    dev->params.gps_cb(data);
-            }
-        } else {
-            if (memcmp(&nmea_buf[3], "GGA", 3) == 0) {
-                dev->ready = true;
-                /* if there's no RMC, there may be GGA message */
-                if (parse_gga(nmea_buf, &data)) {
-                    if (dev->params.gps_cb != NULL) {
-                        dev->params.gps_cb(data);
+        
+        switch (msg.type) {
+            case MT3333_MSG_PARSE:
+                DEBUG("[mt3333] %s", nmea_buf);
+        
+                if (nmea_crc_check(nmea_buf)) {
+                    dev->ready = true;
+                    
+                    /* parse NMEA message */
+                    if ((dev->params.gps_cb) && (parse_nmea(nmea_buf, &data))) {
+                        /* 500 ms delay allows to parse multiple NMEA messages from the same packet */
+                        rtctimers_millis_set_msg(&timer_cback, 500, &cback_msg, reader_pid);
                     }
+                } else {
+                    DEBUG("[mt3333] NMEA CRC error\n");
                 }
-                
-                if (!dev->ready) {
-                    /* check for any meaningful message */
-                    if (!strcmp(nmea_buf, MT3333_READY_STR) ||
-                        !memcmp(&nmea_buf[3], "GSV", 3)     ||
-                        !memcmp(&nmea_buf[3], "GSA", 3)     ||
-                        !memcmp(&nmea_buf[3], "GGA", 3))
-                    {
-                        dev->ready = true;
-                    }
-                }
-            }
+                break;
+            case MT3333_MSG_CBACK:
+                dev->params.gps_cb(data);
+                break;
+            default:
+                break;
         }
     }
 
@@ -325,8 +364,6 @@ static void *reader(void *arg) {
 }
 
 int mt3333_is_ready(mt3333_t *dev) {
-    (void)dev;
-    
     dev->ready = false;
     
     /* 3 seconds timeout */
@@ -345,6 +382,11 @@ int mt3333_is_ready(mt3333_t *dev) {
 }
 
 static void mt3333_send_at_command(mt3333_t *dev, char *command) {
+    if (mt3333_is_ready(dev) == MT3333_TIMEOUT) {
+        DEBUG("[mt3333] GPS not ready\n");
+        return;
+    }
+
     uint8_t checksum = 0;
     uint32_t i;
     for (i = 0; i < strlen(command); i++) {
@@ -365,11 +407,10 @@ static void mt3333_send_at_command(mt3333_t *dev, char *command) {
     char buf[5];
     snprintf(buf, 5, "%02X\r\n", checksum);
     strcat(cmd, buf);
-    
-    mt3333_is_ready(dev);
+
     uart_write(dev->params.uart, (uint8_t *)cmd, strlen(cmd));
     
-    DEBUG("GPS command: %s\n", cmd);
+    DEBUG("[mt3333] command: %s\n", cmd);
 }
 
 void mt3333_set_baudrate(mt3333_t *dev, int baudrate) {

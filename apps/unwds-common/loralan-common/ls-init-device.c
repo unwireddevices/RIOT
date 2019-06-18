@@ -732,12 +732,12 @@ void unwds_device_init(void *unwds_callback, void *unwds_init, void *unwds_join,
         wdg_reload();
         wdg_enable();
 
+        unwds_init_modules(unwds_callback);
+        
         /* delayed startup */
         delayed_setup_timer.callback = ls_delayed_setup;
         delayed_setup_timer.arg = unwds_sleep;
         rtctimers_millis_set(&delayed_setup_timer, 15000);
-
-        unwds_init_modules(unwds_callback);
         
         blink_led(LED0_PIN);
     }

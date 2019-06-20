@@ -122,14 +122,24 @@ static const uart_conf_t uart_config[] = {
         .tx_pin   = GPIO_PIN(0, 6),
         .rx_mode  = GPIO_IN_PU,
         .tx_mode  = GPIO_OUT,
+        .irqn     = UARTE0_UART0_IRQn,
+        .rts_pin  = (uint8_t)GPIO_UNDEF,
+        .cts_pin  = (uint8_t)GPIO_UNDEF,
+        .dev      = NRF_UARTE0,
     },
     {
         .rx_pin   = GPIO_PIN(0, 29),
         .tx_pin   = GPIO_PIN(0, 5),
         .rx_mode  = GPIO_IN_PU,
         .tx_mode  = GPIO_OUT,
+        .irqn     = UARTE0_UART0_IRQn,
+        .rts_pin  = (uint8_t)GPIO_UNDEF,
+        .cts_pin  = (uint8_t)GPIO_UNDEF,
+        .dev      = NRF_UARTE0,
     }
 };
+
+#define UART_0_ISR          isr_uart0
 
 #define UART_NUMOF          (sizeof(uart_config) / sizeof(uart_config[0]))
 /** @} */
@@ -161,15 +171,15 @@ static const spi_conf_t spi_config[] = {
  */
 static const i2c_conf_t i2c_config[] = {
     {
+        .dev = NRF_TWIM0,
+        .scl = GPIO_PIN(0, 20),     /* DIO30 */
+        .sda = GPIO_PIN(0, 19)      /* DIO29 */
+    },
+    {
         .dev = NRF_TWIM1,
-        .scl = GPIO_PIN(0, 20),     /* DIO30 */     
-        .sda = GPIO_PIN(0, 19)      /* DIO29 */ 
-
-        /* Alt I2C */
-        // .dev = NRF_TWIM1,
-        // .scl = GPIO_PIN(0, 13),  /* DIO7 */     
-        // .sda = GPIO_PIN(0, 12)   /* DIO6 */ 
-    }
+        .scl = GPIO_PIN(0, 13),     /* DIO7  */
+        .sda = GPIO_PIN(0, 12)      /* DIO6  */
+    },
 };
 
 #define I2C_NUMOF           (sizeof(i2c_config) / sizeof(i2c_config[0]))

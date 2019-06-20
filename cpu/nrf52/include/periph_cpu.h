@@ -42,7 +42,7 @@ extern "C" {
 #define SPI_SCKSEL          (dev(bus)->PSEL.SCK)
 #define SPI_MOSISEL         (dev(bus)->PSEL.MOSI)
 #define SPI_MISOSEL         (dev(bus)->PSEL.MISO)
-#ifndef CPU_MODEL_NRF52840XXAA
+#if !defined(CPU_FAM_NRF52)
 #define UART_IRQN           (UARTE0_UART0_IRQn)
 #endif
 /** @} */

@@ -33,9 +33,10 @@ static inline void _pm_before(void)
     uint32_t i;
     
     /* Stop UARTs */
-#ifdef CPU_MODEL_NRF52840XXAA
+#if defined(CPU_FAM_NRF52)
     for (i = 0; i < UART_NUMOF; i++) {
-        uart_config[i].dev->TASKS_SUSPEND = 1;
+        uart_config[i].dev->TASKS_STOPRX = 1;
+        uart_config[i].dev->TASKS_STOPTX = 1;
     }
 #else
     NRF_UART0->TASKS_SUSPEND = 1;
@@ -54,9 +55,8 @@ static inline void _pm_after(void)
     uint32_t i;
     
     /* Start UARTs */
-#ifdef CPU_MODEL_NRF52840XXAA
+#if defined(CPU_FAM_NRF52)
     for (i = 0; i < UART_NUMOF; i++) {
-        uart_config[i].dev->TASKS_STARTTX = 1;
         uart_config[i].dev->TASKS_STARTRX = 1;
     }
 #else

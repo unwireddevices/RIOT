@@ -32,7 +32,7 @@
 #include "periph/uart.h"
 #include "periph/gpio.h"
 
-#ifdef CPU_MODEL_NRF52840XXAA
+#if defined(CPU_FAM_NRF52)
 #define UART_INVALID    (uart >= UART_NUMOF)
 #define REG_BAUDRATE    dev(uart)->BAUDRATE
 #define REG_CONFIG      dev(uart)->CONFIG
@@ -61,7 +61,7 @@ static inline NRF_UARTE_Type *dev(uart_t uart)
     return uart_config[uart].dev;
 }
 
-#else /* nrf51 and nrf52832 etc */
+#else /* nrf51 */
 
 #if defined(UART_NUMOF)
 #define UART_INVALID    (uart >= UART_NUMOF)
@@ -89,10 +89,10 @@ static inline NRF_UARTE_Type *dev(uart_t uart)
  */
 static uart_isr_ctx_t isr_ctx;
 
-#endif  /* CPU_MODEL_NRF52840XXAA */
+#endif  /* CPU_FAM_NRF52 */
 
 int uart_set_baudrate(uart_t uart, uint32_t baudrate) {
-#if !defined(CPU_MODEL_NRF52840XXAA)
+#if !defined(CPU_FAM_NRF52)
     (void) uart;
 #endif
     
@@ -178,7 +178,7 @@ int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
     gpio_init(UART_PIN_TX, UART_PIN_TXMODE);
     PSEL_TXD = UART_PIN_TX;
 
-#ifdef CPU_MODEL_NRF52840XXAA
+#if defined(CPU_FAM_NRF52)
     /* enable HW-flow control if defined */
     if (UART_HWFLOWCTRL) {
         /* set pin mode for RTS and CTS pins */
@@ -213,7 +213,7 @@ int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
     }
 
     /* enable the UART device */
-#ifdef CPU_MODEL_NRF52840XXAA
+#if defined(CPU_FAM_NRF52)
     dev(uart)->ENABLE = UARTE_ENABLE_ENABLE_Enabled;
 #else
     NRF_UART0->ENABLE = UART_ENABLE_ENABLE_Enabled;
@@ -221,7 +221,7 @@ int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
 #endif
 
     if (rx_cb) {
-#ifdef CPU_MODEL_NRF52840XXAA
+#if defined(CPU_FAM_NRF52)
         dev(uart)->RXD.MAXCNT = 1;
         dev(uart)->RXD.PTR = (uint32_t)&rx_buf[uart];
         dev(uart)->INTENSET = UARTE_INTENSET_ENDRX_Msk;
@@ -239,11 +239,21 @@ int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
     return UART_OK;
 }
 
-#ifdef CPU_MODEL_NRF52840XXAA /* nrf52840 (using EasyDMA) */
+#if defined(CPU_FAM_NRF52) /* nRF52 (using EasyDMA) */
 
 void uart_write(uart_t uart, const uint8_t *data, size_t len)
 {
     assert(uart < UART_NUMOF);
+
+    dev(uart)->ENABLE = UARTE_ENABLE_ENABLE_Disabled;
+    
+    gpio_t uart_pin_prev = PSEL_TXD;
+    PSEL_TXD = 0xffffffff;
+    gpio_set(uart_pin_prev);
+    gpio_init(UART_PIN_TX, UART_PIN_TXMODE);
+    PSEL_TXD = UART_PIN_TX;
+    
+    dev(uart)->ENABLE = UARTE_ENABLE_ENABLE_Enabled;
 
     /* reset endtx flag */
     dev(uart)->EVENTS_ENDTX = 0;
@@ -288,7 +298,7 @@ static inline void irq_handler(uart_t uart)
     cortexm_isr_end();
 }
 
-#else /* nrf51 and nrf52832 etc */
+#else /* nrf51 */
 
 void uart_write(uart_t uart, const uint8_t *data, size_t len)
 {
@@ -350,7 +360,7 @@ static inline void irq_handler(uart_t uart)
     cortexm_isr_end();
 }
 
-#endif /* CPU_MODEL_NRF52840XXAA */
+#endif /* CPU_FAM_NRF52 */
 
 #ifdef UART_0_ISR
 void UART_0_ISR(void)
@@ -363,5 +373,33 @@ void UART_0_ISR(void)
 void UART_1_ISR(void)
 {
     irq_handler(UART_DEV(1));
+}
+#endif
+
+#ifdef UART_2_ISR
+void UART_2_ISR(void)
+{
+    irq_handler(UART_DEV(2));
+}
+#endif
+
+#ifdef UART_3_ISR
+void UART_3_ISR(void)
+{
+    irq_handler(UART_DEV(3));
+}
+#endif
+
+#ifdef UART_4_ISR
+void UART_4_ISR(void)
+{
+    irq_handler(UART_DEV(4));
+}
+#endif
+
+#ifdef UART_5_ISR
+void UART_5_ISR(void)
+{
+    irq_handler(UART_DEV(5));
 }
 #endif

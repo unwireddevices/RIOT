@@ -24,6 +24,7 @@
 
 #include "cpu.h"
 #include "periph/pm.h"
+#include "periph/uart.h"
 #include "nrf_clock.h"
 
 #include "periph_conf.h"
@@ -35,8 +36,7 @@ static inline void _pm_before(void)
     /* Stop UARTs */
 #if defined(CPU_FAM_NRF52)
     for (i = 0; i < UART_NUMOF; i++) {
-        uart_config[i].dev->TASKS_STOPRX = 1;
-        uart_config[i].dev->TASKS_STOPTX = 1;
+        uart_poweroff(i);
     }
 #else
     NRF_UART0->TASKS_SUSPEND = 1;
@@ -57,7 +57,7 @@ static inline void _pm_after(void)
     /* Start UARTs */
 #if defined(CPU_FAM_NRF52)
     for (i = 0; i < UART_NUMOF; i++) {
-        uart_config[i].dev->TASKS_STARTRX = 1;
+        uart_poweron(i);
     }
 #else
     NRF_UART0->TASKS_STARTTX = 1;

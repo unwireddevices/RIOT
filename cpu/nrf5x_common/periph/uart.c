@@ -276,6 +276,8 @@ void uart_write(uart_t uart, const uint8_t *data, size_t len)
 void uart_poweron(uart_t uart)
 {
     assert(uart < UART_NUMOF);
+    
+    dev(uart)->ENABLE = UARTE_ENABLE_ENABLE_Enabled;
 
     if (isr_ctx[uart].rx_cb) {
         NRF_UART0->TASKS_STARTRX = 1;
@@ -287,6 +289,8 @@ void uart_poweroff(uart_t uart)
     assert(uart < UART_NUMOF);
 
     dev(uart)->TASKS_STOPRX = 1;
+    
+    dev(uart)->ENABLE = UARTE_ENABLE_ENABLE_Disabled;
 }
 
 static inline void irq_handler(uart_t uart)

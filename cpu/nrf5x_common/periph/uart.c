@@ -32,6 +32,8 @@
 #include "periph/uart.h"
 #include "periph/gpio.h"
 
+#include "board.h"
+
 #if defined(CPU_FAM_NRF52)
 #define UART_INVALID    (uart >= UART_NUMOF)
 #define REG_BAUDRATE    dev(uart)->BAUDRATE
@@ -245,15 +247,20 @@ void uart_write(uart_t uart, const uint8_t *data, size_t len)
 {
     assert(uart < UART_NUMOF);
 
-    dev(uart)->ENABLE = UARTE_ENABLE_ENABLE_Disabled;
-    
-    gpio_t uart_pin_prev = PSEL_TXD;
-    PSEL_TXD = 0xffffffff;
-    gpio_set(uart_pin_prev);
-    gpio_init(UART_PIN_TX, UART_PIN_TXMODE);
-    PSEL_TXD = UART_PIN_TX;
-    
-    dev(uart)->ENABLE = UARTE_ENABLE_ENABLE_Enabled;
+    if (uart_config[uart].tx_pin != PSEL_TXD) {
+        /* pin changes must be done with UART disabled */
+        dev(uart)->ENABLE = UARTE_ENABLE_ENABLE_Disabled;
+        
+        gpio_t uart_pin_prev = PSEL_TXD;
+        PSEL_TXD = 0xffffffff;
+        gpio_set(uart_pin_prev);
+        gpio_init(UART_PIN_TX, UART_PIN_TXMODE);
+        PSEL_TXD = UART_PIN_TX;
+        
+        /* restart UART */
+        dev(uart)->ENABLE = UARTE_ENABLE_ENABLE_Enabled;
+        dev(uart)->TASKS_STARTRX = 1;
+    }
 
     /* reset endtx flag */
     dev(uart)->EVENTS_ENDTX = 0;

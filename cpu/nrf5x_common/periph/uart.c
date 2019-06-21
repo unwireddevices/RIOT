@@ -2,6 +2,7 @@
  * Copyright (C) 2014-2017 Freie Universität Berlin
  *               2015 Jan Wagner <mail@jwagner.eu>
  *               2018 Inria
+ *               2019 Unwired Devices LLC
  *
  *
  * This file is subject to the terms and conditions of the GNU Lesser
@@ -22,6 +23,7 @@
  * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
  * @author      Jan Wagner <mail@jwagner.eu>
  * @author      Alexandre Abadie <alexandre.abadie@inria.fr>
+ * @author      Oleg Artamonov <oleg@unwds.com>
  *
  * @}
  */
@@ -57,6 +59,7 @@
  */
 static uart_isr_ctx_t isr_ctx[UART_NUMOF];
 static uint8_t rx_buf[UART_NUMOF];
+static uint8_t uart_current;
 
 static inline NRF_UARTE_Type *dev(uart_t uart)
 {
@@ -224,6 +227,8 @@ int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
 
     if (rx_cb) {
 #if defined(CPU_FAM_NRF52)
+        uart_current = uart;
+
         dev(uart)->RXD.MAXCNT = 1;
         dev(uart)->RXD.PTR = (uint32_t)&rx_buf[uart];
         dev(uart)->INTENSET = UARTE_INTENSET_ENDRX_Msk;
@@ -303,7 +308,7 @@ static inline void irq_handler(uart_t uart)
             return;
         }
         /* Process received byte */
-        isr_ctx[uart].rx_cb(isr_ctx[uart].arg, rx_buf[uart]);
+        isr_ctx[uart_current].rx_cb(isr_ctx[uart_current].arg, rx_buf[uart_current]);
     }
 
     cortexm_isr_end();

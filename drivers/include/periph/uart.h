@@ -61,6 +61,13 @@ extern "C" {
 #endif
 
 /**
+ * @brief   Define default UART TX buffer size for non-blocking DMA operations
+ */
+#if !defined(PERIPH_UART_TX_BUFFER_SIZE)
+#define PERIPH_UART_TX_BUFFER_SIZE      64
+#endif
+
+/**
  * @brief   Define default UART type identifier
  */
 #ifndef HAVE_UART_T

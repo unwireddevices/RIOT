@@ -36,6 +36,8 @@
 
 #include "board.h"
 
+#define DMA_DO_NOT_BLOCK
+
 #if defined(CPU_FAM_NRF52)
 #define UART_INVALID    (uart >= UART_NUMOF)
 #define REG_BAUDRATE    dev(uart)->BAUDRATE
@@ -54,12 +56,22 @@
                          uart_config[uart].cts_pin != (uint8_t)GPIO_UNDEF)
 #define ISR_CTX         isr_ctx[uart]
 
+#if defined(DMA_DO_NOT_BLOCK)
+#include <string.h>
+#include "mutex.h"
+#include "periph/pm.h"
+
+static uint8_t data_tmp[PERIPH_UART_TX_BUFFER_SIZE];
+static mutex_t uart_mtx = MUTEX_INIT;
+#endif
+
 /**
  * @brief Allocate memory for the interrupt context
  */
 static uart_isr_ctx_t isr_ctx[UART_NUMOF];
 static uint8_t rx_buf[UART_NUMOF];
 static uint8_t uart_current;
+static volatile bool blocking;
 
 static inline NRF_UARTE_Type *dev(uart_t uart)
 {
@@ -228,7 +240,6 @@ int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
     if (rx_cb) {
 #if defined(CPU_FAM_NRF52)
         uart_current = uart;
-
         dev(uart)->RXD.MAXCNT = 1;
         dev(uart)->RXD.PTR = (uint32_t)&rx_buf[uart];
         dev(uart)->INTENSET = UARTE_INTENSET_ENDRX_Msk;
@@ -252,6 +263,23 @@ void uart_write(uart_t uart, const uint8_t *data, size_t len)
 {
     assert(uart < UART_NUMOF);
 
+    uint32_t data_ptr;
+
+#if defined(DMA_DO_NOT_BLOCK)
+    mutex_lock(&uart_mtx);
+    if ((len <= PERIPH_UART_TX_BUFFER_SIZE) && !irq_is_in()) {
+        blocking = false;
+        memcpy(data_tmp, data, len);
+        data_ptr = (uint32_t)data_tmp;
+        pm_block(PM_SLEEP);
+        dev(uart)->INTENSET = UARTE_INTENSET_ENDTX_Msk;
+    } else {
+        blocking = true;
+        data_ptr = (uint32_t)data;
+        dev(uart)->INTENCLR = UARTE_INTENCLR_ENDTX_Msk;
+    }
+#endif
+
     if (uart_config[uart].tx_pin != PSEL_TXD) {
         /* pin changes must be done with UART disabled */
         dev(uart)->ENABLE = UARTE_ENABLE_ENABLE_Disabled;
@@ -267,15 +295,24 @@ void uart_write(uart_t uart, const uint8_t *data, size_t len)
         dev(uart)->TASKS_STARTRX = 1;
     }
 
-    /* reset endtx flag */
-    dev(uart)->EVENTS_ENDTX = 0;
     /* set data to transfer to DMA TX pointer */
-    dev(uart)->TXD.PTR = (uint32_t)data;
+    dev(uart)->TXD.PTR = data_ptr;
     dev(uart)->TXD.MAXCNT = len;
     /* start transmission */
     dev(uart)->TASKS_STARTTX = 1;
+
+#if defined(DMA_DO_NOT_BLOCK)
+    if (blocking) {
+        while (dev(uart)->EVENTS_ENDTX == 0) {}
+        
+        /* reset endtx flag */
+        dev(uart)->EVENTS_ENDTX = 0;
+        mutex_unlock(&uart_mtx);
+    }
+#else
     /* wait for the end of transmission */
     while (dev(uart)->EVENTS_ENDTX == 0) {}
+#endif
 }
 
 void uart_poweron(uart_t uart)
@@ -292,6 +329,11 @@ void uart_poweron(uart_t uart)
 void uart_poweroff(uart_t uart)
 {
     assert(uart < UART_NUMOF);
+    
+#if defined(DMA_DO_NOT_BLOCK)
+    mutex_lock(&uart_mtx);
+    mutex_unlock(&uart_mtx);
+#endif
 
     dev(uart)->TASKS_STOPRX = 1;
     
@@ -300,6 +342,16 @@ void uart_poweroff(uart_t uart)
 
 static inline void irq_handler(uart_t uart)
 {
+#if defined(DMA_DO_NOT_BLOCK)
+    if (dev(uart)->EVENTS_ENDTX == 1) {
+        dev(uart)->EVENTS_ENDTX = 0;
+        mutex_unlock(&uart_mtx);
+        if (!blocking) {
+            pm_unblock(PM_SLEEP);
+        }
+    }
+#endif
+    
     if (dev(uart)->EVENTS_ENDRX == 1) {
         dev(uart)->EVENTS_ENDRX = 0;
 

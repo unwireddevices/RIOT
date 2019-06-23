@@ -106,7 +106,7 @@ static uart_isr_ctx_t isr_ctx;
 
 #endif  /* CPU_FAM_NRF52 */
 
-int uart_set_baudrate(uart_t uart, uint32_t baudrate) {
+int _uart_set_baudrate(uart_t uart, uint32_t baudrate) {
 #if !defined(CPU_FAM_NRF52)
     (void) uart;
 #endif
@@ -165,11 +165,29 @@ int uart_set_baudrate(uart_t uart, uint32_t baudrate) {
     return UART_OK;
 }
 
+int uart_set_baudrate(uart_t uart, uint32_t baudrate) {
+#if defined(MODULE_PERIPH_UART_DMA_TX) && defined(CPU_FAM_NRF52)
+    mutex_lock(&uart_mtx);
+#endif
+
+    int res = _uart_set_baudrate(uart, baudrate);
+    
+#if defined(MODULE_PERIPH_UART_DMA_TX) && defined(CPU_FAM_NRF52)
+    mutex_unlock(&uart_mtx);
+#endif
+
+    return res;
+}
+
 int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
 {
     if (UART_INVALID) {
         return UART_NODEV;
     }
+    
+#if defined(MODULE_PERIPH_UART_DMA_TX) && defined(CPU_FAM_NRF52)
+    mutex_lock(&uart_mtx);
+#endif
 
     /* remember callback addresses and argument */
     ISR_CTX.rx_cb = rx_cb;
@@ -223,7 +241,10 @@ int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
 #endif
 
     /* select baudrate */
-    if (uart_set_baudrate(uart, baudrate) == UART_NOBAUD) {
+    if (_uart_set_baudrate(uart, baudrate) == UART_NOBAUD) {
+#if defined(MODULE_PERIPH_UART_DMA_TX) && defined(CPU_FAM_NRF52)
+        mutex_unlock(&uart_mtx);
+#endif
         return UART_NOBAUD;
     }
 
@@ -251,6 +272,10 @@ int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
         /* enable global and receiving interrupt */
         NVIC_EnableIRQ(UART_IRQN);
     }
+    
+#if defined(MODULE_PERIPH_UART_DMA_TX) && defined(CPU_FAM_NRF52)
+    mutex_unlock(&uart_mtx);
+#endif
 
     return UART_OK;
 }

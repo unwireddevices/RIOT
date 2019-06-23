@@ -36,8 +36,6 @@
 
 #include "board.h"
 
-#define DMA_DO_NOT_BLOCK
-
 #if defined(CPU_FAM_NRF52)
 #define UART_INVALID    (uart >= UART_NUMOF)
 #define REG_BAUDRATE    dev(uart)->BAUDRATE
@@ -56,7 +54,7 @@
                          uart_config[uart].cts_pin != (uint8_t)GPIO_UNDEF)
 #define ISR_CTX         isr_ctx[uart]
 
-#if defined(DMA_DO_NOT_BLOCK)
+#if defined(MODULE_PERIPH_UART_DMA_TX)
 #include <string.h>
 #include "mutex.h"
 #include "periph/pm.h"
@@ -265,7 +263,7 @@ void uart_write(uart_t uart, const uint8_t *data, size_t len)
 
     uint32_t data_ptr;
 
-#if defined(DMA_DO_NOT_BLOCK)
+#if defined(MODULE_PERIPH_UART_DMA_TX)
     mutex_lock(&uart_mtx);
     if ((len <= PERIPH_UART_TX_BUFFER_SIZE) && !irq_is_in()) {
         blocking = false;
@@ -301,7 +299,7 @@ void uart_write(uart_t uart, const uint8_t *data, size_t len)
     /* start transmission */
     dev(uart)->TASKS_STARTTX = 1;
 
-#if defined(DMA_DO_NOT_BLOCK)
+#if defined(MODULE_PERIPH_UART_DMA_TX)
     if (blocking) {
         while (dev(uart)->EVENTS_ENDTX == 0) {}
         
@@ -330,7 +328,7 @@ void uart_poweroff(uart_t uart)
 {
     assert(uart < UART_NUMOF);
     
-#if defined(DMA_DO_NOT_BLOCK)
+#if defined(MODULE_PERIPH_UART_DMA_TX)
     mutex_lock(&uart_mtx);
     mutex_unlock(&uart_mtx);
 #endif
@@ -342,7 +340,7 @@ void uart_poweroff(uart_t uart)
 
 static inline void irq_handler(uart_t uart)
 {
-#if defined(DMA_DO_NOT_BLOCK)
+#if defined(MODULE_PERIPH_UART_DMA_TX)
     if (dev(uart)->EVENTS_ENDTX == 1) {
         dev(uart)->EVENTS_ENDTX = 0;
         mutex_unlock(&uart_mtx);

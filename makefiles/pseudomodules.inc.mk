@@ -55,6 +55,7 @@ PSEUDOMODULES += newlib
 PSEUDOMODULES += newlib_gnu_source
 PSEUDOMODULES += newlib_nano
 PSEUDOMODULES += openthread
+PSEUDOMODULES += periph_uart_dma_tx
 PSEUDOMODULES += pktqueue
 PSEUDOMODULES += printf_float
 PSEUDOMODULES += prng

@@ -106,7 +106,19 @@ static uart_isr_ctx_t isr_ctx;
 
 #endif  /* CPU_FAM_NRF52 */
 
-int _uart_set_baudrate(uart_t uart, uint32_t baudrate) {
+static inline void _uart_lock(void) {
+#if defined(MODULE_PERIPH_UART_DMA_TX) && defined(CPU_FAM_NRF52)
+    mutex_lock(&uart_mtx);
+#endif
+}
+
+static inline void _uart_unlock(void) {
+#if defined(MODULE_PERIPH_UART_DMA_TX) && defined(CPU_FAM_NRF52)
+    mutex_unlock(&uart_mtx);
+#endif
+}
+
+static int _uart_set_baudrate(uart_t uart, uint32_t baudrate) {
 #if !defined(CPU_FAM_NRF52)
     (void) uart;
 #endif
@@ -166,16 +178,10 @@ int _uart_set_baudrate(uart_t uart, uint32_t baudrate) {
 }
 
 int uart_set_baudrate(uart_t uart, uint32_t baudrate) {
-#if defined(MODULE_PERIPH_UART_DMA_TX) && defined(CPU_FAM_NRF52)
-    mutex_lock(&uart_mtx);
-#endif
-
+    _uart_lock();
     int res = _uart_set_baudrate(uart, baudrate);
+    _uart_unlock();
     
-#if defined(MODULE_PERIPH_UART_DMA_TX) && defined(CPU_FAM_NRF52)
-    mutex_unlock(&uart_mtx);
-#endif
-
     return res;
 }
 
@@ -185,10 +191,8 @@ int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
         return UART_NODEV;
     }
     
-#if defined(MODULE_PERIPH_UART_DMA_TX) && defined(CPU_FAM_NRF52)
-    mutex_lock(&uart_mtx);
-#endif
-
+    _uart_lock();
+    
     /* remember callback addresses and argument */
     ISR_CTX.rx_cb = rx_cb;
     ISR_CTX.arg = arg;
@@ -242,9 +246,7 @@ int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
 
     /* select baudrate */
     if (_uart_set_baudrate(uart, baudrate) == UART_NOBAUD) {
-#if defined(MODULE_PERIPH_UART_DMA_TX) && defined(CPU_FAM_NRF52)
-        mutex_unlock(&uart_mtx);
-#endif
+        _uart_unlock();
         return UART_NOBAUD;
     }
 
@@ -273,9 +275,7 @@ int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
         NVIC_EnableIRQ(UART_IRQN);
     }
     
-#if defined(MODULE_PERIPH_UART_DMA_TX) && defined(CPU_FAM_NRF52)
-    mutex_unlock(&uart_mtx);
-#endif
+    _uart_unlock();
 
     return UART_OK;
 }
@@ -289,7 +289,7 @@ void uart_write(uart_t uart, const uint8_t *data, size_t len)
     uint32_t data_ptr = (uint32_t)data;
 
 #if defined(MODULE_PERIPH_UART_DMA_TX)
-    mutex_lock(&uart_mtx);
+    _uart_lock();
     if ((len <= PERIPH_UART_TX_BUFFER_SIZE) && !irq_is_in()) {
         blocking = false;
         memcpy(data_tmp, data, len);
@@ -329,7 +329,7 @@ void uart_write(uart_t uart, const uint8_t *data, size_t len)
         
         /* reset endtx flag */
         dev(uart)->EVENTS_ENDTX = 0;
-        mutex_unlock(&uart_mtx);
+        _uart_unlock();
     }
 #else
     /* wait for the end of transmission */
@@ -352,10 +352,8 @@ void uart_poweroff(uart_t uart)
 {
     assert(uart < UART_NUMOF);
     
-#if defined(MODULE_PERIPH_UART_DMA_TX)
-    mutex_lock(&uart_mtx);
-    mutex_unlock(&uart_mtx);
-#endif
+    _uart_lock();
+    _uart_unlock();
 
     dev(uart)->TASKS_STOPRX = 1;
     
@@ -367,7 +365,7 @@ static inline void irq_handler(uart_t uart)
 #if defined(MODULE_PERIPH_UART_DMA_TX)
     if (dev(uart)->EVENTS_ENDTX == 1) {
         dev(uart)->EVENTS_ENDTX = 0;
-        mutex_unlock(&uart_mtx);
+        _uart_unlock();
         if (!blocking) {
             pm_unblock(PM_SLEEP);
         }

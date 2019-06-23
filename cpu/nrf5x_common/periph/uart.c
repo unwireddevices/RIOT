@@ -261,7 +261,7 @@ void uart_write(uart_t uart, const uint8_t *data, size_t len)
 {
     assert(uart < UART_NUMOF);
 
-    uint32_t data_ptr;
+    uint32_t data_ptr = (uint32_t)data;
 
 #if defined(MODULE_PERIPH_UART_DMA_TX)
     mutex_lock(&uart_mtx);
@@ -273,7 +273,6 @@ void uart_write(uart_t uart, const uint8_t *data, size_t len)
         dev(uart)->INTENSET = UARTE_INTENSET_ENDTX_Msk;
     } else {
         blocking = true;
-        data_ptr = (uint32_t)data;
         dev(uart)->INTENCLR = UARTE_INTENCLR_ENDTX_Msk;
     }
 #endif

@@ -334,8 +334,24 @@ void uart_write(uart_t uart, const uint8_t *data, size_t len)
 #else
     /* wait for the end of transmission */
     while (dev(uart)->EVENTS_ENDTX == 0) {}
+    /* reset endtx flag */
+    dev(uart)->EVENTS_ENDTX = 0;
 #endif
 }
+
+#if defined(MODULE_PERIPH_UART_DMA_TX)
+void uart_wait(uart_t uart) {
+    assert(uart < UART_NUMOF);
+    
+    _uart_lock();
+    _uart_unlock();
+}
+#else
+void uart_wait(uart_t uart) {
+    /* do nothing */
+    (void)uart;
+}
+#endif
 
 void uart_poweron(uart_t uart)
 {

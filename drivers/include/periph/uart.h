@@ -227,6 +227,13 @@ void uart_poweron(uart_t uart);
  */
 void uart_poweroff(uart_t uart);
 
+/**
+ * @brief WAit for UART to complete current transfer
+ *
+ * @param[in] uart          the UART device to check
+ */
+void uart_wait(uart_t uart);
+
 #ifdef __cplusplus
 }
 #endif

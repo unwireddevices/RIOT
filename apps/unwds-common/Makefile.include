@@ -137,6 +137,7 @@ USEMODULE += random
 USEMODULE += hashes
 USEMODULE += checksum
 USEMODULE += rtctimers-millis
+USEMODULE += periph_uart_dma_tx
 
 USEMODULE += sx127x
 
@@ -156,7 +157,6 @@ INCLUDES += -I$(RIOTBASE)/apps/unwds-common/unwds-common/include/
 ####################################################
 
 FEATURES_REQUIRED += periph_adc
-FEATURES_REQUIRED += periph_dac
 FEATURES_REQUIRED += periph_gpio
 FEATURES_REQUIRED += periph_i2c
 FEATURES_REQUIRED += periph_pwm

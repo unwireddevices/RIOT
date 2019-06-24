@@ -346,11 +346,6 @@ void uart_wait(uart_t uart) {
     _uart_lock();
     _uart_unlock();
 }
-#else
-void uart_wait(uart_t uart) {
-    /* do nothing */
-    (void)uart;
-}
 #endif
 
 void uart_poweron(uart_t uart)

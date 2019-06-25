@@ -15,6 +15,9 @@ LORA_REGION ?= RU864
 #LORA_REGION ?= KZ865
 CFLAGS += -DLORA_REGION=\"$(LORA_REGION)\"
 
+# Disable LoRaWAN duty cycle restrictions
+CFLAGS += -DDISABLE_LORAMAC_DUTYCYCLE
+
 ############ UMDK MODULES USED #####################
 # variables in the list below must match modules'
 # subdirectory name in ../../unwired-modules/

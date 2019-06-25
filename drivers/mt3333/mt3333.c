@@ -35,7 +35,7 @@
 extern "C" {
 #endif
 
-static kernel_pid_t reader_pid;
+static kernel_pid_t reader_pid = KERNEL_PID_UNDEF;
 static char *rxbuf;
 static char *nmea_buf;
 static rtctimers_millis_t timer_cback;
@@ -157,6 +157,11 @@ static bool parse_nmea(char *buf, mt3333_gps_data_t *data) {
         } else {
             data->valid = false;
             DEBUG("[mt3333] Data not valid\n");
+            data->lat = 0;
+            data->lon = 0;
+            data->velocity = 0;
+            data->direction = 0;
+            return true;
         }
     }
 
@@ -449,12 +454,14 @@ int mt3333_init(mt3333_t *dev, mt3333_param_t *param) {
 	dev->params = *param;
     
     /* Create reader thread */
-	reader_pid = thread_create(dev->reader_stack + 2*MT3333_RXBUF_SIZE_BYTES,
-                                    MT3333_READER_THREAD_STACK_SIZE_BYTES - 2*MT3333_RXBUF_SIZE_BYTES,
-                                    THREAD_PRIORITY_MAIN - 1, 0, reader, dev, "MT3333 reader");
-	if (reader_pid <= KERNEL_PID_UNDEF) {
-		return -2;
-	}
+    if (reader_pid == KERNEL_PID_UNDEF) {
+        reader_pid = thread_create(dev->reader_stack + 2*MT3333_RXBUF_SIZE_BYTES,
+                                        MT3333_READER_THREAD_STACK_SIZE_BYTES - 2*MT3333_RXBUF_SIZE_BYTES,
+                                        THREAD_PRIORITY_MAIN - 1, 0, reader, dev, "MT3333 reader");
+        if (reader_pid <= KERNEL_PID_UNDEF) {
+            return -2;
+        }
+    }
     
     /* Initialize message buffer */
     nmea_buf = dev->reader_stack;    

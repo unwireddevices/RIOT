@@ -122,8 +122,10 @@ int random_cmd(int argc, char **argv)
     (void)argv;
 
     netdev_t *netdev = (netdev_t*) &sx127x;
+    uint32_t rand;
+    netdev->driver->get(netdev, NETOPT_RANDOM, &rand, sizeof(rand));
     printf("random: number from sx127x: %u\n",
-           (unsigned int) sx127x_random((sx127x_t*) netdev));
+           (unsigned int) rand);
 
     /* reinit the transceiver to default values */
     sx127x_init_radio_settings((sx127x_t*) netdev);
@@ -269,6 +271,37 @@ int listen_cmd(int argc, char **argv)
     return 0;
 }
 
+int syncword_cmd(int argc, char **argv)
+{
+    if(argc < 2) {
+        puts("usage: syncword <get|set>");
+        return -1;
+    }
+
+    netdev_t *netdev = (netdev_t*) &sx127x;
+    uint8_t syncword;
+    if (strstr(argv[1], "get") != NULL) {
+        netdev->driver->get(netdev, NETOPT_SYNCWORD, &syncword, sizeof(syncword));
+        printf("Syncword: %02x\n", (int) syncword);
+        return 0;
+    }
+
+    if (strstr(argv[1], "set") != NULL) {
+        if(argc < 3) {
+            puts("usage: syncword set <syncword>");
+            return -1;
+        }
+        syncword = atoi(argv[2]);
+        netdev->driver->set(netdev, NETOPT_SYNCWORD, &syncword, sizeof(syncword));
+        printf("New syncword set\n");
+    }
+    else {
+        puts("usage: syncword <get|set>");
+        return -1;
+    }
+
+    return 0;
+}
 int channel_cmd(int argc, char **argv)
 {
     if(argc < 2) {
@@ -301,9 +334,37 @@ int channel_cmd(int argc, char **argv)
     return 0;
 }
 
+int rx_timeout_cmd(int argc, char **argv)
+{
+    if(argc < 2) {
+        puts("usage: channel <get|set>");
+        return -1;
+    }
+
+    netdev_t *netdev = (netdev_t*) &sx127x;
+    uint16_t rx_timeout;
+    if (strstr(argv[1], "set") != NULL) {
+        if(argc < 3) {
+            puts("usage: rx_timeout set <rx_timeout>");
+            return -1;
+        }
+        rx_timeout = atoi(argv[2]);
+        netdev->driver->set(netdev, NETOPT_RX_SYMBOL_TIMEOUT, &rx_timeout, sizeof(rx_timeout));
+        printf("New rx_timeout set\n");
+    }
+    else {
+        puts("usage: rx_timeout set");
+        return -1;
+    }
+
+    return 0;
+}
+
 static const shell_command_t shell_commands[] = {
     { "setup",    "Initialize LoRa modulation settings",     lora_setup_cmd},
     { "random",   "Get random number from sx127x",           random_cmd },
+    { "syncword", "Get/Set the syncword",                    syncword_cmd },
+    { "rx_timeout", "Set the RX timeout",                    rx_timeout_cmd },
     { "channel",  "Get/Set channel frequency (in Hz)",       channel_cmd },
     { "register", "Get/Set value(s) of registers of sx127x", register_cmd },
     { "send",     "Send raw payload string",                 send_cmd },

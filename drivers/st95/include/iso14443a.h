@@ -134,6 +134,7 @@ typedef struct {
     uint8_t uid[ISO14443A_UID_LENGTH_MAX];  /**<  */
     
     bool is_ats;                            /**<  */
+    uint8_t fwi;
     uint16_t cc_size;                       /**<  */
     uint16_t ndef_length;
     uint16_t ndef_id;                       /**<  */

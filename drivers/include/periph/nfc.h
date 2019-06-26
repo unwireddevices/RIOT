@@ -57,6 +57,26 @@ typedef enum
     NFC_PROTOCOL_TYPE4A_TAG        = 0x1,  /**< Type 4A Tag platform. */
 } nfc_type_tag_t;
 
+#define NRF_ISO14443A_UID_LENGTH_MAX 10
+
+typedef struct {
+    uint8_t type;                           /**<  */
+    uint8_t sak;                            /**<  */
+    uint8_t uid_length;                     /**<  */
+    uint8_t uid[NRF_ISO14443A_UID_LENGTH_MAX];  /**<  */
+    
+    bool is_ats;                            /**<  */
+    uint8_t fwi;
+    
+    uint16_t cc_size;                       /**<  */
+    uint16_t ndef_length;
+    uint16_t ndef_id;                       /**<  */
+    uint16_t ndef_read_max;              /**<  */
+    uint16_t ndef_write_max;             /**<  */
+    uint16_t ndef_size;                     /**<  */
+}   __attribute__((packed)) nfc_iso14443a_picc_t;
+
+
 void nfc_init(void);
 uint8_t nfc_set_uid(uint8_t * uid, nfc_id_size_t size, nfc_type_tag_t tag_type);
 uint8_t nfc_send_data(uint8_t * uid, nfc_id_size_t size, nfc_type_tag_t tag_type, uint8_t * data, uint8_t length);

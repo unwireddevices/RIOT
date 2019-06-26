@@ -58,7 +58,7 @@ extern "C" {
 #include "thread.h"
 #include "rtctimers-millis.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 static msg_t msg_wu = { .type = UMDK_ST95_MSG_EVENT, };
@@ -84,6 +84,7 @@ static volatile uint8_t mode = UMDK_ST95_MODE_GET_UID;
 static volatile uint8_t status = UMDK_ST95_STATUS_READY;
 
 // static uint8_t ndef_data[255] = { 0x00 };
+static uint8_t buff_data[10] = { 0x00 };
 
 
 static void umdk_st95_get_uid(void);
@@ -129,12 +130,11 @@ static void *radio_send(void *arg)
                 else {
                     if(st95_is_wake_up(&dev) == ST95_WAKE_UP) {
                         if(mode == UMDK_ST95_MODE_READ_DATA) {
-                            uint8_t buff_data[10] = { 0x00 };
-                            if(st95_read_data(&dev, buff_data ,sizeof(buff_data)== ST95_ERROR)) {
-                                DEBUG("Read ERR");
+                            if(st95_read_data(&dev, buff_data , sizeof(buff_data)) == ST95_ERROR) {
+                                puts("Read ERR");
                             }
                             else {
-                                DEBUG("Data: ");
+                                printf("Data: ");
                                 PRINTBUFF(buff_data, sizeof(buff_data));
                             }
                         rtctimers_millis_sleep(UMDK_ST95_DELAY_DETECT_MS);

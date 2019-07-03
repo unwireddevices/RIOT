@@ -86,9 +86,9 @@ static void jump_to_bootloader(void) {
 }
 #endif
 
-#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F2) || \
-    defined(CPU_FAM_STM32F3) || defined(CPU_FAM_STM32F4) || \
-    defined(CPU_FAM_STM32F7)
+#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \
+    defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F3) || \
+    defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32F7)
 
 #define STM32_CPU_MAX_GPIOS    (12U)
 
@@ -101,6 +101,10 @@ static void jump_to_bootloader(void) {
 #define GPIO_CLK              (AHB1)
 #define GPIO_CLK_ENR          (RCC->AHB1ENR)
 #define GPIO_CLK_ENR_MASK     (0x0000FFFF)
+#elif defined(CPU_FAM_STM32F1)
+#define GPIO_CLK              (APB2)
+#define GPIO_CLK_ENR          (RCC->APB2ENR)
+#define GPIO_CLK_ENR_MASK     (0x000001FC)
 #endif
 
 #ifndef DISABLE_JTAG
@@ -129,6 +133,23 @@ static void _gpio_init_ain(void)
         port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
         if (IS_GPIO_ALL_INSTANCE(port)) {
             if (!DISABLE_JTAG) {
+#if defined(CPU_FAM_STM32F1)
+                switch (i) {
+                    /* preserve JTAG pins on PORTA and PORTB */
+                    case 0:
+                        port->CR[0] = GPIO_CRL_CNF;
+                        port->CR[1] = GPIO_CRH_CNF & 0x000FFFFF;
+                        break;
+                    case 1:
+                        port->CR[0] = GPIO_CRL_CNF & 0xFFF00FFF;
+                        port->CR[1] = GPIO_CRH_CNF;
+                        break;
+                    default:
+                        port->CR[0] = GPIO_CRL_CNF;
+                        port->CR[1] = GPIO_CRH_CNF;
+                        break;
+                }
+#else /* ! defined(CPU_FAM_STM32F1) */
                 switch (i) {
                     /* preserve JTAG pins on PORTA and PORTB */
                     case 0:
@@ -141,9 +162,15 @@ static void _gpio_init_ain(void)
                         port->MODER = 0xFFFFFFFF;
                         break;
                 }
+#endif /* defined(CPU_FAM_STM32F1) */
             }
             else {
+#if defined(CPU_FAM_STM32F1)
+                port->CR[0] = GPIO_CRL_CNF;
+                port->CR[1] = GPIO_CRH_CNF;
+#else
                 port->MODER = 0xFFFFFFFF;
+#endif
             }
         }
     }
@@ -202,9 +229,9 @@ void cpu_init(void)
     periph_clk_en(AHB, tmpreg);
 #endif
 
-#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F2) || \
-    defined(CPU_FAM_STM32F3) || defined(CPU_FAM_STM32F4) || \
-    defined(CPU_FAM_STM32F7)
+#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \
+    defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F3) || \
+    defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32F7)
     _gpio_init_ain();
 #endif
 

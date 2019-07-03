@@ -604,9 +604,9 @@ static void connect_btn_pressed (void *arg) {
     
     /* button released */
 #if defined(UNWD_CONNECT_POL)
-    if ((gpio_read(UNWD_CONNECT_BTN)) != UNWD_CONNECT_POL) {
+    if ((UNWD_CONNECT_BTN != GPIO_UNDEF) && (gpio_read(UNWD_CONNECT_BTN)) != UNWD_CONNECT_POL) {
 #else
-    if ((gpio_read(UNWD_CONNECT_BTN)) != 0) {
+    if ((UNWD_CONNECT_BTN != GPIO_UNDEF) && (gpio_read(UNWD_CONNECT_BTN)) != 0) {
 #endif
         if (((ms_now > connect_btn_last_press) && ((ms_now - connect_btn_last_press) > 1000)) || 
             ((ms_now + (UINT32_MAX - connect_btn_last_press)) > 1000)) {

@@ -19,14 +19,18 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+
+#include "xtimer.h"
+
 #include "periph/gpio.h"
-#include "periph/spi.h"
 
 #include "lis3dh.h"
 #include "include/lis3dh_internal.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
+
+#include "log.h"
 
 #if ENABLE_DEBUG
     #define PRINTBUFF _printbuff
@@ -45,18 +49,16 @@
 
 #if defined (MODULE_LIS3DH_SPI)
 #include "periph/spi.h"
-
-#define SPI_MODE        SPI_MODE_3
-
-#define DEV_SPI         (dev->params.spi)
-#define DEV_CS          (dev->params.cs)
-#define DEV_CLK         (dev->params.clk)
-#define DEV_SCALE       (dev->params.scale)
+    #define SPI_MODE        SPI_MODE_3
+    #define DEV_SPI         (dev->params.spi)
+    #define DEV_CS          (dev->params.cs)
+    #define DEV_CLK         (dev->params.clk)
+    #define DEV_SCALE       (dev->params.scale)
 #elif defined (MODULE_LIS3DH_I2C)
-#include "periph/i2c.h"
-#define DEV_I2C         (dev->params.i2c)
-#define DEV_ADDR        (dev->params.addr)
-#define DEV_SCALE       (dev->params.scale)
+    #include "periph/i2c.h"
+    #define DEV_I2C         (dev->params.i2c)
+    #define DEV_ADDR        (dev->params.addr)
+    #define DEV_SCALE       (dev->params.scale)
 #endif
 
 /**
@@ -1351,7 +1353,10 @@ static int _read(const lis3dh_t *dev, uint8_t reg, uint8_t *data, uint16_t lengt
     int status = 0x00;
 
     /* Read multiple command */
-    reg |= 0x80;
+    reg &= ~(0x80);
+    if (length > 1) {
+        reg |= 0x80;
+    }
 
     /* Acquire exclusive access to the bus. */
     i2c_acquire(dev->params.i2c);
@@ -1360,7 +1365,7 @@ static int _read(const lis3dh_t *dev, uint8_t reg, uint8_t *data, uint16_t lengt
     /* Release the bus for other threads. */
     i2c_release(dev->params.i2c);
 
-    DEBUG("LIS3DH [REG %02X]: <- ", (reg&0x7F));
+    DEBUG("LIS3DH [REG %02X]: <- ", (reg & 0x7F));
     PRINTBUFF(data, length);
 
     return status;
@@ -1371,11 +1376,12 @@ static int _write(const lis3dh_t *dev, uint8_t reg, uint8_t *data, uint16_t leng
     int status = 0x00;
 
     /* Write multiple command */
+    reg &= ~(0x80);
     if (length > 1) {
         reg |= 0x80;
     }
 
-    DEBUG("LIS3DH [REG %02X]: -> %02Xh ", (reg&0x7F), reg);
+    DEBUG("LIS3DH [REG %02X]: -> %02Xh ", (reg & 0x7F), reg);
     PRINTBUFF(data, length);
 
     /* Acquire exclusive access to the bus. */
@@ -2876,25 +2882,9 @@ int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params, lis3dh_int1_cb_t c
         return LIS3DH_NODEV;
     }
 
-    if (dev->params.int1 != GPIO_UNDEF) {
-        
-        /* Enable interrupt pin - DRDY*/
-        DEBUG("Enable interrupt pin - DRDY\n");
-        if (lis3dh_pin_int1_config_get(dev, &ctrl_reg3) < 0) {
-            return LIS3DH_NOCOM;
-        }
-        ctrl_reg3.i1_zyxda = PROPERTY_ENABLE;
-        if (lis3dh_pin_int1_config_set(dev, &ctrl_reg3) < 0) {
-            return LIS3DH_NOCOM;
-        } 
-
-        /* Enable interrupt handler */
-        DEBUG("Enable interrupt handler\n");
-        dev->arg = arg;
-        dev->cb = cb;
-        if (gpio_init_int(dev->params.int1, GPIO_IN, GPIO_RISING, cb, arg)) {
-            return LIS3DH_ERROR;
-        }
+    /* Disable Pull-Up */
+    if (lis3dh_pin_sdo_sa0_mode_set(dev, LIS3DH_PULL_UP_DISCONNECT) < 0) {
+        return LIS3DH_NOCOM;
     }
 
     /* Enable all axis */
@@ -2930,10 +2920,50 @@ int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params, lis3dh_int1_cb_t c
         return LIS3DH_NOCOM;
     }
 
+    if (dev->params.int1 != GPIO_UNDEF) {
+        
+        /* Enable interrupt pin - DRDY*/
+        DEBUG("Enable interrupt pin - DRDY\n");
+        if (lis3dh_pin_int1_config_get(dev, &ctrl_reg3) < 0) {
+            return LIS3DH_NOCOM;
+        }
+        ctrl_reg3.i1_zyxda = PROPERTY_ENABLE;
+        if (lis3dh_pin_int1_config_set(dev, &ctrl_reg3) < 0) {
+            return LIS3DH_NOCOM;
+        } 
+        /* Cleaning all interrupt flags */
+        lis3dh_int1_src_t int1_src;
+        if (lis3dh_int1_gen_source_get(dev, &int1_src) < 0) {
+            return LIS3DH_NOCOM;
+        }
+        /* Enable interrupt handler */
+        DEBUG("Enable interrupt handler\n");
+        dev->arg = arg;
+        dev->cb = cb;
+        if (gpio_init_int(dev->params.int1, GPIO_IN, GPIO_RISING, cb, arg)) {
+            return LIS3DH_ERROR;
+        }
+    } else {
+        (void)cb;
+        (void)arg;
+    }
+
     /* Set Output Data Rate */
     DEBUG("Set Output Data Rate [%d]\n", dev->params.odr);
     if (lis3dh_data_rate_set(dev, dev->params.odr) < 0) {
         return LIS3DH_NOCOM;
+    }
+
+    /* Delay to start */
+    xtimer_usleep(100 * 1000);
+
+    /* discard first measurement after power-on*/
+    if (dev->params.odr != LIS3DH_POWER_DOWN) {
+        lis3dh_acceleration_t data;
+        if (lis3dh_read_xyz(dev, &data) < 0) {
+            DEBUG("Doesn't read ACC raw data (First Start)\n");
+            return LIS3DH_NOCOM;
+        }
     }
 
     return LIS3DH_OK;

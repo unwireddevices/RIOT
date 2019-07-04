@@ -279,10 +279,12 @@ ifneq (,$(filter lis3dh,$(USEMODULE)))
     FEATURES_REQUIRED += periph_gpio
     FEATURES_REQUIRED += periph_spi
     USEMODULE += lis3dh
+    USEMODULE += xtimer
   else
     FEATURES_REQUIRED += periph_gpio
     FEATURES_REQUIRED += periph_i2c
     USEMODULE += lis3dh
+    USEMODULE += xtimer
   endif
 endif
 

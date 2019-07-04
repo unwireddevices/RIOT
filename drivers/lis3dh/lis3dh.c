@@ -2950,7 +2950,7 @@ int lis3dh_read_xyz(lis3dh_t *dev, lis3dh_acceleration_t *acceleration) {
     /* Read output only if new value available */
     do {
         if (lis3dh_xl_data_ready_get(dev, &reg_da.byte) < 0) {
-            return LIS3DH_NOCOM;
+            return LIS3DH_NODATA;
         }
         DEBUG("Bit ZYXDA STATUS_REG is %d\n", reg_da.byte);
         if (reg_da.byte) {

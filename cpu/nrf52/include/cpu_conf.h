@@ -85,9 +85,13 @@ extern "C" {
  */
 static inline void nrf52_sleep(void)
 {
-    __SEV();
+    /* Set event register bit */
+    __SEV(); 
+    /* Clear the event status bit */
     __WFE();
-    __asm("nop");
+    // __asm("nop");
+    /* Go to sleep */
+    __WFE();
 }
 
 #ifdef __cplusplus

@@ -64,6 +64,8 @@ extern "C" {
 #include "unwds-common.h"
 #include "unwds-gpio.h"
 
+#include "umdk-ids.h"
+
 #include "main.h"
 #include "utils.h"
 
@@ -219,6 +221,47 @@ static void *sender_thread(void *arg) {
                 case SEMTECH_LORAMAC_JOIN_SUCCEEDED: {
                     current_join_retries = 0;
                     puts("[LoRa] successfully joined to the network");
+                    
+                    /* transmitting a packet with module data */
+                    module_data_t data = {};
+                    
+                    /* first byte */
+                    data.data[0] = UNWDS_LORAWAN_SYSTEM_MODULE_ID;
+                    data.length++;
+                    
+                    /* second byte - device class and settings */
+                    /* bits 0-1: device class */
+                    switch (unwds_get_node_settings().nodeclass) {
+                        case (LS_ED_CLASS_A):
+                            break;
+                        case (LS_ED_CLASS_B):
+                            data.data[1] = 1 << 0;
+                            break;
+                        case (LS_ED_CLASS_C):
+                            data.data[1] = 1 << 1;
+                            break;
+                        default:
+                            break;
+                    }
+                    
+                    /* bit 2: ADR */
+                    if (unwds_get_node_settings().adr) {
+                        data.data[1] |= 1 << 2;
+                    }
+                    
+                    /* bit 3: CNF */
+                    if (unwds_get_node_settings().confirmation) {
+                        data.data[1] |= 1 << 3;
+                    }
+                    
+                    /* bit 7: FPort usage for module addressing */
+                    #if !defined LORAWAN_DONT_USE_FPORT
+                    data.data[1] |= 1 << 7;
+                    #endif
+
+                    data.length++;
+
+                    unwds_callback(&data);
                     break;
                 }
                 case SEMTECH_LORAMAC_RESTRICTED:

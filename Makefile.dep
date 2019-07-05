@@ -427,6 +427,10 @@ ifneq (,$(filter shell_commands,$(USEMODULE)))
   ifneq (,$(filter fib,$(USEMODULE)))
     USEMODULE += posix
   endif
+  ifneq (,$(filter nimble_netif,$(USEMODULE)))
+    USEMODULE += nimble_scanner
+    USEMODULE += nimble_scanlist
+  endif
 endif
 
 ifneq (,$(filter posix_semaphore,$(USEMODULE)))

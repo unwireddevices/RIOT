@@ -77,4 +77,16 @@ ifneq (,$(filter periph_rtc,$(USEMODULE)))
   SRC += sc_rtc.c
 endif
 
+ifneq (,$(filter i2c_scan,$(USEMODULE)))
+  SRC += sc_i2c_scan.c
+endif
+
+ifneq (,$(filter semtech-loramac,$(USEPKG)))
+  SRC += sc_loramac.c
+endif
+
+ifneq (,$(filter nimble_netif,$(USEMODULE)))
+  SRC += sc_nimble_netif.c
+endif
+
 include $(RIOTBASE)/Makefile.base

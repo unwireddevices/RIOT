@@ -62,7 +62,7 @@ typedef enum {
 	UNWDS_MODBUS_MODULE_ID = 28,
 	UNWDS_RADIORELAY_MODULE_ID = 29,
 	UNWDS_ST95_MODULE_ID = 30,
-    /* Proprietary 50 to 99 */
+    /* Proprietary 50 to 149 */
     UNWDS_M200_MODULE_ID = 50,
     UNWDS_PULSE_MODULE_ID = 51,
     UNWDS_PACS_MODULE_ID = 52,
@@ -78,11 +78,12 @@ typedef enum {
     UNWDS_URF_MODULE_ID = 62,
     UNWDS_COW_MODULE_ID = 63,
     UNWDS_HARDCAP_ID = 64,
-    /* Customer 100 to 124 */
+    /* Customer 150 to 249 */
     UNWDS_CUSTOMER_MODULE_ID = 100,
-    /* System module 125 to 126 */
-    UNWDS_6LOWPAN_SYSTEM_MODULE_ID = 125,
-    UNWDS_CONFIG_MODULE_ID = 126,
+    /* System module 250 to 255 */
+    UNWDS_LORAWAN_SYSTEM_MODULE_ID = 253,
+    UNWDS_6LOWPAN_SYSTEM_MODULE_ID = 254,
+    UNWDS_CONFIG_MODULE_ID = 255,
 } UNWDS_MODULE_IDS_t;
 
 #endif

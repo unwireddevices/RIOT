@@ -53,13 +53,13 @@ void rtc_ovf_callback(void* arg)
 {
     (void) arg;
 
-    /* timer overflows every 2e24 * 976.5625 us = 16 384 000 000 us = ~4.55 hours */
-    time_epoch_us += 16384000000;
+    /* timer overflow */
+    time_epoch_us += RTT_TICKS_TO_US((uint64_t)RTT_MAX_VALUE + 1);
     
     DEBUG("Timer overflow\n");
     
     if ((rtc_next_timer_millis.alarm != 0) &&
-       ((rtc_next_timer_millis.alarm - time_epoch_us) <= RTT_TICKS_TO_US(RTT_MAX_VALUE))) {
+       ((rtc_next_timer_millis.alarm - time_epoch_us) <= RTT_TICKS_TO_US((uint64_t)RTT_MAX_VALUE + 1))) {
            
         uint32_t target = RTT_US_TO_TICKS(rtc_next_timer_millis.alarm - time_epoch_us);
         

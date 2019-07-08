@@ -137,17 +137,15 @@ bool unwds_send_broadcast(unwds_module_id_t modid, module_data_t *data, module_d
 
 void unwds_add_shell_command(char *name, char *desc, void* handler);
 
-uint32_t * unwds_get_enabled(void);
-void unwds_set_enabled(uint32_t *ability);
+uint8_t *unwds_get_enabled(void);
+void unwds_set_enabled(uint8_t *ability);
 
 char *unwds_get_module_name(unwds_module_id_t modid);
 
-void unwds_list_modules(uint32_t *ability, bool enabled_only);
+void unwds_list_modules(uint8_t *ability, bool enabled_only);
 
 bool unwds_is_module_exists(unwds_module_id_t modid);
 bool unwds_is_module_enabled(unwds_module_id_t modid);
-
-uint64_t unwds_get_ability_mask(unwds_module_id_t modid);
 
 int unwds_modid_by_name(char *name);
 

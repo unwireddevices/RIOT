@@ -54,6 +54,28 @@ time_t get_epoch_time(struct tm *time) {
     return 1562869547;
 }
 
+int unwired_recv(WOLFSSL *ssl, char *buf, int sz, void *ctx) {
+    (void) ssl;
+    (void) buf;
+    (void) sz;
+    (void) ctx;
+    printf("[Socket] Recv\n");
+
+    return 0;
+}
+
+int unwired_send(WOLFSSL *ssl, char *buf, int sz, void *ctx) {
+    (void) ssl;
+    (void) ctx;
+
+    printf("[Socket] Send\n");
+
+    od_hex_dump(buf, sz, OD_WIDTH_DEFAULT);
+    printf("\n");
+
+    return sz;
+}
+
 int main(void)
 {
     puts("Start Tele2Med WolfSSL");
@@ -116,6 +138,9 @@ int main(void)
         fprintf(stderr, "ERROR: failed to create WOLFSSL_CTX\n");
         exit(-1);
     }
+
+    wolfSSL_SetIORecv(ctx, unwired_recv);
+    wolfSSL_SetIOSend(ctx, unwired_send);
 
     /* Load client certificates into WOLFSSL_CTX */
     if (wolfSSL_CTX_load_verify_buffer(ctx, ca_cert_der_2048,

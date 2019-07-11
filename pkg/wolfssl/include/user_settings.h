@@ -28,6 +28,9 @@ extern "C" {
 #define WOLFSSL_SP_SMALL
 #define SP_WORD_SIZE 32
 
+#ifdef HAVE_APPLICATION_USER_SETTINGS_H
+    #include "application_user_settings.h"
+#endif
 
 #ifndef MODULE_WOLFSSL_SOCKET
 #   define WOLFSSL_GNRC

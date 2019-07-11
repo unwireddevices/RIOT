@@ -35,6 +35,8 @@ CFLAGS += -DNO_RIOT_BANNER
 CFLAGS += -DDTLS_DEFAULT_PORT=$(DTLS_PORT) -DDTLS_WOLFSSL
 
 CFLAGS += -DDEBUG_WOLFSSL
+CFLAGS += -DMODULE_WOLFCRYPT_RSA
+CFLAGS += -DHAVE_APPLICATION_USER_SETTINGS_H
 
 # FIXME: This is a temporary patch taken from the TinyDTLS example to ensure proper stack allocation
 CFLAGS += -DTHREAD_STACKSIZE_MAIN=\(3*THREAD_STACKSIZE_DEFAULT\)
@@ -48,6 +50,7 @@ QUIET ?= 1
 
 # USEPKG += wolfssl
 # USEMODULE += wolfssl_socket wolfcrypt_rsa wolfcrypt_dh
+USEMODULE += wolfcrypt_rsa
 
 include $(RIOTBASE)/Makefile.include
 

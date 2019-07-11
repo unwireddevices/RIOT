@@ -9,6 +9,10 @@
 extern "C" {
 #endif
 
+#include <time.h>
+
+extern time_t get_epoch_time(struct tm *time);
+
 #undef WOLFSSL_RIOT_OS
 #define WOLFSSL_RIOT_OS
 
@@ -35,6 +39,14 @@ extern "C" {
 
 #undef USE_CERT_BUFFERS_2048
 #define USE_CERT_BUFFERS_2048
+
+#undef WOLFSSL_HAVE_SP_RSA
+#define WOLFSSL_HAVE_SP_RSA
+
+#undef NO_ASN_TIME
+#define NO_ASN_TIME
+
+#define XTIME get_epoch_time
 
 #ifdef __cplusplus
 }

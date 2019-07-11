@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 /* socket includes */
 // #include <sys/socket.h>
@@ -48,6 +49,10 @@
 
 // #define DEFAULT_PORT 11111
 
+time_t get_epoch_time(struct tm *time) {
+    (void) time;
+    return 1562869547;
+}
 
 int main(void)
 {
@@ -60,7 +65,7 @@ int main(void)
     // char               server_ip[10] = "127.0.0.1\0";
     // size_t             len;
 
-    // /* declare wolfSSL objects */
+    /* declare wolfSSL objects */
     WOLFSSL_CTX* ctx;
     WOLFSSL*     ssl;
 
@@ -129,11 +134,11 @@ int main(void)
     /* Attach wolfSSL to the socket */
     wolfSSL_set_fd(ssl, sockfd);
 
-    // /* Connect to wolfSSL on the server side */
-    // if (wolfSSL_connect(ssl) != SSL_SUCCESS) {
-    //     fprintf(stderr, "ERROR: failed to connect to wolfSSL\n");
-    //     exit(-1);
-    // }
+    /* Connect to wolfSSL on the server side */
+    if (wolfSSL_connect(ssl) != SSL_SUCCESS) {
+        fprintf(stderr, "ERROR: failed to connect to wolfSSL\n");
+        exit(-1);
+    }
 
     // /* Get a message for the server from stdin */
     // printf("Message for server: %s\n", buff);

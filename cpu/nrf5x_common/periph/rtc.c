@@ -198,28 +198,22 @@ int rtc_set_wakeup(uint32_t period_us, rtc_wkup_cb_t cb, void *arg)
 {
     /* not implemented yet */
     rtc_acquire();
-    
-    (void) period_us;
-    (void) cb;
-    (void) arg;
-
+    rtt_periodic_task_set(period_us, (rtt_cb_t)cb, arg);
     rtc_release();
 
     return 0;
 }
 
 void rtc_enable_wakeup(void) {
-    /* not implemented yet */
     rtc_acquire();
-
+    rtt_periodic_task_start();
     rtc_release();
 }
 
 void rtc_disable_wakeup(void)
 {
-    /* not implemented yet */
     rtc_acquire();
-
+    rtt_periodic_task_stop();
     rtc_release();
 }
 

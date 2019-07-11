@@ -165,6 +165,25 @@ void rtt_poweron(void);
  */
 void rtt_poweroff(void);
 
+/**
+ * @brief Setup periodic task
+ *
+ * @param[in] period_ms     Task execution period, microseconds
+ * @param[in] cb            Callback executed when alarm is hit
+ * @param[in] arg           Argument passed to callback when alarm is hit
+ */
+void rtt_periodic_task_set(uint32_t period_us, rtt_cb_t cb, void *arg);
+
+/**
+ * @brief Start periodic task
+ */
+void rtt_periodic_task_start(void);
+
+/**
+ * @brief Stop periodic task
+ */
+void rtt_periodic_task_stop(void);
+
 #ifdef __cplusplus
 }
 #endif

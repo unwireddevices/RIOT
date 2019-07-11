@@ -45,6 +45,10 @@ static rtt_cb_t alarm_cb;
 static void *alarm_arg;
 static rtt_cb_t overflow_cb;
 static void *overflow_arg;
+static rtt_cb_t periodic_cb;
+static void *periodic_arg;
+
+static volatile uint32_t wakeup_period_us;
 
 void rtt_init(void)
 {
@@ -124,14 +128,39 @@ void rtt_poweroff(void)
 #endif
 }
 
+void rtt_periodic_task_set(uint32_t period_us, rtt_cb_t cb, void *arg) {
+    wakeup_period_us = period_us;
+    periodic_cb = cb;
+    periodic_arg = arg;
+
+    DEV->CC[1] = (RTT_US_TO_TICKS(period_us) + DEV->COUNTER) % RTT_MAX_VALUE;
+}
+
+void rtt_periodic_task_start(void) {
+    DEV->INTENSET = RTC_INTENSET_COMPARE1_Msk;
+}
+
+void rtt_periodic_task_stop(void) {
+    DEV->INTENCLR= RTC_INTENSET_COMPARE1_Msk;
+}
+
 void ISR(void)
 {
+    /* regular timer */
     if (DEV->EVENTS_COMPARE[0] == 1) {
         DEV->EVENTS_COMPARE[0] = 0;
         DEV->INTENCLR = RTC_INTENSET_COMPARE0_Msk;
         alarm_cb(alarm_arg);
     }
+    
+    /* periodic timer */
+    if (DEV->EVENTS_COMPARE[1] == 1) {
+        DEV->EVENTS_COMPARE[1] = 0;
+        DEV->CC[1] = (RTT_US_TO_TICKS(wakeup_period_us) + DEV->COUNTER) % RTT_MAX_VALUE;
+        periodic_cb(periodic_arg);
+    }
 
+    /* overflow event */
     if (DEV->EVENTS_OVRFLW == 1) {
         DEV->EVENTS_OVRFLW = 0;
         overflow_cb(overflow_arg);

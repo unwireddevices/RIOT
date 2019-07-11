@@ -43,8 +43,6 @@
 #include "debug.h"
 
 #define NFCT_ALL_INTERRUPTS 	0x001D5CFF
-#define NFCT_ENABLE_ALL_INT 	NFCT_ALL_INTERRUPTS
-#define NFCT_DISABLE_ALL_INT 	NFCT_ALL_INTERRUPTS
 
 #define NFCT_ALL_ERRORS 	0xDUL
 #define NFCT_ALL_RX_STATUS 	0xDUL
@@ -199,50 +197,12 @@ static void nfc_set_ats(uint8_t param_byte)
 
 static inline void nrf_nfc_enable_int(uint32_t interrupt)
 {   
-    if(interrupt == NFCT_ENABLE_ALL_INT) {
-        NRF_NFCT->INTENSET =    //(NFCT_INTENSET_READY_Set << NFCT_INTENSET_READY_Pos) |
-                                // (NFCT_INTENSET_FIELDDETECTED_Set << NFCT_INTENSET_FIELDDETECTED_Pos) |
-                                // (NFCT_INTENSET_FIELDLOST_Set << NFCT_INTENSET_FIELDLOST_Pos);// |
-                                // (NFCT_INTENSET_TXFRAMESTART_Set << NFCT_INTENSET_TXFRAMESTART_Pos) |
-                                // (NFCT_INTENSET_TXFRAMEEND_Set << NFCT_INTENSET_TXFRAMEEND_Pos) |
-                                // (NFCT_INTENSET_RXFRAMESTART_Set << NFCT_INTENSET_RXFRAMESTART_Pos) |
-                                // (NFCT_INTENSET_RXFRAMEEND_Set << NFCT_INTENSET_RXFRAMEEND_Pos) |
-                                (NFCT_INTENSET_ERROR_Set << NFCT_INTENSET_ERROR_Pos) |
-                                (NFCT_INTENSET_RXERROR_Set << NFCT_INTENSET_RXERROR_Pos);// |
-                                // (NFCT_INTENSET_ENDRX_Set << NFCT_INTENSET_ENDRX_Pos) |
-                                // (NFCT_INTENSET_ENDTX_Set << NFCT_INTENSET_ENDTX_Pos) |
-                                // (NFCT_INTENSET_AUTOCOLRESSTARTED_Set << NFCT_INTENSET_AUTOCOLRESSTARTED_Pos) |
-                                // (NFCT_INTENSET_COLLISION_Set << NFCT_INTENSET_COLLISION_Pos) |
-                                // (NFCT_INTENSET_SELECTED_Set << NFCT_INTENSET_SELECTED_Pos) |
-                                // (NFCT_INTENSET_STARTED_Set << NFCT_INTENSET_STARTED_Pos);
-    }
-    else {
-        NRF_NFCT->INTENSET = interrupt;
-    }
+    NRF_NFCT->INTENSET = interrupt;
 }
 
 static inline void nrf_nfc_disable_int(uint32_t interrupt)
 {   
-    if(interrupt == NFCT_ENABLE_ALL_INT) {
-        NRF_NFCT->INTENCLR =    //(NFCT_INTENCLR_READY_Clear << NFCT_INTENCLR_READY_Pos) |
-                                (NFCT_INTENCLR_FIELDDETECTED_Clear << NFCT_INTENCLR_FIELDDETECTED_Pos) |
-                                (NFCT_INTENCLR_FIELDLOST_Clear << NFCT_INTENCLR_FIELDLOST_Pos);// |
-                                // (NFCT_INTENCLR_TXFRAMESTART_Clear << NFCT_INTENCLR_TXFRAMESTART_Pos) |
-                                // (NFCT_INTENCLR_TXFRAMEEND_Clear << NFCT_INTENCLR_TXFRAMEEND_Pos) |
-                                // (NFCT_INTENCLR_RXFRAMESTART_Clear<< NFCT_INTENCLR_RXFRAMESTART_Pos) |
-                                // (NFCT_INTENCLR_RXFRAMEEND_Clear << NFCT_INTENCLR_RXFRAMEEND_Pos) |
-                                // (NFCT_INTENCLR_ERROR_Clear << NFCT_INTENCLR_ERROR_Pos);// |
-                                // (NFCT_INTENCLR_RXERROR_Clear << NFCT_INTENCLR_RXERROR_Pos) |
-                                // (NFCT_INTENCLR_ENDRX_Clear << NFCT_INTENCLR_ENDRX_Pos) |
-                                // (NFCT_INTENCLR_ENDTX_Clear << NFCT_INTENCLR_ENDTX_Pos) |
-                                // (NFCT_INTENCLR_AUTOCOLRESSTARTED_Clear << NFCT_INTENCLR_AUTOCOLRESSTARTED_Pos) |
-                                // (NFCT_INTENCLR_COLLISION_Clear << NFCT_INTENCLR_COLLISION_Pos) |
-                                // (NFCT_INTENCLR_SELECTED_Clear << NFCT_INTENCLR_SELECTED_Pos) |
-                                // (NFCT_INTENCLR_STARTED_Clear << NFCT_INTENCLR_STARTED_Pos);
-    }
-    else {
-        NRF_NFCT->INTENCLR = interrupt;
-    }
+    NRF_NFCT->INTENCLR = interrupt;
 }
 
 static inline void nrf_nfc_clear_event(volatile uint32_t * event)
@@ -302,16 +262,12 @@ void isr_nfct(void)
 {
     if(NRF_NFCT->EVENTS_FIELDDETECTED && (NRF_NFCT->INTEN & NFCT_INTEN_FIELDDETECTED_Msk)) {
         nrf_nfc_clear_event(&NRF_NFCT->EVENTS_FIELDDETECTED);
-        // nrf_nfc_disable_int(NFCT_INTENSET_FIELDDETECTED_Msk);
-        // nrf_nfc_task(&NRF_NFCT->TASKS_ACTIVATE);
         puts("\t\tEVENTS_FIELDDETECTED");
     }
     
     if(NRF_NFCT->EVENTS_FIELDLOST && (NRF_NFCT->INTEN & NFCT_INTEN_FIELDLOST_Msk)) {
         nrf_nfc_clear_event(&NRF_NFCT->EVENTS_FIELDLOST);
         puts("\t\tEVENTS_FIELDLOST\t>>>>>>>>>>>>>>");
-        // nrf_nfc_enable_int(NFCT_INTENSET_FIELDDETECTED_Msk);  
-        // nrf_nfc_task(&NRF_NFCT->TASKS_SENSE);
     }
     
     if(NRF_NFCT->EVENTS_RXFRAMEEND && (NRF_NFCT->INTEN & NFCT_INTEN_RXFRAMEEND_Msk)) {       
@@ -463,10 +419,6 @@ uint8_t nfc_send_data(uint8_t * uid, nfc_id_size_t size, nfc_type_tag_t tag_type
     clear_buffers();
     state = RATS;
     ndef_size = length;
-    printf("Size: 0x%04X [%d] bytes\n", ndef_size, length);
-    
-    printf("PTR rx: %08lX\t", (uint32_t)rx_buffer);
-    printf("PTR tx: %08lX\n", (uint32_t)tx_buffer);
         
     /*  Disable NFC peripheral */
     nrf_nfc_task(&NRF_NFCT->TASKS_DISABLE);   
@@ -496,13 +448,7 @@ uint8_t nfc_send_data(uint8_t * uid, nfc_id_size_t size, nfc_type_tag_t tag_type
 		return NRF_NFC_ERROR;
 	}
 
-    
-    // NRF_NFCT->PACKETPTR = (uint32_t)data;
-    // NRF_NFCT->MAXLEN = length;
-
-        /* Enable NFC field detect interrupt*/
-    // nrf_nfc_enable_int(NFCT_INTENSET_FIELDDETECTED_Msk); 
-    // nrf_nfc_enable_int(NFCT_INTENSET_FIELDLOST_Msk);     
+        /* Enable NFC field detect interrupt*/   
     nrf_nfc_enable_int(NFCT_INTENSET_SELECTED_Msk);
     
     /* Enable Shortcut between FIELDDETECTED event and ACTIVATE task */
@@ -600,17 +546,11 @@ void nfc_init(void)
     /* Clear RX status */   
     nrf_nfc_clear_rx_status();    
     
-    /* Enable NFCT interrupts */
     /* Enable NFC error interrupt*/
     nrf_nfc_enable_int(NFCT_INTENSET_ERROR_Msk);
-    /* Enable NFC RX frame error interrupt*/
-    // nrf_nfc_enable_int(NFCT_INTENSET_RXERROR_Msk);
             
 	/* Enable interrupts */
     NVIC_EnableIRQ(NFCT_IRQn);
-    
-	/*  Enable NFC sense field mode, change state to sense mode */
-    // nrf_nfc_task(&NRF_NFCT->TASKS_SENSE);
     
     
     /* TODO:  */

@@ -77,10 +77,11 @@ typedef enum {
     UNWDS_GARBAGE_MODULE_ID = 61,
     UNWDS_URF_MODULE_ID = 62,
     UNWDS_COW_MODULE_ID = 63,
-    UNWDS_HARDCAP_ID = 64,
-    /* Customer 100 to 124 */
+    UNWDS_HARDCAP_MODULE_ID = 64,
+    /* Customer 100 to 119 */
     UNWDS_CUSTOMER_MODULE_ID = 100,
-    /* System module 125 to 126 */
+    /* System module 120 to 126 */
+    UNWDS_LORAWAN_SYSTEM_MODULE_ID = 124,
     UNWDS_6LOWPAN_SYSTEM_MODULE_ID = 125,
     UNWDS_CONFIG_MODULE_ID = 126,
 } UNWDS_MODULE_IDS_t;

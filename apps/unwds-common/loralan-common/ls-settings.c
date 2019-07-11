@@ -107,8 +107,8 @@ void unwds_set_module(uint8_t modid, bool enable) {
     
     if (unwds_is_module_exists(modid))
     {    
-        uint8_t index = modid / 32;
-        uint32_t mask = (uint32_t) (1 << (modid % 32));
+        uint8_t index = modid / 8;
+        uint32_t mask = (uint32_t) (1 << (modid % 8));
         
         if (enable) {
             /* Enable module */

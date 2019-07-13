@@ -155,6 +155,12 @@ bool sim5300_get_operator_selection(sim5300_dev_t       *sim5300_dev,
                                     sim5300_cops_resp_t *sim5300_cops_resp);
 
 /*---------------------------------------------------------------------------*/
+/* AT+CGACT PDP Context Activate or Deactivate */
+bool sim5300_set_state_pdp_context(sim5300_dev_t *sim5300_dev,
+                                   uint8_t        state,
+                                   uint8_t        cid);
+                                    
+/*---------------------------------------------------------------------------*/
 /**
  * @brief       Communication test between microcontroller and SIM5300
  *

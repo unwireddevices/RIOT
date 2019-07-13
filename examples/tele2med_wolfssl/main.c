@@ -176,6 +176,10 @@ bool sim5300_test_driver(sim5300_dev_t *sim5300_dev) {
         rtctimers_millis_sleep(1000);
     }
     
+    if (!sim5300_set_state_pdp_context(sim5300_dev, 1, 0)) {
+        return false;
+    }
+
     return true;
 }
 

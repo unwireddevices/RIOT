@@ -464,6 +464,52 @@ bool sim5300_get_operator_selection(sim5300_dev_t       *sim5300_dev,
 }
 
 /*---------------------------------------------------------------------------*/
+/* AT+CGACT PDP Context Activate or Deactivate */
+bool sim5300_set_state_pdp_context(sim5300_dev_t *sim5300_dev,
+                                   uint8_t        state,
+                                   uint8_t        cid) {
+    /* Test NULL device */
+    if (sim5300_dev == NULL) {
+        puts("sim5300_dev = NULL");
+        return false;
+    } 
+    
+    /* Test range argument */
+    if (state > 1) {
+        printf("[SIM5300] sim5300_set_sim_inserted_status_reporting() ERROR argument: %i. (range 0-1)\n", state);
+
+        return false;
+    }
+
+    /* Create a command to send data */
+    char cmd_CGACTn[20];
+    if (cid == 0) {
+        snprintf(cmd_CGACTn, 20, "AT+CGACT=%i", state);
+    } else {
+        snprintf(cmd_CGACTn, 20, "AT+CGACT=%i,%i", state, cid); 
+    }
+    
+    /* Send AT command */
+    int res = at_send_cmd_wait_ok(&sim5300_dev->at_dev, cmd_CGACTn, 7000000); 
+
+    /* Return result */
+    if (res == 0) {
+        /* Print result  */
+        if (state == 0) {
+            puts("[SIM5300] Deactivated PDP context");
+        } else {
+            puts("[SIM5300] Activated PDP context");
+        }
+
+        return true;
+    } else {
+        puts("[SIM5300] sim5300_set_state_pdp_context() ERROR");
+
+        return false;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
 /* Communication test between microcontroller and SIM5300 */
 bool sim5300_communication_test(sim5300_dev_t *sim5300_dev) {
     /* Test NULL device */

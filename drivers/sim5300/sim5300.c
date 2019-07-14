@@ -7,9 +7,9 @@
  */
 
 /**
- * @defgroup    Iridium-9602 driver 
+ * @defgroup    SIM5300 driver 
  * @ingroup     drivers
- * @brief       Iridium-9602 driver 
+ * @brief       SIM5300 driver 
  *
  * 
  *
@@ -20,7 +20,7 @@
  *
  * @file
  *
- * @brief       Iridium-9602 driver 
+ * @brief       SIM5300 driver 
  * @author      Oleg Manchenko <man4enkoos@gmail.com>
  */
 
@@ -141,7 +141,7 @@ bool sim5300_set_sim_inserted_status_reporting(sim5300_dev_t *sim5300_dev,
 
     /* Return result */
     if (res == 0) {
-        /* Print result  */
+        /* Print result */
         if (n == 0) {
             puts("[SIM5300] Disabled showing an unsolicited event code");
         } else {
@@ -277,7 +277,7 @@ int8_t sim5300_get_reject_incoming_call(sim5300_dev_t *sim5300_dev) {
     
     /* Check return code */
     if (res <= 0) {
-        puts("[Iridium] sim5300_get_reject_incoming_call() ERROR: -2");
+        puts("[SIM5300] sim5300_get_reject_incoming_call() ERROR: -2");
 
         return -2;
     }
@@ -339,7 +339,7 @@ bool sim5300_set_reject_incoming_call(sim5300_dev_t *sim5300_dev,
 
     /* Return result */
     if (res == 0) {
-        /* Print result  */
+        /* Print result */
         if (mode == 0) {
             puts("[SIM5300] Enable incoming call");
         } else if (mode == 1) {
@@ -494,7 +494,7 @@ bool sim5300_set_state_pdp_context(sim5300_dev_t *sim5300_dev,
 
     /* Return result */
     if (res == 0) {
-        /* Print result  */
+        /* Print result */
         if (state == 0) {
             puts("[SIM5300] Deactivated PDP context");
         } else {
@@ -504,6 +504,96 @@ bool sim5300_set_state_pdp_context(sim5300_dev_t *sim5300_dev,
         return true;
     } else {
         puts("[SIM5300] sim5300_set_state_pdp_context() ERROR");
+
+        return false;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+/* AT+CIMI Request International Mobile Subscriber Identity */
+char *sim5300_get_imsi(sim5300_dev_t *sim5300_dev) {
+    /* Test NULL device */
+    if (sim5300_dev == NULL) {
+        puts("sim5300_dev = NULL");
+        return NULL;
+    } 
+
+    /* Send AT command */
+    int res = at_send_cmd_get_resp(&sim5300_dev->at_dev, "AT+CIMI", sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, SIM5300_MAX_TIMEOUT);
+    
+    /* Return result */
+    if (res > 0) {
+        printf("[SIM5300] IMSI: %s\n", sim5300_dev->at_dev_resp);
+
+        return sim5300_dev->at_dev_resp;
+    } else {
+        puts("[SIM5300] sim5300_get_imsi() ERROR");
+        return NULL;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+/* AT+CSTT Start Task and Set APN, USER NAME, PASSWORD */
+bool sim5300_set_network_settings(sim5300_dev_t *sim5300_dev,
+                                  char          *apn,
+                                  char          *user,
+                                  char          *password) {
+    /* Test NULL device */
+    if (sim5300_dev == NULL) {
+        puts("sim5300_dev = NULL");
+        return false;
+    } 
+
+    /* Test arguments */
+    if ((apn == NULL) || (user == NULL) || (password == NULL)) {
+        puts("Arguments = NULL");
+        return false;
+    } 
+
+    /* Create a command to send data */
+    char cmd_with_settings_for_internet[128];
+    snprintf(cmd_with_settings_for_internet, 128, "AT+CSTT=\"%s\",\"%s\",\"%s\"", apn, 
+                                                                                  user, 
+                                                                                  password);
+
+    /* Send AT command */
+    int res = at_send_cmd_wait_ok(&sim5300_dev->at_dev, cmd_with_settings_for_internet, SIM5300_MAX_TIMEOUT);
+
+    /* Return result */
+    if (res == 0) {
+        /* Print internet settings */
+        printf("[SIM5300] Set internet settings: APN=\"%s\", Username=\"%s\", Password=\"%s\"\n", apn, 
+                                                                                                  user, 
+                                                                                                  password);
+
+        return true;
+    } else {
+        puts("[SIM5300] sim5300_set_network_settings() ERROR");
+
+        return false;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+/* AT+CIICR Bring Up Wireless Connection with GPRS */
+bool sim5300_bring_up_wireless_connection(sim5300_dev_t *sim5300_dev) {
+    /* Test NULL device */
+    if (sim5300_dev == NULL) {
+        puts("sim5300_dev = NULL");
+        return false;
+    } 
+
+    /* Send AT command */
+    int res = at_send_cmd_wait_ok(&sim5300_dev->at_dev, "AT+CIICR", 6000000);
+
+    /* Return result */
+    if (res == 0) {
+        /* Print result */
+        puts("[SIM5300] Bring Up Wireless Connection with GPRS");
+
+        return true;
+    } else {
+        puts("[SIM5300] sim5300_bring_up_wireless_connection() ERROR");
 
         return false;
     }

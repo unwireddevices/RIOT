@@ -141,6 +141,20 @@ bool sim5300_test_driver(sim5300_dev_t *sim5300_dev) {
         return false;
     }
 
+///
+    if (!sim5300_set_network_settings(sim5300_dev, "apn", "user", "password")) {
+        return false;
+    }
+    if (!sim5300_set_network_settings(sim5300_dev, "apn", "", "password")) {
+        return false;
+    }
+    if (!sim5300_set_network_settings(sim5300_dev, NULL, "user", "password")) {
+        return false;
+    }
+///
+
+    rtctimers_millis_sleep(15000);
+
     sim5300_creg_resp_t sim5300_creg_resp;
     if (!sim5300_get_network_registration(sim5300_dev, &sim5300_creg_resp)) {
         return false;
@@ -164,19 +178,28 @@ bool sim5300_test_driver(sim5300_dev_t *sim5300_dev) {
         return false;
     }
 
-    while (1) {
-        if (!sim5300_get_network_registration(sim5300_dev, &sim5300_creg_resp)) {
-            return false;
-        }
-
-        if (!sim5300_get_operator_selection(sim5300_dev, &sim5300_cops_resp)) {
-            return false;
-        }
-
-        rtctimers_millis_sleep(1000);
+    char *imsi = sim5300_get_imsi(sim5300_dev);
+    if (imsi == NULL) {
+        return false;
     }
+
+    // while (1) {
+    //     if (!sim5300_get_network_registration(sim5300_dev, &sim5300_creg_resp)) {
+    //         return false;
+    //     }
+
+    //     if (!sim5300_get_operator_selection(sim5300_dev, &sim5300_cops_resp)) {
+    //         return false;
+    //     }
+
+    //     rtctimers_millis_sleep(1000);
+    // }
     
     if (!sim5300_set_state_pdp_context(sim5300_dev, 1, 0)) {
+        return false;
+    }
+
+    if (!sim5300_bring_up_wireless_connection(sim5300_dev)) {
         return false;
     }
 

@@ -159,7 +159,22 @@ bool sim5300_get_operator_selection(sim5300_dev_t       *sim5300_dev,
 bool sim5300_set_state_pdp_context(sim5300_dev_t *sim5300_dev,
                                    uint8_t        state,
                                    uint8_t        cid);
-                                    
+
+/*---------------------------------------------------------------------------*/
+/* AT+CIMI Request International Mobile Subscriber Identity */
+char *sim5300_get_imsi(sim5300_dev_t *sim5300_dev);
+
+/*---------------------------------------------------------------------------*/
+/* AT+CSTT Start Task and Set APN, USER NAME, PASSWORD */
+bool sim5300_set_network_settings(sim5300_dev_t *sim5300_dev,
+                                  char          *apn,
+                                  char          *user,
+                                  char          *password);
+
+/*---------------------------------------------------------------------------*/
+/* AT+CIICR Bring Up Wireless Connection with GPRS */
+bool sim5300_bring_up_wireless_connection(sim5300_dev_t *sim5300_dev);
+
 /*---------------------------------------------------------------------------*/
 /**
  * @brief       Communication test between microcontroller and SIM5300

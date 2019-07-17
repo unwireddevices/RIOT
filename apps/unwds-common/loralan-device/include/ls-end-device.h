@@ -31,7 +31,7 @@
 #ifndef UNWIRED_MODULES_LORA_STAR_INCLUDE_LS_H_
 #define UNWIRED_MODULES_LORA_STAR_INCLUDE_LS_H_
 
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 #include "ls-frame-fifo.h"
 #include "appdata-fifo.h"
@@ -164,7 +164,7 @@ typedef struct {
     msg_t device_event_queue[16];
 
     /* Timers for first and second RX windows */
-    rtctimers_millis_t rx_window1, rx_window2;
+    lptimer_t rx_window1, rx_window2;
 
     /* In second RX window, use the default settings */
     bool use_rx_window_2_settings;
@@ -191,10 +191,10 @@ typedef struct {
 	bool is_joined;
 
 	/* Join request expiration timer */
-	rtctimers_millis_t join_req_expired;
+	lptimer_t join_req_expired;
 
 	/* Confirmation timeout */
-	rtctimers_millis_t conf_ack_expired;
+	lptimer_t conf_ack_expired;
 
 	/* Last frame ID */
 	ls_frame_id_t last_fid;

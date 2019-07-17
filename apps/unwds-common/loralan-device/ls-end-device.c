@@ -78,7 +78,7 @@ static void anticollision_delay(void) {
 	unsigned int delay = random_uint32_range(1000, 8000);
 
 	DEBUG("[LoRa] random delay %d ms\n", (unsigned int) (delay));
-	rtctimers_millis_sleep(delay);
+	lptimer_sleep(delay);
 
 	DEBUG("[LoRa] delay end\n");
 }
@@ -120,12 +120,12 @@ static void open_rx_windows(ls_ed_t *ls)
     
     DEBUG("[LoRa] open_rx_windows\n");
 
-    rtctimers_millis_set_msg(&ls->_internal.rx_window1, 1000*LS_RX_DELAY1, &msg_rx1, ls->_internal.tim_thread_pid);
+    lptimer_set_msg(&ls->_internal.rx_window1, 1000*LS_RX_DELAY1, &msg_rx1, ls->_internal.tim_thread_pid);
     
     /* Open second RX windows if class A device */
     if (ls->settings.class == LS_ED_CLASS_A) {
         DEBUG("[LoRa] class A second window\n");        
-        rtctimers_millis_set_msg(&ls->_internal.rx_window2, 1000*(LS_RX_DELAY1 + LS_RX_DELAY2), &msg_rx2, ls->_internal.tim_thread_pid);
+        lptimer_set_msg(&ls->_internal.rx_window2, 1000*(LS_RX_DELAY1 + LS_RX_DELAY2), &msg_rx2, ls->_internal.tim_thread_pid);
     }
     
     enter_rx(ls);
@@ -224,8 +224,8 @@ static void close_rx_windows(ls_ed_t *ls)
     DEBUG("[LoRa] rx windows closed\n");
 
     /* Remove windows */
-    rtctimers_millis_remove(&ls->_internal.rx_window1);
-    rtctimers_millis_remove(&ls->_internal.rx_window2);
+    lptimer_remove(&ls->_internal.rx_window1);
+    lptimer_remove(&ls->_internal.rx_window2);
 
     /* Put SX127X into sleep */
     ls_ed_sleep(ls);
@@ -254,7 +254,7 @@ static bool ack_recv(ls_ed_t *ls, ls_frame_t  *frame) {
 	ls->_internal.confirmation_required = false;
 
 	/* Remove timeout timer */
-	rtctimers_millis_remove(&ls->_internal.conf_ack_expired);
+	lptimer_remove(&ls->_internal.conf_ack_expired);
 
 	/* Close RX window only if we haven't pending frames (regular app. data acknowledge received) */
 	bool close_rx_window = frame->header.type == LS_DL_ACK;
@@ -428,7 +428,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
             /* Remove timeout timer */
             DEBUG("[LoRa] remove join timeout timer\n");
-            rtctimers_millis_remove(&ls->_internal.join_req_expired);
+            lptimer_remove(&ls->_internal.join_req_expired);
 
             /* Make device joined */
             ls->_internal.is_joined = true;
@@ -493,7 +493,7 @@ static bool frame_recv(ls_ed_t *ls, ls_frame_t *frame)
 
             /* Stop rejoin timeout */
             DEBUG("[LoRa] remove join timeout timer\n");
-            rtctimers_millis_remove(&ls->_internal.join_req_expired);
+            lptimer_remove(&ls->_internal.join_req_expired);
 
 			anticollision_delay();
 
@@ -573,8 +573,8 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
 						close_rx_windows(ls);
 					}
 				} else {
-                    rtctimers_millis_remove(&ls->_internal.rx_window1);
-                    rtctimers_millis_remove(&ls->_internal.rx_window2);
+                    lptimer_remove(&ls->_internal.rx_window1);
+                    lptimer_remove(&ls->_internal.rx_window2);
                     
                     if (ls->_internal.num_reopened++ < LS_ED_RX_NUM_REOPEN) {
                         DEBUG("[LoRa] first RX window reopened\n");
@@ -749,7 +749,7 @@ static void *uq_handler(void *arg)
             f->header.fid = ls->_internal.last_fid;
 
             /* Start retransmission timer */
-            rtctimers_millis_set_msg(&ls->_internal.conf_ack_expired, 1000*LS_ACK_TIMEOUT, &msg_ack_timeout, ls->_internal.tim_thread_pid);
+            lptimer_set_msg(&ls->_internal.conf_ack_expired, 1000*LS_ACK_TIMEOUT, &msg_ack_timeout, ls->_internal.tim_thread_pid);
         }
 
         ls->state = LS_ED_TRANSMITTING;
@@ -788,7 +788,7 @@ static void *uq_handler(void *arg)
             ls->_internal.device->driver->set(ls->_internal.device, NETOPT_STATE, &state, sizeof(uint8_t));
 
             //xtimer_spin(xtimer_ticks_from_usec(delay_ms * 1000));
-            rtctimers_millis_sleep(delay_ms);
+            lptimer_sleep(delay_ms);
             if (ls->_internal.last_cad_success) {
                 DEBUG("[LoRa] channel activity detected\n");
                 
@@ -800,9 +800,9 @@ static void *uq_handler(void *arg)
                 
                 /* otherwise restart CAD after a pause */
                 if ((f->header.type == LS_UL_ACK) || (f->header.type == LS_UL_UNC_ACK)) {
-                    rtctimers_millis_sleep(500);
+                    lptimer_sleep(500);
                 } else {
-                    rtctimers_millis_sleep(3000);
+                    lptimer_sleep(3000);
                 }
                 /* xtimer_spin(xtimer_ticks_from_usec(delay_ms * 1000 * 5)); */
                 k = 0;
@@ -1136,10 +1136,10 @@ void ls_ed_unjoin(ls_ed_t *ls)
     ls->_internal.confirmation_required = false;
 
 	/* Stop timers */
-    rtctimers_millis_remove(&ls->_internal.join_req_expired);
-    rtctimers_millis_remove(&ls->_internal.conf_ack_expired);
-    rtctimers_millis_remove(&ls->_internal.rx_window1);
-    rtctimers_millis_remove(&ls->_internal.rx_window2);
+    lptimer_remove(&ls->_internal.join_req_expired);
+    lptimer_remove(&ls->_internal.conf_ack_expired);
+    lptimer_remove(&ls->_internal.rx_window1);
+    lptimer_remove(&ls->_internal.rx_window2);
 
     /* Forget network address */
     ls->_internal.dev_addr = LS_ADDR_UNDEFINED;
@@ -1188,7 +1188,7 @@ int ls_ed_join(ls_ed_t *ls)
 
     /* Launch timeout timer */
     DEBUG("[LoRa] set join timeout timer\n");
-    rtctimers_millis_set_msg(&ls->_internal.join_req_expired, 1000*LS_JOIN_TIMEOUT, &msg_join_timeout, ls->_internal.tim_thread_pid);
+    lptimer_set_msg(&ls->_internal.join_req_expired, 1000*LS_JOIN_TIMEOUT, &msg_join_timeout, ls->_internal.tim_thread_pid);
 
     return LS_OK;
 }

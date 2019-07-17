@@ -43,7 +43,7 @@ extern "C" {
 #include "byteorder.h"
 #include "periph/eeprom.h"
 
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 #include "board.h"
 #include "checksum/fletcher16.h"
 
@@ -549,7 +549,7 @@ void blink_led(gpio_t led)
     int i;
     for (i = 0; i < 4; i++) {
         gpio_toggle(led);
-        rtctimers_millis_sleep(50);
+        lptimer_sleep(50);
     }
     gpio_clear(led);
 }

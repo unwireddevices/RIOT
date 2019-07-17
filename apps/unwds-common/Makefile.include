@@ -139,7 +139,7 @@ USEMODULE += cipher_modes
 USEMODULE += random
 USEMODULE += hashes
 USEMODULE += checksum
-USEMODULE += rtctimers-millis
+USEMODULE += lptimer
 USEMODULE += periph_uart_dma_tx
 
 USEMODULE += sx127x
@@ -164,6 +164,7 @@ FEATURES_REQUIRED += periph_gpio
 FEATURES_REQUIRED += periph_i2c
 FEATURES_REQUIRED += periph_pwm
 FEATURES_REQUIRED += periph_rtc
+FEATURES_REQUIRED += periph_rtt
 FEATURES_REQUIRED += periph_spi
 FEATURES_REQUIRED += periph_eeprom
 FEATURES_REQUIRED += periph_uart

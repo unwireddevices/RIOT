@@ -52,7 +52,7 @@ extern "C" {
 #include "cpu.h"
 #include "luid.h"
 #include "xtimer.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 #include "unwds-common.h"
 #include "umdk-ids.h"
 #include "umdk-modules.h"
@@ -81,8 +81,8 @@ static uint8_t nwkskey[16] = {};
 
 static uint32_t devnonce = 0;
 
-static rtctimers_millis_t iwdg_timer;
-static rtctimers_millis_t delayed_setup_timer;
+static lptimer_t iwdg_timer;
+static lptimer_t delayed_setup_timer;
 
 /**
  * Data rates table.
@@ -545,16 +545,16 @@ static int init_update_cmd(int argc, char **argv) {
 
 static  uint32_t            connect_btn_last_press = 0;
 static  bool                board_is_off = false;
-static  rtctimers_millis_t  sys_on_off;
+static  lptimer_t           sys_on_off;
 
 static void system_on_off (void *arg) {
     if (arg) {
         gpio_clear(LED1_PIN);
         gpio_clear(LED0_PIN);
         /* stop all activity */
-        rtctimers_millis_remove_all();
+        lptimer_remove_all();
         /* restart watchdog timer */
-        rtctimers_millis_set(&iwdg_timer, 100);
+        lptimer_set(&iwdg_timer, 100);
         pm_unblock(PM_SLEEP);
         void (*board_sleep)(void) = arg;
         board_sleep();
@@ -593,7 +593,7 @@ static bool is_connect_button_pressed(void)
 }
 
 static void connect_btn_pressed (void *arg) {
-    uint32_t ms_now = rtctimers_millis_now();
+    uint32_t ms_now = lptimer_now_msec();
     
     /* debounce */
     if ((connect_btn_last_press != 0) &&
@@ -616,12 +616,12 @@ static void connect_btn_pressed (void *arg) {
             if (board_is_off) {
                 gpio_set(LED0_PIN);
                 sys_on_off.arg = NULL;
-                rtctimers_millis_set(&sys_on_off, 1000);
+                lptimer_set(&sys_on_off, 1000);
             } else {            
                 board_is_off = true;
                 gpio_set(LED1_PIN);
                 sys_on_off.arg = arg;
-                rtctimers_millis_set(&sys_on_off, 1000);
+                lptimer_set(&sys_on_off, 1000);
             }
         } else {
             /* short press */
@@ -660,7 +660,7 @@ static void iwdg_reset (void *arg) {
     (void)arg;
     
     wdg_reload();
-    rtctimers_millis_set(&iwdg_timer, 15000);
+    lptimer_set(&iwdg_timer, 15000);
     DEBUG("Watchdog reset\n");
     return;
 }
@@ -693,7 +693,7 @@ void unwds_device_init(void *unwds_callback, void *unwds_init, void *unwds_join,
     if (board_init() != 0) {        
         puts("ls: error initializing device");
         gpio_set(LED0_PIN);
-        rtctimers_millis_sleep(5000);
+        lptimer_sleep(5000);
         NVIC_SystemReset();
     }
 
@@ -725,7 +725,7 @@ void unwds_device_init(void *unwds_callback, void *unwds_init, void *unwds_join,
         /* reset IWDG timer every 15 seconds */
         /* NB: unwired-module MUST NOT need more than 3 seconds to finish its job */
         iwdg_timer.callback = iwdg_reset;
-        rtctimers_millis_set(&iwdg_timer, 15000);
+        lptimer_set(&iwdg_timer, 15000);
         
         /* IWDG period is 18 seconds minimum, 28 seconds typical */
         wdg_set_reload(28);
@@ -737,7 +737,7 @@ void unwds_device_init(void *unwds_callback, void *unwds_init, void *unwds_join,
         /* delayed startup */
         delayed_setup_timer.callback = ls_delayed_setup;
         delayed_setup_timer.arg = unwds_sleep;
-        rtctimers_millis_set(&delayed_setup_timer, 15000);
+        lptimer_set(&delayed_setup_timer, 15000);
         
         blink_led(LED0_PIN);
     }

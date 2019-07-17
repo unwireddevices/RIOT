@@ -593,47 +593,6 @@ void lptimer_remove_all(void);
 #define LPTIMER_HZ LPTIMER_HZ_BASE
 #endif
 
-#ifndef LPTIMER_SHIFT
-#if (LPTIMER_HZ == 32768ul) || (LPTIMER_HZ == 1024ul) || (LPTIMER_HZ == 1000ul)
-/* No shift necessary, the conversion is not a power of two and is handled by
- * functions in tick_conversion.h */
-#define LPTIMER_SHIFT (0)
-#elif (LPTIMER_HZ == LPTIMER_HZ_BASE)
-/**
- * @brief   lptimer prescaler value
- *
- * If the underlying hardware timer is running at a power of two multiple of
- * 15625, LPTIMER_SHIFT can be used to adjust the difference.
- *
- * For a 1 MHz hardware timer, set LPTIMER_SHIFT to 0.
- * For a 2 MHz or 500 kHz, set LPTIMER_SHIFT to 1.
- * For a 4 MHz or 250 kHz, set LPTIMER_SHIFT to 2.
- * For a 8 MHz or 125 kHz, set LPTIMER_SHIFT to 3.
- * For a 16 MHz or 62.5 kHz, set LPTIMER_SHIFT to 4.
- * and for 32 MHz, set LPTIMER_SHIFT to 5.
- *
- * The direction of the shift is handled by the macros in tick_conversion.h
- */
-#define LPTIMER_SHIFT (0)
-#elif (LPTIMER_HZ >> 1 == LPTIMER_HZ_BASE) || (LPTIMER_HZ << 1 == LPTIMER_HZ_BASE)
-#define LPTIMER_SHIFT (1)
-#elif (LPTIMER_HZ >> 2 == LPTIMER_HZ_BASE) || (LPTIMER_HZ << 2 == LPTIMER_HZ_BASE)
-#define LPTIMER_SHIFT (2)
-#elif (LPTIMER_HZ >> 3 == LPTIMER_HZ_BASE) || (LPTIMER_HZ << 3 == LPTIMER_HZ_BASE)
-#define LPTIMER_SHIFT (3)
-#elif (LPTIMER_HZ >> 4 == LPTIMER_HZ_BASE) || (LPTIMER_HZ << 4 == LPTIMER_HZ_BASE)
-#define LPTIMER_SHIFT (4)
-#elif (LPTIMER_HZ >> 5 == LPTIMER_HZ_BASE) || (LPTIMER_HZ << 5 == LPTIMER_HZ_BASE)
-#define LPTIMER_SHIFT (5)
-#elif (LPTIMER_HZ >> 6 == LPTIMER_HZ_BASE) || (LPTIMER_HZ << 6 == LPTIMER_HZ_BASE)
-#define LPTIMER_SHIFT (6)
-#else
-#error "LPTIMER_SHIFT cannot be derived for given LPTIMER_HZ, verify settings!"
-#endif
-#else
-#error "LPTIMER_SHIFT is set relative to LPTIMER_HZ, no manual define required!"
-#endif
-
 #include "lptimer/tick_conversion.h"
 
 #include "lptimer/implementation.h"

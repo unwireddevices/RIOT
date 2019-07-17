@@ -204,8 +204,8 @@ void sx127x_set_sleep(sx127x_t *dev)
     DEBUG("[sx127x] Set sleep\n");
 
     /* Disable running timers */
-    rtctimers_millis_remove(&dev->_internal.tx_timeout_timer);
-    rtctimers_millis_remove(&dev->_internal.rx_timeout_timer);
+    lptimer_remove(&dev->_internal.tx_timeout_timer);
+    lptimer_remove(&dev->_internal.rx_timeout_timer);
 
     /* Put chip into sleep */
     sx127x_set_op_mode(dev, SX127X_RF_OPMODE_SLEEP);
@@ -217,8 +217,8 @@ void sx127x_set_standby(sx127x_t *dev)
     DEBUG("[sx127x] Set standby\n");
 
     /* Disable running timers */
-    rtctimers_millis_remove(&dev->_internal.tx_timeout_timer);
-    rtctimers_millis_remove(&dev->_internal.rx_timeout_timer);
+    lptimer_remove(&dev->_internal.tx_timeout_timer);
+    lptimer_remove(&dev->_internal.rx_timeout_timer);
 
     sx127x_set_op_mode(dev, SX127X_RF_OPMODE_STANDBY);
     sx127x_set_state(dev,  SX127X_RF_IDLE);
@@ -321,7 +321,7 @@ void sx127x_set_rx(sx127x_t *dev)
 
     sx127x_set_state(dev, SX127X_RF_RX_RUNNING);
     if (dev->settings.lora.rx_timeout != 0) {
-        rtctimers_millis_set(&(dev->_internal.rx_timeout_timer),
+        lptimer_set(&(dev->_internal.rx_timeout_timer),
                    dev->settings.lora.rx_timeout);
     }
 
@@ -385,7 +385,7 @@ void sx127x_set_tx(sx127x_t *dev)
 
     sx127x_set_state(dev, SX127X_RF_TX_RUNNING);
     if (dev->settings.lora.tx_timeout != 0) {
-        rtctimers_millis_set(&(dev->_internal.tx_timeout_timer),
+        lptimer_set(&(dev->_internal.tx_timeout_timer),
                    dev->settings.lora.tx_timeout);
     }
     sx127x_set_op_mode(dev, SX127X_RF_OPMODE_TRANSMITTER );

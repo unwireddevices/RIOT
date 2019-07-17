@@ -502,8 +502,8 @@ ifneq (,$(filter sx127%,$(USEMODULE)))
   FEATURES_REQUIRED += periph_gpio
   FEATURES_REQUIRED += periph_gpio_irq
   FEATURES_REQUIRED += periph_spi
-  FEATURES_REQUIRED += periph_rtc
-  USEMODULE += rtctimers-millis
+  FEATURES_REQUIRED += periph_rtt
+  USEMODULE += lptimer
   USEMODULE += iolist
   USEMODULE += xtimer
   USEMODULE += sx127x

@@ -57,7 +57,7 @@ extern "C" {
 #include "umdk-fdc1004.h"
 
 #include "thread.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 static fdc1004_t dev;
 
@@ -66,7 +66,7 @@ static uwnds_cb_t *callback;
 static kernel_pid_t timer_pid;
 
 static msg_t timer_msg = {};
-static rtctimers_millis_t timer;
+static lptimer_t timer;
 
 static bool is_polled = false;
 
@@ -121,7 +121,7 @@ static void *timer_thread(void *arg) {
         callback(&data);
 
         /* Restart after delay */
-        rtctimers_millis_set_msg(&timer, 60000 * fdc1004_config.publish_period_min, &timer_msg, timer_pid);
+        lptimer_set_msg(&timer, 60000 * fdc1004_config.publish_period_min, &timer_msg, timer_pid);
     }
 
     return NULL;
@@ -149,14 +149,14 @@ static inline void save_config(void) {
 }
 
 static void set_period (int period) {
-    rtctimers_millis_remove(&timer);
+    lptimer_remove(&timer);
 
     fdc1004_config.publish_period_min = period;
 	save_config();
 
 	/* Don't restart timer if new period is zero */
 	if (fdc1004_config.publish_period_min) {
-        rtctimers_millis_set_msg(&timer, 60000 * fdc1004_config.publish_period_min, &timer_msg, timer_pid);
+        lptimer_set_msg(&timer, 60000 * fdc1004_config.publish_period_min, &timer_msg, timer_pid);
 		printf("[umdk-" _UMDK_NAME_ "] Period set to %d minute (s)\n", fdc1004_config.publish_period_min);
     } else {
         puts("[umdk-" _UMDK_NAME_ "] Timer stopped");
@@ -219,7 +219,7 @@ void umdk_fdc1004_init(uwnds_cb_t *event_callback) {
 	timer_pid = thread_create(stack, UMDK_FDC1004_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "fdc1004 thread");
 
     /* Start publishing timer */
-	rtctimers_millis_set_msg(&timer, 60000 * fdc1004_config.publish_period_min, &timer_msg, timer_pid);
+	lptimer_set_msg(&timer, 60000 * fdc1004_config.publish_period_min, &timer_msg, timer_pid);
 }
 
 static void reply_fail(module_data_t *reply) {

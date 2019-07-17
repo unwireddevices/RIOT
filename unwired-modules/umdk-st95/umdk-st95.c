@@ -56,7 +56,7 @@ extern "C" {
 #include "include/umdk-st95.h"
 
 #include "thread.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 #define ENABLE_DEBUG (1)
 #include "debug.h"
@@ -137,7 +137,7 @@ static void *radio_send(void *arg)
                                 printf("Data: ");
                                 PRINTBUFF(buff_data, sizeof(buff_data));
                             }
-                        rtctimers_millis_sleep(UMDK_ST95_DELAY_DETECT_MS);
+                        lptimer_sleep(UMDK_ST95_DELAY_DETECT_MS);
                         st95_sleep(&dev);
                         }
                         else {
@@ -168,7 +168,7 @@ static void *radio_send(void *arg)
                 callback(&data);
                 
                 if(mode == UMDK_ST95_MODE_DETECT_TAG) {
-                    rtctimers_millis_sleep(UMDK_ST95_DELAY_DETECT_MS);
+                    lptimer_sleep(UMDK_ST95_DELAY_DETECT_MS);
                     st95_sleep(&dev);
                 }
                 status = UMDK_ST95_STATUS_READY;

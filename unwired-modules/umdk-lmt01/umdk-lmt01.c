@@ -56,7 +56,7 @@ extern "C" {
 
 #include "thread.h"
 #include "xtimer.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 static gpio_t en_pins[UMDK_LMT01_MAX_SENSOR_COUNT] = UMDK_LMT01_SENSOR_EN_PINS;
 static lmt01_t sensors[UMDK_LMT01_MAX_SENSOR_COUNT];
@@ -66,7 +66,7 @@ static uwnds_cb_t *callback;
 static kernel_pid_t timer_pid;
 
 static msg_t timer_msg = {};
-static rtctimers_millis_t timer;
+static lptimer_t timer;
 
 static bool is_polled = false;
 
@@ -124,7 +124,7 @@ static void prepare_result(module_data_t *data) {
 		}
 
 		/* Delay between sensor switching */
-        rtctimers_millis_sleep(UMDK_LMT01_SWITCHING_DELAY_MS);
+        lptimer_sleep(UMDK_LMT01_SWITCHING_DELAY_MS);
 	}
 
     if (data) {
@@ -156,7 +156,7 @@ static void *timer_thread(void *arg) {
         callback(&data);
 
         /* Restart after delay */
-        rtctimers_millis_set_msg(&timer, 60000 * lmt01_config.publish_period_min, &timer_msg, timer_pid);
+        lptimer_set_msg(&timer, 60000 * lmt01_config.publish_period_min, &timer_msg, timer_pid);
     }
     
     return NULL;
@@ -179,12 +179,12 @@ static inline void save_config(void) {
 }
 
 static void set_period (int period) {
-    rtctimers_millis_remove(&timer);
+    lptimer_remove(&timer);
 	lmt01_config.publish_period_min = period;
 
 	/* Don't restart timer if new period is zero */
 	if (lmt01_config.publish_period_min) {
-		rtctimers_millis_set_msg(&timer, 60000 * lmt01_config.publish_period_min, &timer_msg, timer_pid);
+		lptimer_set_msg(&timer, 60000 * lmt01_config.publish_period_min, &timer_msg, timer_pid);
 		printf("[umdk-" _UMDK_NAME_ "] Period set to %d minutes\n", lmt01_config.publish_period_min);
 	} else {
 		puts("[umdk-" _UMDK_NAME_ "] Timer stopped");
@@ -244,7 +244,7 @@ void umdk_lmt01_init(uwnds_cb_t *event_callback) {
 	timer_pid = thread_create(stack, UMDK_LMT01_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "lmt01 thread");
 
     /* Start publishing timer */
-	rtctimers_millis_set_msg(&timer, 60000 * lmt01_config.publish_period_min, &timer_msg, timer_pid);
+	lptimer_set_msg(&timer, 60000 * lmt01_config.publish_period_min, &timer_msg, timer_pid);
 }
 
 static void reply_fail(module_data_t *reply) {

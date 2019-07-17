@@ -67,7 +67,7 @@ extern "C" {
 #include "umdk-inclinometer.h"
 
 #include "thread.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 #define RADIAN_TO_DEGREE_MILLIS 57296
 
@@ -91,8 +91,8 @@ typedef enum {
 static msg_t timer_msg = { .type = INCLINOMETER_NORMAL_MESSAGE };
 static msg_t alarm_msg = { .type = INCLINOMETER_ALARM_MESSAGE };
 static msg_t measure_msg = {};
-static rtctimers_millis_t timer;
-static rtctimers_millis_t measure_timer;
+static lptimer_t timer;
+static lptimer_t measure_timer;
 
 static bool is_polled = false;
 
@@ -223,7 +223,7 @@ static void *measure_thread(void *arg) {
         
         if (active_sensors & UMDK_INCLINOMETER_ADXL345) {
             adxl345_set_measure(&dev_adxl345);
-            rtctimers_millis_sleep(12);
+            lptimer_sleep(12);
             adxl345_data_t adxl345_data;
             adxl345_read(&dev_adxl345, &adxl345_data);
             adxl345_set_standby(&dev_adxl345);
@@ -298,7 +298,7 @@ static void *measure_thread(void *arg) {
         printf("Phi: %s [ %s - %s ]\n", acc[0], acc[1], acc[2]);
         
         /* Restart after delay */
-        rtctimers_millis_set_msg(&measure_timer, 1000 * inclinometer_config.rate, &measure_msg, measure_pid);
+        lptimer_set_msg(&measure_timer, 1000 * inclinometer_config.rate, &measure_msg, measure_pid);
     }
 
     return NULL;
@@ -385,10 +385,10 @@ static void *publish_thread(void *arg) {
         phi.max = INT_MIN;
         phi.min = INT_MAX;
         
-        last_publish_time = rtctimers_millis_now();
+        last_publish_time = lptimer_now();
         
         /* Restart after delay */
-        rtctimers_millis_set_msg(&timer, 1000 * inclinometer_config.publish_period_sec, &timer_msg, timer_pid);
+        lptimer_set_msg(&timer, 1000 * inclinometer_config.publish_period_sec, &timer_msg, timer_pid);
     }
 
     return NULL;
@@ -419,17 +419,17 @@ static inline void save_config(void) {
 }
 
 static void set_period (int period) {
-    rtctimers_millis_remove(&timer);
+    lptimer_remove(&timer);
 
     inclinometer_config.publish_period_sec = period;
 	save_config();
 
 	/* Don't restart timer if new period is zero */
 	if (inclinometer_config.publish_period_sec) {
-        rtctimers_millis_set_msg(&timer, 1000 * inclinometer_config.publish_period_sec, &timer_msg, timer_pid);
+        lptimer_set_msg(&timer, 1000 * inclinometer_config.publish_period_sec, &timer_msg, timer_pid);
 		printf("[umdk-" _UMDK_NAME_ "] Period set to %d sec\n", inclinometer_config.publish_period_sec);
     } else {
-        rtctimers_millis_remove(&timer);
+        lptimer_remove(&timer);
         puts("[umdk-" _UMDK_NAME_ "] Timer stopped");
     }
 }
@@ -439,10 +439,10 @@ static void set_rate (int rate) {
 	save_config();
     
     if (inclinometer_config.rate) {
-        rtctimers_millis_set_msg(&measure_timer, 1000 * inclinometer_config.rate, &measure_msg, measure_pid);
+        lptimer_set_msg(&measure_timer, 1000 * inclinometer_config.rate, &measure_msg, measure_pid);
 		printf("[umdk-" _UMDK_NAME_ "] Rate set to %d sec\n", inclinometer_config.rate);
     } else {
-        rtctimers_millis_remove(&measure_timer);
+        lptimer_remove(&measure_timer);
         puts("[umdk-" _UMDK_NAME_ "] Timer stopped");
     }
 }
@@ -528,7 +528,7 @@ void umdk_inclinometer_init(uwnds_cb_t *event_callback) {
     measure_pid = thread_create(stack_measure, UMDK_INCLINOMETER_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, measure_thread, NULL, "inc meas");
 
     /* Start measuring timer */
-    rtctimers_millis_set_msg(&measure_timer, 1000 * inclinometer_config.rate, &measure_msg, measure_pid);
+    lptimer_set_msg(&measure_timer, 1000 * inclinometer_config.rate, &measure_msg, measure_pid);
 
     /* Create handler thread */
 	char *stack = (char *) allocate_stack(UMDK_INCLINOMETER_STACK_SIZE);
@@ -539,7 +539,7 @@ void umdk_inclinometer_init(uwnds_cb_t *event_callback) {
     timer_pid = thread_create(stack, UMDK_INCLINOMETER_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, publish_thread, NULL, "inc pub");
   
     /* Start publishing timer */
-	rtctimers_millis_set_msg(&timer, 1000 * inclinometer_config.publish_period_sec, &timer_msg, timer_pid);
+	lptimer_set_msg(&timer, 1000 * inclinometer_config.publish_period_sec, &timer_msg, timer_pid);
     
     unwds_add_shell_command( _UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_inclinometer_shell_cmd);
 }

@@ -59,7 +59,7 @@ extern "C" {
 #include "umdk-parking.h"
 
 #include "thread.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 static lis3mdl_t dev;
 
@@ -69,8 +69,8 @@ static kernel_pid_t timer_pid;
 
 static msg_t send_msg = { .content.value = 0 };
 static msg_t detect_msg = { .content.value = 1 };
-static rtctimers_millis_t timer_send;
-static rtctimers_millis_t timer_detect;
+static lptimer_t timer_send;
+static lptimer_t timer_detect;
 
 static bool is_polled = false;
 
@@ -201,7 +201,7 @@ static void *timer_thread(void *arg) {
             case 0:
                 puts("[umdk-" _UMDK_NAME_ "] Sending data on timer");
                 callback(&data);
-                rtctimers_millis_set_msg(&timer_send, 1000 * parking_config.publish_period_sec, &send_msg, timer_pid);
+                lptimer_set_msg(&timer_send, 1000 * parking_config.publish_period_sec, &send_msg, timer_pid);
             break;
             case 1:
                 if ((data.data[2] == 1) && (!vehicle_detected)) {
@@ -216,7 +216,7 @@ static void *timer_thread(void *arg) {
                     callback(&data);
                     vehicle_detected = false;
                 }
-                rtctimers_millis_set_msg(&timer_detect, 1000 * parking_config.rate, &detect_msg, timer_pid);
+                lptimer_set_msg(&timer_detect, 1000 * parking_config.rate, &detect_msg, timer_pid);
                 break;
             default:
                 break;
@@ -251,14 +251,14 @@ static inline void save_config(void) {
 }
 
 static void set_period (int period) {
-    rtctimers_millis_remove(&timer_send);
+    lptimer_remove(&timer_send);
 
     parking_config.publish_period_sec = period;
 	save_config();
 
 	/* Don't restart timer if new period is zero */
 	if (parking_config.publish_period_sec) {
-        rtctimers_millis_set_msg(&timer_send, 1000 * parking_config.publish_period_sec, &send_msg, timer_pid);
+        lptimer_set_msg(&timer_send, 1000 * parking_config.publish_period_sec, &send_msg, timer_pid);
 		printf("[umdk-" _UMDK_NAME_ "] Period set to %d sec\n", parking_config.publish_period_sec);
     } else {
         puts("[umdk-" _UMDK_NAME_ "] Timer stopped");
@@ -286,8 +286,8 @@ static void set_rate (int rate) {
     parking_config.rate = rate;
 	save_config();
     
-    rtctimers_millis_remove(&timer_detect);
-    rtctimers_millis_set_msg(&timer_detect, 1000 * parking_config.rate, &detect_msg, timer_pid);
+    lptimer_remove(&timer_detect);
+    lptimer_set_msg(&timer_detect, 1000 * parking_config.rate, &detect_msg, timer_pid);
 }
 
 static void set_threshold (int threshold) {
@@ -364,10 +364,10 @@ void umdk_parking_init(uwnds_cb_t *event_callback) {
 	timer_pid = thread_create(stack, UMDK_PARKING_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "parking thread");
 
     /* Start publishing timer */
-	rtctimers_millis_set_msg(&timer_send, 1000 * parking_config.publish_period_sec, &send_msg, timer_pid);
+	lptimer_set_msg(&timer_send, 1000 * parking_config.publish_period_sec, &send_msg, timer_pid);
     
     /* Start measurement timer */
-    rtctimers_millis_set_msg(&timer_detect, 1000 * parking_config.rate, &detect_msg, timer_pid);
+    lptimer_set_msg(&timer_detect, 1000 * parking_config.rate, &detect_msg, timer_pid);
     
     printf("[umdk-" _UMDK_NAME_ "] Publish period: %d sec\n", parking_config.publish_period_sec);
     printf("[umdk-" _UMDK_NAME_ "] Measurement period: %d sec\n", parking_config.rate);

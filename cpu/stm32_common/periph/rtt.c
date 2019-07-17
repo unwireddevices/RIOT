@@ -182,4 +182,52 @@ void isr_lptim1(void)
     cortexm_isr_end();
 }
 
-#endif /* LPTIM1 */
+#else /* no LPTIM1, RTC emulation */
+#include "periph/rtc.h"
+
+void rtt_init(void) {
+    rtc_init();
+}
+
+uint32_t rtt_get_counter(void)
+{
+    uint32_t counter;
+    rtc_millis_get_time(&counter);
+    return counter;
+}
+
+void rtt_set_overflow_cb(rtt_cb_t cb, void *arg)
+{
+    (void)cb;
+    (void)arg;
+    /* not implemented yet */
+}
+
+void rtt_clear_overflow_cb(void)
+{
+    /* not implemented yet */
+}
+
+void rtt_set_alarm(uint32_t alarm, rtt_cb_t cb, void *arg)
+{
+    printf("ALARM: %lu\n", alarm);
+    rtc_millis_set_alarm(alarm, cb, arg);
+}
+
+void rtt_clear_alarm(void)
+{
+    rtc_millis_clear_alarm();
+}
+
+void rtt_poweron(void)
+{
+    /* do nothing */
+}
+
+void rtt_poweroff(void)
+{
+    /* do nothing */
+}
+
+
+#endif

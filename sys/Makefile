@@ -67,6 +67,9 @@ endif
 ifneq (,$(filter log_%,$(USEMODULE)))
   DIRS += log
 endif
+ifneq (,$(filter lptimer,$(USEMODULE)))
+  DIRS += lptimer
+endif
 ifneq (,$(filter xtimer,$(USEMODULE)))
   DIRS += xtimer
 endif

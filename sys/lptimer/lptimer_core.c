@@ -573,3 +573,18 @@ overflow:
     /* set low level timer */
     _lltimer_set(next_target);
 }
+
+void lptimer_remove_all(void)
+{
+    while (timer_list_head) {
+        timer_list_head = timer_list_head->next;
+    }
+    
+    while (overflow_list_head) {
+        overflow_list_head = overflow_list_head->next;
+    }
+    
+    while (long_list_head) {
+        long_list_head = long_list_head->next;
+    }
+}

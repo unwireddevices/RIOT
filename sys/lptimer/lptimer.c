@@ -187,10 +187,10 @@ void _lptimer_set_wakeup64(lptimer_t *timer, uint64_t offset, kernel_pid_t pid)
 
 void lptimer_now_timex(timex_t *out)
 {
-    uint64_t now = lptimer_usec_from_ticks64(lptimer_now64());
+    uint64_t now = lptimer_msec_from_ticks64(lptimer_now64());
 
-    out->seconds = div_u64_by_1000000(now);
-    out->microseconds = now - (out->seconds * US_PER_SEC);
+    out->seconds = now/1000;
+    out->microseconds = 1000*(now - (out->seconds * MS_PER_SEC));
 }
 
 /* Prepares the message to trigger the timeout.

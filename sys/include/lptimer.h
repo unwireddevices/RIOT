@@ -103,18 +103,18 @@ static inline lptimer_ticks64_t lptimer_now64(void);
 void lptimer_now_timex(timex_t *out);
 
 /**
- * @brief get the current system time in microseconds since start
+ * @brief get the current system time in milliseconds since start
  *
- * This is a convenience function for @c lptimer_usec_from_ticks(lptimer_now())
+ * This is a convenience function for @c lptimer_msec_from_ticks(lptimer_now())
  */
-static inline uint32_t lptimer_now_usec(void);
+static inline uint32_t lptimer_now_msec(void);
 
 /**
- * @brief get the current system time in microseconds since start
+ * @brief get the current system time in milliseconds since start
  *
- * This is a convenience function for @c lptimer_usec_from_ticks64(lptimer_now64())
+ * This is a convenience function for @c lptimer_msec_from_ticks64(lptimer_now64())
  */
-static inline uint64_t lptimer_now_usec64(void);
+static inline uint64_t lptimer_now_msec64(void);
 
 /**
  * @brief lptimer initialization function
@@ -145,19 +145,6 @@ static inline void lptimer_sleep(uint32_t seconds);
  * @param[in] microseconds  the amount of microseconds the thread should sleep
  */
 static inline void lptimer_usleep(uint32_t microseconds);
-
-/**
- * @brief Stop execution of a thread for some time
- *
- * Don't expect nanosecond accuracy. As of now, this function just calls
- * lptimer_usleep(nanoseconds/1000).
- *
- * When called from an ISR, this function will spin-block, so only use it there
- * for *very* short periods.
- *
- * @param[in] nanoseconds   the amount of nanoseconds the thread should sleep
- */
-static inline void lptimer_nanosleep(uint32_t nanoseconds);
 
 /**
  * @brief Stop execution of a thread for some time, 32bit version
@@ -299,8 +286,8 @@ static inline void lptimer_set(lptimer_t *timer, uint32_t offset);
  *
  * Expects timer->callback to be set.
  *
- * The callback specified in the timer struct will be executed @p offset_usec
- * microseconds in the future.
+ * The callback specified in the timer struct will be executed @p offset_ms
+ * milliseconds in the future.
  *
  * @warning BEWARE! Callbacks from lptimer_set() are being executed in interrupt
  * context (unless offset < LPTIMER_BACKOFF). DON'T USE THIS FUNCTION unless you
@@ -309,10 +296,10 @@ static inline void lptimer_set(lptimer_t *timer, uint32_t offset);
  * @param[in] timer       the timer structure to use.
  *                        Its lptimer_t::target and lptimer_t::long_target
  *                        fields need to be initialized with 0 on first use
- * @param[in] offset_us   time in microseconds from now specifying that timer's
+ * @param[in] offset_us   time in milliseconds from now specifying that timer's
  *                        callback's execution time
  */
-static inline void lptimer_set64(lptimer_t *timer, uint64_t offset_us);
+static inline void lptimer_set64(lptimer_t *timer, uint64_t offset_ms);
 
 /**
  * @brief remove a timer
@@ -346,40 +333,40 @@ static inline int lptimer_msg_receive_timeout(msg_t *msg, uint32_t timeout);
 static inline int lptimer_msg_receive_timeout64(msg_t *msg, uint64_t timeout);
 
 /**
- * @brief Convert microseconds to lptimer ticks
+ * @brief Convert milliseconds to lptimer ticks
  *
- * @param[in] usec  microseconds
- *
- * @return lptimer time stamp
- */
-static inline lptimer_ticks32_t lptimer_ticks_from_usec(uint32_t usec);
-
-/**
- * @brief Convert microseconds to lptimer ticks, 64 bit version
- *
- * @param[in] usec  microseconds
+ * @param[in] msec  microseconds
  *
  * @return lptimer time stamp
  */
-static inline lptimer_ticks64_t lptimer_ticks_from_usec64(uint64_t usec);
+static inline lptimer_ticks32_t lptimer_ticks_from_msec(uint32_t msec);
 
 /**
- * @brief Convert lptimer ticks to microseconds
+ * @brief Convert milliseconds to lptimer ticks, 64 bit version
+ *
+ * @param[in] msec  microseconds
+ *
+ * @return lptimer time stamp
+ */
+static inline lptimer_ticks64_t lptimer_ticks_from_msec64(uint64_t msec);
+
+/**
+ * @brief Convert lptimer ticks to milliseconds
  *
  * @param[in] ticks  lptimer time stamp
  *
  * @return microseconds
  */
-static inline uint32_t lptimer_usec_from_ticks(lptimer_ticks32_t ticks);
+static inline uint32_t lptimer_msec_from_ticks(lptimer_ticks32_t ticks);
 
 /**
- * @brief Convert lptimer ticks to microseconds, 64 bit version
+ * @brief Convert lptimer ticks to milliseconds, 64 bit version
  *
  * @param[in] ticks  lptimer time stamp
  *
  * @return microseconds
  */
-static inline uint64_t lptimer_usec_from_ticks64(lptimer_ticks64_t ticks);
+static inline uint64_t lptimer_msec_from_ticks64(lptimer_ticks64_t ticks);
 
 /**
  * @brief Create an lptimer time stamp
@@ -466,12 +453,17 @@ int lptimer_mutex_lock_timeout(mutex_t *mutex, uint64_t us);
  * @brief    Set timeout thread flag after @p timeout
  *
  * This function will set THREAD_FLAG_TIMEOUT on the current thread after @p
- * timeout usec have passed.
+ * timeout msec have passed.
  *
  * @param[in]   t       timer struct to use
- * @param[in]   timeout timeout in usec
+ * @param[in]   timeout timeout in msec
  */
 void lptimer_set_timeout_flag(lptimer_t *t, uint32_t timeout);
+
+/**
+ * @brief Removes all timers
+ */
+void lptimer_remove_all(void);
 
 /**
  * @brief lptimer backoff value

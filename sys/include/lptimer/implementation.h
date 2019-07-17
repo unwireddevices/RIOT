@@ -103,7 +103,7 @@ void _lptimer_tsleep(uint32_t offset, uint32_t long_offset);
 /**
  * @brief Minimal value lptimer_spin() can spin
  */
-#define LPTIMER_MIN_SPIN _lptimer_usec_from_ticks(1)
+#define LPTIMER_MIN_SPIN _lptimer_msec_from_ticks(1)
 #endif
 
 #ifndef DOXYGEN
@@ -143,14 +143,14 @@ static inline lptimer_ticks64_t lptimer_now64(void)
     return ret;
 }
 
-static inline uint32_t lptimer_now_usec(void)
+static inline uint32_t lptimer_now_msec(void)
 {
-    return lptimer_usec_from_ticks(lptimer_now());
+    return lptimer_msec_from_ticks(lptimer_now());
 }
 
-static inline uint64_t lptimer_now_usec64(void)
+static inline uint64_t lptimer_now_msec64(void)
 {
-    return lptimer_usec_from_ticks64(lptimer_now64());
+    return lptimer_msec_from_ticks64(lptimer_now64());
 }
 
 static inline void _lptimer_spin(uint32_t offset) {
@@ -179,22 +179,17 @@ static inline void lptimer_spin(lptimer_ticks32_t ticks) {
 
 static inline void lptimer_usleep(uint32_t microseconds)
 {
-    _lptimer_tsleep32(_lptimer_ticks_from_usec(microseconds));
+    _lptimer_tsleep32(_lptimer_ticks_from_msec(microseconds));
 }
 
 static inline void lptimer_usleep64(uint64_t microseconds)
 {
-    _lptimer_tsleep64(_lptimer_ticks_from_usec64(microseconds));
+    _lptimer_tsleep64(_lptimer_ticks_from_msec64(microseconds));
 }
 
 static inline void lptimer_sleep(uint32_t seconds)
 {
-    _lptimer_tsleep64(_lptimer_ticks_from_usec64((uint64_t)seconds * US_PER_SEC));
-}
-
-static inline void lptimer_nanosleep(uint32_t nanoseconds)
-{
-    _lptimer_tsleep32(_lptimer_ticks_from_usec(nanoseconds / NS_PER_US));
+    _lptimer_tsleep64(_lptimer_ticks_from_msec64((uint64_t)seconds * MS_PER_SEC));
 }
 
 static inline void lptimer_tsleep32(lptimer_ticks32_t ticks)
@@ -209,72 +204,72 @@ static inline void lptimer_tsleep64(lptimer_ticks64_t ticks)
 
 static inline void lptimer_periodic_wakeup(lptimer_ticks32_t *last_wakeup, uint32_t period)
 {
-    _lptimer_periodic_wakeup(&last_wakeup->ticks32, _lptimer_ticks_from_usec(period));
+    _lptimer_periodic_wakeup(&last_wakeup->ticks32, _lptimer_ticks_from_msec(period));
 }
 
 static inline void lptimer_set_msg(lptimer_t *timer, uint32_t offset, msg_t *msg, kernel_pid_t target_pid)
 {
-    _lptimer_set_msg(timer, _lptimer_ticks_from_usec(offset), msg, target_pid);
+    _lptimer_set_msg(timer, _lptimer_ticks_from_msec(offset), msg, target_pid);
 }
 
 static inline void lptimer_set_msg64(lptimer_t *timer, uint64_t offset, msg_t *msg, kernel_pid_t target_pid)
 {
-    _lptimer_set_msg64(timer, _lptimer_ticks_from_usec64(offset), msg, target_pid);
+    _lptimer_set_msg64(timer, _lptimer_ticks_from_msec64(offset), msg, target_pid);
 }
 
 static inline void lptimer_set_wakeup(lptimer_t *timer, uint32_t offset, kernel_pid_t pid)
 {
-    _lptimer_set_wakeup(timer, _lptimer_ticks_from_usec(offset), pid);
+    _lptimer_set_wakeup(timer, _lptimer_ticks_from_msec(offset), pid);
 }
 
 static inline void lptimer_set_wakeup64(lptimer_t *timer, uint64_t offset, kernel_pid_t pid)
 {
-    _lptimer_set_wakeup64(timer, _lptimer_ticks_from_usec64(offset), pid);
+    _lptimer_set_wakeup64(timer, _lptimer_ticks_from_msec64(offset), pid);
 }
 
 static inline void lptimer_set(lptimer_t *timer, uint32_t offset)
 {
-    _lptimer_set(timer, _lptimer_ticks_from_usec(offset));
+    _lptimer_set(timer, _lptimer_ticks_from_msec(offset));
 }
 
 static inline void lptimer_set64(lptimer_t *timer, uint64_t period_us)
 {
-    uint64_t ticks = _lptimer_ticks_from_usec64(period_us);
+    uint64_t ticks = _lptimer_ticks_from_msec64(period_us);
     _lptimer_set64(timer, ticks, ticks >> 32);
 }
 
 static inline int lptimer_msg_receive_timeout(msg_t *msg, uint32_t timeout)
 {
-    return _lptimer_msg_receive_timeout(msg, _lptimer_ticks_from_usec(timeout));
+    return _lptimer_msg_receive_timeout(msg, _lptimer_ticks_from_msec(timeout));
 }
 
 static inline int lptimer_msg_receive_timeout64(msg_t *msg, uint64_t timeout)
 {
-    return _lptimer_msg_receive_timeout64(msg, _lptimer_ticks_from_usec64(timeout));
+    return _lptimer_msg_receive_timeout64(msg, _lptimer_ticks_from_msec64(timeout));
 }
 
-static inline lptimer_ticks32_t lptimer_ticks_from_usec(uint32_t usec)
+static inline lptimer_ticks32_t lptimer_ticks_from_msec(uint32_t msec)
 {
     lptimer_ticks32_t ticks;
-    ticks.ticks32 = _lptimer_ticks_from_usec(usec);
+    ticks.ticks32 = _lptimer_ticks_from_msec(msec);
     return ticks;
 }
 
-static inline lptimer_ticks64_t lptimer_ticks_from_usec64(uint64_t usec)
+static inline lptimer_ticks64_t lptimer_ticks_from_msec64(uint64_t msec)
 {
     lptimer_ticks64_t ticks;
-    ticks.ticks64 = _lptimer_ticks_from_usec64(usec);
+    ticks.ticks64 = _lptimer_ticks_from_msec64(msec);
     return ticks;
 }
 
-static inline uint32_t lptimer_usec_from_ticks(lptimer_ticks32_t ticks)
+static inline uint32_t lptimer_msec_from_ticks(lptimer_ticks32_t ticks)
 {
-    return _lptimer_usec_from_ticks(ticks.ticks32);
+    return _lptimer_msec_from_ticks(ticks.ticks32);
 }
 
-static inline uint64_t lptimer_usec_from_ticks64(lptimer_ticks64_t ticks)
+static inline uint64_t lptimer_msec_from_ticks64(lptimer_ticks64_t ticks)
 {
-    return _lptimer_usec_from_ticks64(ticks.ticks64);
+    return _lptimer_msec_from_ticks64(ticks.ticks64);
 }
 
 static inline lptimer_ticks32_t lptimer_ticks(uint32_t ticks)

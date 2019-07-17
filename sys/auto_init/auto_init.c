@@ -32,6 +32,10 @@
 #include "rtctimers-millis.h"
 #endif
 
+#ifdef MODULE_LPTIMER
+#include "lptimer.h"
+#endif
+
 #ifdef MODULE_RTCTIMERS
 #include "rtctimers.h"
 #endif
@@ -108,6 +112,10 @@ void auto_init(void)
 #ifdef MODULE_XTIMER
     DEBUG("Auto init xtimer module.\n");
     xtimer_init();
+#endif
+#ifdef MODULE_LPTIMER
+    DEBUG("Auto init lptimer module.\n");
+    lptimer_init();
 #endif
 #ifdef MODULE_RTCTIMERS_MILLIS
     DEBUG("Auto init rtctimers-millis module.\n");

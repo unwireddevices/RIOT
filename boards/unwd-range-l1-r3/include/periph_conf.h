@@ -114,6 +114,14 @@ static const timer_conf_t timer_config[] = {
 #define RTC_REGBACKUP_BOOTLOADER_VALUE  (0xB00710AD)
 
 /**
+ * @name Basic RTT emulation on top of RTC with 1 ms period
+ * @{
+ */
+#define RTT_FREQUENCY       (1000)
+#define LPTIMER_HZ          RTT_FREQUENCY
+#define LPTIMER_MAX_VALUE   (0x00fffffful)
+
+/**
  * @brief UART configuration
  */
 static const uart_conf_t uart_config[] = {

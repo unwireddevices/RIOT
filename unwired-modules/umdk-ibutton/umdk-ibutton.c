@@ -57,9 +57,7 @@ extern "C" {
 #include "umdk-ibutton.h"
 
 #include "thread.h"
-#include "rtctimers.h"
 #include "lptimer.h"
-#include "periph/rtc.h"
 #include "checksum/crc8.h"
 
 #define ENABLE_DEBUG 0

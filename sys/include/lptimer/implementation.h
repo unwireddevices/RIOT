@@ -187,9 +187,9 @@ static inline void lptimer_usleep64(uint64_t microseconds)
     _lptimer_tsleep64(_lptimer_ticks_from_msec64(microseconds));
 }
 
-static inline void lptimer_sleep(uint32_t seconds)
+static inline void lptimer_sleep(uint32_t msec)
 {
-    _lptimer_tsleep64(_lptimer_ticks_from_msec64((uint64_t)seconds * MS_PER_SEC));
+    _lptimer_tsleep64(_lptimer_ticks_from_msec(msec));
 }
 
 static inline void lptimer_tsleep32(lptimer_ticks32_t ticks)

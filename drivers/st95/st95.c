@@ -21,7 +21,7 @@
 #include <limits.h>
 
 #include "xtimer.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 #include "board.h"
 #include "periph/uart.h"
 
@@ -174,12 +174,12 @@ void st95_spi_reset(const st95_t * dev)
     spi_release(SPI_DEV(dev->params.spi));
 
     xtimer_spin(xtimer_ticks_from_usec(3000));
-    // rtctimers_millis_sleep(ST95_DELAY_POWER_ON_MS); 
+    // lptimer_sleep(ST95_DELAY_POWER_ON_MS); 
     
     /* send a low pulse on IRQ_in to wake-up ST95HF device */
     _st95_send_irqin_low_pulse(dev);
         /* HFO setup time (delay before issuing a new command)*/
-    rtctimers_millis_sleep(ST95_HFO_SETUP_TIME_MS);  
+    lptimer_sleep(ST95_HFO_SETUP_TIME_MS);  
 }
 
 /**
@@ -415,7 +415,7 @@ uint8_t _st95_receive_pack(const st95_t * dev, uint8_t * rxbuff, uint16_t size_r
  */
 static void _st95_wait_ready_data(void)
 {
-    uint32_t time_begin = rtctimers_millis_now();
+    uint32_t time_begin = lptimer_now();
     uint32_t time_end = 0;
     uint32_t time_delta = 0;
     st95_state.timeout = false;
@@ -423,7 +423,7 @@ static void _st95_wait_ready_data(void)
     xtimer_spin(xtimer_ticks_from_usec(ST95_NO_RESPONSE_TIME_MIN_USEC));
     
 	while((st95_state.data_rx == false) && (st95_state.timeout == false)) {
-		time_end = rtctimers_millis_now();
+		time_end = lptimer_now();
 		time_delta = time_end - time_begin;
 		if(time_delta > ST95_NO_RESPONSE_TIME_MS) {
             st95_state.timeout = true;
@@ -1325,12 +1325,12 @@ int _st95_init_spi(st95_t * dev, st95_params_t * params)
         gpio_set(dev->params.ssi_0);
         gpio_set(dev->params.irq_in);
 
-        rtctimers_millis_sleep(ST95_DELAY_POWER_ON_MS);
+        lptimer_sleep(ST95_DELAY_POWER_ON_MS);
             
             /* ST95 Power On */
         gpio_clear(dev->params.vcc);
             /* Ramp-up time from 0V to Vps */
-        rtctimers_millis_sleep(ST95_RAMP_UP_TIME_MS);
+        lptimer_sleep(ST95_RAMP_UP_TIME_MS);
             
          /* Send negative pulse IRQ_IN*/
         _st95_send_irqin_low_pulse(dev);
@@ -1347,7 +1347,7 @@ int _st95_init_spi(st95_t * dev, st95_params_t * params)
         gpio_irq_disable(dev->params.irq_out);
 
             /* HFO setup time (delay before issuing a new command)*/
-        rtctimers_millis_sleep(ST95_HFO_SETUP_TIME_MS);
+        lptimer_sleep(ST95_HFO_SETUP_TIME_MS);
 
         /* Increase number of init */
         cnt_init++;
@@ -1405,12 +1405,12 @@ int _st95_init_uart(st95_t * dev, st95_params_t * params)
         gpio_clear(dev->params.ssi_0);
         gpio_set(dev->params.irq_in);
 
-        rtctimers_millis_sleep(ST95_DELAY_POWER_ON_MS);
+        lptimer_sleep(ST95_DELAY_POWER_ON_MS);
             
             /* ST95 Power On */
         gpio_clear(dev->params.vcc);
             /* Ramp-up time from 0V to Vps */
-        rtctimers_millis_sleep(ST95_RAMP_UP_TIME_MS);
+        lptimer_sleep(ST95_RAMP_UP_TIME_MS);
             
          /* Send negative pulse IRQ_IN*/
         _st95_send_irqin_low_pulse(dev);
@@ -1424,7 +1424,7 @@ int _st95_init_uart(st95_t * dev, st95_params_t * params)
         }
            
             /* HFO setup time (delay before issuing a new command)*/
-        rtctimers_millis_sleep(ST95_HFO_SETUP_TIME_MS);
+        lptimer_sleep(ST95_HFO_SETUP_TIME_MS);
 
         /* Increase number of init */
         cnt_init++;

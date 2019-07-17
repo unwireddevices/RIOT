@@ -29,7 +29,7 @@
 #include "bmx280_params.h"
 #include "periph/i2c.h"
 
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 #define ENABLE_DEBUG        (0)
 #include "debug.h"
@@ -325,12 +325,12 @@ static int do_measurement(const bmx280_t* dev)
 
         uint32_t current_timestamp = 0;
         uint8_t reg_status = 0x00;
-        const uint32_t start_timestamp = rtctimers_millis_now();
+        const uint32_t start_timestamp = lptimer_now();
         
         do {
-            rtctimers_millis_sleep(10);
+            lptimer_sleep(10);
             reg_status = (get_status(dev) & 0x08);
-            current_timestamp = rtctimers_millis_now();
+            current_timestamp = lptimer_now();
 
         } while (((current_timestamp - start_timestamp) < 500) && (reg_status != 0));
 

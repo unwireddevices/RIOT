@@ -26,7 +26,7 @@
 #include "thread.h"
 #include "assert.h"
 
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -38,7 +38,7 @@ extern "C" {
 static kernel_pid_t reader_pid = KERNEL_PID_UNDEF;
 static char *rxbuf;
 static char *nmea_buf;
-static rtctimers_millis_t timer_cback;
+static lptimer_t timer_cback;
 static uint32_t time_previous;
 
 typedef enum {
@@ -141,10 +141,10 @@ static bool parse_nmea(char *buf, mt3333_gps_data_t *data) {
         return false;
     }
 
-    if ((rtctimers_millis_now() - time_previous) > 500) {
+    if ((lptimer_now() - time_previous) > 500) {
         memset((void*) data, 0, sizeof(mt3333_gps_data_t));
     }
-    time_previous = rtctimers_millis_now();
+    time_previous = lptimer_now();
 
     /* Check validity sign */
     char valid;
@@ -351,7 +351,7 @@ static void *reader(void *arg) {
                     /* parse NMEA message */
                     if ((dev->params.gps_cb) && (parse_nmea(nmea_buf, &data))) {
                         /* 500 ms delay allows to parse multiple NMEA messages from the same packet */
-                        rtctimers_millis_set_msg(&timer_cback, 500, &cback_msg, reader_pid);
+                        lptimer_set_msg(&timer_cback, 500, &cback_msg, reader_pid);
                     }
                 } else {
                     DEBUG("[mt3333] NMEA CRC error\n");
@@ -375,7 +375,7 @@ int mt3333_is_ready(mt3333_t *dev) {
     int counter = 0;
     int timeout = 3000/20;
     do {
-        rtctimers_millis_sleep(20);
+        lptimer_sleep(20);
         counter++;
     } while ((!dev->ready) && (counter < timeout));
     

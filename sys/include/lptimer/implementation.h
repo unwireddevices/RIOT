@@ -29,7 +29,7 @@
 #error "Do not include this file directly! Use lptimer.h instead"
 #endif
 
-#include "periph/timer.h"
+#include "periph/rtt.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -49,7 +49,7 @@ extern volatile uint32_t _lptimer_high_cnt;
  */
 static inline uint32_t _lptimer_lltimer_now(void)
 {
-    return timer_read(LPTIMER_DEV);
+    return rtt_get_counter();
 }
 
 /**

@@ -25,14 +25,14 @@
 #include <stdint.h>
 #include <string.h>
 #include "board.h"
-#include "periph/timer.h"
+#include "periph/rtt.h"
 #include "periph_conf.h"
 
 #include "lptimer.h"
 #include "irq.h"
 
 /* WARNING! enabling this will have side effects and can lead to timer underflows. */
-#define ENABLE_DEBUG 0
+#define ENABLE_DEBUG 1
 #include "debug.h"
 
 static volatile int _in_handler = 0;
@@ -56,7 +56,7 @@ static inline void _lltimer_set(uint32_t target);
 static uint32_t _time_left(uint32_t target, uint32_t reference);
 
 static void _timer_callback(void);
-static void _periph_timer_callback(void *arg, int chan);
+static void _periph_timer_callback(void *arg);
 
 static inline int _this_high_period(uint32_t target);
 
@@ -77,7 +77,7 @@ static inline void lptimer_spin_until(uint32_t target)
 void lptimer_init(void)
 {
     /* initialize low-level timer */
-    timer_init(LPTIMER_DEV, LPTIMER_HZ, _periph_timer_callback, NULL);
+    rtt_init();
 
     /* register initial overflow tick */
     _lltimer_set(0xFFFFFFFF);
@@ -156,10 +156,9 @@ void _lptimer_set(lptimer_t *timer, uint32_t offset)
     }
 }
 
-static void _periph_timer_callback(void *arg, int chan)
+static void _periph_timer_callback(void *arg)
 {
     (void)arg;
-    (void)chan;
     _timer_callback();
 }
 
@@ -174,7 +173,8 @@ static inline void _lltimer_set(uint32_t target)
         return;
     }
     DEBUG("_lltimer_set(): setting %" PRIu32 "\n", _lptimer_lltimer_mask(target));
-    timer_set_absolute(LPTIMER_DEV, LPTIMER_CHAN, _lptimer_lltimer_mask(target));
+    /* timer_set_absolute(LPTIMER_DEV, LPTIMER_CHAN, _lptimer_lltimer_mask(target)); */
+    rtt_set_alarm(_lptimer_lltimer_mask(target), _periph_timer_callback, NULL);
 }
 
 int _lptimer_set_absolute(lptimer_t *timer, uint32_t target)

@@ -602,7 +602,7 @@ void lptimer_set_timeout_flag(lptimer_t *t, uint32_t timeout);
 #endif
 
 #ifndef LPTIMER_SHIFT
-#if (LPTIMER_HZ == 32768ul)
+#if (LPTIMER_HZ == 32768ul) || (LPTIMER_HZ == 1024ul)
 /* No shift necessary, the conversion is not a power of two and is handled by
  * functions in tick_conversion.h */
 #define LPTIMER_SHIFT (0)

@@ -31,7 +31,7 @@ static kernel_pid_t timer1_pid;
 static lptimer_t timer1;
 static volatile uint32_t timer1_prev;
 char stack1[2048];
-#define TIMER1_PERIOD 1000000
+#define TIMER1_PERIOD 1000
 
 static void *timer1_thread(void *arg) {
     (void)arg;
@@ -58,7 +58,7 @@ static kernel_pid_t timer2_pid;
 static lptimer_t timer2;
 static volatile uint32_t timer2_prev;
 char stack2[2048];
-#define TIMER2_PERIOD 800000
+#define TIMER2_PERIOD 800
 
 static void *timer2_thread(void *arg) {
     msg_t msg;

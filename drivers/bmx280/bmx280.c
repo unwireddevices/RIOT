@@ -325,12 +325,12 @@ static int do_measurement(const bmx280_t* dev)
 
         uint32_t current_timestamp = 0;
         uint8_t reg_status = 0x00;
-        const uint32_t start_timestamp = lptimer_now();
+        const uint32_t start_timestamp = lptimer_now_msec();
         
         do {
             lptimer_sleep(10);
             reg_status = (get_status(dev) & 0x08);
-            current_timestamp = lptimer_now();
+            current_timestamp = lptimer_now_msec();
 
         } while (((current_timestamp - start_timestamp) < 500) && (reg_status != 0));
 

@@ -141,10 +141,10 @@ static bool parse_nmea(char *buf, mt3333_gps_data_t *data) {
         return false;
     }
 
-    if ((lptimer_now() - time_previous) > 500) {
+    if ((lptimer_now_msec() - time_previous) > 500) {
         memset((void*) data, 0, sizeof(mt3333_gps_data_t));
     }
-    time_previous = lptimer_now();
+    time_previous = lptimer_now_msec();
 
     /* Check validity sign */
     char valid;

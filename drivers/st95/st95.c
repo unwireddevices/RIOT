@@ -415,7 +415,7 @@ uint8_t _st95_receive_pack(const st95_t * dev, uint8_t * rxbuff, uint16_t size_r
  */
 static void _st95_wait_ready_data(void)
 {
-    uint32_t time_begin = lptimer_now();
+    uint32_t time_begin = lptimer_now_msec();
     uint32_t time_end = 0;
     uint32_t time_delta = 0;
     st95_state.timeout = false;
@@ -423,7 +423,7 @@ static void _st95_wait_ready_data(void)
     xtimer_spin(xtimer_ticks_from_usec(ST95_NO_RESPONSE_TIME_MIN_USEC));
     
 	while((st95_state.data_rx == false) && (st95_state.timeout == false)) {
-		time_end = lptimer_now();
+		time_end = lptimer_now_msec();
 		time_delta = time_end - time_begin;
 		if(time_delta > ST95_NO_RESPONSE_TIME_MS) {
             st95_state.timeout = true;

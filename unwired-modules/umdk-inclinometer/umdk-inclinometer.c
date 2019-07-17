@@ -385,7 +385,7 @@ static void *publish_thread(void *arg) {
         phi.max = INT_MIN;
         phi.min = INT_MAX;
         
-        last_publish_time = lptimer_now();
+        last_publish_time = lptimer_now_msec();
         
         /* Restart after delay */
         lptimer_set_msg(&timer, 1000 * inclinometer_config.publish_period_sec, &timer_msg, timer_pid);

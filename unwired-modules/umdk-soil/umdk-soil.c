@@ -116,10 +116,10 @@ static int prepare_result(module_data_t *data) {
     rx_done = false;
     
     lptimer_sleep(2500);
-    uint32_t start = lptimer_now();
+    uint32_t start = lptimer_now_msec();
     while (!rx_done) {
         /* timeout 5 seconds */
-        if (lptimer_now() > start + 2500) {
+        if (lptimer_now_msec() > start + 2500) {
             gpio_set(UMDK_SOIL_POWEREN);
             puts("[umdk-" _UMDK_NAME_ "] Sensor timeout");
             return -1;

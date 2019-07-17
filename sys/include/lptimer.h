@@ -556,9 +556,9 @@ void lptimer_set_timeout_flag(lptimer_t *t, uint32_t timeout);
  */
 #define LPTIMER_CHAN (0)
 
-#if (TIMER_0_MAX_VALUE) == 0xfffffful
+#if (LPTIMER_MAX_VALUE) == 0xfffffful
 #define LPTIMER_WIDTH (24)
-#elif (TIMER_0_MAX_VALUE) == 0xffff
+#elif (LPTIMER_MAX_VALUE) == 0xffff
 #define LPTIMER_WIDTH (16)
 #endif
 
@@ -602,7 +602,7 @@ void lptimer_set_timeout_flag(lptimer_t *t, uint32_t timeout);
 #endif
 
 #ifndef LPTIMER_SHIFT
-#if (LPTIMER_HZ == 32768ul) || (LPTIMER_HZ == 1024ul)
+#if (LPTIMER_HZ == 32768ul) || (LPTIMER_HZ == 1024ul) || (LPTIMER_HZ == 1000ul)
 /* No shift necessary, the conversion is not a power of two and is handled by
  * functions in tick_conversion.h */
 #define LPTIMER_SHIFT (0)

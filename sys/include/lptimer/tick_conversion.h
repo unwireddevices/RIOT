@@ -149,6 +149,24 @@ static inline uint64_t _lptimer_usec_from_ticks64(uint64_t ticks) {
     return (usec >> 5); /* equivalent to (usec / 32) */
 }
 
+#elif LPTIMER_HZ == (1000ul)
+/* For RTC-based LPTIMER emulation with 1 ms ticks */
+static inline uint32_t _lptimer_ticks_from_usec(uint32_t usec) {
+    return (usec / 1000ul);
+}
+
+static inline uint64_t _lptimer_ticks_from_usec64(uint64_t usec) {
+    return (usec / 1000ull);
+}
+
+static inline uint32_t _lptimer_usec_from_ticks(uint32_t ticks) {
+    return (ticks * 1000ul);
+}
+
+static inline uint64_t _lptimer_usec_from_ticks64(uint64_t ticks) {
+    return (ticks * 1000ull);
+}
+
 #else
 /* No matching implementation found, try to give meaningful error messages */
 #if ((LPTIMER_HZ % 15625) == 0)

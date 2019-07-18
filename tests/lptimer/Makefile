@@ -11,7 +11,6 @@ USEMODULE += lptimer
 USEMODULE += xtimer
 
 FEATURES_REQUIRED += periph_rtt
-FEATURES_REQUIRED += periph_rtc
 
 #CFLAGS += -DDEVELHELP
 

@@ -136,15 +136,15 @@ void lptimer_init(void);
 static inline void lptimer_sleep(uint32_t seconds);
 
 /**
- * @brief Pause the execution of a thread for some microseconds
+ * @brief Pause the execution of a thread for some milliseconds
  *
  * When called from an ISR, this function will spin and thus block the MCU for
- * the specified amount in microseconds, so only use it there for *very* short
+ * the specified amount in milliseconds, so only use it there for *very* short
  * periods, e.g., less than LPTIMER_BACKOFF.
  *
- * @param[in] microseconds  the amount of microseconds the thread should sleep
+ * @param[in] milliseconds  the amount of milliseconds the thread should sleep
  */
-static inline void lptimer_usleep(uint32_t microseconds);
+static inline void lptimer_usleep(uint32_t milliseconds);
 
 /**
  * @brief Stop execution of a thread for some time, 32bit version
@@ -192,7 +192,7 @@ static inline void lptimer_spin(lptimer_ticks32_t ticks);
  * sets @p last_wakeup to @p last_wakeup + @p period and returns immediately.
  *
  * @param[in] last_wakeup   base time stamp for the wakeup
- * @param[in] period        time in microseconds that will be added to last_wakeup
+ * @param[in] period        time in milliseconds that will be added to last_wakeup
  */
 static inline void lptimer_periodic_wakeup(lptimer_ticks32_t *last_wakeup, uint32_t period);
 
@@ -208,7 +208,7 @@ static inline void lptimer_periodic_wakeup(lptimer_ticks32_t *last_wakeup, uint3
  * @param[in] timer         timer struct to work with.
  *                          Its lptimer_t::target and lptimer_t::long_target
  *                          fields need to be initialized with 0 on first use.
- * @param[in] offset        microseconds from now
+ * @param[in] offset        milliseconds from now
  * @param[in] msg           ptr to msg that will be sent
  * @param[in] target_pid    pid the message will be sent to
  */
@@ -217,7 +217,7 @@ static inline void lptimer_set_msg(lptimer_t *timer, uint32_t offset, msg_t *msg
 /**
  * @brief Set a timer that sends a message, 64bit version
  *
- * This function sets a timer that will send a message @p offset microseconds
+ * This function sets a timer that will send a message @p offset milliseconds
  * from now.
  *
  * The mesage struct specified by msg parameter will not be copied, e.g., it
@@ -226,7 +226,7 @@ static inline void lptimer_set_msg(lptimer_t *timer, uint32_t offset, msg_t *msg
  * @param[in] timer         timer struct to work with.
  *                          Its lptimer_t::target and lptimer_t::long_target
  *                          fields need to be initialized with 0 on first use.
- * @param[in] offset        microseconds from now
+ * @param[in] offset        milliseconds from now
  * @param[in] msg           ptr to msg that will be sent
  * @param[in] target_pid    pid the message will be sent to
  */
@@ -241,7 +241,7 @@ static inline void lptimer_set_msg64(lptimer_t *timer, uint64_t offset, msg_t *m
  * @param[in] timer         timer struct to work with.
  *                          Its lptimer_t::target and lptimer_t::long_target
  *                          fields need to be initialized with 0 on first use
- * @param[in] offset        microseconds from now
+ * @param[in] offset        milliseconds from now
  * @param[in] pid           pid of the thread that will be woken up
  */
 static inline void lptimer_set_wakeup(lptimer_t *timer, uint32_t offset, kernel_pid_t pid);
@@ -255,7 +255,7 @@ static inline void lptimer_set_wakeup(lptimer_t *timer, uint32_t offset, kernel_
  * @param[in] timer         timer struct to work with.
  *                          Its lptimer_t::target and lptimer_t::long_target
  *                          fields need to be initialized with 0 on first use
- * @param[in] offset        microseconds from now
+ * @param[in] offset        milliseconds from now
  * @param[in] pid           pid of the thread that will be woken up
  */
 static inline void lptimer_set_wakeup64(lptimer_t *timer, uint64_t offset, kernel_pid_t pid);
@@ -275,7 +275,7 @@ static inline void lptimer_set_wakeup64(lptimer_t *timer, uint64_t offset, kerne
  * @param[in] timer     the timer structure to use.
  *                      Its lptimer_t::target and lptimer_t::long_target
  *                      fields need to be initialized with 0 on first use
- * @param[in] offset    time in microseconds from now specifying that timer's
+ * @param[in] offset    time in milliseconds from now specifying that timer's
  *                      callback's execution time
  */
 static inline void lptimer_set(lptimer_t *timer, uint32_t offset);
@@ -315,7 +315,7 @@ void lptimer_remove(lptimer_t *timer);
  *
  * @param[out] msg      pointer to a msg_t which will be filled in case of
  *                      no timeout
- * @param[in]  timeout  timeout in microseconds relative
+ * @param[in]  timeout  timeout in milliseconds relative
  *
  * @return     < 0 on error, other value otherwise
  */
@@ -326,7 +326,7 @@ static inline int lptimer_msg_receive_timeout(msg_t *msg, uint32_t timeout);
  *
  * @param[out] msg      pointer to a msg_t which will be filled in case of no
  *                      timeout
- * @param[in]  timeout  timeout in microseconds relative
+ * @param[in]  timeout  timeout in milliseconds relative
  *
  * @return     < 0 on error, other value otherwise
  */
@@ -335,7 +335,7 @@ static inline int lptimer_msg_receive_timeout64(msg_t *msg, uint64_t timeout);
 /**
  * @brief Convert milliseconds to lptimer ticks
  *
- * @param[in] msec  microseconds
+ * @param[in] msec  milliseconds
  *
  * @return lptimer time stamp
  */
@@ -344,7 +344,7 @@ static inline lptimer_ticks32_t lptimer_ticks_from_msec(uint32_t msec);
 /**
  * @brief Convert milliseconds to lptimer ticks, 64 bit version
  *
- * @param[in] msec  microseconds
+ * @param[in] msec  milliseconds
  *
  * @return lptimer time stamp
  */
@@ -355,7 +355,7 @@ static inline lptimer_ticks64_t lptimer_ticks_from_msec64(uint64_t msec);
  *
  * @param[in] ticks  lptimer time stamp
  *
- * @return microseconds
+ * @return milliseconds
  */
 static inline uint32_t lptimer_msec_from_ticks(lptimer_ticks32_t ticks);
 
@@ -364,7 +364,7 @@ static inline uint32_t lptimer_msec_from_ticks(lptimer_ticks32_t ticks);
  *
  * @param[in] ticks  lptimer time stamp
  *
- * @return microseconds
+ * @return milliseconds
  */
 static inline uint64_t lptimer_msec_from_ticks64(lptimer_ticks64_t ticks);
 
@@ -442,7 +442,7 @@ static inline bool lptimer_less64(lptimer_ticks64_t a, lptimer_ticks64_t b);
  * @note this requires core_thread_flags to be enabled
  *
  * @param[in]    mutex  mutex to lock
- * @param[in]    us     timeout in microseconds relative
+ * @param[in]    us     timeout in milliseconds relative
  *
  * @return       0, when returned after mutex was locked
  * @return       -1, when the timeout occcured
@@ -497,7 +497,7 @@ void lptimer_remove_all(void);
  * This is supposed to be defined per-device in e.g., periph_conf.h.
  */
 #ifndef LPTIMER_OVERHEAD
-#define LPTIMER_OVERHEAD 0
+#define LPTIMER_OVERHEAD 2
 #endif
 
 #ifndef LPTIMER_ISR_BACKOFF

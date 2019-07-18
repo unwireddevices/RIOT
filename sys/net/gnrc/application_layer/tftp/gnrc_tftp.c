@@ -47,7 +47,6 @@ static kernel_pid_t _tftp_kernel_pid;
 #endif
 
 #define MIN(a, b)                   ((a) > (b) ? (b) : (a))
-#define ARRAY_LEN(x)                (sizeof(x) / sizeof(x[0]))
 
 #define TFTP_TIMEOUT_MSG            0x4000
 #define TFTP_STOP_SERVER_MSG        0x4001
@@ -1046,7 +1045,11 @@ int _tftp_decode_start(tftp_context_t *ctxt, uint8_t *buf, gnrc_pktsnip_t *outbu
     DEBUG("tftp: incoming request '%s', mode: %s\n", ctxt->file_name, str_mode);
 
     /* decode the TFTP transfer mode */
-    for (uint32_t idx = 0; idx < ARRAY_LEN(_tftp_modes); ++idx) {
+    for (uint32_t idx = 0; idx < ARRAY_SIZE(_tftp_modes); ++idx) {
+        if (_tftp_modes[idx].len > (inpkt->size - sizeof(*hdr) - fnlen)) {
+            continue;
+        }
+
         if (memcmp(_tftp_modes[idx].name, str_mode, _tftp_modes[idx].len) == 0) {
             ctxt->mode = (tftp_mode_t)idx;
             return (str_mode + _tftp_modes[idx].len) - (char *)hdr->data;
@@ -1073,7 +1076,7 @@ int _tftp_decode_options(tftp_context_t *ctxt, gnrc_pktsnip_t *buf, uint32_t sta
         offset += strlen(value) + 1;
 
         /* check what option we are parsing */
-        for (uint32_t idx = 0; idx < ARRAY_LEN(_tftp_options); ++idx) {
+        for (uint32_t idx = 0; idx < ARRAY_SIZE(_tftp_options); ++idx) {
             if (memcmp(name, _tftp_options[idx].name, _tftp_options[idx].len) == 0) {
                 /* set the option value of the known options */
                 switch (idx) {

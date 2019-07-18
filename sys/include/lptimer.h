@@ -468,13 +468,13 @@ void lptimer_remove_all(void);
 /**
  * @brief lptimer backoff value
  *
- * All timers that are less than LPTIMER_BACKOFF microseconds in the future will
+ * All timers that are less than LPTIMER_BACKOFF milliseconds in the future will
  * just spin.
  *
  * This is supposed to be defined per-device in e.g., periph_conf.h.
  */
 #ifndef LPTIMER_BACKOFF
-#define LPTIMER_BACKOFF 30
+#define LPTIMER_BACKOFF 1
 #endif
 
 /**
@@ -497,7 +497,7 @@ void lptimer_remove_all(void);
  * This is supposed to be defined per-device in e.g., periph_conf.h.
  */
 #ifndef LPTIMER_OVERHEAD
-#define LPTIMER_OVERHEAD 20
+#define LPTIMER_OVERHEAD 0
 #endif
 
 #ifndef LPTIMER_ISR_BACKOFF
@@ -509,7 +509,7 @@ void lptimer_remove_all(void);
  *
  * This is supposed to be defined per-device in e.g., periph_conf.h.
  */
-#define LPTIMER_ISR_BACKOFF 20
+#define LPTIMER_ISR_BACKOFF 1
 #endif
 
 #ifndef LPTIMER_PERIODIC_SPIN
@@ -532,7 +532,7 @@ void lptimer_remove_all(void);
  *
  * This is done to prevent target time underflows.
  */
-#define LPTIMER_PERIODIC_RELATIVE (512)
+#define LPTIMER_PERIODIC_RELATIVE (10)
 #endif
 
 /*

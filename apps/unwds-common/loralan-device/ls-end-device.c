@@ -46,7 +46,7 @@ extern "C" {
 #include "ls-mac.h"
 #include "ls-end-device.h"
 #include "board.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 #define ENABLE_DEBUG    (0)
 #include "debug.h"

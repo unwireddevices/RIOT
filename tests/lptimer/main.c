@@ -81,7 +81,7 @@ static void *timer2_thread(void *arg) {
 */
 int main(void)
 {
-    puts("rtctimers-millis test");
+    puts("lptimer test");
     
     pm_block(PM_SLEEP);
     

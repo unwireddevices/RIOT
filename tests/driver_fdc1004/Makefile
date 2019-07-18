@@ -5,7 +5,6 @@ USEMODULE += fdc1004
 
 USEMODULE += dsp_dia
 USEMODULE += ps
-USEMODULE += rtctimers-millis
 USEMODULE += xtimer
 
 

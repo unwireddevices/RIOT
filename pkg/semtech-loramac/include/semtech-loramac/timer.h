@@ -37,7 +37,7 @@ extern "C" {
 typedef struct TimerEvent_s {
     uint32_t timeout;   /**< Timer timeout in us */
     uint8_t running;    /**< Check if timer is running */
-    lptimer_t dev;       /**< rtctimers-millis instance attached to this LoRaMAC timer */
+    lptimer_t dev;       /**< lptimer instance attached to this LoRaMAC timer */
     msg_t msg;          /**< message attacher to this LoRaMAC timer */
     void (*cb)(void);   /**< callback to call when timer timeout */
 } TimerEvent_t;

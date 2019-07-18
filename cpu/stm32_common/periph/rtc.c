@@ -155,7 +155,7 @@
 #endif
 
 /* figure out sync and async prescalers
- * NB: lower PRE_ASYNC values increase rtctimers_millis accuracy,
+ * NB: lower PRE_ASYNC values increase lptimer accuracy,
  * but also increase power consumption
  */
 #if CLOCK_LSE

@@ -139,13 +139,6 @@ endif
 ifneq (,$(filter bluetil_%,$(USEMODULE)))
   DIRS += net/ble/bluetil
 endif
-ifneq (,$(filter rtctimers,$(USEMODULE)))
-    DIRS += rtctimers
-endif
-
-ifneq (,$(filter rtctimers-millis,$(USEMODULE)))
-    DIRS += rtctimers-millis
-endif
 
 ifneq (,$(filter dsp_fft,$(USEMODULE)))
   DIRS += dsp/int_fft

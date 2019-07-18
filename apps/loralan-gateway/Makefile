@@ -40,7 +40,7 @@ USEMODULE += random
 USEMODULE += hashes
 USEMODULE += checksum
 USEMODULE += sx127x
-USEMODULE += rtctimers-millis
+USEMODULE += lptimer
 
 ####### Empty modules list as we don't need any modules for the gateway ############
 

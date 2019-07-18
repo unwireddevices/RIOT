@@ -28,16 +28,8 @@
 #include "xtimer.h"
 #endif
 
-#ifdef MODULE_RTCTIMERS_MILLIS
-#include "rtctimers-millis.h"
-#endif
-
 #ifdef MODULE_LPTIMER
 #include "lptimer.h"
-#endif
-
-#ifdef MODULE_RTCTIMERS
-#include "rtctimers.h"
 #endif
 
 #ifdef MODULE_GNRC_SIXLOWPAN
@@ -116,14 +108,6 @@ void auto_init(void)
 #ifdef MODULE_LPTIMER
     DEBUG("Auto init lptimer module.\n");
     lptimer_init();
-#endif
-#ifdef MODULE_RTCTIMERS_MILLIS
-    DEBUG("Auto init rtctimers-millis module.\n");
-    rtctimers_millis_init();
-#endif
-#ifdef MODULE_RTCTIMERS
-    DEBUG("Auto init rtctimers module.\n");
-    rtctimers_init();
 #endif
 #ifdef MODULE_MCI
     DEBUG("Auto init mci module.\n");

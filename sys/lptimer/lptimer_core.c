@@ -174,6 +174,7 @@ static inline void _lltimer_set(uint32_t target)
     }
     DEBUG("_lltimer_set(): setting %" PRIu32 "\n", _lptimer_lltimer_mask(target));
     /* timer_set_absolute(LPTIMER_DEV, LPTIMER_CHAN, _lptimer_lltimer_mask(target)); */
+
     rtt_set_alarm(_lptimer_lltimer_mask(target), _periph_timer_callback, NULL);
 }
 
@@ -211,18 +212,18 @@ int _lptimer_set_absolute(lptimer_t *timer, uint32_t target)
     if (_is_set(timer)) {
         _remove(timer);
     }
-
+    
+    /* If timer should fire at counter overflow, move it a bit closer to now,
+     * otherwise, it may not work
+     * Shifting all timers to (target - LPTIMER_OVERHEAD) and then just spinning
+     * for until target is reached costs too much with slow low power timers
+     */
+    if (LPTIMER_MAX_VALUE - _lptimer_lltimer_mask(target) < LPTIMER_OVERHEAD) {
+        target -= LPTIMER_OVERHEAD;
+    }
+    
     timer->target = target;
     timer->long_target = _long_cnt;
-
-    /* Ensure timer is fired in right timer period.
-     * Backoff condition above ensures that 'target - LPTIMER_OVERHEAD` is later
-     * than 'now', also for values when now will overflow and the value of target
-     * is smaller then now.
-     * If `target < LPTIMER_OVERHEAD` the new target will be at the end of this
-     * 32bit period, as `target - LPTIMER_OVERHEAD` is a big number instead of a
-     * small at the beginning of the next period. */
-    target = target - LPTIMER_OVERHEAD;
 
     /* 32 bit target overflow, target is in next 32bit period */
     if (target < now) {
@@ -296,7 +297,7 @@ static void _remove(lptimer_t *timer)
         timer_list_head = timer->next;
         if (timer_list_head) {
             /* schedule callback on next timer target time */
-            next = timer_list_head->target - LPTIMER_OVERHEAD;
+            next = timer_list_head->target;
         }
         else {
             next = _lptimer_lltimer_mask(0xFFFFFFFF);
@@ -468,8 +469,8 @@ static void _next_period(void)
 static void _timer_callback(void)
 {
     uint32_t next_target;
-    uint32_t reference;
-
+    uint32_t reference = _lptimer_lltimer_now();
+    
     _in_handler = 1;
 
     DEBUG("_timer_callback() now=%" PRIu32 " (%" PRIu32 ")pleft=%" PRIu32 "\n",
@@ -490,13 +491,6 @@ static void _timer_callback(void)
         /* make sure the timer counter also arrived
          * in the next timer period */
         while (_lptimer_lltimer_now() == _lptimer_lltimer_mask(0xFFFFFFFF)) {}
-    }
-    else {
-        /* we ended up in _timer_callback and there is
-         * a timer waiting.
-         */
-        /* set our period reference to the current time. */
-        reference = _lptimer_lltimer_now();
     }
 
 overflow:
@@ -537,7 +531,7 @@ overflow:
 
     if (timer_list_head) {
         /* schedule callback on next timer target time */
-        next_target = timer_list_head->target - LPTIMER_OVERHEAD;
+        next_target = timer_list_head->target;
 
         /* make sure we're not setting a time in the past */
         if (next_target < (_lptimer_now() + LPTIMER_ISR_BACKOFF)) {

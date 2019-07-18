@@ -1,10 +1,6 @@
 MODULE = cpu_common
 DIRS = periph
 
-ifneq (,$(filter periph_rtc,$(FEATURES_REQUIRED)))
-  USEMODULE += periph_rtt
-endif
-
 ifneq (,$(filter periph_eeprom,$(FEATURES_REQUIRED)))
   USEMODULE += periph_flashpage
 endif

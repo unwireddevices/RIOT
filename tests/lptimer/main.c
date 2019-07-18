@@ -31,7 +31,7 @@ static kernel_pid_t timer1_pid;
 static lptimer_t timer1;
 static volatile uint32_t timer1_prev;
 char stack1[2048];
-#define TIMER1_PERIOD 1000
+#define TIMER1_PERIOD 100
 
 static void *timer1_thread(void *arg) {
     (void)arg;
@@ -52,15 +52,16 @@ static void *timer1_thread(void *arg) {
     }
     return NULL;
 }
-/*
+
 static msg_t timer2_msg;
 static kernel_pid_t timer2_pid;
 static lptimer_t timer2;
 static volatile uint32_t timer2_prev;
 char stack2[2048];
-#define TIMER2_PERIOD 800
+#define TIMER2_PERIOD 350
 
 static void *timer2_thread(void *arg) {
+    (void)arg;
     msg_t msg;
     msg_t msg_queue[4];
     msg_init_queue(msg_queue, 4);
@@ -78,15 +79,12 @@ static void *timer2_thread(void *arg) {
     }
     return NULL;
 }
-*/
+
 int main(void)
 {
     puts("lptimer test");
     
     pm_block(PM_SLEEP);
-    
-	lptimer_init();
-	xtimer_init();
     
     uint32_t now = xtimer_now_usec()/1000;
     
@@ -95,14 +93,11 @@ int main(void)
     timer1_pid = thread_create(stack1, 2048, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer1_thread, NULL, "Timer 1");
     lptimer_set_msg(&timer1, TIMER1_PERIOD, &timer1_msg, timer1_pid);
 
-/*    
     timer2_prev = now;
     puts("Creating timer2 thread");
     timer2_pid = thread_create(stack2, 2048, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer2_thread, NULL, "Timer 2");
     lptimer_set_msg(&timer2, TIMER2_PERIOD, &timer2_msg, timer2_pid);
-*/
-    /* lptimer_sleep(300000); */
-    
+  
     puts("Done.");
     
     while (1) {};

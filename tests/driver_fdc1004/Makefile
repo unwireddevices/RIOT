@@ -7,8 +7,6 @@ USEMODULE += dsp_dia
 USEMODULE += ps
 USEMODULE += xtimer
 
-
-FEATURES_REQUIRED += periph_rtc
 FEATURES_REQUIRED += periph_cpuid
 FEATURES_REQUIRED += periph_status
 FEATURES_REQUIRED += periph_status_extended

@@ -173,7 +173,6 @@ endif
 
 ifneq (,$(filter fdc1004,$(USEMODULE)))
   FEATURES_REQUIRED += periph_i2c
-  FEATURES_REQUIRED += periph_rtc
   USEMODULE += lptimer
 endif
 
@@ -493,7 +492,6 @@ endif
 ifneq (,$(filter st95,$(USEMODULE)))
   FEATURES_REQUIRED += periph_gpio
   FEATURES_REQUIRED += periph_spi
-  FEATURES_REQUIRED += periph_rtc
   USEMODULE += lptimer
   USEMODULE += xtimer
 endif

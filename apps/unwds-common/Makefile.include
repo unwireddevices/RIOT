@@ -163,7 +163,6 @@ FEATURES_REQUIRED += periph_adc
 FEATURES_REQUIRED += periph_gpio
 FEATURES_REQUIRED += periph_i2c
 FEATURES_REQUIRED += periph_pwm
-FEATURES_REQUIRED += periph_rtc
 FEATURES_REQUIRED += periph_rtt
 FEATURES_REQUIRED += periph_spi
 FEATURES_REQUIRED += periph_eeprom
@@ -185,6 +184,5 @@ CFLAGS += -DAES_NO_DECRYPTION
 CFLAGS += -DCRYPTO_AES
 
 FEATURES_OPTIONAL += config
-FEATURES_OPTIONAL += periph_rtc
 
 include $(RIOTBASE)/Makefile.include

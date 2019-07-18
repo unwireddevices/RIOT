@@ -548,10 +548,12 @@ void lptimer_remove_all(void);
  */
 #define LPTIMER_CHAN (0)
 
+#ifndef LPTIMER_WIDTH
 #if (LPTIMER_MAX_VALUE) == 0xfffffful
 #define LPTIMER_WIDTH (24)
 #elif (LPTIMER_MAX_VALUE) == 0xffff
 #define LPTIMER_WIDTH (16)
+#endif
 #endif
 
 #endif
@@ -582,9 +584,9 @@ void lptimer_remove_all(void);
 #endif
 
 /**
- * @brief  Base frequency of lptimer is 1 MHz
+ * @brief  Base frequency of lptimer is 1024 Hz
  */
-#define LPTIMER_HZ_BASE (1000000ul)
+#define LPTIMER_HZ_BASE (1024ul)
 
 #ifndef LPTIMER_HZ
 /**

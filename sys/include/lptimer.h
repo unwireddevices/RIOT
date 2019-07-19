@@ -474,27 +474,15 @@ void lptimer_remove_all(void);
  * This is supposed to be defined per-device in e.g., periph_conf.h.
  */
 #ifndef LPTIMER_BACKOFF
-#define LPTIMER_BACKOFF 1
+#define LPTIMER_BACKOFF 3
 #endif
 
 /**
  * @brief lptimer overhead value, in hardware ticks
  *
- * This value specifies the time a timer will be late if uncorrected, e.g.,
- * the system-specific lptimer execution time from timer ISR to executing
- * a timer's callback's first instruction.
- *
- * E.g., with LPTIMER_OVERHEAD == 0
- * start=lptimer_now();
- * lptimer_set(&timer, X);
- * (in callback:)
- * overhead=lptimer_now()-start-X;
- *
- * lptimer automatically substracts LPTIMER_OVERHEAD from a timer's target time,
- * but when the timer triggers, lptimer will spin-lock until a timer's target
- * time is reached, so timers will never trigger early.
- *
- * This is supposed to be defined per-device in e.g., periph_conf.h.
+ * If timer's planned time is within LPTIMER_OVERHEAD milliseconds of
+ * hardware timer overflow, the timer will be executed earlier by
+ * LPTIMER_OVERHEAD milliseconds
  */
 #ifndef LPTIMER_OVERHEAD
 #define LPTIMER_OVERHEAD 2
@@ -509,7 +497,7 @@ void lptimer_remove_all(void);
  *
  * This is supposed to be defined per-device in e.g., periph_conf.h.
  */
-#define LPTIMER_ISR_BACKOFF 1
+#define LPTIMER_ISR_BACKOFF 3
 #endif
 
 #ifndef LPTIMER_PERIODIC_SPIN

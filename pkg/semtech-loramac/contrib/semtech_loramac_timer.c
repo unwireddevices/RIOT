@@ -19,7 +19,7 @@
  * @}
  */
 
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 #include "thread.h"
 #include "semtech-loramac/timer.h"
 
@@ -41,23 +41,23 @@ void TimerReset(TimerEvent_t *obj)
 void TimerStart(TimerEvent_t *obj)
 {
     obj->running = 1;
-    rtctimers_millis_t *timer = &(obj->dev);
+    lptimer_t *timer = &(obj->dev);
     msg_t *msg = &(obj->msg);
     msg->type = MSG_TYPE_MAC_TIMEOUT;
     msg->content.ptr = obj->cb;
-    rtctimers_millis_set_msg(timer, obj->timeout, msg, semtech_loramac_pid);
+    lptimer_set_msg(timer, obj->timeout, msg, semtech_loramac_pid);
 }
 
 void TimerStop(TimerEvent_t *obj)
 {
     obj->running = 0;
-    rtctimers_millis_remove(&(obj->dev));
+    lptimer_remove(&(obj->dev));
 }
 
 void TimerSetValue(TimerEvent_t *obj, uint32_t value)
 {
     if (obj->running) {
-        rtctimers_millis_remove(&(obj->dev));
+        lptimer_remove(&(obj->dev));
     }
 
     obj->timeout = value;
@@ -65,19 +65,19 @@ void TimerSetValue(TimerEvent_t *obj, uint32_t value)
 
 TimerTime_t TimerGetCurrentTime(void)
 {
-    uint64_t CurrentTime = rtctimers_millis_now();
+    uint64_t CurrentTime = lptimer_now_msec();
     return (TimerTime_t)CurrentTime;
 }
 
 TimerTime_t TimerGetElapsedTime(TimerTime_t savedTime)
 {
-    uint64_t CurrentTime = rtctimers_millis_now();
+    uint64_t CurrentTime = lptimer_now_msec();
     return (TimerTime_t)(CurrentTime - savedTime);
 }
 
 TimerTime_t TimerGetFutureTime(TimerTime_t eventInFuture)
 {
-    uint64_t CurrentTime = rtctimers_millis_now();
+    uint64_t CurrentTime = lptimer_now_msec();
     return (TimerTime_t)(CurrentTime + eventInFuture);
 }
 

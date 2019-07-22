@@ -70,7 +70,7 @@ extern "C" {
 #include "utils.h"
 
 #include "periph/wdg.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 #include "net/loramac.h"
 #include "semtech_loramac.h"
@@ -96,8 +96,8 @@ static node_data_t node_data;
 static msg_t msg_join = { .type = NODE_MSG_JOIN };
 static msg_t msg_data = { .type = NODE_MSG_SEND };
 static kernel_pid_t sender_pid;
-static rtctimers_millis_t join_retry_timer;
-static rtctimers_millis_t send_retry_timer;
+static lptimer_t join_retry_timer;
+static lptimer_t send_retry_timer;
 
 static kernel_pid_t main_thread_pid;
 static kernel_pid_t loramac_pid;
@@ -162,7 +162,7 @@ static void lora_resend_packet(void) {
     /* schedule packet retransmission */
     puts("[info] Scheduling packet retransmission in 30 seconds");
     
-    rtctimers_millis_set_msg(&send_retry_timer, 30000, &msg_data, sender_pid);
+    lptimer_set_msg(&send_retry_timer, 30000, &msg_data, sender_pid);
 }
 
 static void *sender_thread(void *arg) {
@@ -282,7 +282,7 @@ static void *sender_thread(void *arg) {
                         /* Pseudorandom delay for collision avoidance */
                         unsigned int delay = random_uint32_range(30000 + (current_join_retries - 1)*60000, 90000 + (current_join_retries - 1)*60000);
                         printf("[LoRa] random delay %d s\n", delay/1000);
-                        rtctimers_millis_set_msg(&join_retry_timer, delay, &msg_join, sender_pid);
+                        lptimer_set_msg(&join_retry_timer, delay, &msg_join, sender_pid);
                     }
                     break;
                 }
@@ -291,7 +291,7 @@ static void *sender_thread(void *arg) {
                     /* Pseudorandom delay for collision avoidance */
                     unsigned int delay = random_uint32_range(30000 + (current_join_retries - 1)*60000, 90000 + (current_join_retries - 1)*60000);
                     printf("[LoRa] random delay %d s\n", delay/1000);
-                    rtctimers_millis_set_msg(&join_retry_timer, delay, &msg_join, sender_pid);
+                    lptimer_set_msg(&join_retry_timer, delay, &msg_join, sender_pid);
                     break;
                 }
             }
@@ -807,7 +807,7 @@ static void unwds_callback(module_data_t *buf)
     msg_data.content.ptr = &node_data;
     
     /* remove any previously scheduled messages */
-    rtctimers_millis_remove(&send_retry_timer);
+    lptimer_remove(&send_retry_timer);
     
     /* send data */
     msg_send(&msg_data, sender_pid);

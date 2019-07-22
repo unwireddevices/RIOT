@@ -67,6 +67,9 @@ endif
 ifneq (,$(filter log_%,$(USEMODULE)))
   DIRS += log
 endif
+ifneq (,$(filter lptimer,$(USEMODULE)))
+  DIRS += lptimer
+endif
 ifneq (,$(filter xtimer,$(USEMODULE)))
   DIRS += xtimer
 endif
@@ -135,13 +138,6 @@ ifneq (,$(filter cord_ep,$(USEMODULE)))
 endif
 ifneq (,$(filter bluetil_%,$(USEMODULE)))
   DIRS += net/ble/bluetil
-endif
-ifneq (,$(filter rtctimers,$(USEMODULE)))
-    DIRS += rtctimers
-endif
-
-ifneq (,$(filter rtctimers-millis,$(USEMODULE)))
-    DIRS += rtctimers-millis
 endif
 
 ifneq (,$(filter dsp_fft,$(USEMODULE)))

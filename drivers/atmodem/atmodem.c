@@ -38,7 +38,7 @@
 #include "thread.h"
 #include "periph/uart.h"
 #include "periph/gpio.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 #include "at.h"
 #include "base64.h"
 #include "od.h"
@@ -139,7 +139,7 @@ static bool atmodem_ping(char *ip_addr) {
         DEBUG("[ATMODEM] %s try %i \n", cmd_with_ping, i+2);
 
         /* 500 ms delay */
-        rtctimers_millis_sleep(500);
+        lptimer_sleep(500);
     }
     return true;
 }
@@ -380,7 +380,7 @@ bool atmodem_test_connection(uint8_t *rssi) {
             }
         }
 
-        rtctimers_millis_sleep(100);
+        lptimer_sleep(100);
         counter++;
     }
 
@@ -402,7 +402,7 @@ bool atmodem_test_connection(uint8_t *rssi) {
             }
         }
 
-        rtctimers_millis_sleep(1000);
+        lptimer_sleep(1000);
         counter++;
     }    
 
@@ -513,7 +513,7 @@ bool atmodem_test_connection(uint8_t *rssi) {
         DEBUG("[ATMODEM] AT+CIICR try %i \n", i+2);
 
         /* 500 ms delay */
-        rtctimers_millis_sleep(500);
+        lptimer_sleep(500);
     }
 
     /* Get local IP address */
@@ -647,7 +647,7 @@ void atmodem_power_on(void) {
     gpio_set(atmodem_enable_pin);
 
     /* 500ms sleep and clear */
-    rtctimers_millis_sleep(ATMODEM_TIME_ON);
+    lptimer_sleep(ATMODEM_TIME_ON);
     gpio_clear(atmodem_enable_pin);
 }
 
@@ -679,7 +679,7 @@ bool atmodem_init(uart_t modem_uart, gpio_t power_pin, gpio_t enable_pin) {
     atmodem_power_on();
     
     /* We wait while modem is initialized */
-    rtctimers_millis_sleep(ATMODEM_TIME_ON_UART);
+    lptimer_sleep(ATMODEM_TIME_ON_UART);
 
     int res = at_dev_init(&at_dev, modem_uart, ATMODEM_BAUDRATE, at_dev_buf, ATMODEM_DEV_RESP_SIZE);
     
@@ -700,7 +700,7 @@ bool atmodem_init(uart_t modem_uart, gpio_t power_pin, gpio_t enable_pin) {
                 return false;
             }
 
-            rtctimers_millis_sleep(500);
+            lptimer_sleep(500);
         }
 
         return true;
@@ -723,7 +723,7 @@ int8_t atmodem_wait_sms_with_cmd(void) {
         if (counter < ATMODEM_WAIT_SMS_TIMEOUT) {
             atmodem_get_sms_command();
             counter++;
-            rtctimers_millis_sleep(1000);
+            lptimer_sleep(1000);
         } else {
             DEBUG("[ATMODEM] Waiting for SMS with internet settings timeout expired\n");
             return ATMODEM_WAITING_SMS_INTERNET_SETTINGS_TIMEOUT;
@@ -759,7 +759,7 @@ bool atmodem_send_httpget(uint8_t *data_for_send, size_t data_size) {
         DEBUG("[ATMODEM] AT+SAPBR=1,1 try %i \n", i+2);
 
         /* 500 ms delay */
-        rtctimers_millis_sleep(500);
+        lptimer_sleep(500);
     }
 
     /* Initialize HTTP service */
@@ -818,7 +818,7 @@ bool atmodem_send_httpget(uint8_t *data_for_send, size_t data_size) {
         }
 
         /* Waiting for the message to go */
-        rtctimers_millis_sleep(6000);  /* 6s = 2% error */
+        lptimer_sleep(6000);  /* 6s = 2% error */
 
         /* Terminate the HTTP service */
         res = at_send_cmd_wait_ok(&at_dev, "AT+HTTPTERM", ATMODEM_MAX_TIMEOUT);
@@ -838,7 +838,7 @@ bool atmodem_send_httpget(uint8_t *data_for_send, size_t data_size) {
             return false;
         }
 
-        rtctimers_millis_sleep(500);
+        lptimer_sleep(500);
     }
 
     DEBUG("[ATMODEM] Data sent successfully\n");
@@ -876,7 +876,7 @@ bool atmodem_send_httppost(char *url, uint8_t *data_for_send, size_t data_size) 
         DEBUG("[ATMODEM] AT+SAPBR=1,1 try %i \n", i+2);
 
         /* 500 ms delay */
-        rtctimers_millis_sleep(500);
+        lptimer_sleep(500);
     }
 
     /* Initialize HTTP service */
@@ -929,7 +929,7 @@ bool atmodem_send_httppost(char *url, uint8_t *data_for_send, size_t data_size) 
     at_send_bytes(&at_dev, (char*)data_for_send, data_size);
     // at_send_bytes(&at_dev, AT_SEND_EOL, 1);  // Command may not be sent
 
-    rtctimers_millis_sleep(1000);
+    lptimer_sleep(1000);
 
     //AT+HTTPACTION=1
     // res = at_send_cmd_get_resp(&at_dev, "AT+HTTPACTION=1", at_dev_resp, ATMODEM_DEV_RESP_SIZE, ATMODEM_MAX_TIMEOUT);
@@ -938,7 +938,7 @@ bool atmodem_send_httppost(char *url, uint8_t *data_for_send, size_t data_size) 
     //     return false;
     // }
 
-    // rtctimers_millis_sleep(7000);
+    // lptimer_sleep(7000);
 
     // do {
     //     res = at_readline(&at_dev, at_dev_resp, ATMODEM_DEV_RESP_SIZE, false, ATMODEM_MAX_TIMEOUT);
@@ -966,7 +966,7 @@ bool atmodem_send_httppost(char *url, uint8_t *data_for_send, size_t data_size) 
         }
 
         /* Waiting for the message to go */
-        rtctimers_millis_sleep(6000);  /* 6s = 2% error */
+        lptimer_sleep(6000);  /* 6s = 2% error */
 
         do {
             res = at_readline(&at_dev, at_dev_resp, ATMODEM_DEV_RESP_SIZE, false, ATMODEM_MAX_TIMEOUT);
@@ -1033,7 +1033,7 @@ bool atmodem_send_httppost(char *url, uint8_t *data_for_send, size_t data_size) 
             return false;
         }
 
-        rtctimers_millis_sleep(500);
+        lptimer_sleep(500);
     }
 
     // //AT+HTTPREAD
@@ -1076,7 +1076,7 @@ bool atmodem_send_tcpudp(char    *server_addr,
     DEBUG("[ATMODEM] %s OK\n", cmd_CIPSTART);
 
     /* Wait 5 sec for start TCP connection */
-    rtctimers_millis_sleep(5000);
+    lptimer_sleep(5000);
 
     /* CMD with lenth data for send (AT+CIPSEND=data_size) */
     char cmd_CIPSEND[20];
@@ -1088,17 +1088,17 @@ bool atmodem_send_tcpudp(char    *server_addr,
         return false;
     } 
     DEBUG("[ATMODEM] %s OK\n", cmd_CIPSEND);
-    rtctimers_millis_sleep(ATMODEM_CMD_TIMEOUT);
+    lptimer_sleep(ATMODEM_CMD_TIMEOUT);
 
     /* Send data */
     DEBUG("[ATMODEM] Send data:\n");
     od_hex_dump(data_for_send, data_size, OD_WIDTH_DEFAULT);
     at_send_bytes(&at_dev, (char*)data_for_send, data_size);
-    rtctimers_millis_sleep(2000);
+    lptimer_sleep(2000);
 
     /* Close connection */
     at_send_cmd(&at_dev, "AT+CIPCLOSE=0", ATMODEM_MAX_TIMEOUT);
-    rtctimers_millis_sleep(ATMODEM_CMD_TIMEOUT);
+    lptimer_sleep(ATMODEM_CMD_TIMEOUT);
     DEBUG("[ATMODEM] Close TCP or UDP Connection OK\n");
 
     // res = at_readline(&at_dev, at_dev_resp, ATMODEM_DEV_RESP_SIZE, false, ATMODEM_MAX_TIMEOUT);

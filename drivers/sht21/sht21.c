@@ -19,7 +19,7 @@
 #include "sht21.h"
 #include "periph/i2c.h"
 #include "byteorder.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
@@ -107,7 +107,7 @@ static int read_sensor(sht21_t *dev, bool need_rh, int *result) {
     /* release bus until sensor is ready */
     i2c_release(dev->i2c);
     
-    rtctimers_millis_sleep(100);
+    lptimer_sleep(100);
     /* Read back measurements: MSB, LSB and checksum byte */
     
     i2c_acquire(dev->i2c);

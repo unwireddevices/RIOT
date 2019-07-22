@@ -48,7 +48,7 @@ extern "C" {
 
 #include "board.h"
 #include "periph/gpio.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 #include "umdk-ids.h"
 #include "unwds-common.h"
@@ -58,7 +58,7 @@ extern "C" {
 #include "debug.h"
 
 static uwnds_cb_t *callback;
-static rtctimers_millis_t timer_softstart;
+static lptimer_t timer_softstart;
 
 typedef struct {
     uint8_t duty_delta;
@@ -95,7 +95,7 @@ static void pwm_softstart(void *arg) {
             pwm_set(pwm_dev, pwm_chan, timer_soft[pwm_number].current_duty);
         }
         
-        rtctimers_millis_set(&timer_softstart, UMDK_PWM_SOFTSTART_STEP_MS);
+        lptimer_set(&timer_softstart, UMDK_PWM_SOFTSTART_STEP_MS);
     } else {
         pwm_set(pwm_dev, pwm_chan, timer_soft[pwm_number].current_duty);
     }
@@ -122,7 +122,7 @@ static void set_pwm_value(gpio_t pin, uint32_t freq, uint8_t duty, uint16_t puls
                         pwm_set(pwm_dev, pwm_chan, duty);
                     } else {
                         timer_soft[pwm_number].target_duty = duty;
-                        rtctimers_millis_set(&timer_softstart, UMDK_PWM_SOFTSTART_STEP_MS);
+                        lptimer_set(&timer_softstart, UMDK_PWM_SOFTSTART_STEP_MS);
                     }
                     
                     /* start PWM */
@@ -141,7 +141,7 @@ static void set_pwm_value(gpio_t pin, uint32_t freq, uint8_t duty, uint16_t puls
                         pwm_stop(pwm_dev, pwm_chan);
                     } else {
                         timer_soft[pwm_number].target_duty = 0;
-                        rtctimers_millis_set(&timer_softstart, UMDK_PWM_SOFTSTART_STEP_MS);
+                        lptimer_set(&timer_softstart, UMDK_PWM_SOFTSTART_STEP_MS);
                     }
                     
                     puts(" stopped");

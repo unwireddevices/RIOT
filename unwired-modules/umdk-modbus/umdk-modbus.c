@@ -56,7 +56,7 @@ extern "C" {
 
 #include "thread.h"
 #include "xtimer.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 #include "checksum/ucrc16.h"
 
@@ -198,23 +198,23 @@ static void _check_respose(uint32_t min_delay, uint32_t time_response)
 {
     uint32_t num_detect = 0;
     /* Wait for the minimum time to receive data */
-    rtctimers_millis_sleep(min_delay);
+    lptimer_sleep(min_delay);
 
     while((num_detect * min_delay) <= time_response) {
         /* Check flag of recieved data */
         if(current_pack.flag_rx == UMDK_MODBUS_RECIEVED) {
             /* There is response */
             current_pack.response = UMDK_MODBUS_RESPONSE;                
-            rtctimers_millis_sleep(min_delay);
+            lptimer_sleep(min_delay);
             /* Wait the end of the current command */
             if(current_pack.rx_allow == UMDK_MODBUS_RX_ALLOW) {
-                rtctimers_millis_sleep(min_delay);
+                lptimer_sleep(min_delay);
             }
             return;
         }
         else {
             /* If the data is not yet received, wait */
-            rtctimers_millis_sleep(min_delay);
+            lptimer_sleep(min_delay);
         }        
         num_detect++;
     }

@@ -612,7 +612,7 @@ void *_semtech_loramac_event_loop(void *arg)
 
                 case MSG_TYPE_MAC_TIMEOUT:
                 {
-                    DEBUG("%" PRIu32 " - [semtech-loramac] MAC timer timeout\n", rtctimers_millis_now());
+                    DEBUG("%" PRIu32 " - [semtech-loramac] MAC timer timeout\n", lptimer_now_msec());
                     void (*callback)(void) = msg.content.ptr;
                     callback();
                     break;

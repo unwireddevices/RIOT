@@ -45,7 +45,7 @@ extern "C" {
 #include <stdbool.h>
 #include <string.h>
 
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 #include "periph/gpio.h"
 
 #include "board.h"
@@ -57,7 +57,7 @@ extern "C" {
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-static rtctimers_millis_t gpio_autoclear_timer;
+static lptimer_t gpio_autoclear_timer;
 
 static bool set(int num, bool one)
 {
@@ -142,7 +142,7 @@ int umdk_gpio_shell_cmd(int argc, char **argv) {
         
         gpio_autoclear_timer.callback = &gpio_autoclear_cb;
         gpio_autoclear_timer.arg = (void *)(uint32_t)pin;
-        rtctimers_millis_set(&gpio_autoclear_timer, delay * 1000);
+        lptimer_set(&gpio_autoclear_timer, delay * 1000);
     }
 
     return 1;
@@ -278,7 +278,7 @@ static bool gpio_cmd(module_data_t *cmd, module_data_t *reply, bool with_reply)
                 gpio_autoclear_timer.callback = &gpio_autoclear_cb;
                 gpio_autoclear_timer.arg = (void *)(uint32_t)pin;
                 
-                rtctimers_millis_set(&gpio_autoclear_timer, period * 1000);
+                lptimer_set(&gpio_autoclear_timer, period * 1000);
             } else {
                 if (with_reply) {
                     do_reply(reply, UMDK_GPIO_REPLY_ERR_PIN);

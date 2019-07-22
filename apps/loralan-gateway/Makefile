@@ -18,7 +18,6 @@ CFLAGS += -DCRYPTO_AES
 CFLAGS += -DNO_RIOT_BANNER
 
 FEATURES_REQUIRED += periph_gpio
-FEATURES_REQUIRED += periph_rtc
 FEATURES_REQUIRED += periph_spi
 FEATURES_REQUIRED += periph_eeprom
 FEATURES_REQUIRED += periph_uart
@@ -40,7 +39,7 @@ USEMODULE += random
 USEMODULE += hashes
 USEMODULE += checksum
 USEMODULE += sx127x
-USEMODULE += rtctimers-millis
+USEMODULE += lptimer
 
 ####### Empty modules list as we don't need any modules for the gateway ############
 

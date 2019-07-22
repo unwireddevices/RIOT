@@ -25,6 +25,7 @@
 #include <stdlib.h>
 
 #include "xtimer.h"
+#include "lptimer.h"
 #include "thread.h"
 
 #include "periph/gpio.h"
@@ -94,7 +95,7 @@ int sx127x_reset(const sx127x_t *dev)
     gpio_init(dev->params.reset_pin, GPIO_IN);
 
     /* Wait 10 ms */
-    rtctimers_millis_sleep(10);
+    lptimer_sleep(10);
 
     return 0;
 }

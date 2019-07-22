@@ -155,7 +155,7 @@
 #endif
 
 /* figure out sync and async prescalers
- * NB: lower PRE_ASYNC values increase rtctimers_millis accuracy,
+ * NB: lower PRE_ASYNC values increase lptimer accuracy,
  * but also increase power consumption
  */
 #if CLOCK_LSE
@@ -175,10 +175,6 @@
 #endif
 
 #define RTC_SSR_TO_US                   (((10000000 / PRE_SYNC) + 5)/10) /**< conversion from RTC_SSR to microseconds */
-
-#define RTCTIMERS_MILLIS_OVERHEAD       (0)
-#define RTCTIMERS_MILLIS_BACKOFF        (((10000/RTC_SSR_TO_US) + 5)/10)
-#define RTCTIMERS_MILLIS_ISR_BACKOFF    (((10000/RTC_SSR_TO_US) + 5)/10)
 
 /* struct tm counts years since 1900 but RTC has only two-digit year hence the
  * offset of 100 years. */
@@ -451,7 +447,7 @@ int rtc_millis_set_alarm(uint32_t milliseconds, rtc_alarm_cb_t cb, void *arg)
        
     /* set up subseconds alarm */
     uint32_t regalarm = RTC->RTC_MILLIS_SSREG;
-    regalarm |= (0x8 << 24); // compare 8 bits only
+    regalarm |= (0x15 << 24); // compare 8 bits only
     regalarm &= ~(RTC_MILLIS_SSREG_SS);
     regalarm |= (alarm_millis_time & 0xFF);
     RTC->RTC_MILLIS_SSREG = regalarm;

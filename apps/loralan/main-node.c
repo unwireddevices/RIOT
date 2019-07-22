@@ -64,7 +64,7 @@ extern "C" {
 #include "utils.h"
 
 #include "ls-regions.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -131,7 +131,7 @@ void joined_timeout_cb(void)
         unsigned int delay = random_uint32_range(5000 + (current_join_retries - 1)*30000, 30000 + (current_join_retries - 1)*30000);
         printf("[LoRa] random delay %d ms\n", (unsigned int) (delay));
         
-        rtctimers_millis_sleep(delay);
+        lptimer_sleep(delay);
         
         /* limit max delay between attempts to 1 hour */
         if (current_join_retries < 120) {
@@ -172,7 +172,7 @@ static void time_req_ack_cb(time_t time) {
 			t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
 
 	/* Setup new time as system time for all the timers */
-	rtctimers_millis_set_timebase(t);
+	/* rtctimers_millis_set_timebase(t); */
 }
 
 void appdata_send_failed_cb(void)

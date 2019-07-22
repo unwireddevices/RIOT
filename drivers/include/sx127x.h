@@ -60,7 +60,7 @@
 #ifndef SX127X_H
 #define SX127X_H
 
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 #include "net/netdev.h"
 #include "periph/gpio.h"
 #include "periph/spi.h"
@@ -205,8 +205,8 @@ typedef enum {
  */
 typedef struct {
     /* Data that will be passed to events handler in application */
-    rtctimers_millis_t tx_timeout_timer;        /**< TX operation timeout timer */
-    rtctimers_millis_t rx_timeout_timer;        /**< RX operation timeout timer */
+    lptimer_t tx_timeout_timer;        /**< TX operation timeout timer */
+    lptimer_t rx_timeout_timer;        /**< RX operation timeout timer */
     uint32_t last_channel;                      /**< Last channel in frequency hopping sequence */
     sx127x_modem_chip_t modem_chip;             /**< Modem model */
     bool is_last_cad_success;                 /**< Sign of success of last CAD operation (activity detected) */

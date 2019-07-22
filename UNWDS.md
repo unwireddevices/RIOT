@@ -60,8 +60,7 @@ Device drivers
 System services
 ---------------
 
-* rtctimers timers module for second-precision RTC timers
-* rtctimers-millis module for millisecond-precision RTC timers
+* lptimer module for millisecond-precision low-power (RTT/RTC) timers
 * Improved AES algorithm with 8KB smaller flash footprint
 * Semtech LoRaMAC adapted to RIOT AES implementation (faster, no conflicts if some other module needs AES)
 * shell_password command for shell access protection

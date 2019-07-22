@@ -24,7 +24,7 @@
 #include "periph/pwm.h"
 #include "random.h"
 #include "xtimer.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 #include "periph/adc.h"
 
 #define ENABLE_DEBUG (0)
@@ -186,7 +186,7 @@ void usonicrange_calibrate(usonicrange_t *dev)
             printf("%04d ", dev->dmabuffer[i + k]);
         }
         printf("\n");
-        rtctimers_millis_sleep(10);
+        lptimer_sleep(10);
     }
 #endif
 
@@ -313,7 +313,7 @@ static int usound_measure_distance(usonicrange_t *dev) {
                 printf("%04d ", dev->signalbuffer[i + k]);
             }
             printf("\n");
-            rtctimers_millis_sleep(10);
+            lptimer_sleep(10);
         }
     #endif
 
@@ -378,7 +378,7 @@ static int usound_measure_distance(usonicrange_t *dev) {
         }
 
         /* timeout for all echoes to die */
-        rtctimers_millis_sleep(50);
+        lptimer_sleep(50);
     }
 
     if (result > 0) {

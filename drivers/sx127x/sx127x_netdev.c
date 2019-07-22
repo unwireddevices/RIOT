@@ -77,7 +77,7 @@ static int _send(netdev_t *netdev, const iolist_t *iolist)
              * So wake up the chip */
             if (sx127x_get_op_mode(dev) == SX127X_RF_OPMODE_SLEEP) {
                 sx127x_set_standby(dev);
-                rtctimers_millis_sleep(SX127X_RADIO_WAKEUP_TIME); /* wait for chip wake up */
+                lptimer_sleep(SX127X_RADIO_WAKEUP_TIME); /* wait for chip wake up */
             }
 
             /* Write payload buffer */
@@ -121,7 +121,7 @@ static int _recv(netdev_t *netdev, void *buf, size_t len, void *info)
                     sx127x_set_state(dev, SX127X_RF_IDLE);
                 }
 
-                rtctimers_millis_remove(&dev->_internal.rx_timeout_timer);
+                lptimer_remove(&dev->_internal.rx_timeout_timer);
                 netdev->event_callback(netdev, NETDEV_EVENT_CRC_ERROR, netdev->event_callback_arg);
                 return -EBADMSG;
             }
@@ -172,7 +172,7 @@ static int _recv(netdev_t *netdev, void *buf, size_t len, void *info)
                 sx127x_set_state(dev, SX127X_RF_IDLE);
             }
 
-            rtctimers_millis_remove(&dev->_internal.rx_timeout_timer);
+            lptimer_remove(&dev->_internal.rx_timeout_timer);
 
             /* Read the last packet from FIFO */
             uint8_t last_rx_addr = sx127x_reg_read(dev, SX127X_REG_LR_FIFORXCURRENTADDR);
@@ -571,7 +571,7 @@ static void _on_dio0_irq(void *arg)
             netdev->event_callback(netdev, NETDEV_EVENT_RX_COMPLETE, netdev->event_callback_arg);
             break;
         case SX127X_RF_TX_RUNNING:
-            rtctimers_millis_remove(&dev->_internal.tx_timeout_timer);
+            lptimer_remove(&dev->_internal.tx_timeout_timer);
             switch (dev->settings.modem) {
                 case SX127X_MODEM_LORA:
                     /* Clear IRQ */
@@ -610,7 +610,7 @@ static void _on_dio1_irq(void *arg)
                     break;
                 case SX127X_MODEM_LORA:
                     DEBUG("sx127x_on_dio1: remove timer\n");
-                    rtctimers_millis_remove(&dev->_internal.rx_timeout_timer);
+                    lptimer_remove(&dev->_internal.rx_timeout_timer);
                     /*  Clear Irq */
                     DEBUG("sx127x_on_dio1: clear IRQ\n");
                     sx127x_reg_write(dev, SX127X_REG_LR_IRQFLAGS, SX127X_RF_LORA_IRQFLAGS_RXTIMEOUT);

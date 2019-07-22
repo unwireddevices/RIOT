@@ -54,7 +54,7 @@ extern "C" {
 
 #include "thread.h"
 #include "xtimer.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -68,7 +68,7 @@ typedef struct {
 static umdk_soil_config_t umdk_soil_config = { .publish_period_sec = 1800};
 
 static bool is_polled = false;
-static rtctimers_millis_t timer;
+static lptimer_t timer;
 static msg_t timer_msg = {};
 static kernel_pid_t timer_pid;
 
@@ -115,11 +115,11 @@ static int prepare_result(module_data_t *data) {
     rx_started = false;
     rx_done = false;
     
-    rtctimers_millis_sleep(2500);
-    uint32_t start = rtctimers_millis_now();
+    lptimer_sleep(2500);
+    uint32_t start = lptimer_now_msec();
     while (!rx_done) {
         /* timeout 5 seconds */
-        if (rtctimers_millis_now() > start + 2500) {
+        if (lptimer_now_msec() > start + 2500) {
             gpio_set(UMDK_SOIL_POWEREN);
             puts("[umdk-" _UMDK_NAME_ "] Sensor timeout");
             return -1;
@@ -177,7 +177,7 @@ static void *timer_thread(void *arg) {
         callback(&data);
 
         /* Restart after delay */
-        rtctimers_millis_set_msg(&timer, 1000 * umdk_soil_config.publish_period_sec, &timer_msg, timer_pid);
+        lptimer_set_msg(&timer, 1000 * umdk_soil_config.publish_period_sec, &timer_msg, timer_pid);
     }
     
     return NULL;
@@ -261,7 +261,7 @@ void umdk_soil_init(uwnds_cb_t *event_callback)
     }
     timer_pid = thread_create(timer_stack, UMDK_SOIL_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "umdk-soil timer thread");
     /* Start publishing timer */
-    rtctimers_millis_set_msg(&timer, 1000*umdk_soil_config.publish_period_sec, &timer_msg, timer_pid);
+    lptimer_set_msg(&timer, 1000*umdk_soil_config.publish_period_sec, &timer_msg, timer_pid);
 
     printf("[umdk-" _UMDK_NAME_ "] Period %" PRIu32 " sec\n", umdk_soil_config.publish_period_sec);
     

@@ -15,7 +15,6 @@ CFLAGS += -DCONFIG_GPIO_AS_PINRESET
 USEMODULE += xtimer
 
 FEATURES_REQUIRED = periph_nfc
-# FEATURES_REQUIRED += periph_rtc
 
 # Comment this out to disable code in RIOT that does safety checking
 # which is not needed in a production environment but helps in the

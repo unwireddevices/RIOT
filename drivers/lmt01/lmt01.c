@@ -27,7 +27,7 @@ extern "C" {
 #include "assert.h"
 #include "periph/pm.h"
 #include "xtimer.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 #include "lmt01.h"
 
@@ -90,7 +90,7 @@ static int count_pulses(lmt01_t *lmt01) {
 	lmt01_on(lmt01);
 
 	/* Wait minimum time for sensor wake up and all transitions to be done */
-    rtctimers_millis_sleep(LMT01_MIN_TIMEOUT_MS);
+    lptimer_sleep(LMT01_MIN_TIMEOUT_MS);
     
     pm_block(PM_SLEEP);
 

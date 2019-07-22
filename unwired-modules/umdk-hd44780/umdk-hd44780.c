@@ -53,7 +53,6 @@ extern "C" {
 #include "unwds-common.h"
 
 #include "thread.h"
-#include "rtctimers.h"
 
 static hd44780_t dev;
 static uwnds_cb_t *callback;

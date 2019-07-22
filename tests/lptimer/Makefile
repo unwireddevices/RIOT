@@ -1,4 +1,4 @@
-APPLICATION = rtctimers_millis_test
+APPLICATION = lptimer
 BOARD = unwd-range-l1-r3
 
 include ../Makefile.tests_common
@@ -7,10 +7,10 @@ include ../Makefile.tests_common
 
 USEMODULE += od
 USEMODULE += ps
-USEMODULE += rtctimers-millis
+USEMODULE += lptimer
 USEMODULE += xtimer
 
-FEATURES_REQUIRED += periph_rtc
+FEATURES_REQUIRED += periph_rtt
 
 #CFLAGS += -DDEVELHELP
 

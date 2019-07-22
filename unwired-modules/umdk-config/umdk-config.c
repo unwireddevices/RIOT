@@ -49,14 +49,14 @@ extern "C" {
 #include "umdk-ids.h"
 #include "unwds-common.h"
 #include "ls-settings.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 #include "umdk-config.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-static rtctimers_millis_t timer;
+static lptimer_t timer;
 
 static void umdk_config_reset_system(void *arg) {
     (void)arg;
@@ -115,7 +115,7 @@ static bool config_cmd(module_data_t *cmd, module_data_t *reply)
             do_reply(reply, UMDK_CONFIG_REPLY_OK);
             /* reboot in 30 seconds */
             timer.callback = umdk_config_reset_system;
-            rtctimers_millis_set(&timer, 30000);
+            lptimer_set(&timer, 30000);
             break;
         }
         case UMDK_SET_CLASS: {

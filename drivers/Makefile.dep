@@ -27,7 +27,7 @@ endif
 
 ifneq (,$(filter atmodem,$(USEMODULE)))
   FEATURES_REQUIRED += periph_gpio
-  USEMODULE += rtctimers-millis
+  USEMODULE += lptimer
   USEMODULE += at
 endif
 
@@ -173,8 +173,7 @@ endif
 
 ifneq (,$(filter fdc1004,$(USEMODULE)))
   FEATURES_REQUIRED += periph_i2c
-  FEATURES_REQUIRED += periph_rtc
-  USEMODULE += rtctimers-millis
+  USEMODULE += lptimer
 endif
 
 ifneq (,$(filter feetech,$(USEMODULE)))
@@ -493,8 +492,7 @@ endif
 ifneq (,$(filter st95,$(USEMODULE)))
   FEATURES_REQUIRED += periph_gpio
   FEATURES_REQUIRED += periph_spi
-  FEATURES_REQUIRED += periph_rtc
-  USEMODULE += rtctimers-millis
+  USEMODULE += lptimer
   USEMODULE += xtimer
 endif
 
@@ -502,8 +500,8 @@ ifneq (,$(filter sx127%,$(USEMODULE)))
   FEATURES_REQUIRED += periph_gpio
   FEATURES_REQUIRED += periph_gpio_irq
   FEATURES_REQUIRED += periph_spi
-  FEATURES_REQUIRED += periph_rtc
-  USEMODULE += rtctimers-millis
+  FEATURES_REQUIRED += periph_rtt
+  USEMODULE += lptimer
   USEMODULE += iolist
   USEMODULE += xtimer
   USEMODULE += sx127x

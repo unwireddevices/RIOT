@@ -23,7 +23,7 @@
 #include "assert.h"
 #include "periph/i2c.h"
 #include "byteorder.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 #include "fdc1004.h"
 
@@ -140,7 +140,7 @@ uint32_t fdc1004_get_raw_data(fdc1004_t *dev, uint8_t channel)
     
     DEBUG("[fdc1004] waiting for result\n");
     do {
-        rtctimers_millis_sleep(5);
+        lptimer_sleep(5);
         i2c_read_regs(dev->i2c, FDC1004_ADDRESS, FDC1004_REG_FDC_CONF, (uint8_t *)&reg, 2, 0);
         reg = byteorder_swaps(reg);
     } while (!(reg & (1 << (3 - channel))));

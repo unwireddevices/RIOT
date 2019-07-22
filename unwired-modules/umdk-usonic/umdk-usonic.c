@@ -57,7 +57,7 @@ extern "C" {
 #include "unwds-gpio.h"
 
 #include "thread.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 static usonicrange_t usonic_dev;
 
@@ -68,8 +68,8 @@ static kernel_pid_t timer_24hrs_pid;
 
 static msg_t timer_msg = {};
 static msg_t timer_24hrs_msg = {};
-static rtctimers_millis_t timer;
-static rtctimers_millis_t timer_24hrs;
+static lptimer_t timer;
+static lptimer_t timer_24hrs;
 
 static bool is_polled = false;
 
@@ -92,7 +92,7 @@ static int prepare_result(module_data_t *buf) {
     gpio_init(GPIO_PIN(PORT_B, 1), GPIO_OUT);
     gpio_clear(GPIO_PIN(PORT_B, 1));
     
-    rtctimers_millis_sleep(500);
+    lptimer_sleep(500);
     
     //usonicrange_calibrate(&usonic_dev);
     int range = usonicrange_measure(&usonic_dev);
@@ -155,7 +155,7 @@ static void *timer_thread(void *arg) {
 
         /* Restart after delay */
         if (usonicrange_config.publish_period_min) {
-            rtctimers_millis_set_msg(&timer, 60 * 1000 * usonicrange_config.publish_period_min, &timer_msg, timer_pid);
+            lptimer_set_msg(&timer, 60 * 1000 * usonicrange_config.publish_period_min, &timer_msg, timer_pid);
         }
     }
 
@@ -184,7 +184,7 @@ static void *timer_24hrs_thread(void *arg) {
         callback(&data);
         
         /* Restart after delay */
-        rtctimers_millis_set_msg(&timer_24hrs, 1000 * 60*60*24, &timer_24hrs_msg, timer_24hrs_pid);
+        lptimer_set_msg(&timer_24hrs, 1000 * 60*60*24, &timer_24hrs_msg, timer_24hrs_pid);
     }
 
     return NULL;
@@ -220,14 +220,14 @@ static void init_config(void) {
 }
 
 static void set_period (int period) {
-    rtctimers_millis_remove(&timer);
+    lptimer_remove(&timer);
 
     usonicrange_config.publish_period_min = period;
     save_config();
 
     /* Don't restart timer if new period is zero */
     if (usonicrange_config.publish_period_min) {
-        rtctimers_millis_set_msg(&timer, 60 * 1000 * usonicrange_config.publish_period_min, &timer_msg, timer_pid);
+        lptimer_set_msg(&timer, 60 * 1000 * usonicrange_config.publish_period_min, &timer_msg, timer_pid);
         printf("[umdk-" _UMDK_NAME_ "] Period set to %d minutes\n", usonicrange_config.publish_period_min);
     } else {
         printf("[umdk-" _UMDK_NAME_ "] Timer stopped");
@@ -360,7 +360,7 @@ void umdk_usonic_init(uwnds_cb_t *event_callback) {
     timer_24hrs_pid = thread_create(stack_24hrs, UMDK_USONIC_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_24hrs_thread, NULL, "usonic 24hrs thread");
     
     /* Start 24 hrs timer */
-    rtctimers_millis_set_msg(&timer_24hrs, 1000 * 60 * 60 * 24, &timer_24hrs_msg, timer_24hrs_pid);
+    lptimer_set_msg(&timer_24hrs, 1000 * 60 * 60 * 24, &timer_24hrs_msg, timer_24hrs_pid);
 
     char *stack = (char *) allocate_stack(UMDK_USONIC_STACK_SIZE);
 	if (!stack) {
@@ -396,7 +396,7 @@ void umdk_usonic_init(uwnds_cb_t *event_callback) {
     
     /* Start publishing timer */
     if (usonicrange_config.publish_period_min) {
-        rtctimers_millis_set_msg(&timer, usonicrange_config.publish_period_min * 1000 * 60, &timer_msg, timer_pid);
+        lptimer_set_msg(&timer, usonicrange_config.publish_period_min * 1000 * 60, &timer_msg, timer_pid);
     }
     
     unwds_add_shell_command("usonic", "type 'usonic' for commands list", umdk_usonic_shell_cmd);

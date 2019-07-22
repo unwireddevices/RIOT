@@ -5,3 +5,7 @@ endif
 ifneq (,$(filter prng_fortuna,$(USEMODULE)))
   CFLAGS += -DCRYPTO_AES
 endif
+
+ifneq (,$(filter lptimer,$(USEMODULE)))
+  FEATURES_REQUIRED += periph_rtt
+endif

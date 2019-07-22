@@ -21,7 +21,6 @@
 #include <stdio.h>
 
 #include "xtimer.h"
-#include "rtctimers-millis.h"
 #include "fdc1004.h"
 #include "dsp/int_dia/int_dia.h"
 
@@ -49,10 +48,8 @@ int main(void)
 
     dev.i2c = FDC1004_I2C;
 
-    rtctimers_millis_init();
     /* Initialized DIA structure */
     int_dia_init(&int_dia, FDC1004_INTEGRAL_THRESHOLD, FDC1004_DERIVATIVE_THRESHOLD, FDC1004_LEAKAGE_FACTOR, FDC1004_IIR_FILTER);
-
 
     printf("Initializing FDC1004 sensor on I2C #%d... ", dev.i2c);
     if (fdc1004_init(&dev) == 0) {

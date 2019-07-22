@@ -20,7 +20,7 @@
  * @}
  */
 
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 #include "lsm6dsl.h"
 #include "lsm6dsl_internal.h"
@@ -61,7 +61,7 @@ int lsm6dsl_init(lsm6dsl_t *dev, const lsm6dsl_params_t *params)
     /* Reboot */
     i2c_write_reg(BUS, ADDR, LSM6DSL_REG_CTRL3_C, LSM6DSL_CTRL3_C_BOOT, 0);
 
-    rtctimers_millis_sleep(LSM6DSL_BOOT_WAIT);
+    lptimer_sleep(LSM6DSL_BOOT_WAIT);
 
     if (i2c_read_reg(BUS, ADDR, LSM6DSL_REG_WHO_AM_I, &tmp, 0) < 0) {
         i2c_release(BUS);

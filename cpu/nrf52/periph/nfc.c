@@ -349,8 +349,8 @@ void isr_nfct(void)
             nrf_nfc_task(&NRF_NFCT->TASKS_STARTTX);           
             nrf_nfc_enable_int(NFCT_INTENSET_TXFRAMEEND_Msk);
             
-             nrf_nfc_disable_int(NFCT_INTENCLR_RXFRAMEEND_Msk);  
-             nrf_nfc_disable_int(NFCT_INTENCLR_RXERROR_Msk);
+             // nrf_nfc_disable_int(NFCT_INTENCLR_RXFRAMEEND_Msk);  
+             // nrf_nfc_disable_int(NFCT_INTENCLR_RXERROR_Msk);
              
             puts("\t\t[DESELECT]");
         }
@@ -383,7 +383,6 @@ void isr_nfct(void)
     
     if(NRF_NFCT->EVENTS_ERROR && (NRF_NFCT->INTEN & NFCT_INTEN_ERROR_Msk)) {
         nrf_nfc_clear_event(&NRF_NFCT->EVENTS_ERROR);
-        printf("RXEND EVENT: %lX\n", NRF_NFCT->EVENTS_RXFRAMEEND);
         puts("EVENTS_ERROR");
         nrf_nfc_clear_errors();
     }

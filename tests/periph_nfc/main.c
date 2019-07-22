@@ -58,7 +58,7 @@ int main(void)
 #if NFC_MODE_TEST
     puts("Start test NFC Data...\n");
     printf("NDEF size: %d\n", sizeof(ndef_data));
-    nfc_send_data(uid_test, NFC_UID_7_BYTES, NFC_PROTOCOL_TYPE4A_TAG, ndef_data, 10);
+    nfc_send_data(uid_test, NFC_UID_7_BYTES, NFC_PROTOCOL_TYPE4A_TAG, ndef_data, sizeof(ndef_data));
 #else
     puts("Start test NFC UID...\n");
     /* Set UID 7 bytes */

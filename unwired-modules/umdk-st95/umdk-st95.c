@@ -84,7 +84,7 @@ static volatile uint8_t mode = UMDK_ST95_MODE_GET_UID;
 static volatile uint8_t status = UMDK_ST95_STATUS_READY;
 
 // static uint8_t ndef_data[255] = { 0x00 };
-static uint8_t buff_data[10] = { 0x00 };
+static uint8_t buff_data[32] = { 0x00 };
 
 
 static void umdk_st95_get_uid(void);

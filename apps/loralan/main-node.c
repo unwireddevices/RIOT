@@ -604,8 +604,10 @@ static int ls_safe_cmd(int argc, char **argv) {
     (void)argc;
     (void)argv;
 
+#if defined RTC_REGBACKUP_BOOTMODE
     uint32_t bootmode = UNWDS_BOOT_SAFE_MODE;
     rtc_save_backup(bootmode, RTC_REGBACKUP_BOOTMODE);
+#endif
     puts("Rebooting in safe mode");
     NVIC_SystemReset();
     return 0;

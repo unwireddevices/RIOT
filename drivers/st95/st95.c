@@ -29,10 +29,10 @@
 #include "st95_params.h"
 #include "iso14443a.h"
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG (0)
 #include "debug.h"
 
-#define ENABLE_DEBUG_ST95 (1)
+#define ENABLE_DEBUG_ST95 (0)
 
 #ifdef __cplusplus
 extern "C" {
@@ -1179,7 +1179,7 @@ int _st95_cmd_send_receive(const st95_t * dev, uint8_t *data_tx, uint8_t size_tx
     
     _st95_wait_ready_data();
     
-    if(_st95_receive_pack(dev, rxbuff, size_rx_buff, false) == ST95_OK) {       
+    if(_st95_receive_pack(dev, rxbuff, size_rx_buff, false) == ST95_OK) {
         if(rxbuff[0] == ST95_RESULT_CODE_OK) {
             return ST95_OK;
         }       
@@ -1193,6 +1193,9 @@ int _st95_cmd_send_receive(const st95_t * dev, uint8_t *data_tx, uint8_t size_tx
         else {
             if(data_tx[0] != ISO14443A_CMD_HLTA) {
                 DEBUG("[st95]: Error 0x%02X\n", rxbuff[0]);
+                if(rxbuff[0] == 0xA0) {
+                    printf("Try %d bytes -> Rx len: %d bytes\n", size_rx_buff, 256 + rxbuff[1]);
+                }
             }
             return ST95_ERROR;
         }

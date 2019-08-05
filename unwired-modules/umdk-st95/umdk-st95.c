@@ -84,7 +84,7 @@ static volatile uint8_t mode = UMDK_ST95_MODE_GET_UID;
 static volatile uint8_t status = UMDK_ST95_STATUS_READY;
 
 // static uint8_t ndef_data[255] = { 0x00 };
-static uint8_t buff_data[32] = { 0x00 };
+static uint8_t buff_data[164] = { };
 
 
 static void umdk_st95_get_uid(void);
@@ -130,12 +130,17 @@ static void *radio_send(void *arg)
                 else {
                     if(st95_is_wake_up(&dev) == ST95_WAKE_UP) {
                         if(mode == UMDK_ST95_MODE_READ_DATA) {
+                            printf("Try read %d bytes...\n", sizeof(buff_data));
                             if(st95_read_data(&dev, buff_data , sizeof(buff_data)) == ST95_ERROR) {
-                                puts("Read ERR");
+                                puts("\n\t\t\t[Read ERR]\n");
                             }
                             else {
-                                printf("Data: ");
-                                PRINTBUFF(buff_data, sizeof(buff_data));
+                                // printf("Data: ");
+                                // PRINTBUFF(buff_data, sizeof(buff_data));
+                                for(uint32_t i = 0; i < sizeof(buff_data); i++) {
+                                    printf("%c", buff_data[i]);
+                                }
+                                printf("\n");
                             }
                         lptimer_sleep(UMDK_ST95_DELAY_DETECT_MS);
                         st95_sleep(&dev);

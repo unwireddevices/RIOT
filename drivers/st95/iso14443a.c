@@ -49,7 +49,7 @@ static uint8_t iblock = ISO7816_IBLOCK_02;
 static int _iso14443a_anticoll_algorithm(const st95_t * dev, uint8_t * iso_rxbuf);
 uint8_t _iso14443a_get_ats(const st95_t * dev, uint8_t * rxbuff);
 
-static iso14443a_picc_t picc;
+static iso14443a_picc_t picc = {};
 
 static int _is_iblock (uint8_t * rxbuff) {
     if ((rxbuff[NDEF_OFFSET_PCB] & NDEF_MASK_BLOCK) == NDEF_MASK_IBLOCK) {
@@ -78,9 +78,6 @@ static int _is_sblock (uint8_t * rxbuff) {
 static uint8_t _check_ndef(const st95_t * dev, uint8_t * rxbuff)
 {
     uint8_t length = rxbuff[ST95_LENGTH_OFFSET];
-
-    // PRINTSTR("Check NDEF: ");
-    // PRINTBUFF(rxbuff, length);
 
     if(length < 3) {
         DEBUG("Error: invalid RX length\n");
@@ -344,7 +341,7 @@ static uint8_t _read_ndef(const st95_t * dev, uint8_t * data, uint16_t length, u
     len = 0;
     iso_txbuff[len++] = iblock;
     iso_txbuff[len++] = ISO7816_CLASS_0X00;
-    iso_txbuff[len++] = ISO7816_READ_BINARY;   
+    iso_txbuff[len++] = ISO7816_READ_BINARY;  
     iso_txbuff[len++] = (picc.ndef_read_max >> 8) & 0xFF;
     iso_txbuff[len++] = (picc.ndef_read_max & 0xFF) + 0x02;
 
@@ -744,11 +741,9 @@ static void _iso14443a_support_ats(void)
 {
     /* Checks if the RATS command is supported by the card */
 	if(picc.sak & ISO14443A_FLAG_ATS_SUPPORTED) {
-        puts("Support ATS");
         picc.is_ats = true;
 	}
     else {
-        puts("Not support ATS");
         picc.is_ats = false;
     }
 }
@@ -773,12 +768,10 @@ uint8_t _iso14443a_type_tag(void)
     /* Check the Tag type found */
     if((picc.sak & 0x60) == 0x00) {
         picc.type = ISO14443A_TYPE_2;
-        printf(" Type 2 -> ");
         return ST95_OK;
     }
     else if((picc.sak & 0x20) == 0x20) {
         picc.type = ISO14443A_TYPE_4;
-        printf(" Type 4-> ");
         return ST95_OK;
     }
     return ST95_ERROR;
@@ -794,8 +787,8 @@ uint8_t _iso14443a_config_fwt(const st95_t * dev)
     uint8_t mm = 1; /* Min = 1 */
     uint8_t dd = 0; /* Min = 0 */
     
-    uint32_t fwt = (uint32_t)((1 << pp)*(mm+1)*(dd + 128)*32*100/1356);
-    printf("FWI: %02X  FWT: %ld [usec]\n", picc.fwi, fwt);
+    // uint32_t fwt = (uint32_t)((1 << pp)*(mm+1)*(dd + 128)*32*100/1356);
+    // printf("FWI: %02X  FWT: %ld [usec]\n", picc.fwi, fwt);
     
     params[0] = (ST95_TX_RATE_14443A << 6) | (ST95_RX_RATE_14443A << 4);
     params[1] = pp;
@@ -921,25 +914,17 @@ uint8_t _iso14443a_get_ats(const st95_t * dev, uint8_t * rxbuff)
     if(picc.sak == 0x00) {
         uint32_t check_uid = picc.uid[0] + picc.uid[1] + picc.uid[2] + picc.uid[3];
         if(check_uid == 0) {
-            puts("Invalid UID");
             _iso14443a_hlta(dev, rxbuff, ISO14443A_ANSWER_MAX_BYTE);
             return ST95_ERROR;
         }
     }
-    
-    printf("UID:");
-    for(uint32_t i = 0; i < picc.uid_length; i++) {
-        printf("%02X ",picc.uid[i]);
-    }
-    printf("\t");
-    
-    
+       
     if(_iso14443a_type_tag() == ST95_ERROR) {
         return ST95_ERROR;
     }
     
     _iso14443a_support_ats();
-    
+
     if(picc.is_ats) {
         uint8_t param_rats = (ISO14443A_FSD_256 << 4) | ISO14443A_CID_DEF;
         if(_iso14443a_rats(dev, param_rats, rxbuff, ISO14443A_APDU_CMD_MAX_BYTE) == ST95_ERROR) {

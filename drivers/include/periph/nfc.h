@@ -35,8 +35,41 @@
 extern "C" {
 #endif
 
-#define NRF_NFC_OK 		0
-#define NRF_NFC_ERROR 	1
+#define NRF_NFC_OK 		                0
+#define NRF_NFC_ERROR 	                1
+
+#define NRF_ISO14443A_UID_LENGTH_MAX    10
+#define NRF_NFC_NDEF_SIZE_MAX           256
+
+#define NFCT_ALL_INTERRUPTS 	        0x001D5CFF
+
+#define NFCT_ALL_ERRORS 	            0xDUL
+#define NFCT_ALL_RX_STATUS 	            0xDUL
+
+#define MODE_UID_TAG                    1
+#define MODE_DATA_RXTX                  0
+
+#define NFC_CRC_SIZE                    2
+#define NFC_RX_BUFFER_SIZE              256      /**< NFC Rx data buffer size */
+
+#define NFC_ISO14443A_CMD_RATS          0xE0
+#define NFC_ISO14443A_CMD_HLTA			0x50
+#define NFC_ISO14443A_CMD_DESELECT	    0xC2
+#define NFC_ISO7816_READ_BINARY  	    0xB0
+
+#define NFC_NDEF_OK_SW_1                0x90
+#define NFC_NDEF_OK_SW_2                0x00
+
+/**
+ * @brief  States NDEF exchange */
+typedef enum {
+    NFC_STATE_NONE            = 0x00,
+    NFC_STATE_RATS            = 0x01,
+    NFC_STATE_CC_LENGTH       = 0x02,
+    NFC_STATE_CC_READ         = 0x03,
+    NFC_STATE_NDEF_LENGTH     = 0x04,
+    NFC_STATE_NDEF_READ       = 0x05,
+} ndef_exchange_state_t;
 
 /**
  * @brief NFC ID size
@@ -48,6 +81,7 @@ typedef enum
     NFC_UID_10_BYTES = NFCT_SENSRES_NFCIDSIZE_NFCID1Triple, /**< Triple size NFC ID (10 bytes). */
 } nfc_id_size_t;
 
+
 /**
  * @brief Protocol NFC (tag type)
  */
@@ -56,8 +90,6 @@ typedef enum
     NFC_PROTOCOL_TYPE2_TAG         = 0x0,  /**< Type 2 Tag platform. */
     NFC_PROTOCOL_TYPE4A_TAG        = 0x1,  /**< Type 4A Tag platform. */
 } nfc_type_tag_t;
-
-#define NRF_ISO14443A_UID_LENGTH_MAX 10
 
 typedef struct {
     uint8_t type;                           /**<  */
@@ -74,12 +106,12 @@ typedef struct {
     uint16_t ndef_read_max;              /**<  */
     uint16_t ndef_write_max;             /**<  */
     uint16_t ndef_size;                     /**<  */
-}   __attribute__((packed)) nfc_iso14443a_picc_t;
+}   __attribute__((packed)) nrf_nfc_iso14443a_t;
 
 
 void nfc_init(void);
 uint8_t nfc_set_uid(uint8_t * uid, nfc_id_size_t size, nfc_type_tag_t tag_type);
-uint8_t nfc_send_data(uint8_t * uid, nfc_id_size_t size, nfc_type_tag_t tag_type, uint8_t * data, uint8_t length);
+uint8_t nfc_send_data(uint8_t * uid, nfc_id_size_t size, nfc_type_tag_t tag_type, uint8_t * data, uint16_t length);
 
 #ifdef __cplusplus
 }

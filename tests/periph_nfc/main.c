@@ -39,7 +39,7 @@
 static uint8_t uid_test[10] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0xAA, 0xBB, 0xCC };
 
 #if NFC_MODE_TEST
-// static uint8_t ndef_data[] = { 0xD1,                                              // MB / ME / CF / 1 / IL / TNF
+// static uint8_t ndef_data[] = { 0xD1,                           // MB / ME / CF / 1 / IL / TNF
                              // 0x01,                                              // TYPE LENGTH
                              // 51,                                                // PAYLOAD LENTGH
                              // 'T',                                               // TYPE
@@ -51,6 +51,7 @@ static uint8_t uid_test[10] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0xAA, 0
 // };
 
 static uint8_t ndef_data_text[] = {
+0, 0,
 13, 10,
 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35,
 13, 10,
@@ -58,7 +59,7 @@ static uint8_t ndef_data_text[] = {
 13, 10,
 42, ' ', ' ', ' ', 'T', 'e', 's', 't', 'i', 'n', 'g', 
 ' ', 'N', 'F', 'C', ' ', 'D', 'a', 't', 'a', ' ', 'e', 'x', 'c', 'h',
-'a', 'n', 'g', 'e', '.', '.', '.', 
+'a', 'n', 'g', 'e', '.', '.', '.',
 13, 10, 42, 13, 10, 
 42, ' ', ' ', ' ', 'U', 'n', 'w', 'i', 'r', 'e', 'd', ' ', 'D', 'e', 'v', 'i', 'c', 'e', 's', 
 ' ', 'L', 'L', 'C',
@@ -73,16 +74,15 @@ static uint8_t ndef_data_text[] = {
 13, 10,
 42, ' ', ' ', ' ', 'E', 'n', 'd',
 13, 10,
+42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+13, 10,
+42, ' ', ' ', ' ', 'T', 'e', 's', 't', 'e', 'd', ' ', 'b', 'y', ' ', 
+'M', 'i', 'k', 'h', 'a', 'i', 'l', ' ', 'P', 'e', 'r', 'k', 'o', 'v',
+13, 10,
+42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+13, 10,
+37, 37, 13, 10, 36
 };
-// 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
-// 13, 10,
-// };
-// 42, ' ', ' ', ' ', 'T', 'e', 's', 't', 'e', 'd', ' ', 'b', 'y', ' ', 
-// 'M', 'i', 'k', 'h', 'a', 'i', 'l', ' ', 'P', 'e', 'r', 'k', 'o', 'v',
-// 13, 10,
-// 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 36,
-// 13, 10
-// };
 
 #endif
 
@@ -92,23 +92,21 @@ int main(void)
 
 #if NFC_MODE_TEST
     puts("Start test NFC Data...\n");
-    
-    // uint8_t ndef_data[256] = {};
-    uint8_t len = sizeof(ndef_data_text);
-    // for(uint32_t i = 0; i < 256; i++) {
-        // ndef_data[i] = i & 0XFF;
-    // }
 
-    printf("NDEF size: %d\n", len);
-    for(uint32_t i = 0; i < len; i++) {
+    ndef_data_text[0] = (sizeof(ndef_data_text) >> 8) & 0xFF;
+    ndef_data_text[1] = sizeof(ndef_data_text) & 0xFF;
+    uint16_t len = ((ndef_data_text[0] << 8) | ndef_data_text[1]);
+    
+    printf("NDEF size: %d\n", len );
+    for(uint32_t i = 2; i < len; i++) {
         printf("%c", ndef_data_text[i]);
     }
-    
-    nfc_send_data(uid_test, NFC_UID_7_BYTES, NFC_PROTOCOL_TYPE4A_TAG, ndef_data_text, len);
+    printf("\n");
+    nfc_send_data(uid_test, NRF_NFC_UID_7_BYTES, NRF_NFC_PROTOCOL_TYPE4A_TAG, ndef_data_text, len);
 #else
     puts("Start test NFC UID...\n");
     /* Set UID 7 bytes */
-    nfc_set_uid(uid_test, NFC_UID_7_BYTES, NFC_PROTOCOL_TYPE2_TAG);
+    nfc_set_uid(uid_test, NRF_NFC_UID_7_BYTES, NRF_NFC_PROTOCOL_TYPE2_TAG);
 #endif    
     return 0;
 }

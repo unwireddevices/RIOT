@@ -83,8 +83,7 @@ static uint8_t sak = 0;
 static volatile uint8_t mode = UMDK_ST95_MODE_GET_UID;
 static volatile uint8_t status = UMDK_ST95_STATUS_READY;
 
-// static uint8_t ndef_data[255] = { 0x00 };
-static uint8_t buff_data[164] = { };
+static uint8_t buff_data[UMDK_ST95_NDEF_BUFF_SIZE] = { };
 
 
 static void umdk_st95_get_uid(void);
@@ -137,7 +136,8 @@ static void *radio_send(void *arg)
                             else {
                                 // printf("Data: ");
                                 // PRINTBUFF(buff_data, sizeof(buff_data));
-                                for(uint32_t i = 0; i < sizeof(buff_data); i++) {
+                                printf("NDEF: %d bytes\n", ((buff_data[0] << 8) | buff_data[1]));
+                                for(uint32_t i = 2; i < sizeof(buff_data); i++) {
                                     printf("%c", buff_data[i]);
                                 }
                                 printf("\n");

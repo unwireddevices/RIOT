@@ -269,8 +269,8 @@ static uint8_t _read_ndef(const st95_t * dev, uint8_t * data, uint16_t length, u
         return ST95_ERROR;
     }  
 
-    iso_txbuff[len++] = iblock;
-    
+    /* Read Length */
+    iso_txbuff[len++] = iblock;   
     iso_txbuff[len++] = ISO7816_CLASS_0X00;
     iso_txbuff[len++] = ISO7816_READ_BINARY;   
     iso_txbuff[len++] = 0x00;
@@ -293,13 +293,14 @@ static uint8_t _read_ndef(const st95_t * dev, uint8_t * data, uint16_t length, u
         PRINTSTR("\t\t >>> READ NDEF length: INVALID\n");
         return ST95_ERROR;
     }
-    
+      
+    /* Read first data part */
     len = 0;
     iso_txbuff[len++] = iblock;
     iso_txbuff[len++] = ISO7816_CLASS_0X00;
     iso_txbuff[len++] = ISO7816_READ_BINARY;   
     iso_txbuff[len++] = 0x00;
-    iso_txbuff[len++] = NDEF_PACK_OFFSET_DATA;
+    iso_txbuff[len++] = 0x00;
 
     if(length <= picc.ndef_read_max) {
         iso_txbuff[len++] = length;
@@ -322,7 +323,7 @@ static uint8_t _read_ndef(const st95_t * dev, uint8_t * data, uint16_t length, u
     iso_txbuff[len++] = ISO7816_CLASS_0X00;
     iso_txbuff[len++] = ISO7816_READ_BINARY;   
     iso_txbuff[len++] = 0x00;
-    iso_txbuff[len++] = NDEF_PACK_OFFSET_DATA;
+    iso_txbuff[len++] = 0x00;
 
     iso_txbuff[len++] = picc.ndef_read_max & 0xFF;
     
@@ -343,7 +344,7 @@ static uint8_t _read_ndef(const st95_t * dev, uint8_t * data, uint16_t length, u
     iso_txbuff[len++] = ISO7816_CLASS_0X00;
     iso_txbuff[len++] = ISO7816_READ_BINARY;  
     iso_txbuff[len++] = (picc.ndef_read_max >> 8) & 0xFF;
-    iso_txbuff[len++] = (picc.ndef_read_max & 0xFF) + 0x02;
+    iso_txbuff[len++] = (picc.ndef_read_max & 0xFF);
 
     iso_txbuff[len++] = (length - picc.ndef_read_max) & 0xFF;
     

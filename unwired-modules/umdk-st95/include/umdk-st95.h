@@ -49,28 +49,33 @@
 #define UMDK_ST95_UART_DEV              1
 
 #define ST95_MAX_DATA_BYTES             256
+#define UMDK_ST95_NDEF_BUFF_SIZE        256
 
-#define UMDK_ST95_OK_REPLY             0x00
-#define UMDK_ST95_ERROR_REPLY          0x01
+#define UMDK_ST95_OK_REPLY              0x00
+#define UMDK_ST95_ERROR_REPLY           0x01
 
-#define UMDK_ST95_MSG_EVENT   0
-#define UMDK_ST95_MSG_UID       1
+#define UMDK_ST95_MSG_EVENT             0
+#define UMDK_ST95_MSG_UID               1
 
-#define UMDK_ST95_UID_OK        1
-#define UMDK_ST95_UID_ERROR     0
+#define UMDK_ST95_UID_OK                1
+#define UMDK_ST95_UID_ERROR             0
 
-#define UMDK_ST95_DELAY_DETECT_MS 3000
-#define UMDK_ST95_DELAY_CHECK_MS 10
+#define UMDK_ST95_DELAY_DETECT_MS       3000
+#define UMDK_ST95_DELAY_CHECK_MS        10
 
-#define UMDK_ST95_MODE_DETECT_TAG   0
-#define UMDK_ST95_MODE_GET_UID      1
-#define UMDK_ST95_MODE_SET_UID      2
-#define UMDK_ST95_MODE_READ_DATA    3
-#define UMDK_ST95_MODE_WRITE_DATA   4
+#define UMDK_ST95_STATUS_PROCCESSING    0
+#define UMDK_ST95_STATUS_READY          1
 
-#define UMDK_ST95_STATUS_PROCCESSING 0
-#define UMDK_ST95_STATUS_READY 1
-
+/**
+ * @brief Commands list
+ */
+typedef enum {
+UMDK_ST95_MODE_DETECT_TAG   = 0,
+UMDK_ST95_MODE_GET_UID      = 1,
+UMDK_ST95_MODE_SET_UID      = 2,
+UMDK_ST95_MODE_READ_DATA    = 3,
+UMDK_ST95_MODE_WRITE_DATA   = 4,
+} umdk_st95_mode_t;
 
 /**
  * @brief Commands list

@@ -23,7 +23,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define ADE7953_SPI_CLK                    SPI_CLK_1MHZ
+#define ADE7953_SPI_CLK                    SPI_CLK_5MHZ
 
 #define ADE7953_NO_RESPONSE_TIME_MS        5000
 #define ADE7953_NO_RESPONSE_TIME_MIN_USEC  250
@@ -38,5 +38,5 @@ extern "C" {
 }
 #endif
 
-#endif /* ST95_PARAMS_H */
+#endif /* ADE7953_PARAMS_H */
 /** @} */

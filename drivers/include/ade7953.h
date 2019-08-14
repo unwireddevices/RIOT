@@ -29,6 +29,15 @@
 
 #define ADE7953_MAX_BYTE_BUFF      64
 
+/* Register Addresses */
+/* 8-bits Registers */
+#define ADE7953_UNLOCK_REG_8    0x0FE   /* Addres Unlock register for unlock Register 0x120 address */
+#define ADE7953_PGA_V_8         0x007   /* Voltage channel gain configuration (Bits[2:0]) */
+#define ADE7953_PGA_IA_8        0x008   /* Current Channel A gain configuration (Bits[2:0]) */
+/* 16-bits Registers */
+#define ADE7953_SETUP_REG_16    0x120   /* This register should be set to 0x30 */
+
+
 /**
  * @brief ADE7953 return codes
 */

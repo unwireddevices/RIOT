@@ -36,13 +36,16 @@ extern "C" {
 #endif
 
 static uint8_t ade7953_txbuf[ADE7953_MAX_BYTE_BUFF] = { 0x00 };
-static uint8_t ade7953_rxbuf[ADE7953_MAX_BYTE_BUFF] = { 0x00 };
+// static uint8_t ade7953_rxbuf[ADE7953_MAX_BYTE_BUFF] = { 0x00 };
 
 // static uint16_t length_rx = 0;
 
 static uint8_t _ade7953_spi_receive(const ade7953_t * dev, uint8_t * rxbuff, uint16_t size_rx_buff);
 static uint8_t _ade7953_spi_send(const ade7953_t * dev, uint8_t * txbuff, uint8_t length_tx);
+static int _ade7953_send(const ade7953_t * dev, uint16_t addr, uint8_t * data, uint8_t len);
+int _ade7953_receive(const ade7953_t * dev, uint16_t addr, uint8_t * data, uint8_t len);
 
+static int _ade7953_setup(const ade7953_t * dev);
 
 /**
  * @brief   This function send data over SPI bus
@@ -53,12 +56,11 @@ static uint8_t _ade7953_spi_send(const ade7953_t * dev, uint8_t * txbuff, uint8_
  * 
  * @return  0:  data has been successfully transmitted
  */
-uint8_t _ade7953_spi_send(const ade7953_t * dev, uint8_t * txbuff, uint8_t length_tx)
+static uint8_t _ade7953_spi_send(const ade7953_t * dev, uint8_t * txbuff, uint8_t length_tx)
 {
     spi_acquire(SPI_DEV(dev->params.spi), dev->params.cs_spi, SPI_MODE_0, ADE7953_SPI_CLK);
 
     /*Send command*/
-    // spi_transfer_bytes(SPI_DEV(dev->params.spi), dev->params.cs_spi, true, &tx_spi, NULL, 1);
     spi_transfer_bytes(SPI_DEV(dev->params.spi), dev->params.cs_spi, false, txbuff, NULL, length_tx);
 
     spi_release(SPI_DEV(dev->params.spi));
@@ -88,11 +90,9 @@ static uint8_t _ade7953_spi_receive(const ade7953_t * dev, uint8_t * rxbuff, uin
     
     spi_acquire(SPI_DEV(dev->params.spi), dev->params.cs_spi, SPI_MODE_0, ADE7953_SPI_CLK);
 
-    
     memset(rxbuff, 0x00, size_rx_buff);       
      
-    // spi_transfer_bytes(SPI_DEV(dev->params.spi), dev->params.cs_spi, true, &rx_spi, NULL, 1);
-    // spi_transfer_bytes(SPI_DEV(dev->params.spi), dev->params.cs_spi, false, NULL, rxbuff, size_rx_buff);
+    spi_transfer_bytes(SPI_DEV(dev->params.spi), dev->params.cs_spi, false, NULL, rxbuff, size_rx_buff);
 
     spi_release(SPI_DEV(dev->params.spi));
 
@@ -116,6 +116,113 @@ static void _ade7953_spi_rx(void* arg)
     return;
 }
 
+/**
+ * @brief   This function send data in ADE
+ * 
+ * @param[in]   dev:            Pointer to ADE7953 device descriptor
+ * @param[in]   addr:           Register address
+ * @param[out]  txbuff:         Pointer to the transmit buffer
+ * @param[out]  length_tx:      Size of the transmit buffer
+ * 
+ * @return  0:  data has been successfully transmitted
+ * @return >0:  in case of an error
+ */
+static int _ade7953_send(const ade7953_t * dev, uint16_t addr, uint8_t * data, uint8_t len )
+{
+    uint8_t byte_len = ((addr & 0x300) >> 8)  + 1;
+
+    if( len != byte_len ){
+        return ADE7953_ERROR;
+    }
+    uint8_t length_tx = 0;
+    // Send packet
+    ade7953_txbuf[length_tx++] = (addr & 0xFF00) >> 8;
+    ade7953_txbuf[length_tx++] = addr & 0xFF;
+    ade7953_txbuf[length_tx++] = 0x00;    // Write data to ADE
+    // for( int8_t i = byte_len; i > 0; ){
+    for(uint32_t i = 0; i < byte_len; i++){
+        ade7953_txbuf[length_tx++] = *data;
+        data--;
+    }
+
+    _ade7953_spi_send(dev, ade7953_txbuf, length_tx);
+    return ADE7953_OK;
+}
+
+/**
+ * @brief   This function receive data from ADE
+ * 
+ * @param[in]   dev:            Pointer to ADE7953 device descriptor
+ * @param[in]   addr:           Register address
+ * @param[out]  txbuff:         Pointer to the receive buffer
+ * @param[out]  length_tx:      Size of the receive buffer
+ * 
+ * @return  0:  data has been successfully received
+ * @return >0:  in case of an error
+ */
+int _ade7953_receive(const ade7953_t * dev, uint16_t addr, uint8_t * data, uint8_t len)
+{
+    uint8_t byte_len = ((addr & 0x300) >> 8)  + 1;
+
+    if( len != byte_len ){
+        return ADE7953_ERROR;
+    }
+    uint8_t length_tx = 0;
+    // Send packet
+    ade7953_txbuf[length_tx++] = (addr & 0xFF00) >> 8;
+    ade7953_txbuf[length_tx++] = addr & 0xFF;
+    ade7953_txbuf[length_tx++] = 0x80;    // Read data from ADE
+    length_tx += len;
+
+    _ade7953_spi_send(dev, ade7953_txbuf, length_tx);
+    _ade7953_spi_receive(dev, data, length_tx);
+    
+    return ADE7953_OK;
+}
+
+/**
+ * @brief ADE7953 power up setup
+ *
+ * @param[in]   dev:    Pointer to ADE7953 device descriptor
+ * @param[in]   params: Pointer to static ST95 device configuration
+ *
+ * @return 0:   if initialization succeeded
+ * @return >0:  in case of an error
+ */
+static int _ade7953_setup(const ade7953_t * dev)
+{
+    uint8_t  data[8] = { 0x00 };
+    uint8_t len = 0;
+    data[0] = 0xAD;
+    len = 1;
+    if(_ade7953_send(dev, ADE7953_UNLOCK_REG_8, data, len) != ADE7953_OK) {
+        return ADE7953_ERROR;
+    }
+
+    data[0] = 0x30;
+    data[1] = 0x00;
+    len = 2;
+    if(_ade7953_send(dev, ADE7953_SETUP_REG_16, data, len) != ADE7953_OK) {
+        return ADE7953_ERROR;
+    }
+    
+    // Set gain
+  data[0] = 1;         // Gain coeff (1, 2, 4, 8, 16, 22)
+  len = 1;
+  _ade7953_send(dev, ADE7953_PGA_V_8, data, len);
+  _ade7953_send(dev, ADE7953_PGA_IA_8, data, len);
+  
+    // Set I_max and V_max
+    
+
+    // Set IRQ:
+    // OIA - I max
+    // OV  - V max
+    // AEHFA - enable an interrupt when the active energy is half full (Current Channel  A)
+  // data.u32d = IRQENA_OIA | IRQENA_OV | IRQENA_AEHFA;
+  // _ade7953_send( IRQENA_32, (uint8_t *)&(data.u32d), 4);    
+    return ADE7953_OK;
+}
 
 /**
  * @brief ADE7953 driver initialization routine
@@ -157,8 +264,9 @@ int ade7953_init(ade7953_t * dev, ade7953_params_t * params)
     gpio_init_int(dev->params.irq, GPIO_IN_PU, GPIO_FALLING, _ade7953_spi_rx, dev);
     gpio_irq_disable(dev->params.irq);
     
-    _ade7953_spi_receive(dev, ade7953_rxbuf, 10);
-    _ade7953_spi_send(dev, ade7953_txbuf, 10);
+    if(_ade7953_setup(dev) != ADE7953_OK) {
+        return ADE7953_ERROR;
+    }
     
     return ADE7953_OK;
 }

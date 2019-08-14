@@ -66,13 +66,14 @@ typedef enum {
  *          power modes, but those are as of now not supported by this driver
  */
 typedef enum {
-    LIS2DH12_RATE_1HZ   = 0x17,     /**< sample with 1Hz */
-    LIS2DH12_RATE_10HZ  = 0x27,     /**< sample with 10Hz */
-    LIS2DH12_RATE_25HZ  = 0x37,     /**< sample with 25Hz */
-    LIS2DH12_RATE_50HZ  = 0x47,     /**< sample with 50Hz */
-    LIS2DH12_RATE_100HZ = 0x57,     /**< sample with 100Hz */
-    LIS2DH12_RATE_200HZ = 0x67,     /**< sample with 200Hz */
-    LIS2DH12_RATE_400HZ = 0x77,     /**< sample with 400Hz */
+    LIS2DH12_RATE_POWER_DOWN = 0x00,
+    LIS2DH12_RATE_1HZ        = 0x17,     /**< sample with 1Hz */
+    LIS2DH12_RATE_10HZ       = 0x27,     /**< sample with 10Hz */
+    LIS2DH12_RATE_25HZ       = 0x37,     /**< sample with 25Hz */
+    LIS2DH12_RATE_50HZ       = 0x47,     /**< sample with 50Hz */
+    LIS2DH12_RATE_100HZ      = 0x57,     /**< sample with 100Hz */
+    LIS2DH12_RATE_200HZ      = 0x67,     /**< sample with 200Hz */
+    LIS2DH12_RATE_400HZ      = 0x77,     /**< sample with 400Hz */
 } lis2dh12_rate_t;
 
 /**

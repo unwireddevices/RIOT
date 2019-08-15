@@ -23,7 +23,6 @@
 #include "xtimer.h"
 #include "lptimer.h"
 #include "board.h"
-#include "periph/spi.h"
 
 #include "ade7953.h"
 #include "ade7953_params.h"
@@ -35,15 +34,15 @@
 extern "C" {
 #endif
 
+static volatile uint8_t state = ADE7953_STATE_STOP;
+
 static uint8_t ade7953_txbuf[ADE7953_MAX_BYTE_BUFF] = { 0x00 };
 // static uint8_t ade7953_rxbuf[ADE7953_MAX_BYTE_BUFF] = { 0x00 };
 
-// static uint16_t length_rx = 0;
-
-static uint8_t _ade7953_spi_receive(const ade7953_t * dev, uint8_t * rxbuff, uint16_t size_rx_buff);
+static uint8_t _ade7953_spi_receive(const ade7953_t * dev, uint8_t * txbuff, uint8_t * rxbuff, uint8_t length);
 static uint8_t _ade7953_spi_send(const ade7953_t * dev, uint8_t * txbuff, uint8_t length_tx);
 static int _ade7953_send(const ade7953_t * dev, uint16_t addr, uint8_t * data, uint8_t len);
-int _ade7953_receive(const ade7953_t * dev, uint16_t addr, uint8_t * data, uint8_t len);
+static int _ade7953_receive(const ade7953_t * dev, uint16_t addr, uint8_t * data, uint8_t len);
 
 static int _ade7953_setup(const ade7953_t * dev);
 
@@ -77,22 +76,25 @@ static uint8_t _ade7953_spi_send(const ade7953_t * dev, uint8_t * txbuff, uint8_
  * 
  * @param[in]   dev:            Pointer to ST95 device descriptor
  * @param[out]  rxbuff:         Pointer to the receive buffer
- * @param[out]  size_rx_buff:   Size of the receive buffer
+ * @param[out]  length:         Size of the receive buffer
  * 
  * @return  0:  data has been successfully received
  * @return  >0: in case of an error
  */
-static uint8_t _ade7953_spi_receive(const ade7953_t * dev, uint8_t * rxbuff, uint16_t size_rx_buff)
+static uint8_t _ade7953_spi_receive(const ade7953_t * dev, uint8_t * txbuff, uint8_t * rxbuff, uint8_t length)
 {      
-    if(size_rx_buff > ADE7953_MAX_BYTE_BUFF) {
-        size_rx_buff = ADE7953_MAX_BYTE_BUFF;
+    if(length > ADE7953_MAX_BYTE_BUFF) {
+        length = ADE7953_MAX_BYTE_BUFF;
     }
     
     spi_acquire(SPI_DEV(dev->params.spi), dev->params.cs_spi, SPI_MODE_0, ADE7953_SPI_CLK);
 
-    memset(rxbuff, 0x00, size_rx_buff);       
+    memset(rxbuff, 0x00, length);
      
-    spi_transfer_bytes(SPI_DEV(dev->params.spi), dev->params.cs_spi, false, NULL, rxbuff, size_rx_buff);
+    spi_transfer_bytes(SPI_DEV(dev->params.spi), dev->params.cs_spi, false, txbuff, rxbuff, length);
+    
+    // spi_transfer_bytes(SPI_DEV(dev->params.spi), dev->params.cs_spi, true, txbuff, NULL, length_tx);
+    // spi_transfer_bytes(SPI_DEV(dev->params.spi), dev->params.cs_spi, false, NULL, rxbuff, length_rx);
 
     spi_release(SPI_DEV(dev->params.spi));
 
@@ -112,6 +114,21 @@ static void _ade7953_spi_rx(void* arg)
     if (dev->cb) {
         dev->cb(dev->arg);
     }
+
+  uint32_t irq_state;
+  // Read IRQ states
+  _ade7953_receive(dev, ADE7953_IRQSTATA_32, (uint8_t *)&irq_state, 4);
+  
+  // IRQ handling
+    if(irq_state & ADE7953_IRQENA_RESET) {
+        state = ADE7953_STATE_READY;
+    }
+    else if(irq_state & ADE7953_IRQENA_AEHFA) {
+        // ade7953_get_aenergy(dev);
+    }
+
+  // Clear IRQ states
+  _ade7953_receive(dev, ADE7953_RSTIRQSTATA_32, (uint8_t *)&irq_state, 4);    
   
     return;
 }
@@ -127,8 +144,10 @@ static void _ade7953_spi_rx(void* arg)
  * @return  0:  data has been successfully transmitted
  * @return >0:  in case of an error
  */
-static int _ade7953_send(const ade7953_t * dev, uint16_t addr, uint8_t * data, uint8_t len )
+static int _ade7953_send(const ade7953_t * dev, uint16_t addr, uint8_t * data, uint8_t len)
 {
+    // while(state != ADE7953_STATE_READY) {}
+    
     uint8_t byte_len = ((addr & 0x300) >> 8)  + 1;
 
     if( len != byte_len ){
@@ -146,6 +165,7 @@ static int _ade7953_send(const ade7953_t * dev, uint16_t addr, uint8_t * data, u
     }
 
     _ade7953_spi_send(dev, ade7953_txbuf, length_tx);
+    // state = ADE7953_STATE_STOP;
     return ADE7953_OK;
 }
 
@@ -162,22 +182,65 @@ static int _ade7953_send(const ade7953_t * dev, uint16_t addr, uint8_t * data, u
  */
 int _ade7953_receive(const ade7953_t * dev, uint16_t addr, uint8_t * data, uint8_t len)
 {
+    // while(state != ADE7953_STATE_READY) {}
+    
     uint8_t byte_len = ((addr & 0x300) >> 8)  + 1;
 
-    if( len != byte_len ){
+    if(len != byte_len) {
         return ADE7953_ERROR;
     }
-    uint8_t length_tx = 0;
+    uint8_t length = 0;
     // Send packet
-    ade7953_txbuf[length_tx++] = (addr & 0xFF00) >> 8;
-    ade7953_txbuf[length_tx++] = addr & 0xFF;
-    ade7953_txbuf[length_tx++] = 0x80;    // Read data from ADE
-    length_tx += len;
+    ade7953_txbuf[length++] = (addr & 0xFF00) >> 8;
+    ade7953_txbuf[length++] = addr & 0xFF;
+    ade7953_txbuf[length++] = 0x80;    // Read data from ADE
+    length += len;
 
-    _ade7953_spi_send(dev, ade7953_txbuf, length_tx);
-    _ade7953_spi_receive(dev, data, length_tx);
-    
+    _ade7953_spi_receive(dev, ade7953_txbuf, data, length);
+    // state = ADE7953_STATE_STOP;
     return ADE7953_OK;
+}
+
+uint32_t ade7953_get_version(const ade7953_t * dev)
+{
+    uint32_t vers_tmp = 0;
+    _ade7953_receive(dev, ADE7953_VERSION_8, (uint8_t *)(&vers_tmp), 4);
+    return vers_tmp;
+}
+
+uint32_t ade7953_get_volt(const ade7953_t * dev)
+{
+    uint32_t volt_tmp = 0;
+    _ade7953_receive(dev, ADE7953_V_32, (uint8_t *)(&volt_tmp), 4);
+    return volt_tmp;
+}
+
+uint32_t ade7953_get_curr(const ade7953_t * dev)
+{
+    uint32_t curr_tmp = 0;
+    _ade7953_receive(dev, ADE7953_IA_32, (uint8_t *)(&curr_tmp), 4);
+    return curr_tmp;
+}
+
+uint32_t ade7953_get_aenergy(const ade7953_t * dev)
+{
+    uint32_t energy_tmp = 0;
+    _ade7953_receive(dev, ADE7953_AENERGYA_32, (uint8_t *)(&energy_tmp), 4);
+    return energy_tmp;
+}
+
+uint32_t ade7953_get_irms(const ade7953_t * dev)
+{
+    uint32_t i_rms_tmp = 0;
+    _ade7953_receive(dev, ADE7953_IRMSA_32, (uint8_t *)(&i_rms_tmp), 4);
+    return i_rms_tmp;
+}
+
+uint32_t ade7953_get_vrms(const ade7953_t * dev)
+{
+    uint32_t v_rms_tmp = 0;
+    _ade7953_receive(dev, ADE7953_VRMS_32, (uint8_t *)(&v_rms_tmp), 4);
+    return v_rms_tmp;
 }
 
 /**
@@ -206,21 +269,23 @@ static int _ade7953_setup(const ade7953_t * dev)
         return ADE7953_ERROR;
     }
     
-    // Set gain
-  data[0] = 1;         // Gain coeff (1, 2, 4, 8, 16, 22)
-  len = 1;
-  _ade7953_send(dev, ADE7953_PGA_V_8, data, len);
-  _ade7953_send(dev, ADE7953_PGA_IA_8, data, len);
+    /* Set gain amplifier */
+    data[0] = 1;         // Gain coeff (1, 2, 4, 8, 16, 22)
+    len = 1;
+    _ade7953_send(dev, ADE7953_PGA_V_8, data, len);
+    _ade7953_send(dev, ADE7953_PGA_IA_8, data, len);
   
-    // Set I_max and V_max
-    
+    /* Set I_max and V_max */
+    // Read voltage peak with reset
+    // _ade7953_receive(dev, ADE7953_RSTVPEAK_32, data, 4);
+    // Read Current Channel A peak with reset
+    // _ade7953_receive(dev, ADE7953_RSTIAPEAK_32, data, 4);
 
-    // Set IRQ:
-    // OIA - I max
-    // OV  - V max
+    /* Set IRQ: */
     // AEHFA - enable an interrupt when the active energy is half full (Current Channel  A)
-  // data.u32d = IRQENA_OIA | IRQENA_OV | IRQENA_AEHFA;
-  // _ade7953_send( IRQENA_32, (uint8_t *)&(data.u32d), 4);    
+    // uint32_t data_32 = ADE7953_IRQENA_AEHFA;
+    // _ade7953_send(dev, ADE7953_IRQENA_32, (uint8_t *)&data_32, 4);
+    
     return ADE7953_OK;
 }
 
@@ -241,6 +306,7 @@ int ade7953_init(ade7953_t * dev, ade7953_params_t * params)
     // #define ADE7953_SPI_CS      UNWD_GPIO_4     // PD13
     // #define ADE7953_IRQ         UNWD_GPIO_25    // PE7
     // #define ADE7953_RESET       UNWD_GPIO_26    // PD11
+    // #define ADE7953_SPI_CLK                    SPI_CLK_1MHZ
     
     // ade7953_params_t ade7953_params = { .spi = ADE7953_SPI_DEV, . cs_spi = ADE7953_SPI_CS, .irq =  ADE7953_IRQ, .reset = ADE7953_RESET };
     // ade7953_init(&ade7953_dev, &ade7953_params);
@@ -263,6 +329,10 @@ int ade7953_init(ade7953_t * dev, ade7953_params_t * params)
     /* Init Interrupt */
     gpio_init_int(dev->params.irq, GPIO_IN_PU, GPIO_FALLING, _ade7953_spi_rx, dev);
     gpio_irq_disable(dev->params.irq);
+    
+    // TODO: check register or delay(100 ms)
+    lptimer_sleep(ADE7953_POWER_ON_DELAY_MS);
+    while(state != ADE7953_STATE_READY) {}
     
     if(_ade7953_setup(dev) != ADE7953_OK) {
         return ADE7953_ERROR;

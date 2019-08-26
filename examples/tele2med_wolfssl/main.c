@@ -95,7 +95,7 @@ int unwired_send(WOLFSSL *ssl, char *buf, int sz, void *ctx) {
 /*---------------------------------------------------------------------------*/
 /* Power on for SIM5300 */
 void sim5300_power_on(void) {
-    puts("[Modem] Power on");
+    puts("[SIM5300] Power on");
 
     /* MODEM_POWER_ENABLE to Hi */
     gpio_init(T2M_GSMPOWER, GPIO_OUT);
@@ -122,12 +122,14 @@ void sim5300_power_on(void) {
 
 //     /* Modem is not initialized */
 //     sim_status.modem = MODEM_NOT_INITIALIZED;
-//     puts("[Modem] Power off");
+//     puts("[SIM5300] Power off");
 // }
 
 /*---------------------------------------------------------------------------*/
 /* Test driver SIM5300 */
 bool sim5300_test_driver(sim5300_dev_t *sim5300_dev) {
+    return true;
+
     if (!sim5300_set_sim_inserted_status_reporting(sim5300_dev, 1)) {
         return false;
     }
@@ -142,15 +144,15 @@ bool sim5300_test_driver(sim5300_dev_t *sim5300_dev) {
     }
 
 ///
-    if (!sim5300_set_network_settings(sim5300_dev, "apn", "user", "password")) {
+    if (!sim5300_set_network_settings(sim5300_dev, "internet", "", "")) {
         return false;
     }
-    if (!sim5300_set_network_settings(sim5300_dev, "apn", "", "password")) {
-        return false;
-    }
-    if (!sim5300_set_network_settings(sim5300_dev, NULL, "user", "password")) {
-        return false;
-    }
+    // if (!sim5300_set_network_settings(sim5300_dev, "apn", "", "password")) {
+    //     return false;
+    // }
+    // if (!sim5300_set_network_settings(sim5300_dev, NULL, "user", "password")) {
+    //     return false;
+    // }
 ///
 
     rtctimers_millis_sleep(15000);
@@ -207,7 +209,107 @@ bool sim5300_test_driver(sim5300_dev_t *sim5300_dev) {
 }
 
 /*---------------------------------------------------------------------------*/
+/* Test driver SIM5300 */
+bool sim5300_set_internet(sim5300_dev_t *sim5300_dev) {
+    /* Disabled showing an unsolicited event code */
+    if (!sim5300_set_sim_inserted_status_reporting(sim5300_dev, 0)) {
+        return false;
+    }
 
+    /* Is SIM card inserted? */
+    sim5300_csmins_resp_t sim5300_csmins_resp;
+    if (!sim5300_get_sim_inserted_status_reporting(sim5300_dev, &sim5300_csmins_resp)) {
+        return false;
+    }
+    if (sim5300_csmins_resp.sim_inserted != 1) {
+        return false;
+    }
+
+    /* Is there a PIN code? */
+    if (sim5300_get_pin_status(sim5300_dev) != READY) {
+        return false;
+    }
+
+    /* Have you registered in the cellular network? */
+    /* Cycle counter */
+    uint8_t counter = 0;
+
+    /* Response on AT+CREG */
+    sim5300_creg_resp_t sim5300_creg_resp;
+    while(1) {
+        if (counter >= 30) {
+            puts("[SIM5300] Registration failed");
+            return false;
+        }
+
+        if (sim5300_get_network_registration(sim5300_dev, &sim5300_creg_resp)) {
+            if (sim5300_creg_resp.stat == 1) {
+                break;
+            }
+        }
+
+        rtctimers_millis_sleep(1000);
+        counter++;
+    } 
+    puts("[SIM5300] Registration OK");
+
+    /* Reject Incoming Call */
+    if (!sim5300_set_reject_incoming_call(sim5300_dev, 1)) {
+        return false;
+    }
+
+    /* Attach to the network */
+    int8_t gprs_state = sim5300_get_gprs_service_state(sim5300_dev);
+    if (gprs_state == 0) {
+        if (!sim5300_set_gprs_service_state(sim5300_dev, 1)) {
+            return false;
+        }
+    } else if (gprs_state != 1) {
+        return false;
+    }
+
+    /* AT+CIPRXGET=1 */
+
+    /* AT+CIPMUX=1 */
+
+    /* Start Task and Set APN, USER NAME, PASSWORD */
+    if (!sim5300_set_network_settings(sim5300_dev, "internet", "", "")) {
+        return false;
+    }
+
+    // if (!sim5300_set_state_pdp_context(sim5300_dev, 1, 0)) {
+    //     return false;
+    // }
+
+    /* Bring Up Wireless Connection with GPRS */
+    if (!sim5300_bring_up_wireless_connection(sim5300_dev)) {
+        return false;
+    }
+
+    /* Get local IP address */
+    sim5300_cifsr_resp_t sim5300_cifsr_resp;
+    if (!sim5300_get_local_ip_address(sim5300_dev, &sim5300_cifsr_resp)) {
+        return false;
+    }
+
+    /* Check local address */
+    if ((sim5300_cifsr_resp.local_ip_address[0] == 0) && 
+        (sim5300_cifsr_resp.local_ip_address[1] == 0) &&
+        (sim5300_cifsr_resp.local_ip_address[2] == 0) &&
+        (sim5300_cifsr_resp.local_ip_address[3] == 0)) {
+        puts("[SIM5300] Zero IP ERROR");
+
+        return false;
+    }
+
+    /* AT+CDNSCFG="8.8.8.8","8.8.4.4" */
+
+    /* AT+CIPSTATUS */
+
+    return true;
+}
+
+/*---------------------------------------------------------------------------*/
 int main(void)
 {
     /* SIM5300 power on */
@@ -227,7 +329,14 @@ int main(void)
     } else {
         puts("[SIM5300] Test ERROR");
     }
-    
+
+    /* Set internet settings SIM5300 */
+    if (sim5300_set_internet(&sim5300_dev)) {
+        puts("[SIM5300] Set internet settings OK");
+    } else {
+        puts("[SIM5300] Set internet settings ERROR");
+    }
+
     while (true);
 
     // modem_power_off();

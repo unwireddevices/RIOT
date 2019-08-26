@@ -533,6 +533,87 @@ char *sim5300_get_imsi(sim5300_dev_t *sim5300_dev) {
 }
 
 /*---------------------------------------------------------------------------*/
+/* AT+CGATT Get GPRS service state */
+int8_t sim5300_get_gprs_service_state(sim5300_dev_t *sim5300_dev) {
+    /* Test NULL device */
+    if (sim5300_dev == NULL) {
+        puts("sim5300_dev = NULL");
+        return -1;
+    } 
+    
+    /* Send AT command */
+    int res = at_send_cmd_get_resp(&sim5300_dev->at_dev, "AT+CGATT?", sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, SIM5300_MAX_TIMEOUT);
+    
+    /* Check return code */
+    if (res <= 0) {
+        puts("[SIM5300] sim5300_get_gprs_service() ERROR: -2");
+
+        return -2;
+    }
+
+    /* Parse string */
+    int state;
+    res = sscanf(sim5300_dev->at_dev_resp, "+CGATT: %i", &state);
+
+    /* Check result */
+    if (res != 1) {
+        puts("[SIM5300] Parse error");
+
+        return -3;
+    }
+
+    /* Print result */
+    if (state == 1) {
+        puts("[SIM5300] GPRS attached");
+    } else {
+        puts("[SIM5300] GPRS detached");
+    }
+
+    return state;
+}
+
+/*---------------------------------------------------------------------------*/
+/* AT+CGATT Set GPRS service state */
+bool sim5300_set_gprs_service_state(sim5300_dev_t *sim5300_dev, 
+                                    uint8_t        state) {
+    /* Test NULL device */
+    if (sim5300_dev == NULL) {
+        puts("sim5300_dev = NULL");
+        return false;
+    } 
+    
+    /* Test range argument */
+    if (state > 1) {
+        printf("[SIM5300] sim5300_set_gprs_service_state() ERROR argument: %i. (range 0-1)\n", state);
+
+        return false;
+    }
+
+    /* Create a command to send data */
+    char cmd_CGATTn[13];
+    snprintf(cmd_CGATTn, 13, "AT+CGATT=%i", state);
+
+    /* Send AT command */
+    int res = at_send_cmd_wait_ok(&sim5300_dev->at_dev, cmd_CGATTn, 7000000);
+
+    /* Return result */
+    if (res == 0) {
+        /* Print result */
+        if (state == 1) {
+            puts("[SIM5300] GPRS attached");
+        } else {
+            puts("[SIM5300] GPRS detached");
+        }
+
+        return true;
+    } else {
+        puts("[SIM5300] sim5300_set_gprs_service_state() ERROR");
+
+        return false;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
 /* AT+CSTT Start Task and Set APN, USER NAME, PASSWORD */
 bool sim5300_set_network_settings(sim5300_dev_t *sim5300_dev,
                                   char          *apn,
@@ -597,6 +678,54 @@ bool sim5300_bring_up_wireless_connection(sim5300_dev_t *sim5300_dev) {
 
         return false;
     }
+}
+
+/*---------------------------------------------------------------------------*/
+/* AT+CIFSR Get local IP address */ 
+bool sim5300_get_local_ip_address(sim5300_dev_t        *sim5300_dev,
+                                  sim5300_cifsr_resp_t *sim5300_cifsr_resp) {
+    /* Test NULL device */
+    if (sim5300_dev == NULL) {
+        puts("sim5300_dev = NULL");
+        return false;
+    } 
+
+    /* NULL ptr */
+    if (sim5300_cifsr_resp == NULL) {
+        return false;
+    }
+
+    /* Get local IP address */
+    int res = at_send_cmd_get_resp(&sim5300_dev->at_dev, "AT+CIFSR", sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, SIM5300_MAX_TIMEOUT); 
+    if (res <= 0) {
+        puts("[SIM5300] AT+CIFSR ERROR");
+
+        return false;
+    }
+
+    /* Debug output */
+    DEBUG("len: %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+
+    /* Parse string */
+    res = sscanf(sim5300_dev->at_dev_resp, "%i.%i.%i.%i", &sim5300_cifsr_resp->local_ip_address[0],
+                                                          &sim5300_cifsr_resp->local_ip_address[1],
+                                                          &sim5300_cifsr_resp->local_ip_address[2],
+                                                          &sim5300_cifsr_resp->local_ip_address[3]);
+
+    /* Check result */
+    if (res != 4) {
+        puts("[SIM5300] Parse error");
+
+        return false;
+    }
+
+    /* Print result */
+    printf("[SIM5300] Local IP address: %i.%i.%i.%i\n", sim5300_cifsr_resp->local_ip_address[0],
+                                                        sim5300_cifsr_resp->local_ip_address[1],
+                                                        sim5300_cifsr_resp->local_ip_address[2],
+                                                        sim5300_cifsr_resp->local_ip_address[3]);
+
+    return true;    
 }
 
 /*---------------------------------------------------------------------------*/

@@ -58,7 +58,7 @@ typedef struct {
 } sim5300_csmins_resp_t;
 
 /**
- * @brief SIM5300 response on AT+CSMINS
+ * @brief SIM5300 response on AT+CPIN
  */
 typedef enum {
     READY      = 0,             /**< MT is not pending for any password */          
@@ -71,7 +71,7 @@ typedef enum {
 } sim5300_cpin_resp_t;
 
 /**
- * @brief SIM5300 response on AT+CSMINS
+ * @brief SIM5300 response on AT+CREG
  */
 typedef struct {
     int n;                      /**< Unsolicited result code */
@@ -101,6 +101,13 @@ typedef struct {
     char oper[32];              /**<  */
     // int  act;                /**<  */
 } sim5300_cops_resp_t;
+
+/**
+ * @brief SIM5300 response on AT+CIFSR
+ */
+typedef struct {
+    int local_ip_address[4];
+} sim5300_cifsr_resp_t;
 
 /*---------------------------------------------------------------------------*/
 /**
@@ -165,6 +172,14 @@ bool sim5300_set_state_pdp_context(sim5300_dev_t *sim5300_dev,
 char *sim5300_get_imsi(sim5300_dev_t *sim5300_dev);
 
 /*---------------------------------------------------------------------------*/
+/* AT+CGATT Get GPRS service state */
+int8_t sim5300_get_gprs_service_state(sim5300_dev_t *sim5300_dev);
+
+/*---------------------------------------------------------------------------*/
+/* AT+CGATT Set GPRS service state */
+bool sim5300_set_gprs_service_state(sim5300_dev_t *sim5300_dev, 
+                                    uint8_t        state);
+/*---------------------------------------------------------------------------*/
 /* AT+CSTT Start Task and Set APN, USER NAME, PASSWORD */
 bool sim5300_set_network_settings(sim5300_dev_t *sim5300_dev,
                                   char          *apn,
@@ -174,6 +189,11 @@ bool sim5300_set_network_settings(sim5300_dev_t *sim5300_dev,
 /*---------------------------------------------------------------------------*/
 /* AT+CIICR Bring Up Wireless Connection with GPRS */
 bool sim5300_bring_up_wireless_connection(sim5300_dev_t *sim5300_dev);
+
+/*---------------------------------------------------------------------------*/
+/* AT+CIFSR Get local IP address */ 
+bool sim5300_get_local_ip_address(sim5300_dev_t        *sim5300_dev,
+                                  sim5300_cifsr_resp_t *sim5300_cifsr_resp);
 
 /*---------------------------------------------------------------------------*/
 /**

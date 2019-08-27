@@ -258,6 +258,11 @@ bool sim5300_set_internet(sim5300_dev_t *sim5300_dev) {
         return false;
     }
 
+    /* Start up multi-IP connection */
+    if (!sim5300_start_up_multi_ip_connection(sim5300_dev, 1)) {
+        return false;
+    }
+
     /* Attach to the network */
     int8_t gprs_state = sim5300_get_gprs_service_state(sim5300_dev);
     if (gprs_state == 0) {
@@ -269,8 +274,6 @@ bool sim5300_set_internet(sim5300_dev_t *sim5300_dev) {
     }
 
     /* AT+CIPRXGET=1 */
-
-    /* AT+CIPMUX=1 */
 
     /* Start Task and Set APN, USER NAME, PASSWORD */
     if (!sim5300_set_network_settings(sim5300_dev, "internet", "", "")) {
@@ -305,6 +308,87 @@ bool sim5300_set_internet(sim5300_dev_t *sim5300_dev) {
     /* AT+CDNSCFG="8.8.8.8","8.8.4.4" */
 
     /* AT+CIPSTATUS */
+
+    /* ping */
+    sim5300_cipping_resp_t sim5300_cipping_resp[3] = {};
+    if (sim5300_ping_request(sim5300_dev,
+                             sim5300_cipping_resp,
+                             "8.8.8.8",
+                             "3",
+                             "32", 
+                             "100",
+                             "64")) {
+        puts("ping true");
+
+        for (uint8_t i = 0; i < 3; i++ ) {
+            printf("sim5300_cipping_resp[%i].reply_time = %i; sim5300_cipping_resp[%i].ttl = %i\n", i, sim5300_cipping_resp[i].reply_time, i, sim5300_cipping_resp[i].ttl);
+        }
+    } else {
+        puts("ping false");
+
+        return false;
+    }
+
+    //////////////////
+    uint8_t index = 1;
+
+    /* AT+CIPRXGET=1 */
+    /////////////////DELETE/////////////////////////
+    /* Send AT command */
+    int res = at_send_cmd_wait_ok(&sim5300_dev->at_dev, "AT+CIPRXGET=1", 1000000);
+    if (res != 0) {
+        puts("[SIM5300] AT+CIPRXGET=1 ERROR");
+    }
+    /////////////////DELETE/////////////////////////
+
+    /* Start up multi-IP TCP or UDP connection */
+    res = sim5300_multi_ip_up_single_connection(sim5300_dev, index, "TCP", "176.15.5.90", "666");
+    if (!(res >= 0)) {
+        printf("[SIM5300] Error start connection: %i\n", res);
+
+        return false;
+    }
+
+    int error = 0;
+    int i = 0;
+    char data_for_send[100] = {};
+    char data_for_recv[256] = {};
+
+    while (true) {
+        /* Test recv */
+        if (i == 10 || i == 20 || i == 30 || i == 40 || i == 50 || i == 60 || i == 70 || i == 80 || i == 90 || i == 100) {
+            if(!sim5300_receive_data_through_multi_ip_connection(sim5300_dev,
+                                                                 2,
+                                                                 index,
+                                                                 (uint8_t*)data_for_recv,
+                                                                 sizeof(data_for_recv))) {
+                puts("Receive ERROR");
+            } else {
+                puts("Receive OK");
+                od_hex_dump(data_for_recv, sizeof(data_for_recv), OD_WIDTH_DEFAULT);
+                printf("%s", data_for_recv);
+            }   
+        }
+
+        snprintf(data_for_send, 100, "%i;%i;\n", i, error);
+        printf("%s\n", data_for_send);
+
+        if (!sim5300_send_data_through_multi_ip_connection(sim5300_dev,
+                                                      index,
+                                                      (uint8_t*)data_for_send, 
+                                                      strlen(data_for_send))) {
+            printf("[SIM5300] Data send ERROR\n");
+            error++;
+        
+        } else {
+            printf("[SIM5300] Data send OK\n");
+        }
+
+        i++;
+        // rtctimers_millis_sleep(1000);
+        xtimer_usleep(1000000);
+
+    }
 
     return true;
 }

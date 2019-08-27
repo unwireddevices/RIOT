@@ -106,8 +106,16 @@ typedef struct {
  * @brief SIM5300 response on AT+CIFSR
  */
 typedef struct {
-    int local_ip_address[4];
+    int local_ip_address[4];    /**< IP address assigned from GPRS */
 } sim5300_cifsr_resp_t;
+
+/**
+ * @brief SIM5300 response on AT+CIPPING
+ */
+typedef struct {
+    int reply_time;             /**< Time, in units of 100 ms, required to receive the response */
+    int ttl;                    /**< Time to live (1 - 255, Default: 64) */
+} sim5300_cipping_resp_t;
 
 /*---------------------------------------------------------------------------*/
 /**
@@ -195,6 +203,44 @@ bool sim5300_bring_up_wireless_connection(sim5300_dev_t *sim5300_dev);
 bool sim5300_get_local_ip_address(sim5300_dev_t        *sim5300_dev,
                                   sim5300_cifsr_resp_t *sim5300_cifsr_resp);
 
+/*---------------------------------------------------------------------------*/
+/* AT+CIPMUX Start up multi-IP connection */
+bool sim5300_start_up_multi_ip_connection(sim5300_dev_t *sim5300_dev, 
+                                          uint8_t        n);
+
+/*---------------------------------------------------------------------------*/
+/* AT+CIPPING PING request */
+bool sim5300_ping_request(sim5300_dev_t          *sim5300_dev,
+                          sim5300_cipping_resp_t  sim5300_cipping_resp[],
+                          char                   *address,
+                          char                   *retr_num,
+                          char                   *datalen, 
+                          char                   *timeout,
+                          char                   *ttl);
+
+/*---------------------------------------------------------------------------*/
+/* AT+CIPSTART Start up multi-IP TCP or UDP connection */
+int8_t sim5300_multi_ip_up_single_connection(sim5300_dev_t *sim5300_dev,
+                                             uint8_t        n,
+                                             char          *mode,
+                                             char          *address,
+                                             char          *port);
+
+/*---------------------------------------------------------------------------*/
+/* AT+CIPRXGET Get data from network manually for multi IP connection */
+bool sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
+                                                      uint8_t        mode,
+                                                      uint8_t        n,
+                                                      uint8_t       *data_for_receive,
+                                                      size_t         data_size);
+
+/*---------------------------------------------------------------------------*/
+/* AT+CIPSEND Send data through TCP or UDP multi IP connection */
+bool sim5300_send_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
+                                                   uint8_t        n,
+                                                   uint8_t       *data_for_send, 
+                                                   size_t         data_size);
+                                                   
 /*---------------------------------------------------------------------------*/
 /**
  * @brief       Communication test between microcontroller and SIM5300

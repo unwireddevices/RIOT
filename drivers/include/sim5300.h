@@ -47,6 +47,7 @@ typedef struct {
     at_dev_t  at_dev;           /**< AT device structure */
     char     *at_dev_resp;      /**< Input buffer for parse response from SIM5300 */
     uint16_t  at_dev_resp_size; /**< Size of @p at_dev_resp */
+    bool      socketfd[8];      /**< Socket status array */
 } sim5300_dev_t;
 
 /**
@@ -195,7 +196,7 @@ bool sim5300_set_network_settings(sim5300_dev_t *sim5300_dev,
                                   char          *password);
 
 /*---------------------------------------------------------------------------*/
-/* AT+CIICR Bring Up Wireless Connection with GPRS */
+/* AT+CIICR Bring up wireless connection with GPRS */
 bool sim5300_bring_up_wireless_connection(sim5300_dev_t *sim5300_dev);
 
 /*---------------------------------------------------------------------------*/
@@ -228,19 +229,50 @@ int8_t sim5300_multi_ip_up_single_connection(sim5300_dev_t *sim5300_dev,
 
 /*---------------------------------------------------------------------------*/
 /* AT+CIPRXGET Get data from network manually for multi IP connection */
-bool sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
-                                                      uint8_t        mode,
-                                                      uint8_t        n,
-                                                      uint8_t       *data_for_receive,
-                                                      size_t         data_size);
+int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
+                                                     uint8_t        mode,
+                                                     uint8_t        n,
+                                                     uint8_t       *data_for_receive,
+                                                     size_t         data_size);
 
 /*---------------------------------------------------------------------------*/
 /* AT+CIPSEND Send data through TCP or UDP multi IP connection */
-bool sim5300_send_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
-                                                   uint8_t        n,
-                                                   uint8_t       *data_for_send, 
-                                                   size_t         data_size);
-                                                   
+int sim5300_send_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
+                                                  uint8_t        n,
+                                                  uint8_t       *data_for_send, 
+                                                  size_t         data_size);
+
+/*---------------------------------------------------------------------------*/
+/*  */
+int sim5300_socket(sim5300_dev_t *sim5300_dev);
+
+/*---------------------------------------------------------------------------*/
+/*  */
+int sim5300_connect(sim5300_dev_t *sim5300_dev,
+                    int            sockfd, 
+                    char          *address,
+                    char          *port,
+                    char          *type);
+
+/*---------------------------------------------------------------------------*/
+/*  */
+int sim5300_send(sim5300_dev_t *sim5300_dev,
+                 int            sockfd, 
+                 uint8_t       *buffer,
+                 size_t         buffer_len);
+
+/*---------------------------------------------------------------------------*/
+/*  */
+int sim5300_receive(sim5300_dev_t *sim5300_dev,
+                    int            sockfd, 
+                    uint8_t       *buffer,
+                    size_t         buffer_len);
+
+/*---------------------------------------------------------------------------*/
+/*  */
+int sim5300_close(sim5300_dev_t *sim5300_dev,
+                  int            sockfd);
+
 /*---------------------------------------------------------------------------*/
 /**
  * @brief       Communication test between microcontroller and SIM5300

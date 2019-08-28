@@ -1393,14 +1393,15 @@ int _st95_init_uart(st95_t * dev, st95_params_t * params)
 
     /* Init SSI_0 pin */
     gpio_init(dev->params.ssi_0, GPIO_OD_PU);
-    /* Init IRQ_IN pin */
-    gpio_init(dev->params.irq_in, GPIO_OD_PU);
     /* Init VCC_ENABLE pin -> after init st95 is power on! */
     gpio_init(dev->params.vcc, GPIO_OUT);
     /* Number of initializations */
     uint8_t cnt_init = 0;
 
-    do {      
+    do {
+        /* Init IRQ_IN pin */
+        gpio_init(dev->params.irq_in, GPIO_OD_PU);
+        
             /* ST95 Power Off */
         gpio_set(dev->params.vcc);
 

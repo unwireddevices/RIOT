@@ -776,6 +776,57 @@ bool sim5300_start_up_multi_ip_connection(sim5300_dev_t *sim5300_dev,
 }
 
 /*---------------------------------------------------------------------------*/
+/* AT+CIPCLOSE Close up multi-IP connection */
+bool sim5300_close_up_multi_ip_connection(sim5300_dev_t *sim5300_dev, 
+                                          uint8_t        id,  
+                                          uint8_t        n) {
+    /* Test NULL device */
+    if (sim5300_dev == NULL) {
+        puts("sim5300_dev = NULL");
+        return false;
+    } 
+    
+    /* Test id range argument*/
+    if (id > 7) {
+        printf("[SIM5300] sim5300_close_up_multi_ip_connection() ERROR argument id: %i. (range 0-7)\n", id);
+
+        return false;
+    }
+
+    /* Test n range argument */
+    if (n > 1) {
+        printf("[SIM5300] sim5300_close_up_multi_ip_connection() ERROR argument: %i. (range 0-1)\n", n);
+
+        return false;
+    }
+
+    /* Create a command to send data */
+    char cmd_CIPCLOSEn[17];
+    snprintf(cmd_CIPCLOSEn, 17, "AT+CIPCLOSE=%i,%i", id, n);
+
+    /* Send AT command */
+    at_drain(&sim5300_dev->at_dev);
+    int res = at_send_cmd(&sim5300_dev->at_dev, cmd_CIPCLOSEn, SIM5300_MAX_TIMEOUT);
+    if (res != 0) {
+        return false;
+    }
+
+    /* Create resp string */
+    char resp_on_CIPCLOSE[13];
+    snprintf(resp_on_CIPCLOSE, 13, "%i, CLOSE OK", n);
+
+    do {
+        /* Read string */
+        res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
+        DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+
+        /* TODO: COMPARE RESP WITH resp_on_CIPCLOSE */
+    } while (res >= 0);
+
+    return true;
+}
+
+/*---------------------------------------------------------------------------*/
 /* AT+CIPPING PING request */
 bool sim5300_ping_request(sim5300_dev_t          *sim5300_dev,
                           sim5300_cipping_resp_t  sim5300_cipping_resp[],
@@ -861,6 +912,7 @@ bool sim5300_ping_request(sim5300_dev_t          *sim5300_dev,
     int reply_time_scan; 
     int ttl_scan;   
 
+
     /* Create format string */
     char format[64];
     snprintf(format, 64, "+CIPPING: %%i,\\\"%s\\\",%%i,%%i", address);
@@ -893,7 +945,6 @@ bool sim5300_ping_request(sim5300_dev_t          *sim5300_dev,
             }
         }
     } while (res >= 0);
-
     return true;
 }
 
@@ -1395,7 +1446,14 @@ int sim5300_close(sim5300_dev_t *sim5300_dev,
         return -2;
     }
 
-    /* TODO: Close socket */
+    /* Close socket */
+    if(!sim5300_close_up_multi_ip_connection(sim5300_dev, 
+                                             sockfd,  
+                                             0)) {
+        printf("[SIM5300] Error close socket %i\n", sockfd); 
+
+        return -3;
+    }
 
     /* Free the socket */
     sim5300_dev->socketfd[sockfd] = false;

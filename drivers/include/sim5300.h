@@ -210,6 +210,12 @@ bool sim5300_start_up_multi_ip_connection(sim5300_dev_t *sim5300_dev,
                                           uint8_t        n);
 
 /*---------------------------------------------------------------------------*/
+/* AT+CIPCLOSE Close up multi-IP connection */
+bool sim5300_close_up_multi_ip_connection(sim5300_dev_t *sim5300_dev,
+                                          uint8_t        id,
+                                          uint8_t        n);
+
+/*---------------------------------------------------------------------------*/
 /* AT+CIPPING PING request */
 bool sim5300_ping_request(sim5300_dev_t          *sim5300_dev,
                           sim5300_cipping_resp_t  sim5300_cipping_resp[],

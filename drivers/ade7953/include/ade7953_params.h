@@ -23,7 +23,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define ADE7953_SPI_CLK                    SPI_CLK_5MHZ
+#define ADE7953_SPI_CLK                    SPI_CLK_1MHZ
 
 #define ADE7953_POWER_ON_DELAY_MS 100
 

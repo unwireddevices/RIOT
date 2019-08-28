@@ -26,6 +26,7 @@
 
 #include "ade7953.h"
 #include "ade7953_params.h"
+#include "ade7953_regs.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -44,7 +45,18 @@ static uint8_t _ade7953_spi_send(const ade7953_t * dev, uint8_t * txbuff, uint8_
 static int _ade7953_send(const ade7953_t * dev, uint16_t addr, uint8_t * data, uint8_t len);
 static int _ade7953_receive(const ade7953_t * dev, uint16_t addr, uint8_t * data, uint8_t len);
 
-static int _ade7953_setup(const ade7953_t * dev);
+// static int _ade7953_setup(const ade7953_t * dev);
+
+// static void _ade7953_debug_communication(uint16_t reg);
+// static int32_t _ade7953_twos_compl(int32_t value);
+
+// static void _ade7953_write(uint16_t reg, uint32_t data);
+// static uint32_t _ade7953_read(uint16_t reg);
+
+// static void _ade7953_power_up_setup(void);
+
+
+
 
 /**
  * @brief   This function send data over SPI bus
@@ -117,18 +129,18 @@ static void _ade7953_spi_rx(void* arg)
 
   uint32_t irq_state;
   // Read IRQ states
-  _ade7953_receive(dev, ADE7953_IRQSTATA_32, (uint8_t *)&irq_state, 4);
+  _ade7953_receive(dev, IRQSTATA_32, (uint8_t *)&irq_state, 4);
   
   // IRQ handling
-    if(irq_state & ADE7953_IRQENA_RESET) {
+    if(irq_state & IRQENA_RESET) {
         state = ADE7953_STATE_READY;
     }
-    else if(irq_state & ADE7953_IRQENA_AEHFA) {
+    else if(irq_state & IRQENA_AEHFA) {
         // ade7953_get_aenergy(dev);
     }
 
   // Clear IRQ states
-  _ade7953_receive(dev, ADE7953_RSTIRQSTATA_32, (uint8_t *)&irq_state, 4);    
+  _ade7953_receive(dev, RSTIRQSTATA_32, (uint8_t *)&irq_state, 4);    
   
     return;
 }
@@ -204,42 +216,42 @@ int _ade7953_receive(const ade7953_t * dev, uint16_t addr, uint8_t * data, uint8
 uint32_t ade7953_get_version(const ade7953_t * dev)
 {
     uint32_t vers_tmp = 0;
-    _ade7953_receive(dev, ADE7953_VERSION_8, (uint8_t *)(&vers_tmp), 4);
+    _ade7953_receive(dev, VERSION_8, (uint8_t *)(&vers_tmp), 4);
     return vers_tmp;
 }
 
 uint32_t ade7953_get_volt(const ade7953_t * dev)
 {
     uint32_t volt_tmp = 0;
-    _ade7953_receive(dev, ADE7953_V_32, (uint8_t *)(&volt_tmp), 4);
+    _ade7953_receive(dev, V_32, (uint8_t *)(&volt_tmp), 4);
     return volt_tmp;
 }
 
 uint32_t ade7953_get_curr(const ade7953_t * dev)
 {
     uint32_t curr_tmp = 0;
-    _ade7953_receive(dev, ADE7953_IA_32, (uint8_t *)(&curr_tmp), 4);
+    _ade7953_receive(dev, IA_32, (uint8_t *)(&curr_tmp), 4);
     return curr_tmp;
 }
 
 uint32_t ade7953_get_aenergy(const ade7953_t * dev)
 {
     uint32_t energy_tmp = 0;
-    _ade7953_receive(dev, ADE7953_AENERGYA_32, (uint8_t *)(&energy_tmp), 4);
+    _ade7953_receive(dev, AENERGYA_32, (uint8_t *)(&energy_tmp), 4);
     return energy_tmp;
 }
 
 uint32_t ade7953_get_irms(const ade7953_t * dev)
 {
     uint32_t i_rms_tmp = 0;
-    _ade7953_receive(dev, ADE7953_IRMSA_32, (uint8_t *)(&i_rms_tmp), 4);
+    _ade7953_receive(dev, IRMSA_32, (uint8_t *)(&i_rms_tmp), 4);
     return i_rms_tmp;
 }
 
 uint32_t ade7953_get_vrms(const ade7953_t * dev)
 {
     uint32_t v_rms_tmp = 0;
-    _ade7953_receive(dev, ADE7953_VRMS_32, (uint8_t *)(&v_rms_tmp), 4);
+    _ade7953_receive(dev, VRMS_32, (uint8_t *)(&v_rms_tmp), 4);
     return v_rms_tmp;
 }
 
@@ -258,22 +270,22 @@ static int _ade7953_setup(const ade7953_t * dev)
     uint8_t len = 0;
     data[0] = 0xAD;
     len = 1;
-    if(_ade7953_send(dev, ADE7953_UNLOCK_REG_8, data, len) != ADE7953_OK) {
+    if(_ade7953_send(dev, UNLOCK_REG_8, data, len) != ADE7953_OK) {
         return ADE7953_ERROR;
     }
 
     data[0] = 0x30;
     data[1] = 0x00;
     len = 2;
-    if(_ade7953_send(dev, ADE7953_SETUP_REG_16, data, len) != ADE7953_OK) {
+    if(_ade7953_send(dev, SETUP_REG_16, data, len) != ADE7953_OK) {
         return ADE7953_ERROR;
     }
     
     /* Set gain amplifier */
     data[0] = 1;         // Gain coeff (1, 2, 4, 8, 16, 22)
     len = 1;
-    _ade7953_send(dev, ADE7953_PGA_V_8, data, len);
-    _ade7953_send(dev, ADE7953_PGA_IA_8, data, len);
+    _ade7953_send(dev, PGA_V_8, data, len);
+    _ade7953_send(dev, PGA_IA_8, data, len);
   
     /* Set I_max and V_max */
     // Read voltage peak with reset

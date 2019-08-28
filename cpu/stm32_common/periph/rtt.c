@@ -230,9 +230,9 @@ void isr_lptim1(void)
 /* figure out RTT clock */
 #if defined(RTT_FREQUENCY)
     #if CLOCK_LSE
-        #define PRE_ASYNC           ((uint32_t)(32768/RTT_FREQUENCY/2))
+        #define PRE_ASYNC           ((uint32_t)(32768/RTT_FREQUENCY) - 1) /* 31 */
     #elif CLOCK_LSI
-        #define PRE_ASYNC           ((uint32_t)(CLOCK_LSI/RTT_FREQUENCY/2))
+        #define PRE_ASYNC           ((uint32_t)(CLOCK_LSI/RTT_FREQUENCY))
     #else
         #error "rtt (on rtc): no LSI or LSE clock defined"
     #endif
@@ -240,7 +240,7 @@ void isr_lptim1(void)
 #error "rtt (on rtc): RTT_FREQUENCY undefined"
 #endif
 
-#define PRE_SYNC    (0x7FFFul) /* full 15 bits */
+#define PRE_SYNC    (0x7FFFul) /* full 15 bits */ /* 32767 */
 
 rtt_cb_t cb_a;
 void *arg_a;
@@ -309,15 +309,10 @@ uint32_t rtt_get_counter(void)
     
     /* wait for RSF to be set by hardware */
     while (!(RTC->ISR & RTC_ISR_RSF)) {}
-    
-    /* RTC registers need to be read at least twice when running at f < 32768*7 = 229376 Hz APB1 clock */
-    uint32_t rtc_ssr_counter = RTC->SSR;
 
-    /* second read */
-    if (RTC->SSR != rtc_ssr_counter) {
-        /* 3rd read if 1st and 2nd don't match */
-        rtc_ssr_counter = RTC->SSR;
-    }
+    uint32_t rtc_ssr_counter = RTC->SSR;
+    
+    RTC->DR;
     
     /* it's a downcounting timer */
     return (RTT_MAX_VALUE - rtc_ssr_counter);

@@ -49,7 +49,7 @@
 #endif
 
 /**
- * @brief Write a data to registers in the LIS3DH.
+ * @brief Write a data to registers in the LIS2DH12.
  *
  * @param[in] dev     Device descriptor
  * @param[in] reg     The source register starting address
@@ -61,7 +61,7 @@
 static int _write(const lis2dh12_t *dev, uint8_t reg, uint8_t *data, uint16_t length);
 
 /**
- * @brief Read sequential registers from the LIS3DH.
+ * @brief Read sequential registers from the LIS2DH12.
  *
  * @param[in]  dev     Device descriptor
  * @param[in]  reg     The source register starting address
@@ -111,13 +111,13 @@ static int _read(const lis2dh12_t *dev, uint8_t reg, uint8_t *data, uint16_t len
     }
 
     /* Acquire exclusive access to the bus. */
-    i2c_acquire(dev->params.i2c);
+    i2c_acquire(dev->params.i2c_dev);
     /* Perform the transaction */
-    status = i2c_read_regs(dev->params.i2c, dev->params.addr, (uint16_t)reg, data, (size_t)length, 0);
+    status = i2c_read_regs(dev->params.i2c_dev, dev->params.i2c_addr, (uint16_t)reg, data, (size_t)length, 0);
     /* Release the bus for other threads. */
-    i2c_release(dev->params.i2c);
+    i2c_release(dev->params.i2c_dev);
 
-    DEBUG("LIS3DH [REG %02X]: <- ", (reg & 0x7F));
+    DEBUG("LIS2DH12 [REG %02X]: <- ", (reg & 0x7F));
     PRINTBUFF(data, length);
 
     return status;
@@ -133,15 +133,15 @@ static int _write(const lis2dh12_t *dev, uint8_t reg, uint8_t *data, uint16_t le
         reg |= I2C_AUTO_INCREMENT;
     }
 
-    DEBUG("LIS3DH [REG %02X]: -> %02Xh ", (reg & 0x7F), reg);
+    DEBUG("LIS2DH12 [REG %02X]: -> %02Xh ", (reg & 0x7F), reg);
     PRINTBUFF(data, length);
 
     /* Acquire exclusive access to the bus. */
-    i2c_acquire(dev->params.i2c);
+    i2c_acquire(dev->params.i2c_dev);
     /* Perform the transaction */
-    status = i2c_write_regs(dev->params.i2c, dev->params.addr, (uint16_t)reg, data, (size_t)length, 0);
+    status = i2c_write_regs(dev->params.i2c_dev, dev->params.i2c_addr, (uint16_t)reg, data, (size_t)length, 0);
     /* Release the bus for other threads. */
-    i2c_release(dev->params.i2c);
+    i2c_release(dev->params.i2c_dev);
     return status;
 }
 
@@ -177,9 +177,9 @@ static int _lis2dh12_write_reg(lis2dh12_t *dev, uint8_t reg, uint8_t* data, uint
 static int16_t _lis2dh12_calculation_acceleration(lis2dh12_t *dev, const int16_t acc_raw) 
 {
     DEBUG("acc raw data: %d[%04X]\n", acc_raw, acc_raw);
-    switch (dev->res) {
+    switch (dev->params.res) {
         case LIS2DH12_HR_12BIT:
-            switch (dev->scale) {
+            switch (dev->params.scale) {
                 case LIS2DH12_SCALE_2G:
                     return ((acc_raw >> 4) * 1);
                     break;
@@ -195,7 +195,7 @@ static int16_t _lis2dh12_calculation_acceleration(lis2dh12_t *dev, const int16_t
             } 
             break;
         case LIS2DH12_NM_10BIT:
-            switch (dev->scale) {
+            switch (dev->params.scale) {
                 case LIS2DH12_SCALE_2G:
                     return ((acc_raw >> 6) * 4);
                     break;
@@ -211,7 +211,7 @@ static int16_t _lis2dh12_calculation_acceleration(lis2dh12_t *dev, const int16_t
             }
             break;
         case LIS2DH12_LP_8BIT:
-            switch (dev->scale) {
+            switch (dev->params.scale) {
                 case LIS2DH12_SCALE_2G:
                     return ((acc_raw >> 8) * 16);
                     break;
@@ -234,15 +234,15 @@ static int16_t _lis2dh12_calculation_acceleration(lis2dh12_t *dev, const int16_t
 
 static int16_t _lis2dh12_calculation_temperature(lis2dh12_t *dev, const int16_t temp_raw) 
 {
-    switch (dev->res) {
+    switch (dev->params.res) {
         case LIS2DH12_HR_12BIT:
-            return temp_raw = (((*temp_raw >> 6) / 4) + 25);
+            return (((temp_raw >> 6) / 4) + 25);
             break;
         case LIS2DH12_NM_10BIT:
-            return temp_raw = (((*temp_raw >> 6) / 4) + 25);
+            return (((temp_raw >> 6) / 4) + 25);
             break;
         case LIS2DH12_LP_8BIT:
-            return temp_raw = (((*temp_raw >> 8) * 1) + 25);
+            return (((temp_raw >> 8) * 1) + 25);
             break;
         default:
             return 0x7FFF;
@@ -260,13 +260,13 @@ int lis2dh12_init(lis2dh12_t *dev, const lis2dh12_params_t *params)
     dev->params = *params;
 
     /* Acquire exclusive access to the bus. */
-    i2c_acquire(dev->params.i2c);
+    i2c_acquire(dev->params.i2c_dev);
 
     /* Initialize I2C interface */
-    i2c_init(dev->params.i2c);
+    i2c_init(dev->params.i2c_dev);
 
     /* Release the bus for other threads. */
-    i2c_release(dev->params.i2c);
+    i2c_release(dev->params.i2c_dev);
 
     /* Sensor availability check */
     if (_lis2dh12_read_reg(dev, LIS2DH12_WHO_AM_I, &dev_id, 1) < 0) {
@@ -282,12 +282,11 @@ int lis2dh12_init(lis2dh12_t *dev, const lis2dh12_params_t *params)
     }
 
     /* Reboot memory contents */
-    uint8_t     reg_val = LIS2DH12_CTRL_REG5_BOOT_MASK;
-    if (_lis2dh12_write_reg(dev, LIS3DH_REG_CTRL_REG5, &reg_val, 1) < 0) {
+    reg_val = LIS2DH12_CTRL_REG5_BOOT_MASK;
+    if (_lis2dh12_write_reg(dev, LIS2DH12_CTRL_REG5, &reg_val, 1) < 0) {
         return -LIS2DH12_ERROR_I2C;
     }
     _lis2dh12_delay_ms(BOOT_DELAY_MS);
-
 
     /* Explicitly set the LIS2DH12 in power-down mode */
     reg_val = LIS2DH12_CTRL_REG1_LPEN_MASK;
@@ -314,7 +313,7 @@ int lis2dh12_init(lis2dh12_t *dev, const lis2dh12_params_t *params)
     }
     reg_val &= ~(LIS2DH12_CTRL_REG1_XYZEN_MASK);
     reg_val |= LIS2DH12_CTRL_REG1_XYZEN_MASK;
-    if (_lis2dh12_write_reg(dev, LIS3DH_REG_CTRL_REG1, &reg_val, 1)< 0) {
+    if (_lis2dh12_write_reg(dev, LIS2DH12_CTRL_REG1, &reg_val, 1)< 0) {
         return -LIS2DH12_ERROR_I2C;
     }
 
@@ -359,7 +358,7 @@ int lis2dh12_init(lis2dh12_t *dev, const lis2dh12_params_t *params)
     reg_val = 0x00;
     if (dev->use_temp == true) {
         /* Required in order to use */
-        if (_lis2dh12_read_reg(dev, LIS3DH_REG_CTRL_REG4, &reg_val, 1) < 0) {
+        if (_lis2dh12_read_reg(dev, LIS2DH12_CTRL_REG4, &reg_val, 1) < 0) {
             return -LIS2DH12_ERROR_I2C;
         }
         reg_val |= LIS2DH12_CTRL_REG4_BDU_MASK;
@@ -533,7 +532,7 @@ int lis2dh12_power_on(lis2dh12_t *dev, lis2dh12_scale_t scale, lis2dh12_rate_t r
     }
     reg_val &= ~(LIS2DH12_CTRL_REG1_XYZEN_MASK);
     reg_val |= LIS2DH12_CTRL_REG1_XYZEN_MASK;
-    if (_lis2dh12_write_reg(dev, LIS3DH_REG_CTRL_REG1, &reg_val, 1)< 0) {
+    if (_lis2dh12_write_reg(dev, LIS2DH12_CTRL_REG1, &reg_val, 1)< 0) {
         return -LIS2DH12_ERROR_I2C;
     }
 
@@ -601,7 +600,7 @@ int lis2dh12_power_off(lis2dh12_t *dev)
         return -LIS2DH12_ERROR_I2C;
     }
     reg_val &= ~(LIS2DH12_CTRL_REG1_XYZEN_MASK);
-    if (_lis2dh12_write_reg(dev, LIS3DH_REG_CTRL_REG1, &reg_val, 1)< 0) {
+    if (_lis2dh12_write_reg(dev, LIS2DH12_CTRL_REG1, &reg_val, 1)< 0) {
         return -LIS2DH12_ERROR_I2C;
     }
 

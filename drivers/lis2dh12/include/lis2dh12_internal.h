@@ -34,9 +34,9 @@ extern "C" {
  */
 #define LIS2DH12_STATUS_REG_AUX                         (0x07)
 #define LIS2DH12_STATUS_REG_AUX_TDO_BIT                 (6)
-#define LIS2DH12_STATUS_REG_AUX_TDO_MASK                (1 << LIS2DH12_STATUS_AUX_TDO_BIT)
+#define LIS2DH12_STATUS_REG_AUX_TDO_MASK                (1 << LIS2DH12_STATUS_REG_AUX_TDO_BIT)
 #define LIS2DH12_STATUS_REG_AUX_TDA_BIT                 (2)
-#define LIS2DH12_STATUS_REG_AUX_TDA_MASK                (1 << LIS2DH12_STATUS_AUX_TDA_BIT)
+#define LIS2DH12_STATUS_REG_AUX_TDA_MASK                (1 << LIS2DH12_STATUS_REG_AUX_TDA_BIT)
 
 /**
  * @brief   Temperature sensor data register

@@ -53,12 +53,12 @@ extern "C" {
 #define LIS2DH12_I2C_SADROOT         (0x03)
 
 /* I2C address if acc SA0 pin to GND */
-#define LIS2DH12_I2C_SAD_L           ((LIS3DH_I2C_SADROOT << 3) | \
-                                      LIS3DH_SAD0L)
+#define LIS2DH12_I2C_SAD_L           ((LIS2DH12_I2C_SADROOT << 3) | \
+                                       LIS2DH12_SAD0L)
 
 /* I2C address if acc SA0 pin to Vdd */
-#define LIS2DH12_I2C_SAD_H           ((LIS3DH_I2C_SADROOT << 3) | \
-                                      LIS3DH_SAD0H)
+#define LIS2DH12_I2C_SAD_H           ((LIS2DH12_I2C_SADROOT << 3) | \
+                                       LIS2DH12_SAD0H)
 
 /**
  * @brief   Available scale values

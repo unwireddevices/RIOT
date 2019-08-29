@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Freie Universität Berlin
+ * Copyright (C) 2019 Unwired Devices [info@unwds.com]
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -8,20 +8,17 @@
 
 /**
  * @ingroup     drivers_lis2dh12
- *
- * @{
+ * @brief       Default configuration for STMicro LIS2DH12 accelerometer
+ * @author      Alexander Ugorelov <info@unwds.com>
  * @file
- * @brief       Default configuration for LIS2DH12 devices
- *
- * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
+ * @{
  */
-
 #ifndef LIS2DH12_PARAMS_H
 #define LIS2DH12_PARAMS_H
 
 #include "board.h"
 #include "lis2dh12.h"
-#include "saul_reg.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,29 +28,30 @@ extern "C" {
  * @name    Set default configuration parameters for LIS2DH12 devices
  * @{
  */
-#ifndef LIS2DH12_PARAM_SPI
-#define LIS2DH12_PARAM_SPI          SPI_DEV(0)
+#ifndef LIS2DH12_PARAM_I2C
+#define LIS2DH12_PARAM_I2C                              (I2C_DEV(0))
 #endif
-#ifndef LIS2DH12_PARAM_CS
-#define LIS2DH12_PARAM_CS           GPIO_PIN(0, 0)
+#ifndef LIS2DH12_PARAM_ADDR
+#define LIS2DH12_PARAM_ADDR                             (LIS2DH12_I2C_SAD_L)
 #endif
 #ifndef LIS2DH12_PARAM_SCALE
-#define LIS2DH12_PARAM_SCALE        LIS2DH12_SCALE_2G
+#define LIS2DH12_PARAM_SCALE                            (LIS2DH12_SCALE_2G)
 #endif
 #ifndef LIS2DH12_PARAM_RATE
-#define LIS2DH12_PARAM_RATE         LIS2DH12_RATE_100HZ
+#define LIS2DH12_PARAM_RATE                             (LIS2DH12_RATE_1HZ)
+#endif
+#ifndef LIS2DH12_PARAM_RES
+#define LIS2DH12_PARAM_RES                              (LIS2DH12_HR_12BIT)
 #endif
 
 #ifndef LIS2DH12_PARAMS
-#define LIS2DH12_PARAMS             { .spi = LIS2DH12_PARAM_SPI,     \
-                                      .cs = LIS2DH12_PARAM_CS,       \
-                                      .scale = LIS2DH12_PARAM_SCALE, \
-                                      .rate  = LIS2DH12_PARAM_RATE }
+#define LIS2DH12_PARAMS              { .i2c_dev  = LIS2DH12_PARAM_I2C,   \
+                                       .i2c_addr = LIS2DH12_PARAM_ADDR,  \
+                                       .scale    = LIS2DH12_PARAM_SCALE, \
+                                       .rate     = LIS2DH12_PARAM_RATE,  \
+                                       .res      = LIS2DH12_PARAM_RES }
 #endif
 
-#ifndef LIS2DH12_SAULINFO
-#define LIS2DH12_SAULINFO           { .name = "lis2dh12" }
-#endif
 /**@}*/
 
 /**
@@ -62,14 +60,6 @@ extern "C" {
 static const lis2dh12_params_t lis2dh12_params[] =
 {
     LIS2DH12_PARAMS
-};
-
-/**
- * @brief   Additional meta information to keep in the SAUL registry
- */
-static const saul_reg_info_t lis2dh12_saul_info[] =
-{
-    LIS2DH12_SAULINFO
 };
 
 #ifdef __cplusplus

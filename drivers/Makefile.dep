@@ -176,6 +176,13 @@ ifneq (,$(filter fdc1004,$(USEMODULE)))
   USEMODULE += lptimer
 endif
 
+ifneq (,$(filter fdc2212,$(USEMODULE)))
+  FEATURES_REQUIRED += periph_gpio
+  FEATURES_REQUIRED += periph_gpio_irq
+  FEATURES_REQUIRED += periph_i2c
+  USEMODULE += lptimer
+endif
+
 ifneq (,$(filter feetech,$(USEMODULE)))
   USEMODULE += uart_half_duplex
 endif

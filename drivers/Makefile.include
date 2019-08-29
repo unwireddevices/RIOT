@@ -94,6 +94,10 @@ ifneq (,$(filter feetech,$(USEMODULE)))
   USEMODULE_INCLUDES += $(RIOTBASE)/drivers/feetech/include
 endif
 
+ifneq (,$(filter fdc2212,$(USEMODULE)))
+  USEMODULE_INCLUDES += $(RIOTBASE)/drivers/fdc2212/include
+endif
+
 ifneq (,$(filter fxos8700,$(USEMODULE)))
   USEMODULE_INCLUDES += $(RIOTBASE)/drivers/fxos8700/include
 endif

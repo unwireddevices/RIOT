@@ -22,6 +22,7 @@
 #include <stdint.h>
 
 #include "periph/i2c.h"
+#include "periph/gpio.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -116,7 +117,7 @@ typedef struct {
     uint16_t ref_count[FDC2212_CHANNELS];           /**< */
     uint16_t settle_count[FDC2212_CHANNELS];        /**< */
     uint8_t  freq_in_sel[FDC2212_CHANNELS];         /**< */
-    uint16_t freq_divider[FDC2212_CHANNELS];       /**< */
+    uint16_t freq_divider[FDC2212_CHANNELS];        /**< */
     fdc2212_idrive_t idrive[FDC2212_CHANNELS];      /**< */
 } fdc2212_t;
 

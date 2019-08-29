@@ -17,7 +17,7 @@
 #define __FDC2212_PARAMS_H__
 
 #include "board.h"
-#include "ccs811.h"
+#include "fdc2212.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,7 +40,7 @@ extern "C" {
 
 
 #ifndef FDC2212_PARAMS
-#define FDC2212_PARAMS              { .i2c          = FDC2212_PARAM_I2C,  \
+#define FDC2212_PARAMS              { .i2c_dev      = FDC2212_PARAM_I2C,  \
                                       .i2c_addr     = FDC2212_PARAM_ADDR, \
                                       .shutdown_pin = FDC2212_PARAM_SHUTDOWN_PIN}
 #endif
@@ -49,7 +49,7 @@ extern "C" {
 /**
  * @brief   FDC2212 configuration
  */
-static const fdc2212_params_t FDC2212_params[] =
+static const fdc2212_params_t fdc2212_params[] =
 {
     FDC2212_PARAMS
 };

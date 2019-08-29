@@ -118,6 +118,15 @@ typedef struct {
     int ttl;                    /**< Time to live (1 - 255, Default: 64) */
 } sim5300_cipping_resp_t;
 
+/**
+ * @brief SIM5300 Internet settings
+ */
+typedef struct {
+    char apn[32];               /**< Access Point Name */
+    char username[32];          /**< Username */
+    char password[32];          /**< Password */
+} sim5300_internet_settings_t;
+
 /*---------------------------------------------------------------------------*/
 /**
  * @brief       Send ATtention Code
@@ -177,8 +186,12 @@ bool sim5300_set_state_pdp_context(sim5300_dev_t *sim5300_dev,
                                    uint8_t        cid);
 
 /*---------------------------------------------------------------------------*/
-/* AT+CIMI Request International Mobile Subscriber Identity */
+/* AT+CIMI Request International Mobile Subscriber Identity (IMSI) */
 char *sim5300_get_imsi(sim5300_dev_t *sim5300_dev);
+
+/*---------------------------------------------------------------------------*/
+/* Get Home Network Identity (HNI) */
+int sim5300_get_hni(sim5300_dev_t *sim5300_dev);
 
 /*---------------------------------------------------------------------------*/
 /* AT+CGATT Get GPRS service state */
@@ -247,6 +260,18 @@ int sim5300_send_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
                                                   uint8_t        n,
                                                   uint8_t       *data_for_send, 
                                                   size_t         data_size);
+
+/*---------------------------------------------------------------------------*/
+/* Get internet settings from base */
+bool sim5300_get_internet_settings_from_base(sim5300_dev_t               *sim5300_dev,
+                                             uint32_t                     hni,
+                                             sim5300_internet_settings_t *sim5300_internet_settings);
+
+/*---------------------------------------------------------------------------*/
+/*  */
+bool sim5300_start_internet(sim5300_dev_t               *sim5300_dev,
+                            uint8_t                      registration_timeout,
+                            sim5300_internet_settings_t *sim5300_internet_settings);
 
 /*---------------------------------------------------------------------------*/
 /*  */

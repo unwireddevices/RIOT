@@ -536,6 +536,28 @@ char *sim5300_get_imsi(sim5300_dev_t *sim5300_dev) {
 }
 
 /*---------------------------------------------------------------------------*/
+/* Get Home Network Identity (HNI) */
+int sim5300_get_hni(sim5300_dev_t *sim5300_dev) {
+    /* Test NULL device */
+    if (sim5300_dev == NULL) {
+        puts("sim5300_dev = NULL");
+        return -1;
+    } 
+
+    /* Get IMSI */
+    char* imsi = sim5300_get_imsi(sim5300_dev);
+    if (imsi == NULL) {
+        return -2;
+    }
+
+    /* Get HNI */
+    imsi[5] = 0x00;
+    int hni = atoi(imsi);
+    
+    return hni;
+}
+
+/*---------------------------------------------------------------------------*/
 /* AT+CGATT Get GPRS service state */
 int8_t sim5300_get_gprs_service_state(sim5300_dev_t *sim5300_dev) {
     /* Test NULL device */
@@ -1153,7 +1175,6 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
             /* Copy received data */
             res = at_recv_bytes(&sim5300_dev->at_dev, (char*)data_for_receive, receive_length, SIM5300_MAX_TIMEOUT);
             if ((uint32_t)res != receive_length) {
-                puts("2");
                 return -9;
             }
 
@@ -1175,14 +1196,14 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
 
             /* Read empty string */
             res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
-            DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+            // DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
             if (res != 0) {
                 return -10;
             }
 
             /* Read string with OK */
             res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
-            DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+            // DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
             
             /* Check read len string */
             if (res != 2) {
@@ -1196,7 +1217,7 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
 
 #if ENABLE_DEBUG == 1
             /* Debug data */
-            puts("[SIM5300] Received data:");
+            printf("[SIM5300] Received %i byte:\n", receive_length);
             od_hex_dump(data_for_receive, receive_length, OD_WIDTH_DEFAULT);
 #endif
 
@@ -1285,7 +1306,7 @@ int sim5300_send_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
 
 #if ENABLE_DEBUG == 1
     /* Debug data */
-    puts("[SIM5300] Sent data:");
+    printf("[SIM5300] Sent %i byte:\n", data_size);
     od_hex_dump(data_for_send, data_size, OD_WIDTH_DEFAULT);
 #endif
 
@@ -1293,6 +1314,336 @@ int sim5300_send_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
     }
 
     return -6; 
+}
+
+/*---------------------------------------------------------------------------*/
+/* Get internet settings from base */
+bool sim5300_get_internet_settings_from_base(sim5300_dev_t               *sim5300_dev,
+                                             uint32_t                     hni,
+                                             sim5300_internet_settings_t *sim5300_internet_settings) {
+    (void)sim5300_dev;
+
+    printf("[SIM5300] Get internet settings from base for HNI: %lu\n", hni);
+
+    /* Get standart settings */
+    switch (hni) {
+        // +COPN: "25004","SIBCHALLENGE RUS"
+        // +COPN: "25028","VOICE"
+        // +COPN: "25092","Primetelefone RUS"
+
+        /* +COPN: "25001","MTS RUS" */
+        case 25001:
+            snprintf(sim5300_internet_settings->apn, 32, "internet.mts.ru");   /* Access Point Name */
+            snprintf(sim5300_internet_settings->username, 32, "mts");          /* Username */
+            snprintf(sim5300_internet_settings->password, 32, "mts");          /* Password */
+            break;
+
+        /* +COPN: "25002","MegaFon RUS" */
+        case 25002:
+            snprintf(sim5300_internet_settings->apn, 32, "internet");      /* Access Point Name */
+            memset(sim5300_internet_settings->username, 0x00, 32);         /* Username */ 
+            memset(sim5300_internet_settings->password, 0x00, 32);         /* Password */
+            break;
+
+        // /* +COPN: "25003","ROSTELECOM" */
+        // case 25003:
+        //     /*  */
+        //     break;
+
+        // /* +COPN: "25005","ROSTELECOM" */
+        // case 25005:
+        //     /*  */
+        //     break;
+
+        // /*  */
+        // case 25006:
+        //     /*  */
+        //     break;
+
+        // /* +COPN: "25007","RUS 07, RUS SMARTS" */
+        // case 25007:
+        //     /*  */
+        //     break;
+
+        // /*  */
+        // case 25008:
+        //     /* apn: "vtk" "internet" */
+        //     break;
+
+        // /*  */
+        // case 25009:
+        //     /*  */
+        //     break; 
+
+        // /* DTC */
+        // case 25010:
+        //     /*  */
+        //     break;
+
+        /* +COPN: "25011","Yota" */
+        case 25011:
+            snprintf(sim5300_internet_settings->apn, 32, "internet.yota");     /* Access Point Name */
+            memset(sim5300_internet_settings->username, 0x00, 32);             /* Username */
+            memset(sim5300_internet_settings->password, 0x00, 32);             /* Password */   
+            break;
+
+        // /* +COPN: "25012","ROSTELECOM" */
+        // case 25012:
+        //     /*  */
+        //     break;
+
+        // /* +COPN: "25013","RUS Kuban-GSM" */
+        // case 25013:
+        //     /*  */
+        //     break;
+
+        /*  */
+        case 25014:
+            snprintf(sim5300_internet_settings->apn, 32, "internet");  /* Access Point Name */
+            memset(sim5300_internet_settings->username, 0x00, 32);     /* Username */ 
+            memset(sim5300_internet_settings->password, 0x00, 32);     /* Password */
+            break;
+
+        // /* +COPN: "25015","RUS15, RUS SMARTS" */
+        // case 25015:
+        //     /*  */
+        //     break;
+
+        // /* +COPN: "25016","NTC" */
+        // case 25016:
+        //     /*  */
+        //     break;
+
+        // /* +COPN: "25017","ROSTELECOM" */
+        // case 25017:
+        //     /*  */
+        //     break;
+
+        /* Tele2 AB (Tele2) */
+        case 25020:
+            snprintf(sim5300_internet_settings->apn, 32, "internet.tele2.ru");     /* Access Point Name */
+            memset(sim5300_internet_settings->username, 0x00, 32);                 /* Username */
+            memset(sim5300_internet_settings->password, 0x00, 32);                 /* Password */  
+            break;
+
+        // /*  */
+        // case 25023:
+        //     /*  */
+        //     break;
+
+        // /*  */
+        // case 25027:
+        //     /*  */
+        //     break;
+
+        /*  */
+        case 25028:
+            snprintf(sim5300_internet_settings->apn, 32, "internet.beeline.ru");   /* Access Point Name */
+            snprintf(sim5300_internet_settings->username, 32, "beeline");          /* Username */
+            snprintf(sim5300_internet_settings->password, 32, "beeline");          /* Password */
+            break;
+
+        // /* +COPN: "25035","MOTIV" */
+        // case 25035:
+        //     /*  */
+        //     break;
+
+        // /* +COPN: "25038","ROSTELECOM" */
+        // case 25038:
+        //     /*  */
+        //     break;
+
+        /* +COPN: "25039","ROSTELECOM" */
+        case 25039:
+            snprintf(sim5300_internet_settings->apn, 32, "internet.rt.ru");    /* Access Point Name */
+            memset(sim5300_internet_settings->username, 0x00, 32);             /* Username */
+            memset(sim5300_internet_settings->password, 0x00, 32);             /* Password */ 
+            break;
+
+        // /* OJSC Multiregional TransitTelecom (MTT) */
+        // case 25042:
+        //     /*  */
+        //     break;
+
+        /* Tinkoff */
+        case 25062:
+            snprintf(sim5300_internet_settings->apn, 32, "m.tinkoff");     /* Access Point Name */
+            memset(sim5300_internet_settings->username, 0x00, 32);         /* Username */
+            memset(sim5300_internet_settings->password, 0x00, 32);         /* Password */  
+            break;
+
+        /* +COPN: "25099","Beeline" */
+        case 25099:
+            snprintf(sim5300_internet_settings->apn, 32, "internet.beeline.ru");   /* Access Point Name */
+            snprintf(sim5300_internet_settings->username, 32, "beeline");          /* Username */
+            snprintf(sim5300_internet_settings->password, 32, "beeline");          /* Password */
+            break;    
+
+        /* Unknown operator */
+        default: 
+            memset(sim5300_internet_settings->apn,      0x00, 32);     /* Access Point Name */
+            memset(sim5300_internet_settings->username, 0x00, 32);     /* Username */
+            memset(sim5300_internet_settings->password, 0x00, 32);     /* Password */
+            return false;   
+            break;
+    } 
+    return true;
+}
+
+/*---------------------------------------------------------------------------*/
+/*  */
+bool sim5300_start_internet(sim5300_dev_t               *sim5300_dev,
+                            uint8_t                      registration_timeout,
+                            sim5300_internet_settings_t *sim5300_internet_settings) {
+    /* Test NULL device */
+    if (sim5300_dev == NULL) {
+        puts("sim5300_dev = NULL");
+        return false;
+    }     
+
+    /* Disabled showing an unsolicited event code */
+    if (!sim5300_set_sim_inserted_status_reporting(sim5300_dev, 0)) {
+        return false;
+    }
+
+    /* Is SIM card inserted? */
+    sim5300_csmins_resp_t sim5300_csmins_resp;
+    if (!sim5300_get_sim_inserted_status_reporting(sim5300_dev, &sim5300_csmins_resp)) {
+        return false;
+    }
+    if (sim5300_csmins_resp.sim_inserted != 1) {
+        return false;
+    }
+
+    /* Is there a PIN code? */
+    if (sim5300_get_pin_status(sim5300_dev) != READY) {
+        return false;
+    }
+
+    int res;
+
+    /* Have you registered in the cellular network? */
+    /* Cycle counter */
+    uint8_t counter = 0;
+
+    /* Response on AT+CREG */
+    sim5300_creg_resp_t sim5300_creg_resp;
+    while(1) {
+        if (counter >= registration_timeout) {
+            puts("[SIM5300] Registration failed");
+            return false;
+        }
+
+        if (sim5300_get_network_registration(sim5300_dev, &sim5300_creg_resp)) {
+            if (sim5300_creg_resp.stat == 1) {
+                break;
+            }
+        }
+
+        rtctimers_millis_sleep(1000);
+        counter++;
+    } 
+    puts("[SIM5300] Registration OK");
+
+    /* Reject Incoming Call */
+    if (!sim5300_set_reject_incoming_call(sim5300_dev, 1)) {
+        return false;
+    }
+
+    /* Start up multi-IP connection */
+    if (!sim5300_start_up_multi_ip_connection(sim5300_dev, 1)) {
+        return false;
+    }
+
+    /* Attach to the network */
+    int8_t gprs_state = sim5300_get_gprs_service_state(sim5300_dev);
+    if (gprs_state == 0) {
+        if (!sim5300_set_gprs_service_state(sim5300_dev, 1)) {
+            return false;
+        }
+    } else if (gprs_state != 1) {
+        return false;
+    }
+
+    /* Get data from network manually for multi IP connection */
+    res = sim5300_receive_data_through_multi_ip_connection(sim5300_dev, 1, 1, NULL, 0);
+    if(res != 0) {
+        puts("[SIM5300] Set get data from network manually for multi IP connection ERROR");
+    } 
+
+    /* Have internet settings? */
+    if (sim5300_internet_settings != NULL) {
+        /* Start Task and Set APN, USER NAME, PASSWORD */
+        if (!sim5300_set_network_settings(sim5300_dev, 
+                                          sim5300_internet_settings->apn, 
+                                          sim5300_internet_settings->username, 
+                                          sim5300_internet_settings->password)) {
+            return false;
+        }
+    } else {
+        /* Get internet settings from base */
+        sim5300_internet_settings_t sim5300_get_internet_settings;
+        if (!sim5300_get_internet_settings_from_base(sim5300_dev,
+                                                     sim5300_get_hni(sim5300_dev),
+                                                     &sim5300_get_internet_settings)) {
+            return false;
+        }
+
+        /* Start Task and Set APN, USER NAME, PASSWORD */
+        if (!sim5300_set_network_settings(sim5300_dev, 
+                                          sim5300_get_internet_settings.apn, 
+                                          sim5300_get_internet_settings.username, 
+                                          sim5300_get_internet_settings.password)) {
+            return false;
+        }
+    }
+
+    /* Bring Up Wireless Connection with GPRS */
+    if (!sim5300_bring_up_wireless_connection(sim5300_dev)) {
+        return false;
+    }
+
+    /* Get local IP address */
+    sim5300_cifsr_resp_t sim5300_cifsr_resp;
+    if (!sim5300_get_local_ip_address(sim5300_dev, &sim5300_cifsr_resp)) {
+        return false;
+    }
+
+    /* Check local address */
+    if ((sim5300_cifsr_resp.local_ip_address[0] == 0) && 
+        (sim5300_cifsr_resp.local_ip_address[1] == 0) &&
+        (sim5300_cifsr_resp.local_ip_address[2] == 0) &&
+        (sim5300_cifsr_resp.local_ip_address[3] == 0)) {
+        puts("[SIM5300] Zero IP ERROR");
+
+        return false;
+    }
+
+    /* AT+CDNSCFG="8.8.8.8","8.8.4.4" */
+
+    /* AT+CIPSTATUS */
+
+    /* ping */
+    // sim5300_cipping_resp_t sim5300_cipping_resp[3] = {};
+    // if (sim5300_ping_request(sim5300_dev,
+    //                          sim5300_cipping_resp,
+    //                          "8.8.8.8",
+    //                          "3",
+    //                          "32", 
+    //                          "100",
+    //                          "64")) {
+    //     puts("ping true");
+
+    //     for (uint8_t i = 0; i < 3; i++ ) {
+    //         printf("sim5300_cipping_resp[%i].reply_time = %i; sim5300_cipping_resp[%i].ttl = %i\n", i, sim5300_cipping_resp[i].reply_time, i, sim5300_cipping_resp[i].ttl);
+    //     }
+    // } else {
+    //     puts("ping false");
+
+    //     return false;
+    // }
+
+    return true;
 }
 
 /*---------------------------------------------------------------------------*/

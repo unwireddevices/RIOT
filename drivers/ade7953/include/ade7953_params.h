@@ -25,7 +25,7 @@ extern "C" {
 #endif
 #define ADE7953_SPI_CLK                    SPI_CLK_1MHZ
 
-#define ADE7953_POWER_ON_DELAY_MS 100
+#define ADE7953_POWER_ON_TIMEOUT_MS 100
 
 #define ADE7953_NO_RESPONSE_TIME_MS        5000
 #define ADE7953_NO_RESPONSE_TIME_MIN_USEC  250

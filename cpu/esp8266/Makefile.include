@@ -65,6 +65,7 @@ USEMODULE += periph_common
 USEMODULE += ps
 USEMODULE += random
 USEMODULE += sdk
+USEMODULE += stdio_uart
 USEMODULE += xtensa
 
 ifneq (, $(filter pthread, $(USEMODULE)))

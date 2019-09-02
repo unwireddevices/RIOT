@@ -42,13 +42,13 @@ static uint8_t data_rx[ADE7953_MAX_BYTE_BUFF] = { 0x00 };
 
 static uint8_t _ade7953_spi_send_recv(const ade7953_t * dev, uint8_t * txbuff, uint8_t * rxbuff, uint8_t length, bool cond);
 static uint32_t _ade7953_power_up_setup(const ade7953_t * dev);
-static int32_t _ade7953_twos_compl(int32_t value);
+static int32_t _ade7953_to_twos_compl(int32_t value);
 static uint32_t _ade7953_write(const ade7953_t * dev, uint16_t reg, uint32_t data);
 static uint32_t _ade7953_read(const ade7953_t * dev, uint16_t reg);
 static uint32_t _ade7953_wait_reset(const ade7953_t * dev);
 
 
-static int32_t _ade7953_twos_compl(int32_t value)
+static int32_t _ade7953_to_twos_compl(int32_t value)
 {
     const int modul = 1 << 24;
     const int max_value = (1 << 23) - 1;
@@ -62,13 +62,22 @@ static int32_t _ade7953_twos_compl(int32_t value)
 
 static uint32_t _ade7953_wait_reset(const ade7953_t * dev)
 {
-    (void) dev;
-    //uint8_t pin_irq = GPIO_PIN_SET;
-    // pin_irq = HAL_GPIO_ReadPin(AFE_IRQ0_GPIO_Port, AFE_IRQ0_Pin);
-    // while(pin_irq != GPIO_PIN_RESET) {
-    // pin_irq = HAL_GPIO_ReadPin(AFE_IRQ0_GPIO_Port, AFE_IRQ0_Pin);
-    // }
+    uint32_t time_begin = lptimer_now_msec();
+    uint32_t time_end = 0;
+    uint32_t time_delta = 0;
+    uint8_t pin_irq = ADE7953_GPIO_PIN_SET;
     
+    pin_irq = gpio_read(dev->params.reset);
+    while(pin_irq != ADE7953_GPIO_PIN_RESET) {
+        pin_irq = gpio_read(dev->params.reset);
+        time_end = lptimer_now_msec();
+		time_delta = time_end - time_begin;
+        if(time_delta > ADE7953_NO_RESPONSE_TIME_MS) {
+            return ADE7953_ERROR;
+        }
+        xtimer_spin(xtimer_ticks_from_usec(ADE7953_NO_RESPONSE_TIME_MIN_USEC));
+    }
+          
     return ADE7953_OK;
 }
 
@@ -218,7 +227,7 @@ int32_t ade7953_get_awatt(const ade7953_t * dev)
 {
     int32_t awatt_tmp = 0;
     awatt_tmp = _ade7953_read(dev, ADE7953_AWATT_24);
-    awatt_tmp = _ade7953_twos_compl(awatt_tmp);
+    awatt_tmp = _ade7953_to_twos_compl(awatt_tmp);
     awatt_tmp = (awatt_tmp * 1000) / ADE7953_COEFF_ENERGY;
     
     return awatt_tmp;

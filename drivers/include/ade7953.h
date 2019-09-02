@@ -32,6 +32,8 @@
 #define ADE7953_CMD_READ 	        0x80
 #define ADE7953_CMD_WRITE           0x00
 
+#define ADE7953_VRMS_OFFSET         0xFFF913  // -1773
+
 #define ADE7953_SQRT2	            (1414213)	// sqrt(2) * 1000000
 #define ADE7953_1000000	            (1000000)	// 1000000
 // /* Vrms = Sample / coeff_vrms [V] */
@@ -57,6 +59,9 @@
 //#define ADE7953_COEFF_ENERGY ((ADE7953_FULL_SCALE_ENERGY * 2 * ADE7953_RB * FULL_SCALE_CURR_A) / (ADE7953_RESISTOR_DIVIDER * ADE7953_TRANS_RATIO * FULL_SCALE_VOLT))
 #define ADE7953_COEFF_ENERGY (87723) // 87.723 * 1000
 
+
+#define ADE7953_GPIO_PIN_RESET  0
+#define ADE7953_GPIO_PIN_SET    1
 
 /**
  * @brief ADE7953 return codes

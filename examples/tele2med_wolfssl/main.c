@@ -76,12 +76,56 @@ int unwired_recv(WOLFSSL *ssl, char *buf, int sz, void *ctx) {
     (void) ssl;
     (void) ctx;
 
+    int res;
+
     printf("[Socket] Recv\n");
 
-    return sim5300_receive(&sim5300_dev,
-                           sockfd, 
-                           (uint8_t*)buf,
-                           sz);
+    if (sz <= RECEIVE_MAX_LEN) {
+        /* Receive data up to RECEIVE_MAX_LEN bytes in size */
+        return sim5300_receive(&sim5300_dev,
+                               sockfd, 
+                               (uint8_t*)buf,
+                               sz);
+    } else {
+        /* Receiving data larger than RECEIVE_MAX_LEN bytes */
+        uint16_t recv_sz = 0;
+        printf("[DEBUG] RECV NEED %i BYTE\n", sz);
+
+        do {
+            if ((sz - recv_sz) >= RECEIVE_MAX_LEN) {
+                res = sim5300_receive(&sim5300_dev,
+                                      sockfd, 
+                                      (uint8_t*)buf + recv_sz,
+                                      RECEIVE_MAX_LEN);
+                
+                if (res < 0) {
+                    printf("[DEBUG] RECV ERROR: %i\n", res);
+
+                    return res;
+                }
+
+                recv_sz += res;
+            } else {
+                res = sim5300_receive(&sim5300_dev,
+                                      sockfd, 
+                                      (uint8_t*)buf + recv_sz,
+                                      sz - recv_sz);
+                
+                if (res < 0) {
+                    printf("[DEBUG] RECV ERROR: %i\n", res);
+
+                    return res;
+                }
+
+                recv_sz += res;
+                printf("[DEBUG] RECV %i BYTE\n", recv_sz);
+
+                break;
+            }
+        } while (recv_sz < sz);
+
+        return recv_sz;
+    }
 }
 
 int unwired_send(WOLFSSL *ssl, char *buf, int sz, void *ctx) {

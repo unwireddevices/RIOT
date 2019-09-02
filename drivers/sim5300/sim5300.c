@@ -1154,13 +1154,23 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
 
             return 0;
         case 2:
+            /* Check on min len on read */
+            if (data_size == 0) {
+                return 0;
+            }
+
+            /* Check on max len on read */
+            if (data_size > 1460) {
+                return -6;
+            }
+
             snprintf(cmd_CIPRXGET, 32, "AT+CIPRXGET=%i,%i,%i", mode, n, data_size);
 
             /* Send AT command */
             at_drain(&sim5300_dev->at_dev);
             res = at_send_cmd(&sim5300_dev->at_dev, cmd_CIPRXGET, SIM5300_MAX_TIMEOUT);
             if (res != 0) {
-                return -6;
+                return -7;
             }
 
             /* Sleep on 10 ms */
@@ -1169,7 +1179,7 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
             res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
             DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
             if (res < 0) {
-                return -7;
+                return -8;
             }
 
             /* Parse string */
@@ -1183,10 +1193,11 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
             if (res != 3) {
                 printf("[SIM5300] Parse error: %i\n", res);
 
-                return -8;
+                return -9;
             }
 
-            if (req_length == 0) {
+            /* Check on min len on read */
+            if (data_size == 0) {
                 return 0;
             }
 
@@ -1200,9 +1211,16 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
 
             /* Copy received data */
             res = at_recv_bytes(&sim5300_dev->at_dev, (char*)data_for_receive, receive_length, SIM5300_MAX_TIMEOUT);
-            if ((uint32_t)res != receive_length) {
-                return -9;
+            if (res < 0) {
+                return -10;
             }
+
+            /* Saving the number of bytes received */
+            receive_length = res;
+
+            // if ((uint32_t)res != receive_length) {
+            //     return -10;
+            // }
 
             // if ((uint32_t)req_length <= data_size) {
             //     res = at_recv_bytes(&sim5300_dev->at_dev, (char*)data_for_receive, req_length, SIM5300_MAX_TIMEOUT);

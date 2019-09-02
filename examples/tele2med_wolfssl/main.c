@@ -168,14 +168,48 @@ int main(void)
 
     res = sim5300_connect(&sim5300_dev, 
                            sockfd, 
-                           "31.173.148.98", // 176.15.5.90
-                           "443", // 666
+                           "31.173.148.98", //"tg.manchenkoos.ru", // "31.173.148.98", // 176.15.5.90
+                           "443", //"8080", // "443", // 666
                            "TCP");
     if (res < 0) {
         printf("Error start socket: %i\n", res);
 
         return false;
     }
+
+    // /* TEST START */
+    // uint8_t data_for_recv[128];
+
+    // while(true) {
+    //     res = sim5300_receive(&sim5300_dev,
+    //                            sockfd, 
+    //                            data_for_recv,
+    //                            sizeof(data_for_recv));
+
+    //     if (res < 0) {
+    //         printf("Error recv data: %i\n", res);
+
+    //         return false;
+    //     }
+
+    //     if (res > 0) {
+    //         printf("Recv data: %i\n%s\n", res, data_for_recv);
+
+    //         break;
+    //     }
+
+    //     xtimer_usleep(1000000);
+    // }
+
+    // res = sim5300_close(&sim5300_dev, sockfd);
+    // if (res < 0) {
+    //     printf("Error close socket: %i\n", res);
+
+    //     return false;
+    // }
+
+    // while (true);
+    // /* TEST END*/
 
     // res = sim5300_send(&sim5300_dev,
     //                     sockfd, 

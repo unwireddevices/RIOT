@@ -837,13 +837,14 @@ bool sim5300_close_up_multi_ip_connection(sim5300_dev_t *sim5300_dev,
     char resp_on_CIPCLOSE[13];
     snprintf(resp_on_CIPCLOSE, 13, "%i, CLOSE OK", n);
 
-    do {
-        /* Read string */
-        res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
-        DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+    /* Read string */
+    res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
+    DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
 
-        /* TODO: COMPARE RESP WITH resp_on_CIPCLOSE */
-    } while (res >= 0);
+    /* Compare resp */
+    if (memcmp(resp_on_CIPCLOSE, sim5300_dev->at_dev_resp, 11) != 0) {
+        return false;
+    }
 
     return true;
 }
@@ -1145,6 +1146,7 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
             rtctimers_millis_sleep(10); 
 
             res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
+            DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
             if (res < 0) {
                 return -7;
             }
@@ -1152,6 +1154,9 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
             /* Parse string */
             int id, req_length, cnf_length;
             res = sscanf(sim5300_dev->at_dev_resp, "+CIPRXGET: 2,%i,%i,%i", &id, &req_length, &cnf_length);
+            DEBUG("id = %i\n", id);
+            DEBUG("req_length = %i\n", req_length);
+            DEBUG("cnf_length = %i\n", cnf_length);
 
             /* Check result */
             if (res != 3) {
@@ -1194,26 +1199,28 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
             //     }
             // }
 
-            /* Read empty string */
-            res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
+            /* TODO: Uncomment */
+            // /* Read empty string */ 
+            // res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
             // DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
-            if (res != 0) {
-                return -10;
-            }
+            // if (res != 0) {
+            //     return -10;
+            // }
 
-            /* Read string with OK */
-            res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
+            /* TODO: Uncomment */
+            // /* Read string with OK */
+            // res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
             // DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
-            
-            /* Check read len string */
-            if (res != 2) {
-                return -11;
-            }
+            // /* Check read len string */
+            // if (res != 2) {
+            //     return -11;
+            // }
 
-            /* Validation of the answer */
-            if (strcmp(sim5300_dev->at_dev_resp, "OK") != 0) {
-                return -12;
-            }
+            /* TODO: Uncomment */
+            // /* Validation of the answer */
+            // if (strcmp(sim5300_dev->at_dev_resp, "OK") != 0) {
+            //     return -12;
+            // }
 
 #if ENABLE_DEBUG == 1
             /* Debug data */

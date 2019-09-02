@@ -139,51 +139,51 @@ typedef struct {
  * @returns     true  - Iridium answered OK
  * @returns     false - Iridium not answered
  */
-bool sim5300_send_at(sim5300_dev_t *sim5300_dev);
+int sim5300_send_at(sim5300_dev_t *sim5300_dev);
 
 /*---------------------------------------------------------------------------*/
 /* AT+CSMINS SIM Inserted Status Reporting */
-bool sim5300_get_sim_inserted_status_reporting(sim5300_dev_t         *sim5300_dev,
-                                               sim5300_csmins_resp_t *sim5300_csmins_resp);
+int sim5300_get_sim_inserted_status_reporting(sim5300_dev_t         *sim5300_dev,
+                                              sim5300_csmins_resp_t *sim5300_csmins_resp);
 
 /*---------------------------------------------------------------------------*/
 /* AT+CSMINS SIM Inserted Status Reporting */
-bool sim5300_set_sim_inserted_status_reporting(sim5300_dev_t *sim5300_dev, 
-                                               uint8_t        n);
+int sim5300_set_sim_inserted_status_reporting(sim5300_dev_t *sim5300_dev, 
+                                              uint8_t        n);
 
 /*---------------------------------------------------------------------------*/
 /* AT+CPIN Enter PIN */
-int8_t sim5300_get_pin_status(sim5300_dev_t *sim5300_dev);
+int sim5300_get_pin_status(sim5300_dev_t *sim5300_dev);
 
 /*---------------------------------------------------------------------------*/
 /* AT+CREG Network Registration */
-bool sim5300_get_network_registration(sim5300_dev_t       *sim5300_dev,
-                                      sim5300_creg_resp_t *sim5300_creg_resp);
+int sim5300_get_network_registration(sim5300_dev_t       *sim5300_dev,
+                                     sim5300_creg_resp_t *sim5300_creg_resp);
 
 /*---------------------------------------------------------------------------*/
 /* AT+GSMBUSY Reject Incoming Call */
-int8_t sim5300_get_reject_incoming_call(sim5300_dev_t *sim5300_dev);
+int sim5300_get_reject_incoming_call(sim5300_dev_t *sim5300_dev);
 
 /*---------------------------------------------------------------------------*/
 /* AT+GSMBUSY Reject Incoming Call */
-bool sim5300_set_reject_incoming_call(sim5300_dev_t *sim5300_dev, 
-                                      uint8_t        mode);
+int sim5300_set_reject_incoming_call(sim5300_dev_t *sim5300_dev, 
+                                     uint8_t        mode);
 
 /*---------------------------------------------------------------------------*/
 /* AT+CSQ Signal Quality Report */
-bool sim5300_get_signal_quality_report(sim5300_dev_t      *sim5300_dev,
-                                       sim5300_csq_resp_t *sim5300_csq_resp);
+int sim5300_get_signal_quality_report(sim5300_dev_t      *sim5300_dev,
+                                      sim5300_csq_resp_t *sim5300_csq_resp);
 
 /*---------------------------------------------------------------------------*/
 /* AT+COPS Operator Selection */
-bool sim5300_get_operator_selection(sim5300_dev_t       *sim5300_dev,
-                                    sim5300_cops_resp_t *sim5300_cops_resp);
+int sim5300_get_operator_selection(sim5300_dev_t       *sim5300_dev,
+                                   sim5300_cops_resp_t *sim5300_cops_resp);
 
 /*---------------------------------------------------------------------------*/
 /* AT+CGACT PDP Context Activate or Deactivate */
-bool sim5300_set_state_pdp_context(sim5300_dev_t *sim5300_dev,
-                                   uint8_t        state,
-                                   uint8_t        cid);
+int sim5300_set_state_pdp_context(sim5300_dev_t *sim5300_dev,
+                                  uint8_t        state,
+                                  uint8_t        cid);
 
 /*---------------------------------------------------------------------------*/
 /* AT+CIMI Request International Mobile Subscriber Identity (IMSI) */
@@ -195,56 +195,57 @@ int sim5300_get_hni(sim5300_dev_t *sim5300_dev);
 
 /*---------------------------------------------------------------------------*/
 /* AT+CGATT Get GPRS service state */
-int8_t sim5300_get_gprs_service_state(sim5300_dev_t *sim5300_dev);
+int sim5300_get_gprs_service_state(sim5300_dev_t *sim5300_dev);
 
 /*---------------------------------------------------------------------------*/
 /* AT+CGATT Set GPRS service state */
-bool sim5300_set_gprs_service_state(sim5300_dev_t *sim5300_dev, 
-                                    uint8_t        state);
+int sim5300_set_gprs_service_state(sim5300_dev_t *sim5300_dev, 
+                                   uint8_t        state);
+
 /*---------------------------------------------------------------------------*/
 /* AT+CSTT Start Task and Set APN, USER NAME, PASSWORD */
-bool sim5300_set_network_settings(sim5300_dev_t *sim5300_dev,
-                                  char          *apn,
-                                  char          *user,
-                                  char          *password);
+int sim5300_set_network_settings(sim5300_dev_t *sim5300_dev,
+                                 char          *apn,
+                                 char          *user,
+                                 char          *password);
 
 /*---------------------------------------------------------------------------*/
 /* AT+CIICR Bring up wireless connection with GPRS */
-bool sim5300_bring_up_wireless_connection(sim5300_dev_t *sim5300_dev);
+int sim5300_bring_up_wireless_connection(sim5300_dev_t *sim5300_dev);
 
 /*---------------------------------------------------------------------------*/
 /* AT+CIFSR Get local IP address */ 
-bool sim5300_get_local_ip_address(sim5300_dev_t        *sim5300_dev,
-                                  sim5300_cifsr_resp_t *sim5300_cifsr_resp);
+int sim5300_get_local_ip_address(sim5300_dev_t        *sim5300_dev,
+                                 sim5300_cifsr_resp_t *sim5300_cifsr_resp);
 
 /*---------------------------------------------------------------------------*/
 /* AT+CIPMUX Start up multi-IP connection */
-bool sim5300_start_up_multi_ip_connection(sim5300_dev_t *sim5300_dev, 
-                                          uint8_t        n);
+int sim5300_start_up_multi_ip_connection(sim5300_dev_t *sim5300_dev, 
+                                         uint8_t        n);
 
 /*---------------------------------------------------------------------------*/
 /* AT+CIPCLOSE Close up multi-IP connection */
-bool sim5300_close_up_multi_ip_connection(sim5300_dev_t *sim5300_dev,
-                                          uint8_t        id,
-                                          uint8_t        n);
+int sim5300_close_up_multi_ip_connection(sim5300_dev_t *sim5300_dev,
+                                         uint8_t        id,
+                                         uint8_t        n);
 
 /*---------------------------------------------------------------------------*/
 /* AT+CIPPING PING request */
-bool sim5300_ping_request(sim5300_dev_t          *sim5300_dev,
-                          sim5300_cipping_resp_t  sim5300_cipping_resp[],
-                          char                   *address,
-                          char                   *retr_num,
-                          char                   *datalen, 
-                          char                   *timeout,
-                          char                   *ttl);
+int sim5300_ping_request(sim5300_dev_t          *sim5300_dev,
+                         sim5300_cipping_resp_t  sim5300_cipping_resp[],
+                         char                   *address,
+                         char                   *retr_num,
+                         char                   *datalen, 
+                         char                   *timeout,
+                         char                   *ttl);
 
 /*---------------------------------------------------------------------------*/
 /* AT+CIPSTART Start up multi-IP TCP or UDP connection */
-int8_t sim5300_multi_ip_up_single_connection(sim5300_dev_t *sim5300_dev,
-                                             uint8_t        n,
-                                             char          *mode,
-                                             char          *address,
-                                             char          *port);
+int sim5300_multi_ip_up_single_connection(sim5300_dev_t *sim5300_dev,
+                                          uint8_t        n,
+                                          char          *mode,
+                                          char          *address,
+                                          char          *port);
 
 /*---------------------------------------------------------------------------*/
 /* AT+CIPRXGET Get data from network manually for multi IP connection */
@@ -263,15 +264,15 @@ int sim5300_send_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
 
 /*---------------------------------------------------------------------------*/
 /* Get internet settings from base */
-bool sim5300_get_internet_settings_from_base(sim5300_dev_t               *sim5300_dev,
-                                             uint32_t                     hni,
-                                             sim5300_internet_settings_t *sim5300_internet_settings);
+int sim5300_get_internet_settings_from_base(sim5300_dev_t               *sim5300_dev,
+                                            uint32_t                     hni,
+                                            sim5300_internet_settings_t *sim5300_internet_settings);
 
 /*---------------------------------------------------------------------------*/
 /*  */
-bool sim5300_start_internet(sim5300_dev_t               *sim5300_dev,
-                            uint8_t                      registration_timeout,
-                            sim5300_internet_settings_t *sim5300_internet_settings);
+int sim5300_start_internet(sim5300_dev_t               *sim5300_dev,
+                           uint8_t                      registration_timeout,
+                           sim5300_internet_settings_t *sim5300_internet_settings);
 
 /*---------------------------------------------------------------------------*/
 /*  */
@@ -315,7 +316,7 @@ int sim5300_close(sim5300_dev_t *sim5300_dev,
  * @returns     true  - Communication test OK
  * @returns     false - Communication test failed ERROR
  */
-bool sim5300_communication_test(sim5300_dev_t *sim5300_dev);
+int sim5300_communication_test(sim5300_dev_t *sim5300_dev);
 
 /*---------------------------------------------------------------------------*/
 /**
@@ -332,13 +333,13 @@ bool sim5300_communication_test(sim5300_dev_t *sim5300_dev);
  * @returns     true  - Initialization OK
  * @returns     false - Initialization ERROR
  */
-bool sim5300_init(sim5300_dev_t *sim5300_dev, 
-                  uart_t         uart, 
-                  uint32_t       baudrate, 
-                  char          *buf, 
-                  size_t         bufsize, 
-                  char          *at_dev_resp, 
-                  uint16_t       at_dev_resp_size);
+int sim5300_init(sim5300_dev_t *sim5300_dev, 
+                 uart_t         uart, 
+                 uint32_t       baudrate, 
+                 char          *buf, 
+                 size_t         bufsize, 
+                 char          *at_dev_resp, 
+                 uint16_t       at_dev_resp_size);
 
 /*---------------------------------------------------------------------------*/
 #ifdef __cplusplus

@@ -132,6 +132,8 @@ void sim5300_power_on(void) {
 /*---------------------------------------------------------------------------*/
 int main(void)
 {
+    int res;
+
     /* SIM5300 power on */
     sim5300_power_on();
 
@@ -139,12 +141,14 @@ int main(void)
     rtctimers_millis_sleep(SIM5300_TIME_ON_UART);
 
     /* Init SIM5300 */
-    if (!sim5300_init(&sim5300_dev, SIM5300_UART, SIM5300_BAUDRATE, at_dev_buf, AT_DEV_RESP_SIZE, at_dev_resp, AT_DEV_RESP_SIZE)) {
+    res = sim5300_init(&sim5300_dev, SIM5300_UART, SIM5300_BAUDRATE, at_dev_buf, AT_DEV_RESP_SIZE, at_dev_resp, AT_DEV_RESP_SIZE);
+    if (res != 0) {
         puts("sim5300_init ERROR");
     } 
 
     /* Set internet settings SIM5300 */
-    if (sim5300_start_internet(&sim5300_dev, 30, NULL)) {
+    res = sim5300_start_internet(&sim5300_dev, 30, NULL);
+    if (res == 0) {
         puts("[SIM5300] Set internet settings OK");
     } else {
         puts("[SIM5300] Set internet settings ERROR");
@@ -152,7 +156,6 @@ int main(void)
 
     
     //////// START SOCKET //////////
-    int res;
     // uint8_t data_for_send[256];
     // uint8_t data_for_recv[256] = {};
     // for (uint16_t i = 0; i < 256; i++) {
@@ -163,7 +166,7 @@ int main(void)
     if (sockfd < 0) {
         printf("Error get socket: %i\n", sockfd);
 
-        return false;
+        return -1;
     }
 
     res = sim5300_connect(&sim5300_dev, 
@@ -174,7 +177,7 @@ int main(void)
     if (res < 0) {
         printf("Error start socket: %i\n", res);
 
-        return false;
+        return -1;
     }
 
     // /* TEST START */

@@ -21,10 +21,10 @@
 #include <stdio.h>
 
 #include "lis2dh12.h"
-#include "lis2dh12_params.h"
 
 /* Allocate some of the memory for the device descriptor */
-static lis2dh12_t dev;
+static lis2dh12_t lis2dh12;
+static lis2dh12_params_t lis2dh12_params;
 
 /* Allocate some of the memory to store the output values of the sensor */
 static lis2dh12_acc_t acc;
@@ -33,9 +33,16 @@ static int16_t deg_celsius;
 int main(void)
 {
     puts("LIS2DH12 accelerometer driver test application\n");
+    /* Setting parameters accelerometer */
+    lis2dh12_params.i2c_dev  = I2C_DEV(0);
+    lis2dh12_params.i2c_addr = LIS2DH12_I2C_SAD_L;
+    lis2dh12_params.scale    = LIS2DH12_SCALE_2G;
+    lis2dh12_params.rate     = LIS2DH12_RATE_1HZ;
+    lis2dh12_params.res      = LIS2DH12_HR_12BIT;
 
     puts("Initializing LIS2DH12 sensor... ");
-    if (lis2dh12_init(&dev, &lis2dh12_params[0]) == LIS2DH12_OK) {
+
+    if (lis2dh12_init(&lis2dh12, &lis2dh12_params) == LIS2DH12_OK) {
         puts("[OK]");
     }
     else {
@@ -43,8 +50,9 @@ int main(void)
         return 1;
     }
 
+    lis2dh12.params.rate  = LIS2DH12_RATE_1HZ;
     puts("LIS2DH12 power on...");
-    if (lis2dh12_power_on(&dev, dev.params.scale, dev.params.rate, dev.params.res) == LIS2DH12_OK) {
+    if (lis2dh12_power_on(&lis2dh12, lis2dh12.params.scale, lis2dh12.params.rate, lis2dh12.params.res) == LIS2DH12_OK) {
         puts("[OK]");
     } else {
         puts("[Failed]\n");
@@ -53,7 +61,7 @@ int main(void)
 
     while (1) {
         /* read sensor data */
-        if (lis2dh12_read_xyz(&dev, &acc) == LIS2DH12_OK) {
+        if (lis2dh12_read_xyz(&lis2dh12, &acc) == LIS2DH12_OK) {
             /* print acc values */
             printf("X: %d[milli-G] Y: %d[milli-G] Z: %d[milli-G]\n", acc.axis_x, acc.axis_y, acc.axis_z);
         } else {
@@ -61,7 +69,7 @@ int main(void)
             return 1;
         }
 
-        if (lis2dh12_read_temp(&dev, &deg_celsius) == LIS2DH12_OK) {
+        if (lis2dh12_read_temp(&lis2dh12, &deg_celsius) == LIS2DH12_OK) {
             /* print temp values */
             printf("Temperature %d Celsius\n", deg_celsius);
         } else {

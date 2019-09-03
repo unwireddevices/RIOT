@@ -186,13 +186,13 @@ int main(void)
 
     /* Init SIM5300 */
     res = sim5300_init(&sim5300_dev, SIM5300_UART, SIM5300_BAUDRATE, at_dev_buf, AT_DEV_RESP_SIZE, at_dev_resp, AT_DEV_RESP_SIZE);
-    if (res != 0) {
+    if (res != SIM5300_OK) {
         puts("sim5300_init ERROR");
     } 
 
     /* Set internet settings SIM5300 */
     res = sim5300_start_internet(&sim5300_dev, 30, NULL);
-    if (res == 0) {
+    if (res == SIM5300_OK) {
         puts("[SIM5300] Set internet settings OK");
     } else {
         puts("[SIM5300] Set internet settings ERROR");
@@ -207,7 +207,7 @@ int main(void)
     // }
 
     sockfd = sim5300_socket(&sim5300_dev);
-    if (sockfd < 0) {
+    if (sockfd < SIM5300_OK) {
         printf("Error get socket: %i\n", sockfd);
 
         return -1;
@@ -218,7 +218,7 @@ int main(void)
                            "31.173.148.98", //"tg.manchenkoos.ru", // "31.173.148.98", // 176.15.5.90
                            "443", //"8080", // "443", // 666
                            "TCP");
-    if (res < 0) {
+    if (res < SIM5300_OK) {
         printf("Error start socket: %i\n", res);
 
         return -1;

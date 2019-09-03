@@ -61,7 +61,7 @@ int sim5300_send_at(sim5300_dev_t *sim5300_dev) {
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     } 
         
     puts("[SIM5300] Send AT");
@@ -69,7 +69,7 @@ int sim5300_send_at(sim5300_dev_t *sim5300_dev) {
     /* Send AT */
     int res = at_send_cmd_wait_ok(&sim5300_dev->at_dev, "AT", SIM5300_MAX_TIMEOUT);
     if (res == 0) {
-        return 0;
+        return SIM5300_OK;
     } else {
         return -2;
     }
@@ -83,12 +83,12 @@ int sim5300_get_sim_inserted_status_reporting(sim5300_dev_t         *sim5300_dev
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     } 
 
     /* NULL ptr */
     if (sim5300_csmins_resp == NULL) {
-        return -2;
+        return ARGUMENT_NULL_ERROR;
     }
 
     /* Get SIM Inserted Status Reporting */
@@ -110,14 +110,14 @@ int sim5300_get_sim_inserted_status_reporting(sim5300_dev_t         *sim5300_dev
     if (res != 2) {
         puts("[SIM5300] Parse error");
 
-        return -4;
+        return PARSE_ERROR;
     }
 
     /* Debug output */
     DEBUG("n = %i\n",            sim5300_csmins_resp->n);
     DEBUG("sim_inserted = %i\n", sim5300_csmins_resp->sim_inserted);
 
-    return 0;    
+    return SIM5300_OK;    
 }
 
 /*---------------------------------------------------------------------------*/
@@ -128,14 +128,14 @@ int sim5300_set_sim_inserted_status_reporting(sim5300_dev_t *sim5300_dev,
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     } 
     
     /* Test range argument */
     if (n > 1) {
         printf("[SIM5300] sim5300_set_sim_inserted_status_reporting() ERROR argument: %i. (range 0-1)\n", n);
 
-        return -2;
+        return ARGUMENT_RANGE_ERROR;
     }
 
     /* Create a command to send data */
@@ -154,7 +154,7 @@ int sim5300_set_sim_inserted_status_reporting(sim5300_dev_t *sim5300_dev,
             puts("[SIM5300] Enabled showing an unsolicited event code ");
         }
 
-        return 0;
+        return SIM5300_OK;
     } else {
         puts("[SIM5300] sim5300_set_sim_inserted_status_reporting() ERROR");
 
@@ -169,7 +169,7 @@ int sim5300_get_pin_status(sim5300_dev_t *sim5300_dev) {
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     } 
 
     /* Get alphanumeric string indicating whether some password is required or not. */
@@ -234,12 +234,12 @@ int sim5300_get_network_registration(sim5300_dev_t       *sim5300_dev,
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     } 
 
     /* NULL ptr */
     if (sim5300_creg_resp == NULL) {
-        return -2;
+        return ARGUMENT_NULL_ERROR;
     }
 
     /* Get Network Registration */
@@ -261,14 +261,14 @@ int sim5300_get_network_registration(sim5300_dev_t       *sim5300_dev,
     if (res != 2) {
         puts("[SIM5300] Parse error");
 
-        return -4;
+        return PARSE_ERROR;
     }
 
     /* Debug output */
     DEBUG("n = %i\n",    sim5300_creg_resp->n);
     DEBUG("stat = %i\n", sim5300_creg_resp->stat);
 
-    return 0;    
+    return SIM5300_OK;    
 }
 
 /*---------------------------------------------------------------------------*/
@@ -278,7 +278,7 @@ int sim5300_get_reject_incoming_call(sim5300_dev_t *sim5300_dev) {
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     } 
     
     /* Send AT command */
@@ -299,7 +299,7 @@ int sim5300_get_reject_incoming_call(sim5300_dev_t *sim5300_dev) {
     if (res != 1) {
         puts("[SIM5300] Parse error");
 
-        return -3;
+        return PARSE_ERROR;
     }
 
     /* Print result */
@@ -330,14 +330,14 @@ int sim5300_set_reject_incoming_call(sim5300_dev_t *sim5300_dev,
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     } 
     
     /* Test range argument */
     if (mode > 2) {
         printf("[SIM5300] sim5300_set_reject_incoming_call() ERROR argument: %i. (range 0-2)\n", mode);
 
-        return -2;
+        return ARGUMENT_RANGE_ERROR;
     }
 
     /* Create a command to send data */
@@ -358,7 +358,7 @@ int sim5300_set_reject_incoming_call(sim5300_dev_t *sim5300_dev,
             puts("[SIM5300] Forbid incoming voice calls but enable CSD calls");
         }
 
-        return 0;
+        return SIM5300_OK;
     } else {
         puts("[SIM5300] sim5300_set_reject_incoming_call() ERROR");
 
@@ -374,12 +374,12 @@ int sim5300_get_signal_quality_report(sim5300_dev_t      *sim5300_dev,
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     } 
 
     /* NULL ptr */
     if (sim5300_csq_resp == NULL) {
-        return -2;
+        return ARGUMENT_NULL_ERROR;
     }
 
     /* Get Network Registration */
@@ -402,7 +402,7 @@ int sim5300_get_signal_quality_report(sim5300_dev_t      *sim5300_dev,
     if (res != 2) {
         puts("[SIM5300] Parse error");
 
-        return -4;
+        return PARSE_ERROR;
     }
 
     if (rssi == 0) {
@@ -420,7 +420,7 @@ int sim5300_get_signal_quality_report(sim5300_dev_t      *sim5300_dev,
     DEBUG("rssi = %i\n", sim5300_csq_resp->rssi);
     DEBUG("ber = %i\n",  sim5300_csq_resp->ber);
 
-    return 0; 
+    return SIM5300_OK; 
 }   
 
 /*---------------------------------------------------------------------------*/
@@ -431,12 +431,12 @@ int sim5300_get_operator_selection(sim5300_dev_t       *sim5300_dev,
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     } 
 
     /* NULL ptr */
     if (sim5300_cops_resp == NULL) {
-        return -2;
+        return ARGUMENT_NULL_ERROR;
     }
 
     /* Get SIM Inserted Status Reporting */
@@ -460,18 +460,18 @@ int sim5300_get_operator_selection(sim5300_dev_t       *sim5300_dev,
         /* Debug output */
         DEBUG("mode = %i\n", sim5300_cops_resp->mode);
 
-        return 0;
+        return SIM5300_OK;
     } else if (res == 3) {
         DEBUG("mode = %i\n", sim5300_cops_resp->mode);
         DEBUG("format = %i\n", sim5300_cops_resp->format);
         DEBUG("oper = %s\n", sim5300_cops_resp->oper);
         // DEBUG("act = %i\n", sim5300_cops_resp->act);
 
-        return 0;
+        return SIM5300_OK;
     } else {
         puts("[SIM5300] Parse error");
 
-        return -4;
+        return PARSE_ERROR;
     }
 }
 
@@ -484,14 +484,14 @@ int sim5300_set_state_pdp_context(sim5300_dev_t *sim5300_dev,
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     } 
     
     /* Test range argument */
     if (state > 1) {
         printf("[SIM5300] sim5300_set_sim_inserted_status_reporting() ERROR argument: %i. (range 0-1)\n", state);
 
-        return -2;
+        return ARGUMENT_RANGE_ERROR;
     }
 
     /* Create a command to send data */
@@ -514,7 +514,7 @@ int sim5300_set_state_pdp_context(sim5300_dev_t *sim5300_dev,
             puts("[SIM5300] Activated PDP context");
         }
 
-        return 0;
+        return SIM5300_OK;
     } else {
         puts("[SIM5300] sim5300_set_state_pdp_context() ERROR");
 
@@ -553,7 +553,7 @@ int sim5300_get_hni(sim5300_dev_t *sim5300_dev) {
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     } 
 
     /* Get IMSI */
@@ -576,7 +576,7 @@ int sim5300_get_gprs_service_state(sim5300_dev_t *sim5300_dev) {
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     } 
     
     /* Send AT command */
@@ -597,7 +597,7 @@ int sim5300_get_gprs_service_state(sim5300_dev_t *sim5300_dev) {
     if (res != 1) {
         puts("[SIM5300] Parse error");
 
-        return -3;
+        return PARSE_ERROR;
     }
 
     /* Print result */
@@ -618,14 +618,14 @@ int sim5300_set_gprs_service_state(sim5300_dev_t *sim5300_dev,
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     } 
     
     /* Test range argument */
     if (state > 1) {
         printf("[SIM5300] sim5300_set_gprs_service_state() ERROR argument: %i. (range 0-1)\n", state);
 
-        return -2;
+        return ARGUMENT_RANGE_ERROR;
     }
 
     /* Create a command to send data */
@@ -644,7 +644,7 @@ int sim5300_set_gprs_service_state(sim5300_dev_t *sim5300_dev,
             puts("[SIM5300] GPRS detached");
         }
 
-        return 0;
+        return SIM5300_OK;
     } else {
         puts("[SIM5300] sim5300_set_gprs_service_state() ERROR");
 
@@ -662,14 +662,14 @@ int sim5300_set_network_settings(sim5300_dev_t *sim5300_dev,
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     } 
 
     /* Test arguments */
     if ((apn == NULL) || (user == NULL) || (password == NULL)) {
         puts("Arguments = NULL");
 
-        return -2;
+        return ARGUMENT_NULL_ERROR;
     } 
 
     /* Create a command to send data */
@@ -691,7 +691,7 @@ int sim5300_set_network_settings(sim5300_dev_t *sim5300_dev,
                                                                                                   user, 
                                                                                                   password);
 
-        return 0;
+        return SIM5300_OK;
     } else {
         puts("[SIM5300] sim5300_set_network_settings() ERROR");
 
@@ -706,7 +706,7 @@ int sim5300_bring_up_wireless_connection(sim5300_dev_t *sim5300_dev) {
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     } 
 
     /* Send AT command */
@@ -717,7 +717,7 @@ int sim5300_bring_up_wireless_connection(sim5300_dev_t *sim5300_dev) {
         /* Print result */
         puts("[SIM5300] Bring up wireless connection with GPRS");
 
-        return 0;
+        return SIM5300_OK;
     } else {
         puts("[SIM5300] sim5300_bring_up_wireless_connection() ERROR");
 
@@ -733,12 +733,12 @@ int sim5300_get_local_ip_address(sim5300_dev_t        *sim5300_dev,
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
         
-        return -1;
+        return SIM5300_DEV_ERROR;
     } 
 
     /* NULL ptr */
     if (sim5300_cifsr_resp == NULL) {
-        return -2;
+        return ARGUMENT_NULL_ERROR;
     }
 
     /* Get local IP address */
@@ -762,7 +762,7 @@ int sim5300_get_local_ip_address(sim5300_dev_t        *sim5300_dev,
     if (res != 4) {
         puts("[SIM5300] Parse error");
 
-        return -4;
+        return PARSE_ERROR;
     }
 
     /* Print result */
@@ -771,7 +771,7 @@ int sim5300_get_local_ip_address(sim5300_dev_t        *sim5300_dev,
                                                         sim5300_cifsr_resp->local_ip_address[2],
                                                         sim5300_cifsr_resp->local_ip_address[3]);
 
-    return 0;    
+    return SIM5300_OK;    
 }
 
 /*---------------------------------------------------------------------------*/
@@ -782,14 +782,14 @@ int sim5300_start_up_multi_ip_connection(sim5300_dev_t *sim5300_dev,
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     } 
     
     /* Test range argument */
     if (n > 1) {
         printf("[SIM5300] sim5300_start_up_multi_ip_connection() ERROR argument: %i. (range 0-1)\n", n);
 
-        return -2;
+        return ARGUMENT_RANGE_ERROR;
     }
 
     /* Create a command to send data */
@@ -808,7 +808,7 @@ int sim5300_start_up_multi_ip_connection(sim5300_dev_t *sim5300_dev,
             puts("[SIM5300] Set multi-IP connection");
         }
 
-        return 0;
+        return SIM5300_OK;
     } else {
         puts("[SIM5300] sim5300_start_up_multi_ip_connection() ERROR");
 
@@ -825,21 +825,21 @@ int sim5300_close_up_multi_ip_connection(sim5300_dev_t *sim5300_dev,
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     } 
     
     /* Test id range argument*/
     if (id > 7) {
         printf("[SIM5300] sim5300_close_up_multi_ip_connection() ERROR argument id: %i. (range 0-7)\n", id);
 
-        return -2;
+        return ARGUMENT_RANGE_ERROR;
     }
 
     /* Test n range argument */
     if (n > 1) {
         printf("[SIM5300] sim5300_close_up_multi_ip_connection() ERROR argument: %i. (range 0-1)\n", n);
 
-        return -3;
+        return ARGUMENT_RANGE_ERROR;
     }
 
     /* Create a command to send data */
@@ -866,7 +866,7 @@ int sim5300_close_up_multi_ip_connection(sim5300_dev_t *sim5300_dev,
         return -5;
     }
 
-    return 0;
+    return SIM5300_OK;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -882,17 +882,17 @@ int sim5300_ping_request(sim5300_dev_t          *sim5300_dev,
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     }   
 
     /* NULL ptr */
     if (sim5300_cipping_resp == NULL) {
-        return -2;
+        return ARGUMENT_NULL_ERROR;
     }
 
     /* NULL ptr */
     if (address == NULL) {
-        return -3;
+        return ARGUMENT_NULL_ERROR;
     } 
 
     /* Calculation of the number of arguments */
@@ -989,7 +989,7 @@ int sim5300_ping_request(sim5300_dev_t          *sim5300_dev,
         }
     } while (res >= 0);
 
-    return 0;
+    return SIM5300_OK;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1003,14 +1003,14 @@ int sim5300_multi_ip_up_single_connection(sim5300_dev_t *sim5300_dev,
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     }   
 
     /* Test n */
     if (n > 7) {
         printf("[SIM5300] sim5300_multi_ip_up_single_connection() ERROR argument n: %i. (range 0-7)\n", n);
 
-        return -2;
+        return ARGUMENT_RANGE_ERROR;
     }
 
     /* Test mode */
@@ -1024,21 +1024,21 @@ int sim5300_multi_ip_up_single_connection(sim5300_dev_t *sim5300_dev,
     } else {
         puts("mode = NULL");
 
-        return -4;
+        return ARGUMENT_NULL_ERROR;
     }
 
     /* Test address */
     if (address == NULL) {
         puts("address = NULL");
 
-        return -5;
+        return ARGUMENT_NULL_ERROR;
     }  
 
     /* Test port */
     if (port == NULL) {
         puts("port = NULL");
 
-        return -6;
+        return ARGUMENT_NULL_ERROR;
     }  
 
     /* Create a command to send data */
@@ -1098,7 +1098,7 @@ int sim5300_multi_ip_up_single_connection(sim5300_dev_t *sim5300_dev,
 
     printf("[SIM5300] Start %s connect %i to %s:%s\n", mode, n, address, port);
 
-    return 0;
+    return SIM5300_OK;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1112,28 +1112,28 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     }  
 
     /* Test mode */
     if (mode > 4 || mode == 0) {
         printf("[SIM5300] sim5300_receive_data_through_multi_ip_connection() ERROR argument mode: %i. (range 1-4)\n", mode);
 
-        return -2;
+        return ARGUMENT_RANGE_ERROR;
     }   
 
     /* Test n */
     if (n > 7) {
         printf("[SIM5300] sim5300_receive_data_through_multi_ip_connection() ERROR argument n: %i. (range 0-7)\n", n);
 
-        return -3;
+        return ARGUMENT_RANGE_ERROR;
     }   
 
     /* Test data_for_receive on NULL ptr */
     if ((data_for_receive == NULL) && (mode != 1)) {
         puts("data_for_receive = NULL");
 
-        return -4;
+        return ARGUMENT_NULL_ERROR;
     } 
 
     int res;
@@ -1152,11 +1152,11 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
                 return -5;
             }
 
-            return 0;
+            return SIM5300_OK;
         case 2:
             /* Check on min len on read */
             if (data_size == 0) {
-                return 0;
+                return SIM5300_OK;
             }
 
             /* Check on max len on read */
@@ -1193,12 +1193,12 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
             if (res != 3) {
                 printf("[SIM5300] Parse error: %i\n", res);
 
-                return -9;
+                return PARSE_ERROR;
             }
 
             /* Check on min len on read */
             if (data_size == 0) {
-                return 0;
+                return SIM5300_OK;
             }
 
             /* Calculate receive_length */
@@ -1293,25 +1293,25 @@ int sim5300_send_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     }     
 
     /* Test n */
     if (n > 7) {
         printf("[SIM5300] sim5300_send_data_through_multi_ip_connection() ERROR argument n: %i. (range 0-7)\n", n);
 
-        return -2;
+        return ARGUMENT_RANGE_ERROR;
     }  
 
     /* Test data_for_send on NULL ptr */
     if (data_for_send == NULL) {
         puts("data_for_send = NULL");
-        return -3;
+        return ARGUMENT_NULL_ERROR;
     }  
 
     /* Check data_size */
     if (data_size == 0) {
-        return 0;
+        return SIM5300_OK;
     }
 
     /* CMD with lenth data for send (AT+CIPSEND=n,data_size) */
@@ -1535,7 +1535,7 @@ int sim5300_get_internet_settings_from_base(sim5300_dev_t               *sim5300
             return -1;   
             break;
     } 
-    return 0;
+    return SIM5300_OK;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1547,30 +1547,31 @@ int sim5300_start_internet(sim5300_dev_t               *sim5300_dev,
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     }     
 
     int res;
 
     /* Disabled showing an unsolicited event code */
     res = sim5300_set_sim_inserted_status_reporting(sim5300_dev, 0);
-    if (res != 0) {
-        return -2;
+    if (res != SIM5300_OK) {
+        return res;
     }
 
     /* Is SIM card inserted? */
     sim5300_csmins_resp_t sim5300_csmins_resp;
     res = sim5300_get_sim_inserted_status_reporting(sim5300_dev, &sim5300_csmins_resp);
-    if (res != 0) {
-        return -3;
+    if (res != SIM5300_OK) {
+        return res;
     }
     if (sim5300_csmins_resp.sim_inserted != 1) {
         return -4;
     }
 
     /* Is there a PIN code? */
-    if (sim5300_get_pin_status(sim5300_dev) != READY) {
-        return -5;
+    res = sim5300_get_pin_status(sim5300_dev);
+    if (res != READY) {
+        return res;
     }
 
     /* Have you registered in the cellular network? */
@@ -1586,7 +1587,7 @@ int sim5300_start_internet(sim5300_dev_t               *sim5300_dev,
         }
 
         res = sim5300_get_network_registration(sim5300_dev, &sim5300_creg_resp);
-        if (res == 0) {
+        if (res == SIM5300_OK) {
             if (sim5300_creg_resp.stat == 1) {
                 break;
             }
@@ -1599,22 +1600,22 @@ int sim5300_start_internet(sim5300_dev_t               *sim5300_dev,
 
     /* Reject Incoming Call */
     res = sim5300_set_reject_incoming_call(sim5300_dev, 1);
-    if (res != 0) {
-        return -7;
+    if (res != SIM5300_OK) {
+        return res;
     }
 
     /* Start up multi-IP connection */
     res = sim5300_start_up_multi_ip_connection(sim5300_dev, 1);
-    if (res != 0) {
-        return -8;
+    if (res != SIM5300_OK) {
+        return res;
     }
 
     /* Attach to the network */
     int8_t gprs_state = sim5300_get_gprs_service_state(sim5300_dev);
     if (gprs_state == 0) {
         res = sim5300_set_gprs_service_state(sim5300_dev, 1);
-        if (res != 0) {
-            return -9;
+        if (res != SIM5300_OK) {
+            return res;
         }
     } else if (gprs_state != 1) {
         return -10;
@@ -1622,8 +1623,10 @@ int sim5300_start_internet(sim5300_dev_t               *sim5300_dev,
 
     /* Get data from network manually for multi IP connection */
     res = sim5300_receive_data_through_multi_ip_connection(sim5300_dev, 1, 1, NULL, 0);
-    if(res != 0) {
+    if(res != SIM5300_OK) {
         puts("[SIM5300] Set get data from network manually for multi IP connection ERROR");
+
+        return res;
     } 
 
     /* Have internet settings? */
@@ -1633,8 +1636,8 @@ int sim5300_start_internet(sim5300_dev_t               *sim5300_dev,
                                            sim5300_internet_settings->apn, 
                                            sim5300_internet_settings->username, 
                                            sim5300_internet_settings->password);
-        if (res != 0) {
-            return -11;
+        if (res != SIM5300_OK) {
+            return res;
         }
     } else {
         /* Get internet settings from base */
@@ -1642,8 +1645,8 @@ int sim5300_start_internet(sim5300_dev_t               *sim5300_dev,
         res = sim5300_get_internet_settings_from_base(sim5300_dev,
                                                       sim5300_get_hni(sim5300_dev),
                                                       &sim5300_get_internet_settings);
-        if (res != 0) {
-            return -12;
+        if (res != SIM5300_OK) {
+            return res;
         }
 
         /* Start Task and Set APN, USER NAME, PASSWORD */
@@ -1651,22 +1654,22 @@ int sim5300_start_internet(sim5300_dev_t               *sim5300_dev,
                                            sim5300_get_internet_settings.apn, 
                                            sim5300_get_internet_settings.username, 
                                            sim5300_get_internet_settings.password);
-        if (res != 0) {
-            return -13;
+        if (res != SIM5300_OK) {
+            return res;
         }
     }
 
     /* Bring Up Wireless Connection with GPRS */
     res = sim5300_bring_up_wireless_connection(sim5300_dev);
-    if (res != 0) {
-        return -14;
+    if (res != SIM5300_OK) {
+        return res;
     }
 
     /* Get local IP address */
     sim5300_cifsr_resp_t sim5300_cifsr_resp;
     res = sim5300_get_local_ip_address(sim5300_dev, &sim5300_cifsr_resp);
-    if (res != 0) {
-        return -15;
+    if (res != SIM5300_OK) {
+        return res;
     }
 
     /* Check local address */
@@ -1703,7 +1706,7 @@ int sim5300_start_internet(sim5300_dev_t               *sim5300_dev,
     //     return false;
     // }
 
-    return 0;
+    return SIM5300_OK;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1713,7 +1716,7 @@ int sim5300_socket(sim5300_dev_t *sim5300_dev) {
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     }   
 
     /* Search free socket */
@@ -1740,48 +1743,48 @@ int sim5300_connect(sim5300_dev_t *sim5300_dev,
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     }   
 
     /* Test sockfd */
     if (sockfd > 7) {
         printf("[SIM5300] sim5300_connect() ERROR argument sockfd: %i. (range 0-7)\n", sockfd);
 
-        return -2;
+        return ARGUMENT_RANGE_ERROR;
     }
 
     /* Test NULL address */
     if (address == NULL) {
         puts("address = NULL");
 
-        return -3;
+        return ARGUMENT_NULL_ERROR;
     }   
 
     /* Test NULL port */
     if (port == NULL) {
         puts("port = NULL");
 
-        return -4;
+        return ARGUMENT_NULL_ERROR;
     }   
 
     /* Test NULL type */
     if (type == NULL) {
         puts("type = NULL");
 
-        return -5;
+        return ARGUMENT_NULL_ERROR;
     }   
 
     int res;
 
     /* Start up multi-IP TCP or UDP connection */
     res = sim5300_multi_ip_up_single_connection(sim5300_dev, sockfd, type, address, port);
-    if (!(res >= 0)) {
+    if (res < 0) {
         printf("[SIM5300] Error start connection: %i\n", res);
 
-        return -6;
+        return res;
     }
 
-    return 0;
+    return SIM5300_OK;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1794,21 +1797,21 @@ int sim5300_send(sim5300_dev_t *sim5300_dev,
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     }   
 
     /* Test sockfd */
     if (sockfd > 7) {
         printf("[SIM5300] sim5300_send() ERROR argument sockfd: %i. (range 0-7)\n", sockfd);
 
-        return -2;
+        return ARGUMENT_RANGE_ERROR;
     } 
 
     /* Test NULL buffer */
     if (buffer == NULL) {
         puts("buffer = NULL");
 
-        return -3;
+        return ARGUMENT_NULL_ERROR;
     }
  
     return sim5300_send_data_through_multi_ip_connection(sim5300_dev, sockfd, buffer, buffer_len);
@@ -1824,21 +1827,21 @@ int sim5300_receive(sim5300_dev_t *sim5300_dev,
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     }   
 
     /* Test sockfd */
     if (sockfd > 7) {
         printf("[SIM5300] sim5300_send() ERROR argument sockfd: %i. (range 0-7)\n", sockfd);
 
-        return -2;
+        return ARGUMENT_RANGE_ERROR;
     } 
 
     /* Test NULL buffer */
     if (buffer == NULL) {
         puts("buffer = NULL");
 
-        return -3;
+        return ARGUMENT_NULL_ERROR;
     }   
 
     return sim5300_receive_data_through_multi_ip_connection(sim5300_dev, 2, sockfd, buffer, buffer_len);
@@ -1852,33 +1855,33 @@ int sim5300_close(sim5300_dev_t *sim5300_dev,
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     }   
 
     /* Test sockfd */
     if (sockfd > 7) {
         printf("[SIM5300] sim5300_close() ERROR argument sockfd: %i. (range 0-7)\n", sockfd);
 
-        return -2;
+        return ARGUMENT_RANGE_ERROR;
     }
 
     int res; 
     
     /* Close socket */
     res = sim5300_close_up_multi_ip_connection(sim5300_dev, 
-                                             sockfd,  
-                                             0);
+                                               sockfd,  
+                                               0);
 
-    if(res != 0) {
+    if(res != SIM5300_OK) {
         printf("[SIM5300] Error close socket %i\n", sockfd); 
 
-        return -3;
+        return res;
     }
 
     /* Free the socket */
     sim5300_dev->socketfd[sockfd] = false;
 
-    return 0;
+    return SIM5300_OK;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1888,7 +1891,7 @@ int sim5300_communication_test(sim5300_dev_t *sim5300_dev) {
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     }     
 
     int res; 
@@ -1896,10 +1899,10 @@ int sim5300_communication_test(sim5300_dev_t *sim5300_dev) {
     /* SIM5300 connection */
     for(int i = 0; i < 5; i++) {
         res = sim5300_send_at(sim5300_dev);
-        if (res == 0) {
+        if (res == SIM5300_OK) {
             puts("[SIM5300] Connection OK");
 
-            return 0;
+            return SIM5300_OK;
         }
         if (i == 4) {
             puts("[SIM5300] Not answering");
@@ -1927,7 +1930,7 @@ int sim5300_init(sim5300_dev_t *sim5300_dev,
     if (sim5300_dev == NULL) {
         puts("sim5300_dev = NULL");
 
-        return -1;
+        return SIM5300_DEV_ERROR;
     } 
 
     int res;
@@ -1944,16 +1947,18 @@ int sim5300_init(sim5300_dev_t *sim5300_dev,
 
     /* Initialization of UART */
     res = at_dev_init(&sim5300_dev->at_dev, uart, baudrate, buf, bufsize);
-    if (res != 0) {
-        printf("[SIM5300] Init ERROR: %i\n", res);
+    if (res != SIM5300_OK) {
+        DEBUG("[SIM5300] at_dev_init() ERROR: %i\n", res);
 
-        return -2;
+        return res;
     }
     
     /* SIM5300 connection */
     res = sim5300_communication_test(sim5300_dev);
-    if(res != 0) {
-        return -3;
+    if(res != SIM5300_OK) {
+        DEBUG("[SIM5300] sim5300_communication_test() ERROR: %i\n", res);
+
+        return res;
         // if(!iridium_find_baudrate(sim5300_dev)) {
         //     return false;
         // }
@@ -1961,7 +1966,7 @@ int sim5300_init(sim5300_dev_t *sim5300_dev,
 
     puts("[SIM5300] Init OK");
 
-    return 0;   
+    return SIM5300_OK;   
 }
 
 /*---------------------------------------------------------------------------*/

@@ -43,6 +43,24 @@ extern "C" {
 #define RECEIVE_MAX_LEN (1024) // 1460 /**< Max requested number of data bytes (1-1460 bytes) to be read */
 
 /**
+ * @brief SIM5300 ERRORS
+ */
+enum sim5300_error {
+    SIM5300_OK                   =  0,     /*  */
+    SIM5300_DEV_ERROR            = -1,     /* sim5300_dev == NULL */
+    ARGUMENT_NULL_ERROR          = -2,     /*  */
+    ARGUMENT_RANGE_ERROR         = -3,     /*  */
+    PARSE_ERROR                  = -4,     /*  */
+    // _ERROR                       = -5,     /*  */
+    // _ERROR                       = -6,     /*  */
+    // _ERROR                       = -7,     /*  */
+    // _ERROR                       = -8,     /*  */
+    // _ERROR                       = -9,     /*  */
+    // _ERROR                       = -0,     /*  */
+
+};
+
+/**
  * @brief SIM5300 device structure
  */
 typedef struct {

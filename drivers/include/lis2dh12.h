@@ -111,8 +111,8 @@ typedef struct {
  */
 typedef struct {
     lis2dh12_params_t params;                           /**<Device initialization parameters */
-    bool              use_temp;                         /**< Use temperature measurement? */
-    uint16_t          comp;                             /**< scale compensation factor */
+    // bool              use_temp;                         /**< Use temperature measurement? */
+    // uint16_t          comp;                             /**< scale compensation factor */
 } lis2dh12_t;
 
 /**

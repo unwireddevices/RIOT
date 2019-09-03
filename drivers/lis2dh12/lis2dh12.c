@@ -133,7 +133,7 @@ static int _write(const lis2dh12_t *dev, uint8_t reg, uint8_t *data, uint16_t le
         reg |= I2C_AUTO_INCREMENT;
     }
 
-    DEBUG("LIS2DH12 [REG %02X]: -> %02Xh ", (reg & 0x7F), reg);
+    DEBUG("LIS2DH12 [REG %02X]: -> ", (reg & 0x7F));
     PRINTBUFF(data, length);
 
     /* Acquire exclusive access to the bus. */
@@ -145,9 +145,6 @@ static int _write(const lis2dh12_t *dev, uint8_t reg, uint8_t *data, uint16_t le
     return status;
 }
 
-#define BOOT_DELAY_MS       10          /**< Number of milliseconds delay 
-                                        to allow the LIS2DH12 to boot after init/reset. 
-                                        5 ms according to datasheet. */
 #define POWER_ON_DELAY_MS   110
 
 static void _lis2dh12_delay_ms(uint32_t millis)
@@ -269,44 +266,43 @@ int lis2dh12_init(lis2dh12_t *dev, const lis2dh12_params_t *params)
     i2c_release(dev->params.i2c_dev);
 
     /* Sensor availability check */
+    DEBUG("Sensor availability check\n");
     if (_lis2dh12_read_reg(dev, LIS2DH12_WHO_AM_I, &dev_id, 1) < 0) {
         LOG_ERROR("[LIS2DH12] Sensor is not available\n");
         return -LIS2DH12_ERROR_I2C;
     }
 
     /* Checking the value of the "Who am I" register */
+    DEBUG("Checking the value of the \"Who am I\" register\n");
     if (dev_id != LIS2DH12_WHO_AM_I_RESPONSE) {
         /* the chip responded incorrectly */
         LOG_ERROR("[LIS2DH12] Error reading the identifier register\n");
         return -LIS2DH12_ERROR_NO_DEV;
     }
 
-    /* Reboot memory contents */
-    reg_val = LIS2DH12_CTRL_REG5_BOOT_MASK;
-    if (_lis2dh12_write_reg(dev, LIS2DH12_CTRL_REG5, &reg_val, 1) < 0) {
-        return -LIS2DH12_ERROR_I2C;
-    }
-    _lis2dh12_delay_ms(BOOT_DELAY_MS);
-
     /* Explicitly set the LIS2DH12 in power-down mode */
+    DEBUG("Explicitly set the LIS2DH12 in power-down mode\n");
     reg_val = LIS2DH12_CTRL_REG1_LPEN_MASK;
     if (_lis2dh12_write_reg(dev, LIS2DH12_CTRL_REG1, &reg_val, 1) < 0) {
         return -LIS2DH12_ERROR_I2C;
     }
 
     /* Clear any interrupts */
+    DEBUG("Clear any interrupts\n");
     uint8_t dummy;
     if (_lis2dh12_read_reg(dev, LIS2DH12_REG_INT1_SRC, &dummy, 1) < 0) {
         return -LIS2DH12_ERROR_I2C;
     }
 
     /* Disable Pull-Up */
+    DEBUG("Disable Pull-Up\n");
     reg_val = (LIS2DH12_CTRL_REG0_SDO_PU_DISC_MASK | LIS2DH12_CTRL_REG0_CORRECT_OPER_MASK);
     if (_lis2dh12_write_reg(dev, LIS2DH12_CTRL_REG0, &reg_val, 1) < 0) {
         return -LIS2DH12_ERROR_I2C;
     }
 
     /* Enable all axis */
+    DEBUG("Enable all axis\n");
     reg_val = 0x00;
     if (_lis2dh12_read_reg(dev, LIS2DH12_CTRL_REG1, &reg_val, 1) < 0) {
         return -LIS2DH12_ERROR_I2C;
@@ -356,20 +352,16 @@ int lis2dh12_init(lis2dh12_t *dev, const lis2dh12_params_t *params)
     /* Enable temperature sensor */
     DEBUG("Enable temperature sensor\n");
     reg_val = 0x00;
-    if (dev->use_temp == true) {
-        /* Required in order to use */
-        if (_lis2dh12_read_reg(dev, LIS2DH12_CTRL_REG4, &reg_val, 1) < 0) {
-            return -LIS2DH12_ERROR_I2C;
-        }
-        reg_val |= LIS2DH12_CTRL_REG4_BDU_MASK;
-        if (_lis2dh12_write_reg(dev, LIS2DH12_CTRL_REG4, &reg_val, 1) < 0) {
-            return -LIS2DH12_ERROR_I2C;
-        }
-        reg_val = 0x00;
-        reg_val = (LIS2DH12_TEMP_CFG_REG_TEMP_EN_MASK);
-    } else {
-        reg_val &= ~(LIS2DH12_TEMP_CFG_REG_TEMP_EN_MASK);
+    /* Required in order to use */
+    if (_lis2dh12_read_reg(dev, LIS2DH12_CTRL_REG4, &reg_val, 1) < 0) {
+        return -LIS2DH12_ERROR_I2C;
     }
+    reg_val |= LIS2DH12_CTRL_REG4_BDU_MASK;
+    if (_lis2dh12_write_reg(dev, LIS2DH12_CTRL_REG4, &reg_val, 1) < 0) {
+        return -LIS2DH12_ERROR_I2C;
+    }
+    reg_val = 0x00;
+    reg_val = (LIS2DH12_TEMP_CFG_REG_TEMP_EN_MASK);
     if (_lis2dh12_write_reg(dev, LIS2DH12_TEMP_CFG_REG, &reg_val, 1) < 0) {
         return -LIS2DH12_ERROR_I2C;
     }
@@ -407,7 +399,7 @@ int lis2dh12_init(lis2dh12_t *dev, const lis2dh12_params_t *params)
     }
 
     /* Set Output Data Rate POWER_DOWN*/
-    DEBUG("Set Output Data Rate (POWER_DOWN)\n");
+    DEBUG("Set Output Data Rate (POWER_DOWN) [%d]\n", LIS2DH12_RATE_POWER_DOWN);
     reg_val = 0x00;
     dev->params.rate = LIS2DH12_RATE_POWER_DOWN;
     if (_lis2dh12_read_reg(dev, LIS2DH12_CTRL_REG1, &reg_val, 1) < 0) {
@@ -484,16 +476,18 @@ int lis2dh12_read_temp(lis2dh12_t *dev, int16_t *temperature_degC)
             if (_lis2dh12_read_reg(dev, LIS2DH12_OUT_TEMP_L, temp_raw, 2) < 0) {
                 return -LIS2DH12_ERROR_I2C;;
             }
+            DEBUG("Temperature: %04Xh\n", ((((int16_t)temp_raw[0]) << 8) | temp_raw[1]));
             *temperature_degC = _lis2dh12_calculation_temperature(dev, ((((int16_t)temp_raw[0]) << 8) | temp_raw[1]));
             DEBUG("Temperature [degC]: %d\n", *temperature_degC);
         }
         /* Checking the overflow bit */
-        if (_lis2dh12_read_reg(dev, LIS2DH12_STATUS_REG, &temp_data_ovr, 1) < 0) { 
+        if (_lis2dh12_read_reg(dev, LIS2DH12_STATUS_REG_AUX, &temp_data_ovr, 1) < 0) { 
             return -LIS2DH12_ERROR_I2C;
         }
         /* Required to clean the overflow bit */
         if ((temp_data_ovr & LIS2DH12_STATUS_REG_AUX_TDO_MASK) == LIS2DH12_STATUS_REG_AUX_TDO_MASK) {
             uint8_t dummy[2] = {0x00};
+            DEBUG("Temperature register status overflow\n");
             if (_lis2dh12_read_reg(dev, LIS2DH12_OUT_TEMP_L, dummy, 2) < 0) {
                 return -LIS2DH12_ERROR_I2C;;
             }
@@ -569,7 +563,7 @@ int lis2dh12_power_on(lis2dh12_t *dev, lis2dh12_scale_t scale, lis2dh12_rate_t r
     }
 
     /* Set Output Data Rate */
-    DEBUG("Set Output Data Rate\n");
+    DEBUG("Set Output Data Rate [%d]\n", dev->params.rate);
     reg_val = 0x00;
     if (_lis2dh12_read_reg(dev, LIS2DH12_CTRL_REG1, &reg_val, 1) < 0) {
         return -LIS2DH12_ERROR_I2C;

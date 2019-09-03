@@ -47,8 +47,13 @@
 #include "rtctimers-millis.h"
 
 
-#define ENABLE_DEBUG (1)
+#define ENABLE_DEBUG        (0)
+#define ENABLE_DEBUG_DATA   (1)
 #include "debug.h"
+
+// #if (ENABLE_DEBUG == 1)
+//     #define ENABLE_DEBUG_DATA (1)
+// #endif
 
 #define SIM5300_MAX_TIMEOUT         (1000000)   /* Maximum time waiting for a response */ 
 // #define TIME_ON_CHANGE_BAUDRATE (100)       /* Time on change baudrate */
@@ -1156,11 +1161,11 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
         case 2:
             /* Check on min len on read */
             if (data_size == 0) {
-                return SIM5300_OK;
+                return 0;
             }
 
             /* Check on max len on read */
-            if (data_size > 1460) {
+            if (data_size > RECEIVE_MAX_LEN) {
                 return -6;
             }
 
@@ -1198,7 +1203,7 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
 
             /* Check on min len on read */
             if (data_size == 0) {
-                return SIM5300_OK;
+                return 0;
             }
 
             /* Calculate receive_length */
@@ -1217,26 +1222,6 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
 
             /* Saving the number of bytes received */
             receive_length = res;
-
-            // if ((uint32_t)res != receive_length) {
-            //     return -10;
-            // }
-
-            // if ((uint32_t)req_length <= data_size) {
-            //     res = at_recv_bytes(&sim5300_dev->at_dev, (char*)data_for_receive, req_length, SIM5300_MAX_TIMEOUT);
-            //     if (res != req_length) {
-            //         puts("1");
-
-            //         return -10;
-            //     }
-            // } else {
-            //     res = at_recv_bytes(&sim5300_dev->at_dev, (char*)data_for_receive, data_size, SIM5300_MAX_TIMEOUT);
-            //     if ((uint32_t)res != data_size) {
-            //         puts("2");
-
-            //         return -10;
-            //     }
-            // }
 
             /* TODO: Uncomment */
             // /* Read empty string */ 
@@ -1261,7 +1246,7 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
             //     return -12;
             // }
 
-#if ENABLE_DEBUG == 1
+#if ENABLE_DEBUG_DATA == 1
             /* Debug data */
             printf("[SIM5300] Received %i byte:\n", receive_length);
             od_hex_dump(data_for_receive, receive_length, OD_WIDTH_DEFAULT);
@@ -1351,7 +1336,7 @@ int sim5300_send_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
             return -5;
         }
 
-#if ENABLE_DEBUG == 1
+#if ENABLE_DEBUG_DATA == 1
     /* Debug data */
     printf("[SIM5300] Sent %i byte:\n", data_size);
     od_hex_dump(data_for_send, data_size, OD_WIDTH_DEFAULT);

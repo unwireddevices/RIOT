@@ -40,7 +40,7 @@
 extern "C" {
 #endif
 
-#define RECEIVE_MAX_LEN (1024) // 1460 /**< Max requested number of data bytes (1-1460 bytes) to be read */
+#define RECEIVE_MAX_LEN (1460) // 1460 /**< Max requested number of data bytes (1-1460 bytes) to be read */
 
 /**
  * @brief SIM5300 ERRORS

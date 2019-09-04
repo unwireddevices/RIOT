@@ -57,6 +57,9 @@ PSEUDOMODULES += esp_spiffs
 
 USEMODULE += esp
 USEMODULE += mtd
+USEMODULE += newlib
+USEMODULE += newlib_nano
+USEMODULE += newlib_syscalls_default
 USEMODULE += periph
 USEMODULE += periph_common
 USEMODULE += ps

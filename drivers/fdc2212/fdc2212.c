@@ -10,6 +10,9 @@
  * @ingroup     drivers_fdc2212
  * @brief       Device Driver for TI FDC2212 digital capacitor sensor
  * @author      Alexander Ugorelov <info@unwds.com>
+ * 
+ * @todo        Works with only one channel number 0
+ * 
  * @file
  */
 
@@ -17,14 +20,16 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "log.h"
-#include "lptimer.h"
-
-#include "fdc2212_regs.h"
 #include "fdc2212.h"
+#include "fdc2212_regs.h"
+
+#include "lptimer.h"
+#include "byteorder.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
+
+#include "log.h"
 
 
 /**
@@ -39,8 +44,22 @@
     }
 
 #define DEBUG_DEV(f, d, ...) \
-    DEBUG("[fdc2212] %s dev=%d addr=%02x: " f "\n", \
-          __func__, d->params.i2c_dev, d->params.i2c_addr, ## __VA_ARGS__)
+    DEBUG("[fdc2212] dev=%d addr=%02X: " f "\n", \
+          d->params.i2c_dev, d->params.i2c_addr, ## __VA_ARGS__)
+
+/** @brief Get Most Significant Byte
+  * @param  val: number where MSB must be extracted
+  * 
+  * @return MSB
+  */ 
+#define GET_MSB(val)            ((uint8_t) ((val & 0xFF00 )>>8)) 
+
+/** @brief Get Least Significant Byte
+  * @param  val: number where LSB must be extracted
+  * 
+  * @return LSB
+  */ 
+#define GET_LSB(val)            ((uint8_t) (val & 0x00FF )) 
 
 /**
  * forward declaration of functions for internal use only
@@ -62,6 +81,15 @@ int fdc2212_init(fdc2212_t *dev, const fdc2212_params_t *params)
 
     int res = FDC2212_OK;
 
+    /* Acquire exclusive access to the bus. */
+    i2c_acquire(dev->params.i2c_dev);
+
+    /* Initialize I2C interface */
+    i2c_init(dev->params.i2c_dev);
+
+    /* Release the bus for other threads. */
+    i2c_release(dev->params.i2c_dev);
+
     if (dev->params.shutdown_pin != GPIO_UNDEF && 
         gpio_init(dev->params.shutdown_pin, GPIO_OUT) == 0) {
         DEBUG_DEV("Shutdown pin configured", dev);
@@ -74,74 +102,101 @@ int fdc2212_init(fdc2212_t *dev, const fdc2212_params_t *params)
         lptimer_usleep(2000);
     }
 
-    /* check whether sensor is available including the check of the device id */
+    /* Check whether sensor is available including the check of the device id */
+    DEBUG("Is sensor available?\n");
     if ((res = _is_available(dev)) != FDC2212_OK) {
         return res;
     }
 
-    /* doing a software reset first */
-    uint16_t sw_reset = 0x00;
+    /* Doing a software reset first */
+    DEBUG("Doing a software reset first.\n");
+    uint16_t sw_reset = 0;
     if (_reg_read(dev, FDC2212_REG_RESET_DEV, (uint8_t *)&sw_reset, 2) != FDC2212_OK) {
         DEBUG_DEV("couldn't read the register FDC2212_REG_RESET_DEV", dev);
         return -FDC2212_ERROR_I2C;
     }
+    byteorder_swap((void *)&sw_reset, sizeof(sw_reset));
+
     sw_reset |= FDC2212_REG_RESET_DEV_MASK;
+    byteorder_swap((void *)&sw_reset, sizeof(sw_reset));
     if (_reg_write(dev, FDC2212_REG_RESET_DEV, (uint8_t *)&sw_reset, 2) != FDC2212_OK) {
         DEBUG_DEV("couldn't write the command of a software reset in register FDC2212_REG_RESET_DEV", dev);
         return -FDC2212_ERROR_I2C;
     }
 
+    /* Delayed completion of software reset */
+    lptimer_usleep(2000);
+
     /* Entering sleep mode */
+    DEBUG("Entering sleep mode.\n");
     uint16_t sleep = 0x00;
     if (_reg_read(dev, FDC2212_REG_CONFIG, (uint8_t *)&sleep, 2) != FDC2212_OK) {
         DEBUG_DEV("couldn't read the register FDC2212_REG_CONFIG", dev);
         return -FDC2212_ERROR_I2C;
     }
+    byteorder_swap((void *)&sleep, sizeof(sleep));
+
     sleep |= FDC2212_REG_CONFIG_SLEEP_MODE_EN_MASK;
+    byteorder_swap((void *)&sleep, sizeof(sleep));
+
     if (_reg_write(dev, FDC2212_REG_CONFIG, (uint8_t *)&sleep, 2) != FDC2212_OK) {
         DEBUG_DEV("couldn't write the command of a sleeping mode in register FDC2212_REG_CONFIG", dev);
         return -FDC2212_ERROR_I2C;
     }
 
     /* Setting the clocking */
-    for (uint8_t i = 0; i < FDC2212_CHANNELS; i++) {
+    DEBUG("Setting the clocking.\n");
+    for (uint8_t i = 0; i < FDC2212_NUM_OF_CHANNELS; i++) {
         /* Setting Reference Count */
+        DEBUG("Setting Reference Count CH%d is %d (%04Xh)\n", i, dev->ref_count[i], dev->ref_count[i]);
         if (dev->ref_count[i] < 0x0100) {
             DEBUG_DEV("invalid setting for RCOUNT for channel %d", dev, i);
             return -FDC2212_ERROR_SETTING_INV;
         }
-        if (_reg_write(dev, FDC2212_REG_CONFIG + i, (uint8_t *)&dev->ref_count[i], 2) != FDC2212_OK) {
+
+        byteorder_swap((void *)&dev->ref_count[i], sizeof(dev->ref_count[i]));
+        if (_reg_write(dev, FDC2212_REG_RCOUNT_CH0 + i, (uint8_t *)&dev->ref_count[i], 2) != FDC2212_OK) {
             DEBUG_DEV("couldn't write the setting for RCOUNT in register FDC2212_REG_RCOUNT_CH%d", dev, i);
             return -FDC2212_ERROR_I2C;
         }
+
         /* Setting Settle Count */
+        DEBUG("Setting Settle Count CH%d is %d (%04Xh)\n", i, dev->settle_count[i], dev->settle_count[i]);
+        byteorder_swap((void *)&dev->settle_count[i], sizeof(dev->settle_count[i]));
         if (_reg_write(dev, FDC2212_REG_SETTLECOUNT_CH0 + i, (uint8_t *)&dev->settle_count[i], 2) != FDC2212_OK) {
             DEBUG_DEV("couldn't write the setting for SETTLECOUNT in register FDC2212_REG_SETTLECOUNT_CH%d",  dev, i);
             return -FDC2212_ERROR_I2C;
         }
-        /* Setting the frequency divider */
-        if (dev->freq_divider[i] == 0x0000) {
-            DEBUG_DEV("invalid setting for CH%d_FREF_DIVIDER for channel %d", dev, i, i);
-            return -FDC2212_ERROR_SETTING_INV;
-        }
-        dev->freq_divider[i] &= FDC2212_CLOCK_DIVIDERS_CH1_FREF_DIVIDER_MASK;
-        dev->freq_in_sel[i] &= 0x03;
-        uint16_t reg_dividers = ((dev->freq_in_sel[i] << FDC2212_CLOCK_DIVIDERS_CH0_FIN_SEL_SHIFT) | 
-                                 (dev->freq_divider[i] & FDC2212_CLOCK_DIVIDERS_CH0_FREF_DIVIDER_MASK));
-        if (_reg_write(dev, FDC2212_REG_CLOCK_DIVIDERS_CH0 + i, (uint8_t *)&reg_dividers, 2) != FDC2212_OK) {
-            DEBUG_DEV("couldn't write the setting for FREF_DIVIDER in register FDC2212_REG_CLOCK_DIVIDERS_CH%d", dev, i);
-            return -FDC2212_ERROR_I2C;
-        }
+        /* TODO: Needs further study */
+        // /* Setting the frequency divider */
+        // if (dev->freq_divider[i] == 0x0000) {
+        //     DEBUG_DEV("invalid setting for CH%d_FREF_DIVIDER for channel %d", dev, i, i);
+        //     return -FDC2212_ERROR_SETTING_INV;
+        // }
+
+        // dev->freq_divider[i] &= FDC2212_CLOCK_DIVIDERS_CH1_FREF_DIVIDER_MASK;
+        // dev->freq_in_sel[i] &= 0x03;
+        // uint16_t reg_dividers = ((dev->freq_in_sel[i] << FDC2212_CLOCK_DIVIDERS_CH0_FIN_SEL_SHIFT) | 
+        //                          (dev->freq_divider[i] & FDC2212_CLOCK_DIVIDERS_CH0_FREF_DIVIDER_MASK));
+        // byteorder_swap((void *)&reg_dividers, sizeof(reg_dividers));
+
+        // if (_reg_write(dev, FDC2212_REG_CLOCK_DIVIDERS_CH0 + i, (uint8_t *)&reg_dividers, 2) != FDC2212_OK) {
+        //     DEBUG_DEV("couldn't write the setting for FREF_DIVIDER in register FDC2212_REG_CLOCK_DIVIDERS_CH%d", dev, i);
+        //     return -FDC2212_ERROR_I2C;
+        // }
     }
 
     /* Select single channel measurement and configure */
+    DEBUG("Select single channel measurement and configure\n");
     uint16_t reg_config = 0x0000;
     if (_reg_read(dev, FDC2212_REG_CONFIG, (uint8_t *)&reg_config, 2) != FDC2212_OK) {
         DEBUG_DEV("couldn't read the register FDC2212_REG_CONFIG", dev);
         return -FDC2212_ERROR_I2C;
     }
+    byteorder_swap((void *)&reg_config, sizeof(reg_config));
     reg_config &= ~(FDC2212_REG_CONFIG_REF_CLK_SRC_MASK | 
-                    FDC2212_REG_CONFIG_HIGH_CURRENT_DRV_MASK);
+                    FDC2212_REG_CONFIG_HIGH_CURRENT_DRV_MASK |
+                    FDC2212_REG_CONFIG_ACTIVE_CHAN_MASK);
     
     reg_config |= (FDC2212_REG_CONFIG_SLEEP_MODE_EN_MASK | 
                    FDC2212_REG_CONFIG_SENSOR_ACTIVATE_SEL_MASK | 
@@ -150,31 +205,41 @@ int fdc2212_init(fdc2212_t *dev, const fdc2212_params_t *params)
     reg_config |= (FDC2212_REG_CONFIG_OP_MODE0_MASK |
                    FDC2212_REG_CONFIG_OP_MODE1_MASK |
                    FDC2212_REG_CONFIG_OP_MODE3_MASK);
-
+    byteorder_swap((void *)&reg_config, sizeof(reg_config));
     if (_reg_write(dev, FDC2212_REG_CONFIG, (uint8_t *)&reg_config, 2) != FDC2212_OK) {
         DEBUG_DEV("couldn't write the setting in register FDC2212_REG_CONFIG", dev);
         return -FDC2212_ERROR_I2C;
     }
+
     /* Select measurement sequence */
+    DEBUG("Select measurement sequence\n");
     uint16_t reg_mux_config = 0x0000;
-    if (_reg_read(dev, FDC2212_REG_CONFIG, (uint8_t *)&reg_mux_config, 2) != FDC2212_OK) {
+    if (_reg_read(dev, FDC2212_REG_MUX_CONFIG, (uint8_t *)&reg_mux_config, 2) != FDC2212_OK) {
         DEBUG_DEV("couldn't read the register FDC2212_REG_CONFIG", dev);
         return -FDC2212_ERROR_I2C;
     }
-    reg_config |= (FDC2212_REG_MUX_CONFIG_AUTOSCAN_EN_MASK | 
-                   FDC2212_REG_MUX_CONFIG_RR_SEQUENCE_MASK | 
-                   (FDC2212_DEGLITCH_10MHZ << FDC2212_REG_MUX_CONFIG_DEGLITCH_SHIFT));
+    byteorder_swap((void *)&reg_mux_config, sizeof(reg_mux_config));
+    reg_mux_config &= ~(FDC2212_REG_MUX_CONFIG_DEGLITCH_MASK |
+                        FDC2212_REG_MUX_CONFIG_AUTOSCAN_EN_MASK |
+                        FDC2212_REG_MUX_CONFIG_RR_SEQUENCE_MASK);
+
+    reg_mux_config |= (FDC2212_DEGLITCH_10MHZ << FDC2212_REG_MUX_CONFIG_DEGLITCH_SHIFT);
     /* Set reserve bits to 1 per datasheet */
-    reg_config |= (FDC2212_REG_MUX_CONFIG_RESERVED_MASK);
+    reg_mux_config |= (FDC2212_REG_MUX_CONFIG_RESERVED_MASK);
+    byteorder_swap((void *)&reg_mux_config, sizeof(reg_mux_config));
     if (_reg_write(dev, FDC2212_REG_MUX_CONFIG, (uint8_t *)&reg_mux_config, 2) != FDC2212_OK) {
         DEBUG_DEV("couldn't write the setting in register FDC2212_REG_MUX_CONFIG", dev);
         return -FDC2212_ERROR_I2C;
     }
 
     /* Adjust drive current for better sensitivity */
-    for (uint8_t i = 0; i < FDC2212_CHANNELS; i++) {
-        uint8_t reg_idrive = (dev->idrive[i] << FDC2212_REG_DRIVE_CURRENT_CH0_IDRIVE_SHIFT) & 
+    DEBUG("Adjust drive current for better sensitivity\n");
+    for (uint8_t i = 0; i < FDC2212_NUM_OF_CHANNELS; i++) {
+        DEBUG("Setting drive current CH%d is %d (%04Xh)\n", i, dev->idrive[i], dev->idrive[i]);
+        uint16_t reg_idrive = (dev->idrive[i] << FDC2212_REG_DRIVE_CURRENT_CH0_IDRIVE_SHIFT) & 
                              FDC2212_REG_DRIVE_CURRENT_CH0_IDRIVE_MASK;
+        byteorder_swap((void *)&reg_idrive, sizeof(reg_idrive));
+
         if (_reg_write(dev, FDC2212_REG_DRIVE_CURRENT_CH0 + i, (uint8_t *)&reg_idrive, 2) != FDC2212_OK) {
             DEBUG_DEV("couldn't write the setting in register FDC2212_REG_DRIVE_CURRENT_CH0", dev);
             return -FDC2212_ERROR_I2C;
@@ -183,12 +248,16 @@ int fdc2212_init(fdc2212_t *dev, const fdc2212_params_t *params)
 
     /* Wake up */
     /* Only change SLEEP MODE BIT */
+    DEBUG("Wake up\n");
     sleep = 0x00;
     if (_reg_read(dev, FDC2212_REG_CONFIG, (uint8_t *)&sleep, 2) != FDC2212_OK) {
         DEBUG_DEV("couldn't read the register FDC2212_REG_CONFIG", dev);
         return -FDC2212_ERROR_I2C;
     }
+    byteorder_swap((void *)&sleep, sizeof(sleep));
+
     sleep &= ~(FDC2212_REG_CONFIG_SLEEP_MODE_EN_MASK);
+    byteorder_swap((void *)&sleep, sizeof(sleep));
     if (_reg_write(dev, FDC2212_REG_CONFIG, (uint8_t *)&sleep, 2) != FDC2212_OK) {
         DEBUG_DEV("couldn't write the command of a sleeping mode in register FDC2212_REG_CONFIG", dev);
         return -FDC2212_ERROR_I2C;
@@ -201,16 +270,22 @@ int fdc2212_data_ready(const fdc2212_t *dev)
 {
     ASSERT_PARAM(dev != NULL);
 
-    uint8_t status;
+    uint16_t status;
 
     /* check status register */
-    if (_reg_read(dev, FDC2212_REG_STATUS, &status, 2) != FDC2212_OK) {
+    if (_reg_read(dev, FDC2212_REG_STATUS,  (uint8_t *)&status, 2) != FDC2212_OK) {
         DEBUG_DEV("couldn't read the register FDC2212_REG_STATUS", dev);
         return -FDC2212_ERROR_I2C;
     }
+    byteorder_swap((void *)&status, sizeof(status));
 
-    if ((status & FDC2212_REG_STATUS_DATA_RDY_MASK)) {
+    if ((status & FDC2212_REG_STATUS_DATA_RDY_MASK) == FDC2212_REG_STATUS_DATA_RDY_MASK) {
         /* new data available */
+        return FDC2212_OK;
+    }
+
+    if ((status & FDC2212_REG_STATUS_CH0_UNREADCONV_MASK) == FDC2212_REG_STATUS_CH0_UNREADCONV_MASK) {
+        /* new data available on channel 0 */
         return FDC2212_OK;
     }
 
@@ -231,6 +306,7 @@ int fdc2212_read_raw_data(const fdc2212_t *dev, uint8_t channel, uint32_t *raw_d
         DEBUG_DEV("couldn't read the register FDC2212_REG_DATA_MSB_CH%d", dev, channel);
         return -FDC2212_ERROR_I2C;
     }
+    byteorder_swap((void *)&reg_val, sizeof(reg_val));
     /* Exclude the upper 4 bits  */
     raw_data_msb = reg_val & FDC2212_REG_DATA_MSB_CH0_MASK;
 
@@ -239,6 +315,7 @@ int fdc2212_read_raw_data(const fdc2212_t *dev, uint8_t channel, uint32_t *raw_d
         DEBUG_DEV("couldn't read the register FDC2212_REG_DATA_LSB_CH%d", dev, channel);
         return -FDC2212_ERROR_I2C;
     }
+    byteorder_swap((void *)&reg_val, sizeof(reg_val));
     raw_data_lsb = reg_val;
 
     *raw_data = (((((uint32_t)raw_data_msb) << 16) | raw_data_lsb) & 0x0FFFFFFF);
@@ -252,7 +329,7 @@ int fdc2212_read_raw_data(const fdc2212_t *dev, uint8_t channel, uint32_t *raw_d
  */
 static int _reg_read(const fdc2212_t *dev, uint8_t reg, uint8_t *data, uint32_t len)
 {
-    DEBUG_DEV("read %"PRIu32" bytes from sensor registers starting at addr %02x",
+    DEBUG_DEV("read %"PRIu32" bytes from sensor registers starting at addr %02X",
               dev, len, reg);
 
     int res = FDC2212_OK;
@@ -267,17 +344,17 @@ static int _reg_read(const fdc2212_t *dev, uint8_t reg, uint8_t *data, uint32_t 
 
     if (res == FDC2212_OK) {
         if (ENABLE_DEBUG) {
-            printf("[fdc2212] %s dev=%d addr=%02x: read following bytes: ",
-                   __func__, dev->params.i2c_dev, dev->params.i2c_addr);
+            DEBUG("[fdc2212] dev=%d addr=%02X: read following bytes: ",
+                   dev->params.i2c_dev, dev->params.i2c_addr);
             for (unsigned i = 0; i < len; i++) {
-                    printf("%02x ", data[i]);
+                    printf("%02X ", data[i]);
             }
             printf("\n");
         }
     }
     else {
         DEBUG_DEV("could not read %"PRIu32" bytes from sensor registers "
-                  "starting at addr %02x, reason %i", dev, len, reg, res);
+                  "starting at addr %02X, reason %d", dev, len, reg, res);
         return -FDC2212_ERROR_I2C;
     }
 
@@ -286,16 +363,16 @@ static int _reg_read(const fdc2212_t *dev, uint8_t reg, uint8_t *data, uint32_t 
 
 static int _reg_write(const fdc2212_t *dev, uint8_t reg, uint8_t *data, uint32_t len)
 {
-    DEBUG_DEV("write %"PRIu32" bytes to sensor registers starting at addr %02x",
+    DEBUG_DEV("write %"PRIu32" bytes to sensor registers starting at addr %02X",
               dev, len, reg);
 
     int res = FDC2212_OK;
 
     if (ENABLE_DEBUG && data && len) {
-        printf("[fdc2212] %s dev=%d addr=%02x: write following bytes: ",
-               __func__, dev->params.i2c_dev, dev->params.i2c_addr);
+        DEBUG("[fdc2212] dev=%d addr=%02X: write following bytes: ",
+               dev->params.i2c_dev, dev->params.i2c_addr);
         for (unsigned i = 0; i < len; i++) {
-            printf("%02x ", data[i]);
+            printf("%02X ", data[i]);
         }
         printf("\n");
     }
@@ -310,7 +387,7 @@ static int _reg_write(const fdc2212_t *dev, uint8_t reg, uint8_t *data, uint32_t
 
     if (res != FDC2212_OK) {
         DEBUG_DEV("could not write %"PRIu32" bytes to sensor registers "
-                  "starting at addr %02x, reason %i", dev, len, reg, res);
+                  "starting at addr %02X, reason %d", dev, len, reg, res);
         return -FDC2212_ERROR_I2C;
     }
 
@@ -349,6 +426,7 @@ static int _check_error_status(const fdc2212_t *dev)
         DEBUG_DEV("could not read CCS811_REG_STATUS", dev);
         return -FDC2212_ERROR_I2C;
     }
+    byteorder_swap((void *)&status, sizeof(status));
 
     if ((status & FDC2212_REG_STATUS_ERROR) != FDC2212_REG_STATUS_ERROR ) {
         /* everything is OK */
@@ -365,14 +443,14 @@ static int _is_available(const fdc2212_t *dev)
     uint16_t reg_man_id = 0x0000;
     uint16_t reg_dev_id = 0x0000;
 
-
     if (_reg_read(dev, FDC2212_REG_MANUFACTURER_ID, (uint8_t *)&reg_man_id, 2) != FDC2212_OK) {
         DEBUG_DEV("could not read FDC2212_REG_MANUFACTURER_ID", dev);
         return -FDC2212_ERROR_I2C;
     }
+    byteorder_swap((void *)&reg_man_id, sizeof(reg_man_id));
 
     if (reg_man_id != FDC2212_MANUFACTURER_ID) {
-        DEBUG_DEV("wrong manafacture ID %04x, should be %04x",
+        DEBUG_DEV("wrong manafacture ID %04X, should be %04X",
                   dev, reg_man_id, FDC2212_MANUFACTURER_ID);
         return -FDC2212_ERROR_NO_DEV;
     }
@@ -381,15 +459,16 @@ static int _is_available(const fdc2212_t *dev)
         DEBUG_DEV("could not read FDC2212_REG_DEVICE_ID", dev);
         return -FDC2212_ERROR_I2C;
     }
+    byteorder_swap((void *)&reg_dev_id, sizeof(reg_dev_id));
 
     if (reg_dev_id != FDC2212_DEVICE_ID) {
-        DEBUG_DEV("wrong manafacture ID %04x, should be %04x",
+        DEBUG_DEV("wrong manafacture ID %04X, should be %04X",
                   dev, reg_dev_id, FDC2212_DEVICE_ID);
         return -FDC2212_ERROR_NO_DEV;
     }
 
-    DEBUG_DEV("manafactured ID:      %04x", dev, reg_man_id);
-    DEBUG_DEV("device ID:            %04x", dev, reg_dev_id);
+    DEBUG_DEV("manafactured ID:      %04X", dev, reg_man_id);
+    DEBUG_DEV("device ID:            %04X", dev, reg_dev_id);
 
     return _check_error_status(dev);
 }

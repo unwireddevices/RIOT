@@ -36,7 +36,8 @@ extern "C"
 #define FDC2212_CAP_I2C_ADDR_H                          (0x2B)
 
 /* Number of measurement channels */
-#define FDC2212_CHANNELS                                (2)
+/* TODO: Works with only one channel number 0 */
+#define FDC2212_NUM_OF_CHANNELS                         (1)
 
 /**
  * @brief   FDC2212 Sensor drive current
@@ -82,7 +83,7 @@ typedef enum {
 typedef enum {
     FDC2212_DEGLITCH_1MHZ   = 0x0001,
     FDC2212_DEGLITCH_3P3MHZ = 0x0004,
-    FDC2212_DEGLITCH_10MHZ  = 0x0004,
+    FDC2212_DEGLITCH_10MHZ  = 0x0005,
     FDC2212_DEGLITCH_33MHZ  = 0x0007,
 } fdc2212_deglitch_t;
 
@@ -114,11 +115,11 @@ typedef struct {
 typedef struct {
     fdc2212_params_t params;                        /**< device initialization parameters */
 
-    uint16_t ref_count[FDC2212_CHANNELS];           /**< */
-    uint16_t settle_count[FDC2212_CHANNELS];        /**< */
-    uint8_t  freq_in_sel[FDC2212_CHANNELS];         /**< */
-    uint16_t freq_divider[FDC2212_CHANNELS];        /**< */
-    fdc2212_idrive_t idrive[FDC2212_CHANNELS];      /**< */
+    uint16_t ref_count[FDC2212_NUM_OF_CHANNELS];           /**< */
+    uint16_t settle_count[FDC2212_NUM_OF_CHANNELS];        /**< */
+    uint8_t  freq_in_sel[FDC2212_NUM_OF_CHANNELS];         /**< */
+    uint16_t freq_divider[FDC2212_NUM_OF_CHANNELS];        /**< */
+    fdc2212_idrive_t idrive[FDC2212_NUM_OF_CHANNELS];      /**< */
 } fdc2212_t;
 
 /**

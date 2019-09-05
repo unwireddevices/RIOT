@@ -13,63 +13,65 @@
  * @brief       Test application for the FDC2212 2-Channel Capacitance-to-Digital Converter
  *
  * @author      Alexander Ugorelov <info@unwds.com>
+ * @todo        Attention! Works only with channel null.
  *
  * @}
  */
 
-
+#include <stdlib.h>
+#include <stdbool.h>
 #include <stdio.h>
 
 #include "lptimer.h"
 #include "fdc2212.h"
-#include "fdc2212_params.h"
-#include "dsp/int_dia/int_dia.h"
 
-
-#define DELAY                                           (100UL * US_PER_MS)
-#define FDC2212_I2C_DEV                                 (I2C_DEV(0))
-#define FDC2212_I2C_ADDR                                (FDC2212_CAP_I2C_ADDR_L)
-#define FDC2212_INIT_DATASET_LEN                        (128)
-
-#define FDC2212_INTEGRAL_THRESHOLD                      (200)
-#define FDC2212_DERIVATIVE_THRESHOLD                    (0)
-#define FDC2212_LEAKAGE_FACTOR                          (0.99)
-#define FDC2212_IIR_FILTER                              (false)
+#define DELAY                                           (1UL * 1000UL)
 
 #define PROXIMITY_REFCOUNT                              (40000)
 #define PROXIMITY_SETTLECOUNT                           (100)
 
+#define PROXIMITY_INTEGRAL_THRESHOLD                    (200)
+#define PROXIMITY_INTEGRAL_HYS                          (1.2)
+#define PROXIMITY_DERIVATIVE_THRESHOLD                  (0)
+#define PROXIMITY_LEAKAGE_FACTOR                        (0.99)
+
+/* allocate memory for variables */
+static uint32_t prox_meas_sample     = 0;
+static uint32_t moving_avg_prox      = 0;
+static uint32_t prev_moving_avg_prox = 0;
+static int32_t  derivative_prox      = 0;
+static int32_t  integral_prox        = 0;
+static int32_t  prev_integral_prox   = 0;
+
+static uint16_t integral_prox_hys = 0;
+
+static bool init_cal = true;
+static bool prox_on = false;
+
+static void _init_moving_avg(void);
+
 /* allocate devices descriptor */
-static fdc2212_t dev;
-static int_dia_t int_dia;
-
-
+static fdc2212_t fdc2212;
+static fdc2212_params_t fdc2212_params;
 
 int main(void)
 {
-    uint32_t data_set[FDC2212_INIT_DATASET_LEN];
-
     puts("FDC2212 2-Channel Capacitance-to-Digital Converter driver test application\n");
+    puts("Attention! Works only with channel null!");
 
-    dev.params.i2c_dev  = FDC2212_I2C_DEV;
-    dev.params.i2c_addr = FDC2212_I2C_ADDR;
+    /* Initialize and configure FDC2212 for only one channel number 0 */
+    fdc2212_params.i2c_dev      = I2C_DEV(0);
+    fdc2212_params.i2c_addr     = FDC2212_CAP_I2C_ADDR_L;
+    fdc2212_params.shutdown_pin = GPIO_UNDEF;
 
-    dev.ref_count[0]    = PROXIMITY_REFCOUNT;
-    dev.ref_count[1]    =  0x00;
-    dev.settle_count[0] = PROXIMITY_SETTLECOUNT;
-    dev.settle_count[0] = 0x00;
-    dev.freq_in_sel[0]  = 0x02;
-    dev.freq_in_sel[1]  = 0x02;
-    dev.freq_divider[0] = 0x01;
-    dev.freq_divider[1] = 0x01;
-    dev.idrive[0]       = FDC2212_IDRIVE_0P069;
-    dev.idrive[1]       = FDC2212_IDRIVE_0P016;
+    fdc2212.ref_count[0]    = PROXIMITY_REFCOUNT;
+    fdc2212.settle_count[0] = PROXIMITY_SETTLECOUNT;
+    fdc2212.freq_in_sel[0]  = 0x02;
+    fdc2212.freq_divider[0] = 0x01;
+    fdc2212.idrive[0]       = FDC2212_IDRIVE_0P052;
 
-    /* Initialized DIA structure */
-    int_dia_init(&int_dia, FDC2212_INTEGRAL_THRESHOLD, FDC2212_DERIVATIVE_THRESHOLD, FDC2212_LEAKAGE_FACTOR, FDC2212_IIR_FILTER);
-
-    printf("Initializing FDC2212 sensor on I2C #%d... ", dev.params.i2c_dev);
-    if (fdc2212_init(&dev, &fdc2212_params[0]) == 0) {
+    printf("Initializing FDC2212 sensor on I2C #%d... ", fdc2212_params.i2c_dev);
+    if (fdc2212_init(&fdc2212, &fdc2212_params) == 0) {
         puts("[OK]");
     }
     else {
@@ -77,42 +79,85 @@ int main(void)
         return 1;
     }
 
-    /* initialized baseline for DIA */
-    if (int_dia.init_baseline) {
-        for (int i = 0; i < FDC2212_INIT_DATASET_LEN; i++) {
-            while (fdc2212_data_ready(&dev) != FDC2212_OK)
-            {
-                //do Nothing;
-            }
-            fdc2212_read_raw_data(&dev, 0, &data_set[i]);
-        }
-        int_dia_get_baseline(&int_dia, data_set, FDC2212_INIT_DATASET_LEN);
-    }
+    /* Initialize and stabilize moving average variables  */
+    _init_moving_avg();
+    printf("The calculated baseline is equal to %" PRIu32 "\n", moving_avg_prox);
 
     lptimer_ticks32_t last_wakeup = lptimer_now();
 
-    printf("Sample\tMov_AVG\tMeasure\tDerivative\tIntegral\tWas detected?\n");
     while (1) {
-
-        uint32_t capacitance = 0;
-        uint32_t sample = 0;
-
-        /* read sensor data */
-        while (fdc2212_data_ready(&dev) != FDC2212_OK)
+        /* Waiting until the data is ready */
+        while (fdc2212_data_ready(&fdc2212) != FDC2212_OK)
         {
             //do Nothing;
         }
-        fdc2212_read_raw_data(&dev, 0, &capacitance);
-        /* print data to STDIO */
-        // printf("Capacitance channel %d [F]: %" PRIu32 "\n", FDC1004_CH, capacitance);
-        int_dia_main(&int_dia, capacitance);
-        /* print data to STDIO */
-        printf("%" PRIu32 "\t""%" PRIu32 "\t""%" PRIu32 "\t""%" PRIi32 "\t""%" PRIi32 "\t", 
-               sample++, int_dia.moving_avg, capacitance, int_dia.derivative, int_dia.integral);
-        printf(/*"Proximity seinsing:*/" %s\n", (int_dia.is_detected == true)?("detected"):("not detected"));
+        /* Collect FDC measurements */
+        fdc2212_read_raw_data(&fdc2212, 0, &prox_meas_sample);
+
+        /* Process Data using Derivative/Integration Algorithm
+         * Moving Average using IIR filter of 8 samples */
+        prev_moving_avg_prox = moving_avg_prox;
+        moving_avg_prox = ((moving_avg_prox << 2) - moving_avg_prox + prox_meas_sample) >> 2;
+
+        derivative_prox = moving_avg_prox - prev_moving_avg_prox;
+
+        /* Channel 0 is used as a proximity sensor */
+        if((abs(derivative_prox) > PROXIMITY_DERIVATIVE_THRESHOLD)) {
+            integral_prox = prev_integral_prox + derivative_prox;
+        } else {
+            integral_prox = prev_integral_prox;
+        }
+
+        if(prox_on) {
+            integral_prox_hys = PROXIMITY_INTEGRAL_THRESHOLD / PROXIMITY_INTEGRAL_HYS;
+        } else {
+            integral_prox_hys = PROXIMITY_INTEGRAL_THRESHOLD * PROXIMITY_INTEGRAL_HYS;
+        }
+
+        if(integral_prox_hys <= -(integral_prox))
+        {
+            /* Object detected for Proximity Sensor */
+            prev_integral_prox = integral_prox;
+            prox_on = true;
+        }
+        else
+        {
+            /* Object not detected */
+            prev_integral_prox = integral_prox * PROXIMITY_LEAKAGE_FACTOR;
+            prox_on = false;
+        }
+        printf("Mov_AVG\tMeasure\tDerivative\tIntegral\n");
+        printf("%"PRIu32"\t""%"PRIu32"\t""%"PRIi32"\t""%"PRIi32"\t ", 
+               moving_avg_prox, prox_meas_sample, derivative_prox, prev_integral_prox);
+        printf("The proximity sensor %s the object.\n", (prox_on == true)?("detected"):("didn't detect"));
 
         lptimer_periodic_wakeup(&last_wakeup, DELAY);
     }
 
     return 0;
+}
+
+static void _init_moving_avg(void)
+{
+    uint8_t samples = 0;
+
+    /* Collect first 128 samples for moving average to have movingAvgProx == ~proxMeasSample */
+    for(samples = 0; samples < 128; samples++)
+    {
+        /* Waiting until the data is ready */
+        while (fdc2212_data_ready(&fdc2212) != FDC2212_OK)
+        {
+            //do Nothing;
+        }
+
+        /* Collect measurements for moving average */
+        fdc2212_read_raw_data(&fdc2212, 0, &prox_meas_sample);
+
+        if(init_cal) {
+            moving_avg_prox = prox_meas_sample;
+            init_cal = false;
+        }
+
+        moving_avg_prox = ((moving_avg_prox << 2) - moving_avg_prox + prox_meas_sample) >> 2;
+    }
 }

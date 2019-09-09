@@ -223,13 +223,8 @@ kernel_pid_t thread_create(char *stack, int stacksize, char priority, int flags,
     thread->name = name;
 #endif
 
-<<<<<<< HEAD
     thread->priority = priority;
     thread->status = STATUS_STOPPED;
-=======
-    cb->priority = priority;
-    cb->status = STATUS_STOPPED;
->>>>>>> 4c3e92f... core: Made thread state an enum
 
     thread->rq_entry.next = NULL;
 

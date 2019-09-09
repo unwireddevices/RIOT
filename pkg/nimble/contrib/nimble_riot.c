@@ -31,8 +31,6 @@
 #ifdef MODULE_NIMBLE_SVC_GATT
 #include "services/gatt/ble_svc_gatt.h"
 #endif
-
-#endif
 #ifdef MODULE_NIMBLE_SVC_IPSS
 #include "services/ipss/ble_svc_ipss.h"
 #endif
@@ -55,15 +53,7 @@ static void *_host_thread(void *arg)
     (void)arg;
 
     nimble_port_init();
-    nimble_port_run();
 
-    /* never reached */
-    return NULL;
-}
-#endif
-
-void nimble_riot_init(void)
-{
 #ifdef MODULE_NIMBLE_CONTROLLER
     /* XXX: NimBLE needs the nRF5x's LF clock to run */
 #if defined(CPU_FAM_NRF52) || defined(CPU_FAM_NRF51)
@@ -82,7 +72,15 @@ void nimble_riot_init(void)
                   "nimble_ctrl");
 #endif
 
-#ifdef MODULE_NIMBLE_HOST
+    nimble_port_run();
+
+    /* never reached */
+    return NULL;
+}
+#endif
+
+void nimble_riot_init(void)
+{
     /* and finally initialize and run the host */
     thread_create(_stack_host, sizeof(_stack_host),
                   NIMBLE_HOST_PRIO,

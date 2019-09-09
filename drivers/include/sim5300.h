@@ -47,19 +47,37 @@ extern "C" {
  * @brief SIM5300 ERRORS
  */
 enum sim5300_error {
-    SIM5300_OK                   =  0,      /* OK */
+    SIM5300_OK                   =  0,      /**< OK */
 
-    SIM5300_DEV_ERROR            = -1,      /* ERROR: sim5300_dev == NULL */
-    ARGUMENT_NULL_ERROR          = -2,      /* ERROR: Pointer to function argument == NULL */
-    ARGUMENT_RANGE_ERROR         = -3,      /* ERROR: Invalid argument value */
-    PARSE_ERROR                  = -4,      /* ERROR: sscanf() != desired number of variables */
-    SEND_CMD_WAIT_OK_ERROR       = -5,      /* ERROR: at_send_cmd_wait_ok() != 0 */
-    SEND_CMD_GET_RESP_ERROR      = -6,      /* ERROR: at_send_cmd_get_resp() < 0 */
-    UNKNOWN_RESP                 = -7,      /* ERROR: Unknown response */
-    UNDEFINED_ERROR              = -8,      /* ERROR: Undefined error */
-    // _ERROR                       = -9,   /*  */
-    // _ERROR                       = -0,   /*  */
-
+    SIM5300_DEV_ERROR            = -1,      /**< ERROR: sim5300_dev == NULL */
+    ARGUMENT_NULL_ERROR          = -2,      /**< ERROR: Pointer to function argument == NULL */
+    ARGUMENT_RANGE_ERROR         = -3,      /**< ERROR: Invalid argument value */
+    PARSE_ERROR                  = -4,      /**< ERROR: sscanf() != desired number of variables */
+    SEND_CMD_WAIT_OK_ERROR       = -5,      /**< ERROR: at_send_cmd_wait_ok() != 0 */
+    SEND_CMD_GET_RESP_ERROR      = -6,      /**< ERROR: at_send_cmd_get_resp() < 0 */
+    SEND_CMD_ERROR               = -7,      /**< ERROR: at_send_cmd() != 0 */
+    READLINE_ERROR               = -8,      /**< ERROR: at_readline() < 0 */
+    UNKNOWN_RESP                 = -9,      /**< ERROR: Unknown response */
+    UNDEFINED_ERROR              = -10,     /**< ERROR: Undefined error */
+    RECEIVE_MAX_LEN_ERROR        = -11,     /**< ERROR: data_size > RECEIVE_MAX_LEN */
+    NOT_IMPLEMENTED              = -12,     /**< ERROR: Not implemented */
+    TIMEOUT_EXPIRED              = -13,     /**< ERROR: Timeout expired */
+    NO_INTERNET_SETTINGS_FOUND   = -14,     /**< ERROR: No internet settings found */
+    NO_SIM_CARD                  = -15,     /**< ERROR: No SIM card */
+    NEED_PASSWORD_FOR_SIM_CARD   = -16,     /**< ERROR: Need password for SIM card */
+    REGISTRATION_TIMEOUT_EXPIRED = -17,     /**< ERROR: Registration timeout expired */
+    NO_LOCAL_IP_ADDRESS          = -18,     /**< ERROR: No local IP address */
+    SIM5300_NOT_ANSWERING        = -19,     /**< ERROR: SIM5300 not answering */
+    UNABLE_TO_CREATE_SOCKET      = -20,     /**< ERROR: Unable to create socket */
+    // NO_INTERNET_SETTINGS_FOUND   = -21,     /**< ERROR:  */
+    // NO_INTERNET_SETTINGS_FOUND   = -22,     /**< ERROR:  */
+    // NO_INTERNET_SETTINGS_FOUND   = -23,     /**< ERROR:  */
+    // NO_INTERNET_SETTINGS_FOUND   = -24,     /**< ERROR:  */
+    // NO_INTERNET_SETTINGS_FOUND   = -25,     /**< ERROR:  */
+    // NO_INTERNET_SETTINGS_FOUND   = -26,     /**< ERROR:  */
+    // NO_INTERNET_SETTINGS_FOUND   = -27,     /**< ERROR:  */
+    // NO_INTERNET_SETTINGS_FOUND   = -28,     /**< ERROR:  */
+    
 };
 
 /**
@@ -165,6 +183,8 @@ typedef struct {
     char password[32];          /**< Password */
 } sim5300_internet_settings_t;
 
+/*---------------------------------------------------------------------------*/
+/*------------------------ START LOW LEVEL FUNCTION -------------------------*/
 /*---------------------------------------------------------------------------*/
 /**
  * @brief       Send ATtention Code
@@ -419,34 +439,104 @@ int sim5300_set_gprs_service_state(sim5300_dev_t *sim5300_dev,
                                    uint8_t        state);
 
 /*---------------------------------------------------------------------------*/
-/* AT+CSTT Start Task and Set APN, USER NAME, PASSWORD */
+/**
+ * @brief       Set start task and set APN, USER NAME, PASSWORD
+ *
+ * @param[in]   sim5300_dev     Device to operate on
+ * @param[in]   apn             A string parameter which indicates the GPRS access point name
+ * @param[in]   user            A string parameter which indicates the GPRS user name
+ * @param[in]   password        A string parameter which indicates the GPRS password
+ * 
+ * AT+CSTT Set start task and set APN, USER NAME, PASSWORD
+ * Set start task and set APN, USER NAME, PASSWORD
+ * 
+ * @returns     SIM5300_OK             - OK
+ * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ * @returns     ARGUMENT_NULL_ERROR    - ERROR: Pointer to function argument == NULL
+ * @returns     SEND_CMD_WAIT_OK_ERROR - ERROR: at_send_cmd_wait_ok() != 0
+ */
 int sim5300_set_network_settings(sim5300_dev_t *sim5300_dev,
                                  char          *apn,
                                  char          *user,
                                  char          *password);
 
 /*---------------------------------------------------------------------------*/
-/* AT+CIICR Bring up wireless connection with GPRS */
+/**
+ * @brief       Bring up wireless connection with GPRS
+ *
+ * @param[in]   sim5300_dev     Device to operate on
+ * 
+ * AT+CIICR Bring up wireless connection with GPRS
+ * Bring up wireless connection with GPRS
+ * 
+ * @returns     SIM5300_OK             - OK
+ * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ * @returns     SEND_CMD_WAIT_OK_ERROR - ERROR: at_send_cmd_wait_ok() != 0
+ */
 int sim5300_bring_up_wireless_connection(sim5300_dev_t *sim5300_dev);
 
 /*---------------------------------------------------------------------------*/
-/* AT+CIFSR Get local IP address */ 
+/**
+ * @brief       Get local IP address
+ *
+ * @param[in]   sim5300_dev             Device to operate on
+ * @param[out]  sim5300_cifsr_resp      Structure with response data
+ * 
+ * AT+CIFSR Get local IP address
+ * Get local IP address
+ * 
+ * @returns     SIM5300_OK              - OK
+ * @returns     SIM5300_DEV_ERROR       - ERROR: sim5300_dev == NULL
+ * @returns     ARGUMENT_NULL_ERROR     - ERROR: Pointer to function argument == NULL
+ * @returns     SEND_CMD_GET_RESP_ERROR - ERROR: at_send_cmd_get_resp() < 0
+ * @returns     PARSE_ERROR             - ERROR: sscanf() != desired number of variables
+ */
 int sim5300_get_local_ip_address(sim5300_dev_t        *sim5300_dev,
                                  sim5300_cifsr_resp_t *sim5300_cifsr_resp);
 
 /*---------------------------------------------------------------------------*/
-/* AT+CIPMUX Start up multi-IP connection */
+/**
+ * @brief       Start up multi-IP connection
+ *
+ * @param[in]   sim5300_dev     Device to operate on
+ * @param[in]   n               Mode: single IP connection or multi IP connection
+ * 
+ * AT+CIPMUX Start up multi-IP connection
+ * Start up multi-IP connection
+ * 
+ * @returns     SIM5300_OK             - OK
+ * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ * @returns     ARGUMENT_RANGE_ERROR   - ERROR: Invalid argument value
+ * @returns     SEND_CMD_WAIT_OK_ERROR - ERROR: at_send_cmd_wait_ok() != 0
+ */
 int sim5300_start_up_multi_ip_connection(sim5300_dev_t *sim5300_dev, 
                                          uint8_t        n);
 
 /*---------------------------------------------------------------------------*/
-/* AT+CIPCLOSE Close up multi-IP connection */
+/**
+ * @brief       Close up multi-IP connection
+ *
+ * @param[in]   sim5300_dev     Device to operate on
+ * @param[in]   id              A numeric parameter which indicates the connection number 
+ * @param[in]   n               Closing type: slow or quick close 
+ * 
+ * AT+CIPCLOSE Close up multi-IP connection
+ * Close up multi-IP connection
+ * 
+ * @returns     SIM5300_OK             - OK
+ * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ * @returns     ARGUMENT_RANGE_ERROR   - ERROR: Invalid argument value
+ * @returns     SEND_CMD_ERROR         - ERROR: at_send_cmd() != 0
+ * @returns     READLINE_ERROR         - ERROR: at_readline() < 0
+ * @returns     UNKNOWN_RESP           - ERROR: Unknown response
+ */
 int sim5300_close_up_multi_ip_connection(sim5300_dev_t *sim5300_dev,
                                          uint8_t        id,
                                          uint8_t        n);
 
 /*---------------------------------------------------------------------------*/
 /* AT+CIPPING PING request */
+/* TODO: PARSE ERROR BECAUSE IP ADDREESS HAVE: "" */
 int sim5300_ping_request(sim5300_dev_t          *sim5300_dev,
                          sim5300_cipping_resp_t  sim5300_cipping_resp[],
                          char                   *address,
@@ -456,15 +546,58 @@ int sim5300_ping_request(sim5300_dev_t          *sim5300_dev,
                          char                   *ttl);
 
 /*---------------------------------------------------------------------------*/
-/* AT+CIPSTART Start up multi-IP TCP or UDP connection */
-int sim5300_multi_ip_up_single_connection(sim5300_dev_t *sim5300_dev,
-                                          uint8_t        n,
-                                          char          *mode,
-                                          char          *address,
-                                          char          *port);
+/**
+ * @brief       Start up multi-IP TCP or UDP connection
+ *
+ * @param[in]   sim5300_dev     Device to operate on
+ * @param[in]   n               A numeric parameter which indicates the connection number
+ * @param[in]   mode            A string parameter which indicates the connection type: TCP or UDP
+ * @param[in]   address         A string parameter which indicates remote server IP address or domain name
+ * @param[in]   port            A string parameter which indicates remote server port 
+ * 
+ * AT+CIPSTART Start up multi-IP TCP or UDP connection
+ * Start up multi-IP TCP or UDP connection
+ * 
+ * @returns     SIM5300_OK             - OK
+ * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ * @returns     ARGUMENT_RANGE_ERROR   - ERROR: Invalid argument value
+ * @returns     ARGUMENT_NULL_ERROR    - ERROR: Pointer to function argument == NULL
+ * @returns     SEND_CMD_ERROR         - ERROR: at_send_cmd() != 0
+ * @returns     READLINE_ERROR         - ERROR: at_readline() < 0
+ * @returns     UNKNOWN_RESP           - ERROR: Unknown response
+ */
+int sim5300_start_up_multi_ip_up_connection(sim5300_dev_t *sim5300_dev,
+                                            uint8_t        n,
+                                            char          *mode,
+                                            char          *address,
+                                            char          *port);
 
 /*---------------------------------------------------------------------------*/
-/* AT+CIPRXGET Get data from network manually for multi IP connection */
+/**
+ * @brief       Start up multi-IP TCP or UDP connection
+ *
+ * @param[in]   sim5300_dev         Device to operate on
+ * @param[in]   mode                Mode
+ * @param[in]   n                   A numeric parameter which indicates the connection number
+ * @param[out]  data_for_receive    Pointer to a receive buffer
+ * @param[in]   data_size           Received data size
+ * 
+ * AT+CIPSTART Start up multi-IP TCP or UDP connection
+ * Start up multi-IP TCP or UDP connection
+ * 
+ * @returns     SIM5300_OK             - OK (mode = 1)
+ * @returns     res >= 0               - OK, receive_length (mode = 2)
+ * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ * @returns     ARGUMENT_RANGE_ERROR   - ERROR: Invalid argument value
+ * @returns     ARGUMENT_NULL_ERROR    - ERROR: Pointer to function argument == NULL
+ * @returns     SEND_CMD_WAIT_OK_ERROR - ERROR: at_send_cmd_wait_ok() != 0
+ * @returns     RECEIVE_MAX_LEN_ERROR  - ERROR: data_size > RECEIVE_MAX_LEN
+ * @returns     SEND_CMD_ERROR         - ERROR: at_send_cmd() != 0
+ * @returns     READLINE_ERROR         - ERROR: at_readline() < 0
+ * @returns     PARSE_ERROR            - ERROR: sscanf() != desired number of variables
+ * @returns     NOT_IMPLEMENTED        - ERROR: Not implemented 
+ * @returns     UNDEFINED_ERROR        - ERROR: Undefined error 
+ */
 int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
                                                      uint8_t        mode,
                                                      uint8_t        n,
@@ -472,30 +605,64 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
                                                      size_t         data_size);
 
 /*---------------------------------------------------------------------------*/
-/* AT+CIPSEND Send data through TCP or UDP multi IP connection */
+/**
+ * @brief       Send data through TCP or UDP multi IP connection
+ *
+ * @param[in]   sim5300_dev         Device to operate on
+ * @param[in]   n                   A numeric parameter which indicates the connection number
+ * @param[in]   data_for_send       Pointer to send buffer
+ * @param[in]   data_size           Send data size
+ * 
+ * AT+CIPSEND Send data through TCP or UDP multi IP connection
+ * Send data through TCP or UDP multi IP connection
+ * 
+ * @returns     res >= 0               - OK, receive_length (mode = 2)
+ * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ * @returns     ARGUMENT_RANGE_ERROR   - ERROR: Invalid argument value
+ * @returns     ARGUMENT_NULL_ERROR    - ERROR: Pointer to function argument == NULL
+ * @returns     SEND_CMD_ERROR         - ERROR: at_send_cmd() != 0
+ * @returns     UNKNOWN_RESP           - ERROR: Unknown response
+ * @returns     TIMEOUT_EXPIRED        - ERROR: Timeout expired
+ */
 int sim5300_send_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
                                                   uint8_t        n,
                                                   uint8_t       *data_for_send, 
                                                   size_t         data_size);
 
 /*---------------------------------------------------------------------------*/
-/* Get internet settings from base */
-int sim5300_get_internet_settings_from_base(sim5300_dev_t               *sim5300_dev,
-                                            uint32_t                     hni,
-                                            sim5300_internet_settings_t *sim5300_internet_settings);
+/*------------------------- END LOW LEVEL FUNCTION --------------------------*/
+/*---------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------*/
-/*  */
-int sim5300_start_internet(sim5300_dev_t               *sim5300_dev,
-                           uint8_t                      registration_timeout,
-                           sim5300_internet_settings_t *sim5300_internet_settings);
-
+/*---------------------------- START SOCKET API -----------------------------*/
 /*---------------------------------------------------------------------------*/
-/*  */
+/**
+ * @brief       Creating socket file descriptor
+ *
+ * @param[in]   sim5300_dev                 Device to operate on
+ * 
+ * Creating socket file descriptor
+ * 
+ * @returns     res >= 0               - OK, Socket file descriptor
+ * @returns     res <  0               - ERROR: See sim5300_error
+ */
 int sim5300_socket(sim5300_dev_t *sim5300_dev);
 
 /*---------------------------------------------------------------------------*/
-/*  */
+/**
+ * @brief       Connect to server
+ *
+ * @param[in]   sim5300_dev                 Device to operate on
+ * @param[in]   sockfd                      Socket file descriptor
+ * @param[in]   address                     String with address or domain for connect
+ * @param[in]   port                        String with port number for connect
+ * @param[in]   type                        String with type connection: TCP or UDP
+ * 
+ * Connect to server
+ * 
+ * @returns     SIM5300_OK             - OK
+ * @returns     res < 0                - ERROR: See sim5300_error
+ */
 int sim5300_connect(sim5300_dev_t *sim5300_dev,
                     int            sockfd, 
                     char          *address,
@@ -503,23 +670,97 @@ int sim5300_connect(sim5300_dev_t *sim5300_dev,
                     char          *type);
 
 /*---------------------------------------------------------------------------*/
-/*  */
+/**
+ * @brief       Send data via socket
+ *
+ * @param[in]   sim5300_dev         Device to operate on
+ * @param[in]   sockfd              Socket file descriptor
+ * @param[in]   buffer              Pointer to send buffer
+ * @param[in]   buffer_len          Send data size
+ * 
+ * Send data via socket
+ * 
+ * @returns     res >= 0               - OK, Send length 
+ * @returns     res <  0               - ERROR: See sim5300_error
+ */
 int sim5300_send(sim5300_dev_t *sim5300_dev,
                  int            sockfd, 
                  uint8_t       *buffer,
                  size_t         buffer_len);
 
 /*---------------------------------------------------------------------------*/
-/*  */
+/**
+ * @brief       Received data via socket
+ *
+ * @param[in]   sim5300_dev         Device to operate on
+ * @param[in]   sockfd              Socket file descriptor
+ * @param[out]  buffer              Pointer to a receive buffer
+ * @param[in]   buffer_len          Received data size
+ * 
+ * Received data via socket
+ * 
+ * @returns     res >= 0               - OK, Receive length 
+ * @returns     res <  0               - ERROR: See sim5300_error
+ */
 int sim5300_receive(sim5300_dev_t *sim5300_dev,
                     int            sockfd, 
                     uint8_t       *buffer,
                     size_t         buffer_len);
 
 /*---------------------------------------------------------------------------*/
-/*  */
+/**
+ * @brief       Close socket file descriptor
+ *
+ * @param[in]   sim5300_dev         Device to operate on
+ * @param[in]   sockfd              Socket file descriptor
+ * 
+ * Close socket file descriptor
+ * 
+ * @returns     SIM5300_OK             - OK
+ * @returns     res < 0                - ERROR: See sim5300_error
+ */
 int sim5300_close(sim5300_dev_t *sim5300_dev,
                   int            sockfd);
+
+/*---------------------------------------------------------------------------*/
+/*----------------------------- END SOCKET API ------------------------------*/
+/*---------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------*/
+/*----------------------- START HIGH LEVEL FUNCTION -------------------------*/
+/*---------------------------------------------------------------------------*/
+/**
+ * @brief       Get internet settings from base
+ *
+ * @param[in]   sim5300_dev                 Device to operate on
+ * @param[in]   hni                         Home Network Identity (HNI)
+ * @param[out]  sim5300_internet_settings   Structure with response data
+ * 
+ * Get internet settings from base
+ * 
+ * @returns     SIM5300_OK                  - OK
+ * @returns     NO_INTERNET_SETTINGS_FOUND  - ERROR: No internet settings found  
+ */
+int sim5300_get_internet_settings_from_base(sim5300_dev_t               *sim5300_dev,
+                                            uint32_t                     hni,
+                                            sim5300_internet_settings_t *sim5300_internet_settings);
+
+/*---------------------------------------------------------------------------*/
+/**
+ * @brief       Start internet
+ *
+ * @param[in]   sim5300_dev                 Device to operate on
+ * @param[in]   registration_timeout        Maximum network registration time
+ * @param[in]   sim5300_internet_settings   Structure with internet settings
+ * 
+ * Start internet
+ * 
+ * @returns     SIM5300_OK             - OK
+ * @returns     res < 0                - ERROR: See sim5300_error
+ */
+int sim5300_start_internet(sim5300_dev_t               *sim5300_dev,
+                           uint8_t                      registration_timeout,
+                           sim5300_internet_settings_t *sim5300_internet_settings);
 
 /*---------------------------------------------------------------------------*/
 /**
@@ -529,8 +770,8 @@ int sim5300_close(sim5300_dev_t *sim5300_dev,
  *
  * Send 5 AT command
  * 
- * @returns     true  - Communication test OK
- * @returns     false - Communication test failed ERROR
+ * @returns     SIM5300_OK             - OK
+ * @returns     res < 0                - ERROR: See sim5300_error
  */
 int sim5300_communication_test(sim5300_dev_t *sim5300_dev);
 
@@ -546,8 +787,8 @@ int sim5300_communication_test(sim5300_dev_t *sim5300_dev);
  * @param[in]   at_dev_resp         Input buffer for parse response from Iridium
  * @param[in]   at_dev_resp_size    Size of @p at_dev_resp
  *
- * @returns     true  - Initialization OK
- * @returns     false - Initialization ERROR
+ * @returns     SIM5300_OK             - OK
+ * @returns     res < 0                - ERROR: See sim5300_error
  */
 int sim5300_init(sim5300_dev_t *sim5300_dev, 
                  uart_t         uart, 
@@ -557,6 +798,8 @@ int sim5300_init(sim5300_dev_t *sim5300_dev,
                  char          *at_dev_resp, 
                  uint16_t       at_dev_resp_size);
 
+/*---------------------------------------------------------------------------*/
+/*------------------------- END HIGH LEVEL FUNCTION -------------------------*/
 /*---------------------------------------------------------------------------*/
 #ifdef __cplusplus
 }

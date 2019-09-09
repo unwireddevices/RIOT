@@ -46,7 +46,7 @@ $(HEADER_TOOL): FORCE
 	@echo "compiling $@..."
 	$(Q)/usr/bin/env -i \
 		QUIET=$(QUIET) \
-		PATH=$(PATH) \
+		PATH="$(PATH)" \
 			$(MAKE) --no-print-directory -C $(HEADER_TOOL_DIR) all
 
 # Generate RIOT header and keep the original binary file

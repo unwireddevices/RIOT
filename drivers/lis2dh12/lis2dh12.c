@@ -550,14 +550,13 @@ int lis2dh12_power_off(lis2dh12_t *dev)
     }
 
     /* Set Output Data Rate POWER_DOWN*/
-    DEBUG("Set Output Data Rate (POWER_DOWN)\n");
+    DEBUG("Set Output Data Rate to POWER_DOWN\n");
     reg_val = 0x00;
-    dev->params.rate = LIS2DH12_RATE_POWER_DOWN;
     if (_lis2dh12_read_reg(dev, LIS2DH12_CTRL_REG1, &reg_val, 1) < 0) {
         return -LIS2DH12_ERROR_I2C;
     }
     reg_val &= ~(LIS2DH12_CTRL_REG1_ODR_MASK); 
-    reg_val |= (uint8_t)(dev->params.rate << LIS2DH12_CTRL_REG1_ODR_SHIFT);
+    reg_val |= (uint8_t)(LIS2DH12_RATE_POWER_DOWN << LIS2DH12_CTRL_REG1_ODR_SHIFT);
     if (_lis2dh12_write_reg(dev, LIS2DH12_CTRL_REG1, &reg_val, 1) < 0) {
         return -LIS2DH12_ERROR_I2C;
     }

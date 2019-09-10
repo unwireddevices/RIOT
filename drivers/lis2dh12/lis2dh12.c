@@ -452,7 +452,7 @@ int lis2dh12_read_xyz(lis2dh12_t *dev, lis2dh12_acc_t *acceleration) {
     } while(((axl_data_rdy & LIS2DH12_STATUS_REG_ZYXDA_MASK) != LIS2DH12_STATUS_REG_ZYXDA_MASK) && --tick);
 
     if (!tick) {
-        LOG_ERROR("[LOG_ERROR] Timeout reading acceleration\n");
+        LOG_ERROR("[LIS2DH12] Timeout reading acceleration\n");
         return -LIS2DH12_ERROR_NO_NEW_DATA;
     }
     return LIS2DH12_OK;
@@ -494,7 +494,7 @@ int lis2dh12_read_temp(lis2dh12_t *dev, int16_t *temperature_degC)
     } while(((temp_data_rdy & LIS2DH12_STATUS_REG_AUX_TDA_MASK) != LIS2DH12_STATUS_REG_AUX_TDA_MASK) && --tick);
 
     if (!tick) {
-        LOG_ERROR("[LOG_ERROR] Timeout reading temperature\n");
+        LOG_ERROR("[LIS2DH12] Timeout reading temperature\n");
          return -LIS2DH12_ERROR_NO_NEW_DATA;
     }
     return LIS2DH12_OK;

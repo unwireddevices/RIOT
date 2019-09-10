@@ -21,6 +21,9 @@
 #include <stdio.h>
 
 #include "lis2dh12.h"
+#include "lptimer.h"
+
+#define SLEEP_DELAY_MS 500
 
 /* Allocate some of the memory for the device descriptor */
 static lis2dh12_t lis2dh12;
@@ -50,16 +53,9 @@ int main(void)
         return 1;
     }
 
-    lis2dh12.params.rate  = LIS2DH12_RATE_1HZ;
-    puts("LIS2DH12 power on...");
-    if (lis2dh12_power_on(&lis2dh12, lis2dh12.params.scale, lis2dh12.params.rate, lis2dh12.params.res) == LIS2DH12_OK) {
-        puts("[OK]");
-    } else {
-        puts("[Failed]\n");
-        return 1;
-    }
-
     while (1) {
+        lis2dh12_power_on(&lis2dh12);
+
         /* read sensor data */
         if (lis2dh12_read_xyz(&lis2dh12, &acc) == LIS2DH12_OK) {
             /* print acc values */
@@ -76,6 +72,10 @@ int main(void)
             puts("[Error] unable to retrieve data from sensor, quitting now");
             return 1;
         }
+
+        lis2dh12_power_off(&lis2dh12);
+
+        lptimer_sleep(SLEEP_DELAY_MS);
     }
 
     return 0;

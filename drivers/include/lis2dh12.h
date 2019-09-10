@@ -169,13 +169,10 @@ int lis2dh12_read_temp(lis2dh12_t *dev, int16_t *temperature_degC);
  * @brief   Power on the given device
  * 
  * @param[in/out] dev   Device descriptor of sensor
- * @param[in]     scale Output data scale
- * @param[in]     rate  Output data rate
- * @param[in]     res   Output data resolution
  * 
  * @return           Error status
  */
-int lis2dh12_power_on(lis2dh12_t *dev, lis2dh12_scale_t scale, lis2dh12_rate_t rate, lis2dh12_resolution_t res);
+int lis2dh12_power_on(lis2dh12_t *dev);
 
 /**
  * @brief   Power off the given device

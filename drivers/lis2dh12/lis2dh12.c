@@ -276,7 +276,7 @@ int lis2dh12_init(lis2dh12_t *dev, const lis2dh12_params_t *params)
     DEBUG("Checking the value of the \"Who am I\" register\n");
     if (dev_id != LIS2DH12_WHO_AM_I_RESPONSE) {
         /* the chip responded incorrectly */
-        LOG_ERROR("[LIS2DH12] Error reading the identifier register\n");
+        LOG_ERROR("[LIS2DH12] Error reading chip ID\n");
         return -LIS2DH12_ERROR_NO_DEV;
     }
 
@@ -398,10 +398,9 @@ int lis2dh12_init(lis2dh12_t *dev, const lis2dh12_params_t *params)
         return -LIS2DH12_ERROR_I2C;
     }
 
-    /* Set Output Data Rate POWER_DOWN*/
-    DEBUG("Set Output Data Rate (POWER_DOWN) [%d]\n", LIS2DH12_RATE_POWER_DOWN);
+    /* Set Output Data Rate */
+    DEBUG("Set Output Data Rate [%d]\n", dev->params.rate);
     reg_val = 0x00;
-    dev->params.rate = LIS2DH12_RATE_POWER_DOWN;
     if (_lis2dh12_read_reg(dev, LIS2DH12_CTRL_REG1, &reg_val, 1) < 0) {
         return -LIS2DH12_ERROR_I2C;
     }
@@ -453,7 +452,7 @@ int lis2dh12_read_xyz(lis2dh12_t *dev, lis2dh12_acc_t *acceleration) {
     } while(((axl_data_rdy & LIS2DH12_STATUS_REG_ZYXDA_MASK) != LIS2DH12_STATUS_REG_ZYXDA_MASK) && --tick);
 
     if (!tick) {
-        LOG_ERROR("The time to read the acceleration values has expired\n");
+        LOG_ERROR("[LOG_ERROR] Timeout reading acceleration\n");
         return -LIS2DH12_ERROR_NO_NEW_DATA;
     }
     return LIS2DH12_OK;
@@ -495,30 +494,14 @@ int lis2dh12_read_temp(lis2dh12_t *dev, int16_t *temperature_degC)
     } while(((temp_data_rdy & LIS2DH12_STATUS_REG_AUX_TDA_MASK) != LIS2DH12_STATUS_REG_AUX_TDA_MASK) && --tick);
 
     if (!tick) {
-        LOG_ERROR("The time to read the temperature value has expired\n");
+        LOG_ERROR("[LOG_ERROR] Timeout reading temperature\n");
          return -LIS2DH12_ERROR_NO_NEW_DATA;
     }
     return LIS2DH12_OK;
 }
 
-int lis2dh12_power_on(lis2dh12_t *dev, lis2dh12_scale_t scale, lis2dh12_rate_t rate, lis2dh12_resolution_t res) 
+int lis2dh12_power_on(lis2dh12_t *dev) 
 {
-    dev->params.rate  = rate;
-    dev->params.scale = scale;
-    dev->params.res   = res;
-
-    /* Set full scale */ 
-    DEBUG("Set full scale [%d]\n", dev->params.scale); 
-    uint8_t reg_val = 0x00;
-    if (_lis2dh12_read_reg(dev, LIS2DH12_CTRL_REG4, &reg_val, 1) < 0) {
-        return -LIS2DH12_ERROR_I2C;
-    }
-    reg_val &= ~(LIS2DH12_CTRL_REG4_FS_MASK);
-    reg_val |= (uint8_t)(dev->params.scale << LIS2DH12_CTRL_REG4_FS_SHIFT);
-    if (_lis2dh12_write_reg(dev, LIS2DH12_CTRL_REG4, &reg_val, 1) < 0) {
-        return -LIS2DH12_ERROR_I2C;
-    }
-
     /* Enable all axis */
     reg_val = 0x00;
     if (_lis2dh12_read_reg(dev, LIS2DH12_CTRL_REG1, &reg_val, 1) < 0) {
@@ -527,38 +510,6 @@ int lis2dh12_power_on(lis2dh12_t *dev, lis2dh12_scale_t scale, lis2dh12_rate_t r
     reg_val &= ~(LIS2DH12_CTRL_REG1_XYZEN_MASK);
     reg_val |= LIS2DH12_CTRL_REG1_XYZEN_MASK;
     if (_lis2dh12_write_reg(dev, LIS2DH12_CTRL_REG1, &reg_val, 1)< 0) {
-        return -LIS2DH12_ERROR_I2C;
-    }
-
-    /* Set device operation mode */
-    DEBUG("Set device operation mode: ");
-    uint8_t ctrl_reg1 = 0x00;
-    uint8_t ctrl_reg4 = 0x00;
-    if (_lis2dh12_read_reg(dev, LIS2DH12_CTRL_REG1, &ctrl_reg1, 1) < 0) {
-        return -LIS2DH12_ERROR_I2C;
-    }
-    if (_lis2dh12_read_reg(dev, LIS2DH12_CTRL_REG4, &ctrl_reg4, 1) < 0) {
-        return -LIS2DH12_ERROR_I2C;
-    }
-    if (dev->params.res == LIS2DH12_HR_12BIT) {
-        DEBUG("LIS2DH12_HR_12BIT\n");
-        ctrl_reg1 &= ~(LIS2DH12_CTRL_REG1_LPEN_MASK);
-        ctrl_reg4 |= (LIS2DH12_CTRL_REG4_HR_MASK);
-    }
-    if (dev->params.res == LIS2DH12_NM_10BIT) {
-        DEBUG("LIS2DH12_NM_10BIT\n");
-        ctrl_reg1 &= ~(LIS2DH12_CTRL_REG1_LPEN_MASK);
-        ctrl_reg4 &= ~(LIS2DH12_CTRL_REG4_HR_MASK);
-    }
-    if (dev->params.res == LIS2DH12_LP_8BIT) {
-        DEBUG("LIS2DH12_LP_8BIT\n");
-        ctrl_reg1 |= (LIS2DH12_CTRL_REG1_LPEN_MASK);
-        ctrl_reg4 &= ~(LIS2DH12_CTRL_REG4_HR_MASK);
-    }
-    if (_lis2dh12_write_reg(dev, LIS2DH12_CTRL_REG1, &ctrl_reg1, 1) < 0) {
-        return -LIS2DH12_ERROR_I2C;
-    }
-    if (_lis2dh12_write_reg(dev, LIS2DH12_CTRL_REG4, &ctrl_reg4, 1) < 0) {
         return -LIS2DH12_ERROR_I2C;
     }
 

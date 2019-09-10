@@ -503,7 +503,7 @@ int lis2dh12_read_temp(lis2dh12_t *dev, int16_t *temperature_degC)
 int lis2dh12_power_on(lis2dh12_t *dev) 
 {
     /* Enable all axis */
-    reg_val = 0x00;
+    uint8_t reg_val = 0x00;
     if (_lis2dh12_read_reg(dev, LIS2DH12_CTRL_REG1, &reg_val, 1) < 0) {
         return -LIS2DH12_ERROR_I2C;
     }

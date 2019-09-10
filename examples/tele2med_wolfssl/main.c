@@ -53,7 +53,7 @@
 
 #define SIM5300_TIME_ON         (500)           /* The time of active low level impulse of PWRKEY pin to power on module. Min: 50ms, typ: 100ms */
 #define SIM5300_UART            (T2M_UART_GSM)  /* UART number for modem */
-#define SIM5300_BAUDRATE        (9600)          /* UART baudrate for modem*/
+#define SIM5300_BAUDRATE        (19200)         /* UART baudrate for modem*/
 #define SIM5300_TIME_ON_UART    (3000)          /* The time from power-on issue to UART port ready. Min: 3s, max: 5s */
 #define AT_DEV_BUF_SIZE         (2048)          /* The size of the buffer for all incoming data from modem */
 #define AT_DEV_RESP_SIZE        (2048)          /* The size of the buffer to answer the command from the modem */
@@ -187,7 +187,7 @@ int unwired_recv(WOLFSSL *ssl, char *buf, int sz, void *ctx) {
 
     int res;
 
-    printf("[Socket] Recv: ");
+    printf("[Socket] Recv\n");
 
     if (sz <= RECEIVE_MAX_LEN) {
         /* Receive data up to RECEIVE_MAX_LEN bytes in size */
@@ -196,7 +196,12 @@ int unwired_recv(WOLFSSL *ssl, char *buf, int sz, void *ctx) {
                                (uint8_t*)buf,
                                sz);
 
-        printf("%i\n", res);
+        if (res < 0) {
+            printf("[DEBUG] RECV ERROR: %i\n", res);
+
+            return res;
+        }
+
         return res;
     } else {
         /* Receiving data larger than RECEIVE_MAX_LEN bytes */
@@ -246,10 +251,18 @@ int unwired_send(WOLFSSL *ssl, char *buf, int sz, void *ctx) {
 
     printf("[Socket] Send\n");
 
-    return sim5300_send(&sim5300_dev,
-                        sockfd, 
-                        (uint8_t*)buf,
-                        sz);
+    int res = sim5300_send(&sim5300_dev,
+                            sockfd, 
+                            (uint8_t*)buf,
+                            sz);
+
+    if (res < 0) {
+        printf("[DEBUG] SEND ERROR: %i\n", res);
+
+        return res;
+    }
+
+    return res;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -388,7 +401,7 @@ int main(void)
 /* END TCP SETUP, BEGIN TLS */
 /*----------------------------------------------------------------------------*/
 
-    wolfSSL_Debugging_ON();
+    // wolfSSL_Debugging_ON();
 
     /* Initialize wolfSSL */
     wolfSSL_Init();

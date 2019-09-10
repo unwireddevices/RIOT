@@ -69,7 +69,7 @@ enum sim5300_error {
     NO_LOCAL_IP_ADDRESS          = -18,     /**< ERROR: No local IP address */
     SIM5300_NOT_ANSWERING        = -19,     /**< ERROR: SIM5300 not answering */
     UNABLE_TO_CREATE_SOCKET      = -20,     /**< ERROR: Unable to create socket */
-    // NO_INTERNET_SETTINGS_FOUND   = -21,     /**< ERROR:  */
+    INVALID_DATA                 = -21,     /**< ERROR: Invalid data */
     // NO_INTERNET_SETTINGS_FOUND   = -22,     /**< ERROR:  */
     // NO_INTERNET_SETTINGS_FOUND   = -23,     /**< ERROR:  */
     // NO_INTERNET_SETTINGS_FOUND   = -24,     /**< ERROR:  */
@@ -565,6 +565,7 @@ int sim5300_ping_request(sim5300_dev_t          *sim5300_dev,
  * @returns     SEND_CMD_ERROR         - ERROR: at_send_cmd() != 0
  * @returns     READLINE_ERROR         - ERROR: at_readline() < 0
  * @returns     UNKNOWN_RESP           - ERROR: Unknown response
+ * @returns     TIMEOUT_EXPIRED        - ERROR: Timeout expired
  */
 int sim5300_start_up_multi_ip_up_connection(sim5300_dev_t *sim5300_dev,
                                             uint8_t        n,
@@ -596,6 +597,7 @@ int sim5300_start_up_multi_ip_up_connection(sim5300_dev_t *sim5300_dev,
  * @returns     READLINE_ERROR         - ERROR: at_readline() < 0
  * @returns     PARSE_ERROR            - ERROR: sscanf() != desired number of variables
  * @returns     NOT_IMPLEMENTED        - ERROR: Not implemented 
+ * @returns     UNKNOWN_RESP           - ERROR: Unknown response
  * @returns     UNDEFINED_ERROR        - ERROR: Undefined error 
  */
 int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
@@ -621,6 +623,7 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
  * @returns     ARGUMENT_RANGE_ERROR   - ERROR: Invalid argument value
  * @returns     ARGUMENT_NULL_ERROR    - ERROR: Pointer to function argument == NULL
  * @returns     SEND_CMD_ERROR         - ERROR: at_send_cmd() != 0
+ * @returns     INVALID_DATA           - ERROR: Invalid data
  * @returns     UNKNOWN_RESP           - ERROR: Unknown response
  * @returns     TIMEOUT_EXPIRED        - ERROR: Timeout expired
  */

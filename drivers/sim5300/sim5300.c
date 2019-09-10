@@ -1301,6 +1301,7 @@ int sim5300_ping_request(sim5300_dev_t          *sim5300_dev,
  * @returns     SEND_CMD_ERROR         - ERROR: at_send_cmd() != 0
  * @returns     READLINE_ERROR         - ERROR: at_readline() < 0
  * @returns     UNKNOWN_RESP           - ERROR: Unknown response
+ * @returns     TIMEOUT_EXPIRED        - ERROR: Timeout expired
  */
 int sim5300_start_up_multi_ip_up_connection(sim5300_dev_t *sim5300_dev,
                                             uint8_t        n,
@@ -1312,7 +1313,7 @@ int sim5300_start_up_multi_ip_up_connection(sim5300_dev_t *sim5300_dev,
         puts("sim5300_dev = NULL");
 
         return SIM5300_DEV_ERROR;
-    }   
+    }
 
     /* Test n */
     if (n > 7) {
@@ -1358,13 +1359,10 @@ int sim5300_start_up_multi_ip_up_connection(sim5300_dev_t *sim5300_dev,
 
     /* Send AT command */
     at_drain(&sim5300_dev->at_dev);
-    int res = at_send_cmd(&sim5300_dev->at_dev, cmd_CIPSTART, 5000000);
+    int res = at_send_cmd(&sim5300_dev->at_dev, cmd_CIPSTART, 15000000);
     if (res != SIM5300_OK) {
         return SEND_CMD_ERROR;
     }
-
-    /* Wait 5 sec for start TCP connection */
-    rtctimers_millis_sleep(5000);
 
     /* Read string with OK */
     res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
@@ -1380,31 +1378,37 @@ int sim5300_start_up_multi_ip_up_connection(sim5300_dev_t *sim5300_dev,
         return UNKNOWN_RESP;
     }
 
-    /* Read empty string */
-    res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
-    DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
-
-    /* Check read len string */
-    if (res != 0) {
-        return READLINE_ERROR;
-    }
-
     /* Create resp string for compare */
     char connect_ok[15];
     snprintf(connect_ok, 15, "%i, CONNECT OK", n);
 
-    res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
-    DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
-    
-    /* Check read len string */
-    if (res != 13) {
-        return READLINE_ERROR;
-    }
+    /* Get time now */
+    uint32_t time_now = rtctimers_millis_now();
+    DEBUG("time_now: %lu\n", time_now);
 
-    /* Validation of the answer */
-    if (strcmp(sim5300_dev->at_dev_resp, connect_ok) != 0) {
-        return UNKNOWN_RESP;
-    }
+    do {
+        /* Check time */
+        if ((rtctimers_millis_now() - time_now) > 15000) {
+            return TIMEOUT_EXPIRED;
+        }
+
+        /* Wait 50 ms for start TCP connection */
+        rtctimers_millis_sleep(50);
+
+        /* Read string */
+        res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
+        DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+
+        /* Check read len string */
+        if (res == 13) {
+            /* Validation of the answer */
+            if (strcmp(sim5300_dev->at_dev_resp, connect_ok) != 0) {
+                return UNKNOWN_RESP;
+            } else {
+                break;
+            }
+        }
+    } while (res >= 0);
 
     printf("[SIM5300] Start %s connect %i to %s:%s\n", mode, n, address, port);
 
@@ -1435,6 +1439,7 @@ int sim5300_start_up_multi_ip_up_connection(sim5300_dev_t *sim5300_dev,
  * @returns     READLINE_ERROR         - ERROR: at_readline() < 0
  * @returns     PARSE_ERROR            - ERROR: sscanf() != desired number of variables
  * @returns     NOT_IMPLEMENTED        - ERROR: Not implemented 
+ * @returns     UNKNOWN_RESP           - ERROR: Unknown response
  * @returns     UNDEFINED_ERROR        - ERROR: Undefined error 
  */
 int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
@@ -1501,10 +1506,13 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
             /* Create command */
             snprintf(cmd_CIPRXGET, 32, "AT+CIPRXGET=%i,%i,%i", mode, n, data_size);
 
+            /* Sleep on 50 ms */
+            rtctimers_millis_sleep(50);
+
             /* Send AT command */
             at_drain(&sim5300_dev->at_dev);
             res = at_send_cmd(&sim5300_dev->at_dev, cmd_CIPRXGET, SIM5300_MAX_TIMEOUT);
-            if (res != 0) {
+            if (res != 0) {    
                 return SEND_CMD_ERROR;
             }
 
@@ -1550,30 +1558,27 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
             /* Copy received data */
             receive_length = at_recv_bytes(&sim5300_dev->at_dev, (char*)data_for_receive, receive_length, SIM5300_MAX_TIMEOUT);
 
-            /* TODO: Uncomment */
-            // /* Read empty string */ 
-            // res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
-            // DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+            /* Read empty string */ 
+            res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
+            DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
 
             /* Check read len string */
-            // if (res != 0) {
-            //     return READLINE_ERROR;
-            // }
+            if (res != 0) {
+                return READLINE_ERROR;
+            }
 
-            /* TODO: Uncomment */
-            // /* Read string with OK */
-            // res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
-            // DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
-            // /* Check read len string */
-            // if (res != 2) {
-            //     return READLINE_ERROR;
-            // }
+            /* Read string with OK */
+            res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
+            DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+            /* Check read len string */
+            if (res != 2) {
+                return READLINE_ERROR;
+            }
 
-            /* TODO: Uncomment */
-            // /* Validation of the answer */
-            // if (strcmp(sim5300_dev->at_dev_resp, "OK") != 0) {
-            //     return -12;
-            // }
+            /* Validation of the answer */
+            if (strcmp(sim5300_dev->at_dev_resp, "OK") != 0) {
+                return UNKNOWN_RESP;
+            }
 
 #if ENABLE_DEBUG_DATA == 1
             /* Debug data */
@@ -1614,6 +1619,7 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
  * @returns     ARGUMENT_RANGE_ERROR   - ERROR: Invalid argument value
  * @returns     ARGUMENT_NULL_ERROR    - ERROR: Pointer to function argument == NULL
  * @returns     SEND_CMD_ERROR         - ERROR: at_send_cmd() != 0
+ * @returns     INVALID_DATA           - ERROR: Invalid data
  * @returns     UNKNOWN_RESP           - ERROR: Unknown response
  * @returns     TIMEOUT_EXPIRED        - ERROR: Timeout expired
  */
@@ -1661,13 +1667,13 @@ int sim5300_send_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
     /* Send data */
     at_send_bytes(&sim5300_dev->at_dev, (char*)data_for_send, data_size);
 
-    // /* Check on valid data */
-    // res = at_recv_bytes(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, data_size + 4, 3000000);
-    // if ((!(memcmp(sim5300_dev->at_dev_resp, "> ", 2) == 0)) && (!(memcmp((uint8_t*)(sim5300_dev->at_dev_resp) + 2, data_for_send, data_size) == 0))) {
-    //     puts("[SIM5300] Data for send don't valid");
+    /* Check on valid data */
+    res = at_recv_bytes(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, data_size + 4, 3000000);
+    if ((!(memcmp(sim5300_dev->at_dev_resp, "> ", 2) == 0)) && (!(memcmp((uint8_t*)(sim5300_dev->at_dev_resp) + 2, data_for_send, data_size) == 0))) {
+        puts("[SIM5300] Data for send don't valid");
 
-    //     return false;
-    // } 
+        return INVALID_DATA;
+    } 
 
     // TODO: TIME ON EXIT on rtctimers_millis_now
     for (uint16_t i = 0; i < 500; i++) {

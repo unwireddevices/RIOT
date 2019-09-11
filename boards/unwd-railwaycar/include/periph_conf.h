@@ -90,6 +90,9 @@ static const timer_conf_t timer_config[] = {
 #define RTT_FREQUENCY       (1024)
 /** @} */
 
+#define LPTIMER_HZ          RTT_FREQUENCY
+#define LPTIMER_MAX_VALUE   RTT_MAX_VALUE
+
 /**
  * @name    NFC antenna connection pins
  * @{

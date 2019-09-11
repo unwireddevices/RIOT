@@ -4,11 +4,11 @@ APPLICATION = tele2med_wolf
 RIOTBASE ?= $(CURDIR)/../..
 
 # If no BOARD is found in the environment, use this default:
-BOARD ?= unwd-tele2med
+BOARD ?= unwd-railwaycar
 
 # Include packages that pull up and auto-init the link layer.
 # NOTE: 6LoWPAN will be included if IEEE802.15.4 devices are present
-USEMODULE += gnrc_netdev_default
+# USEMODULE += gnrc_netdev_default
 USEMODULE += auto_init_gnrc_netif
 # Specify the mandatory networking modules for IPv6 and UDP
 USEMODULE += gnrc_ipv6_default
@@ -19,7 +19,7 @@ USEMODULE += shell
 USEMODULE += shell_commands
 
 USEMODULE += sim5300
-USEMODULE += rtctimers-millis
+# USEMODULE += rtctimers-millis
 USEMODULE += at
 
 USEMODULE += od
@@ -33,6 +33,10 @@ USEMODULE += wolfssl_dtls
 
 FEATURES_REQUIRED += periph_status
 FEATURES_REQUIRED += periph_status_extended
+
+# FIX
+FEATURES_REQUIRED += periph_rtt
+USEMODULE += lptimer
 
 #CFLAGS+=-g -ggdb3
 CFLAGS += -DNO_RIOT_BANNER
@@ -61,6 +65,6 @@ include $(RIOTBASE)/Makefile.include
 .PHONY: all
 all: 
 	@echo "File $(APPLICATION).elf copy to flasher"
-	@cp $(ELFFILE) flasher
+	@cp $(ELFFILE) flasher/firmware.elf
 	@echo "File $(APPLICATION).hex copy to flasher"
-	@cp $(HEXFILE) flasher 
+	@cp $(HEXFILE) flasher/firmware.hex

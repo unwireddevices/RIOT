@@ -44,7 +44,8 @@
 
 #include "sim5300.h"
 
-#include "rtctimers-millis.h"
+// #include "rtctimers-millis.h"
+#include "lptimer.h"
 
 
 #define ENABLE_DEBUG        (0)
@@ -57,6 +58,8 @@
 
 // #define TIME_ON_CHANGE_BAUDRATE (100)        /* Time on change baudrate */
 
+#define rtctimers_millis_sleep  lptimer_usleep
+#define rtctimers_millis_now    lptimer_now_msec
 
 /*---------------------------------------------------------------------------*/
 /*------------------------ START LOW LEVEL FUNCTION -------------------------*/

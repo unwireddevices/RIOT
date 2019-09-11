@@ -46,17 +46,21 @@
 #include <wolfssl/certs_test.h>
 
 #include "periph/gpio.h"
-#include "rtctimers-millis.h"
+// #include "rtctimers-millis.h"
+#include "lptimer.h"
 #include "sim5300.h"
 
 #include "od.h"
 
 #define SIM5300_TIME_ON         (500)           /* The time of active low level impulse of PWRKEY pin to power on module. Min: 50ms, typ: 100ms */
-#define SIM5300_UART            (T2M_UART_GSM)  /* UART number for modem */
+// #define SIM5300_UART            (T2M_UART_GSM)  /* UART number for modem */
+#define SIM5300_UART            (2)             /* UART number for modem */
 #define SIM5300_BAUDRATE        (19200)         /* UART baudrate for modem*/
 #define SIM5300_TIME_ON_UART    (3000)          /* The time from power-on issue to UART port ready. Min: 3s, max: 5s */
 #define AT_DEV_BUF_SIZE         (2048)          /* The size of the buffer for all incoming data from modem */
 #define AT_DEV_RESP_SIZE        (2048)          /* The size of the buffer to answer the command from the modem */
+
+#define rtctimers_millis_sleep lptimer_usleep
 
 static sim5300_dev_t sim5300_dev;               /* Struct for SIM5300 */
 
@@ -270,17 +274,17 @@ int unwired_send(WOLFSSL *ssl, char *buf, int sz, void *ctx) {
 void sim5300_power_on(void) {
     puts("[SIM5300] Power on");
 
-    /* MODEM_POWER_ENABLE to Hi */
-    gpio_init(T2M_GSMPOWER, GPIO_OUT);
-    gpio_set(T2M_GSMPOWER);
+    // /* MODEM_POWER_ENABLE to Hi */
+    // gpio_init(T2M_GSMPOWER, GPIO_OUT);
+    // gpio_set(T2M_GSMPOWER);
 
-    /* 3G_PWR to Hi on 100 ms*/
-    gpio_init(T2M_GSMENABLE, GPIO_OUT);
-    gpio_set(T2M_GSMENABLE);
+    // /* 3G_PWR to Hi on 100 ms*/
+    // gpio_init(T2M_GSMENABLE, GPIO_OUT);
+    // gpio_set(T2M_GSMENABLE);
 
-    /* 500ms sleep and clear */
-    rtctimers_millis_sleep(SIM5300_TIME_ON);
-    gpio_clear(T2M_GSMENABLE);
+    // /* 500ms sleep and clear */
+    // rtctimers_millis_sleep(SIM5300_TIME_ON);
+    // gpio_clear(T2M_GSMENABLE);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -301,6 +305,20 @@ void sim5300_power_on(void) {
 /*---------------------------------------------------------------------------*/
 int main(void)
 {
+    // puts("HELLO MAIN");
+
+    uart_init(0, 115200, NULL, NULL);
+
+    // uart_write(0, (const uint8_t *)"PIZDEC", 7);
+
+    while(1) {
+        uart_write(0, (const uint8_t *)"PIZDEC", 7);
+
+        LED0_TOGGLE;
+        rtctimers_millis_sleep(1000);
+        // uart_write(0, (const uint8_t *)"PIZDEC", 7);
+    }
+
     int res;
 
     /* SIM5300 power on */
@@ -325,12 +343,6 @@ int main(void)
 
     
     //////// START SOCKET //////////
-    // uint8_t data_for_send[256];
-    // uint8_t data_for_recv[256] = {};
-    // for (uint16_t i = 0; i < 256; i++) {
-    //     data_for_send[i] = i;
-    // }
-
     sockfd = sim5300_socket(&sim5300_dev);
     if (sockfd < SIM5300_OK) {
         printf("Error get socket: %i\n", sockfd);
@@ -350,57 +362,16 @@ int main(void)
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////
-
     puts("Start Tele2Med WolfSSL");
-
-    // int                sockfd = 1;
-    // int                sockfd;
-    // struct sockaddr_in servAddr;
-    // char               buff[22] = "Hello wolfSSL Server!\0";
-    // char               server_ip[10] = "127.0.0.1\0";
-    // size_t             len;
 
     /* declare wolfSSL objects */
     WOLFSSL_CTX* ctx;
     WOLFSSL*     ssl;
 
 /*----------------------------------------------------------------------------*/
-/* TLS Setup:
- * This section will need resolved on a per-device basis depending on the
- * available TCP/IP stack
- */
-/*----------------------------------------------------------------------------*/
-
-    // /* Create a socket that uses an internet IPv4 address,
-    //  * Sets the socket to be stream based (TCP),
-    //  * 0 means choose the default protocol. */
-    // if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-    //     fprintf(stderr, "ERROR: failed to create the socket\n");
-    //     exit(-1);
-    // }
-
-    // /* Initialize the server address struct with zeros */
-    // memset(&servAddr, 0, sizeof(servAddr));
-
-    // /* Fill in the server address */
-    // servAddr.sin_family = AF_INET;             /* using IPv4      */
-    // servAddr.sin_port   = htons(DEFAULT_PORT); /* on DEFAULT_PORT */
-
-    // /* Get the server IPv4 address from the command line call */
-    // if (inet_pton(AF_INET, server_ip, &servAddr.sin_addr) != 1) {
-    //     fprintf(stderr, "ERROR: invalid address\n");
-    //     exit(-1);
-    // }
-
-    // /* Connect to the server */
-    // if (connect(sockfd, (struct sockaddr*) &servAddr, sizeof(servAddr)) == -1) {
-    //     fprintf(stderr, "ERROR: failed to connect\n");
-    //     exit(-1);
-    // }
-/*----------------------------------------------------------------------------*/
 /* END TCP SETUP, BEGIN TLS */
 /*----------------------------------------------------------------------------*/
-
+    /* On debug */
     // wolfSSL_Debugging_ON();
 
     /* Initialize wolfSSL */

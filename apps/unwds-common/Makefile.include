@@ -145,7 +145,7 @@ USEMODULE += random
 USEMODULE += hashes
 USEMODULE += checksum
 USEMODULE += lptimer
-USEMODULE += periph_uart_dma_tx
+# USEMODULE += periph_uart_dma_tx
 
 USEMODULE += sx127x
 

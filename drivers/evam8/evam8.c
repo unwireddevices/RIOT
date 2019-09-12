@@ -319,25 +319,40 @@ static void *reader(void *arg) {
         
         i2c_acquire(dev->params.i2c_dev);
         res = i2c_read_regs(dev->params.i2c_dev, EVAM8_I2C_ADDR, EVAM8_I2C_REG_DATA_AVAIL, &bytes_ready, 2, 0);
-        
-        if (bytes_ready > EVAM8_RXBUF_SIZE_BYTES) {
-            bytes_ready = EVAM8_RXBUF_SIZE_BYTES;
-        }
 
         if ((res == 0) && (bytes_ready != 0)) {
-            res = i2c_read_regs(dev->params.i2c_dev, EVAM8_I2C_ADDR, EVAM8_I2C_REG_DATA_AVAIL, &nmea_buf, bytes_ready, 0);
+            int k = 0;
             
-            if (res != 0) {
-                DEBUG("[evam8] %s", nmea_buf);
-                
-                int nmea_msg_start = 0;
-                
-                for (int i = 0; i < bytes_ready; i++) {
-                    if (nmea_buf[i] == 0xFF) {
-                        break;
-                    }
+            /* reading data in 16b chunks */
+            /* if there's no more data, 0xFF will be read */
+            do {
+                res = i2c_read_regs(dev->params.i2c_dev, EVAM8_I2C_ADDR, EVAM8_I2C_REG_DATA_DATA, &nmea_buf[16*k], 16, 0);
+                k++;
+            } while ((k < EVAM8_RXBUF_SIZE_BYTES/16) && (nmea_buf[16*k - 1] != 0xFF));
+            
+            /* set end of string by replacing first 0xFF */
+            for (int i = 0; i < 16; i++) {
+                if (nmea_buf[16*(k - 1) + i] == 0xFF) {
+                    nmea_buf[16*(k - 1) + i] = 0;
+                    break;
+                }
+            }
 
-                    if (nmea_buf[i] == EVAM8_EOL) {
+            DEBUG("[evam8] %s\n", nmea_buf);
+            
+            int nmea_msg_start = 0;
+            
+            for (int i = 0; i < EVAM8_RXBUF_SIZE_BYTES; i++) {
+                if (nmea_buf[i] == 0) {
+                    break;
+                }
+
+                if (nmea_buf[i] == EVAM8_EOL) {
+                    while ((nmea_buf[nmea_msg_start] != '$') && (nmea_msg_start < i)) {
+                        nmea_msg_start++;
+                    }
+                    
+                    if (nmea_msg_start < i) {
                         if (nmea_crc_check(&nmea_buf[nmea_msg_start])) {
                             dev->ready = true;
                             
@@ -348,8 +363,10 @@ static void *reader(void *arg) {
                         } else {
                             DEBUG("[evam8] NMEA CRC error\n");
                         }
-                        nmea_msg_start = i+1;
+                    } else {
+                        DEBUG("[evam8] No NMEA message\n");
                     }
+                    nmea_msg_start = i+1;
                 }
             }
         }

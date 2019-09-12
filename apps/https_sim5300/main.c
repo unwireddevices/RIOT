@@ -305,18 +305,16 @@ void sim5300_power_on(void) {
 /*---------------------------------------------------------------------------*/
 int main(void)
 {
-    // puts("HELLO MAIN");
+    // puts("TEST");
 
     uart_init(0, 115200, NULL, NULL);
 
-    // uart_write(0, (const uint8_t *)"PIZDEC", 7);
+    // uart_write(0, (const uint8_t *)"TEST\n", 5);
 
     while(1) {
-        uart_write(0, (const uint8_t *)"PIZDEC", 7);
-
+        uart_write(0, (const uint8_t *)"TEST\n", 5);
         LED0_TOGGLE;
         rtctimers_millis_sleep(1000);
-        // uart_write(0, (const uint8_t *)"PIZDEC", 7);
     }
 
     int res;

@@ -81,9 +81,16 @@ ssize_t at_recv_bytes(at_dev_t *dev, char *bytes, size_t len, uint32_t timeout)
     return (resp_pos - bytes);
 }
 
+// TODO: DELETE
+#include "stdio.h"
+
 int at_send_cmd(at_dev_t *dev, const char *command, uint32_t timeout)
 {
     size_t cmdlen = strlen(command);
+
+    // TODO: DELETE
+    uint8_t *cmd = (uint8_t *)command;
+    printf("(%d)%x %x",cmdlen, cmd[0], cmd[1]);
 
     uart_write(dev->uart, (const uint8_t *)command, cmdlen);
     uart_write(dev->uart, (const uint8_t *)AT_SEND_EOL, AT_SEND_EOL_LEN);

@@ -129,18 +129,30 @@ static const uart_conf_t uart_config[] = {
         .tx_pin   = GPIO_PIN(0, 22),
         .rx_mode  = GPIO_IN_PU,
         .tx_mode  = GPIO_OUT,
+        .irqn     = UARTE0_UART0_IRQn,
+        .rts_pin  = (uint8_t)GPIO_UNDEF,
+        .cts_pin  = (uint8_t)GPIO_UNDEF,
+        .dev      = NRF_UARTE0,
     },
     {
         .rx_pin   = GPIO_PIN(0, 12),
         .tx_pin   = GPIO_PIN(0, 13),
         .rx_mode  = GPIO_IN_PU,
         .tx_mode  = GPIO_OUT,
+        .irqn     = UARTE0_UART0_IRQn,
+        .rts_pin  = (uint8_t)GPIO_UNDEF,
+        .cts_pin  = (uint8_t)GPIO_UNDEF,
+        .dev      = NRF_UARTE0,
     },
     {
-        .rx_pin   = GPIO_PIN(0, 19),
-        .tx_pin   = GPIO_PIN(0, 20),
+        .rx_pin   = GPIO_PIN(0, 20),
+        .tx_pin   = GPIO_PIN(0, 19),
         .rx_mode  = GPIO_IN_PU,
         .tx_mode  = GPIO_OUT,
+        .irqn     = UARTE0_UART0_IRQn,
+        .rts_pin  = (uint8_t)GPIO_UNDEF,
+        .cts_pin  = (uint8_t)GPIO_UNDEF,
+        .dev      = NRF_UARTE0,
     }
 };
 

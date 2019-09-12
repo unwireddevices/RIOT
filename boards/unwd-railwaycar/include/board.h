@@ -66,8 +66,8 @@ extern "C" {
 #define RWCAR_GPS_ENABLE    GPIO_PIN(0, 16)
 #define RWCAR_GSM_POWER     GPIO_PIN(0, 17)
 #define RWCAR_GSM_ENABLE    GPIO_PIN(0, 18)
-#define RWCAR_GSM_RX        GPIO_PIN(0, 19)
-#define RWCAR_GSM_TX        GPIO_PIN(0, 20)
+#define RWCAR_GSM_TX        GPIO_PIN(0, 19)
+#define RWCAR_GSM_RX        GPIO_PIN(0, 20)
 #define RWCAR_SHELL_TX      GPIO_PIN(0, 22)
 #define RWCAR_SHELL_RX      GPIO_PIN(0, 23)
 

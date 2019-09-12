@@ -90,6 +90,28 @@ static inline void nrf52_sleep(void)
     __asm("nop");
 }
 
+/* UICR register manipulation */
+#define UICR_REGISTER(REG)      (((uint32_t)&REG - (uint32_t)&NRF_UICR->CUSTOMER[0])/4) /* not counting reserved addresses */
+#define UICR_NUM_REGISTERS      (UICR_REGISTER(NRF_UICR->NFCPINS) + 1) /* NFCPINS is the last UICR register */
+
+/**
+ * @brief   Modify data in UICR registers
+ * @param[in] reg_num   UICR Customer register address (UICR_REGISTER(NRF_UICR->CUSTOMER[x]))
+ * @param[in] data      data array pointer
+ * @param[in] len32     data length in 32-bit words
+ *
+ * NB: it uses dynamic memory allocation!
+ */
+void nrf52_uicr_modify_data(uint32_t reg_num, uint32_t *data, uint32_t len32);
+
+/**
+ * @brief   Read data from UICR registers
+ * @param[in] reg_num   UICR Customer register address (UICR_REGISTER(NRF_UICR->CUSTOMER[x]))
+ * @param[in] data      data array pointer
+ * @param[in] len32     data length in 32-bit words
+ */
+void nrf52_uicr_read_data(uint32_t reg_num, uint32_t *data, uint32_t len32);
+
 #ifdef __cplusplus
 }
 #endif

@@ -28,6 +28,10 @@
 #include "periph_conf.h"
 #include "periph/init.h"
 
+/* these are needed for UICR manipulation only */
+#include <stdlib.h>
+#include <string.h>
+
 static bool errata_12(void);
 static bool errata_16(void);
 static bool errata_31(void);
@@ -145,14 +149,31 @@ void cpu_init(void)
     #if defined (CONFIG_GPIO_AS_PINRESET)
         if (((NRF_UICR->PSELRESET[0] & UICR_PSELRESET_CONNECT_Msk) != (UICR_PSELRESET_CONNECT_Connected << UICR_PSELRESET_CONNECT_Pos)) ||
             ((NRF_UICR->PSELRESET[1] & UICR_PSELRESET_CONNECT_Msk) != (UICR_PSELRESET_CONNECT_Connected << UICR_PSELRESET_CONNECT_Pos))){
-            NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen << NVMC_CONFIG_WEN_Pos;
-            while (NRF_NVMC->READY == NVMC_READY_READY_Busy){}
-            NRF_UICR->PSELRESET[0] = 21;
-            while (NRF_NVMC->READY == NVMC_READY_READY_Busy){}
-            NRF_UICR->PSELRESET[1] = 21;
-            while (NRF_NVMC->READY == NVMC_READY_READY_Busy){}
-            NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren << NVMC_CONFIG_WEN_Pos;
-            while (NRF_NVMC->READY == NVMC_READY_READY_Busy){}
+                
+            uint32_t pselreset[2] = {21, 21};
+            nrf52_uicr_modify_data(UICR_REGISTER(NRF_UICR->PSELRESET[0]), pselreset, 2);
+            
+            /* Reboot for the new UICR to take effect */
+            NVIC_SystemReset();
+        }
+    #endif
+
+    #if defined (MODULE_PERIPH_NFC)
+        /* Switch P0.9 and P0.10 to NFC mode */
+        if((NRF_UICR->NFCPINS & UICR_NFCPINS_PROTECT_Msk) != UICR_NFCPINS_PROTECT_NFC) {
+            uint32_t nfcpins = NRF_UICR->NFCPINS | UICR_NFCPINS_PROTECT_NFC;
+            nrf52_uicr_modify_data(UICR_REGISTER(NRF_UICR->NFCPINS), &nfcpins, 1);
+            
+            /* Reboot for the new UICR to take effect */
+            NVIC_SystemReset();
+        }
+    #else
+        /* Switch P0.9 and P0.10 to GPIO mode */
+        if((NRF_UICR->NFCPINS & UICR_NFCPINS_PROTECT_Msk) == UICR_NFCPINS_PROTECT_NFC) {
+            uint32_t nfcpins = NRF_UICR->NFCPINS & ~UICR_NFCPINS_PROTECT_NFC;
+            nrf52_uicr_modify_data(UICR_REGISTER(NRF_UICR->NFCPINS), &nfcpins, 1);
+            
+            /* Reboot for the new UICR to take effect */
             NVIC_SystemReset();
         }
     #endif
@@ -341,4 +362,43 @@ static bool errata_182(void)
     }
 
     return false;
+}
+
+void nrf52_uicr_modify_data(uint32_t reg_num, uint32_t *data, uint32_t len32) {
+    /* read-modify-write procedure with dynamic RAM allocation */
+    uint32_t *uicr_data = malloc(UICR_NUM_REGISTERS*sizeof(uint32_t));
+    uint32_t *reg_addr = (uint32_t *)&NRF_UICR->CUSTOMER[0];
+    
+    memcpy((void *)uicr_data, (void *)reg_addr, UICR_NUM_REGISTERS*sizeof(uint32_t));
+    
+    /* modify UICR data */
+    for (uint32_t k = 0; k < len32; k++) {
+        uicr_data[reg_num + k] = data[k];
+    }
+
+    /* erase UICR */
+    NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Een << NVMC_CONFIG_WEN_Pos;
+    while (NRF_NVMC->READY == NVMC_READY_READY_Busy){}
+    NRF_NVMC->ERASEUICR = NVMC_ERASEUICR_ERASEUICR_Erase;
+    while (NRF_NVMC->READY == NVMC_READY_READY_Busy){}
+
+    /* write UICR */
+    NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen << NVMC_CONFIG_WEN_Pos;
+    while (NRF_NVMC->READY == NVMC_READY_READY_Busy){}
+
+    for (uint32_t k = 0; k < UICR_NUM_REGISTERS; k++) {
+        *reg_addr++ = uicr_data[k];
+    }
+    while (NRF_NVMC->READY == NVMC_READY_READY_Busy){}
+
+    /* disable flash write access */
+    NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren << NVMC_CONFIG_WEN_Pos;
+    while (NRF_NVMC->READY == NVMC_READY_READY_Busy){}
+    
+    free(uicr_data);
+}
+
+void nrf52_uicr_read_data(uint32_t reg_num, uint32_t *data, uint32_t len32) {
+    uint32_t *reg_addr = (uint32_t *)&NRF_UICR->CUSTOMER[0];
+    memcpy((void *)data, (void *)(reg_addr + reg_num), len32*sizeof(uint32_t));
 }

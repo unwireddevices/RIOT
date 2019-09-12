@@ -402,12 +402,6 @@ uint8_t nfc_set_uid(uint8_t * uid, nrf_nfc_id_size_t size, nrf_nfc_type_tag_t ta
 
 void nfc_init(void)
 {
-     /* Checking setting of pins dedicated to NFC functionality */
-    if((NRF_UICR->NFCPINS & UICR_NFCPINS_PROTECT_Msk) != UICR_NFCPINS_PROTECT_NFC) {
-         /* Setting of pins dedicated to NFC functionality */
-        NRF_UICR->NFCPINS |= (0x1UL << UICR_NFCPINS_PROTECT_Pos);
-    }
-    
     /*  Disable NFC peripheral */
 	nrf_nfc_task(&NRF_NFCT->TASKS_DISABLE);
   

@@ -182,6 +182,25 @@ void cpu_init(void)
     /* switch to DC/DC */
     NRF_POWER->DCDCEN = POWER_DCDCEN_DCDCEN_Enabled << POWER_DCDCEN_DCDCEN_Pos;
 
+#ifdef MODULE_PERIPH_NFC
+    /* Switch P0.9 and P0.10 to NFC mode */
+    if((NRF_UICR->NFCPINS & UICR_NFCPINS_PROTECT_Msk) != UICR_NFCPINS_PROTECT_NFC) {
+        NRF_UICR->NFCPINS |= (0x1UL << UICR_NFCPINS_PROTECT_Pos);
+
+        /* Reboot for the new settings to take effect */
+        NVIC_SystemReset();
+    }
+#else
+    /* Switch P0.9 and P0.10 to GPIO mode */
+    if((NRF_UICR->NFCPINS & UICR_NFCPINS_PROTECT_Msk) == UICR_NFCPINS_PROTECT_NFC) {
+         /* Setting of pins dedicated to NFC functionality */
+        NRF_UICR->NFCPINS &= ~(0x1UL << UICR_NFCPINS_PROTECT_Pos);
+
+        /* Reboot for the new settings to take effect */
+        NVIC_SystemReset();
+    }
+#endif
+
     /* trigger static peripheral initialization */
     periph_init();
     

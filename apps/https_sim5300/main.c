@@ -55,7 +55,7 @@
 #define SIM5300_TIME_ON         (500)           /* The time of active low level impulse of PWRKEY pin to power on module. Min: 50ms, typ: 100ms */
 // #define SIM5300_UART            (T2M_UART_GSM)  /* UART number for modem */
 #define SIM5300_UART            (2)             /* UART number for modem */
-#define SIM5300_BAUDRATE        (19200)         /* UART baudrate for modem*/
+#define SIM5300_BAUDRATE        (115200)        /* UART baudrate for modem*/
 #define SIM5300_TIME_ON_UART    (3000)          /* The time from power-on issue to UART port ready. Min: 3s, max: 5s */
 #define AT_DEV_BUF_SIZE         (2048)          /* The size of the buffer for all incoming data from modem */
 #define AT_DEV_RESP_SIZE        (2048)          /* The size of the buffer to answer the command from the modem */
@@ -274,17 +274,17 @@ int unwired_send(WOLFSSL *ssl, char *buf, int sz, void *ctx) {
 void sim5300_power_on(void) {
     puts("[SIM5300] Power on");
 
-    // /* MODEM_POWER_ENABLE to Hi */
-    // gpio_init(T2M_GSMPOWER, GPIO_OUT);
-    // gpio_set(T2M_GSMPOWER);
+    /* MODEM_POWER_ENABLE to Hi */
+    gpio_init(RWCAR_GSM_POWER, GPIO_OUT);
+    gpio_set(RWCAR_GSM_POWER);
 
-    // /* 3G_PWR to Hi on 100 ms*/
-    // gpio_init(T2M_GSMENABLE, GPIO_OUT);
-    // gpio_set(T2M_GSMENABLE);
+    /* 3G_PWR to Hi on 100 ms*/
+    gpio_init(RWCAR_GSM_ENABLE, GPIO_OUT);
+    gpio_set(RWCAR_GSM_ENABLE);
 
-    // /* 500ms sleep and clear */
-    // rtctimers_millis_sleep(SIM5300_TIME_ON);
-    // gpio_clear(T2M_GSMENABLE);
+    /* 500ms sleep and clear */
+    rtctimers_millis_sleep(SIM5300_TIME_ON);
+    gpio_clear(RWCAR_GSM_ENABLE);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -294,8 +294,8 @@ void sim5300_power_on(void) {
 //     uart_poweroff(at_dev.uart);
 
 //     /* T2M_GSMPOWER to Low */
-//     gpio_init(T2M_GSMPOWER, GPIO_OUT);
-//     gpio_clear(T2M_GSMPOWER);
+//     gpio_init(RWCAR_GSM_POWER, GPIO_OUT);
+//     gpio_clear(RWCAR_GSM_POWER);
 
 //     /* Modem is not initialized */
 //     sim_status.modem = MODEM_NOT_INITIALIZED;
@@ -305,18 +305,6 @@ void sim5300_power_on(void) {
 /*---------------------------------------------------------------------------*/
 int main(void)
 {
-    // puts("TEST");
-
-    uart_init(0, 115200, NULL, NULL);
-
-    // uart_write(0, (const uint8_t *)"TEST\n", 5);
-
-    while(1) {
-        uart_write(0, (const uint8_t *)"TEST\n", 5);
-        LED0_TOGGLE;
-        rtctimers_millis_sleep(1000);
-    }
-
     int res;
 
     /* SIM5300 power on */
@@ -329,6 +317,8 @@ int main(void)
     res = sim5300_init(&sim5300_dev, SIM5300_UART, SIM5300_BAUDRATE, at_dev_buf, AT_DEV_RESP_SIZE, at_dev_resp, AT_DEV_RESP_SIZE);
     if (res != SIM5300_OK) {
         puts("sim5300_init ERROR");
+
+        return -1;
     } 
 
     /* Set internet settings SIM5300 */
@@ -337,8 +327,8 @@ int main(void)
         puts("[SIM5300] Set internet settings OK");
     } else {
         puts("[SIM5300] Set internet settings ERROR");
+        return -1;
     }
-
     
     //////// START SOCKET //////////
     sockfd = sim5300_socket(&sim5300_dev);

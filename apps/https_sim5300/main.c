@@ -51,11 +51,10 @@
 #include "sim5300.h"
 
 #include "od.h"
-
 #define SIM5300_TIME_ON         (500)           /* The time of active low level impulse of PWRKEY pin to power on module. Min: 50ms, typ: 100ms */
 // #define SIM5300_UART            (T2M_UART_GSM)  /* UART number for modem */
 #define SIM5300_UART            (2)             /* UART number for modem */
-#define SIM5300_BAUDRATE        (115200)        /* UART baudrate for modem*/
+#define SIM5300_BAUDRATE        (STDIO_UART_BAUDRATE)   /* UART baudrate for modem*/
 #define SIM5300_TIME_ON_UART    (3000)          /* The time from power-on issue to UART port ready. Min: 3s, max: 5s */
 #define AT_DEV_BUF_SIZE         (2048)          /* The size of the buffer for all incoming data from modem */
 #define AT_DEV_RESP_SIZE        (2048)          /* The size of the buffer to answer the command from the modem */
@@ -305,6 +304,11 @@ void sim5300_power_on(void) {
 /*---------------------------------------------------------------------------*/
 int main(void)
 {
+    // gpio_init(RWCAR_GSM_RX, GPIO_OUT);
+    // gpio_set(RWCAR_GSM_RX);
+
+    // while(1);
+
     int res;
 
     /* SIM5300 power on */
@@ -360,7 +364,7 @@ int main(void)
 /* END TCP SETUP, BEGIN TLS */
 /*----------------------------------------------------------------------------*/
     /* On debug */
-    // wolfSSL_Debugging_ON();
+    wolfSSL_Debugging_ON();
 
     /* Initialize wolfSSL */
     wolfSSL_Init();

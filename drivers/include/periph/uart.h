@@ -64,29 +64,29 @@ extern "C" {
  * @brief   Define default UART TX buffer size for non-blocking DMA operations
  */
 #if !defined(PERIPH_UART_TX_BUFFER_SIZE)
-#define PERIPH_UART_TX_BUFFER_SIZE      64
-#endif
+    #define PERIPH_UART_TX_BUFFER_SIZE      (64)
+#endif /* if !defined(PERIPH_UART_TX_BUFFER_SIZE) */
 
 /**
  * @brief   Define default UART type identifier
  */
-#ifndef HAVE_UART_T
-typedef unsigned int uart_t;
-#endif
+#if !defined(HAVE_UART_T)
+    typedef unsigned int uart_t;
+#endif /* if !defined(HAVE_UART_T) */
 
 /**
  * @brief   Default UART undefined value
  */
-#ifndef UART_UNDEF
-#define UART_UNDEF          (UINT_MAX)
-#endif
+#if !defined(UART_UNDEF)
+    #define UART_UNDEF          (UINT_MAX)
+#endif /* if !defined(UART_UNDEF) */
 
 /**
  * @brief   Default UART device access macro
  */
-#ifndef UART_DEV
-#define UART_DEV(x)         (x)
-#endif
+#if !defined(UART_DEV)
+    #define UART_DEV(x)         (x)
+#endif /* !defined(UART_DEV) */
 
 /**
  * @brief   Signature for receive interrupt callback
@@ -99,12 +99,12 @@ typedef void(*uart_rx_cb_t)(void *arg, uint8_t data);
 /**
  * @brief   Interrupt context for a UART device
  */
-#ifndef HAVE_UART_ISR_CTX_T
-typedef struct {
-    uart_rx_cb_t rx_cb;     /**< data received interrupt callback */
-    void *arg;              /**< argument to both callback routines */
-} uart_isr_ctx_t;
-#endif
+#if !defined(HAVE_UART_ISR_CTX_T)
+    typedef struct {
+        uart_rx_cb_t rx_cb;     /**< data received interrupt callback */
+        void *arg;              /**< argument to both callback routines */
+    } uart_isr_ctx_t;
+#endif /* if !defined(HAVE_UART_ISR_CTX_T) */
 
 /**
  * @brief   Possible UART return values
@@ -120,38 +120,38 @@ enum {
 /**
  * @brief   Definition of possible parity modes
  */
-#ifndef HAVE_UART_PARITY_T
-typedef enum {
-   UART_PARITY_NONE,   /**< no parity */
-   UART_PARITY_EVEN,   /**< even parity */
-   UART_PARITY_ODD,    /**< odd parity */
-   UART_PARITY_MARK,   /**< mark parity */
-   UART_PARITY_SPACE   /**< space parity */
-} uart_parity_t;
-#endif
+#if !defined(HAVE_UART_PARITY_T)
+    typedef enum {
+        UART_PARITY_NONE,   /**< no parity */
+        UART_PARITY_EVEN,   /**< even parity */
+        UART_PARITY_ODD,    /**< odd parity */
+        UART_PARITY_MARK,   /**< mark parity */
+        UART_PARITY_SPACE   /**< space parity */
+    } uart_parity_t;
+#endif /* if !defined(HAVE_UART_PARITY_T) */
 
 /**
  * @brief   Definition of possible data bits lengths in a UART frame
  */
-#ifndef HAVE_UART_DATA_BITS_T
-typedef enum {
-    UART_DATA_BITS_5,   /**< 5 data bits */
-    UART_DATA_BITS_6,   /**< 6 data bits */
-    UART_DATA_BITS_7,   /**< 7 data bits */
-    UART_DATA_BITS_8,   /**< 8 data bits */
-    UART_DATA_BITS_9,   /**< 9 data bits */
-} uart_data_bits_t;
-#endif
+#if !defined(HAVE_UART_DATA_BITS_T)
+    typedef enum {
+        UART_DATA_BITS_5,   /**< 5 data bits */
+        UART_DATA_BITS_6,   /**< 6 data bits */
+        UART_DATA_BITS_7,   /**< 7 data bits */
+        UART_DATA_BITS_8,   /**< 8 data bits */
+        UART_DATA_BITS_9,   /**< 9 data bits */
+    } uart_data_bits_t;
+#endif /* if !defined(HAVE_UART_DATA_BITS_T) */
 
 /**
  * @brief   Definition of possible stop bits lengths in a UART frame
  */
-#ifndef HAVE_UART_STOP_BITS_T
-typedef enum {
-   UART_STOP_BITS_1,   /**< 1 stop bit */
-   UART_STOP_BITS_2,   /**< 2 stop bits */
-} uart_stop_bits_t;
-#endif
+#if !defined(HAVE_UART_STOP_BITS_T)
+    typedef enum {
+        UART_STOP_BITS_1,   /**< 1 stop bit */
+        UART_STOP_BITS_2,   /**< 2 stop bits */
+    } uart_stop_bits_t;
+#endif /* if !defined(HAVE_UART_STOP_BITS_T) */
 
 /**
  * @brief   Initialize a given UART device
@@ -177,7 +177,10 @@ typedef enum {
  * @return                  UART_NOBAUD on inapplicable baudrate
  * @return                  UART_INTERR on other errors
  */
-int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg);
+int uart_init(uart_t        uart, 
+              uint32_t      baudrate, 
+              uart_rx_cb_t  rx_cb, 
+              void         *arg);
 
 /**
  * @brief   Setup parity, data and stop bits for a given UART device
@@ -190,7 +193,9 @@ int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg);
  * @return                  UART_OK on success
  * @return                  UART_NOMODE on other errors
  */
-int uart_mode(uart_t uart, uart_data_bits_t data_bits, uart_parity_t parity,
+int uart_mode(uart_t           uart, 
+              uart_data_bits_t data_bits, 
+              uart_parity_t    parity,
               uart_stop_bits_t stop_bits);
 
 /**
@@ -205,13 +210,16 @@ int uart_mode(uart_t uart, uart_data_bits_t data_bits, uart_parity_t parity,
  * @param[in] len           number of bytes to send
  *
  */
-void uart_write(uart_t uart, const uint8_t *data, size_t len);
+void uart_write(uart_t         uart, 
+                const uint8_t *data, 
+                size_t         len);
 
 /**
  * @brief   Set given baudrate
  *
  */
-int uart_set_baudrate(uart_t uart, uint32_t baudrate);
+int uart_set_baudrate(uart_t   uart, 
+                      uint32_t baudrate);
 
 /**
  * @brief   Power on the given UART device

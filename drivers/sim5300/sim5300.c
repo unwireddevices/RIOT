@@ -24,14 +24,6 @@
  * @author      Oleg Manchenko <man4enkoos@gmail.com>
  */
 
-// #include <errno.h>
-// #include <string.h>
-
-// #include "fmt.h"
-// #include "isrpipe.h"
-// #include "periph/uart.h"
-// #include "xtimer.h"
-
 #include "stdio.h"
 #include "string.h"
 #include "stdlib.h"
@@ -44,22 +36,16 @@
 
 #include "sim5300.h"
 
-// #include "rtctimers-millis.h"
 #include "lptimer.h"
 
 
-#define ENABLE_DEBUG        (0)
+#define ENABLE_DEBUG        (1)
 #define ENABLE_DEBUG_DATA   (0)
 #include "debug.h"
 
 // #if (ENABLE_DEBUG == 1)
 //     #define ENABLE_DEBUG_DATA (1)
 // #endif
-
-// #define TIME_ON_CHANGE_BAUDRATE (100)        /* Time on change baudrate */
-
-#define rtctimers_millis_sleep  lptimer_usleep
-#define rtctimers_millis_now    lptimer_now_msec
 
 /*---------------------------------------------------------------------------*/
 /*------------------------ START LOW LEVEL FUNCTION -------------------------*/
@@ -910,7 +896,7 @@ int sim5300_set_network_settings(sim5300_dev_t *sim5300_dev,
                                                                                   password);
 
     /* Sleep on 50 ms */
-    rtctimers_millis_sleep(50);
+    lptimer_usleep(50);
 
     /* Send AT command */
     int res = at_send_cmd_wait_ok(&sim5300_dev->at_dev, cmd_with_settings_for_internet, SIM5300_MAX_TIMEOUT);
@@ -1239,7 +1225,7 @@ int sim5300_ping_request(sim5300_dev_t          *sim5300_dev,
     }
 
     /* Sleep on 10000 ms */
-    rtctimers_millis_sleep(10000);
+    lptimer_usleep(10000);
 
     int reply_id_scan;
     int reply_time_scan; 
@@ -1386,17 +1372,17 @@ int sim5300_start_up_multi_ip_up_connection(sim5300_dev_t *sim5300_dev,
     snprintf(connect_ok, 15, "%i, CONNECT OK", n);
 
     /* Get time now */
-    uint32_t time_now = rtctimers_millis_now();
+    uint32_t time_now = lptimer_now_msec();
     DEBUG("time_now: %lu\n", time_now);
 
     do {
         /* Check time */
-        if ((rtctimers_millis_now() - time_now) > 15000) {
+        if ((lptimer_now_msec() - time_now) > 15000) {
             return TIMEOUT_EXPIRED;
         }
 
         /* Wait 50 ms for start TCP connection */
-        rtctimers_millis_sleep(50);
+        lptimer_usleep(50);
 
         /* Read string */
         res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
@@ -1510,7 +1496,7 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
             snprintf(cmd_CIPRXGET, 32, "AT+CIPRXGET=%i,%i,%i", mode, n, data_size);
 
             /* Sleep on 50 ms */
-            rtctimers_millis_sleep(50);
+            lptimer_usleep(50);
 
             /* Send AT command */
             at_drain(&sim5300_dev->at_dev);
@@ -1520,7 +1506,7 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
             }
 
             /* Sleep on 10 ms */
-            rtctimers_millis_sleep(10); 
+            lptimer_usleep(10); 
 
             /* Get response */
             res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
@@ -1560,6 +1546,14 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
 
             /* Copy received data */
             receive_length = at_recv_bytes(&sim5300_dev->at_dev, (char*)data_for_receive, receive_length, SIM5300_MAX_TIMEOUT);
+
+            /* START DEBUG  TODO: DELETE */
+            // unsigned int test = at_recv_bytes(&sim5300_dev->at_dev, (char*)data_for_receive, receive_length, SIM5300_MAX_TIMEOUT);
+            // if (test != receive_length) {
+            //     printf("GAVNOEBANOE: %i != %i\n", test, receive_length);
+            // }
+            // receive_length = test;
+            /* END DEBUG */
 
             /* Read empty string */ 
             res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
@@ -1665,7 +1659,7 @@ int sim5300_send_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
     } 
 
     /* Sleep on 30 ms */
-    rtctimers_millis_sleep(30);
+    lptimer_usleep(30);
 
     /* Send data */
     at_send_bytes(&sim5300_dev->at_dev, (char*)data_for_send, data_size);
@@ -1678,13 +1672,13 @@ int sim5300_send_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
         return INVALID_DATA;
     } 
 
-    // TODO: TIME ON EXIT on rtctimers_millis_now
+    // TODO: TIME ON EXIT on lptimer_now_msec
     for (uint16_t i = 0; i < 500; i++) {
         res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
 
         /* Check read len string */
         if (res != 10) {
-            rtctimers_millis_sleep(10);
+            lptimer_usleep(10);
             continue;
         } 
 
@@ -2192,6 +2186,9 @@ int sim5300_start_internet(sim5300_dev_t               *sim5300_dev,
         return NEED_PASSWORD_FOR_SIM_CARD;
     }
 
+    /* Print message */
+    puts("[SIM5300] Waiting for registration");
+
     /* Have you registered in the cellular network? */
     /* Cycle counter */
     uint8_t counter = 0;
@@ -2212,7 +2209,7 @@ int sim5300_start_internet(sim5300_dev_t               *sim5300_dev,
             }
         }
 
-        rtctimers_millis_sleep(1000);
+        lptimer_usleep(1000);
         counter++;
     } 
     puts("[SIM5300] Registration OK");
@@ -2368,7 +2365,7 @@ int sim5300_communication_test(sim5300_dev_t *sim5300_dev) {
         }
 
         /* Sleep on 500 ms */
-        rtctimers_millis_sleep(500);
+        lptimer_usleep(500);
     }
 
     return UNDEFINED_ERROR;

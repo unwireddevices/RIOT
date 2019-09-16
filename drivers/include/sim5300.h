@@ -27,12 +27,7 @@
 #ifndef SIM5300_H
 #define SIM5300_H
 
-// #include <stdint.h>
-// #include <unistd.h>
 #include <stdbool.h>
-
-// #include "isrpipe.h"
-// #include "periph/uart.h"
 
 #include "at.h"
 

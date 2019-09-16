@@ -148,6 +148,10 @@ void gpio_clear(gpio_t pin)
 
 void gpio_toggle(gpio_t pin)
 {
+    if (pin == GPIO_UNDEF) {
+        return;
+    }
+
     port(pin)->OUT ^= (1 << pin_num(pin));
 }
 

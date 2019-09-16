@@ -24,6 +24,7 @@
  * @author      Jan Wagner <mail@jwagner.eu>
  * @author      Alexandre Abadie <alexandre.abadie@inria.fr>
  * @author      Oleg Artamonov <oleg@unwds.com>
+ * @author      Oleg Manchenko <manchenkoos@gmail.com>
  *
  * @}
  */
@@ -369,7 +370,7 @@ void uart_write(uart_t uart, const uint8_t *data, size_t len)
 #else
     /* Wait for the end of transmission */
     while (dev(uart)->EVENTS_ENDTX == 0) {}
-    
+
     /* Reset endtx flag */
     dev(uart)->EVENTS_ENDTX = 0;
 #endif

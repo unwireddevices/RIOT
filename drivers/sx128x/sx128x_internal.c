@@ -34,10 +34,6 @@
 
 #include "log.h"
 
-//TODO:
-// #define SX127X_SPI_SPEED    (SPI_CLK_1MHZ)
-// #define SX127X_SPI_MODE     (SPI_MODE_0)
-
 /**
  * @brief Define the size of tx and rx hal buffers
  *
@@ -54,7 +50,11 @@ static uint8_t hal_rx_buffer[MAX_HAL_BUFFER_SIZE] = {0x00};
 
 void sx1280_hal_wait_on_busy(const sx128x_t *dev)
 {
-    while(gpio_read(dev->params.busy_pin) == 1);
+    uint16_t timeout = 0xFFFF;
+
+    do {
+        lptimer_sleep(10);
+    } while ((gpio_read(dev->params.busy_pin) != 0x00) && (--timeout));
 }
 
 void sx1280_hal_init(const sx128x_t *dev, dio_irq_handler *irq_handlers)

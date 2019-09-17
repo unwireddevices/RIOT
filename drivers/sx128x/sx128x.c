@@ -77,9 +77,11 @@ static int32_t sx1280_complement2(const int32_t num, const uint8_t bit_cnt)
     return ret_val;
 }
 
-void sx1280_init(const sx128x_t *dev, sx128x_radio_callbacks_t *callbacks)
+void sx1280_init(sx128x_t *dev, const sx128x_params_t *params, sx128x_radio_callbacks_t *callbacks)
 {
     radio_callbacks = callbacks;
+    dev->params = *params;
+
     sx1280_hal_init(dev, dio_irq);
 }
 
@@ -1193,9 +1195,9 @@ void sx1280_process_irqs(const sx128x_t *dev)
 
     if(polling_mode == true) {
         if(irq_state == true) {
-            __disable_irq( );
+            __disable_irq();
             irq_state = false;
-            __enable_irq( );
+            __enable_irq();
         } else {
             return;
         }
@@ -1267,7 +1269,7 @@ void sx1280_process_irqs(const sx128x_t *dev)
             }
             break;
         case SX128X_PACKET_TYPE_LORA:
-            switch( operating_mode )
+            switch(operating_mode)
             {
                 case SX128X_MODE_RX:
                     if((irq_regs & SX128X_IRQ_RX_DONE) == SX128X_IRQ_RX_DONE) {

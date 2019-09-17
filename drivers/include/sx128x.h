@@ -929,10 +929,11 @@ void sx1280_set_ranging_role(const sx128x_t *dev, sx128x_radio_ranging_roles_t r
 /**
  * @brief   Initializes the radio driver
  *
- * @param[in] dev           Pointer to device descriptor
- * @param[in] callbacks     Structure containing the driver callback functions
+ * @param[in/out] dev           Pointer to device descriptor
+ * @param[in]     params        Structure containing the hardware settings
+ * @param[in]     callbacks     Structure containing the driver callback functions
  */
-void sx1280_init(const sx128x_t *dev, sx128x_radio_callbacks_t *callbacks);
+void sx1280_init(sx128x_t *dev, const sx128x_params_t *params, sx128x_radio_callbacks_t *callbacks);
 
 /**
  * @brief Set the driver in polling mode.

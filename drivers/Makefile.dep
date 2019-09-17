@@ -532,6 +532,14 @@ ifneq (,$(filter sx127%,$(USEMODULE)))
   USEMODULE += lora
 endif
 
+ifneq (,$(filter sx128%,$(USEMODULE)))
+  FEATURES_REQUIRED += periph_gpio
+  FEATURES_REQUIRED += periph_gpio_irq
+  FEATURES_REQUIRED += periph_spi
+  USEMODULE += lptimer
+  USEMODULE += sx128x
+endif
+
 ifneq (,$(filter tcs37727,$(USEMODULE)))
   FEATURES_REQUIRED += periph_i2c
 endif

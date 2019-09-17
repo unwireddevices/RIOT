@@ -187,7 +187,7 @@ void isr_lptim1(void)
  * not compatible with regular RTC due to clock settings */
  
 /* F1 doesn't have RTC_SSR, L0, L4, G0, F7, H7 have LPTIMs */
-#elif defined(CPU_FAM_STM32L1) || defined(CPU_FAM_STM32L1) || \
+#elif defined(CPU_FAM_STM32L1) || defined(CPU_FAM_STM32F0) || \
       defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F3) || \
       defined(CPU_FAM_STM32F4)
 

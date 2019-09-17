@@ -142,7 +142,7 @@ sx128x_packet_status_t packet_status;
 void _hw_init( void )
 {
     lptimer_init();
-    gpio_init(LED_TX_PIN, GPIO_OUT);
+    gpio_init(LED_PIN, GPIO_OUT);
 
 }
 

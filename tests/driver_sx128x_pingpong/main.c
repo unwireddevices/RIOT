@@ -7,15 +7,17 @@
 /**
  * @brief Defines the nominal frequency
  */
-//#define RF_FREQUENCY                                    (2404000000UL) // Hz
-
+#ifndef RF_FREQUENCY
+#define RF_FREQUENCY                                    (2404000000UL) // Hz
+#endif
 /**
  * @brief Defines the output power in dBm
  *
  * @remark The range of the output power is [-18..+13] dBm
  */
-//#define TX_OUTPUT_POWER                                 (13)
-
+#ifndef TX_OUTPUT_POWER
+#define TX_OUTPUT_POWER                                 (13)
+#endif
 /**
  * @brief Defines the buffer size, i.e. the payload size
  */
@@ -45,8 +47,7 @@
  * @brief Defines GPIO pin for LED
  * 
  */
-#define LED_TX_PIN                                      (GPIO_PIN(PORT_A, 0))
-#define LED_RX_PIN                                      (GPIO_PIN(PORT_A, 1))
+#define LED_PIN                                         (GPIO_PIN(PORT_A, 15))
 
 /**
  * @brief Defines the states of the application
@@ -142,11 +143,24 @@ void _hw_init( void )
 {
     lptimer_init();
     gpio_init(LED_TX_PIN, GPIO_OUT);
-    gpio_init(LED_RX_PIN, GPIO_OUT);
 
 }
 
-sx128x_t  sx1280_dev;
+static sx128x_t        sx1280_dev;
+static sx128x_params_t sx1280_params;
+
+/** SX1280 GPIO */
+#define SX128X_BUSY                     GPIO_PIN(PORT_B, 8)
+#define SX128X_DIO1                     GPIO_PIN(PORT_B, 0)
+#define SX128X_DIO2                     GPIO_PIN(PORT_B, 1)
+#define SX128X_DIO3                     GPIO_PIN(PORT_B, 2)
+#define SX128X_RESET                    GPIO_PIN(PORT_B, 7)
+
+/** SX1280 SPI */
+#define SX128X_SPI                      SPI_DEV(0)
+#define SX128X_SPI_NSS                  GPIO_PIN(PORT_B, 6)
+#define SX128X_SPI_SPEED                SPI_CLK_1MHZ;
+#define SX128X_SPI_MODE                 SPI_MODE_0;
 
 int main( void )
 {
@@ -158,7 +172,17 @@ int main( void )
     /* let DC/DC power ramp up */
     lptimer_sleep(500);
 
-    sx1280_init(&callbacks);
+    sx1280_params.spi_dev   = SX128X_SPI;
+    sx1280_params.spi_speed = SX128X_SPI_SPEED;
+    sx1280_params.spi_mode  = SX128X_SPI_MODE;
+    sx1280_params.nss_pin   = SX128X_SPI_NSS;
+    sx1280_params.reset_pin = SX128X_RESET;
+    sx1280_params.busy_pin  = SX128X_BUSY;
+    sx1280_params.dio1_pin  = SX128X_DIO1;
+    sx1280_params.dio2_pin  = GPIO_UNDEF;
+    sx1280_params.dio3_pin  = GPIO_UNDEF;
+
+    sx1280_init(&sx1280_dev, &sx1280_params, &callbacks);
 
     /* Can also be set in LDO mode but consume more power */
     sx1280_set_regulator_mode(&sx1280_dev, SX128X_USE_DCDC); 
@@ -168,6 +192,8 @@ int main( void )
     printf("Radio firmware version 0x%x\n", sx1280_get_firmware_version(&sx1280_dev));
 
     printf("Ping Pong running in LORA mode\n");
+
+
     modulation_params.packet_type                  = SX128X_PACKET_TYPE_LORA;
     modulation_params.params.lora.spreading_factor = SX128X_LORA_SF12;
     modulation_params.params.lora.bandwidth        = SX128X_LORA_BW_1600;
@@ -190,8 +216,7 @@ int main( void )
     
     sx1280_set_polling_mode();
 
-    gpio_set(LED_TX_PIN);
-    gpio_set(LED_RX_PIN);
+    gpio_set(LED_PIN);
 
     sx1280_set_dio_irq_params(&sx1280_dev, rx_irq_mask, rx_irq_mask, SX128X_IRQ_RADIO_NONE, SX128X_IRQ_RADIO_NONE);
 
@@ -205,7 +230,7 @@ int main( void )
         {
             case APP_RX:
                 app_state = APP_LOWPOWER;
-                gpio_toggle(LED_RX_PIN);
+                gpio_toggle(LED_PIN);
                 sx1280_get_payload(&sx1280_dev, buffer, &buffer_size, BUFFER_SIZE);
                 sx1280_get_packet_status(&sx1280_dev, &packet_status);
                 if(is_master == true) {
@@ -250,7 +275,7 @@ int main( void )
 
             case APP_TX:
                 app_state = APP_LOWPOWER;
-                gpio_toggle(LED_TX_PIN);
+                gpio_toggle(LED_PIN);
                 if(is_master == true) {
                     printf( "Ping...\r\n" );
                 } else {

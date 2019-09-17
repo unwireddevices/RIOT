@@ -5,6 +5,11 @@
 #include "sx128x_internal.h"
 #include "ranging_correct.h"
 
+#define ENABLE_DEBUG (0)
+#include "debug.h"
+
+#include "log.h"
+
 /**
  * @brief Radio registers definition
  */

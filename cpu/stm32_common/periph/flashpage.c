@@ -100,18 +100,22 @@ static void _erase_page(void *page_addr)
     DEBUG("[flashpage] erase: setting the page address\n");
     CNTRL_REG |= FLASH_CR_PER;
     uint8_t pn;
-#if FLASHPAGE_NUMOF <= 256
-    pn = (uint8_t)flashpage_page(dst);
-#else
-    uint16_t page = flashpage_page(dst);
-    if (page > 255) {
-        CNTRL_REG |= FLASH_CR_BKER;
-    }
-    else {
-        CNTRL_REG &= ~FLASH_CR_BKER;
+
+    if ((cpu_status.flash.size / FLASHPAGE_SIZE) <= 256) {
+        pn = (uint8_t)flashpage_page(dst);
+    } else {
+        uint16_t page = flashpage_page(dst);
+        if (page > 255) {
+            CNTRL_REG |= FLASH_CR_BKER;
+        }
+        else {
+            CNTRL_REG &= ~FLASH_CR_BKER;
+        }
+        pn = (uint8_t)page;
     }
     pn = (uint8_t)page;
 #endif
+    CNTRL_REG &= ~FLASH_CR_PNB;
     CNTRL_REG |= (uint32_t)(pn << FLASH_CR_PNB_Pos);
     CNTRL_REG |= FLASH_CR_STRT;
 #else /* CPU_FAM_STM32F0 || CPU_FAM_STM32F1 */
@@ -152,7 +156,7 @@ void flashpage_write_raw(void *target_addr, const void *data, size_t len)
 
     /* ensure the length doesn't exceed the actual flash size */
     assert(((unsigned)target_addr + len) <
-           (CPU_FLASH_BASE + (FLASHPAGE_SIZE * FLASHPAGE_NUMOF)) + 1);
+           (CPU_FLASH_BASE + (FLASHPAGE_SIZE * (cpu_status.flash.size / FLASHPAGE_SIZE))) + 1);
 
 #if defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L1)
     uint32_t *dst = target_addr;
@@ -200,9 +204,10 @@ void flashpage_write_raw(void *target_addr, const void *data, size_t len)
 #endif
 }
 
-void flashpage_write(int page, const void *data)
+void flashpage_write(uint32_t page, const void *data, const uint32_t data_size)
 {
-    assert(page < (int)FLASHPAGE_NUMOF);
+    assert(page < (cpu_status.flash.size / FLASHPAGE_SIZE));
+    assert(data_size < FLASHPAGE_SIZE);
 
 #if defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L1)
     /* STM32L0/L1 only supports word sizes */
@@ -219,6 +224,6 @@ void flashpage_write(int page, const void *data)
 
     /* WRITE sequence */
     if (data != NULL) {
-        flashpage_write_raw(page_addr, data, FLASHPAGE_SIZE);
+        flashpage_write_raw(page_addr, data, data_size);
     }
 }

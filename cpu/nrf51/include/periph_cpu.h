@@ -55,6 +55,16 @@ typedef enum {
 /** @} */
 
 /**
+ * @name    Use the shared I2C functions
+ * @{
+ */
+/** Use read reg function from periph common */
+#define PERIPH_I2C_NEED_READ_REG
+/** Use write reg function from periph common */
+#define PERIPH_I2C_NEED_WRITE_REG
+/** @} */
+
+/**
  * @brief   Override ADC resolution values
  * @{
  */
@@ -71,13 +81,16 @@ typedef enum {
 
 /**
  * @brief   I2C (TWI) configuration options
+ * @{
  */
 typedef struct {
     NRF_TWI_Type *dev;          /**< hardware device */
     uint8_t pin_scl;            /**< SCL pin */
     uint8_t pin_sda;            /**< SDA pin */
     uint8_t ppi;                /**< PPI channel to use */
+    i2c_speed_t speed;          /**< bus speed */
 } i2c_conf_t;
+/** @} */
 
 #ifdef __cplusplus
 }

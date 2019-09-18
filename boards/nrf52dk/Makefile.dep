@@ -1,7 +1,19 @@
 include $(RIOTBOARD)/common/nrf52xxxdk/Makefile.dep
 
-ifeq (,$(filter nrfmin,$(USEMODULE)))
+# ifeq (,$(filter nrfmin,$(USEMODULE)))
+  # ifneq (,$(filter gnrc_netdev_default,$(USEMODULE)))
+    # USEPKG += nordic_softdevice_ble
+  # endif
+# endif
+
+# ifeq (,$(filter nrfmax,$(USEMODULE)))
+  # ifneq (,$(filter gnrc_netdev_default,$(USEMODULE)))
+    # USEPKG += nordic_softdevice_ble
+  # endif
+# endif
+
+ifeq (,$(filter nordic_softdevice_ble nrfmin,$(USEMODULE)))
   ifneq (,$(filter gnrc_netdev_default,$(USEMODULE)))
-    USEPKG += nordic_softdevice_ble
+    USEMODULE += nrfmax
   endif
 endif

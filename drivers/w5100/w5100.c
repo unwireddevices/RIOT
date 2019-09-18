@@ -18,6 +18,7 @@
  * @}
  */
 
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -33,7 +34,6 @@
 
 #define ENABLE_DEBUG        (0)
 #include "debug.h"
-
 
 #define SPI_CONF            SPI_MODE_0
 #define RMSR_DEFAULT_VALUE  (0x55)
@@ -119,7 +119,7 @@ void w5100_setup(w5100_t *dev, const w5100_params_t *params)
     dev->nd.context = dev;
 
     /* initialize the device descriptor */
-    memcpy(&dev->p, params, sizeof(w5100_params_t));
+    dev->p = *params;
 
     /* initialize the chip select pin and the external interrupt pin */
     spi_init_cs(dev->p.spi, dev->p.cs);
@@ -231,12 +231,24 @@ static int send(netdev_t *netdev, const iolist_t *iolist)
     return sum;
 }
 
-static int recv(netdev_t *netdev, void *buf, size_t len, void *info)
+static inline void drop(w5100_t *dev, uint16_t num, uint16_t rp, uint16_t psize)
+{
+    /* set the new read pointer address */
+    waddr(dev, S0_RX_RD0, S0_RX_RD1, rp + psize);
+    wreg(dev, S0_CR, CR_RECV);
+
+    /* if RX buffer now empty, clear RECV interrupt flag */
+    if ((num - psize) == 0) {
+        wreg(dev, S0_IR, IR_RECV);
+    }
+}
+
+static int recv(netdev_t *netdev, void *buf, size_t max_len, void *info)
 {
     (void)info;
     w5100_t *dev = (w5100_t *)netdev;
     uint8_t *in_buf = (uint8_t *)buf;
-    unsigned n = 0;
+    unsigned len = 0;
 
     /* get access to the SPI bus for the duration of this function */
     spi_acquire(dev->p.spi, dev->p.cs, SPI_CONF, dev->p.clk);
@@ -248,36 +260,38 @@ static int recv(netdev_t *netdev, void *buf, size_t len, void *info)
         uint16_t rp = raddr(dev, S0_RX_RD0, S0_RX_RD1);
         uint16_t psize = raddr(dev, (S0_RX_BASE + (rp & S0_MASK)),
                                   (S0_RX_BASE + ((rp + 1) & S0_MASK)));
-        n = psize - 2;
+        len = psize - 2;
 
-        DEBUG("[w5100] recv: got packet of %i byte (at 0x%04x)\n", n, (int)rp);
+        DEBUG("[w5100] recv: got packet of %i byte (at 0x%04x)\n", len, (int)rp);
 
         /* read the actual data into the given buffer if wanted */
         if (in_buf != NULL) {
+            /* Is provided buffer big enough? */
+            if (len > max_len) {
+                drop(dev, num, rp, psize);
+                spi_release(dev->p.spi);
+                return -ENOBUFS;
+            }
             uint16_t pos = rp + 2;
-            len = (n <= len) ? n : len;
+
             for (unsigned i = 0; i < len; i++) {
                 in_buf[i] = rreg(dev, (S0_RX_BASE + ((pos++) & S0_MASK)));
             }
 
             DEBUG("[w5100] recv: read %i byte from device (at 0x%04x)\n",
-                  n, (int)rp);
+                  len, (int)rp);
+        }
 
-            /* set the new read pointer address */
-            waddr(dev, S0_RX_RD0, S0_RX_RD1, rp += psize);
-            wreg(dev, S0_CR, CR_RECV);
-
-            /* if RX buffer now empty, clear RECV interrupt flag */
-            if ((num - psize) == 0) {
-                wreg(dev, S0_IR, IR_RECV);
-            }
+        /* if frame received OR drop requested, remove frame from RX buffer */
+        if (max_len > 0) {
+            drop(dev, num, rp, psize);
         }
     }
 
     /* release the SPI bus again */
     spi_release(dev->p.spi);
 
-    return (int)n;
+    return (int)len;
 }
 
 static void isr(netdev_t *netdev)
@@ -285,14 +299,21 @@ static void isr(netdev_t *netdev)
     uint8_t ir;
     w5100_t *dev = (w5100_t *)netdev;
 
-    /* we only react on RX events, and if we see one, we read from the RX buffer
-     * until it is empty */
+    /* read interrupt register */
     spi_acquire(dev->p.spi, dev->p.cs, SPI_CONF, dev->p.clk);
     ir = rreg(dev, S0_IR);
     spi_release(dev->p.spi);
+
+    /* we only react on RX events, and if we see one, we read from the RX buffer
+     * until it is empty */
     while (ir & IR_RECV) {
         DEBUG("[w5100] netdev RX complete\n");
         netdev->event_callback(netdev, NETDEV_EVENT_RX_COMPLETE);
+
+        /* reread interrupt register */
+        spi_acquire(dev->p.spi, dev->p.cs, SPI_CONF, dev->p.clk);
+        ir = rreg(dev, S0_IR);
+        spi_release(dev->p.spi);
     }
 }
 

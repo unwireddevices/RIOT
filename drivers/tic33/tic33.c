@@ -26,11 +26,11 @@ extern "C" {
 #include "periph/gpio.h"
 #include "assert.h"
 #include "xtimer.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 #include "tic33.h"
 
-static rtctimers_millis_t lclk_toggle_timer;
+static lptimer_t lclk_toggle_timer;
 
 typedef struct {
     uint8_t symbol;
@@ -71,7 +71,7 @@ static void lclk_toggle(void *arg) {
     tic33_t *dev = (tic33_t *)arg;    
     gpio_toggle(dev->lclk);
     
-    rtctimers_millis_set(&lclk_toggle_timer, TIC33_LCLK_PERIOD);
+    lptimer_set(&lclk_toggle_timer, TIC33_LCLK_PERIOD);
 }
 
 int tic33_init(tic33_t *tic33) {
@@ -93,7 +93,7 @@ int tic33_init(tic33_t *tic33) {
         /* auto toggle LCLK in TIC33_LCLK_PERIOD ms */
         lclk_toggle_timer.callback = lclk_toggle;
         lclk_toggle_timer.arg = (void *)tic33;
-        rtctimers_millis_set(&lclk_toggle_timer, TIC33_LCLK_PERIOD);
+        lptimer_set(&lclk_toggle_timer, TIC33_LCLK_PERIOD);
     }
 
 	return 0;

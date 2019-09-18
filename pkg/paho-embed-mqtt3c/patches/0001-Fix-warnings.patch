@@ -1,0 +1,92 @@
+From ce16d197c2dd305ccc10fb70256937756b0bd303 Mon Sep 17 00:00:00 2001
+From: Alexander Ugorelov <alex_u@unwds.com>
+Date: Tue, 26 Mar 2019 12:48:52 +0300
+Subject: [PATCH] Fix warnings
+
+---
+ MQTTPacket/src/MQTTConnectClient.c      | 2 ++
+ MQTTPacket/src/MQTTDeserializePublish.c | 4 ++++
+ MQTTPacket/src/MQTTSubscribeClient.c    | 2 ++
+ MQTTPacket/src/MQTTSubscribeServer.c    | 3 +++
+ MQTTPacket/src/MQTTUnsubscribeServer.c  | 3 +++
+ 5 files changed, 14 insertions(+)
+
+diff --git a/MQTTPacket/src/MQTTConnectClient.c b/MQTTPacket/src/MQTTConnectClient.c
+index 5f3cc29..6b121e6 100644
+--- a/MQTTPacket/src/MQTTConnectClient.c
++++ b/MQTTPacket/src/MQTTConnectClient.c
+@@ -131,6 +131,8 @@ int MQTTSerialize_connect(unsigned char* buf, int buflen, MQTTPacket_connectData
+   */
+ int MQTTDeserialize_connack(unsigned char* sessionPresent, unsigned char* connack_rc, unsigned char* buf, int buflen)
+ {
++    (void)buflen;
++
+ 	MQTTHeader header = {0};
+ 	unsigned char* curdata = buf;
+ 	unsigned char* enddata = NULL;
+diff --git a/MQTTPacket/src/MQTTDeserializePublish.c b/MQTTPacket/src/MQTTDeserializePublish.c
+index dafb6a3..0cb53c7 100644
+--- a/MQTTPacket/src/MQTTDeserializePublish.c
++++ b/MQTTPacket/src/MQTTDeserializePublish.c
+@@ -36,6 +36,8 @@
+ int MQTTDeserialize_publish(unsigned char* dup, int* qos, unsigned char* retained, unsigned short* packetid, MQTTString* topicName,
+ 		unsigned char** payload, int* payloadlen, unsigned char* buf, int buflen)
+ {
++    (void)buflen;
++
+ 	MQTTHeader header = {0};
+ 	unsigned char* curdata = buf;
+ 	unsigned char* enddata = NULL;
+@@ -81,6 +83,8 @@ exit:
+   */
+ int MQTTDeserialize_ack(unsigned char* packettype, unsigned char* dup, unsigned short* packetid, unsigned char* buf, int buflen)
+ {
++    (void)buflen;
++    
+ 	MQTTHeader header = {0};
+ 	unsigned char* curdata = buf;
+ 	unsigned char* enddata = NULL;
+diff --git a/MQTTPacket/src/MQTTSubscribeClient.c b/MQTTPacket/src/MQTTSubscribeClient.c
+index 57a0613..731cf1a 100644
+--- a/MQTTPacket/src/MQTTSubscribeClient.c
++++ b/MQTTPacket/src/MQTTSubscribeClient.c
+@@ -99,6 +99,8 @@ exit:
+   */
+ int MQTTDeserialize_suback(unsigned short* packetid, int maxcount, int* count, int grantedQoSs[], unsigned char* buf, int buflen)
+ {
++    (void)buflen;
++    
+ 	MQTTHeader header = {0};
+ 	unsigned char* curdata = buf;
+ 	unsigned char* enddata = NULL;
+diff --git a/MQTTPacket/src/MQTTSubscribeServer.c b/MQTTPacket/src/MQTTSubscribeServer.c
+index 5579645..0412249 100644
+--- a/MQTTPacket/src/MQTTSubscribeServer.c
++++ b/MQTTPacket/src/MQTTSubscribeServer.c
+@@ -35,6 +35,9 @@
+ int MQTTDeserialize_subscribe(unsigned char* dup, unsigned short* packetid, int maxcount, int* count, MQTTString topicFilters[],
+ 	int requestedQoSs[], unsigned char* buf, int buflen)
+ {
++    (void)maxcount;
++    (void)buflen;
++    
+ 	MQTTHeader header = {0};
+ 	unsigned char* curdata = buf;
+ 	unsigned char* enddata = NULL;
+diff --git a/MQTTPacket/src/MQTTUnsubscribeServer.c b/MQTTPacket/src/MQTTUnsubscribeServer.c
+index 42b6102..1db0dc5 100644
+--- a/MQTTPacket/src/MQTTUnsubscribeServer.c
++++ b/MQTTPacket/src/MQTTUnsubscribeServer.c
+@@ -34,6 +34,9 @@
+ int MQTTDeserialize_unsubscribe(unsigned char* dup, unsigned short* packetid, int maxcount, int* count, MQTTString topicFilters[],
+ 		unsigned char* buf, int len)
+ {
++    (void)maxcount;
++    (void)len;
++
+ 	MQTTHeader header = {0};
+ 	unsigned char* curdata = buf;
+ 	unsigned char* enddata = NULL;
+-- 
+2.17.1
+

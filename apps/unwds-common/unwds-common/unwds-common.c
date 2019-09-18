@@ -43,7 +43,7 @@ extern "C" {
 #include "byteorder.h"
 #include "periph/eeprom.h"
 
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 #include "board.h"
 #include "checksum/fletcher16.h"
 
@@ -51,6 +51,7 @@ extern "C" {
 #include "umdk-ids.h"
 #include "umdk-modules.h"
 #include "unwds-gpio.h"
+#include "ls-settings.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -69,7 +70,7 @@ struct {
 /**
  * @brief Bitmap of enabled modules
  */
-static uint32_t enabled_bitmap[8];
+static uint8_t enabled_bitmap[UNWDS_MAX_MODULES_BYTES];
 
 /**
  * NVRAM config.
@@ -325,7 +326,7 @@ void unwds_init_modules(uwnds_cb_t *event_callback)
     
 	/* Initialize modules */
     while (modules[i].init_cb != NULL && modules[i].cmd_cb != NULL) {
-    	if (enabled_bitmap[modules[i].module_id / 32] & (1 << (modules[i].module_id % 32))) {	/* Module enabled */
+    	if (enabled_bitmap[modules[i].module_id / 8] & (1 << (modules[i].module_id % 8))) {	/* Module enabled */
     		printf("[unwds] initializing \"%s\" module...\n", modules[i].name);
             modules[i].init_cb(event_callback);
     	}
@@ -347,29 +348,28 @@ static unwd_module_t *find_module(unwds_module_id_t modid) {
     return NULL;
 }
 
-void unwds_list_modules(uint32_t *enabled_mods, bool enabled_only) {
-	int i = 0;
+void unwds_list_modules(uint8_t *enabled_mods, bool enabled_only) {
 	int modcount = 0;
-    while (modules[i].init_cb != NULL && modules[i].cmd_cb != NULL) {
-    	bool enabled = (enabled_mods[modules[i].module_id / 32] & (1 << (modules[i].module_id % 32)));
+    
+    for (int i = 0; i < UNWDS_MAX_MODULES; i++) {
+        if ((modules[i].init_cb == NULL) || (modules[i].cmd_cb == NULL)) {
+            break;
+        }
+        
+        bool enabled = (enabled_mods[modules[i].module_id / 8] & (1 << (modules[i].module_id % 8)));
     	unwds_module_id_t modid = modules[i].module_id;
 
-    	if (enabled_only && !enabled) {
-    		i++;
-    		continue;
-    	}
-
-    	modcount++;
-    	printf("[%s] %s (id: %d)\n", (enabled) ? "+" : "-", modules[i].name, modid);
-
-    	i++;
+        if (!enabled_only || enabled) {
+            printf("[%s] %s (id: %d)\n", (enabled) ? "+" : "-", modules[i].name, modid);
+            modcount++;
+        }
     }
 
     if (!modcount)
     	puts("<no modules enabled>");
 }
 
-void unwds_set_enabled(uint32_t *enabled_mods) {
+void unwds_set_enabled(uint8_t *enabled_mods) {
     memcpy(enabled_bitmap, enabled_mods, sizeof(enabled_bitmap));
 }
 
@@ -390,7 +390,7 @@ bool unwds_is_module_enabled(unwds_module_id_t modid) {
         return false;
     }
     
-	return (enabled_bitmap[modid / 32] & (1 << (modid % 32)));
+	return (enabled_bitmap[modid / 8] & (1 << (modid % 8)));
 }
 
 bool unwds_send_broadcast(unwds_module_id_t modid, module_data_t *data, module_data_t *reply)
@@ -415,7 +415,7 @@ int unwds_send_to_module(unwds_module_id_t modid, module_data_t *data, module_da
 	return module->cmd_cb(data, reply);
 }
 
-uint32_t * unwds_get_enabled(void)
+uint8_t * unwds_get_enabled(void)
 {
     return enabled_bitmap;
 }
@@ -549,7 +549,7 @@ void blink_led(gpio_t led)
     int i;
     for (i = 0; i < 4; i++) {
         gpio_toggle(led);
-        rtctimers_millis_sleep(50);
+        lptimer_sleep(50);
     }
     gpio_clear(led);
 }

@@ -1,9 +1,15 @@
 # Put defined MCU peripherals here (in alphabetical order)
 FEATURES_PROVIDED += periph_cpuid
+FEATURES_PROVIDED += periph_iwdg
 FEATURES_PROVIDED += periph_flashpage
+FEATURES_PROVIDED += periph_gpio periph_gpio_irq
 FEATURES_PROVIDED += periph_hwrng
+FEATURES_PROVIDED += periph_temperature
 
 # Various other features (if any)
 FEATURES_PROVIDED += radio_nrfmin
+FEATURES_PROVIDED += radio_nrfmax
+FEATURES_PROVIDED += puf_sram
+FEATURES_PROVIDED += pm
 
 -include $(RIOTCPU)/cortexm_common/Makefile.features

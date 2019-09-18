@@ -57,10 +57,10 @@ typedef struct {
 } config_eui64_t;
 
 typedef struct {
-	uint32_t magic;							/**< Structure magic */
-	uint8_t version;						/**< Structure version */
 	uint64_t appid64;						/**< Application ID */
-	uint8_t nwk_key[16];					/**< Network AES-128 key */
+	uint8_t nwk_key[16];					/**< Network AES-128 key (LoRaWAN AppKey for OTAA mode) */
+    uint8_t apps_key[16];					/**< LoRaWAN AppsKey for ABP mode */
+    uint8_t nwks_key[16];					/**< LoRaWAN NwksKey for ABP mode */
 	uint8_t role_config[ROLE_CONFIG_SIZE];	/**< Role specific configuration block */
     uint32_t dev_nonce;
 	uint32_t cfg_crc;						/**< Configuration's CRC block */
@@ -72,10 +72,13 @@ typedef struct {
 	uint64_t appid64;						/**< Application ID */
 	uint8_t nwk_key[16];					/**< Network AES-128 key */
 	uint8_t role_config[ROLE_CONFIG_SIZE];	/**< Role specific configuration block */
+    uint32_t dev_nonce;
 	uint32_t cfg_crc;						/**< Configuration's CRC block */
 } nvram_old_config_t;
 
 #define CONFIG_SIZE (sizeof(nvram_config_t))
+
+#define OLD_CONFIG_SIZE (sizeof(nvram_old_config_t))
 
 /* CONFIG_ADDR + CONFIG_SIZE + 4 must be < 256 */
 
@@ -93,11 +96,16 @@ void config_reset_nvram(void);
 config_role_t config_get_role(void);
 
 /* Device specific settings */
-bool config_write_main_block(uint64_t appid64, uint8_t joinkey[16], uint32_t devnonce);
+bool config_write_main_block(uint64_t appid64, uint8_t joinkey[16], uint8_t appskey[8], uint8_t nwkskey[8], uint32_t devnonce);
 uint64_t config_get_nodeid(void);
 uint64_t config_get_appid(void);
-uint8_t *config_get_joinkey(void);
+uint8_t *config_get_appkey(void);
+uint8_t *config_get_appskey(void);
+uint8_t *config_get_nwkskey(void);
 uint32_t config_get_devnonce(void);
+
+void config_set_appskey(uint8_t *appskey);
+void config_set_nwkskey(uint8_t *nwkskey);
 
 /* Role specific settings */
 bool config_write_role_block(uint8_t *buf, size_t size);

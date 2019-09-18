@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2014-2017 Freie Universität Berlin
  * Copyright (C) 2016 OTA keys
+ * Copyright (C) 2018 Inria
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -20,6 +21,7 @@
  * @author      Fabian Nack <nack@inf.fu-berlin.de>
  * @author      Hermann Lelong <hermann@otakeys.com>
  * @author      Toon Stegen <toon.stegen@altran.com>
+ * @author      Alexandre Abadie <alexandre.abadie@inria.fr>
  *
  * @}
  */
@@ -32,16 +34,128 @@
 #include "periph/gpio.h"
 #include "pm_layered.h"
 
+#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32L0) \
+    || defined(CPU_FAM_STM32F3) || defined(CPU_FAM_STM32L4) \
+    || defined(CPU_FAM_STM32F7)
+#define ISR_REG     ISR
+#define ISR_TXE     USART_ISR_TXE
+#define ISR_TC      USART_ISR_TC
+#define TDR_REG     TDR
+#else
+#define ISR_REG     SR
+#define ISR_TXE     USART_SR_TXE
+#define ISR_TC      USART_SR_TC
+#define TDR_REG     DR
+
+#endif
+
 #define RXENABLE            (USART_CR1_RE | USART_CR1_RXNEIE)
 
 /**
  * @brief   Allocate memory to store the callback functions
+ *
+ * Extend standard uart_isr_ctx_t with data_mask field. This is needed
+ * in order to mask parity bit.
  */
-static uart_isr_ctx_t isr_ctx[UART_NUMOF];
+static struct {
+    uart_rx_cb_t rx_cb;   /**< data received interrupt callback */
+    void *arg;            /**< argument to both callback routines */
+    uint8_t data_mask;    /**< mask applied to the data register */
+} isr_ctx[UART_NUMOF];
 
 static inline USART_TypeDef *dev(uart_t uart)
 {
     return uart_config[uart].dev;
+}
+
+static inline void uart_init_usart(uart_t uart, uint32_t baudrate);
+#if defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L4)
+#ifdef MODULE_PERIPH_LPUART
+static inline void uart_init_lpuart(uart_t uart, uint32_t baudrate);
+#endif
+#endif
+
+static inline void uart_init_pins(uart_t uart, uart_rx_cb_t rx_cb)
+{
+     /* configure TX pin */
+    gpio_init(uart_config[uart].tx_pin, uart_config[uart].tx_mode);
+    /* set TX pin high to avoid garbage during further initialization */
+    gpio_set(uart_config[uart].tx_pin);
+#ifdef CPU_FAM_STM32F1
+    gpio_init_af(uart_config[uart].tx_pin, GPIO_AF_OUT_PP);
+#else
+    gpio_init_af(uart_config[uart].tx_pin, uart_config[uart].tx_af);
+#endif
+    /* configure RX pin */
+    if (rx_cb) {
+        gpio_init(uart_config[uart].rx_pin, uart_config[uart].rx_mode);
+#ifndef CPU_FAM_STM32F1
+        gpio_init_af(uart_config[uart].rx_pin, uart_config[uart].rx_af);
+#endif
+    }
+#ifdef MODULE_STM32_PERIPH_UART_HW_FC
+    gpio_init(uart_config[uart].cts_pin, GPIO_IN);
+    gpio_init(uart_config[uart].rts_pin, GPIO_OUT);
+#ifdef CPU_FAM_STM32F1
+    gpio_init_af(uart_config[uart].rts_pin, GPIO_AF_OUT_PP);
+#else
+    gpio_init_af(uart_config[uart].cts_pin, uart_config[uart].cts_af);
+    gpio_init_af(uart_config[uart].rts_pin, uart_config[uart].rts_af);
+#endif
+#endif
+}
+
+int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg)
+{
+    assert(uart < UART_NUMOF);
+
+    /* save ISR context */
+    isr_ctx[uart].rx_cb     = rx_cb;
+    isr_ctx[uart].arg       = arg;
+    isr_ctx[uart].data_mask = 0xFF;
+
+    uart_init_pins(uart, rx_cb);
+
+    /* enable the clock */
+    uart_poweron(uart);
+
+    /* reset UART configuration -> defaults to 8N1 mode */
+    dev(uart)->CR1 = 0;
+    dev(uart)->CR2 = 0;
+    dev(uart)->CR3 = 0;
+
+#if defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L4)
+    switch (uart_config[uart].type) {
+        case STM32_USART:
+            uart_init_usart(uart, baudrate);
+            break;
+#ifdef MODULE_PERIPH_LPUART
+        case STM32_LPUART:
+            uart_init_lpuart(uart, baudrate);
+            break;
+#endif
+        default:
+            return UART_NODEV;
+    }
+#else
+    uart_init_usart(uart, baudrate);
+#endif
+
+    /* enable RX interrupt if applicable */
+    if (rx_cb) {
+        NVIC_EnableIRQ(uart_config[uart].irqn);
+        dev(uart)->CR1 = (USART_CR1_UE | USART_CR1_TE | RXENABLE);
+    }
+    else {
+        dev(uart)->CR1 = (USART_CR1_UE | USART_CR1_TE);
+    }
+
+#ifdef MODULE_STM32_PERIPH_UART_HW_FC
+    /* configure hardware flow control */
+    dev(uart)->CR3 = (USART_CR3_RTSE | USART_CR3_CTSE);
+#endif
+
+    return UART_OK;
 }
 
 int uart_set_baudrate(uart_t uart, uint32_t baudrate) {
@@ -56,7 +170,7 @@ int uart_set_baudrate(uart_t uart, uint32_t baudrate) {
         periph_clk_dis(uart_config[uart].bus, uart_config[uart].rcc_mask);
         return UART_NOBAUD;
     } else {       
-        /* Disable UART. Setting BRR on enabled USART1 sometimes somehow results in Hard Fault */
+        /* Disable UART. Setting BRR on enabled USART is not supported */
         dev(uart)->CR1 &= ~USART_CR1_UE;
         
         /* choose between 8x and 16x oversampling */
@@ -86,142 +200,167 @@ int uart_set_baudrate(uart_t uart, uint32_t baudrate) {
     }
 }
 
-int uart_init_ext(uart_t uart, uart_params_t *params, uart_rx_cb_t rx_cb, void *arg)
+int uart_mode(uart_t uart, uart_data_bits_t data_bits, uart_parity_t parity,
+              uart_stop_bits_t stop_bits)
 {
     assert(uart < UART_NUMOF);
 
-    /* save ISR context */
-    isr_ctx[uart].rx_cb = rx_cb;
-    isr_ctx[uart].arg   = arg;
-
-    /* configure RX and TX pin */
-    gpio_init(uart_config[uart].rx_pin, uart_config[uart].rx_mode);
-    gpio_init(uart_config[uart].tx_pin, uart_config[uart].tx_mode);
-    /* set TX pin high to avoid garbage during further initialization */
-    gpio_set(uart_config[uart].tx_pin);
-#ifdef CPU_FAM_STM32F1
-    gpio_init_af(uart_config[uart].tx_pin, GPIO_AF_OUT_PP);
-#else
-    gpio_init_af(uart_config[uart].tx_pin, uart_config[uart].tx_af);
-#endif
-    /* configure RX pin */
-    if (rx_cb) {
-        gpio_init(uart_config[uart].rx_pin, GPIO_IN);
-#ifndef CPU_FAM_STM32F1
-        gpio_init_af(uart_config[uart].rx_pin, uart_config[uart].rx_af);
-#endif
-    }
-#ifdef MODULE_STM32_PERIPH_UART_HW_FC
-    if (uart_config[uart].cts_pin != GPIO_UNDEF) {
-        gpio_init(uart_config[uart].cts_pin, GPIO_IN);
-        gpio_init(uart_config[uart].rts_pin, GPIO_OUT);
-#ifdef CPU_FAM_STM32F1
-        gpio_init_af(uart_config[uart].rts_pin, GPIO_AF_OUT_PP);
-#else
-        gpio_init_af(uart_config[uart].cts_pin, uart_config[uart].cts_af);
-        gpio_init_af(uart_config[uart].rts_pin, uart_config[uart].rts_af);
-#endif
-    }
-#endif
-
-    /* enable the clock */
-    uart_poweron(uart);
-
-    /* reset UART configuration -> defaults to 8N1 mode */
-    dev(uart)->CR1 = 0;
-    dev(uart)->CR2 = 0;
-    dev(uart)->CR3 = 0;
+    isr_ctx[uart].data_mask = 0xFF;
     
-    if (params->databits == UART_DATABITS_9) {
-        dev(uart)->CR1 |= USART_CR1_M;
+#if defined (USART_CR1_M1)
+    /* 7, 8 and 9 bit UART words only */
+    /* parity needs 1 extra bit */
+    if (parity != UART_PARITY_NONE) {
+        if ((data_bits != UART_DATA_BITS_7) &&
+            (data_bits != UART_DATA_BITS_8)) {
+            return UART_NOMODE;
+        }
+    } else {
+        if ((data_bits != UART_DATA_BITS_7) &&
+            (data_bits != UART_DATA_BITS_8) &&
+            (data_bits != UART_DATA_BITS_9)) {
+            return UART_NOMODE;
+        }
+    }
+#else
+    /* 8 and 9 bit UART words only */
+    if (data_bits != UART_DATA_BITS_8) {
+        /* parity needs 1 extra bit */
+        if (parity != UART_PARITY_NONE) {
+            return UART_NOMODE;
+        } else {
+            if (data_bits != UART_DATA_BITS_9)  {
+                return UART_NOMODE;
+            }
+        }
+    }
+#endif
+
+    uint32_t cr1_databits = 0;
+    uint32_t cr1_parity   = 0;
+    uint32_t cr2_stop     = 0;
+    
+    switch (data_bits) {
+#if defined (USART_CR1_M1)
+        case UART_DATA_BITS_7:
+            cr1_databits = USART_CR1_M1;
+            break;
+#endif
+        case UART_DATA_BITS_8:
+            break;
+        case UART_DATA_BITS_9:
+            cr1_databits = USART_CR1_M;
+            break;
+        default:
+            return UART_NOMODE;
     }
     
-    switch (params->parity) {
-        case UART_PARITY_ODD:
-            dev(uart)->CR1 |= USART_CR1_PCE;
-            dev(uart)->CR1 |= USART_CR1_PS;
+    switch (parity) {
+        case UART_PARITY_NONE:
             break;
         case UART_PARITY_EVEN:
-            dev(uart)->CR1 |= USART_CR1_PCE;
-            break;
-        default:
-            break;
-    }
-    
-    switch (params->stopbits) {
-        case UART_STOPBITS_05:
-            dev(uart)->CR2 |= USART_CR2_STOP_0;
-            break;
-        case UART_STOPBITS_15:
-            dev(uart)->CR2 |= (USART_CR2_STOP_0 | USART_CR2_STOP_1);
-            break;
-        case UART_STOPBITS_20:
-            dev(uart)->CR2 |= USART_CR2_STOP_1;
-            break;
-        default:
-            break;
-    }
-    
-    /* calculate and apply baudrate */
-    if (uart_set_baudrate(uart, params->baudrate) != UART_OK) {
-        return UART_NOBAUD;
-    }
-
-    dev(uart)->CR1 = (USART_CR1_UE | USART_CR1_TE);
-    /* enable RX interrupt if applicable */
-    if (rx_cb) {
-        NVIC_EnableIRQ(uart_config[uart].irqn);
-        dev(uart)->CR1 |= RXENABLE;
-    }
-
-#ifdef MODULE_STM32_PERIPH_UART_HW_FC
-    if (uart_config[uart].cts_pin != GPIO_UNDEF) {
-        /* configure hardware flow control */
-        dev(uart)->CR3 = (USART_CR3_RTSE | USART_CR3_CTSE);
-    }
+            cr1_parity = USART_CR1_M | USART_CR1_PCE;
+            /* fallthrough */
+        case UART_PARITY_ODD:
+            cr1_parity |= USART_CR1_PS;
+            
+            /* switch 7 bits -> 8 bits */
+#if defined (USART_CR1_M1)
+            cr1_databits &= ~USART_CR1_M1;
 #endif
+            break;
+        default:
+            return UART_NOMODE;
+    }
+    
+    switch (stop_bits) {
+        case UART_STOP_BITS_1:
+            break;
+        case UART_STOP_BITS_2:
+            cr2_stop = USART_CR2_STOP_1;
+            break;
+        default:
+            return UART_NOMODE;
+    }
+
+#ifdef USART_CR1_M1
+    if (!(dev(uart)->ISR & USART_ISR_TC)) {
+        return UART_INTERR;
+    }
+    dev(uart)->CR1 &= ~(USART_CR1_UE | USART_CR1_TE);
+    dev(uart)->CR1 &= ~USART_CR1_M1;
+#endif
+
+    dev(uart)->CR2 &= ~USART_CR2_STOP;
+    dev(uart)->CR1 &= ~(USART_CR1_PS | USART_CR1_PCE | USART_CR1_M);
+
+    dev(uart)->CR2 |= cr2_stop;
+    dev(uart)->CR1 |= ( USART_CR1_UE | USART_CR1_TE | cr1_parity | cr1_databits );
 
     return UART_OK;
 }
 
-int uart_init(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, void *arg) {
-    uart_params_t params;
-    params.baudrate = baudrate;
-    params.databits = UART_DATABITS_8;
-    params.parity = UART_PARITY_NOPARITY;
-    params.stopbits = UART_STOPBITS_10;
-    
-    return uart_init_ext(uart, &params, rx_cb, arg);
+static inline void uart_init_usart(uart_t uart, uint32_t baudrate)
+{
+    /* calculate and apply baudrate */
+    uart_set_baudrate(uart, baudrate);
 }
+
+#if defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L4)
+#ifdef MODULE_PERIPH_LPUART
+static inline void uart_init_lpuart(uart_t uart, uint32_t baudrate)
+{
+    uint32_t clk;
+
+    switch (uart_config[uart].clk_src) {
+        case 0:
+            clk = periph_apb_clk(uart_config[uart].bus);
+            break;
+        case RCC_CCIPR_LPUART1SEL_0:
+            clk = CLOCK_CORECLOCK;
+            break;
+        case (RCC_CCIPR_LPUART1SEL_0 | RCC_CCIPR_LPUART1SEL_1):
+            clk = 32768;
+            break;
+        default: /* HSI is not supported */
+            return;
+    }
+
+    RCC->CCIPR |= uart_config[uart].clk_src;
+
+    /* LSE can only be used with baudrate <= 9600 */
+    if ( (clk < (3 * baudrate)) || (clk > (4096 * baudrate))) {
+        return;
+    }
+
+    /* LPUARTDIV = f_clk * 256 / baudrate */
+    uint32_t brr = (uint32_t)(((uint64_t)clk << 8) / baudrate);
+
+    dev(uart)->BRR = brr;
+}
+#endif /* MODULE_PERIPH_LPUART */
+#endif /* STM32L0 || STM32L4 */
 
 static inline void send_byte(uart_t uart, uint8_t byte)
 {
-#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32L0) \
-    || defined(CPU_FAM_STM32F3) || defined(CPU_FAM_STM32L4) \
-    || defined(CPU_FAM_STM32F7)
-    while (!(dev(uart)->ISR & USART_ISR_TXE)) {}
-    dev(uart)->TDR = byte;
-#else
-    while (!(dev(uart)->SR & USART_SR_TXE)) {}
-    dev(uart)->DR = byte;
-#endif
+    while (!(dev(uart)->ISR_REG & ISR_TXE)) {}
+    dev(uart)->TDR_REG = byte;
 }
 
 static inline void wait_for_tx_complete(uart_t uart)
 {
-#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32L0) \
-    || defined(CPU_FAM_STM32F3) || defined(CPU_FAM_STM32L4) \
-    || defined(CPU_FAM_STM32F7)
-    while (!(dev(uart)->ISR & USART_ISR_TC)) {}
-#else
-    while (!(dev(uart)->SR & USART_SR_TC)) {}
-#endif
+    while (!(dev(uart)->ISR_REG & ISR_TC)) {}
 }
 
 void uart_write(uart_t uart, const uint8_t *data, size_t len)
 {
     assert(uart < UART_NUMOF);
-
+#if DEVELHELP
+    /* If tx is not enabled don't try to send */
+    if (!(dev(uart)->CR1 & USART_CR1_TE)) {
+        return;
+    }
+#endif
 #ifdef MODULE_PERIPH_DMA
     if (!len) {
         return;
@@ -250,13 +389,13 @@ void uart_write(uart_t uart, const uint8_t *data, size_t len)
             dma_acquire(uart_config[uart].dma);
             dev(uart)->CR3 |= USART_CR3_DMAT;
             dma_transfer(uart_config[uart].dma, uart_config[uart].dma_chan, data,
-                         (void *)&dev(uart)->DR, len, DMA_MEM_TO_PERIPH, DMA_INC_SRC_ADDR);
-            dma_release(uart_config[uart].dma);
+                         (void *)&dev(uart)->TDR_REG, len, DMA_MEM_TO_PERIPH, DMA_INC_SRC_ADDR);
 
             /* make sure the function is synchronous by waiting for the transfer to
              * finish */
             wait_for_tx_complete(uart);
             dev(uart)->CR3 &= ~USART_CR3_DMAT;
+            dma_release(uart_config[uart].dma);
         }
         return;
     }
@@ -272,10 +411,18 @@ void uart_write(uart_t uart, const uint8_t *data, size_t len)
 void uart_poweron(uart_t uart)
 {
     assert(uart < UART_NUMOF);
-#if defined(STM32_PM_STOP) && defined(STM32_PM_BLOCK_UART)
+#ifdef STM32_PM_STOP
     if (isr_ctx[uart].rx_cb) {
         pm_block(STM32_PM_STOP);
     }
+#endif
+#ifdef MODULE_STM32_PERIPH_UART_HW_FC
+    gpio_init(uart_config[uart].rts_pin, GPIO_OUT);
+#ifdef CPU_FAM_STM32F1
+    gpio_init_af(uart_config[uart].rts_pin, GPIO_AF_OUT_PP);
+#else
+    gpio_init_af(uart_config[uart].rts_pin, uart_config[uart].rts_af);
+#endif
 #endif
     periph_clk_en(uart_config[uart].bus, uart_config[uart].rcc_mask);
 }
@@ -285,7 +432,11 @@ void uart_poweroff(uart_t uart)
     assert(uart < UART_NUMOF);
 
     periph_clk_dis(uart_config[uart].bus, uart_config[uart].rcc_mask);
-#if defined(STM32_PM_STOP) && defined(STM32_PM_BLOCK_UART)
+#ifdef MODULE_STM32_PERIPH_UART_HW_FC
+    gpio_init(uart_config[uart].rts_pin, GPIO_OUT);
+    gpio_set(uart_config[uart].rts_pin);
+#endif
+#ifdef STM32_PM_STOP
     if (isr_ctx[uart].rx_cb) {
         pm_unblock(STM32_PM_STOP);
     }
@@ -301,7 +452,8 @@ static inline void irq_handler(uart_t uart)
     uint32_t status = dev(uart)->ISR;
 
     if (status & USART_ISR_RXNE) {
-        isr_ctx[uart].rx_cb(isr_ctx[uart].arg, (uint8_t)dev(uart)->RDR);
+        isr_ctx[uart].rx_cb(isr_ctx[uart].arg,
+                            (uint8_t)dev(uart)->RDR & isr_ctx[uart].data_mask);
     }
     if (status & USART_ISR_ORE) {
         dev(uart)->ICR |= USART_ICR_ORECF;    /* simply clear flag on overrun */
@@ -312,7 +464,8 @@ static inline void irq_handler(uart_t uart)
     uint32_t status = dev(uart)->SR;
 
     if (status & USART_SR_RXNE) {
-        isr_ctx[uart].rx_cb(isr_ctx[uart].arg, (uint8_t)dev(uart)->DR);
+        isr_ctx[uart].rx_cb(isr_ctx[uart].arg,
+                            (uint8_t)dev(uart)->DR & isr_ctx[uart].data_mask);
     }
     if (status & USART_SR_ORE) {
         /* ORE is cleared by reading SR and DR sequentially */

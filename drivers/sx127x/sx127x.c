@@ -25,6 +25,7 @@
 #include <stdlib.h>
 
 #include "xtimer.h"
+#include "lptimer.h"
 #include "thread.h"
 
 #include "periph/gpio.h"
@@ -48,13 +49,16 @@ static void _on_tx_timeout(void *arg);
 static void _on_rx_timeout(void *arg);
 
 /* SX127X DIO interrupt handlers initialization */
-static void sx127x_on_dio_isr(void *arg);
+static void sx127x_on_dio0_isr(void *arg);
+static void sx127x_on_dio1_isr(void *arg);
+static void sx127x_on_dio2_isr(void *arg);
+static void sx127x_on_dio3_isr(void *arg);
 
 void sx127x_setup(sx127x_t *dev, const sx127x_params_t *params)
 {
     netdev_t *netdev = (netdev_t*) dev;
     netdev->driver = &sx127x_driver;
-    memcpy(&dev->params, params, sizeof(sx127x_params_t));
+    dev->params = *params;
 }
 
 int sx127x_reset(const sx127x_t *dev)
@@ -87,7 +91,7 @@ int sx127x_reset(const sx127x_t *dev)
     gpio_init(dev->params.reset_pin, GPIO_IN);
 
     /* Wait 10 ms */
-    rtctimers_millis_sleep(10);
+    lptimer_sleep(10);
 
     return 0;
 }
@@ -185,10 +189,33 @@ void sx127x_isr(netdev_t *dev)
     }
 }
 
-static void sx127x_on_dio_isr(void *arg)
+static void sx127x_on_dio_isr(sx127x_t *dev, sx127x_flags_t flag)
+{
+    dev->irq |= flag;
+    sx127x_isr((netdev_t *)dev);
+}
+
+static void sx127x_on_dio0_isr(void *arg)
+{
+    sx127x_on_dio_isr((sx127x_t*) arg, SX127X_IRQ_DIO0);
+}
+
+static void sx127x_on_dio1_isr(void *arg)
 {
     DEBUG("DIO ISR\n");
-    sx127x_isr((netdev_t*)arg);
+    sx127x_on_dio_isr((sx127x_t*) arg, SX127X_IRQ_DIO1);
+}
+
+static void sx127x_on_dio2_isr(void *arg)
+{
+    DEBUG("DIO ISR\n");
+    sx127x_on_dio_isr((sx127x_t*) arg, SX127X_IRQ_DIO2);
+}
+
+static void sx127x_on_dio3_isr(void *arg)
+{
+    DEBUG("DIO ISR\n");
+    sx127x_on_dio_isr((sx127x_t*) arg, SX127X_IRQ_DIO3);
 }
 
 /* Internal event handlers */
@@ -199,7 +226,7 @@ static int _init_gpios(sx127x_t *dev)
     /* Check if DIO0 pin is defined */
     if (dev->params.dio0_pin != GPIO_UNDEF) {
         res = gpio_init_int(dev->params.dio0_pin, GPIO_IN, GPIO_RISING,
-                                sx127x_on_dio_isr, dev);
+                                sx127x_on_dio0_isr, dev);
         if (res < 0) {
             DEBUG("[sx127x] error: failed to initialize DIO0 pin\n");
             return res;
@@ -214,7 +241,7 @@ static int _init_gpios(sx127x_t *dev)
     /* Check if DIO1 pin is defined */
     if (dev->params.dio1_pin != GPIO_UNDEF) {
         res = gpio_init_int(dev->params.dio1_pin, GPIO_IN, GPIO_RISING,
-                                sx127x_on_dio_isr, dev);
+                                sx127x_on_dio1_isr, dev);
         if (res < 0) {
             DEBUG("[sx127x] error: failed to initialize DIO1 pin\n");
             return res;
@@ -224,7 +251,7 @@ static int _init_gpios(sx127x_t *dev)
     /* check if DIO2 pin is defined */
     if (dev->params.dio2_pin != GPIO_UNDEF) {
         res = gpio_init_int(dev->params.dio2_pin, GPIO_IN, GPIO_RISING,
-                            sx127x_on_dio_isr, dev);
+                            sx127x_on_dio2_isr, dev);
         if (res < 0) {
             DEBUG("[sx127x] error: failed to initialize DIO2 pin\n");
             return res;
@@ -234,7 +261,7 @@ static int _init_gpios(sx127x_t *dev)
     /* check if DIO3 pin is defined */
     if (dev->params.dio3_pin != GPIO_UNDEF) {
         res = gpio_init_int(dev->params.dio3_pin, GPIO_IN, GPIO_RISING,
-                            sx127x_on_dio_isr, dev);
+                            sx127x_on_dio3_isr, dev);
         if (res < 0) {
             DEBUG("[sx127x] error: failed to initialize DIO3 pin\n");
             return res;
@@ -277,6 +304,8 @@ static int _init_spi(sx127x_t *dev)
 {
     int res;
 
+    spi_init(dev->params.spi);
+    
     /* Setup SPI for SX127X */
     res = spi_init_cs(dev->params.spi, dev->params.nss_pin);
 

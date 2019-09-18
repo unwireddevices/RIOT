@@ -58,12 +58,12 @@ static int16_t result;
 static inline void prep(void)
 {
     mutex_lock(&lock);
-    NRF_SAADC->ENABLE = 1;
+    NRF_SAADC->ENABLE = (SAADC_ENABLE_ENABLE_Enabled << SAADC_ENABLE_ENABLE_Pos);
 }
 
 static inline void done(void)
 {
-    NRF_SAADC->ENABLE = 0;
+    NRF_SAADC->ENABLE = (SAADC_ENABLE_ENABLE_Disabled << SAADC_ENABLE_ENABLE_Pos);
     mutex_unlock(&lock);
 }
 
@@ -86,16 +86,24 @@ int adc_init(adc_t line)
          * - acquisition time as defined by board (or 10us as default)
          * - reference and gain as defined by board (or VDD as default)
          * - no oversampling */
-        NRF_SAADC->CH[0].CONFIG = ((ADC_GAIN << SAADC_CH_CONFIG_GAIN_Pos) |
-                                   (ADC_REF << SAADC_CH_CONFIG_REFSEL_Pos) |
-                                   (ADC_TACQ << SAADC_CH_CONFIG_TACQ_Pos));
+        if (line != NRF52_VDD) {
+            NRF_SAADC->CH[0].CONFIG = ((ADC_GAIN << SAADC_CH_CONFIG_GAIN_Pos) |
+                                       (ADC_REF << SAADC_CH_CONFIG_REFSEL_Pos) |
+                                       (ADC_TACQ << SAADC_CH_CONFIG_TACQ_Pos));
+        } else {
+            /* VDD should be measured with 0.6 Vref and 6x gain for 3.6V total range */
+            NRF_SAADC->CH[0].CONFIG = ((SAADC_CH_CONFIG_GAIN_Gain1_6 << SAADC_CH_CONFIG_GAIN_Pos) |
+                                       (SAADC_CH_CONFIG_REFSEL_Internal << SAADC_CH_CONFIG_REFSEL_Pos) |
+                                       (ADC_TACQ << SAADC_CH_CONFIG_TACQ_Pos));
+        }
         NRF_SAADC->CH[0].PSELN = SAADC_CH_PSELN_PSELN_NC;
         NRF_SAADC->OVERSAMPLE = SAADC_OVERSAMPLE_OVERSAMPLE_Bypass;
 
         /* calibrate SAADC */
-        NRF_SAADC->EVENTS_CALIBRATEDONE = 0;
         NRF_SAADC->TASKS_CALIBRATEOFFSET = 1;
-        while (NRF_SAADC->EVENTS_CALIBRATEDONE == 0) {}
+        while (NRF_SAADC->EVENTS_CALIBRATEDONE == 0);
+        NRF_SAADC->EVENTS_CALIBRATEDONE = 0;
+        while (NRF_SAADC->STATUS == (SAADC_STATUS_STATUS_Busy << SAADC_STATUS_STATUS_Pos));
     }
 
     done();
@@ -137,6 +145,27 @@ int adc_sample(adc_t line, adc_res_t res)
 
     /* free device */
     done();
+
+    if (line == NRF52_VDD) {
+        int max;
+        switch (res) {
+            case ADC_RES_8BIT:
+                max = (1 << 8) - 1;
+                break;
+            case ADC_RES_10BIT:
+                max = (1 << 10) - 1;
+                break;
+            case ADC_RES_12BIT:
+                max = (1 << 12) - 1;
+                break;
+            default:
+                max = (1 << 14) - 1;
+                break;
+        }
+        
+        /* convert to millivolts */
+        return (result*3600)/max;
+    }
 
     /* hack -> the result can be a small negative number when a AINx pin is
      * connected via jumper wire a the board's GND pin. There seems to be a

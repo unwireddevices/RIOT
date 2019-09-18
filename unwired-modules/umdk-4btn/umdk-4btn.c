@@ -55,7 +55,7 @@ extern "C" {
 #include "umdk-4btn.h"
 
 #include "thread.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 static kernel_pid_t handler_pid;
 
@@ -100,7 +100,7 @@ static void btn_pressed_int(void *arg) {
     uint8_t error_counter = 0;
     
     do {
-        rtctimers_millis_sleep(10);
+        lptimer_sleep(10);
         now_value = gpio_read(buttons[btn_num]);
         
         if (now_value == last_value) {

@@ -92,7 +92,7 @@ void eeprom_write_byte(uint32_t pos, uint8_t data)
     _lock();
 }
 
-size_t eeprom_write(uint32_t pos, const uint8_t *data, size_t len)
+size_t eeprom_write(uint32_t pos, uint8_t *data, size_t len)
 {
     assert((pos + len) <= cpu_status.eeprom.size);
 

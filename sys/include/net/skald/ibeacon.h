@@ -43,8 +43,11 @@ extern "C" {
  * @param[in] minor     the iBeacon's minor number
  * @param[in] txpower   calibrated TX power to be advertised by the beacon
  */
-void skald_ibeacon_advertise(skald_ctx_t *ctx, const skald_uuid_t *uuid,
-                             uint16_t major, uint16_t minor, uint8_t txpower);
+void skald_ibeacon_advertise(skald_ctx_t *ctx, 
+                             const skald_uuid_t *uuid,
+                             uint16_t major, 
+                             uint16_t minor, 
+                             uint8_t txpower);
 
 #ifdef __cplusplus
 }

@@ -16,6 +16,7 @@
  *
  * @author      René Herthel <rene-herthel@outlook.de>
  * @author      Oleg Artamonov <oleg@unwds.com>
+ * @author      Alexander Ugorelov <alex_u@unwds.com>
  *
  * @}
  */
@@ -62,14 +63,11 @@ int lis3mdl_init(lis3mdl_t *dev, const lis3mdl_params_t *params)
     dev->params = *params;
 
     uint8_t tmp = 0x00;
-    int ret = 0;
 
     i2c_acquire(DEV_I2C);
-
     i2c_init(DEV_I2C);
 
-    ret = i2c_read_reg(DEV_I2C, DEV_ADDR, LIS3DML_WHO_AM_I_REG, &tmp, 0);
-    DEBUG("LIS3MDL: ret is %d\n", ret);
+    i2c_read_reg(DEV_I2C, DEV_ADDR, LIS3DML_WHO_AM_I_REG, &tmp, 0);
     if (tmp != LIS3MDL_CHIP_ID) {
         DEBUG("LIS3MDL: Identification failed, %02X != %02X\n",
               tmp, LIS3MDL_CHIP_ID);
@@ -169,8 +167,7 @@ void lis3mdl_read_temp(const lis3mdl_t *dev, int16_t *value)
     uint8_t tmp[2] = {0, 0};
 
     i2c_acquire(DEV_I2C);
-    i2c_read_regs(DEV_I2C, DEV_ADDR, LIS3MDL_TEMP_OUT_L_REG, &tmp[0], 2, 0);
-    i2c_read_regs(DEV_I2C, DEV_ADDR, LIS3MDL_TEMP_OUT_H_REG, &tmp[1], 2, 0);
+    i2c_read_regs(DEV_I2C, DEV_ADDR, LIS3MDL_TEMP_OUT_L_REG, &tmp, 2, 0);
     i2c_release(DEV_I2C);
 
     DEBUG("LIS3MDL: TEMP_OUT %02X %02X\n", tmp[1], tmp[0]);
@@ -195,6 +192,7 @@ void lis3mdl_poweron(const lis3mdl_t *dev)
     tmp |= dev->params.op_mode;
 
     i2c_write_reg(DEV_I2C, DEV_ADDR, LIS3MDL_CTRL_REG3, tmp, 0);
+
     i2c_release(DEV_I2C);
 }
 

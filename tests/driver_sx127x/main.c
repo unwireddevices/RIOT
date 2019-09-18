@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include "thread.h"
 #include "xtimer.h"
@@ -31,6 +32,7 @@
 #include "shell_commands.h"
 
 #include "net/netdev.h"
+#include "net/netdev/lora.h"
 #include "net/lora.h"
 
 #include "board.h"
@@ -323,7 +325,7 @@ static void _event_cb(netdev_t *dev, netdev_event_t event)
     }
     else {
         size_t len;
-        netdev_sx127x_lora_packet_info_t packet_info;
+        netdev_lora_rx_info_t packet_info;
         switch (event) {
             case NETDEV_EVENT_RX_COMPLETE:
                 len = dev->driver->recv(dev, NULL, 0, 0);
@@ -375,7 +377,7 @@ void *_recv_thread(void *arg)
 
 int main(void)
 {
-    memcpy(&sx127x.params, sx127x_params, sizeof(sx127x_params));
+    sx127x.params = sx127x_params[0];
     netdev_t *netdev = (netdev_t*) &sx127x;
     netdev->driver = &sx127x_driver;
 

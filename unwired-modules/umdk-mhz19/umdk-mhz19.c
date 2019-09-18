@@ -55,7 +55,7 @@ extern "C" {
 
 #include "thread.h"
 #include "xtimer.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -71,7 +71,7 @@ typedef struct {
 static umdk_mhz19_config_t umdk_mhz19_config = { .publish_period_sec = 5};
 
 static bool is_polled = false;
-static rtctimers_millis_t timer;
+static lptimer_t timer;
 static msg_t timer_msg = {};
 static kernel_pid_t timer_pid;
 
@@ -90,7 +90,7 @@ static void *timer_thread(void *arg) {
         mhz19_get(&mhz19);
 
         /* Restart after delay */
-        rtctimers_millis_set_msg(&timer, 1000*umdk_mhz19_config.publish_period_sec, &timer_msg, timer_pid);
+        lptimer_set_msg(&timer, 1000*umdk_mhz19_config.publish_period_sec, &timer_msg, timer_pid);
     }
     return NULL;
 }
@@ -195,7 +195,7 @@ void umdk_mhz19_init(uwnds_cb_t *event_callback)
     }
     timer_pid = thread_create(timer_stack, UMDK_MHZ19_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "umdk-mhz19 timer thread");
     /* Start publishing timer */
-    rtctimers_millis_set_msg(&timer, 1000*umdk_mhz19_config.publish_period_sec, &timer_msg, timer_pid);
+    lptimer_set_msg(&timer, 1000*umdk_mhz19_config.publish_period_sec, &timer_msg, timer_pid);
 
     unwds_add_shell_command("mhz19", "type 'mhz19' for commands list", umdk_mhz19_shell_cmd);
 

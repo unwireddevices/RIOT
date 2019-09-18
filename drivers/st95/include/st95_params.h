@@ -30,15 +30,16 @@ extern "C" {
 #define ST95_RAMP_UP_TIME_MS            10
 #define ST95_DELAY_POWER_ON_MS          100
 
-#define ST95_NO_RESPONSE_TIME_MS        3000
-#define ST95_NO_RESPONSE_TIME_MIN_MS    50
+#define ST95_NO_RESPONSE_TIME_MS        5000
+#define ST95_NO_RESPONSE_TIME_MIN_USEC  250
 
 #define ST95_NUMB_TRY_INIT              5
-
-#define ST95_MAX_BYTE_BUFF              255
+#define ST95_NUMB_GET_UID               5
 
 #define ST95_SLEEP_MODE                 0
 #define ST95_READY_MODE                 1
+#define ST95_LISTEN_MODE                2
+#define ST95_NONE_MODE                3
 
 /**
  * @brief   ST95 device communincation states
@@ -52,10 +53,10 @@ typedef struct {
 /**
  * @brief   ST95 SPI control communincation bytes */
 typedef enum {
-    ST95_CTRT_SPI_SEND      = 0x00,
-    ST95_CTRT_SPI_RESET     = 0x01,
-    ST95_CTRT_SPI_READ      = 0x02,
-    ST95_CTRT_SPI_POLL      = 0x03,
+    ST95_CTRL_SPI_SEND      = 0x00,
+    ST95_CTRL_SPI_RESET     = 0x01,
+    ST95_CTRL_SPI_READ      = 0x02,
+    ST95_CTRL_SPI_POLL      = 0x03,
 } st95_spi_ctrl_t;
 
 
@@ -74,7 +75,7 @@ typedef enum {
     ST95_CMD_WRITE_REG          = 0x09,
     ST95_CMD_BAUDRATE           = 0x0A,     // Only CR95 (UART baudrate)
     ST95_CMD_SUBFREQ            = 0x0B,     // Only ST95 (iso18092)
-    ST95_CMD_ANTICOL_FILTER     = 0x0D,     // Only ST95 (iso14443A)
+    ST95_CMD_ANTICOL_FILTER     = 0x0D,     // Only ST95 (iso14443A Card Emulation mode)
     ST95_CMD_ECHO               = 0x55,
 } st95_cmd_t;
 

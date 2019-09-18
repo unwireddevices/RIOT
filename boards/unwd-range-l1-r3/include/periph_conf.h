@@ -84,10 +84,17 @@ static const timer_conf_t timer_config[] = {
         .rcc_mask = RCC_APB2ENR_TIM11EN,
         .bus      = APB2,
         .irqn     = TIM11_IRQn
+    },
+    {
+        .dev      = TIM9,
+        .max      = TIMER_0_MAX_VALUE,
+        .rcc_mask = RCC_APB2ENR_TIM9EN,
+        .bus      = APB2,
+        .irqn     = TIM9_IRQn
     }
 };
-
 #define TIMER_0_ISR         isr_tim11
+#define TIMER_1_ISR         isr_tim9
 
 #define TIMER_NUMOF         (sizeof(timer_config) / sizeof(timer_config[0]))
 /** @} */
@@ -99,12 +106,23 @@ static const timer_conf_t timer_config[] = {
 #define RTC_NUMOF           (1U)
 
 /* STM32 backup registers in use */
-
+/*
 #define RTC_REGBACKUP_BOOTLOADER        (0)
 #define RTC_REGBACKUP_BOOTMODE          (0)
 #define RTC_REGBACKUP_UNWDSMODULE       (1)
 
 #define RTC_REGBACKUP_BOOTLOADER_VALUE  (0xB00710AD)
+*/
+/**
+ * @name Basic RTT emulation on top of RTC with 1024 Hz frequency
+ * @{
+ */
+#define RTT_FREQUENCY       (1024)
+#define RTT_MAX_VALUE       (0x7ffful)
+
+#define LPTIMER_HZ          RTT_FREQUENCY
+#define LPTIMER_MAX_VALUE   RTT_MAX_VALUE
+#define LPTIMER_WIDTH       (15)
 
 /**
  * @brief UART configuration
@@ -169,7 +187,8 @@ static const pwm_conf_t pwm_config[] = {
                       { .pin = GPIO_PIN(PORT_A, 2), .cc_chan = 2 },
                       { .pin = GPIO_PIN(PORT_A, 3), .cc_chan = 3 } },
         .af       = GPIO_AF1,
-        .bus      = APB1
+        .bus      = APB1,
+        .irqn     = TIM2_IRQn
     },
     {
         .dev      = TIM3,
@@ -179,9 +198,10 @@ static const pwm_conf_t pwm_config[] = {
                       { .pin = GPIO_UNDEF,          .cc_chan = 0 },
                       { .pin = GPIO_UNDEF,          .cc_chan = 0 } },
         .af       = GPIO_AF2,
-        .bus      = APB1
+        .bus      = APB1,
+        .irqn     = TIM3_IRQn
     },
-        {
+    {
         .dev      = TIM4,
         .rcc_mask = RCC_APB1ENR_TIM4EN,
         .chan     = { { .pin = GPIO_PIN(PORT_B, 8), .cc_chan = 2 },
@@ -189,9 +209,14 @@ static const pwm_conf_t pwm_config[] = {
                       { .pin = GPIO_UNDEF,          .cc_chan = 0 },
                       { .pin = GPIO_UNDEF,          .cc_chan = 0 } },
         .af       = GPIO_AF2,
-        .bus      = APB1
+        .bus      = APB1,
+        .irqn     = TIM4_IRQn
     }
 };
+
+#define TIM_0_ISR           isr_tim2
+#define TIM_1_ISR           isr_tim3
+#define TIM_2_ISR           isr_tim4
 
 #define PWM_NUMOF           (sizeof(pwm_config) / sizeof(pwm_config[0]))
 /** @} */
@@ -285,6 +310,32 @@ static const i2c_conf_t i2c_config[] = {
 #define I2C_NUMOF           (sizeof(i2c_config) / sizeof(i2c_config[0]))
 /** @} */
 
+/**
+ * @name    DMA streams configuration
+ * @{
+ */
+#ifdef MODULE_PERIPH_DMA
+static const dma_conf_t dma_config[] = {
+    { .stream = 0 },    /* DMA1 Channel 1 - ADC1 */
+    { .stream = 1 },    /* DMA1 Channel 2 - USART3_TX / SPI1_RX */
+    { .stream = 2 },    /* DMA1 Channel 3 - USART3_RX / SPI1_TX */
+    { .stream = 3 },    /* DMA1 Channel 4 - USART1_TX / SPI2_RX / I2C2_TX */
+    { .stream = 4 },    /* DMA1 Channel 5 - USART1_RX / SPI2_TX / I2C2_RX */
+    { .stream = 5 },    /* DMA1 Channel 6 - USART2_RX / I2C1_TX */
+    { .stream = 6 },    /* DMA1 Channel 7 - USART2_TX / I2C1_RX */
+};
+
+#define DMA_0_ISR  isr_dma1_ch1
+#define DMA_1_ISR  isr_dma1_ch2
+#define DMA_2_ISR  isr_dma1_ch3
+#define DMA_3_ISR  isr_dma1_ch4
+#define DMA_4_ISR  isr_dma1_ch5
+#define DMA_5_ISR  isr_dma1_ch6
+#define DMA_6_ISR  isr_dma1_ch7
+
+#define DMA_NUMOF           (sizeof(dma_config) / sizeof(dma_config[0]))
+#endif
+/** @} */
 
 /**
  * @brief   ADC configuration
@@ -293,22 +344,22 @@ static const i2c_conf_t i2c_config[] = {
  * [ pin, channel ]
  * @{
  */
-#define ADC_CONFIG {            \
-    { GPIO_PIN(PORT_A, 1), 1 },\
-    { GPIO_PIN(PORT_A, 2), 2 },\
-    { GPIO_PIN(PORT_A, 3), 3 },\
-    { GPIO_PIN(PORT_A, 4), 4 },\
-    { GPIO_PIN(PORT_A, 5), 5 },\
-    { GPIO_PIN(PORT_A, 6), 6 }, \
-	{ GPIO_PIN(PORT_A, 7), 7 }, \
-	{ GPIO_UNDEF, ADC_VREF_CHANNEL}, \
-	{ GPIO_UNDEF, ADC_TEMPERATURE_CHANNEL}, \
-}
+static const adc_conf_t adc_config[] = {
+    { .pin = GPIO_PIN(PORT_A, 1), .chan = 1,                       .trigger = ADC_EXT_TRIGGER_TIM9TRGO },
+    { .pin = GPIO_PIN(PORT_A, 2), .chan = 2,                       .trigger = ADC_EXT_TRIGGER_TIM9TRGO },
+    { .pin = GPIO_PIN(PORT_A, 3), .chan = 3,                       .trigger = ADC_EXT_TRIGGER_TIM9TRGO },
+    { .pin = GPIO_PIN(PORT_A, 4), .chan = 4,                       .trigger = ADC_EXT_TRIGGER_TIM9TRGO },
+    { .pin = GPIO_PIN(PORT_A, 5), .chan = 5,                       .trigger = ADC_EXT_TRIGGER_TIM9TRGO },
+    { .pin = GPIO_PIN(PORT_A, 6), .chan = 6,                       .trigger = ADC_EXT_TRIGGER_TIM9TRGO },
+	{ .pin = GPIO_PIN(PORT_A, 7), .chan = 7,                       .trigger = ADC_EXT_TRIGGER_TIM9TRGO },
+	{ .pin = GPIO_UNDEF,          .chan = ADC_VREF_CHANNEL,        .trigger = ADC_EXT_TRIGGER_TIM9TRGO },
+	{ .pin = GPIO_UNDEF,          .chan = ADC_TEMPERATURE_CHANNEL, .trigger = ADC_EXT_TRIGGER_TIM9TRGO },
+};
 
-#define ADC_VREF_INDEX 7
-#define ADC_TEMPERATURE_INDEX 8
+#define ADC_VREF_INDEX          7
+#define ADC_TEMPERATURE_INDEX   8
 
-#define ADC_NUMOF           (9)
+#define ADC_NUMOF           (sizeof(adc_config) / sizeof(adc_config[0]))
 /** @} */
 #ifdef __cplusplus
 }

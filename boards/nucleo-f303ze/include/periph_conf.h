@@ -204,21 +204,6 @@ static const spi_conf_t spi_config[] = {
 #define SPI_NUMOF           (sizeof(spi_config) / sizeof(spi_config[0]))
 /** @} */
 
-
-/**
- * @name    I2C configuration
- * @{
- */
-#define I2C_NUMOF           (0U)
-/** @} */
-
-/**
- * @name   ADC configuration
- * @{
- */
-#define ADC_NUMOF          (0)
-/** @} */
-
 #ifdef __cplusplus
 }
 #endif

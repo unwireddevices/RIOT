@@ -19,6 +19,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 
 #include "net/ipv6/addr.h"
 #include "net/gnrc.h"
@@ -42,11 +43,6 @@
  * @brief   Threshold for listed option flags
  */
 #define _LINE_THRESHOLD                 (8U)
-
-/**
- * @brief   Determine length of array in elements
- */
-#define _ARRAY_LEN(x)                   (sizeof(x) / sizeof(x[0]))
 
 /**
  * @brief   Flag command mapping
@@ -176,9 +172,9 @@ static void _set_usage(char *cmd_name)
 static void _flag_usage(char *cmd_name)
 {
     printf("usage: %s <if_id> [-]{", cmd_name);
-    for (unsigned i = 0; i < _ARRAY_LEN(flag_cmds); i++) {
+    for (unsigned i = 0; i < ARRAY_SIZE(flag_cmds); i++) {
         printf("%s", flag_cmds[i].name);
-        if (i < (_ARRAY_LEN(flag_cmds) - 1)) {
+        if (i < (ARRAY_SIZE(flag_cmds) - 1)) {
             printf("|");
         }
     }
@@ -361,16 +357,22 @@ static void _netif_list_ipv6(ipv6_addr_t *addr, uint8_t flags)
     if (flags & GNRC_NETIF_IPV6_ADDRS_FLAGS_ANYCAST) {
         printf(" [anycast]");
     }
-    switch (flags & GNRC_NETIF_IPV6_ADDRS_FLAGS_STATE_MASK) {
-        case GNRC_NETIF_IPV6_ADDRS_FLAGS_STATE_TENTATIVE:
-            printf("  TNT");
-            break;
-        case GNRC_NETIF_IPV6_ADDRS_FLAGS_STATE_DEPRECATED:
-            printf("  DPR");
-            break;
-        case GNRC_NETIF_IPV6_ADDRS_FLAGS_STATE_VALID:
-            printf("  VAL");
-            break;
+    if (flags & GNRC_NETIF_IPV6_ADDRS_FLAGS_STATE_TENTATIVE) {
+        printf("  TNT[%u]",
+               flags & GNRC_NETIF_IPV6_ADDRS_FLAGS_STATE_TENTATIVE);
+    }
+    else {
+        switch (flags & GNRC_NETIF_IPV6_ADDRS_FLAGS_STATE_MASK) {
+            case GNRC_NETIF_IPV6_ADDRS_FLAGS_STATE_DEPRECATED:
+                printf("  DPR");
+                break;
+            case GNRC_NETIF_IPV6_ADDRS_FLAGS_STATE_VALID:
+                printf("  VAL");
+                break;
+            default:
+                printf("  UNK");
+                break;
+        }
     }
     line_thresh = _newline(0U, line_thresh);
 }
@@ -516,6 +518,9 @@ static void _netif_list(kernel_pid_t iface)
 #endif
     line_thresh = _netif_list_flag(iface, NETOPT_IPV6_SND_RTR_ADV, "RTR_ADV  ",
                                    line_thresh);
+#ifdef MODULE_GNRC_SIXLOWPAN
+    line_thresh = _netif_list_flag(iface, NETOPT_6LO, "6LO  ", line_thresh);
+#endif
 #ifdef MODULE_GNRC_SIXLOWPAN_IPHC
     line_thresh += _LINE_THRESHOLD + 1; /* enforce linebreak after this option */
     line_thresh = _netif_list_flag(iface, NETOPT_6LO_IPHC, "IPHC  ",
@@ -1061,7 +1066,7 @@ static int _netif_flag(char *cmd, kernel_pid_t iface, char *flag)
         set = NETOPT_DISABLE;
         flag++;
     }
-    for (unsigned i = 0; i < _ARRAY_LEN(flag_cmds); i++) {
+    for (unsigned i = 0; i < ARRAY_SIZE(flag_cmds); i++) {
         if (strcmp(flag_cmds[i].name, flag) == 0) {
             return _netif_set_flag(iface, flag_cmds[i].opt, set);
         }

@@ -60,11 +60,13 @@ extern "C" {
 #include "umdk-meteo.h"
 
 #include "thread.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 static bmx280_t dev_bmx280;
 static sht21_t dev_sht21;
 static lps331ap_t dev_lps331;
+static lps331ap_params_t lps331_params;
+
 static lm75_t dev_lm75;
 
 static uwnds_cb_t *callback;
@@ -72,7 +74,7 @@ static uwnds_cb_t *callback;
 static kernel_pid_t timer_pid;
 
 static msg_t timer_msg = {};
-static rtctimers_millis_t timer;
+static lptimer_t timer;
 
 static bool is_polled = false;
 
@@ -105,8 +107,10 @@ static bool init_sensor(void) {
         puts("[umdk-" _UMDK_NAME_ "] Sensirion SHT21 sensor found");
     }
     
-    dev_lps331.i2c = bme280_params[0].i2c_dev;
-    if (lps331ap_init(&dev_lps331, dev_lps331.i2c, 0x5D, LPS331AP_RATE_1HZ) == 0) {
+    lps331_params.i2c = bme280_params[0].i2c_dev;
+    lps331_params.addr = 0x5D;
+    lps331_params.rate = LPS331AP_RATE_1HZ;
+    if (lps331ap_init(&dev_lps331, &lps331_params) == 0) {
         active_sensors |= UMDK_METEO_LPS331;
         puts("[umdk-" _UMDK_NAME_ "] STMicro LPS331 sensor found");
     }
@@ -197,7 +201,7 @@ static void *timer_thread(void *arg) {
         /* Notify the application */
         callback(&data);
         /* Restart after delay */
-        rtctimers_millis_set_msg(&timer, 60000 * meteo_config.publish_period_min, &timer_msg, timer_pid);
+        lptimer_set_msg(&timer, 60000 * meteo_config.publish_period_min, &timer_msg, timer_pid);
     }
 
     return NULL;
@@ -221,13 +225,13 @@ static inline void save_config(void) {
 }
 
 static void set_period (int period) {
-    rtctimers_millis_remove(&timer);
+    lptimer_remove(&timer);
     meteo_config.publish_period_min = period;
 	save_config();
 
 	/* Don't restart timer if new period is zero */
 	if (meteo_config.publish_period_min) {
-		rtctimers_millis_set_msg(&timer, 60000 * meteo_config.publish_period_min, &timer_msg, timer_pid);
+		lptimer_set_msg(&timer, 60000 * meteo_config.publish_period_min, &timer_msg, timer_pid);
 		printf("[umdk-" _UMDK_NAME_ "] Period set to %d minute (s)\n", meteo_config.publish_period_min);
 	} else {
 		puts("[umdk-" _UMDK_NAME_ "] Timer stopped");
@@ -290,7 +294,7 @@ void umdk_meteo_init(uwnds_cb_t *event_callback) {
 	timer_pid = thread_create(stack, UMDK_METEO_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "bme280 thread");
 
     /* Start publishing timer */
-	rtctimers_millis_set_msg(&timer, 60000 * meteo_config.publish_period_min, &timer_msg, timer_pid);
+	lptimer_set_msg(&timer, 60000 * meteo_config.publish_period_min, &timer_msg, timer_pid);
 }
 
 static void reply_fail(module_data_t *reply) {

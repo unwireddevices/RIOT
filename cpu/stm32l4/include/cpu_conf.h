@@ -39,6 +39,8 @@
 #include "vendor/stm32l433xx.h"
 #elif defined(CPU_MODEL_STM32L432KC)
 #include "vendor/stm32l432xx.h"
+#elif defined(CPU_MODEL_STM32L4R5ZI)
+#include "vendor/stm32l4r5xx.h"
 #endif
 
 #ifdef __cplusplus
@@ -56,6 +58,8 @@ extern "C" {
 #define CPU_IRQ_NUMOF                   (85U)
 #elif defined(CPU_MODEL_STM32L496ZG)
 #define CPU_IRQ_NUMOF                   (91U)
+#elif defined(CPU_MODEL_STM32L4R5ZI)
+#define CPU_IRQ_NUMOF                   (95U)
 #else
 #define CPU_IRQ_NUMOF                   (82U)
 #endif
@@ -80,6 +84,27 @@ void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider);
  * @brief   Initizliaze clocks (switch to default clock)
  */
 void clk_init(void);
+
+/**
+ * @name   Flash page configuration
+ * @{
+ */
+#define FLASHPAGE_SIZE      (2048U)
+
+#if defined(CPU_MODEL_STM32L432KC) || defined(CPU_MODEL_STM32L433RC)
+#define FLASHPAGE_NUMOF            (128U)
+#elif defined(CPU_MODEL_STM32L452RE)
+#define FLASHPAGE_NUMOF            (256U)
+#else
+#define FLASHPAGE_NUMOF            (512U)
+#endif
+/* The minimum block size which can be written is 8B. However, the erase
+ * block is always FLASHPAGE_SIZE.
+ */
+#define FLASHPAGE_RAW_BLOCKSIZE    (8U)
+/* Writing should be always 8 bytes aligned */
+#define FLASHPAGE_RAW_ALIGNMENT    (8U)
+/** @} */
 
 #ifdef __cplusplus
 }

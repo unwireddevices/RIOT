@@ -47,7 +47,7 @@ extern "C" {
 #include "periph/gpio.h"
 #include "periph/uart.h"
 #include "ringbuffer.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 #include "utils.h"
 #include "shell.h"
 #include "shell_commands.h"
@@ -77,7 +77,7 @@ extern "C" {
 #define IWDG_RELOAD     (0x0FFF)
 #define IWDG_TIMEOUT    (1000*((((IWDG_RELOAD) * (1 << (IWDG_PRESCALER + 2))) / 56000) - 3))
 
-static rtctimers_millis_t iwdg_timer;
+static lptimer_t iwdg_timer;
 
 static sx127x_t sx127x;
 static netdev_t netdev;
@@ -315,7 +315,7 @@ static void pending_frames_req_cb(ls_gate_node_t *node) {
 static void ls_setup(ls_gate_t *ls)
 {
     ls->settings.gate_id = config_get_nodeid();
-    ls->settings.join_key = config_get_joinkey();
+    ls->settings.join_key = config_get_appkey();
 
     channels[0].frequency = regions[unwds_get_node_settings().region_index].channels[unwds_get_node_settings().channel];
     channels[0].dr = unwds_get_node_settings().dr;
@@ -446,7 +446,7 @@ static void print_config(void)
     uint64_t appid = config_get_appid();
 
     if (DISPLAY_JOINKEY_2BYTES) {
-        uint8_t *key = config_get_joinkey();
+        uint8_t *key = config_get_appkey();
         printf("JOINKEY = 0x....%01X%01X\n", key[14], key[15]);
     }
 
@@ -533,7 +533,7 @@ static void iwdg_reset (void *arg) {
     (void)arg;
     
     wdg_reload();
-    rtctimers_millis_set(&iwdg_timer, IWDG_TIMEOUT);
+    lptimer_set(&iwdg_timer, IWDG_TIMEOUT);
     DEBUG("Watchdog reset\n");
     return;
 }
@@ -549,7 +549,7 @@ shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX] = {
 
 static void watchdog_start(void) {
     iwdg_timer.callback = iwdg_reset;
-    rtctimers_millis_set(&iwdg_timer, IWDG_TIMEOUT);
+    lptimer_set(&iwdg_timer, IWDG_TIMEOUT);
     
 	wdg_set_prescaler(IWDG_PRESCALER);
     wdg_set_reload(IWDG_RELOAD);
@@ -597,7 +597,7 @@ void init_normal(shell_command_t *commands)
         if (ls_gate_init(&ls) != LS_GATE_OK) {
             puts("ls: error initializing gateway");
             gpio_set(LED0_PIN);
-            rtctimers_millis_sleep(5000);
+            lptimer_sleep(5000);
             NVIC_SystemReset();
         }
         

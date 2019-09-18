@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2016 Kaspar Schleiser <kaspar@schleiser.de>
  *               2013 Freie Universität Berlin
+ *               2017 Inria
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -8,7 +9,7 @@
  */
 
 /**
- * @addtogroup  core_util
+ * @ingroup     core_util
  * @{
  *
  * @file
@@ -21,9 +22,12 @@
  * operation            | runtime | description
  * ---------------------|---------|---------------
  * clist_lpush()        | O(1)    | insert as head (leftmost node)
+ * clist_lpeek()        | O(1)    | get the head without removing it
  * clist_lpop()         | O(1)    | remove and return head (leftmost node)
  * clist_rpush()        | O(1)    | append as tail (rightmost node)
+ * clist_rpeek()        | O(1)    | get the tail without removing it
  * clist_rpop()         | O(n)    | remove and return tail (rightmost node)
+ * clist_lpoprpush()    | O(1)    | move first element to the end of the list
  * clist_find()         | O(n)    | find and return node
  * clist_find_before()  | O(n)    | find node return node pointing to node
  * clist_remove()       | O(n)    | remove and return node

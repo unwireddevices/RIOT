@@ -12,6 +12,8 @@ MCUBOOT_BIN_MD5 ?= 0c71a0589bd3709fc2d90f07a0035ce7
 
 export IMAGE_HDR_SIZE ?= 512
 
+$(MCUBOOT_KEYFILE) $(MCUBOOT_BIN): $(filter clean, $(MAKECMDGOALS))
+
 mcuboot-create-key: $(MCUBOOT_KEYFILE)
 
 ifeq ($(BINDIR)/key.pem,$(MCUBOOT_KEYFILE))
@@ -20,13 +22,12 @@ $(MCUBOOT_KEYFILE):
 	$(Q)$(IMGTOOL) keygen -k $@ -t rsa-2048
 endif
 
+mcuboot: ROM_OFFSET=$$(($(MCUBOOT_SLOT0_SIZE) + $(IMAGE_HDR_SIZE)))
 mcuboot: mcuboot-create-key link
 	@$(COLOR_ECHO)
 	@$(COLOR_ECHO) '$(COLOR_PURPLE)Re-linking for MCUBoot at $(MCUBOOT_SLOT0_SIZE)...$(COLOR_RESET)'
 	@$(COLOR_ECHO)
-	$(Q)$(_LINK) $(LINKFLAGPREFIX)--defsym=offset="$$(($(MCUBOOT_SLOT0_SIZE) + $(IMAGE_HDR_SIZE)))" \
-	$(LINKFLAGPREFIX)--defsym=length="$$(($(MCUBOOT_SLOT1_SIZE) - $(IMAGE_HDR_SIZE)))" \
-	$(LINKFLAGPREFIX)--defsym=image_header="$(IMAGE_HDR_SIZE)" -o $(ELFFILE) && \
+	$(Q)$(_LINK) -o $(ELFFILE) && \
 	$(OBJCOPY) $(OFLAGS) -Obinary $(ELFFILE) $(BINFILE) && \
 	$(IMGTOOL) sign --key $(MCUBOOT_KEYFILE) --version $(IMAGE_VERSION) --align \
 	$(MCUBOOT_IMAGE_ALIGN) -H $(IMAGE_HDR_SIZE) $(BINFILE) $(SIGN_BINFILE)

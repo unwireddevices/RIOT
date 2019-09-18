@@ -277,6 +277,7 @@ void stmclk_init_sysclk(void)
     
     cpu_status.clock.coreclock = CLOCK_CORECLOCK;
 
+#if defined(MODULE_PERIPH_STATUS_EXTENDED)
 #if CLOCK_MSI
     strncpy(cpu_status.clock.source, "MSI", CPU_CLOCK_SOURCE_MAX_SIZE);   
 #elif defined(CLOCK_HS_MULTI)
@@ -305,6 +306,7 @@ void stmclk_init_sysclk(void)
     #elif
         strncpy(cpu_status.clock.source, "HSE", CPU_CLOCK_SOURCE_MAX_SIZE);
     #endif
+#endif
 #endif
 }
 
@@ -351,7 +353,9 @@ void switch_to_msi(uint32_t msi_range, uint32_t ahb_divider) {
     tmpreg &= ~(RCC_CR_HSEBYP | RCC_CR_CSSON | RCC_CR_PLLON);
     RCC->CR = tmpreg;
     
+#if defined(MODULE_PERIPH_STATUS_EXTENDED)
     strncpy(cpu_status.clock.source, "MSI", CPU_CLOCK_SOURCE_MAX_SIZE);
+#endif
     cpu_status.clock.coreclock = 65536 * (1 << (msi_range >> 13));
 }
 

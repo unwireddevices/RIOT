@@ -21,6 +21,7 @@
 
 #ifdef MODULE_HDC1000
 
+#include "assert.h"
 #include "log.h"
 #include "saul_reg.h"
 #include "hdc1000.h"
@@ -29,7 +30,7 @@
 /**
  * @brief   Define the number of configured sensors
  */
-#define HDC1000_NUM    (sizeof(hdc1000_params) / sizeof(hdc1000_params[0]))
+#define HDC1000_NUM    ARRAY_SIZE(hdc1000_params)
 
 /**
  * @brief   Allocate memory for the device descriptors
@@ -44,7 +45,7 @@ static saul_reg_t saul_entries[HDC1000_NUM * 2];
 /**
  * @brief   Define the number of saul info
  */
-#define HDC1000_INFO_NUM    (sizeof(hdc1000_saul_info) / sizeof(hdc1000_saul_info[0]))
+#define HDC1000_INFO_NUM    ARRAY_SIZE(hdc1000_saul_info)
 
 /**
  * @name    Reference the driver struct

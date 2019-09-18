@@ -20,6 +20,7 @@
 
 #ifdef MODULE_SI70XX
 
+#include "assert.h"
 #include "log.h"
 #include "saul_reg.h"
 #include "si70xx.h"
@@ -28,7 +29,7 @@
 /**
  * @brief   Define the number of configured sensors
  */
-#define SI70XX_NUM    (sizeof(si70xx_params) / sizeof(si70xx_params[0]))
+#define SI70XX_NUM    ARRAY_SIZE(si70xx_params)
 
 /**
  * @brief   Allocation of memory for device descriptors
@@ -43,7 +44,7 @@ static saul_reg_t saul_entries[SI70XX_NUM * 2];
 /**
  * @brief   Define the number of saul info
  */
-#define SI70XX_INFO_NUM    (sizeof(si70xx_saul_info) / sizeof(si70xx_saul_info[0]))
+#define SI70XX_INFO_NUM    ARRAY_SIZE(si70xx_saul_info)
 
 /**
  * @name    Reference the driver structs.

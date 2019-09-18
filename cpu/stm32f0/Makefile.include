@@ -1,7 +1,6 @@
 export CPU_ARCH = cortex-m0
 export CPU_FAM  = stm32f0
 
-FEATURES_REQUIRED += periph_rtc
 FEATURES_REQUIRED += periph_pm
 
 USEMODULE += pm_layered

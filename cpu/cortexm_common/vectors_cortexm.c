@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 Freie Universität Berlin
+ * Copyright (C) 2018 Unwired Devices LLC
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -199,6 +200,8 @@ __attribute__((naked)) void hard_fault_default(void)
         "ldr     r2, =0xCAFEBABE            \n" /* 2nd magic number to be found  */
         "cmp     r1, r2                     \n" /* compare with 2nd magic number */
         "bne     regular_handler            \n" /* no magic -> handle as usual   */
+        "ldr     r1, =0                     \n" /* reset second magic number     */
+        "str     r1, [r0, #0x08]            \n" /* reset second magic number     */
         "ldr     r1, [r0, #0x18]            \n" /* read PC from the stack        */
         "adds    r1, r1, #2                 \n" /* move to the next instruction  */
         "str     r1, [r0, #0x18]            \n" /* modify PC in the stack        */
@@ -218,7 +221,7 @@ __attribute__((naked)) void hard_fault_default(void)
         "mov r3, sp                         \n" /* r4_to_r11_stack parameter  */
         "bl hard_fault_handler              \n" /* hard_fault_handler(r0)     */
           :
-          : [sram]   "r" (&_sram + HARDFAULT_HANDLER_REQUIRED_STACK_SPACE),
+          : [sram]   "r" ((uintptr_t)&_sram + HARDFAULT_HANDLER_REQUIRED_STACK_SPACE),
             [eram]   "r" (&_eram),
             [estack] "r" (&_estack)
           : "r0","r4","r5","r6","r8","r9","r10","r11","lr"
@@ -358,8 +361,41 @@ __attribute__((used)) void hard_fault_handler(uint32_t* sp, uint32_t corrupted, 
 
 #else
 
-void hard_fault_default(void)
+__attribute__((naked)) void hard_fault_default(void)
 {
+#if (__CORTEX_M == 0)
+    __asm__ volatile
+    (
+        ".syntax unified                    \n"
+        "movs r0, #4                        \n" /* r0 = 0x4                   */
+        "mov r2, lr                         \n" /* r2 = lr                    */
+        "tst r2, r0                         \n" /* if(lr & 0x4)               */
+        "bne use_psp                        \n" /* {                          */
+        "mrs r0, msp                        \n" /*   r0 = msp                 */
+        "b out                              \n" /* }                          */
+        " use_psp:                          \n" /* else {                     */
+        "mrs r0, psp                        \n" /*   r0 = psp                 */
+        " out:                              \n" /* }                          */
+        /* catch intended HardFaults on Cortex-M0 to probe memory addresses */
+        "ldr     r1, [r0, #0x04]            \n" /* read R1 from the stack        */
+        "ldr     r2, =0xDEADF00D            \n" /* magic number to be found      */
+        "cmp     r1, r2                     \n" /* compare with the magic number */
+        "bne     regular_handler            \n" /* no magic -> handle as usual   */
+        "ldr     r1, [r0, #0x08]            \n" /* read R2 from the stack        */
+        "ldr     r2, =0xCAFEBABE            \n" /* 2nd magic number to be found  */
+        "cmp     r1, r2                     \n" /* compare with 2nd magic number */
+        "bne     regular_handler            \n" /* no magic -> handle as usual   */
+        "ldr     r1, =0                     \n" /* reset second magic number     */
+        "str     r1, [r0, #0x08]            \n" /* reset second magic number     */
+        "ldr     r1, [r0, #0x18]            \n" /* read PC from the stack        */
+        "adds    r1, r1, #2                 \n" /* move to the next instruction  */
+        "str     r1, [r0, #0x18]            \n" /* modify PC in the stack        */
+        "ldr     r5, =0                     \n" /* set R5 to indicate HardFault  */
+        "bx      lr                         \n" /* exit the exception handler    */
+        " regular_handler:                  \n"
+    );
+#endif
+
     core_panic(PANIC_HARD_FAULT, "HARD FAULT HANDLER");
 }
 

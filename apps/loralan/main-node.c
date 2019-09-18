@@ -64,7 +64,7 @@ extern "C" {
 #include "utils.h"
 
 #include "ls-regions.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
@@ -131,7 +131,7 @@ void joined_timeout_cb(void)
         unsigned int delay = random_uint32_range(5000 + (current_join_retries - 1)*30000, 30000 + (current_join_retries - 1)*30000);
         printf("[LoRa] random delay %d ms\n", (unsigned int) (delay));
         
-        rtctimers_millis_sleep(delay);
+        lptimer_sleep(delay);
         
         /* limit max delay between attempts to 1 hour */
         if (current_join_retries < 120) {
@@ -172,7 +172,7 @@ static void time_req_ack_cb(time_t time) {
 			t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
 
 	/* Setup new time as system time for all the timers */
-	rtctimers_millis_set_timebase(t);
+	/* rtctimers_millis_set_timebase(t); */
 }
 
 void appdata_send_failed_cb(void)
@@ -280,7 +280,7 @@ static void ls_setup(ls_ed_t *ls)
     	ls_derive_keys(config_get_devnonce(), 0, unwds_get_node_settings().dev_addr, ls->settings.crypto.mic_key, ls->settings.crypto.aes_key);
     	ls->_internal.dev_addr = unwds_get_node_settings().dev_addr;
     } else {
-    	memcpy(ls->settings.crypto.join_key, config_get_joinkey(), LS_MIC_KEY_LEN);
+    	memcpy(ls->settings.crypto.join_key, config_get_appkey(), LS_MIC_KEY_LEN);
     }
     ls->join_timeout_cb = joined_timeout_cb;
     ls->joined_cb = joined_cb;
@@ -438,7 +438,7 @@ static void print_config(void)
     printf("NOJOIN = %s\n", (unwds_get_node_settings().no_join) ? "yes" : "no");
 
     if (!unwds_get_node_settings().no_join && DISPLAY_JOINKEY_2BYTES) {
-        uint8_t *key = config_get_joinkey();
+        uint8_t *key = config_get_appkey();
         printf("JOINKEY = 0x....%01X%01X\n", key[14], key[15]);
     }
 
@@ -604,8 +604,10 @@ static int ls_safe_cmd(int argc, char **argv) {
     (void)argc;
     (void)argv;
 
+#if defined RTC_REGBACKUP_BOOTMODE
     uint32_t bootmode = UNWDS_BOOT_SAFE_MODE;
     rtc_save_backup(bootmode, RTC_REGBACKUP_BOOTMODE);
+#endif
     puts("Rebooting in safe mode");
     NVIC_SystemReset();
     return 0;

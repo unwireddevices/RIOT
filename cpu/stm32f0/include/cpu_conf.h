@@ -45,6 +45,25 @@ extern "C" {
 #else
 #define CPU_IRQ_NUMOF                   (32U)
 #endif
+#define CPU_FLASH_BASE                  FLASH_BASE
+/** @} */
+
+/**
+ * @name    Flash page configuration
+ * @{
+ */
+#if defined(CPU_LINE_STM32F070xb) || defined(CPU_LINE_STM32F072xb) || defined(CPU_LINE_STM32F071xc)
+    #define FLASHPAGE_SIZE      (2048U)
+#else
+    #define FLASHPAGE_SIZE      (1024U)
+#endif
+
+/* The minimum block size which can be written is 4B. However, the erase
+ * block is always FLASHPAGE_SIZE.
+ */
+#define FLASHPAGE_RAW_BLOCKSIZE    (4U)
+/* Writing should be always 4 byte aligned */
+#define FLASHPAGE_RAW_ALIGNMENT    (4U)
 /** @} */
 
 #define STM32F0_DEV_ID_CAT3     0x444

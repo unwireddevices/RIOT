@@ -1,7 +1,13 @@
 FEATURES_PROVIDED += periph_cpuid
+FEATURES_PROVIDED += periph_gpio periph_gpio_irq
+FEATURES_PROVIDED += puf_sram
+FEATURES_PROVIDED += periph_eeprom
 
 ifneq (,$(filter $(BOARDS_WITHOUT_HWRNG),$(BOARD)))
   FEATURES_PROVIDED := $(filter-out periph_hwrng,$(FEATURES_PROVIDED))
 endif
+
+# always needed to compile
+USEMODULE += periph_status
 
 -include $(RIOTCPU)/cortexm_common/Makefile.features

@@ -36,65 +36,17 @@
 
 #include "periph/pwm.h"
 
-#define UMDK_PWM_0 0
-#define UMDK_PWM_1 1
-#define UMDK_PWM_2 2
-
-#define UMDK_PWM_CH_0 0
-#define UMDK_PWM_CH_1 1
-#define UMDK_PWM_CH_2 2
-#define UMDK_PWM_CH_3 3
-
-#define UMDK_PWM_DUTY_DEFAULT 0
-#define UMDK_PWM_FREQ_DEFAULT (1000U)
-#define UMDK_PWM_RES_DEFAULT 100
-
-#define UMDK_PWM_DUTY_MAX 100
-#define UMDK_PWM_FREQ_MAX (100000U)
-
-#define UMDK_PWM_NUM_DEVS 3
-#define UMDK_PWM_NUM_CH 8
-
-#define UMDK_PWM_NUM_CH_MAX 4
-#define UMDK_PWM_0_NUM_CH_MAX 4
-#define UMDK_PWM_1_NUM_CH_MAX 2
-#define UMDK_PWM_2_NUM_CH_MAX 2
-
-#define UMDK_PWM_STATUS_DEFAULT 0
-#define UMDK_PWM_CH_TURN_ON 1
-#define UMDK_PWM_CH_TURN_OFF 0
-
-/**
- * @brief PWM channel structure
- */
-typedef struct {
-    uint8_t ch;             /**< PWM channel number */
-    uint8_t status;	/**< Status of work PWM channel */
-    uint16_t duty_cycle;    /**< Current channel duty cycle */
-} umdk_pwm_ch_t;
-
-/**
- * @brief PWM device structure
- */
-typedef struct {
-    pwm_t dev;          /**< PWM device number*/
-
-    uint8_t num_chan;	/**< Number of channels of the PWM device*/
-    pwm_mode_t mode;    /**< PWM device mode */
-    uint32_t freq;      /**< PWM device frequency */
-    uint16_t res;       /**< PWM device resolution */
-
-    umdk_pwm_ch_t pwm_chs[UMDK_PWM_NUM_CH_MAX];	/**< Configuration of PWM channels*/
-
-    bool is_started;    /**< PWM device is running */
-} umdk_pwm_dev_t;
-
+#define UMDK_PWM_MAX_PWM_NUMBER  16
+#define UMDK_PWM_SOFTSTART_STEP_MS  10
 
 /**
  * @brief UMDK-PWM module commands list
  */
 typedef enum {
-    UMDK_PWM_CMD_SET = 0, /**< Sets frequency and duty cycle for specified PWM channel  */
+    UMDK_PWM_OK = 0,
+	UMDK_PWM_COMMAND = 1,
+	UMDK_PWM_POLL = 2,
+    UMDK_PWM_FAIL = 0xFF,
 } umdk_pwm_cmd_t;
 
 void umdk_pwm_init(uwnds_cb_t *event_callback);

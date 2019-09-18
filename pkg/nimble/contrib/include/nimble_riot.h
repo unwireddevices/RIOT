@@ -7,7 +7,7 @@
  */
 
 /**
- * @ingroup     pkg_nimble
+ * @ingroup     ble_nimble
  * @{
  *
  * @file
@@ -19,12 +19,14 @@
 #ifndef NIMBLE_RIOT_H
 #define NIMBLE_RIOT_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @brief   Define the priority used for NimBLE's controller thread
+ * @brief   Priority used for NimBLE's controller thread
  *
  * This should be as high as possible.
  */
@@ -33,9 +35,35 @@ extern "C" {
 #endif
 
 /**
- * @brief   Starts a thread running NimBLE's controller
+ * @brief   Stacksize used for NimBLE's controller thread
  */
-void nimble_riot_controller_init(void);
+#ifndef NIMBLE_CONTROLLER_STACKSIZE
+#define NIMBLE_CONTROLLER_STACKSIZE (THREAD_STACKSIZE_DEFAULT)
+#endif
+
+/**
+ * @brief   Priority used for NimBLE's host thread
+ */
+#ifndef NIMBLE_HOST_PRIO
+#define NIMBLE_HOST_PRIO            (THREAD_PRIORITY_MAIN - 2)
+#endif
+
+/**
+ * @brief   Stacksize used for NimBLE's host thread
+ */
+#ifndef NIMBLE_HOST_STACKSIZE
+#define NIMBLE_HOST_STACKSIZE       (THREAD_STACKSIZE_DEFAULT)
+#endif
+
+/**
+ * @brief   Export our own address type for later usage
+ */
+extern uint8_t nimble_riot_own_addr_type;
+
+/**
+ * @brief   Setup and run NimBLE's controller and host threads
+ */
+void nimble_riot_init(void);
 
 #ifdef __cplusplus
 }

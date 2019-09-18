@@ -55,7 +55,8 @@ static int _send(gnrc_pktsnip_t *pkt)
 
     /* Search for TCP header */
     LL_SEARCH_SCALAR(pkt, tcp, type, GNRC_NETTYPE_TCP);
-    /* cppcheck-suppress knownConditionTrueFalse */
+    /* cppcheck-suppress knownConditionTrueFalse
+     * (reason: tcp *can* be != NULL after LL_SEARCH_SCALAR) */
     if (tcp == NULL) {
         DEBUG("gnrc_tcp_eventloop : _send() : tcp header missing.\n");
         gnrc_pktbuf_release(pkt);
@@ -161,6 +162,7 @@ static int _receive(gnrc_pktsnip_t *pkt)
             return -ENOMSG;
         }
         pkt->type = GNRC_NETTYPE_UNDEF;
+        hdr = (tcp_hdr_t *)tcp->data;
     }
 
     /* Validate checksum */
@@ -218,6 +220,7 @@ static int _receive(gnrc_pktsnip_t *pkt)
             _pkt_build_reset_from_pkt(&reset, pkt);
             gnrc_netapi_send(gnrc_tcp_pid, reset);
         }
+        gnrc_pktbuf_release(pkt);
         return -ENOTCONN;
     }
     gnrc_pktbuf_release(pkt);

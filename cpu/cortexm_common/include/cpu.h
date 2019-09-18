@@ -58,8 +58,10 @@ extern "C" {
  */
 #define PROVIDES_PM_SET_LOWEST
 
-#define CPU_NAME_MAX_SIZE           20
-#define CPU_CLOCK_SOURCE_MAX_SIZE   9
+#if defined(MODULE_PERIPH_STATUS_EXTENDED)
+    #define CPU_NAME_MAX_SIZE           20
+    #define CPU_CLOCK_SOURCE_MAX_SIZE   9
+#endif
 
 typedef struct {
     size_t      size;
@@ -78,6 +80,7 @@ typedef struct {
     uint8_t     alignment;
 } cpu_eeprom_t;
 
+#if defined(MODULE_PERIPH_STATUS_EXTENDED)
 typedef struct {
     int16_t         vdd;        /**< CPU VDD voltage, mV (INT16_MIN if not available)  */
     int16_t         vdda;       /**< CPU VDDA voltage, mV (INT16_MIN if not available) */
@@ -87,34 +90,49 @@ typedef struct {
 typedef struct {
     int16_t         core_temp;          /**< CPU core temperature, C (INT16_MIN if not available) */
 } cpu_temp_t;
+#endif
 
 typedef struct {
     uint32_t        coreclock;          /**< CPU core clock     */
+#if defined(MODULE_PERIPH_STATUS_EXTENDED)
     char            source[CPU_CLOCK_SOURCE_MAX_SIZE + 1];         /**< CPU clock source   */
+#endif
 } cpu_clock_t;
 
 typedef struct {
     cpu_ram_t       ram;                /**< CPU RAM data */
     cpu_flash_t     flash;              /**< CPU flash data */
     cpu_eeprom_t    eeprom;             /**< CPU EEPROM data */
-    cpu_voltage_t   voltage;            /**< CPU voltages */
     cpu_clock_t     clock;              /**< CPU clocks */
+#if defined(MODULE_PERIPH_STATUS_EXTENDED)
+    cpu_voltage_t   voltage;            /**< CPU voltages */
     cpu_temp_t      temp;               /**< CPU core temperatures */
     char            model[CPU_NAME_MAX_SIZE];    /**< CPU name and model */
+#endif
     uint8_t         category;           /**< CPU category (0 if not applicable) */
 } cpu_status_t;
 
 extern cpu_status_t cpu_status;
 
+#if defined(MODULE_PERIPH_STATUS_EXTENDED)
 /**
  * @brief   Updates CPU status info
  */
 void cpu_update_status(void);
+#endif
 
 /**
  * @brief   Initializes CPU status info
  */
 void cpu_init_status(void);
+
+/**
+ * @brief   Pattern to write into the co-processor Access Control Register to
+ *          allow full FPU access
+ *
+ * Used in the @ref cortexm_init_fpu inline function below.
+ */
+#define CORTEXM_SCB_CPACR_FPU_ACCESS_FULL         (0x00f00000)
 
 /**
  * @brief   Initialization of the CPU
@@ -123,8 +141,63 @@ void cpu_init(void);
 
 /**
  * @brief   Initialize Cortex-M specific core parts of the CPU
+ *
+ * @ref cortexm_init calls, in a default order, @ref cortexm_init_fpu,
+ * @ref cortexm_init_isr_priorities, and @ref cortexm_init_misc.  Also
+ * performs other default initialisations, including ones which you
+ * may or may not want.
+ *
+ * Unless you have special requirements (like nRF52 with SD has), it
+ * is sufficient to call just @ref cortexm_init and the `cortexm_init_*`
+ * functions do not need to (and should not) be called separately.
+ * If you have conflicting requirements, you may want to have a look
+ * `cpu/nrft/cpu.c` for an example of a non-default approach.
  */
 void cortexm_init(void);
+
+/**
+ * @brief   Initialize Cortex-M FPU
+ *
+ * Called from `cpu/nrf52/cpu.c`, since it cannot use the
+ * whole @ref cortexm_init due to conflicting requirements.
+ *
+ * Defined here as a static inline function to allow all
+ * callers to optimise this away if the FPU is not used.
+ */
+static inline void cortexm_init_fpu(void)
+{
+    /* initialize the FPU on Cortex-M4F CPUs */
+#if defined(CPU_ARCH_CORTEX_M4F) || defined(CPU_ARCH_CORTEX_M7)
+    /* give full access to the FPU */
+    SCB->CPACR |= (uint32_t)CORTEXM_SCB_CPACR_FPU_ACCESS_FULL;
+#endif
+}
+
+#if defined(CPU_CORTEXM_INIT_SUBFUNCTIONS) || defined(DOXYGEN)
+
+/**
+ * @brief   Initialize Cortex-M interrupt priorities
+ *
+ * Called from `cpu/nrf52/cpu.c`, since it cannot use the
+ * whole @ref cortexm_init due to conflicting requirements.
+ *
+ * Define `CPU_CORTEXM_INIT_SUBFUNCTIONS` to make this function
+ * publicly available.
+ */
+void cortexm_init_isr_priorities(void);
+
+/**
+ * @brief   Initialize Cortex-M misc functions
+ *
+ * Called from `cpu/nrf52/cpu.c`, since it cannot use the
+ * whole @ref cortexm_init due to conflicting requirements.
+ *
+ * Define `CPU_CORTEXM_INIT_SUBFUNCTIONS` to make this function
+ * publicly available.
+ */
+void cortexm_init_misc(void);
+
+#endif /* defined(CPU_CORTEXM_INIT_SUBFUNCTIONS) || defined(DOXYGEN) */
 
 /**
  * @brief   Prints the current content of the link register (lr)
@@ -216,6 +289,44 @@ char* cpu_find_next_valid_address(char *start, char *stop, uint32_t step, bool v
  * @param[in]   maxsize  Maximum possible memory size
  */
 size_t cpu_find_memory_size(char *base, uint32_t block, uint32_t maxsize);
+
+/*
+ * @brief   Jumps to another image in flash
+ *
+ * This function is supposed to be called by a bootloader application.
+ *
+ * @param[in]   image_address   address in flash of other image
+ */
+static inline void cpu_jump_to_image(uint32_t image_address)
+{
+    /* Disable IRQ */
+    __disable_irq();
+
+    /* set MSP */
+    __set_MSP(*(uint32_t*)image_address);
+
+    /* skip stack pointer */
+    image_address += 4;
+
+    /* load the images reset_vector address */
+    uint32_t destination_address = *(uint32_t*)image_address;
+
+    /* Make sure the Thumb State bit is set. */
+    destination_address |= 0x1;
+
+    /* Branch execution */
+    __asm("BX %0" :: "r" (destination_address));
+}
+
+/* The following register is only present for Cortex-M0+, -M3, -M4 and -M7 CPUs */
+#if defined(CPU_ARCH_CORTEX_M0PLUS) || defined(CPU_ARCH_CORTEX_M3) || \
+    defined(CPU_ARCH_CORTEX_M4) || defined(CPU_ARCH_CORTEX_M4F) || \
+    defined(CPU_ARCH_CORTEX_M7)
+static inline uint32_t cpu_get_image_baseaddr(void)
+{
+    return SCB->VTOR;
+}
+#endif
 
 #ifdef __cplusplus
 }

@@ -53,7 +53,7 @@ extern "C" {
 #include "umdk-gps.h"
 
 #include "thread.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
@@ -65,7 +65,7 @@ static mt3333_t gps;
 
 static kernel_pid_t timer_pid;
 static msg_t timer_msg = {};
-static rtctimers_millis_t timer;
+static lptimer_t timer;
 
 static struct {
 	uint8_t publish_period_min;
@@ -152,7 +152,7 @@ static void *timer_thread(void *arg) {
         /* Notify the application */
         callback(&data);
         /* Restart after delay */
-        rtctimers_millis_set_msg(&timer, 60000 * gps_config.publish_period_min, &timer_msg, timer_pid);
+        lptimer_set_msg(&timer, 60000 * gps_config.publish_period_min, &timer_msg, timer_pid);
     }
 
     return NULL;
@@ -175,13 +175,13 @@ static inline void save_config(void) {
 }
 
 static void set_period (int period) {
-    rtctimers_millis_remove(&timer);
+    lptimer_remove(&timer);
     gps_config.publish_period_min = period;
 	save_config();
 
 	/* Don't restart timer if new period is zero */
 	if (gps_config.publish_period_min) {
-		rtctimers_millis_set_msg(&timer, 60000 * gps_config.publish_period_min, &timer_msg, timer_pid);
+		lptimer_set_msg(&timer, 60000 * gps_config.publish_period_min, &timer_msg, timer_pid);
 		printf("[umdk-" _UMDK_NAME_ "] Period set to %d minute (s)\n", gps_config.publish_period_min);
 	} else {
 		puts("[umdk-" _UMDK_NAME_ "] Timer stopped");
@@ -247,7 +247,7 @@ void umdk_gps_init(uwnds_cb_t *event_callback)
     timer_pid = thread_create(stack, UMDK_GPS_READER_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "gps thread");
 
     /* Start publishing timer */
-	rtctimers_millis_set_msg(&timer, 60000 * gps_config.publish_period_min, &timer_msg, timer_pid);
+	lptimer_set_msg(&timer, 60000 * gps_config.publish_period_min, &timer_msg, timer_pid);
     
     unwds_add_shell_command(_UMDK_NAME_, "type '" _UMDK_NAME_ "' for commands list", umdk_gps_shell_cmd);
 }

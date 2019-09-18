@@ -18,13 +18,14 @@ CFLAGS += -DCRYPTO_AES
 CFLAGS += -DNO_RIOT_BANNER
 
 FEATURES_REQUIRED += periph_gpio
-FEATURES_REQUIRED += periph_rtc
 FEATURES_REQUIRED += periph_spi
 FEATURES_REQUIRED += periph_eeprom
 FEATURES_REQUIRED += periph_uart
 FEATURES_REQUIRED += periph_pm
 FEATURES_REQUIRED += periph_iwdg
 FEATURES_REQUIRED += periph_cpuid
+FEATURES_REQUIRED += periph_status
+FEATURES_REQUIRED += periph_status_extended
 
 # Modules to include:
 USEMODULE += shell
@@ -41,6 +42,7 @@ USEMODULE += sx127x
 USEMODULE += rtctimers-millis
 USEMODULE += bloom
 USEMODULE += bitfield
+USEMODULE += lptimer
 
 ####### Empty modules list as we don't need any modules for the gateway ############
 

@@ -8,7 +8,7 @@
  */
 
 /**
- * @addtogroup  core_internal
+ * @ingroup     core_internal
  * @{
  *
  * @file
@@ -106,6 +106,16 @@
 #define UNREACHABLE() __builtin_unreachable()
 #else
 #define UNREACHABLE() do { /* nothing */ } while (1)
+#endif
+
+/**
+ * @def ARRAY_SIZE(a)
+ * @brief       Calculate the number of elements in a static array.
+ * @param[in]   a   Array to examine
+ * @returns     The number of elements in the array a.
+ */
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(a) (sizeof((a)) / sizeof((a)[0]))
 #endif
 
 /**

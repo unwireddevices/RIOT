@@ -58,7 +58,7 @@ extern "C" {
 #include "umdk-gassensor.h"
 
 #include "thread.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 #define ENABLE_DEBUG                    (0)
 #include "debug.h"
@@ -68,7 +68,7 @@ static uwnds_cb_t *callback;
 static kernel_pid_t timer_pid;
 
 static msg_t timer_msg = {};
-static rtctimers_millis_t timer;
+static lptimer_t timer;
 
 static bool is_polled = false;
 
@@ -435,13 +435,13 @@ static void prepare_result(module_data_t *buf)
 
         /* Measure voltage internal temp sensor */
         lmp91000_set_operation_mode(&lmp91000, LMP91000_OP_MODE_TEMP_MEAS_TIA_ON);
-        rtctimers_millis_sleep(1000);
+        lptimer_sleep(1000);
         uint16_t temp = adc_sample(UMDK_GASSENSOR_ADC_LINE, UMDK_GASSENSOR_ADC_RESOLUTION);
         DEBUG("[umdk-" _UMDK_NAME_ "] Reading line #%d: %d\n", UMDK_GASSENSOR_ADC_LINE, temp);
 
         /* Measure voltage gas sensor */
         lmp91000_set_operation_mode(&lmp91000, LMP91000_OP_MODE_3_LEAD_AMP_CELL);
-        rtctimers_millis_sleep(1000);
+        lptimer_sleep(1000);
         uint16_t sample = adc_sample(UMDK_GASSENSOR_ADC_LINE, UMDK_GASSENSOR_ADC_RESOLUTION);
         DEBUG("[umdk-" _UMDK_NAME_ "] Reading line #%d: %d\n", UMDK_GASSENSOR_ADC_LINE, sample);
         
@@ -529,7 +529,7 @@ static void *timer_thread(void *arg)
         callback(&data);
 
         /* Restart after delay */
-        rtctimers_millis_set_msg(&timer, 60 * 1000 * gassensor_config.publish_period_sec, &timer_msg, timer_pid);
+        lptimer_set_msg(&timer, 60 * 1000 * gassensor_config.publish_period_sec, &timer_msg, timer_pid);
     }
 
     return NULL;
@@ -541,7 +541,7 @@ static void set_period (int period) {
 
     /* Don't restart timer if new period is zero */
     if (gassensor_config.publish_period_sec) {
-        rtctimers_millis_set_msg(&timer, 60 * 1000 * gassensor_config.publish_period_sec, &timer_msg, timer_pid);
+        lptimer_set_msg(&timer, 60 * 1000 * gassensor_config.publish_period_sec, &timer_msg, timer_pid);
         printf("[umdk-" _UMDK_NAME_ "] Period set to %d minutes\n", gassensor_config.publish_period_sec);
     } else {
         puts("[umdk-" _UMDK_NAME_ "] Timer stopped");
@@ -633,7 +633,7 @@ void umdk_gassensor_init(uwnds_cb_t *event_callback)
     timer_pid = thread_create(stack, UMDK_GASSENSOR_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "ADC thread");
 
     /* Start publishing timer */
-    rtctimers_millis_set_msg(&timer, 60 * 1000 * gassensor_config.publish_period_sec, &timer_msg, timer_pid);
+    lptimer_set_msg(&timer, 60 * 1000 * gassensor_config.publish_period_sec, &timer_msg, timer_pid);
 }
 
 static void reply_ok(module_data_t *reply)

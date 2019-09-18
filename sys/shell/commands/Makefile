@@ -2,6 +2,9 @@ MODULE = shell_commands
 
 SRC = shell_commands.c sc_sys.c
 
+ifneq (,$(filter shell_password,$(USEMODULE)))
+  SRC += sc_password.c
+endif
 ifneq (,$(filter mci,$(USEMODULE)))
   SRC += sc_disk.c
 endif
@@ -66,9 +69,20 @@ endif
 ifneq (,$(filter conn_can,$(USEMODULE)))
   SRC += sc_can.c
 endif
+ifneq (,$(filter cord_ep,$(USEMODULE)))
+  SRC += sc_cord_ep.c
+endif
 
-ifneq (,$(filter periph_rtc,$(FEATURES_PROVIDED)))
+ifneq (,$(filter periph_rtc,$(USEMODULE)))
   SRC += sc_rtc.c
+endif
+
+ifneq (,$(filter i2c_scan,$(USEMODULE)))
+  SRC += sc_i2c_scan.c
+endif
+
+ifneq (,$(filter nimble_netif,$(USEMODULE)))
+  SRC += sc_nimble_netif.c
 endif
 
 include $(RIOTBASE)/Makefile.base

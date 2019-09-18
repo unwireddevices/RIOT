@@ -23,6 +23,7 @@
 
 #include "net/netopt.h"
 #include "net/netdev.h"
+#include "net/netdev/lora.h"
 #include "net/lora.h"
 
 #include "sx127x_registers.h"
@@ -53,14 +54,21 @@ static int _send(netdev_t *netdev, const iolist_t *iolist)
 
     uint8_t size = iolist_size(iolist);
 
+    /* Ignore send if packet size is 0 */
+    if (size == 0) {
+        return 0;
+    }
+
     switch (dev->settings.modem) {
         case SX127X_MODEM_FSK:
             /* todo */
             break;
         case SX127X_MODEM_LORA:
             /* Initializes the payload size */
-            sx127x_set_payload_length(dev, size);
-
+            if (!sx127x_get_fixed_header_len_mode(dev)) {
+                sx127x_set_payload_length(dev, size);
+            }
+            
             /* Full buffer used for Tx */
             sx127x_reg_write(dev, SX127X_REG_LR_FIFOTXBASEADDR, 0x00);
             sx127x_reg_write(dev, SX127X_REG_LR_FIFOADDRPTR, 0x00);
@@ -69,12 +77,14 @@ static int _send(netdev_t *netdev, const iolist_t *iolist)
              * So wake up the chip */
             if (sx127x_get_op_mode(dev) == SX127X_RF_OPMODE_SLEEP) {
                 sx127x_set_standby(dev);
-                rtctimers_millis_sleep(SX127X_RADIO_WAKEUP_TIME); /* wait for chip wake up */
+                lptimer_sleep(SX127X_RADIO_WAKEUP_TIME); /* wait for chip wake up */
             }
 
             /* Write payload buffer */
             for (const iolist_t *iol = iolist; iol; iol = iol->iol_next) {
-                sx127x_write_fifo(dev, iol->iol_base, iol->iol_len);
+                if(iol->iol_len > 0) {
+                    sx127x_write_fifo(dev, iol->iol_base, iol->iol_len);
+                }
             }
             break;
         default:
@@ -82,29 +92,7 @@ static int _send(netdev_t *netdev, const iolist_t *iolist)
             break;
     }
 
-    /* Enable TXDONE interrupt */
-    sx127x_reg_write(dev, SX127X_REG_LR_IRQFLAGSMASK,
-                     SX127X_RF_LORA_IRQFLAGS_RXTIMEOUT |
-                     SX127X_RF_LORA_IRQFLAGS_RXDONE |
-                     SX127X_RF_LORA_IRQFLAGS_PAYLOADCRCERROR |
-                     SX127X_RF_LORA_IRQFLAGS_VALIDHEADER |
-                     /* SX127X_RF_LORA_IRQFLAGS_TXDONE | */
-                     SX127X_RF_LORA_IRQFLAGS_CADDONE |
-                     SX127X_RF_LORA_IRQFLAGS_FHSSCHANGEDCHANNEL |
-                     SX127X_RF_LORA_IRQFLAGS_CADDETECTED);
-
-    /* Set TXDONE interrupt to the DIO0 line */
-    sx127x_reg_write(dev, SX127X_REG_DIOMAPPING1,
-                     (sx127x_reg_read(dev, SX127X_REG_DIOMAPPING1) &
-                      SX127X_RF_LORA_DIOMAPPING1_DIO0_MASK) |
-                     SX127X_RF_LORA_DIOMAPPING1_DIO0_01);
-
-    /* Start TX timeout timer */
-    rtctimers_millis_set(&dev->_internal.tx_timeout_timer, dev->settings.lora.tx_timeout);
-
-    /* Put chip into transfer mode */
-    sx127x_set_state(dev, SX127X_RF_TX_RUNNING);
-    sx127x_set_op_mode(dev, SX127X_RF_OPMODE_TRANSMITTER);
+    sx127x_set_tx(dev);
 
     return 0;
 }
@@ -133,15 +121,13 @@ static int _recv(netdev_t *netdev, void *buf, size_t len, void *info)
                     sx127x_set_state(dev, SX127X_RF_IDLE);
                 }
 
-                rtctimers_millis_remove(&dev->_internal.rx_timeout_timer);
+                lptimer_remove(&dev->_internal.rx_timeout_timer);
                 netdev->event_callback(netdev, NETDEV_EVENT_CRC_ERROR, netdev->event_callback_arg);
                 return -EBADMSG;
             }
 
-            netdev_sx127x_lora_packet_info_t *packet_info = info;
+            netdev_lora_rx_info_t *packet_info = info;
             if (packet_info) {
-                /* there is no LQI for LoRa */
-                packet_info->lqi = 0;
                 uint8_t snr_value = sx127x_reg_read(dev, SX127X_REG_LR_PKTSNRVALUE);
                 if (snr_value & 0x80) { /* The SNR is negative */
                     /* Invert and divide by 4 */
@@ -186,7 +172,7 @@ static int _recv(netdev_t *netdev, void *buf, size_t len, void *info)
                 sx127x_set_state(dev, SX127X_RF_IDLE);
             }
 
-            rtctimers_millis_remove(&dev->_internal.rx_timeout_timer);
+            lptimer_remove(&dev->_internal.rx_timeout_timer);
 
             /* Read the last packet from FIFO */
             uint8_t last_rx_addr = sx127x_reg_read(dev, SX127X_REG_LR_FIFORXCURRENTADDR);
@@ -229,29 +215,26 @@ static int _init(netdev_t *netdev)
 
 static void _isr(netdev_t *netdev)
 {
-    sx127x_t *dev = (sx127x_t *) netdev;
+    sx127x_t *dev = (sx127x_t *)netdev;
 
-    /* check the actual IRQ on the registers */
     uint8_t interruptReg = sx127x_reg_read(dev, SX127X_REG_LR_IRQFLAGS);
-    
-    if ((interruptReg & SX127X_RF_LORA_IRQFLAGS_TXDONE) ||
-        (interruptReg & SX127X_RF_LORA_IRQFLAGS_RXDONE)) {
-            
+
+    if (interruptReg & (SX127X_RF_LORA_IRQFLAGS_TXDONE |
+                        SX127X_RF_LORA_IRQFLAGS_RXDONE)) {
         _on_dio0_irq(dev);
     }
-    
+
     if (interruptReg & SX127X_RF_LORA_IRQFLAGS_RXTIMEOUT) {
         _on_dio1_irq(dev);
     }
-    
+
     if (interruptReg & SX127X_RF_LORA_IRQFLAGS_FHSSCHANGEDCHANNEL) {
         _on_dio2_irq(dev);
     }
-    
-    if ((interruptReg & SX127X_RF_LORA_IRQFLAGS_CADDETECTED) ||
-        (interruptReg & SX127X_RF_LORA_IRQFLAGS_CADDONE)     ||
-        (interruptReg & SX127X_RF_LORA_IRQFLAGS_VALIDHEADER)) {
-            
+
+    if (interruptReg & (SX127X_RF_LORA_IRQFLAGS_CADDETECTED |
+                        SX127X_RF_LORA_IRQFLAGS_CADDONE |
+                        SX127X_RF_LORA_IRQFLAGS_VALIDHEADER)) {
         _on_dio3_irq(dev);
     }
 }
@@ -525,7 +508,15 @@ static int _get_state(sx127x_t *dev, void *val)
 
         case SX127X_RF_OPMODE_RECEIVER:
         case SX127X_RF_LORA_OPMODE_RECEIVER_SINGLE:
-            state = NETOPT_STATE_IDLE;
+            /* Sx127x is in receive mode:
+             * -> need to check if the device is currently receiving a packet */
+            if (sx127x_reg_read(dev, SX127X_REG_LR_MODEMSTAT) &
+                SX127X_RF_LORA_MODEMSTAT_MODEM_STATUS_SIGNAL_DETECTED) {
+                state = NETOPT_STATE_RX;
+            }
+            else {
+                state = NETOPT_STATE_IDLE;
+            }
             break;
 
         default:
@@ -546,7 +537,7 @@ static void _on_dio0_irq(void *arg)
             netdev->event_callback(netdev, NETDEV_EVENT_RX_COMPLETE, netdev->event_callback_arg);
             break;
         case SX127X_RF_TX_RUNNING:
-            rtctimers_millis_remove(&dev->_internal.tx_timeout_timer);
+            lptimer_remove(&dev->_internal.tx_timeout_timer);
             switch (dev->settings.modem) {
                 case SX127X_MODEM_LORA:
                     /* Clear IRQ */
@@ -585,7 +576,7 @@ static void _on_dio1_irq(void *arg)
                     break;
                 case SX127X_MODEM_LORA:
                     DEBUG("sx127x_on_dio1: remove timer\n");
-                    rtctimers_millis_remove(&dev->_internal.rx_timeout_timer);
+                    lptimer_remove(&dev->_internal.rx_timeout_timer);
                     /*  Clear Irq */
                     DEBUG("sx127x_on_dio1: clear IRQ\n");
                     sx127x_reg_write(dev, SX127X_REG_LR_IRQFLAGS, SX127X_RF_LORA_IRQFLAGS_RXTIMEOUT);

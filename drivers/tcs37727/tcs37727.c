@@ -33,7 +33,6 @@
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
 
-#define I2C_SPEED       I2C_SPEED_FAST
 #define BUS             (dev->p.i2c)
 #define ADR             (dev->p.addr)
 
@@ -45,16 +44,12 @@ int tcs37727_init(tcs37727_t *dev, const tcs37727_params_t *params)
     assert(dev && params);
 
     /* initialize the device descriptor */
-    memcpy(&dev->p, params, sizeof(tcs37727_params_t));
+    dev->p = *params;
 
     /* setup the I2C bus */
     i2c_acquire(BUS);
-    // if (i2c_init_master(BUS, I2C_SPEED) < 0) {
-    //     i2c_release(BUS);
-    //     LOG_ERROR("[tcs37727] init: error initializing I2C bus\n");
-    //     return TCS37727_NOBUS;
-    // }
     i2c_init(BUS);
+
     /* check if we can communicate with the device */
     i2c_read_reg(BUS, ADR, TCS37727_ID, &tmp, 0);
     if (tmp != TCS37727_ID_VALUE) {
@@ -64,7 +59,8 @@ int tcs37727_init(tcs37727_t *dev, const tcs37727_params_t *params)
     }
 
     /* configure gain and conversion time */
-    i2c_write_reg(BUS, ADR, TCS37727_ATIME, TCS37727_ATIME_TO_REG(dev->p.atime), 0);
+    i2c_write_reg(BUS, ADR, TCS37727_ATIME,
+                  TCS37727_ATIME_TO_REG(dev->p.atime), 0);
     i2c_write_reg(BUS, ADR, TCS37727_CONTROL, TCS37727_CONTROL_AGAIN_4, 0);
     dev->again = 4;
 
@@ -161,13 +157,13 @@ static uint8_t tcs37727_trim_gain(tcs37727_t *dev, int32_t rawc)
 
     i2c_acquire(BUS);
     uint8_t reg = 0;
-    if (i2c_read_reg(BUS, ADR, TCS37727_CONTROL, &reg, 0) != 1) {
+    if (i2c_read_reg(BUS, ADR, TCS37727_CONTROL, &reg, 0) < 0) {
         i2c_release(BUS);
         return -2;
     }
     reg &= ~TCS37727_CONTROL_AGAIN_MASK;
     reg |= reg_again;
-    if (i2c_write_reg(BUS, ADR, TCS37727_CONTROL, reg, 0) != 1) {
+    if (i2c_write_reg(BUS, ADR, TCS37727_CONTROL, reg, 0) < 0) {
         i2c_release(BUS);
         return -2;
     }

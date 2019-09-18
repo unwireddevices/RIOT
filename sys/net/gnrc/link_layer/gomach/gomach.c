@@ -1455,7 +1455,7 @@ static void _gomach_phase_backoff(gnrc_netif_t *netif)
 
     gnrc_gomach_update_neighbor_phase(netif);
 
-    LOG_INFO("INFO: [GOMACH] phase backoffed: %" PRIu32 " us.\n",
+    LOG_INFO("INFO: [GOMACH] phase backoffed: %lu us.\n",
              (unsigned long)netif->mac.prot.gomach.backoff_phase_us);
 }
 
@@ -1993,7 +1993,7 @@ static void _gomach_msg_handler(gnrc_netif_t *netif, msg_t *msg)
             duty = xtimer_now_usec64();
             duty = (netif->mac.prot.gomach.awake_duration_sum_ticks) * 100 /
                    (duty - netif->mac.prot.gomach.system_start_time_ticks);
-            printf("[GoMacH]: achieved radio duty-cycle: %" PRIu32 " %% \n",
+            printf("[GoMacH]: achieved radio duty-cycle: %lu %% \n",
                    (unsigned long)duty);
             break;
         }

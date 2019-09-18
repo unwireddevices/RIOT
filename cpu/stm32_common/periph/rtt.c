@@ -95,14 +95,20 @@ void rtt_init(void)
     /* enable timer */
     LPTIM1->CR = LPTIM_CR_ENABLE;
     /* set auto-reload value (timer needs to be enabled for this) */
+    LPTIM1->ICR = LPTIM_ICR_ARROKCF;
     LPTIM1->ARR = RTT_MAX_VALUE;
+    while (!(LPTIM1->ISR & LPTIM_ISR_ARROK)) {}
     /* start the timer */
     LPTIM1->CR |= LPTIM_CR_CNTSTRT;
 }
 
 uint32_t rtt_get_counter(void)
 {
-    return (uint32_t)LPTIM1->CNT;
+    uint32_t cnt;
+    do {
+        cnt = LPTIM1->CNT;
+    } while (cnt != LPTIM1->CNT);
+    return cnt;
 }
 
 void rtt_set_overflow_cb(rtt_cb_t cb, void *arg)
@@ -125,9 +131,11 @@ void rtt_set_alarm(uint32_t alarm, rtt_cb_t cb, void *arg)
     assert(cb && !(alarm & ~RTT_MAX_VALUE));
 
     unsigned is = irq_disable();
+    LPTIM1->ICR = LPTIM_ICR_CMPOKCF;
     to_cb  = cb;
     to_arg = arg;
     LPTIM1->CMP = (uint16_t)alarm;
+    while (!(LPTIM1->ISR & LPTIM_ISR_CMPOK)) {}
     irq_restore(is);
 }
 
@@ -174,4 +182,217 @@ void isr_lptim1(void)
     cortexm_isr_end();
 }
 
-#endif /* LPTIM1 */
+/* if no LPTIM1 is available, we use RTT-on-RTC emulation
+ * only STM32L1 Cat. 2 and newer MCUs are supported
+ * not compatible with regular RTC due to clock settings */
+ 
+/* F1 doesn't have RTC_SSR, L0, L4, G0, F7, H7 have LPTIMs */
+#elif defined(CPU_FAM_STM32L1) || defined(CPU_FAM_STM32L1) || \
+      defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F3) || \
+      defined(CPU_FAM_STM32F4)
+
+#if defined(CPU_FAM_STM32L1)
+#define EN_REG              (RCC->CSR)
+#define EN_BIT              (RCC_CSR_RTCEN)
+#define RST_BIT             (RCC_CSR_RTCRST)
+#define CLKSEL_MASK         (RCC_CSR_RTCSEL)
+#define CLKSEL_LSE          (RCC_CSR_RTCSEL_LSE)
+#define CLKSEL_LSI          (RCC_CSR_RTCSEL_LSI)
+#else
+#define EN_REG              (RCC->BDCR)
+#define EN_BIT              (RCC_BDCR_RTCEN)
+#define CLKSEL_MASK         (RCC_BDCR_RTCSEL_0 | RCC_BDCR_RTCSEL_1)
+#define CLKSEL_LSE          (RCC_BDCR_RTCSEL_0)
+#define CLKSEL_LSI          (RCC_BDCR_RTCSEL_1)
+#endif
+
+/* interrupt line name mapping */
+#if defined(CPU_FAM_STM32F0)
+#define IRQN                (RTC_IRQn)
+#define IRQNWU              (RTC_IRQn)
+#define ISR_NAME            isr_rtc
+#else
+#define IRQN                (RTC_Alarm_IRQn)
+#define IRQNWU              (RTC_WKUP_IRQn)
+#define ISR_NAME            isr_rtc_alarm
+#endif
+
+/* write protection values */
+#define WPK1                (0xCA)
+#define WPK2                (0x53)
+
+#define EXTI_IMR_BIT        (EXTI_IMR_MR17)
+#define EXTI_IMRWU_BIT      (EXTI_IMR_MR20)
+#define EXTI_FTSR_BIT       (EXTI_FTSR_TR17)
+#define EXTI_RTSR_BIT       (EXTI_RTSR_TR17)
+#define EXTI_PR_BIT         (EXTI_PR_PR17)
+
+/* figure out RTT clock */
+#if defined(RTT_FREQUENCY)
+    #if CLOCK_LSE
+        #define PRE_ASYNC           ((uint32_t)(32768/RTT_FREQUENCY) - 1) /* 31 */
+    #elif CLOCK_LSI
+        #define PRE_ASYNC           ((uint32_t)(CLOCK_LSI/RTT_FREQUENCY))
+    #else
+        #error "rtt (on rtc): no LSI or LSE clock defined"
+    #endif
+#else
+#error "rtt (on rtc): RTT_FREQUENCY undefined"
+#endif
+
+#define PRE_SYNC    (0x7FFFul) /* full 15 bits */ /* 32767 */
+
+rtt_cb_t cb_a;
+void *arg_a;
+
+static inline void rtc_unlock(void)
+{
+    /* unlock RTC */
+    RTC->WPR = WPK1;
+    RTC->WPR = WPK2;
+}
+
+static inline void rtc_lock(void)
+{
+    /* lock RTC device */
+    RTC->WPR = 0xff;
+}
+
+void rtt_init(void) {
+    /* enable low frequency clock */
+    stmclk_enable_lfclk();
+
+    /* select input clock and enable the RTC */
+    stmclk_dbp_unlock();
+    
+    EN_REG &= ~(CLKSEL_MASK);
+#if CLOCK_LSE
+    EN_REG |= (CLKSEL_LSE | EN_BIT);
+#else
+    EN_REG |= (CLKSEL_LSI | EN_BIT);
+#endif
+
+    rtc_unlock();
+    /* enter RTC init mode */
+    RTC->ISR |= RTC_ISR_INIT;
+    while (!(RTC->ISR & RTC_ISR_INITF)) {}
+    /* reset configuration */
+    RTC->CR = 0;
+    RTC->ISR = RTC_ISR_INIT;
+    /* configure prescaler (RTC PRER) */
+    RTC->PRER = PRE_SYNC | (PRE_ASYNC << 16);
+    /* Set 24-h clock */
+    RTC->CR &= ~RTC_CR_FMT;
+    /* Timestamps disabled */
+    RTC->CR &= ~RTC_CR_TSE;
+    
+    /* exit RTC init mode */
+    RTC->ISR &= ~RTC_ISR_INIT;
+    while (RTC->ISR & RTC_ISR_INITF) {}
+    
+    rtc_lock();
+
+    /* configure the EXTI channel, as RTC interrupts are routed through it.
+     * Needs to be configured to trigger on rising edges. */
+    EXTI->FTSR &= ~(EXTI_FTSR_BIT);
+    EXTI->RTSR |= EXTI_RTSR_BIT;
+    EXTI->IMR  |= EXTI_IMR_BIT;
+    EXTI->PR   |= EXTI_PR_BIT;
+    /* enable global RTC interrupt */
+    NVIC_EnableIRQ(IRQN);
+}
+
+uint32_t rtt_get_counter(void)
+{
+    /* clear RSF bit */
+    RTC->ISR &= ~RTC_ISR_RSF;
+    
+    /* wait for RSF to be set by hardware */
+    while (!(RTC->ISR & RTC_ISR_RSF)) {}
+
+    uint32_t rtc_ssr_counter = RTC->SSR;
+    
+    RTC->DR;
+    
+    /* it's a downcounting timer */
+    return (RTT_MAX_VALUE - rtc_ssr_counter);
+}
+
+void rtt_set_overflow_cb(rtt_cb_t cb, void *arg)
+{
+    (void)cb;
+    (void)arg;
+    /* not implemented yet */
+}
+
+void rtt_clear_overflow_cb(void)
+{
+    /* not implemented yet */
+}
+
+void rtt_set_alarm(uint32_t alarm, rtt_cb_t cb, void *arg)
+{
+    rtc_unlock();
+    
+    RTC->CR &= ~(RTC_CR_ALRAE | RTC_CR_ALRAIE);
+    while (!(RTC->ISR & RTC_ISR_ALRAWF)) {}
+    
+    /* seconds, minutes, hours and date doesn't matter */
+    RTC->ALRMAR |= (RTC_ALRMAR_MSK1 | RTC_ALRMAR_MSK2 | RTC_ALRMAR_MSK3 | RTC_ALRMAR_MSK4);
+    
+    /* it's a downcounting timer */
+    alarm = RTT_MAX_VALUE - alarm;
+    
+    /* compare all 15 bits */
+    RTC->ALRMASSR = (alarm & RTT_MAX_VALUE) | RTC_ALRMASSR_MASKSS;
+    
+    /* Enable Alarm */
+    RTC->CR |= RTC_CR_ALRAE;
+    RTC->CR |= RTC_CR_ALRAIE;
+    RTC->ISR &= ~(RTC_ISR_ALRAF);
+
+    cb_a = cb;
+    arg_a = arg;
+    
+    rtc_lock();
+}
+
+void rtt_clear_alarm(void)
+{
+    rtc_unlock();
+    RTC->CR &= ~(RTC_CR_ALRAE | RTC_CR_ALRAIE);
+    while (!(RTC->ISR & RTC_ISR_ALRAWF)) {}
+    
+    cb_a = NULL;
+    arg_a = NULL;
+
+    rtc_lock();
+}
+
+void rtt_poweron(void)
+{
+    stmclk_dbp_unlock();
+    EN_REG |= EN_BIT;
+}
+
+void rtt_poweroff(void)
+{
+    stmclk_dbp_unlock();
+    EN_REG &= ~EN_BIT;
+    stmclk_dbp_lock();
+}
+
+void ISR_NAME(void)
+{
+    if (RTC->ISR & RTC_ISR_ALRAF) {
+        if (cb_a != NULL) {
+            cb_a(arg_a);
+        }
+        RTC->ISR &= ~RTC_ISR_ALRAF;
+        EXTI->PR |= EXTI_PR_BIT;
+    }
+    
+    cortexm_isr_end();
+}
+
+#endif

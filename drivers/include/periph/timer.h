@@ -98,6 +98,20 @@ typedef struct {
 int timer_init(tim_t dev, unsigned long freq, timer_cb_t cb, void *arg);
 
 /**
+ * @brief Initialize the given timer for periodic firing
+ *
+ * @param[in] dev           the timer to initialize
+ * @param[in] period        period in microseconds
+ * @param[in] cb            optional callback
+ * @param[in] arg           optional argument
+ * @param[in] signal        enable internal signal (for triggering other peripherals)
+ *
+ * @return                  0 on success
+ * @return                  -1 if speed not applicable or unknown device given
+ */
+int timer_init_periodic(tim_t dev, uint32_t period, timer_cb_t cb, void *arg, bool signal);
+
+/**
  * @brief Change frequency of the given timer
  *
  */

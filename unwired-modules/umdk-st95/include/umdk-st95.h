@@ -44,15 +44,49 @@
 #define UMDK_ST95_SSI_1                 GPIO_UNDEF
 #define UMDK_ST95_VCC_ENABLE            UNWD_GPIO_24
 
-#define ST95_MAX_DATA_BYTES             254
 
-#define UMDK_ST95_MSG_WAKE_UP   0
-#define UMDK_ST95_MSG_UID       1
+#define UMDK_ST95_UART_BAUD_DEF         57600
+#define UMDK_ST95_UART_DEV              1
 
-#define UMDK_ST95_UID_OK        1
-#define UMDK_ST95_UID_ERROR     0
+#define ST95_MAX_DATA_BYTES             256
+#define UMDK_ST95_NDEF_BUFF_SIZE        256
 
-#define UMDK_ST95_DELAY_DETECT_MS 500
+#define UMDK_ST95_OK_REPLY              0x00
+#define UMDK_ST95_ERROR_REPLY           0x01
+
+#define UMDK_ST95_MSG_EVENT             0
+#define UMDK_ST95_MSG_UID               1
+
+#define UMDK_ST95_UID_OK                1
+#define UMDK_ST95_UID_ERROR             0
+
+#define UMDK_ST95_DELAY_DETECT_MS       3000
+#define UMDK_ST95_DELAY_CHECK_MS        10
+
+#define UMDK_ST95_STATUS_PROCCESSING    0
+#define UMDK_ST95_STATUS_READY          1
+
+/**
+ * @brief Commands list
+ */
+typedef enum {
+UMDK_ST95_MODE_DETECT_TAG   = 0,
+UMDK_ST95_MODE_GET_UID      = 1,
+UMDK_ST95_MODE_SET_UID      = 2,
+UMDK_ST95_MODE_READ_DATA    = 3,
+UMDK_ST95_MODE_WRITE_DATA   = 4,
+} umdk_st95_mode_t;
+
+/**
+ * @brief Commands list
+ */
+typedef enum {
+    UMDK_ST95_DETECT_TAG    = 0x00,
+    UMDK_ST95_GET_UID       = 0x01,
+    UMDK_ST95_READ_DATA     = 0x02,
+    UMDK_ST95_WRITE_DATA    = 0x03,
+    UMDK_ST95_CARD_EMUL     = 0x04,
+} umdk_st95_cmd_t;
 
 void umdk_st95_init(uwnds_cb_t *event_callback);
 bool umdk_st95_cmd(module_data_t *data, module_data_t *reply);

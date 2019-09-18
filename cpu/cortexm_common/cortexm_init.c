@@ -22,31 +22,18 @@
 #include "periph/pm.h"
 
 /**
- * @name   Pattern to write into the co-processor Access Control Register to
- *         allow full FPU access
- */
-#define FULL_FPU_ACCESS         (0x00f00000)
-
-/**
  * Interrupt vector base address, defined by the linker
  */
 extern const void *_isr_vectors;
 
-void cortexm_init(void)
+#if defined(CPU_CORTEXM_INIT_SUBFUNCTIONS)
+#define CORTEXM_STATIC_INLINE /*empty*/
+#else
+#define CORTEXM_STATIC_INLINE static inline
+#endif
+
+CORTEXM_STATIC_INLINE void cortexm_init_isr_priorities(void)
 {
-    /* initialize the FPU on Cortex-M4F CPUs */
-#if defined(CPU_ARCH_CORTEX_M4F) || defined(CPU_ARCH_CORTEX_M7)
-    /* give full access to the FPU */
-    SCB->CPACR |= (uint32_t)FULL_FPU_ACCESS;
-#endif
-
-    /* configure the vector table location to internal flash */
-#if defined(CPU_ARCH_CORTEX_M3) || defined(CPU_ARCH_CORTEX_M4) || \
-    defined(CPU_ARCH_CORTEX_M4F) || defined(CPU_ARCH_CORTEX_M7) || \
-    (defined(CPU_ARCH_CORTEX_M0PLUS) && (__VTOR_PRESENT == 1))
-    SCB->VTOR = (uint32_t)&_isr_vectors;
-#endif
-
     /* initialize the interrupt priorities */
     /* set pendSV interrupt to same priority as the rest */
     NVIC_SetPriority(PendSV_IRQn, CPU_DEFAULT_IRQ_PRIO);
@@ -56,7 +43,10 @@ void cortexm_init(void)
     for (unsigned i = 0; i < CPU_IRQ_NUMOF; i++) {
         NVIC_SetPriority((IRQn_Type) i, CPU_DEFAULT_IRQ_PRIO);
     }
+}
 
+CORTEXM_STATIC_INLINE void cortexm_init_misc(void)
+{
     /* enable wake up on events for __WFE CPU sleep */
     SCB->SCR |= SCB_SCR_SEVONPEND_Msk;
 
@@ -137,14 +127,33 @@ bool cpu_check_address(volatile const char *address)
     
     /* R5 will be set to 0 by HardFault handler */
     /* to indicate HardFault has occured */
-    register uint32_t result __asm("r5") = 1;
+    register bool result __asm("r5") = 1;             /* set default return value   */
+    register uint32_t sign1 __asm("r1") = 0xDEADF00D; /* set magic number           */
+    register uint32_t sign2 __asm("r2") = 0xCAFEBABE; /* 2nd magic to be sure       */
+    uint32_t scratch;
 
     __asm__ volatile (
-        "ldr  r1, =0xDEADF00D   \n" /* set magic number     */
-        "ldr  r2, =0xCAFEBABE   \n" /* 2nd magic to be sure */
-        "ldrb r3, [r0]          \n" /* probe address        */
+        "ldrb %[scratch], [%[address]]  \n"           /* probe address              */
+        :"=r"(result),[scratch]"=l"(scratch)
+        :[address]"l"(address),"r"(result),"r"(sign1), "r"(sign2)
     );
 
     return result;
 #endif
+}
+
+void cortexm_init(void)
+{
+    cortexm_init_fpu();
+
+    /* configure the vector table location to internal flash */
+#if defined(CPU_ARCH_CORTEX_M3) || defined(CPU_ARCH_CORTEX_M4) || \
+    defined(CPU_ARCH_CORTEX_M4F) || defined(CPU_ARCH_CORTEX_M7) || \
+    (defined(CPU_ARCH_CORTEX_M0PLUS) || defined(CPU_ARCH_CORTEX_M23) \
+    && (__VTOR_PRESENT == 1))
+    SCB->VTOR = (uint32_t)&_isr_vectors;
+#endif
+
+    cortexm_init_isr_priorities();
+    cortexm_init_misc();
 }

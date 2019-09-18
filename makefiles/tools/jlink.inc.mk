@@ -3,9 +3,9 @@ export DEBUGGER = $(RIOTTOOLS)/jlink/jlink.sh
 export DEBUGSERVER = $(RIOTTOOLS)/jlink/jlink.sh
 export RESET = $(RIOTTOOLS)/jlink/jlink.sh
 
-HEXFILE = $(BINFILE)
+JLINKHEXFILE = $(BINFILE)
 
-export FFLAGS ?= flash
-export DEBUGGER_FLAGS ?= debug
+export FFLAGS ?= flash $(JLINKHEXFILE)
+export DEBUGGER_FLAGS ?= debug $(ELFFILE)
 export DEBUGSERVER_FLAGS ?= debug-server
 export RESET_FLAGS ?= reset

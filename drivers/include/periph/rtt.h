@@ -23,6 +23,8 @@
 #ifndef PERIPH_RTT_H
 #define PERIPH_RTT_H
 
+#include <stdint.h>
+
 #include "periph_conf.h"
 
 #ifdef __cplusplus
@@ -46,7 +48,7 @@ extern "C" {
  * @param[in]   ms      number of milliseconds
  * @return              rtt ticks
  */
-#define RTT_MS_TO_TICKS(ms)     ( RTT_US_TO_TICKS((ms) * 1000) )
+#define RTT_MS_TO_TICKS(ms)     ((uint32_t)(RTT_US_TO_TICKS((uint64_t)(ms) * 1000ULL)))
 
 /**
  * @brief       Convert seconds to rtt ticks
@@ -67,14 +69,14 @@ extern "C" {
  * @param[in]   ticks   rtt ticks
  * @return              number of microseconds
  */
-#define RTT_TICKS_TO_US(ticks)  ((uint32_t)((uint64_t)(ticks) * 1000000UL / RTT_FREQUENCY))
+#define RTT_TICKS_TO_US(ticks)  ((uint64_t)(ticks) * 1000000ULL / RTT_FREQUENCY)
 
 /**
  * @brief       Convert rtt ticks to milliseconds
  * @param[in]   ticks   rtt ticks
  * @return              number of milliseconds
  */
-#define RTT_TICKS_TO_MS(ticks)  (RTT_TICKS_TO_US(ticks) / 1000)
+#define RTT_TICKS_TO_MS(ticks)  (uint32_t)(RTT_TICKS_TO_US(ticks) / 1000)
 
 /**
  * @brief       Convert rtt ticks to seconds
@@ -162,6 +164,25 @@ void rtt_poweron(void);
  * @brief Turn the RTT hardware module off
  */
 void rtt_poweroff(void);
+
+/**
+ * @brief Setup periodic task
+ *
+ * @param[in] period_ms     Task execution period, microseconds
+ * @param[in] cb            Callback executed when alarm is hit
+ * @param[in] arg           Argument passed to callback when alarm is hit
+ */
+void rtt_periodic_task_set(uint32_t period_us, rtt_cb_t cb, void *arg);
+
+/**
+ * @brief Start periodic task
+ */
+void rtt_periodic_task_start(void);
+
+/**
+ * @brief Stop periodic task
+ */
+void rtt_periodic_task_stop(void);
 
 #ifdef __cplusplus
 }

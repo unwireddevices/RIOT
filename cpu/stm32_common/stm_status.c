@@ -18,10 +18,15 @@
  * @}
  */
 
+#if defined(MODULE_PERIPH_STATUS)
+ 
 #include "cpu.h"
-#include "periph/adc.h"
 #include "periph_conf.h"
 #include <string.h>
+
+#if defined(MODULE_PERIPH_STATUS_EXTENDED)
+    #include "periph/adc.h"
+#endif
 
 cpu_status_t cpu_status;
 
@@ -229,6 +234,7 @@ static uint32_t get_cpu_category(void) {
 #endif
 }
 
+#if defined(MODULE_PERIPH_STATUS_EXTENDED)
 static char get_cpu_memory_code(uint32_t memory_size) {
     switch (memory_size/1024) {
         case (8):
@@ -261,9 +267,11 @@ static char get_cpu_memory_code(uint32_t memory_size) {
     
     return 'x';
 }
+#endif
 
+#if defined(MODULE_PERIPH_STATUS_EXTENDED)
 static void get_cpu_name(char *name) {
-int series = 0;
+    int series = 0;
 
 #if defined(CPU_FAM_STM32L0)
     #if defined(AES_BASE)
@@ -289,7 +297,7 @@ int series = 0;
     
     uint32_t memory = get_cpu_flash_size();
     char model = get_cpu_memory_code(memory);
-    sprintf(name, "STM32L%03dx%c", series, model);
+    snprintf(name, CPU_NAME_MAX_SIZE, "STM32L%03dx%c", series, model);
     
     return;
 
@@ -534,23 +542,24 @@ int series = 0;
 #error unexpected MCU
 #endif
 }
+#endif /* MODULE_PERIPH_STATUS_EXTENDED */
 
 static void get_cpu_flash(cpu_status_t* status) {
     status->flash.size = get_cpu_flash_size();
     
 #if defined(CPU_FAM_STM32L0)
     status->flash.pagesize = 128;
-    status->flash.pages = status->flash.size / status->flash.pages;
+    status->flash.pages = status->flash.size / status->flash.pagesize;
     status->flash.alignment = 4;
     return;
 #elif defined(CPU_FAM_STM32L1)
     status->flash.pagesize = 256;
-    status->flash.pages = status->flash.size / status->flash.pages;
+    status->flash.pages = status->flash.size / status->flash.pagesize;
     status->flash.alignment = 4;
     return;
 #elif defined(CPU_FAM_STM32L4)
     status->flash.pagesize = 2048;
-    status->flash.pages = status->flash.size / status->flash.pages;
+    status->flash.pages = status->flash.size / status->flash.pagesize;
     status->flash.alignment = 8;
     return;
 #elif defined(CPU_FAM_STM32F0)
@@ -559,13 +568,13 @@ static void get_cpu_flash(cpu_status_t* status) {
         case STM32F0_DEV_ID_CAT4:
         case STM32F0_DEV_ID_CAT5:
             status->flash.pagesize = 1024;
-            status->flash.pages = status->flash.size / status->flash.pages;
+            status->flash.pages = status->flash.size / status->flash.pagesize;
             status->flash.alignment = 4;
             break;
         case STM32F0_DEV_ID_CAT7:
         case STM32F0_DEV_ID_CAT9:
             status->flash.pagesize = 2048;
-            status->flash.pages = status->flash.size / status->flash.pages;
+            status->flash.pages = status->flash.size / status->flash.pagesize;
             status->flash.alignment = 4;
             break;
         default:
@@ -581,7 +590,7 @@ static void get_cpu_flash(cpu_status_t* status) {
         case STM32F1_DEV_ID_MD:
         case STM32F1_DEV_ID_MDVL:
             status->flash.pagesize = 1024;
-            status->flash.pages = status->flash.size / status->flash.pages;
+            status->flash.pages = status->flash.size / status->flash.pagesize;
             status->flash.alignment = 4;
             break;
         case STM32F1_DEV_ID_HD:
@@ -589,7 +598,7 @@ static void get_cpu_flash(cpu_status_t* status) {
         case STM32F1_DEV_ID_XL:
         case STM32F1_DEV_ID_CD:
             status->flash.pagesize = 2048;
-            status->flash.pages = status->flash.size / status->flash.pages;
+            status->flash.pages = status->flash.size / status->flash.pagesize;
             status->flash.alignment = 4;
             break;
         default:
@@ -602,12 +611,12 @@ static void get_cpu_flash(cpu_status_t* status) {
 #elif defined(CPU_FAM_STM32F2)
     /* actually, flash partition is complicated here */
     status->flash.pagesize = 16384;
-    status->flash.pages = status->flash.size / status->flash.pages;
+    status->flash.pages = status->flash.size / status->flash.pagesize;
     status->flash.alignment = 4;
     return;
 #elif defined(CPU_FAM_STM32F3)
     status->flash.pagesize = 2048;
-    status->flash.pages = status->flash.size / status->flash.pages;
+    status->flash.pages = status->flash.size / status->flash.pagesize;
     status->flash.alignment = 4;
     return;
 #elif defined(CPU_FAM_STM32F4)
@@ -616,7 +625,7 @@ static void get_cpu_flash(cpu_status_t* status) {
         case STM32F4_DEV_ID_CAT2:
         case STM32F4_DEV_ID_CAT9:
             status->flash.pagesize = 16384;
-            status->flash.pages = status->flash.size / status->flash.pages;
+            status->flash.pages = status->flash.size / status->flash.pagesize;
             status->flash.alignment = 4;
             break;
         case STM32F4_DEV_ID_CAT1:
@@ -628,7 +637,7 @@ static void get_cpu_flash(cpu_status_t* status) {
         case STM32F4_DEV_ID_CAT8:
         case STM32F4_DEV_ID_CAT10:
             status->flash.pagesize = 16384;
-            status->flash.pages = status->flash.size / status->flash.pages;
+            status->flash.pages = status->flash.size / status->flash.pagesize;
             status->flash.alignment = 4;
             break;
         default:
@@ -643,14 +652,14 @@ static void get_cpu_flash(cpu_status_t* status) {
     switch (ST_DEV_ID) {
         case STM32F7_DEV_ID_CAT1:
             status->flash.pagesize = 16384;
-            status->flash.pages = status->flash.size / status->flash.pages;
+            status->flash.pages = status->flash.size / status->flash.pagesize;
             status->flash.alignment = 4;
             break;
         case STM32F7_DEV_ID_CAT2:
         case STM32F7_DEV_ID_CAT3:
         case STM32F7_DEV_ID_CAT4:
             status->flash.pagesize = 32768;
-            status->flash.pages = status->flash.size / status->flash.pages;
+            status->flash.pages = status->flash.size / status->flash.pagesize;
             status->flash.alignment = 4;
             break;
         default:
@@ -675,6 +684,7 @@ static void get_cpu_eeprom(cpu_status_t* status) {
     status->eeprom.alignment = 4;
 }
 
+#if defined(MODULE_PERIPH_STATUS_EXTENDED)
 static void get_cpu_voltage(cpu_status_t* status) {
     int vdd = INT16_MIN;
     
@@ -700,23 +710,29 @@ static void get_cpu_temp(cpu_status_t* status) {
 
     status->temp.core_temp = temp;
 }
+#endif
 
 void cpu_init_status(void) {
     get_cpu_ram(&cpu_status);
     get_cpu_flash(&cpu_status);
     get_cpu_eeprom(&cpu_status);
-    
+
+#if defined(MODULE_PERIPH_STATUS_EXTENDED)
     cpu_status.voltage.vdd      = INT16_MIN;
     cpu_status.voltage.vdda     = INT16_MIN;
     cpu_status.voltage.vbat     = INT16_MIN;
     cpu_status.temp.core_temp   = INT16_MIN;
-    
     get_cpu_name(cpu_status.model);
+#endif
     
     cpu_status.category = get_cpu_category();
 }
 
+#if defined(MODULE_PERIPH_STATUS_EXTENDED)
 void cpu_update_status(void) {
     get_cpu_voltage(&cpu_status);
     get_cpu_temp(&cpu_status);
 }
+#endif
+
+#endif /* MODULE_PERIPH_STATUS */

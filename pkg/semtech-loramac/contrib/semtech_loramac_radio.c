@@ -36,7 +36,6 @@
 #endif
 
 extern sx127x_t sx127x;
-
 /*
  * Radio driver functions implementation wrappers, the netdev2 object
  * is known within the scope of the function
@@ -88,7 +87,6 @@ void SX127XSetRxConfig(RadioModems_t modem, uint32_t bandwidth,
                        bool iqInverted, bool rxContinuous)
 {
     (void) bandwidthAfc;
-    (void) symbTimeout;
     (void) fixLen;
     sx127x_set_modem(&sx127x, modem);
     sx127x_set_bandwidth(&sx127x, bandwidth);
@@ -101,11 +99,7 @@ void SX127XSetRxConfig(RadioModems_t modem, uint32_t bandwidth,
     sx127x_set_freq_hop(&sx127x, freqHopOn);
     sx127x_set_hop_period(&sx127x, hopPeriod);
     sx127x_set_iq_invert(&sx127x, iqInverted);
-
-    /* for dealing with timing issues, we set twice 
-     * the symbol timeout */
-    sx127x_set_symbol_timeout(&sx127x, symbTimeout*2);
-
+    sx127x_set_symbol_timeout(&sx127x, symbTimeout);
     sx127x_set_rx_single(&sx127x, !rxContinuous);
 }
 
@@ -134,7 +128,7 @@ void SX127XSetTxConfig(RadioModems_t modem, int8_t power, uint32_t fdev,
     sx127x_set_tx_timeout(&sx127x, timeout); /* base unit us, LoRaMAC ms */
 }
 
-uint32_t SX127XGetTimeOnAir(RadioModems_t modem, uint8_t pktLen)
+uint32_t SX127XTimeOnAir(RadioModems_t modem, uint8_t pktLen)
 {
     (void) modem;
     return sx127x_get_time_on_air(&sx127x, pktLen);
@@ -142,6 +136,13 @@ uint32_t SX127XGetTimeOnAir(RadioModems_t modem, uint8_t pktLen)
 
 void SX127XSend(uint8_t *buffer, uint8_t size)
 {
+#if ENABLE_DEBUG
+    printf("SX1276: send 0x");
+    for (int i = 0; i < size; i++) {
+        printf("%02X", buffer[i]);
+    }
+    printf("\n");
+#endif
     netdev_t *dev = (netdev_t *)&sx127x;
     iolist_t iol = {
         .iol_base = buffer,
@@ -150,17 +151,17 @@ void SX127XSend(uint8_t *buffer, uint8_t size)
     dev->driver->send(dev, &iol);
 }
 
-void SX127XSetSleep(void)
+void SX127XSleep(void)
 {
     sx127x_set_sleep(&sx127x);
 }
 
-void SX127XSetStby(void)
+void SX127XStandby(void)
 {
     sx127x_set_standby(&sx127x);
 }
 
-void SX127XSetRx(uint32_t timeout)
+void SX127XRx(uint32_t timeout)
 {
     sx127x_set_rx_timeout(&sx127x, timeout);
     sx127x_set_rx(&sx127x);
@@ -171,7 +172,7 @@ void SX127XStartCad(void)
     sx127x_start_cad(&sx127x);
 }
 
-int16_t SX127XReadRssi(RadioModems_t modem)
+int16_t SX127XRssi(RadioModems_t modem)
 {
     sx127x_set_modem(&sx127x, (uint8_t)modem);
     return sx127x_read_rssi(&sx127x);
@@ -232,19 +233,20 @@ void SX127XSetPublicNetwork(bool enable)
 
 uint32_t SX127XGetWakeupTime(void)
 {
-    /* 1 ms board wakeup time */
-    return 1;
+    return 0;
 }
 
 void SX127XIrqProcess(void)
 {
     return;
 }
+
 void SX127XRxBoosted(uint32_t timeout)
 {
     (void) timeout;
     return;
 }
+
 void SX127XSetRxDutyCycle(uint32_t rx_time, uint32_t sleep_time)
 {
     (void) rx_time;
@@ -266,14 +268,14 @@ const struct Radio_s Radio =
     SX127XSetRxConfig,
     SX127XSetTxConfig,
     SX127XCheckRfFrequency,
-    SX127XGetTimeOnAir,
+    SX127XTimeOnAir,
     SX127XSend,
-    SX127XSetSleep,
-    SX127XSetStby,
-    SX127XSetRx,
+    SX127XSleep,
+    SX127XStandby,
+    SX127XRx,
     SX127XStartCad,
     SX127XSetTxContinuousWave,
-    SX127XReadRssi,
+    SX127XRssi,
     SX127XWrite,
     SX127XRead,
     SX127XWriteBuffer,

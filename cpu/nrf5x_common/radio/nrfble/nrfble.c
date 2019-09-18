@@ -189,7 +189,7 @@ static void _nrfble_set_txpower(int16_t power)
         NRF_RADIO->TXPOWER = RADIO_TXPOWER_TXPOWER_Neg20dBm;
     }
     else {
-        NRF_RADIO->TXPOWER = RADIO_TXPOWER_TXPOWER_Neg30dBm;
+        NRF_RADIO->TXPOWER = RADIO_TXPOWER_TXPOWER_Neg40dBm;
     }
 }
 
@@ -214,11 +214,11 @@ void isr_radio(void)
             else {
                 _ctx->crc &= ~(NETDEV_BLE_CRC_OK);
             }
-            _nrfble_dev.event_callback(&_nrfble_dev, NETDEV_EVENT_RX_COMPLETE);
+            _nrfble_dev.event_callback(&_nrfble_dev, NETDEV_EVENT_RX_COMPLETE, NULL);
         }
         else {  /* on TX done */
             _state = STATE_RX;
-            _nrfble_dev.event_callback(&_nrfble_dev, NETDEV_EVENT_TX_COMPLETE);
+            _nrfble_dev.event_callback(&_nrfble_dev, NETDEV_EVENT_TX_COMPLETE, NULL);
         }
     }
 
@@ -285,6 +285,12 @@ static int _nrfble_send(netdev_t *dev, const iolist_t *data)
         _state = STATE_TX;
         NRF_RADIO->EVENTS_DISABLED = 0;
         NRF_RADIO->INTENSET = INT_EN;
+		
+#if ENABLE_DEBUG
+		DEBUG("[nrfble] sending package: ");
+        od_hex_dump(data->iol_base, data->iol_len, OD_WIDTH_DEFAULT);
+#endif
+
         NRF_RADIO->TASKS_TXEN = 1;
     }
 

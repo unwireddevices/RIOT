@@ -1,12 +1,18 @@
 export CPU_MODEL = nrf52840xxaa
-export CPU = nrf52
-
-# set default port depending on operating system
-PORT_LINUX ?= /dev/ttyACM0
-PORT_DARWIN ?= $(firstword $(sort $(wildcard /dev/tty.usbmodem*)))
-include $(RIOTMAKE)/tools/serial.inc.mk
 
 # This board uses a DAP-Link programmer
-export DEBUG_ADAPTER ?= dap
+# Flashing support is provided through pyocd (default) and openocd.
+# For openocd, a version built against the development branch and containing
+# the support for nrf52 cpu is required.
+PROGRAMMER ?= pyocd
+ifeq (pyocd,$(PROGRAMMER))
+  # The board is not recognized automatically by pyocd, so the CPU target
+  # option is passed explicitly
+  export FLASH_TARGET_TYPE ?= -t $(CPU)
+  include $(RIOTMAKE)/tools/pyocd.inc.mk
+else ifeq (openocd,$(PROGRAMMER))
+  export DEBUG_ADAPTER ?= dap
+  include $(RIOTMAKE)/tools/openocd.inc.mk
+endif
 
-include $(RIOTMAKE)/tools/openocd.inc.mk
+include $(RIOTBOARD)/common/nrf52/Makefile.include

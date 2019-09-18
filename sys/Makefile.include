@@ -2,10 +2,6 @@ ifneq (,$(filter nhdp,$(USEMODULE)))
   USEMODULE_INCLUDES += $(RIOTBASE)/sys/net/routing/nhdp
 endif
 
-ifneq (,$(filter cbor,$(USEMODULE)))
-  USEMODULE_INCLUDES += $(RIOTBASE)/sys/cbor/include
-endif
-
 ifneq (,$(filter fib,$(USEMODULE)))
   USEMODULE_INCLUDES += $(RIOTBASE)/sys/posix/include
 endif
@@ -77,9 +73,19 @@ ifneq (,$(filter arduino,$(USEMODULE)))
 endif
 
 ifneq (,$(filter printf_float,$(USEMODULE)))
-  ifeq (1,$(USE_NANO_SPECS))
+  ifneq (,$(filter newlib_nano,$(USEMODULE)))
     export LINKFLAGS += -u _printf_float
   endif
+endif
+
+ifneq (,$(filter scanf_float,$(USEMODULE)))
+  ifneq (,$(filter newlib_nano,$(USEMODULE)))
+    export LINKFLAGS += -u _scanf_float
+  endif
+endif
+
+ifneq (,$(filter riotboot,$(FEATURES_USED)))
+  include $(RIOTBASE)/sys/riotboot/Makefile.include
 endif
 
 ifneq (,$(filter ssp,$(USEMODULE)))

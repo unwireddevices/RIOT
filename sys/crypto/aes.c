@@ -118,13 +118,13 @@ static const u32 Te0[256] = {
     0x7bb0b0cbU, 0xa85454fcU, 0x6dbbbbd6U, 0x2c16163aU,
 };
 
-#if defined(AES_CALCULATE_TABLES)
+#ifndef MODULE_CRYPTO_AES_PRECALCULATED
     #define Te0(n)  (Te0[n])
     #define Te1(n)  ((Te0[n] >>  8) | (Te0[n] << 24))
     #define Te2(n)  ((Te0[n] >> 16) | (Te0[n] << 16))
     #define Te3(n)  ((Te0[n] >> 24) | (Te0[n] <<  8))
     #define Te4(n)  (((Te0[n] & 0x00FFFF00) >> 8) | ((Te0[n] & 0x00FFFF00) << 8))
-#else
+#else /* MODULE_CRYPTO_AES_PRECALCULATED */
     #define Te0(n)  (Te0[n])
     #define Te1(n)  (Te1[n])
     #define Te2(n)  (Te2[n])
@@ -396,7 +396,7 @@ static const u32 Te4[256] = {
     0x41414141U, 0x99999999U, 0x2d2d2d2dU, 0x0f0f0f0fU,
     0xb0b0b0b0U, 0x54545454U, 0xbbbbbbbbU, 0x16161616U,
 };
-#endif /* AES_CALCULATE_TABLES */
+#endif /* MODULE_CRYPTO_AES_PRECALCULATED */
 
 #if !defined(AES_NO_DECRYPTION)
 static const u32 Td0[256] = {
@@ -466,13 +466,18 @@ static const u32 Td0[256] = {
     0x7bcb8461U, 0xd532b670U, 0x486c5c74U, 0xd0b85742U,
 };
 
-#if defined(AES_CALCULATE_TABLES)
+#ifndef MODULE_CRYPTO_AES_PRECALCULATED
     #define Td0(n)  (Td0[n])
     #define Td1(n)  ((Td0[n] >>  8) | (Td0[n] << 24))
     #define Td2(n)  ((Td0[n] >> 16) | (Td0[n] << 16))
     #define Td3(n)  ((Td0[n] >> 24) | (Td0[n] <<  8))
-    #define Td4(n)  (Td4[n] | (Td4[n] << 8) | (Td4[n] << 16) | (Td4[n] << 24))
-    
+
+    /* helper to prevent the u8 to be promoted to signed int, which would turn
+     * left shift by 24 into undefined behaviour */
+    #define Td4u(n) ((u32)Td4[n])
+
+    #define Td4(n)  (Td4u(n) | (Td4u(n) << 8) | (Td4u(n) << 16) | (Td4u(n)  << 24))
+
 static const u8 Td4[256] = {
     0x52U, 0x09U, 0x6aU, 0xd5U, 0x30U, 0x36U, 0xa5U, 0x38U,
     0xbfU, 0x40U, 0xa3U, 0x9eU, 0x81U, 0xf3U, 0xd7U, 0xfbU,
@@ -779,7 +784,7 @@ static const u32 Td4[256] = {
     0xe1e1e1e1U, 0x69696969U, 0x14141414U, 0x63636363U,
     0x55555555U, 0x21212121U, 0x0c0c0c0cU, 0x7d7d7d7dU,
 };
-#endif /* AES_CALCULATE_TABLES */
+#endif /* MODULE_CRYPTO_AES_PRECALCULATED */
 #endif /* AES_NO_DECRYPTION */
 
 /* for 128-bit blocks, Rijndael never uses more than 10 rcon values */
@@ -977,7 +982,7 @@ static int aes_set_decrypt_key(const unsigned char *userKey, const int bits,
      **/
     for (i = 1; i < (key->rounds); i++) {
         rk += 4;
-#ifdef FULL_UNROLL
+#ifdef MODULE_CRYPTO_AES_UNROLL
         rk[0] =
             Td0(Te4((rk[0] >> 24)       ) & 0xff) ^
             Td1(Te4((rk[0] >> 16) & 0xff) & 0xff) ^
@@ -1033,9 +1038,9 @@ int aes_encrypt(const cipher_context_t *context, const uint8_t *plainBlock,
 
     const u32 *rk;
     u32 s0, s1, s2, s3, t0, t1, t2, t3;
-#ifndef FULL_UNROLL
+#ifndef MODULE_CRYPTO_AES_UNROLL
     int r;
-#endif /* ?FULL_UNROLL */
+#endif /* ?MODULE_CRYPTO_AES_UNROLL */
 
     rk = key->rd_key;
 
@@ -1047,7 +1052,7 @@ int aes_encrypt(const cipher_context_t *context, const uint8_t *plainBlock,
     s1 = GETU32(plainBlock +  4) ^ rk[1];
     s2 = GETU32(plainBlock +  8) ^ rk[2];
     s3 = GETU32(plainBlock + 12) ^ rk[3];
-#ifdef FULL_UNROLL
+#ifdef MODULE_CRYPTO_AES_UNROLL
     /* round 1: */
     t0 = Te0(s0 >> 24) ^ Te1((s1 >> 16) & 0xff) ^ Te2((s2 >>  8) & 0xff) ^
          Te3(s3 & 0xff) ^ rk[ 4];
@@ -1173,7 +1178,7 @@ int aes_encrypt(const cipher_context_t *context, const uint8_t *plainBlock,
     }
 
     rk += key->rounds << 2;
-#else  /* !FULL_UNROLL */
+#else  /* !MODULE_CRYPTO_AES_UNROLL */
     /*
      * Nr - 1 full rounds:
      */
@@ -1237,7 +1242,7 @@ int aes_encrypt(const cipher_context_t *context, const uint8_t *plainBlock,
             rk[3];
     }
 
-#endif /* ?FULL_UNROLL */
+#endif /* ?MODULE_CRYPTO_AES_UNROLL */
     /*
          * apply last round and
          * map cipher state to byte array block:
@@ -1299,9 +1304,9 @@ int aes_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock,
 
     const u32 *rk;
     u32 s0, s1, s2, s3, t0, t1, t2, t3;
-#ifndef FULL_UNROLL
+#ifndef MODULE_CRYPTO_AES_UNROLL
     int r;
-#endif /* ?FULL_UNROLL */
+#endif /* ?MODULE_CRYPTO_AES_UNROLL */
 
     rk = key->rd_key;
 
@@ -1313,7 +1318,7 @@ int aes_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock,
     s1 = GETU32(cipherBlock +  4) ^ rk[1];
     s2 = GETU32(cipherBlock +  8) ^ rk[2];
     s3 = GETU32(cipherBlock + 12) ^ rk[3];
-#ifdef FULL_UNROLL
+#ifdef MODULE_CRYPTO_AES_UNROLL
     /* round 1: */
     t0 = Td0(s0 >> 24) ^ Td1((s3 >> 16) & 0xff) ^ Td2((s2 >>  8) & 0xff) ^
          Td3(s1 & 0xff) ^ rk[ 4];
@@ -1439,7 +1444,7 @@ int aes_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock,
     }
 
     rk += key->rounds << 2;
-#else  /* !FULL_UNROLL */
+#else  /* !MODULE_CRYPTO_AES_UNROLL */
     /*
      * Nr - 1 full rounds:
      */
@@ -1503,7 +1508,7 @@ int aes_decrypt(const cipher_context_t *context, const uint8_t *cipherBlock,
             rk[3];
     }
 
-#endif /* ?FULL_UNROLL */
+#endif /* ?MODULE_CRYPTO_AES_UNROLL */
     /*
          * apply last round and
          * map cipher state to byte array block:

@@ -155,7 +155,7 @@
 #endif
 
 /* figure out sync and async prescalers
- * NB: lower PRE_ASYNC values increase rtctimers_millis accuracy,
+ * NB: lower PRE_ASYNC values increase lptimer accuracy,
  * but also increase power consumption
  */
 #if CLOCK_LSE
@@ -175,10 +175,6 @@
 #endif
 
 #define RTC_SSR_TO_US                   (((10000000 / PRE_SYNC) + 5)/10) /**< conversion from RTC_SSR to microseconds */
-
-#define RTCTIMERS_MILLIS_OVERHEAD       (0)
-#define RTCTIMERS_MILLIS_BACKOFF        (((10000/RTC_SSR_TO_US) + 5)/10)
-#define RTCTIMERS_MILLIS_ISR_BACKOFF    (((10000/RTC_SSR_TO_US) + 5)/10)
 
 /* struct tm counts years since 1900 but RTC has only two-digit year hence the
  * offset of 100 years. */
@@ -278,7 +274,7 @@ int rtc_set_time(struct tm *time)
     while (!(RTC->ISR & RTC_ISR_INITF)) {}
     
     RTC->DR = (val2bcd((time->tm_year % 100), RTC_DR_YU_Pos, DR_Y_MASK) |
-               val2bcd(time->tm_mon,  RTC_DR_MU_Pos, DR_M_MASK) |
+               val2bcd(time->tm_mon + 1,  RTC_DR_MU_Pos, DR_M_MASK) |
                val2bcd(time->tm_wday, RTC_DR_WDU_Pos, DR_WDU_MASK) |
                val2bcd(time->tm_mday, RTC_DR_DU_Pos, DR_D_MASK));
     RTC->TR = (val2bcd(time->tm_hour, RTC_TR_HU_Pos, TR_H_MASK) |
@@ -301,7 +297,7 @@ int rtc_get_time(struct tm *time)
     uint32_t tr = RTC->TR;
     uint32_t dr = RTC->DR;
     time->tm_year = bcd2val(dr, RTC_DR_YU_Pos, DR_Y_MASK) + YEAR_OFFSET;
-    time->tm_mon  = bcd2val(dr, RTC_DR_MU_Pos, DR_M_MASK);
+    time->tm_mon  = bcd2val(dr, RTC_DR_MU_Pos, DR_M_MASK) - 1;
     time->tm_mday = bcd2val(dr, RTC_DR_DU_Pos, DR_D_MASK);
     
     time->tm_wday = bcd2val(dr, RTC_DR_WDU_Pos, DR_WDU_MASK);
@@ -372,7 +368,7 @@ int rtc_get_alarm(struct tm *time)
     uint32_t alrm = RTC->ALRMAR;
 
     time->tm_year = bcd2val(dr, RTC_DR_YU_Pos, DR_Y_MASK) + YEAR_OFFSET;
-    time->tm_mon  = bcd2val(dr, RTC_DR_MU_Pos, DR_M_MASK);
+    time->tm_mon  = bcd2val(dr, RTC_DR_MU_Pos, DR_M_MASK) - 1;
     
     if ((alrm & RTC_ALRMAR_WDSEL) == RTC_ALRMAR_WDSEL) {
         time->tm_wday = bcd2val(alrm, RTC_DR_WDU_Pos, DR_WDU_MASK);
@@ -451,7 +447,7 @@ int rtc_millis_set_alarm(uint32_t milliseconds, rtc_alarm_cb_t cb, void *arg)
        
     /* set up subseconds alarm */
     uint32_t regalarm = RTC->RTC_MILLIS_SSREG;
-    regalarm |= (0x8 << 24); // compare 8 bits only
+    regalarm |= (0x15 << 24); // compare 8 bits only
     regalarm &= ~(RTC_MILLIS_SSREG_SS);
     regalarm |= (alarm_millis_time & 0xFF);
     RTC->RTC_MILLIS_SSREG = regalarm;

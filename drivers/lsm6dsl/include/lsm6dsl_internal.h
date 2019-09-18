@@ -161,7 +161,7 @@ extern "C" {
 /**
  * @brief 	Reboot wait interval in us (15ms)
  */
-#define LSM6DSL_BOOT_WAIT                   (15 * US_PER_MS)
+#define LSM6DSL_BOOT_WAIT                   (15)
 
 #ifdef __cplusplus
 }

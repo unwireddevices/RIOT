@@ -101,10 +101,23 @@ static const uart_conf_t uart_config[] = {
         .tx_af    = GPIO_AF4,
         .bus      = APB1,
         .irqn     = USART2_IRQn
+    },
+    {
+        .dev      = USART1,
+        .rcc_mask = RCC_APB2ENR_USART1EN,
+        .rx_pin   = GPIO_PIN(PORT_B, 7),
+        .tx_pin   = GPIO_PIN(PORT_B, 6),
+        .rx_mode  = GPIO_IN_PU,
+        .tx_mode  = GPIO_OUT,
+        .rx_af    = GPIO_AF0,
+        .tx_af    = GPIO_AF0,
+        .bus      = APB2,
+        .irqn     = USART1_IRQn
     }
 };
 
 #define UART_0_ISR          (isr_usart2)
+#define UART_1_ISR          (isr_usart1)
 
 #define UART_NUMOF          (sizeof(uart_config) / sizeof(uart_config[0]))
 /** @} */
@@ -122,9 +135,12 @@ static const pwm_conf_t pwm_config[] = {
                       { .pin = GPIO_PIN(PORT_C, 8)         , .cc_chan = 2 },
                       { .pin = GPIO_UNDEF,                   .cc_chan = 0 } },
         .af       = GPIO_AF2,
-        .bus      = APB1
+        .bus      = APB1,
+        .irqn     = TIM3_IRQn
     },
 };
+
+#define TIM_0_ISR           isr_tim3
 
 #define PWM_NUMOF           (sizeof(pwm_config) / sizeof(pwm_config[0]))
 /** @} */
@@ -175,6 +191,17 @@ static const spi_conf_t spi_config[] = {
  */
 static const i2c_conf_t i2c_config[] = {
     {
+        .dev            = I2C2,
+        .speed          = I2C_SPEED_NORMAL,
+        .scl_pin        = GPIO_PIN(PORT_B, 13),
+        .sda_pin        = GPIO_PIN(PORT_B, 14),
+        .scl_af         = GPIO_AF5,
+        .sda_af         = GPIO_AF5,
+        .bus            = APB1,
+        .rcc_mask       = RCC_APB1ENR_I2C2EN,
+        .irqn           = I2C2_IRQn
+    },
+    {
         .dev            = I2C1,
         .speed          = I2C_SPEED_NORMAL,
         .scl_pin        = GPIO_PIN(PORT_B,  6),
@@ -185,21 +212,10 @@ static const i2c_conf_t i2c_config[] = {
         .rcc_mask       = RCC_APB1ENR_I2C1EN,
         .irqn           = I2C1_IRQn
     },
-    {
-        .dev            = I2C2,
-        .speed          = I2C_SPEED_NORMAL,
-        .scl_pin        = GPIO_PIN(PORT_B, 13),
-        .sda_pin        = GPIO_PIN(PORT_B, 14),
-        .scl_af         = GPIO_AF5,
-        .sda_af         = GPIO_AF5,
-        .bus            = APB1,
-        .rcc_mask       = RCC_APB1ENR_I2C2EN,
-        .irqn           = I2C2_IRQn
-    }
 };
 
-#define I2C_0_ISR           isr_i2c1_er
-#define I2C_1_ISR           isr_i2c2_er
+#define I2C_0_ISR           isr_i2c2_er
+#define I2C_1_ISR           isr_i2c1_er
 
 #define I2C_NUMOF           (sizeof(i2c_config) / sizeof(i2c_config[0]))
 /** @} */
@@ -211,22 +227,22 @@ static const i2c_conf_t i2c_config[] = {
  * [ pin, channel ]
  * @{
  */
-#define ADC_CONFIG {            \
-    { GPIO_PIN(PORT_A, 1), 1 },\
-    { GPIO_PIN(PORT_A, 2), 2 },\
-    { GPIO_PIN(PORT_A, 3), 3 },\
-    { GPIO_PIN(PORT_A, 4), 4 },\
-    { GPIO_PIN(PORT_A, 5), 5 },\
-    { GPIO_PIN(PORT_A, 6), 6 }, \
-	{ GPIO_PIN(PORT_A, 7), 7 }, \
-	{ GPIO_UNDEF, ADC_VREF_CHANNEL}, \
-	{ GPIO_UNDEF, ADC_TEMPERATURE_CHANNEL}, \
-}
+static const adc_conf_t adc_config[] = {
+    { .pin = GPIO_PIN(PORT_A, 1), .chan = 1,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+    { .pin = GPIO_PIN(PORT_A, 2), .chan = 2,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+    { .pin = GPIO_PIN(PORT_A, 3), .chan = 3,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+    { .pin = GPIO_PIN(PORT_A, 4), .chan = 4,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+    { .pin = GPIO_PIN(PORT_A, 5), .chan = 5,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+    { .pin = GPIO_PIN(PORT_A, 6), .chan = 6,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+	{ .pin = GPIO_PIN(PORT_A, 7), .chan = 7,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+	{ .pin = GPIO_UNDEF,          .chan = ADC_VREF_CHANNEL,        /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+	{ .pin = GPIO_UNDEF,          .chan = ADC_TEMPERATURE_CHANNEL, /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+};
 
-#define ADC_VREF_INDEX 7
-#define ADC_TEMPERATURE_INDEX 8
+#define ADC_VREF_INDEX          7
+#define ADC_TEMPERATURE_INDEX   8
 
-#define ADC_NUMOF           (9)
+#define ADC_NUMOF           (sizeof(adc_config) / sizeof(adc_config[0]))
 /** @} */
 #ifdef __cplusplus
 }

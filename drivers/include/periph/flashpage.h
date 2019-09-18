@@ -80,9 +80,6 @@ extern "C" {
 #ifndef FLASHPAGE_SIZE
 #error "periph/flashpage: FLASHPAGE_SIZE not defined"
 #endif
-#ifndef FLASHPAGE_NUMOF
-#error "periph/flashpage: FLASHPAGE_NUMOF not defined"
-#endif
 
 /**
  * @brief   Return values used in this interface
@@ -127,10 +124,11 @@ static inline int flashpage_page(void *addr)
  * @brief   Write the given page with the given data
  *
  * @param[in] page      page to write
- * @param[in] data      data to write to the page, MUST be FLASHPAGE_SIZE
+ * @param[in] data      data to write to the page
  *                      byte. Set to NULL for page erase only.
+ * @param[in] data_size data size
  */
-void flashpage_write(int page, const void *data);
+void flashpage_write(uint32_t page, const void *data, uint32_t data_size);
 
 /**
  * @brief   Write any number of data bytes to a given location in the
@@ -159,10 +157,10 @@ void flashpage_write_raw(void *target_addr, const void *data, size_t len);
  * @brief   Read the given page into the given memory location
  *
  * @param[in]  page     page to read
- * @param[out] data     memory to write the page to, MUST be FLASHPAGE_SIZE
- *                      byte
+ * @param[out] data     memory to write the page to
+ * @param[in] data_size data size
  */
-void flashpage_read(int page, void *data);
+void flashpage_read(uint32_t page, void *data, uint32_t data_size);
 
 /**
  * @brief   Verify the given page against the given data
@@ -174,7 +172,7 @@ void flashpage_read(int page, void *data);
  * @return              FLASHPAGE_OK if data in the page is identical to @p data
  * @return              FLASHPAGE_NOMATCH if data and page content diverge
  */
-int flashpage_verify(int page, const void *data);
+int flashpage_verify(uint32_t page, const void *data, uint32_t size);
 
 /**
  * @brief   Write the given page and verify the results
@@ -188,7 +186,7 @@ int flashpage_verify(int page, const void *data);
  * @return              FLASHPAGE_OK on success
  * @return              FLASHPAGE_NOMATCH if data and page content diverge
  */
-int flashpage_write_and_verify(int page, const void *data);
+int flashpage_write_and_verify(uint32_t page, const void *data, uint32_t size);
 
 #ifdef __cplusplus
 }

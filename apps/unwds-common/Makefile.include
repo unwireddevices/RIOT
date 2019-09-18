@@ -12,9 +12,11 @@ CFLAGS += -DFIRMWARE_VERSION=\"1.99\"
 # Set default LoRa region
 LORA_REGION ?= RU864
 #LORA_REGION ?= EU868
+#LORA_REGION ?= KZ865
 CFLAGS += -DLORA_REGION=\"$(LORA_REGION)\"
-CFLAGS += -DREGION_$(LORA_REGION)
-CFLAGS += -DLORAMAC_ACTIVE_REGION=LORAMAC_REGION_$(LORA_REGION)
+
+# Disable LoRaWAN duty cycle restrictions
+CFLAGS += -DDISABLE_LORAMAC_DUTYCYCLE
 
 ############ UMDK MODULES USED #####################
 # variables in the list below must match modules'
@@ -25,28 +27,30 @@ umdk-4btn	        		= 1
 umdk-adc	   				= 1
 umdk-config    				= 1
 umdk-counter   				= 1
-umdk-fdc1004        		= 1
-umdk-gassensor              = 1
+umdk-fdc1004        		= 0
+umdk-gassensor              = 0
 umdk-gpio	        		= 1
 umdk-gps	        		= 1
-umdk-hd44780   				= 1
-umdk-hx711          		= 1
-umdk-ibutton   				= 1
-umdk-inclinometer   		= 1
-umdk-irblaster 		        = 1
-umdk-light     				= 1
-umdk-lmt01	        		= 1
-umdk-meteo     				= 1
-umdk-mhz19     				= 1
-umdk-modbus	   		        = 1
+umdk-hd44780   				= 0
+umdk-hx711          		= 0
+umdk-ibutton   				= 0
+umdk-inclinometer   		= 0
+umdk-irblaster 		        = 0
+umdk-light     				= 0
+umdk-lmt01	        		= 0
+umdk-meteo     				= 0
+umdk-mhz19     				= 0
+umdk-modbus	   		        = 0
+umdk-parking                = 1
 umdk-pir	   				= 1
 umdk-pwm	   				= 1
 umdk-rssiecho  				= 1
+umdk-soil                   = 1
 umdk-st95	                = 1
 umdk-uart	   				= 1
 # for a while, umdk-usound supports STM32L1 only
 ifneq (,$(findstring unwd-range-l1,$(BOARD)))
-umdk-usound    				= 1
+umdk-usonic    				= 1
 endif
 
 
@@ -123,9 +127,15 @@ create_module_list:
 	echo -e "\n#endif" >> $(UMDK_MODULES_LIST); \
 	echo " done."
 
+####################### RIOTboot ########################
+FEATURES_REQUIRED += riotboot
+APP_VER ?= $(shell date +'%Y%m%d%H')
+$(info Application version ${APP_VER})
+
 ################ Other modules to include ################
 USEMODULE += shell
 USEMODULE += shell_commands
+USEMODULE += shell_password
 USEMODULE += ps
 USEMODULE += od
 USEMODULE += xtimer
@@ -134,7 +144,8 @@ USEMODULE += cipher_modes
 USEMODULE += random
 USEMODULE += hashes
 USEMODULE += checksum
-USEMODULE += rtctimers-millis
+USEMODULE += lptimer
+# USEMODULE += periph_uart_dma_tx
 
 USEMODULE += sx127x
 
@@ -154,17 +165,18 @@ INCLUDES += -I$(RIOTBASE)/apps/unwds-common/unwds-common/include/
 ####################################################
 
 FEATURES_REQUIRED += periph_adc
-FEATURES_REQUIRED += periph_dac
 FEATURES_REQUIRED += periph_gpio
 FEATURES_REQUIRED += periph_i2c
 FEATURES_REQUIRED += periph_pwm
-FEATURES_REQUIRED += periph_rtc
+FEATURES_REQUIRED += periph_rtt
 FEATURES_REQUIRED += periph_spi
 FEATURES_REQUIRED += periph_eeprom
 FEATURES_REQUIRED += periph_uart
 FEATURES_REQUIRED += periph_pm
 FEATURES_REQUIRED += periph_iwdg
 FEATURES_REQUIRED += periph_cpuid
+FEATURES_REQUIRED += periph_status
+FEATURES_REQUIRED += periph_status_extended
 
 QUIET ?= 1
 
@@ -177,6 +189,5 @@ CFLAGS += -DAES_NO_DECRYPTION
 CFLAGS += -DCRYPTO_AES
 
 FEATURES_OPTIONAL += config
-FEATURES_OPTIONAL += periph_rtc
 
 include $(RIOTBASE)/Makefile.include

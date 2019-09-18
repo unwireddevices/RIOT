@@ -65,10 +65,6 @@ int mpu9150_init(mpu9150_t *dev, const mpu9150_params_t *params)
     dev->conf = DEFAULT_STATUS;
 
     /* Initialize I2C interface */
-    // if (i2c_init_master(DEV_I2C, I2C_SPEED_FAST)) {
-    //     DEBUG("[Error] I2C device not enabled\n");
-    //     return -1;
-    // }
     i2c_init(DEV_I2C);
 
     /* Acquire exclusive access */
@@ -509,7 +505,7 @@ static int compass_init(mpu9150_t *dev)
     conf_bypass(dev, 1);
 
     /* Check whether compass answers correctly */
-    i2c_read_reg(DEV_I2C, DEV_COMP_ADDR, COMPASS_WHOAMI_REG, data);
+    i2c_read_reg(DEV_I2C, DEV_COMP_ADDR, COMPASS_WHOAMI_REG, data, 0);
     if (data[0] != MPU9150_COMP_WHOAMI_ANSWER) {
         DEBUG("[Error] Wrong answer from compass\n");
         return -1;
@@ -573,7 +569,7 @@ static int compass_init(mpu9150_t *dev)
 static void conf_bypass(const mpu9150_t *dev, uint8_t bypass_enable)
 {
    uint8_t data;
-   i2c_read_reg(DEV_I2C, DEV_ADDR, MPU9150_USER_CTRL_REG, &data);
+   i2c_read_reg(DEV_I2C, DEV_ADDR, MPU9150_USER_CTRL_REG, &data, 0);
 
    if (bypass_enable) {
        data &= ~(BIT_I2C_MST_EN);

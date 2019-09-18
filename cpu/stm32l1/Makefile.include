@@ -3,7 +3,6 @@ export CPU_FAM  = stm32l1
 
 CFLAGS += -DPROVIDES_PM_SET_LOWEST_CORTEXM
 
-FEATURES_REQUIRED += periph_rtc
 USEMODULE += pm_layered
 
 include $(RIOTCPU)/stm32_common/Makefile.include

@@ -1,6 +1,9 @@
 ifneq (,$(filter csma_sender,$(USEMODULE)))
   DIRS += net/link_layer/csma_sender
 endif
+ifneq (,$(filter eepreg,$(USEMODULE)))
+  DIRS += eepreg
+endif
 ifneq (,$(filter posix_semaphore,$(USEMODULE)))
   DIRS += posix/semaphore
 endif
@@ -40,12 +43,6 @@ endif
 ifneq (,$(filter ipv6_addr,$(USEMODULE)))
   DIRS += net/network_layer/ipv6/addr
 endif
-ifneq (,$(filter ipv6_ext_rh,$(USEMODULE)))
-  DIRS += net/network_layer/ipv6/ext/rh
-endif
-ifneq (,$(filter ipv6_ext,$(USEMODULE)))
-  DIRS += net/network_layer/ipv6/ext
-endif
 ifneq (,$(filter ipv6_hdr,$(USEMODULE)))
   DIRS += net/network_layer/ipv6/hdr
 endif
@@ -70,6 +67,9 @@ endif
 ifneq (,$(filter log_%,$(USEMODULE)))
   DIRS += log
 endif
+ifneq (,$(filter lptimer,$(USEMODULE)))
+  DIRS += lptimer
+endif
 ifneq (,$(filter xtimer,$(USEMODULE)))
   DIRS += xtimer
 endif
@@ -81,9 +81,6 @@ ifneq (,$(filter udp,$(USEMODULE)))
 endif
 ifneq (,$(filter tcp,$(USEMODULE)))
   DIRS += net/transport_layer/tcp
-endif
-ifneq (,$(filter hamming256,$(USEMODULE)))
-  DIRS += ecc/hamming256
 endif
 ifneq (,$(filter uhcpc,$(USEMODULE)))
   DIRS += net/application_layer/uhcp
@@ -130,18 +127,29 @@ endif
 ifneq (,$(filter skald,$(USEMODULE)))
   DIRS += net/skald
 endif
-ifneq (,$(filter rdcli_common,$(USEMODULE)))
-  DIRS += net/application_layer/rdcli_common
+ifneq (,$(filter cord_common,$(USEMODULE)))
+  DIRS += net/application_layer/cord/common
 endif
-ifneq (,$(filter rdcli_simple,$(USEMODULE)))
-    DIRS += net/application_layer/rdcli_simple
+ifneq (,$(filter cord_epsim,$(USEMODULE)))
+    DIRS += net/application_layer/cord/epsim
 endif
-ifneq (,$(filter rtctimers,$(USEMODULE)))
-    DIRS += rtctimers
+ifneq (,$(filter cord_ep,$(USEMODULE)))
+    DIRS += net/application_layer/cord/ep
+endif
+ifneq (,$(filter bluetil_%,$(USEMODULE)))
+  DIRS += net/ble/bluetil
 endif
 
-ifneq (,$(filter rtctimers-millis,$(USEMODULE)))
-    DIRS += rtctimers-millis
+ifneq (,$(filter dsp_fft,$(USEMODULE)))
+  DIRS += dsp/int_fft
+endif
+
+ifneq (,$(filter dsp_math,$(USEMODULE)))
+  DIRS += dsp/int_math
+endif
+
+ifneq (,$(filter dsp_dia,$(USEMODULE)))
+  DIRS += dsp/int_dia
 endif
 
 DIRS += $(dir $(wildcard $(addsuffix /Makefile, $(USEMODULE))))

@@ -1,0 +1,17 @@
+MODULE := paho-embed-mqtt3c
+
+# Compiling for native triggers this warning
+#CFLAGS += -Wno-unused-function
+
+SRC := MQTTConnectClient.c \
+       MQTTConnectServer.c \
+       MQTTDeserializePublish.c \
+       MQTTFormat.c \
+       MQTTPacket.c \
+       MQTTSerializePublish.c \
+       MQTTSubscribeClient.c \
+       MQTTSubscribeServer.c \
+       MQTTUnsubscribeClient.c \
+       MQTTUnsubscribeServer.c
+
+include $(RIOTBASE)/Makefile.base

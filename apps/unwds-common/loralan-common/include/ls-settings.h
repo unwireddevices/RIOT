@@ -38,6 +38,9 @@
 
 #define UNWDS_LS_SETTINGS_CONFIG_VERSION 0x4
 
+#define UNWDS_MAX_MODULES       256
+#define UNWDS_MAX_MODULES_BYTES (UNWDS_MAX_MODULES/8)
+
 /* Max size is ROLE_CONFIG_SIZE = 128 bytes */
 typedef struct {
     uint8_t         config_version;
@@ -50,7 +53,7 @@ typedef struct {
     bool            no_join;            /**< Statically personalized device, no join required to send data */
     bool            req_time;           /**< Request time after join */
     ls_addr_t       dev_addr;           /**< Predefined device's network address */
-    uint32_t        enabled_mods[8];    /**< Defines ability mask - list of enabled UNWDS modules */
+    uint8_t         enabled_mods[UNWDS_MAX_MODULES_BYTES];    /**< Defines ability mask - list of enabled UNWDS modules */
     bool            confirmation;       /**< Require confirmation when sending packets */
     bool            adr;                /**< Enable Adaptive Data Rate */
 } node_role_settings_t;

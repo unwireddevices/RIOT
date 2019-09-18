@@ -52,15 +52,11 @@ int bmp180_init(bmp180_t *dev, const bmp180_params_t *params)
         OVERSAMPLING = BMP180_ULTRAHIGHRES;
     }
 
-    /* Initialize I2C interface */
-    // if (i2c_init_master(DEV_I2C, I2C_SPEED_NORMAL)) {
-    //     DEBUG("[Error] I2C device not enabled\n");
-    //     return -BMP180_ERR_NOI2C;
-    // }
-    i2c_init(DEV_I2C);
-
     /* Acquire exclusive access */
     i2c_acquire(DEV_I2C);
+    
+    /* Initialize I2C interface */
+    i2c_init(DEV_I2C);
 
     /* Check sensor ID */
     uint8_t checkid;
@@ -76,7 +72,8 @@ int bmp180_init(bmp180_t *dev, const bmp180_params_t *params)
 
     uint8_t buffer[22] = {0};
     /* Read calibration values, using contiguous register addresses */
-    if (i2c_read_regs(DEV_I2C, DEV_ADDR, BMP180_CALIBRATION_AC1, buffer, 22, 0) < 0) {
+    if (i2c_read_regs(DEV_I2C, DEV_ADDR, BMP180_CALIBRATION_AC1,
+                      buffer, 22, 0) < 0) {
         DEBUG("[Error] Cannot read calibration registers.\n");
         i2c_release(DEV_I2C);
         return -BMP180_ERR_NOCAL;
@@ -153,8 +150,8 @@ uint32_t bmp180_read_pressure(const bmp180_t *dev)
     x1 = ((int32_t)dev->calibration.ac3 * b6) >> 13;
     x2 = ((int32_t)dev->calibration.b1 * (b6 * b6) >> 12) >> 16;
     x3 = ((x1 + x2) + 2) >> 2;
-    b4 = (int32_t)dev->calibration.ac4 * (uint32_t)(x3+32768) >> 15;
-    b7 = ((uint32_t)up - b3) * (uint32_t)(50000UL >> OVERSAMPLING);
+    b4 = ((uint32_t)dev->calibration.ac4 * (uint32_t)(x3 + 32768)) >> 15;
+    b7 = (uint32_t)(up - b3) * (uint32_t)(50000UL >> OVERSAMPLING);
     if (b7 < 0x80000000) {
         p = (b7 * 2) / b4;
     }
@@ -210,7 +207,8 @@ static int _read_up(const bmp180_t *dev, int32_t *output)
 {
     /* Read UP (Uncompsensated Pressure value) */
     uint8_t up[3] = {0};
-    uint8_t control[2] = { BMP180_REGISTER_CONTROL, BMP180_PRESSURE_COMMAND | (OVERSAMPLING & 0x3) << 6 };
+    uint8_t control[2] = { BMP180_REGISTER_CONTROL,
+                           BMP180_PRESSURE_COMMAND | (OVERSAMPLING & 0x3) << 6 };
     i2c_write_bytes(DEV_I2C, DEV_ADDR, control, 2, 0);
     switch (OVERSAMPLING) {
     case BMP180_ULTRALOWPOWER:
@@ -245,9 +243,9 @@ static int _read_up(const bmp180_t *dev, int32_t *output)
 
 static int _compute_b5(const bmp180_t *dev, int32_t ut, int32_t *output)
 {
-    int32_t x1, x2;
-    x1 = (ut - dev->calibration.ac6) * dev->calibration.ac5 >> 15;
-    x2 = (dev->calibration.mc << 11) / (x1 + dev->calibration.md);
+    int32_t x1 = 0, x2 = 0;
+    x1 = (((int32_t)ut - (int32_t)dev->calibration.ac6) * (int32_t)dev->calibration.ac5) >> 15;
+    x2 = ((int32_t)dev->calibration.mc << 11) / (x1 + dev->calibration.md);
 
     *output = x1 + x2;
 

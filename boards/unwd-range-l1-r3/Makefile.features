@@ -1,10 +1,13 @@
 # Put defined MCU peripherals here
 FEATURES_PROVIDED += periph_adc
 FEATURES_PROVIDED += periph_dac
+FEATURES_PROVIDED += periph_dma
 FEATURES_PROVIDED += periph_gpio
+FEATURES_PROVIDED += periph_gpio_irq
 FEATURES_PROVIDED += periph_i2c
 FEATURES_PROVIDED += periph_pwm
 FEATURES_PROVIDED += periph_rtc
+FEATURES_PROVIDED += periph_rtt
 FEATURES_PROVIDED += periph_timer
 FEATURES_PROVIDED += periph_spi
 FEATURES_PROVIDED += periph_eeprom
@@ -12,6 +15,11 @@ FEATURES_PROVIDED += periph_uart
 FEATURES_PROVIDED += periph_pm
 FEATURES_PROVIDED += periph_iwdg
 FEATURES_PROVIDED += periph_cpuid
+FEATURES_PROVIDED += periph_status
+FEATURES_PROVIDED += periph_status_extended
+
+# Put other features for this board (in alphabetical order)
+FEATURES_PROVIDED += riotboot
 
 # Various other features (if any)
 FEATURES_PROVIDED += cpp
@@ -19,3 +27,4 @@ FEATURES_PROVIDED += cpp
 # The board MPU family (used for grouping by the CI system)
 FEATURES_MCU_GROUP = cortex_m3_2
 
+include $(RIOTCPU)/stm32l1/Makefile.features

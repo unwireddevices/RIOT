@@ -39,13 +39,13 @@ extern "C" {
 #include "thread.h"
 
 #include "periph/rtc.h"
-
+#include "net/netdev/lora.h"
 #include "ls-init-device.h"
 #include "ls-mac-types.h"
 #include "ls-mac.h"
 #include "ls-gate.h"
 
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 
 #include <stdint.h>
 
@@ -61,6 +61,9 @@ static kernel_pid_t isr_pid;
 static msg_t msg_ping;
 static msg_t msg_rx1_expired;
 
+static lptimer_t uq_send_delay_timer;
+#define UQ_SEND_DELAY_MS    100
+
 static void schedule_tx(ls_gate_channel_t *ch) {
 	/* Can send next frame only if channel is doing nothing */
 	if (ch->state != LS_GATE_CHANNEL_STATE_IDLE) {
@@ -70,8 +73,7 @@ static void schedule_tx(ls_gate_channel_t *ch) {
 
 	msg_t msg;
 	msg.content.ptr = (void *) ch;
-
-	msg_try_send(&msg, ((ls_gate_t *)ch->_internal.gate)->_internal.uq_thread_pid);
+    lptimer_set_msg(&uq_send_delay_timer, UQ_SEND_DELAY_MS, &msg, ((ls_gate_t *)ch->_internal.gate)->_internal.uq_thread_pid);
 }
 
 static void prepare_sx127x(ls_gate_channel_t *ch)
@@ -123,7 +125,7 @@ static int send_frame_f(ls_gate_channel_t *ch, ls_frame_t *frame)
     int total_time = 0;
     while (sx1276_get_modem_status(ch->_internal.sx1276) != SX1276_MODEM_CLEAR) {
         DEBUG("ls-gate: modem is in RX, postpone transmission\n");
-        rtctimers_millis_sleep(delay_ms);
+        lptimer_sleep(delay_ms);
         total_time += delay_ms;
         if (total_time > 1000) {
             DEBUG("ls-gate: force switching from RX to TX\n");
@@ -531,7 +533,7 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
     switch (event) {
         case NETDEV_EVENT_RX_COMPLETE: {
             int len;
-            netdev_sx127x_lora_packet_info_t packet_info;
+            netdev_lora_rx_info_t  packet_info;
             ls_gate_t *ls = (ls_gate_t *) ch->_internal.gate;
             uint8_t message[LS_FRAME_SIZE];
             

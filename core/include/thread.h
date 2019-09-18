@@ -133,39 +133,6 @@
  extern "C" {
 #endif
 
-/* Thread states */
-/**
- * @name Special meaning thread states
- * @{
- */
-#define STATUS_NOT_FOUND        (-1)    /**< Describes an illegal thread status */
-/** @} */
-
-/**
- * @name Blocked thread states
- * @{
- */
-#define STATUS_STOPPED              0   /**< has terminated                     */
-#define STATUS_SLEEPING             1   /**< sleeping                           */
-#define STATUS_MUTEX_BLOCKED        2   /**< waiting for a locked mutex         */
-#define STATUS_RECEIVE_BLOCKED      3   /**< waiting for a message              */
-#define STATUS_SEND_BLOCKED         4   /**< waiting for message to be delivered*/
-#define STATUS_REPLY_BLOCKED        5   /**< waiting for a message response     */
-#define STATUS_FLAG_BLOCKED_ANY     6   /**< waiting for any flag from flag_mask*/
-#define STATUS_FLAG_BLOCKED_ALL     7   /**< waiting for all flags in flag_mask */
-#define STATUS_MBOX_BLOCKED         8   /**< waiting for get/put on mbox        */
-/** @} */
-
-/**
- * @name Queued thread states
- * @{
- */
-#define STATUS_ON_RUNQUEUE      STATUS_RUNNING  /**< to check if on run queue:
-                                                 `st >= STATUS_ON_RUNQUEUE`             */
-#define STATUS_RUNNING          9               /**< currently running                  */
-#define STATUS_PENDING         10               /**< waiting to be scheduled to run     */
-/** @} */
-
 /**
  * @brief Prototype for a thread entry function
  */
@@ -176,7 +143,7 @@ typedef void *(*thread_task_func_t)(void *arg);
  */
 struct _thread {
     char *sp;                       /**< thread's stack pointer         */
-    uint8_t status;                 /**< thread's status                */
+    thread_state_t status;          /**< thread's status                */
     uint8_t priority;               /**< thread's priority              */
 
     kernel_pid_t pid;               /**< thread's process id            */
@@ -208,6 +175,9 @@ struct _thread {
 #if defined(DEVELHELP) || defined(DOXYGEN)
     const char *name;               /**< thread's name                  */
     int stack_size;                 /**< thread's stack size            */
+#endif
+#ifdef HAVE_THREAD_ARCH_T
+    thread_arch_t arch;             /**< architecture dependent part    */
 #endif
 };
 
@@ -523,6 +493,26 @@ void thread_stack_print(void);
  * @brief   Prints human readable, ps-like thread information for debugging purposes
  */
 void thread_print_stack(void);
+
+/**
+ * @brief   Checks if a thread has an initialized message queue
+ *
+ * @see @ref msg_init_queue()
+ *
+ * @param[in] thread    The thread to check for
+ *
+ * @return  `== 0`, if @p thread has no initialized message queue
+ * @return  `!= 0`, if @p thread has its message queue initialized
+ */
+static inline int thread_has_msg_queue(const volatile struct _thread *thread)
+{
+#if defined(MODULE_CORE_MSG) || defined(DOXYGEN)
+    return (thread->msg_array != NULL);
+#else
+    (void)thread;
+    return 0;
+#endif
+}
 
 #ifdef __cplusplus
 }

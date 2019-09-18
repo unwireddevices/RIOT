@@ -26,7 +26,7 @@ extern "C" {
 
 #include "arduino.hpp"
 
-#define ANALOG_PIN_NUMOF     (sizeof(arduino_analog_map) / sizeof(arduino_analog_map[0]))
+#define ANALOG_PIN_NUMOF     (ARRAY_SIZE(arduino_analog_map))
 
 void pinMode(int pin, int mode)
 {
@@ -60,6 +60,16 @@ int digitalRead(int pin)
 void delay(unsigned long msec)
 {
     xtimer_usleep(1000 * msec);
+}
+
+void delayMicroseconds(unsigned long usec)
+{
+    xtimer_usleep(usec);
+}
+
+unsigned long micros()
+{
+    return xtimer_now_usec();
 }
 
 /*

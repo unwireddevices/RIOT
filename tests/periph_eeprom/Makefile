@@ -1,9 +1,11 @@
-BOARD ?= b-l072z-lrwan1
+BOARD ?= unwd-nrf
 include ../Makefile.tests_common
 
 FEATURES_REQUIRED += periph_eeprom
+FEATURES_REQUIRED += periph_flashpage
 
-USEMODULE += xtimer
+BOARD_INSUFFICIENT_MEMORY := arduino-duemilanove arduino-uno
+
 USEMODULE += shell
 USEMODULE += shell_commands  # provides reboot command
 

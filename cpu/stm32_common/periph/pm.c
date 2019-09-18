@@ -80,6 +80,7 @@ static inline void _pm_before(void) {
 	
     /* Disable all USART interfaces in use */
     /* without it, RX will receive some garbage when MODER is changed */
+#if defined(UART_NUMOF)
     for (i = 0; i < UART_NUMOF; i++) {
         if (uart_config[i].dev->CR1 & USART_CR1_UE) {
             uart_config[i].dev->CR1 &= ~USART_CR1_UE;
@@ -89,10 +90,12 @@ static inline void _pm_before(void) {
             lpm_usart[i] = 0;
         }
     }
+#endif
 
     /* specifically set GPIOs used for external SPI devices */
     /* MOSI = 0, SCK = 0, MISO = AIN for SPI Mode 0 & 1 (CPOL = 0) */
     /* MOSI = 0, SCK = 1, MISO = AIN for SPI Mode 2 & 3 (CPOL = 1) */
+#if defined(SPI_NUMOF)
     for (i = 0; i < SPI_NUMOF; i++) {
         /* check if SPI is in use */
         if (is_periph_clk(spi_config[i].apbbus, spi_config[i].rccmask) == 1) {
@@ -107,6 +110,7 @@ static inline void _pm_before(void) {
             gpio_init(spi_config[i].miso_pin, GPIO_AIN);
         }
      }
+#endif
 }
 
 static inline void _pm_after(void) {
@@ -129,12 +133,14 @@ static inline void _pm_after(void) {
         }
     }
 
+#if defined(UART_NUMOF)
     /* restore USART clocks */
     for (i = 0; i < UART_NUMOF; i++) {
         if (lpm_usart[i]) {
             uart_config[i].dev->CR1 |= USART_CR1_UE;
         }
     }
+#endif
 }
 
 static inline uint32_t _ewup_config(void)
@@ -217,8 +223,18 @@ enum pm_mode pm_set(enum pm_mode mode)
 #else
             /* Set PDDS to enter standby mode on deepsleep and clear flags */
             PWR->CR |= (PWR_CR_PDDS | PWR_CR_CWUF | PWR_CR_CSBF);
+            /* Enable WKUP pin to use for wakeup from standby mode */
+            /*
+#if defined(CPU_FAM_STM32L0)
+            PWR->CSR |= (PWR_CSR_EWUP1 | PWR_CSR_EWUP2);
+#if !defined(CPU_LINE_STM32L053xx)
+            */
+            /* STM32L053 only have 2 wake pins */
+            /*
+            PWR->CSR |= PWR_CSR_EWUP3;
+            */
 #endif
-            
+
 #if defined(CPU_FAM_STM32L0) || defined (CPU_FAM_STM32L1)
             /* Disable Vrefint in standby mode */
             PWR->CR |= PWR_CR_ULP;

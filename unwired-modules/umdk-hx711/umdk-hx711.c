@@ -50,14 +50,14 @@ extern "C" {
 #include "umdk-ids.h"
 #include "unwds-common.h"
 #include "thread.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 #include "xtimer.h"
 
 static uwnds_cb_t *callback;
 
 static kernel_pid_t timer_pid;
 static msg_t timer_msg = {};
-static rtctimers_millis_t timer;
+static lptimer_t timer;
 
 static bool is_polled = false;
 
@@ -158,9 +158,9 @@ void set_period(int period) {
         
     printf("[umdk-" _UMDK_NAME_ "] Period set to %d minutes\n", hx711_config.publish_period_min);
     if (hx711_config.publish_period_min != 0) {
-        rtctimers_millis_set_msg(&timer, 60000 * hx711_config.publish_period_min, &timer_msg, timer_pid);
+        lptimer_set_msg(&timer, 60000 * hx711_config.publish_period_min, &timer_msg, timer_pid);
     } else {
-        rtctimers_millis_remove(&timer);
+        lptimer_remove(&timer);
     }
     
     save_config();
@@ -195,7 +195,7 @@ int umdk_hx711_shell_cmd(int argc, char **argv) {
         hx711_config.zero = 0;
         for (int i = 0; i < 10; i++) {
             hx711_config.zero += hx711_get_data();
-            rtctimers_millis_sleep(100);
+            lptimer_sleep(100);
         }
         
         hx711_config.zero /= 10;
@@ -217,7 +217,7 @@ int umdk_hx711_shell_cmd(int argc, char **argv) {
         uint32_t weight = 0;
         for (int i = 0; i < 10; i++) {
             weight += (hx711_get_data() - hx711_config.zero);
-            rtctimers_millis_sleep(100);
+            lptimer_sleep(100);
         }
         
         hx711_config.hx711_cal = weight/cal_weight;
@@ -253,7 +253,7 @@ static void *timer_thread(void *arg) {
         callback(&data);
 
         /* Restart after delay */
-        rtctimers_millis_set_msg(&timer, 60000 * hx711_config.publish_period_min, &timer_msg, timer_pid);
+        lptimer_set_msg(&timer, 60000 * hx711_config.publish_period_min, &timer_msg, timer_pid);
     }
     
     return NULL;
@@ -282,7 +282,7 @@ void umdk_hx711_init(uwnds_cb_t *event_callback)
     
 
     /* Start publishing timer */
-	rtctimers_millis_set_msg(&timer, 60000 * hx711_config.publish_period_min, &timer_msg, timer_pid);
+	lptimer_set_msg(&timer, 60000 * hx711_config.publish_period_min, &timer_msg, timer_pid);
 
     puts("[umdk-" _UMDK_NAME_ "] HX711 ADC ready");
     

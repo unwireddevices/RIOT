@@ -59,6 +59,7 @@ typedef enum {
      * IEEE 802.15.4 | 2      | device short address
      * Ethernet      | 6      | device MAC address
      * nrfmin        | 2      | device short address
+     * nrfmax        | 8      | device long address (EUI-64), @ref eui64_t
      * CC110x        | 1      | device address
      */
     NETOPT_ADDRESS,
@@ -70,6 +71,7 @@ typedef enum {
      * ------------- | -------- | -----
      * IEEE 802.15.4 | 8        | device long address (EUI-64), @ref eui64_t
      * nrfmin        | 8        | device long address (based on short address)
+     * nrfmax        | 8        | device long address (EUI-64), @ref eui64_t
      * BLE           | 8        | device long address (EUI-64), @ref eui64_t
      */
     NETOPT_ADDRESS_LONG,
@@ -99,6 +101,9 @@ typedef enum {
      * @see <a href="https://tools.ietf.org/html/rfc4291#section-2.5.1">
      *          RFC 4291, section 2.5.1
      *      </a>
+     *
+     * @deprecated  Do not implement this in a network device. Other APIs
+     *              utilizing [netopt](@ref net_netopt) may still implement it.
      *
      * The generation of the interface identifier is dependent on the link-layer.
      * Please refer to the appropriate IPv6 over `<link>` specification for
@@ -515,6 +520,13 @@ typedef enum {
      * @brief   (@ref netopt_enable_t) IQ inverted
      */
     NETOPT_IQ_INVERT,
+
+    /**
+     * @brief   (@ref netopt_enable_t) 6Lo support
+     *
+     * @see [RFC 4944](https://tools.ietf.org/html/rfc4944)
+     */
+    NETOPT_6LO,
 
     /**
      * @brief   (@ref netopt_enable_t) header compression

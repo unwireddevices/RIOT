@@ -339,6 +339,10 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 		}
         
         uint8_t joinkey[16] = {};
+        uint8_t appskey[16] = {};
+        uint8_t nwkskey[16] = {};
+        memcpy(appskey, config_get_appskey(), sizeof(appskey));
+        memcpy(nwkskey, config_get_nwkskey(), sizeof(nwkskey));
         uint64_t appid64 = config_get_appid();
 
         if (!hex_to_bytes(payload, joinkey, false)) {
@@ -346,7 +350,7 @@ static void exec_command(ls_gate_t *ls, kernel_pid_t writer, gc_pending_fifo_t *
 			return;
 		}
              
-        if (config_write_main_block(appid64, joinkey, 0)) {
+        if (config_write_main_block(appid64, joinkey, appskey, nwkskey, 0)) {
             char s[32] = {};
             bytes_to_hex(joinkey, 16, s, false);
             printf("[ok] JOINKEY = %s\n", s);

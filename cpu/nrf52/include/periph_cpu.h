@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2017 Freie Universität Berlin
+ * Copyright (C) 2015-2018 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -31,13 +31,20 @@ extern "C" {
 #define CLOCK_CORECLOCK     (64000000U)
 
 /**
+ * @name    Peripheral clock speed (fixed to 16MHz for nRF52 based CPUs)
+ */
+#define PERIPH_CLOCK        (16000000U)
+
+/**
  * @brief   Redefine some peripheral names to unify them between nRF51 and 52
  * @{
  */
-#define UART_IRQN           (UARTE0_UART0_IRQn)
 #define SPI_SCKSEL          (dev(bus)->PSEL.SCK)
 #define SPI_MOSISEL         (dev(bus)->PSEL.MOSI)
 #define SPI_MISOSEL         (dev(bus)->PSEL.MISO)
+#if !defined(CPU_FAM_NRF52)
+#define UART_IRQN           (UARTE0_UART0_IRQn)
+#endif
 /** @} */
 
 /**
@@ -59,6 +66,30 @@ enum {
     NRF52_AIN7 = 7,         /**< Analog Input 7 */
     NRF52_VDD  = 8,         /**< VDD, not useful if VDD is reference... */
 };
+
+/**
+ * @name    The PWM unit on the nRF52 supports 4 channels per device
+ */
+#define PWM_CHANNELS        (4U)
+
+/**
+ * @brief   PWM channel
+ * @{
+ */
+typedef struct {
+    uint32_t pin;       /* */
+} pwm_chan_t;
+/** @} */
+
+/**
+ * @brief   PWM configuration
+ * @{
+ */
+typedef struct {
+    NRF_PWM_Type *dev;                  /* */
+    pwm_chan_t channel[PWM_CHANNELS];   /* */
+} pwm_conf_t;
+/** @} */
 
 /**
  * @brief   Override ADC resolution values
@@ -91,12 +122,37 @@ typedef enum {
 
 /**
  * @brief   I2C (TWI) configuration options
+ * @{
  */
 typedef struct {
     NRF_TWIM_Type *dev;         /**< TWIM hardware device */
     uint8_t scl;                /**< SCL pin */
     uint8_t sda;                /**< SDA pin */
+    i2c_speed_t speed;          /**< Bus speed */
 } i2c_conf_t;
+/** @} */
+
+/**
+ * @name   Use shared I2C functions
+ * @{
+ */
+#define PERIPH_I2C_NEED_READ_REG
+#define PERIPH_I2C_NEED_WRITE_REG
+/** @} */
+
+/**
+ * @brief   Structure for UART configuration data
+ */
+typedef struct {
+    NRF_UARTE_Type *dev;    /**< UART with EasyDMA device base register address */
+    uint8_t rx_pin;         /**< RX pin */
+    uint8_t tx_pin;         /**< TX pin */
+    uint8_t rx_mode;        /**< RX pin mode */
+    uint8_t tx_mode;        /**< TX pin mode */
+    uint8_t rts_pin;        /**< RTS pin - set to GPIO_UNDEF when not using HW flow control */
+    uint8_t cts_pin;        /**< CTS pin - set to GPIO_UNDEF when not using HW flow control */
+    uint8_t irqn;           /**< IRQ channel */
+} uart_conf_t;
 
 #ifdef __cplusplus
 }

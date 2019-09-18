@@ -53,10 +53,6 @@ int8_t si114x_init(si114x_t *dev, const si114x_params_t *params)
     xtimer_usleep(SI114X_STARTUP_TIME);
 
     /* initialize I2C interface */
-    // if (i2c_init_master(DEV_I2C, I2C_SPEED_NORMAL)) {
-    //     DEBUG("[Error] I2C device not enabled\n");
-    //     return -SI114X_ERR_I2C;
-    // }
     i2c_init(DEV_I2C);
     /* acquire exclusive access */
     i2c_acquire(DEV_I2C);

@@ -8,7 +8,11 @@ CFLAGS += -Wno-implicit-fallthrough
 
 .PHONY: all
 
-all: git-download
+all:
 	"$(MAKE)" -C $(PKG_BUILDDIR)
 
 include $(RIOTBASE)/pkg/pkg.mk
+
+ifeq (llvm,$(TOOLCHAIN))
+  CFLAGS += -Wno-format-nonliteral
+endif

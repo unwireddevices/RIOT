@@ -38,7 +38,7 @@ extern "C" {
 #include <string.h>
 
 #include "cpu.h"
-#include "eeprom.h"
+#include "periph/eeprom.h"
 #include "shell.h"
 #include "utils.h"
 
@@ -50,8 +50,9 @@ extern "C" {
 #include "periph/wdg.h"
 #include "random.h"
 #include "cpu.h"
+#include "luid.h"
 #include "xtimer.h"
-#include "rtctimers-millis.h"
+#include "lptimer.h"
 #include "unwds-common.h"
 #include "umdk-ids.h"
 #include "umdk-modules.h"
@@ -73,11 +74,15 @@ static void print_config(void);
 
 static uint64_t eui64 = 0;
 static uint64_t appid = 0;
-static uint8_t joinkey[16] = {};
+
+static uint8_t appkey[16] = {};
+static uint8_t appskey[16] = {};
+static uint8_t nwkskey[16] = {};
+
 static uint32_t devnonce = 0;
 
-static rtctimers_millis_t iwdg_timer;
-static rtctimers_millis_t delayed_setup_timer;
+static lptimer_t iwdg_timer;
+static lptimer_t delayed_setup_timer;
 
 /**
  * Data rates table.
@@ -133,8 +138,11 @@ void init_role(shell_command_t *commands) {
     pm_unblock(PM_IDLE);
     
     print_logo();
-    xtimer_init();
-    rtctimers_millis_init();
+    
+    /* Initialize random number generator with CPUID-derived value */
+    uint32_t prng_seed;
+    luid_base(&prng_seed, 4);
+    random_init(prng_seed);
 
     /* Check EUI64 */
     if (!load_eui64_nvram()) {
@@ -172,28 +180,26 @@ void init_role(shell_command_t *commands) {
 static void print_help(void) {
     switch (config_get_role()) {
         case ROLE_NO_EUI64:
-            puts("set eui64 <16 hex symbols> -- sets device EUI64 (permanently after save!)");
-            puts("\tExample: set eui64 00000000000011ff");
+            puts("set deveui <16 hex symbols> -- sets DevEUI");
+            puts("\tExample: set deveui 00000000000011ff");
             break;
             
         case ROLE_EMPTY_KEY:
-            puts("set joinkey <32 hex symbols> -- sets network encryption key. Must be shared between all nodes in the same network");
-            puts("\tExample: set joinkey aabbccddeeff00112233445566778899");
-            devnonce = config_get_devnonce();
-            appid = config_get_appid();
-            eui64 = config_get_nodeid();
-            break;
-            
         case ROLE_NO_CFG:
-            puts("set appid64 <16 hex symbols> -- sets application ID");
-            puts("\tExample: set appid64 00000000000011ff");
-            puts("");
-            puts("set joinkey <32 hex symbols> -- sets network encryption key. Must be shared between all nodes in the same network");
-            puts("\tExample: set joinkey aabbccddeeff00112233445566778899");
-            puts("");
+            puts("set appeui <16 hex symbols> -- sets AppEUI");
+            puts("set appkey <32 hex symbols> -- sets OTAA network encryption key");
+            
+            #if defined(UNWDS_MAC_LORAWAN)
+            puts("set appskey <32 hex symbols> -- sets ABP AppSkey encryption key");
+            puts("set nwkskey <32 hex symbols> -- sets ABP NwkSkey encryption key");
+            #endif
+            
+            #if defined(UNWDS_MAC_LORAWAN)
+            puts("set devaddr <8 hex symbols> -- sets network device address DevAddr");
+            #else
             puts("set devnonce <8 hex symbols> -- sets session encryption key for no-join devices");
-            puts("\tExample: set devnonce aabbccdd");
-            eui64 = config_get_nodeid();
+            #endif
+
             break;
         default:
             puts("Unknown mode");
@@ -222,11 +228,11 @@ static int set_cmd(int argc, char **argv)
     char *type = argv[1];
     char *arg = argv[2];
 
-    if ((strcmp(type, "appid64") == 0) && (config_get_role() == ROLE_NO_CFG)) {
+    if (strcmp(type, "appeui") == 0) {
         uint64_t id = 0;
 
         if (strlen(arg) != 16) {
-            puts("[error] AppID must be 64 bits (16 hex symbols) long");
+            puts("[error] AppEUI must be 64 bits (16 hex symbols) long");
             return 1;
         }
 
@@ -235,22 +241,69 @@ static int set_cmd(int argc, char **argv)
             return 1;
         }
 
-        printf("[ok] APPID64 = 0x%08x%08x\n", (unsigned int) (id >> 32), (unsigned int) (id & 0xFFFFFFFF));
+        printf("[ok] AppEUI = 0x%08x%08x\n", (unsigned int) (id >> 32), (unsigned int) (id & 0xFFFFFFFF));
         appid = id;
     }
-    else if (strcmp(type, "joinkey") == 0) {
+    else if (strcmp(type, "appkey") == 0) {
         if (strlen(arg) != 32) {
-            puts("[error] Joinkey must be 128 bits (32 hex symbols) long");
+            puts("[error] AppKey must be 128 bits (32 hex symbols) long");
             return 1;
         }
 
-        if (!hex_to_bytes(arg, joinkey, false)) {
+        if (!hex_to_bytes(arg, appkey, false)) {
             puts("[error] Invalid format specified");
             return 1;
         }
 
-        printf("[ok] JOINKEY = %s\n", arg);
-    } 
+        printf("[ok] AppKey = %s\n", arg);
+    }
+#if defined(UNWDS_MAC_LORAWAN)
+    else if (strcmp(type, "appskey") == 0) {
+        if (strlen(arg) != 32) {
+            puts("[error] AppsKey must be 128 bits (32 hex symbols) long");
+            return 1;
+        }
+
+        if (!hex_to_bytes(arg, appskey, false)) {
+            puts("[error] Invalid format specified");
+            return 1;
+        }
+
+        config_set_appskey(appskey);
+        printf("[ok] AppsKey = %s\n", arg);
+    }
+    else if (strcmp(type, "nwkskey") == 0) {
+        if (strlen(arg) != 32) {
+            puts("[error] AppKey must be 128 bits (32 hex symbols) long");
+            return 1;
+        }
+
+        if (!hex_to_bytes(arg, nwkskey, false)) {
+            puts("[error] Invalid format specified");
+            return 1;
+        }
+
+        config_set_nwkskey(nwkskey);
+        printf("[ok] NwksKey = %s\n", arg);
+    }
+    else if (strcmp(type, "devaddr") == 0) {
+        if (strlen(arg) != 8) {
+            puts("[error] DevAddr must be 32 bits (8 hex symbols) long");
+            return 1;
+        }
+
+        uint32_t d = 0;
+
+        if (!hex_to_bytesn(arg, 8, (uint8_t *) &d, true)) {
+            puts("[error] Invalid format specified");
+            return 1;
+        }
+
+        printf("[ok] DevAddr = %s\n", arg);
+
+        devnonce = d;
+    }
+#else
     else if ((strcmp(type, "devnonce") == 0) && (config_get_role() == ROLE_NO_CFG)) {
         if (strlen(arg) != 8) {
             puts("[error] Nonce must be 32 bits (8 hex symbols) long");
@@ -268,11 +321,12 @@ static int set_cmd(int argc, char **argv)
 
         devnonce = d;
     }
-    else if ((strcmp(type, "eui64") == 0) && (config_get_role() == ROLE_NO_EUI64)) {
+#endif
+    else if ((strcmp(type, "deveui") == 0) && (config_get_role() == ROLE_NO_EUI64)) {
         uint64_t id = 0;
 
         if (strlen(arg) != 16) {
-            puts("[error] There must be 16 hexadecimal digits in lower case as EUI64 ID");
+            puts("[error] There must be 16 hexadecimal digits in lower case as DevEUI");
             return 1;
         }
 
@@ -281,13 +335,13 @@ static int set_cmd(int argc, char **argv)
             return 1;
         }
 
-        printf("[ok] EUI64 = 0x%08x%08x\n", (unsigned int) (id >> 32), (unsigned int) (id & 0xFFFFFFFF));
+        printf("[ok] DevEUI = 0x%08x%08x\n", (unsigned int) (id >> 32), (unsigned int) (id & 0xFFFFFFFF));
         eui64 = id;
     } else {
         puts("[error] Unknown command");
     }
     
-    print_config();
+    /* print_config(); */
     
     puts("Settings can be changed by calling 'set' command again");
     puts("Invoke 'save' command when finished");
@@ -319,17 +373,14 @@ static int save_cmd(int argc, char **argv)
         bool status = false;
         
         switch (config_get_role()) {
-            case ROLE_EMPTY_KEY:
-                /* Set joinkey */
-                status = config_write_main_block(appid, joinkey, devnonce);
-                break;
             case ROLE_NO_EUI64:
                 /* Set EUI64 */
                 status = write_eui64_nvram(eui64);
                 break;
+            case ROLE_EMPTY_KEY:
             case ROLE_NO_CFG:
-                /* Set appID, joinkey and nonce */
-                status = config_write_main_block(appid, joinkey, devnonce);
+                /* Set appID, appkey and nonce */
+                status = config_write_main_block(appid, appkey, appskey, nwkskey, devnonce);
                 break;
             default:
                 break;
@@ -360,25 +411,63 @@ static void init_config(shell_command_t *commands)
     memcpy(commands, shell_commands_cfg, sizeof(shell_commands_cfg));
 
     blink_led(LED0_PIN);
+    
+    if (config_get_role() != ROLE_NO_EUI64) {
+        eui64 = config_get_nodeid();
+        appid = config_get_appid();
+        devnonce = config_get_devnonce();
+        
+        memcpy(appkey, config_get_appkey(), sizeof(appkey));
 
+        if ((config_get_role() == ROLE_NO_CFG) || (config_get_role() == ROLE_EMPTY_KEY)) {
+            /* Generate ABP keys */
+            uint32_t rand = 0;
+            for (uint32_t i = 0; i < 16; i += sizeof(rand)) {
+                rand = random_uint32();
+                memcpy(appskey + i, (void *)&rand, sizeof(rand));
+                
+                rand = random_uint32();
+                memcpy(nwkskey + i, (void *)&rand, sizeof(rand));
+            }
+        } else {
+            memcpy(appskey, config_get_appskey(), sizeof(appskey));
+            memcpy(nwkskey, config_get_nwkskey(), sizeof(nwkskey));
+        }
+
+        print_config();
+    }
+    
     print_help();
-    print_config();
 }
 
 static void print_config(void)
 {
     puts("[config] Current configuration:");
     
-    char s[32] = {};
+    char s[33] = {};
     
-    printf("EUI64 = 0x%08x%08x\n", (unsigned int) (eui64 >> 32), (unsigned int) (eui64 & 0xFFFFFFFF));
-    
-    bytes_to_hex(joinkey, 16, s, false);
-    printf("JOINKEY = %s\n", s);
-    
-    printf("DEVNONCE = 0x%08X\n", (unsigned int) devnonce);
-    
-    printf("APPID64 = 0x%08x%08x\n", (unsigned int) (appid >> 32), (unsigned int) (appid & 0xFFFFFFFF));
+    printf("DevEUI = 0x%08x%08x\n", (unsigned int) (eui64 >> 32), (unsigned int) (eui64 & 0xFFFFFFFF));
+
+    if (config_get_role() != ROLE_NO_EUI64) {
+        printf("AppEUI = 0x%08x%08x\n", (unsigned int) (appid >> 32), (unsigned int) (appid & 0xFFFFFFFF));
+        
+        #if defined(UNWDS_MAC_LORAWAN)
+        printf("DevAddr = 0x%08X\n", (unsigned int) devnonce);
+        #else
+        printf("DEVNONCE = 0x%08X\n", (unsigned int) devnonce);
+        #endif
+        
+        bytes_to_hex(appkey, 16, s, false);
+        printf("AppKey = %s\n", s);
+        
+        #if defined(UNWDS_MAC_LORAWAN)
+        bytes_to_hex(appskey, 16, s, false);
+        printf("AppsKey = %s\n", s);
+        
+        bytes_to_hex(nwkskey, 16, s, false);
+        printf("NwksKey = %s\n", s);
+        #endif
+    }
 }
 
 static int init_clear_nvram(int argc, char **argv)
@@ -401,10 +490,10 @@ static int init_clear_nvram(int argc, char **argv)
         }
     }
     else if (strcmp(key, "key") == 0) {
-        uint8_t joinkey_zero[16];
-        memset(joinkey_zero, 0, 16);
-        if (config_write_main_block(config_get_appid(), joinkey_zero, 0)) {
-            puts("[ok] Security key and device nonce was zeroed. Rebooting.");
+        uint8_t appkey_zero[16];
+        memset(appkey_zero, 0, 16);
+        if (config_write_main_block(config_get_appid(), appkey_zero, appskey, nwkskey, devnonce)) {
+            puts("[ok] Security key was zeroed. Rebooting.");
             NVIC_SystemReset();
         }
         else {
@@ -444,8 +533,10 @@ static int init_update_cmd(int argc, char **argv) {
     (void) argc;
     (void) argv;
     
+#if defined(RTC_REGBACKUP_BOOTLOADER)
     puts("[*] Rebooting to UART bootloader...");
     rtc_save_backup(RTC_REGBACKUP_BOOTLOADER_VALUE, RTC_REGBACKUP_BOOTLOADER);
+#endif
     
     NVIC_SystemReset();
     
@@ -454,16 +545,16 @@ static int init_update_cmd(int argc, char **argv) {
 
 static  uint32_t            connect_btn_last_press = 0;
 static  bool                board_is_off = false;
-static  rtctimers_millis_t  sys_on_off;
+static  lptimer_t           sys_on_off;
 
 static void system_on_off (void *arg) {
     if (arg) {
         gpio_clear(LED1_PIN);
         gpio_clear(LED0_PIN);
         /* stop all activity */
-        rtctimers_millis_remove_all();
+        lptimer_remove_all();
         /* restart watchdog timer */
-        rtctimers_millis_set(&iwdg_timer, 100);
+        lptimer_set(&iwdg_timer, 100);
         pm_unblock(PM_SLEEP);
         void (*board_sleep)(void) = arg;
         board_sleep();
@@ -502,7 +593,7 @@ static bool is_connect_button_pressed(void)
 }
 
 static void connect_btn_pressed (void *arg) {
-    uint32_t ms_now = rtctimers_millis_now();
+    uint32_t ms_now = lptimer_now_msec();
     
     /* debounce */
     if ((connect_btn_last_press != 0) &&
@@ -513,9 +604,9 @@ static void connect_btn_pressed (void *arg) {
     
     /* button released */
 #if defined(UNWD_CONNECT_POL)
-    if ((gpio_read(UNWD_CONNECT_BTN)) != UNWD_CONNECT_POL) {
+    if ((UNWD_CONNECT_BTN != GPIO_UNDEF) && (gpio_read(UNWD_CONNECT_BTN)) != UNWD_CONNECT_POL) {
 #else
-    if ((gpio_read(UNWD_CONNECT_BTN)) != 0) {
+    if ((UNWD_CONNECT_BTN != GPIO_UNDEF) && (gpio_read(UNWD_CONNECT_BTN)) != 0) {
 #endif
         if (((ms_now > connect_btn_last_press) && ((ms_now - connect_btn_last_press) > 1000)) || 
             ((ms_now + (UINT32_MAX - connect_btn_last_press)) > 1000)) {
@@ -525,12 +616,12 @@ static void connect_btn_pressed (void *arg) {
             if (board_is_off) {
                 gpio_set(LED0_PIN);
                 sys_on_off.arg = NULL;
-                rtctimers_millis_set(&sys_on_off, 1000);
+                lptimer_set(&sys_on_off, 1000);
             } else {            
                 board_is_off = true;
                 gpio_set(LED1_PIN);
                 sys_on_off.arg = arg;
-                rtctimers_millis_set(&sys_on_off, 1000);
+                lptimer_set(&sys_on_off, 1000);
             }
         } else {
             /* short press */
@@ -569,7 +660,7 @@ static void iwdg_reset (void *arg) {
     (void)arg;
     
     wdg_reload();
-    rtctimers_millis_set(&iwdg_timer, 15000);
+    lptimer_set(&iwdg_timer, 15000);
     DEBUG("Watchdog reset\n");
     return;
 }
@@ -579,10 +670,19 @@ static void ls_delayed_setup (void *arg) {
         pm_unblock(PM_SLEEP);
         puts("Low-power sleep mode active");
     }
-    
-    if (!gpio_init_int(UNWD_CONNECT_BTN, GPIO_IN_PU, GPIO_BOTH, connect_btn_pressed, arg)) {
-        puts("Safe/Connect button active");
+#if defined(UNWD_CONNECT_POL)
+    uint8_t state;
+    if (UNWD_CONNECT_POL) {
+        state = GPIO_IN_PD;
+    } else {
+        state = GPIO_IN_PU;
     }
+    if (!gpio_init_int(UNWD_CONNECT_BTN, state, GPIO_BOTH, connect_btn_pressed, arg)) {
+#else
+    if (!gpio_init_int(UNWD_CONNECT_BTN, GPIO_IN_PU, GPIO_BOTH, connect_btn_pressed, arg)) {
+#endif
+        puts("Safe/Connect button active");
+}
     
     return;
 }
@@ -593,7 +693,7 @@ void unwds_device_init(void *unwds_callback, void *unwds_init, void *unwds_join,
     if (board_init() != 0) {        
         puts("ls: error initializing device");
         gpio_set(LED0_PIN);
-        rtctimers_millis_sleep(5000);
+        lptimer_sleep(5000);
         NVIC_SystemReset();
     }
 
@@ -604,11 +704,17 @@ void unwds_device_init(void *unwds_callback, void *unwds_init, void *unwds_join,
 
     unwds_setup_nvram_config(UNWDS_CONFIG_BASE_ADDR, UNWDS_CONFIG_BLOCK_SIZE_BYTES);
 
+#if defined(RTC_REGBACKUP_BOOTLOADER)
     uint32_t bootmode = rtc_restore_backup(RTC_REGBACKUP_BOOTLOADER);
+#else
+    uint32_t bootmode = UNWDS_BOOT_NORMAL_MODE;
+#endif
     
     if (is_connect_button_pressed() || (bootmode == UNWDS_BOOT_SAFE_MODE)) {
-        uint32_t bootmode = UNWDS_BOOT_NORMAL_MODE;
+        bootmode = UNWDS_BOOT_NORMAL_MODE;
+#if defined(RTC_REGBACKUP_BOOTMODE)
         rtc_save_backup(bootmode, RTC_REGBACKUP_BOOTMODE);
+#endif
         
         puts("[!] Entering Safe Mode, all modules disabled, class C.");
         blink_led(LED0_PIN);
@@ -616,32 +722,37 @@ void unwds_device_init(void *unwds_callback, void *unwds_init, void *unwds_join,
         blink_led(LED0_PIN);
     }
     else {
-        unwds_init_modules(unwds_callback);
-        
         /* reset IWDG timer every 15 seconds */
         /* NB: unwired-module MUST NOT need more than 3 seconds to finish its job */
         iwdg_timer.callback = iwdg_reset;
-        rtctimers_millis_set(&iwdg_timer, 15000);
+        lptimer_set(&iwdg_timer, 15000);
         
         /* IWDG period is 18 seconds minimum, 28 seconds typical */
-        wdg_set_prescaler(6);
-        wdg_set_reload(0x0FFF);
+        wdg_set_reload(28);
         wdg_reload();
         wdg_enable();
 
+        unwds_init_modules(unwds_callback);
+        
         /* delayed startup */
         delayed_setup_timer.callback = ls_delayed_setup;
         delayed_setup_timer.arg = unwds_sleep;
-        rtctimers_millis_set(&delayed_setup_timer, 15000);
+        lptimer_set(&delayed_setup_timer, 15000);
         
         blink_led(LED0_PIN);
     }
 
+/* even in ABP mode, LoRaWAN must perform join procedure */
+#if !defined(UNWDS_MAC_LORAWAN)
     if (!unwds_get_node_settings().no_join) {
         void (*board_join)(void) = unwds_join;
-        
         board_join();
     }
+#else
+    void (*board_join)(void) = unwds_join;
+    board_join();
+#endif
+
 }
 
 #ifdef __cplusplus

@@ -20,6 +20,7 @@
 
 #ifdef MODULE_JC42
 
+#include "assert.h"
 #include "log.h"
 #include "saul_reg.h"
 #include "jc42.h"
@@ -28,7 +29,7 @@
 /**
  * @brief   Define the number of configured sensors
  */
-#define JC42_NUM      (sizeof(jc42_params) / sizeof(jc42_params[0]))
+#define JC42_NUM      ARRAY_SIZE(jc42_params)
 
 /**
  * @brief   Allocation of memory for device descriptors
@@ -43,7 +44,7 @@ static saul_reg_t saul_entries[JC42_NUM];
 /**
  * @brief   Define the number of saul info
  */
-#define JC42_INFO_NUM    (sizeof(jc42_saul_info) / sizeof(jc42_saul_info[0]))
+#define JC42_INFO_NUM    ARRAY_SIZE(jc42_saul_info)
 
 /**
  * @brief   Reference the driver structs.

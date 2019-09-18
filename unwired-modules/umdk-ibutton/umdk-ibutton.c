@@ -57,9 +57,7 @@ extern "C" {
 #include "umdk-ibutton.h"
 
 #include "thread.h"
-#include "rtctimers.h"
-#include "rtctimers-millis.h"
-#include "periph/rtc.h"
+#include "lptimer.h"
 #include "checksum/crc8.h"
 
 #define ENABLE_DEBUG 0
@@ -68,7 +66,7 @@ extern "C" {
 static uwnds_cb_t *callback;
 static kernel_pid_t ibutton_pid;
 
-static rtctimers_millis_t detect_timer;
+static lptimer_t detect_timer;
 static uint8_t id_detected[UMDK_IBUTTON_SIZE_ID] = { 0 };
 
 static int led_gpio_enabled = 0;
@@ -158,7 +156,7 @@ static void detect_handler(void *arg)
             }
         }
     }
-    rtctimers_millis_set(&detect_timer, UMDK_IBUTTON_POLLING_PERIOD_MS);
+    lptimer_set(&detect_timer, UMDK_IBUTTON_POLLING_PERIOD_MS);
 }
 
 void umdk_ibutton_init(uwnds_cb_t *event_callback)
@@ -182,7 +180,7 @@ void umdk_ibutton_init(uwnds_cb_t *event_callback)
     
     /* Configure periodic wakeup */
     detect_timer.callback = &detect_handler;
-    rtctimers_millis_set(&detect_timer, UMDK_IBUTTON_POLLING_PERIOD_MS);
+    lptimer_set(&detect_timer, UMDK_IBUTTON_POLLING_PERIOD_MS);
 }
 
 static inline void reply_error(module_data_t *reply) 

@@ -29,13 +29,17 @@ extern "C" {
 #include <stdio.h>
 #include <stdbool.h>
 
+const char *SHELL_DEFAULT_PASSWORD = "12345";
+#define SHELL_PASSWORD_MAX_LENGTH   20
+
 /**
  * @brief           Saves shell password (if password protection is enabled)
  *
  * @param[in]       password    string with the new password
  */
 void __attribute__((weak)) shell_set_password(char* password) {
-    puts("Password change not supported, default is 12345");
+    (void)password;
+    printf("Password change not supported, default is %s\n", SHELL_DEFAULT_PASSWORD);
 }
 
 /**
@@ -44,7 +48,7 @@ void __attribute__((weak)) shell_set_password(char* password) {
  * @param[in]       password    string to copy stored password to
  */
 void __attribute__((weak)) shell_get_password(char* password) {
-    snprintf(password, 10, "12345");
+    strcpy(password, SHELL_DEFAULT_PASSWORD);
 }
 
 #ifdef __cplusplus

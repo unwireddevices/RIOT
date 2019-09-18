@@ -53,10 +53,27 @@ enum {
 /* ADC channels 16 and 17 are not connected to any GPIO */
 #define ADC_VREF_CHANNEL 17
 #define ADC_TEMPERATURE_CHANNEL 16
- 
+
+typedef enum {
+    ADC_EXT_TRIGGER_TIM9CC2,
+    ADC_EXT_TRIGGER_TIM9TRGO,
+    ADC_EXT_TRIGGER_TIM2CC3,
+    ADC_EXT_TRIGGER_TIM2CC2,
+    ADC_EXT_TRIGGER_TIM3TRGO,
+    ADC_EXT_TRIGGER_TIM4CC4,
+    ADC_EXT_TRIGGER_TIM2TRGO,
+    ADC_EXT_TRIGGER_TIM3CC1,
+    ADC_EXT_TRIGGER_TIM3CC3,
+    ADC_EXT_TRIGGER_TIM4TRGO,
+    ADC_EXT_TRIGGER_TIM6TRGO,
+    ADC_EXT_TRIGGER_EXTI11 = 0x0F,
+    ADC_EXT_TRIGGER_UNDEF  = 0xFF
+} adc_trigger_t;
+
 typedef struct {
     gpio_t pin;             /**< pin connected to the channel */
     uint8_t chan;           /**< CPU ADC channel connected to the pin */
+    adc_trigger_t trigger;  /**< external trigger if used */
 } adc_conf_t;
 
 /**

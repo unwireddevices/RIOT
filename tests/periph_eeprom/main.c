@@ -21,11 +21,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "shell.h"
 
 #include "periph/eeprom.h"
-#include "xtimer.h"
+
+#include "periph_conf.h"
 
 #ifndef BUFFER_SIZE
 #define BUFFER_SIZE     (42U)
@@ -70,7 +72,7 @@ static int cmd_read(int argc, char **argv)
         return 1;
     }
 
-    if (pos + count >= EEPROM_SIZE) {
+    if (pos + count > EEPROM_SIZE) {
         puts("Failed: cannot read out of eeprom bounds");
         return 1;
     }
@@ -79,6 +81,26 @@ static int cmd_read(int argc, char **argv)
     buffer[count] = '\0';
 
     printf("Data read from EEPROM (%d bytes): %s\n", (int)ret, buffer);
+
+    return 0;
+}
+
+static int cmd_read_byte(int argc, char **argv)
+{
+    if (argc < 2) {
+        printf("usage: %s <pos>\n", argv[0]);
+        return 1;
+    }
+
+    uint32_t pos = atoi(argv[1]);
+
+    if (pos >= EEPROM_SIZE) {
+        puts("Failed: cannot read out of eeprom bounds");
+        return 1;
+    }
+
+    uint8_t byte = eeprom_read_byte(pos);
+    printf("Byte read from EEPROM: 0x%02X (%c)\n", byte, byte);
 
     return 0;
 }
@@ -92,7 +114,7 @@ static int cmd_write(int argc, char **argv)
 
     uint32_t pos = atoi(argv[1]);
 
-    if (pos + strlen(argv[2]) >= EEPROM_SIZE) {
+    if (pos + strlen(argv[2]) > EEPROM_SIZE) {
         puts("Failed: cannot write out of eeprom bounds");
         return 1;
     }
@@ -103,71 +125,175 @@ static int cmd_write(int argc, char **argv)
     return 0;
 }
 
-static int cmd_test(int argc, char **argv)
+static int cmd_write_byte(int argc, char **argv)
 {
-    (void)argc;
-    (void)argv;
-    
-    uint8_t bytes[TEST_BUFFER_SIZE] = { 0 };
-    eeprom_write(0, bytes, TEST_BUFFER_SIZE);
-    uint32_t start, stop;
-    
-    for (uint32_t i = 0; i < TEST_BUFFER_SIZE; i ++) {
-        bytes[i] = i;
+    if (argc < 3) {
+        printf("usage: %s <pos> <byte>\n", argv[0]);
+        return 1;
     }
-    
-    printf("Writing %d bytes to clean EEPROM: ", TEST_BUFFER_SIZE);
-    start = xtimer_now_usec();
-    eeprom_write(0, bytes, TEST_BUFFER_SIZE);
-    stop = xtimer_now_usec();
-    printf("%" PRIu32 " usec\n", stop-start);
-    
-    for (uint32_t i = 0; i < TEST_BUFFER_SIZE; i ++) {
-        bytes[i] = TEST_BUFFER_SIZE-i;
+
+    uint32_t pos = atoi(argv[1]);
+
+    if (pos >= EEPROM_SIZE) {
+        puts("Failed: cannot write out of eeprom bounds");
+        return 1;
     }
-    
-    printf("Writing %d bytes to dirty EEPROM: ", TEST_BUFFER_SIZE);
-    start = xtimer_now_usec();
-    eeprom_write(0, bytes, TEST_BUFFER_SIZE);
-    stop = xtimer_now_usec();
-    printf("%" PRIu32 " usec\n", stop-start);
-    
-    printf("Reading %d bytes from EEPROM: ", TEST_BUFFER_SIZE);
-    start = xtimer_now_usec();
-    eeprom_read(0, bytes, TEST_BUFFER_SIZE);
-    stop = xtimer_now_usec();
-    printf("%" PRIu32 " usec\n", stop-start);
-    
+
+    eeprom_write_byte(pos, *(uint8_t *)argv[2]);
+    printf("Byte written to EEPROM\n");
+
+    return 0;
+}
+
+static int cmd_set(int argc, char **argv)
+{
+    if (argc < 4) {
+        printf("usage: %s <pos> <char> <count>\n", argv[0]);
+        return 1;
+    }
+
+    uint32_t pos = atoi(argv[1]);
+    uint32_t count = atoi(argv[3]);
+
+    if (strlen(argv[2]) != 1) {
+        puts("Failed: char must be a single digit");
+        return 1;
+    }
+
+    uint8_t c = (uint8_t)argv[2][0];
+
+    if (pos + count > EEPROM_SIZE) {
+        puts("Failed: cannot clear out of eeprom bounds");
+        return 1;
+    }
+
+    size_t ret = eeprom_set(pos, c, count);
+    printf("%d bytes set to %c in EEPROM\n", (int)ret, c);
+
     return 0;
 }
 
 static int cmd_clear(int argc, char **argv)
 {
-    if (argc < 2) {
-        printf("usage: '%s <pos> <size>' to clear specific data\n", argv[0]);
-        printf("\t'%s all' to clear everything\n", argv[0]);
+    if (argc < 3) {
+        printf("usage: %s <pos> <count>\n", argv[0]);
         return 1;
     }
-        
-    printf("Clearing EEPROM... ");
-    if (strcmp(argv[1], "all") == 0) {
-        eeprom_erase();
-    } else {
-        uint32_t pos = atoi(argv[1]);
-        uint32_t count = atoi(argv[2]);
-        eeprom_clear(pos, count);
+
+    uint32_t pos = atoi(argv[1]);
+    uint32_t count = atoi(argv[2]);
+
+    if (pos + count > EEPROM_SIZE) {
+        puts("Failed: cannot clear out of eeprom bounds");
+        return 1;
     }
-    puts("done");
-    
+
+    size_t ret = eeprom_clear(pos, count);
+    printf("%d bytes cleared in EEPROM\n", (int)ret);
+
     return 0;
 }
+
+static int cmd_erase(int argc, char **argv)
+{
+    if (argc != 1) {
+        printf("usage: %s\n", argv[0]);
+        return 1;
+    }
+
+    size_t ret = eeprom_erase();
+    if (ret == EEPROM_SIZE) {
+        puts("EEPROM erased with success");
+    }
+    else {
+        puts("EEPROM erase failed");
+        return 1;
+    }
+
+    return 0;
+}
+
+static int cmd_test(int argc, char **argv)
+{
+    (void)argv;
+
+    if (argc != 1) {
+        puts("FAILED");
+        return 1;
+    }
+
+    const char *expected = "test";
+
+    /* test read/write function */
+
+    /* read/write from beginning of EEPROM */
+    size_t ret = eeprom_write(0, (uint8_t *)expected, 4);
+    assert(ret == 4);
+
+    char result[4];
+    ret = eeprom_read(0, (uint8_t *)result, 4);
+    assert(memcmp(result, expected, 4) == 0);
+    assert(ret == 4);
+
+    /* read/write at end of EEPROM */
+    ret = eeprom_write(EEPROM_SIZE - 4, (uint8_t *)expected, 4);
+    assert(ret == 4);
+    memset(result, 0, 4);
+    ret = eeprom_read(EEPROM_SIZE - 4, (uint8_t *)result, 4);
+    assert(memcmp(result, expected, 4) == 0);
+    assert(ret == 4);
+
+    /* read/write single byte */
+    eeprom_write_byte(0, 'A');
+    assert(eeprom_read_byte(0) == 'A');
+    eeprom_write_byte(EEPROM_SIZE - 1, 'A');
+    assert(eeprom_read_byte(EEPROM_SIZE - 1) == 'A');
+    eeprom_write_byte(EEPROM_SIZE / 2, 'A');
+    assert(eeprom_read_byte(EEPROM_SIZE / 2) == 'A');
+
+    /* clear some bytes */
+    const uint8_t cleared[4] = {
+        EEPROM_CLEAR_BYTE, EEPROM_CLEAR_BYTE,
+        EEPROM_CLEAR_BYTE, EEPROM_CLEAR_BYTE,
+    };
+    eeprom_clear(0, 4);
+    memset(result, 0, 4);
+    ret = eeprom_read(0, (uint8_t *)result, 4);
+    assert(memcmp(result, cleared, 4) == 0);
+    assert(ret == 4);
+
+    eeprom_clear(EEPROM_SIZE - 4, 4);
+    ret = eeprom_read(EEPROM_SIZE - 4, (uint8_t *)result, 4);
+    assert(memcmp(result, cleared, 4) == 0);
+    assert(ret == 4);
+
+    /* set some bytes */
+    eeprom_set(0, 'A', 4);
+    ret = eeprom_read(0, (uint8_t *)result, 4);
+    assert(memcmp(result, "AAAA", 4) == 0);
+    assert(ret == 4);
+
+    memset(result, 0, 4);
+    eeprom_set(EEPROM_SIZE - 4, 'A', 4);
+    ret = eeprom_read(EEPROM_SIZE - 4, (uint8_t *)result, 4);
+    assert(memcmp(result, "AAAA", 4) == 0);
+    assert(ret == 4);
+
+    puts("SUCCESS");
+    return 0;
+}
+
 
 static const shell_command_t shell_commands[] = {
     { "info", "Print information about eeprom", cmd_info },
     { "read", "Read bytes from eeprom", cmd_read },
-    { "write", "Write bytes to eeprom", cmd_write},
-    { "test", "Test write and read speed", cmd_test},
-    { "clear", "Clear EEPROM", cmd_clear},
+    { "write", "Write bytes to eeprom", cmd_write },
+    { "read_byte", "Read a single byte from eeprom", cmd_read_byte },
+    { "write_byte", "Write a single byte to eeprom", cmd_write_byte },
+    { "set", "Set bytes to eeprom", cmd_set},
+    { "clear", "Clear bytes to eeprom", cmd_clear},
+    { "erase", "Erase whole eeprom", cmd_erase},
+    { "test", "Test the EEPROM implementation", cmd_test },
     { NULL, NULL, NULL }
 };
 

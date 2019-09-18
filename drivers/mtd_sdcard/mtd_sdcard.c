@@ -25,7 +25,7 @@
 #include "sdcard_spi.h"
 #include "sdcard_spi_internal.h"
 
-#include <stdint.h>
+#include <inttypes.h>
 #include <errno.h>
 
 static int mtd_sdcard_init(mtd_dev_t *mtd);

@@ -24,21 +24,26 @@
 #include "adxl345_params.h"
 #include "xtimer.h"
 
-#define SLEEP_DELAY 100 * 1000U
+#define SLEEP_DELAY 1000 * 1000U
 
 int main(void)
 {
     adxl345_t dev;
     adxl345_data_t data;
 
-    dev.i2c = ADXL345_PARAM_I2C;
-    dev.addr = ADXL345_PARAM_ADDR;
+    adxl345_params_t adxl345_params = ADXL345_PARAMS;
+
+
+    adxl345_params.i2c = I2C_DEV(1);
+    adxl345_params.addr = ADXL345_PARAM_ADDR;
+    adxl345_params.range = ADXL345_RANGE_2G;
 
     puts("ADXL345 test application");
     printf("Initializing ADXL345 accelerometer at I2C_DEV(%i)... ",
-           dev.i2c);
+           adxl345_params.i2c);
 
-    if (adxl345_init(&dev, (adxl345_params_t*)adxl345_params) == ADXL345_OK) {
+    if (adxl345_init(&dev, &adxl345_params) == ADXL345_OK) {
+        adxl345_set_standby(&dev);
         puts("[OK]\n");
     }
     else {
@@ -47,7 +52,10 @@ int main(void)
     }
 
    while(1) {
+        adxl345_set_measure(&dev);
+        xtimer_usleep(1000 * 1 / (dev.params.rate) + 2);
         adxl345_read(&dev, &data);
+        adxl345_set_standby(&dev);
         printf("Acceleration [in mg]: X axis:%d Y axis:%d Z axis:%d\n",
                (int)data.x, (int)data.y, (int)data.z);
         xtimer_usleep(SLEEP_DELAY);

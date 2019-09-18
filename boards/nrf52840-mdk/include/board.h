@@ -20,6 +20,7 @@
 #define BOARD_H
 
 #include "cpu.h"
+#include "board_common.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,11 +60,6 @@ extern "C" {
 #define BTN0_PIN            GPIO_PIN(1, 0)
 #define BTN0_MODE           GPIO_IN_PU
 /** @} */
-
-/**
- * @brief   Initialize the platform
- */
-void board_init(void);
 
 #ifdef __cplusplus
 }

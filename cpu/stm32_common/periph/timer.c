@@ -23,6 +23,9 @@
 #include "cpu.h"
 #include "periph/timer.h"
 
+#define ENABLE_DEBUG    (0)
+#include "debug.h"
+
 /**
  * @brief   Interrupt context for each configured timer
  */
@@ -65,6 +68,65 @@ int timer_init(tim_t tim, unsigned long freq, timer_cb_t cb, void *arg)
     /* reset the counter and start the timer */
     timer_start(tim);
 
+    return 0;
+}
+
+int timer_init_periodic(tim_t tim, uint32_t period, timer_cb_t cb, void *arg, bool signal) {
+    /* check if device is valid */
+    if (tim >= TIMER_NUMOF) {
+        return -1;
+    }
+    
+    if (!period) {
+        return -1;
+    }
+    
+    uint32_t freq_uhz = periph_timer_clk(timer_config[tim].bus) / 1000000;
+    uint32_t prescaler = ((10 * freq_uhz * period) + 5) / (10 * timer_config[tim].max);
+    
+    if (prescaler > timer_config[tim].max) {
+        return -1;
+    }
+    
+    /* remember the interrupt context */
+    isr_ctx[tim].cb = cb;
+    isr_ctx[tim].arg = arg;
+    
+    /* enable the peripheral clock */
+    periph_clk_en(timer_config[tim].bus, timer_config[tim].rcc_mask);
+    
+    if (cb != NULL) {
+        isr_ctx[tim].cb = cb;
+        isr_ctx[tim].arg = arg;
+        
+        /* enable the timer's update interrupt */
+        NVIC_EnableIRQ(timer_config[tim].irqn);
+        dev(tim)->DIER |= TIM_DIER_UIE;
+    } else {
+        /* disable update interrupt */
+        dev(tim)->DIER &= ~TIM_DIER_UIE;
+    }
+    
+    /* configure the timer as upcounter in continuous mode */
+    dev(tim)->CR1  = 0;
+    dev(tim)->CR2  = 0;
+    
+    /* set prescaler */
+    dev(tim)->PSC = prescaler;
+    
+    /* set reload value */
+    dev(tim)->ARR = ((10 * period * freq_uhz) + 5 ) / (20 * (prescaler + 1)) - 1;
+    
+    DEBUG("Freq: %lu, PSC: %lu, ARR: %lu\n", periph_timer_clk(timer_config[tim].bus), (uint32_t)dev(tim)->PSC, dev(tim)->ARR);
+
+    /* generate an update event to apply our configuration */
+    dev(tim)->EGR = TIM_EGR_UG;
+    
+    dev(tim)->CR2 &= ~TIM_CR2_MMS;
+    if (signal) {
+        dev(tim)->CR2 |= TIM_CR2_MMS_1;
+    }
+    
     return 0;
 }
 
@@ -139,6 +201,7 @@ void timer_start(tim_t tim)
 
 void timer_stop(tim_t tim)
 {
+    dev(tim)->DIER &= ~TIM_DIER_UIE;
     dev(tim)->CR1 &= ~(TIM_CR1_CEN);
 }
 
@@ -147,8 +210,15 @@ static inline void irq_handler(tim_t tim)
     uint32_t status = (dev(tim)->SR & dev(tim)->DIER);
 
     for (unsigned int i = 0; i < TIMER_CHAN; i++) {
+        /* timer_init triggers Capture/Compare Event */
         if (status & (TIM_SR_CC1IF << i)) {
             dev(tim)->DIER &= ~(TIM_DIER_CC1IE << i);
+            isr_ctx[tim].cb(isr_ctx[tim].arg, i);
+        }
+        
+        /* timer_init_periodic triggers Update Event */
+        if (status & (TIM_SR_UIF << i)) {
+            dev(tim)->SR &= ~TIM_SR_UIF;
             isr_ctx[tim].cb(isr_ctx[tim].arg, i);
         }
     }

@@ -43,9 +43,6 @@ extern "C" {
 #include "board.h"
 #include "unwds-common.h"
 #include "periph/gpio.h"
-#include "rtctimers-millis.h"
-
-#include "rtctimers.h"
 
 bool hex_to_bytes(char *hexstr, uint8_t *bytes, bool reverse_order) {
     uint32_t len = strlen(hexstr);

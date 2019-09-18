@@ -107,8 +107,8 @@ void unwds_set_module(uint8_t modid, bool enable) {
     
     if (unwds_is_module_exists(modid))
     {    
-        uint8_t index = modid / 32;
-        uint32_t mask = (uint32_t) (1 << (modid % 32));
+        uint8_t index = modid / 8;
+        uint32_t mask = (uint32_t) (1 << (modid % 8));
         
         if (enable) {
             /* Enable module */
@@ -143,7 +143,8 @@ void unwds_config_reset(void) {
 
     node_settings.no_join = 0;
     node_settings.dev_addr = 0;
-    node_settings.confirmation = true; 
+    node_settings.confirmation = true;
+    node_settings.adr = true;
     
     /* Modules enabled by default */
     unwds_set_module(UNWDS_CONFIG_MODULE_ID, true);

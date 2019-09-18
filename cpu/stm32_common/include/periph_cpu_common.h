@@ -87,6 +87,9 @@ extern "C" {
 typedef enum {
     APB1,           /**< APB1 bus */
     APB2,           /**< APB2 bus */
+#if defined(CPU_FAM_STM32L4)
+    APB12,          /**< AHB1 bus, second register */
+#endif
 #if defined(CPU_FAM_STM32L0)
     AHB,            /**< AHB bus */
     IOP,            /**< IOP bus */
@@ -147,6 +150,13 @@ typedef uint32_t gpio_t;
 #define PERIPH_I2C_NEED_READ_REG
 /** Use write reg function from periph common */
 #define PERIPH_I2C_NEED_WRITE_REG
+
+#define PERIPH_I2C_NEED_READ_REGS
+#if defined(CPU_FAM_STM32F1) || defined(CPU_FAM_STM32F2) || \
+    defined(CPU_FAM_STM32L1) || defined(CPU_FAM_STM32F4)
+#define PERIPH_I2C_NEED_WRITE_REGS
+#endif
+
 /** @} */
 
 /**
@@ -225,7 +235,29 @@ typedef enum {
  * @brief   DMA configuration
  */
 typedef struct {
-    int stream;            /**< DMA stream */
+    /** DMA stream on stm32f2/4/7, channel on others
+     * STM32F2/4/7:
+     *  - 0: DMA1 / Stream0
+     *  - 1: DMA1 / Stream1
+     *  - ...
+     *  - 7: DMA1 / Stream7
+     *  - 8: DAM2 / Stream0
+     *  - ...
+     *  - 15: DMA2 / Stream7
+     * STM32F0/1/L0/1/4:
+     *  - 0: DMA1 / Channel1
+     *  - ...
+     *  - 4: DMA1 / Channel5
+     *  - ...
+     *  - 6: DMA1 / Channel7
+     *  - 7: Reserved
+     *  - 8: DMA2 / Channel1
+     *  - ...
+     *  - 12: DMA2 / Channel5
+     *  - ...
+     *  - 14: DMA2 / Channel7
+     */
+    int stream;
 } dma_conf_t;
 
 /**
@@ -300,6 +332,7 @@ typedef struct {
                                      *   if not used */
     gpio_af_t af;                   /**< alternate function used */
     uint8_t bus;                    /**< APB bus */
+    uint8_t irqn;                   /**< global IRQ channel */
 } pwm_conf_t;
 
 /**
@@ -325,6 +358,14 @@ typedef struct {
 } qdec_conf_t;
 
 /**
+ * @brief UART hardware module types
+ */
+typedef enum {
+    STM32_USART,            /**< STM32 USART module type */
+    STM32_LPUART,           /**< STM32 Low-power UART (LPUART) module type */
+} uart_type_t;
+
+/**
  * @brief   Structure for UART configuration data
  */
 typedef struct {
@@ -340,10 +381,6 @@ typedef struct {
 #endif
     uint8_t bus;            /**< APB bus */
     uint8_t irqn;           /**< IRQ channel */
-#ifdef MODULE_PERIPH_DMA
-    dma_t dma;              /**< Logical DMA stream used for TX */
-    uint8_t dma_chan;       /**< DMA channel used for TX */
-#endif
 #ifdef MODULE_STM32_PERIPH_UART_HW_FC
     gpio_t cts_pin;         /**< CTS pin - set to GPIO_UNDEF when not using HW flow control */
     gpio_t rts_pin;         /**< RTS pin */
@@ -351,6 +388,14 @@ typedef struct {
     gpio_af_t cts_af;       /**< alternate function for CTS pin */
     gpio_af_t rts_af;       /**< alternate function for RTS pin */
 #endif
+#endif
+#if defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L4)
+    uart_type_t type;       /**< hardware module type (USART or LPUART) */
+    uint32_t clk_src;       /**< clock source used for UART */
+#endif
+#ifdef MODULE_PERIPH_DMA
+    dma_t dma;              /**< Logical DMA stream used for TX */
+    uint8_t dma_chan;       /**< DMA channel used for TX */
 #endif
 } uart_conf_t;
 
@@ -527,7 +572,7 @@ void dma_init(void);
  * function which configure, start, wait and stop a DMA transfer.
  *
  * @param[in]  dma     logical DMA stream
- * @param[in]  chan    DMA channel
+ * @param[in]  chan    DMA channel (on stm32f2/4/7, CxS or unused on others)
  * @param[in]  src     source buffer
  * @param[out] dst     destination buffer
  * @param[in]  len     length to transfer
@@ -536,7 +581,7 @@ void dma_init(void);
  *
  * @return < 0 on error, the number of transfered bytes otherwise
  */
-int dma_transfer(dma_t dma, int chan, const void *src, void *dst, size_t len,
+int dma_transfer(dma_t dma, int chan, const volatile void *src, volatile void *dst, size_t len,
                  dma_mode_t mode, uint8_t flags);
 
 /**
@@ -598,7 +643,7 @@ void dma_wait(dma_t dma);
  * @brief   Configure a DMA stream for a new transfer
  *
  * @param[in]  dma     logical DMA stream
- * @param[in]  chan    DMA channel
+ * @param[in]  chan    DMA channel (on stm32f2/4/7, CxS or unused on others)
  * @param[in]  src     source buffer
  * @param[out] dst     destination buffer
  * @param[in]  len     length to transfer
@@ -607,148 +652,176 @@ void dma_wait(dma_t dma);
  *
  * @return < 0 on error, 0 on success
  */
-int dma_configure(dma_t dma, int chan, const void *src, void *dst, size_t len,
+int dma_configure(dma_t dma, int chan, const volatile void *src, volatile void *dst, size_t len,
                   dma_mode_t mode, uint8_t flags);
 
-/**
- * @brief   Get DMA base register
- *
- * For simplifying DMA stream handling, we map the DMA channels transparently to
- * one integer number, such that DMA1 stream0 equals 0, DMA2 stream0 equals 8,
- * DMA2 stream 7 equals 15 and so on.
- *
- * @param[in] stream    physical DMA stream
- */
-static inline DMA_TypeDef *dma_base(int stream)
-{
-    return (stream < 8) ? DMA1 : DMA2;
-}
-
-/**
- * @brief   Power on the DMA device the given stream belongs to
- *
- * @param[in] stream    physical DMA stream
- */
-static inline void dma_poweron(int stream)
-{
-    if (stream < 8) {
-        periph_clk_en(AHB1, RCC_AHB1ENR_DMA1EN);
-    }
-    else {
-        periph_clk_en(AHB1, RCC_AHB1ENR_DMA2EN);
-    }
-}
-
-/**
- * @brief   Get the DMA stream base address
- *
- * @param[in] stream    physical DMA stream
- *
- * @return  base address for the selected DMA stream
- */
-static inline DMA_Stream_TypeDef *dma_stream(int stream)
-{
-    uint32_t base = (uint32_t)dma_base(stream);
-
-    return (DMA_Stream_TypeDef *)(base + (0x10 + (0x18 * (stream & 0x7))));
-}
-
-/**
- * @brief   Select high or low DMA interrupt register based on stream number
- *
- * @param[in] stream    physical DMA stream
- *
- * @return  0 for streams 0-3, 1 for streams 3-7
- */
-static inline int dma_hl(int stream)
-{
-    return ((stream & 0x4) >> 2);
-}
-
-/**
- * @brief   Get the interrupt flag clear bit position in the DMA LIFCR register
- *
- * @param[in] stream    physical DMA stream
- */
-static inline uint32_t dma_ifc(int stream)
-{
-    switch (stream & 0x3) {
-        case 0:
-            return (1 << 5);
-        case 1:
-            return (1 << 11);
-        case 2:
-            return (1 << 21);
-        case 3:
-            return (1 << 27);
-        default:
-            return 0;
-    }
-}
-
-/**
- * @brief   Enable the interrupt of a given stream
- *
- * @param[in] stream    physical DMA stream
- */
-static inline void dma_isr_enable(int stream)
-{
-    if (stream < 7) {
-        NVIC_EnableIRQ((IRQn_Type)((int)DMA1_Stream0_IRQn + stream));
-    }
-    else if (stream == 7) {
-        NVIC_EnableIRQ(DMA1_Stream7_IRQn);
-    }
-    else if (stream < 13) {
-        NVIC_EnableIRQ((IRQn_Type)((int)DMA2_Stream0_IRQn + (stream - 8)));
-    }
-    else if (stream < 16) {
-        NVIC_EnableIRQ((IRQn_Type)((int)DMA2_Stream5_IRQn + (stream - 13)));
-    }
-}
-
-/**
- * @brief   Disable the interrupt of a given stream
- *
- * @param[in] stream    physical DMA stream
- */
-static inline void dma_isr_disable(int stream)
-{
-    if (stream < 7) {
-        NVIC_DisableIRQ((IRQn_Type)((int)DMA1_Stream0_IRQn + stream));
-    }
-    else if (stream == 7) {
-        NVIC_DisableIRQ(DMA1_Stream7_IRQn);
-    }
-    else if (stream < 13) {
-        NVIC_DisableIRQ((IRQn_Type)((int)DMA2_Stream0_IRQn + (stream - 8)));
-    }
-    else if (stream < 16) {
-        NVIC_DisableIRQ((IRQn_Type)((int)DMA2_Stream5_IRQn + (stream - 13)));
-    }
-}
-
-/**
- * @brief   Clear the interrupt of a given stream
- *
- * @param[in] stream    physical DMA stream
- */
-static inline void dma_isr_clear(int stream)
-{
-    if (stream < 7) {
-        NVIC_ClearPendingIRQ((IRQn_Type)((int)DMA1_Stream0_IRQn + stream));
-    }
-    else if (stream == 7) {
-        NVIC_ClearPendingIRQ((IRQn_Type)DMA1_Stream7_IRQn);
-    }
-    else if (stream < 13) {
-        NVIC_ClearPendingIRQ((IRQn_Type)((int)DMA2_Stream0_IRQn + (stream - 8)));
-    }
-    else if (stream < 16) {
-        NVIC_ClearPendingIRQ((IRQn_Type)((int)DMA2_Stream5_IRQn + (stream - 13)));
-    }
-}
 #endif /* MODULE_PERIPH_DMA */
+
+#ifdef MODULE_PERIPH_CAN
+#include "candev_stm32.h"
+#endif
+
+#ifdef MODULE_STM32_ETH
+
+/**
+ * @brief   Ethernet Peripheral configuration
+ */
+typedef struct {
+    enum {
+        MII = 18,                       /**< Configuration for MII */
+        RMII = 9,                       /**< Configuration for RMII */
+        SMI = 2,                        /**< Configuration for SMI */
+    } mode;                             /**< Select configuration mode */
+    enum {
+        ETH_SPEED_10T_HD = 0x0000,
+        ETH_SPEED_10T_FD = 0x0100,
+        ETH_SPEED_100TX_HD = 0x2000,
+        ETH_SPEED_100TX_FD = 0x2100,
+    } speed;                            /**< Speed selection */
+    uint8_t dma;                        /**< Locical CMA Descriptor used for TX */
+    uint8_t dma_chan;                   /**< DMA channel used for TX */
+    char mac[6];                        /**< Et hernet MAC address */
+    char phy_addr;                      /**< PHY address */
+    gpio_t pins[];                      /**< Pins to use. MII requires 18 pins,
+                                             RMII 9 and SMI 9. Not all speeds are
+                                             supported by all modes. */
+} eth_conf_t;
+
+/**
+* @name Ethernet PHY Common Registers
+* @{
+*/
+#define PHY_BMCR                           (0x00)
+#define PHY_BSMR                           (0x01)
+#define PHY_PHYIDR1                        (0x02)
+#define PHY_PHYIDR2                        (0x03)
+#define PHY_ANAR                           (0x04)
+#define PHY_ANLPAR                         (0x05)
+#define PHY_ANER                           (0x06)
+#define PHY_ANNPTR                         (0x07)
+/** @} */
+
+/**
+* @name Ethernet PHY BMCR Fields
+* @{
+*/
+#define BMCR_RESET                         (0x8000)
+#define BMCR_LOOPBACK                      (0x4000)
+#define BMCR_SPEED_SELECT                  (0x2000)
+#define BMCR_AN                            (0x1000)
+#define BMCR_POWER_DOWN                    (0x0800)
+#define BMCR_ISOLATE                       (0x0400)
+#define BMCR_RESTART_AN                    (0x0200)
+#define BMCR_DUPLEX_MODE                   (0x0100)
+#define BMCR_COLLISION_TEST                (0x0080)
+/** @} */
+
+/**
+* @name Ethernet PHY BSMR Fields
+* @{
+*/
+#define BSMR_100BASE_T4                    (0x8000)
+#define BSMR_100BASE_TX_FDUPLEX            (0x4000)
+#define BSMR_100BASE_TX_HDUPLEX            (0x2000)
+#define BSMR_10BASE_T_FDUPLEX              (0x1000)
+#define BSMR_10BASE_T_HDUPLEX              (0x0800)
+#define BSMR_NO_PREAMBLE                   (0x0040)
+#define BSMR_AN_COMPLETE                   (0x0020)
+#define BSMR_REMOTE_FAULT                  (0x0010)
+#define BSMR_AN_ABILITY                    (0x0008)
+#define BSMR_LINK_STATUS                   (0x0004)
+#define BSMR_JABBER_DETECT                 (0x0002)
+#define BSMR_EXTENDED_CAP                  (0x0001)
+/** @} */
+
+/**
+* @name Ethernet PHY PHYIDR1 Fields
+*/
+#define PHYIDR1_OUI                        (0xffff)
+
+/**
+* @name Ethernet PHY PHYIDR2 Fields
+* @{
+*/
+#define PHYIDR2_OUI                        (0xfe00)
+#define PHYIDR2_MODEL                      (0x01f0)
+#define PHYIDR2_REV                        (0x0007)
+/** @} */
+
+/**
+* @name Ethernet PHY ANAR Fields
+* @{
+*/
+#define ANAR_NEXT_PAGE                     (0x8000)
+#define ANAR_REMOTE_FAULT                  (0x2000)
+#define ANAR_PAUSE                         (0x0600)
+#define ANAR_100BASE_T4                    (0x0200)
+#define ANAR_100BASE_TX_FDUPLEX            (0x0100)
+#define ANAR_100BASE_TX_HDUPLEX            (0x0080)
+#define ANAR_10BASE_T_FDUPLEX              (0x0040)
+#define ANAR_10BASE_T_HDUPLEX              (0x0020)
+#define ANAR_SELECTOR                      (0x000f)
+/** @} */
+
+/**
+* @name Ethernet PHY ANLPAR Fields
+* @{
+*/
+#define ANLPAR_NEXT_PAGE                   (0x8000)
+#define ANLPAR_ACK                         (0x4000)
+#define ANLPAR_REMOTE_FAULT                (0x2000)
+#define ANLPAR_PAUSE                       (0x0600)
+#define ANLPAR_100BASE_T4                  (0x0200)
+#define ANLPAR_100BASE_TX_FDUPLEX          (0x0100)
+#define ANLPAR_100BASE_TX_HDUPLEX          (0x0080)
+#define ANLPAR_10BASE_T_FDUPLEX            (0x0040)
+#define ANLPAR_10BASE_T_HDUPLEX            (0x0020)
+#define ANLPAR_SELECTOR                    (0x000f)
+/** @} */
+
+/**
+* @name Ethernet PHY ANNPTR Fields
+* @{
+*/
+#define ANNPTR_NEXT_PAGE                   (0x8000)
+#define ANNPTR_MSG_PAGE                    (0x2000)
+#define ANNPTR_ACK2                        (0x1000)
+#define ANNPTR_TOGGLE_TX                   (0x0800)
+#define ANNPTR_CODE                        (0x03ff)
+/** @} */
+
+/**
+* @name Ethernet PHY ANER Fields
+* @{
+*/
+#define ANER_PDF                           (0x0010)
+#define ANER_LP_NEXT_PAGE_ABLE             (0x0008)
+#define ANER_NEXT_PAGE_ABLE                (0x0004)
+#define ANER_PAGE_RX                       (0x0002)
+#define ANER_LP_AN_ABLE                    (0x0001)
+/** @} */
+
+/**
+ * @brief Read a PHY register
+ *
+ * @param[in] addr      address of the PHY to read
+ * @param[in] reg       register to be read
+ *
+ * @return value in the register, or <=0 on error
+ */
+int32_t stm32_eth_phy_read(uint16_t addr, uint8_t reg);
+
+/**
+ * @brief Write a PHY register
+ *
+ * @param[in] addr      address of the PHY to write
+ * @param[in] reg       register to be written
+ * @param[in] value     value to write into the register
+ *
+ * @return 0 in case of success or <=0 on error
+ */
+int32_t stm32_eth_phy_write(uint16_t addr, uint8_t reg, uint16_t value);
+#endif /* MODULE_STM32_ETH */
 
 #ifdef __cplusplus
 }

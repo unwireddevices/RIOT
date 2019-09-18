@@ -1,5 +1,7 @@
 /*
  * Copyright (C) 2017 Kaspar Schleiser <kaspar@schleiser.de>
+ *               2018 Inria
+ *               2018 Freie Universität Berlin
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -23,6 +25,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
+#include "net/nanocoap.h"
 #include "net/sock/udp.h"
 
 #ifdef __cplusplus
@@ -44,7 +47,7 @@ extern "C" {
 int nanocoap_server(sock_udp_ep_t *local, uint8_t *buf, size_t bufsize);
 
 /**
- * @brief   Simple synchronous CoAP get
+ * @brief   Simple synchronous CoAP (confirmable) get
  *
  * @param[in]   remote  remote UDP endpoint
  * @param[in]   path    remote path

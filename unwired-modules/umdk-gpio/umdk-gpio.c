@@ -45,6 +45,7 @@ extern "C" {
 #include <stdbool.h>
 #include <string.h>
 
+#include "lptimer.h"
 #include "periph/gpio.h"
 
 #include "board.h"
@@ -55,6 +56,8 @@ extern "C" {
 
 #define ENABLE_DEBUG (0)
 #include "debug.h"
+
+static lptimer_t gpio_autoclear_timer;
 
 static bool set(int num, bool one)
 {
@@ -101,10 +104,19 @@ static bool toggle(int num)
     return true;
 }
 
+static void gpio_autoclear_cb(void *arg) {
+    uint8_t pin = (uint32_t)arg;
+    set(pin, false);
+    
+    printf("[umdk-" _UMDK_NAME_ "], pin %d cleared\n", pin);
+}
+
+
 int umdk_gpio_shell_cmd(int argc, char **argv) {
     if (argc == 1) {
         puts (_UMDK_NAME_ " get <N> - get GPIO value");
         puts (_UMDK_NAME_ " set <N> <0|1> - set GPIO value");
+        puts (_UMDK_NAME_ " autoset <N> <T> - set GPIO to 1 for T seconds");
         return 0;
     }
     
@@ -122,6 +134,17 @@ int umdk_gpio_shell_cmd(int argc, char **argv) {
         printf("[umdk-" _UMDK_NAME_ "], pin %d set to %d\n", atoi(pin), atoi(val));
     }
     
+    if (strcmp(cmd, "autoset") == 0) {
+        uint8_t pin = atoi(argv[2]);
+        uint32_t delay = atoi(argv[3]);
+        set(pin, true);
+        printf("[umdk-" _UMDK_NAME_ "], pin %d set for %lu s\n", pin, delay);
+        
+        gpio_autoclear_timer.callback = &gpio_autoclear_cb;
+        gpio_autoclear_timer.arg = (void *)(uint32_t)pin;
+        lptimer_set(&gpio_autoclear_timer, delay * 1000);
+    }
+
     return 1;
 }
 
@@ -152,20 +175,18 @@ static bool check_pin(module_data_t *reply, int pin)
 
 static bool gpio_cmd(module_data_t *cmd, module_data_t *reply, bool with_reply)
 {
-    if (cmd->length != UMDK_GPIO_DATA_LEN) {
-        if (with_reply) {
-            do_reply(reply, UMDK_GPIO_REPLY_ERR_FORMAT);
+    umdk_gpio_action_t act = cmd->data[0];
+    
+    uint8_t pin = 0;
+    
+    if (cmd->length > 1) {
+        pin = cmd->data[1];
+
+        if ((pin != 0) && (!check_pin(reply, pin))) {
+            DEBUG("umdk-gpio: pin check failed, pin %d\n", (int)pin);
+            do_reply(reply, UMDK_GPIO_REPLY_ERR_PIN);
+            return false;
         }
-        return false;
-    }
-
-    uint8_t value = cmd->data[0];
-    uint8_t pin = value & UMDK_GPIO_PIN_MASK;
-    umdk_gpio_action_t act = (value & UMDK_GPIO_ACT_MASK) >> UMDK_GPIO_ACT_SHIFT;
-
-    if ((pin != 0) && (!check_pin(reply, pin))) {
-        DEBUG("umdk-gpio: pin check failed, pin %d\n", (int)pin);
-        return false;
     }
     
     DEBUG("umdk-gpio: pin %d, act %d\n", (int)pin, (int)act);
@@ -244,6 +265,28 @@ static bool gpio_cmd(module_data_t *cmd, module_data_t *reply, bool with_reply)
                 }
             }
 
+            break;
+        case UMDK_GPIO_SET_AUTO:
+            DEBUG("umdk-gpio: GPIO SET AUTO command\n");
+            uint16_t period = cmd->data[2] | cmd->data[3] << 8;
+            convert_from_be_sam((void *)&period, sizeof(period));
+            
+            if (set(pin, true)) {
+                if (with_reply) {
+                    do_reply(reply, UMDK_GPIO_REPLY_OK);
+                }
+                gpio_autoclear_timer.callback = &gpio_autoclear_cb;
+                gpio_autoclear_timer.arg = (void *)(uint32_t)pin;
+                
+                lptimer_set(&gpio_autoclear_timer, period * 1000);
+            } else {
+                if (with_reply) {
+                    do_reply(reply, UMDK_GPIO_REPLY_ERR_PIN);
+                }
+            }
+            break;
+        default:
+            do_reply(reply, UMDK_GPIO_REPLY_ERR_FORMAT);
             break;
     }
 

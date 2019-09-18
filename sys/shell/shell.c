@@ -28,9 +28,14 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include "shell.h"
 #include "shell_commands.h"
+
+#ifdef MODULE_SHELL_PASSWORD
+extern bool shell_password_entered;
+#endif
 
 #if !defined(SHELL_NO_ECHO) || !defined(SHELL_NO_PROMPT)
 #ifdef MODULE_NEWLIB
@@ -56,7 +61,7 @@ static shell_command_handler_t find_handler(const shell_command_t *command_list,
     const shell_command_t *entry;
 
     /* iterating over command_lists */
-    for (unsigned int i = 0; i < sizeof(command_lists) / sizeof(entry); i++) {
+    for (unsigned int i = 0; i < ARRAY_SIZE(command_lists); i++) {
         if ((entry = command_lists[i])) {
             /* iterating over commands in command_lists entry */
             while (entry->name != NULL) {
@@ -88,7 +93,7 @@ static void print_help(const shell_command_t *command_list)
     const shell_command_t *entry;
 
     /* iterating over command_lists */
-    for (unsigned int i = 0; i < sizeof(command_lists) / sizeof(entry); i++) {
+    for (unsigned int i = 0; i < ARRAY_SIZE(command_lists); i++) {
         if ((entry = command_lists[i])) {
             /* iterating over commands in command_lists entry */
             while (entry->name != NULL) {
@@ -202,8 +207,15 @@ static void handle_input_line(const shell_command_t *command_list, char *line)
         }
     }
 
+#ifdef MODULE_SHELL_PASSWORD
+    if (!shell_password_entered && (strcmp(argv[0], "password") != 0)) {
+        puts("Shell is locked. Use 'password' to unlock");
+        return;
+    }
+#endif
+
     /* then we call the appropriate handler */
-    shell_command_handler_t handler = find_handler(command_list, argv[0]);
+    shell_command_handler_t handler = find_handler(command_list, argv[0]);    
     if (handler != NULL) {
         handler(argc, argv);
     }
@@ -228,7 +240,7 @@ static int readline(char *buf, size_t size)
 
         int c = getchar();
         if (c < 0) {
-            return 1;
+            return EOF;
         }
 
         /* We allow Unix linebreaks (\n), DOS linebreaks (\r\n), and Mac linebreaks (\r). */
@@ -282,10 +294,18 @@ static inline void print_prompt(void)
 
 void shell_run(const shell_command_t *shell_commands, char *line_buf, int len)
 {
+#ifdef MODULE_SHELL_PASSWORD
+    puts("Shell is locked. Use 'password' to unlock");
+#endif
+    
     print_prompt();
 
     while (1) {
         int res = readline(line_buf, len);
+
+        if (res == EOF) {
+            break;
+        }
 
         if (!res) {
             handle_input_line(shell_commands, line_buf);

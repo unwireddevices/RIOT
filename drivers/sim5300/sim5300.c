@@ -1372,12 +1372,13 @@ int sim5300_start_up_multi_ip_up_connection(sim5300_dev_t *sim5300_dev,
     snprintf(connect_ok, 15, "%i, CONNECT OK", n);
 
     /* Get time now */
-    uint32_t time_now = lptimer_now_msec();
-    DEBUG("time_now: %lu\n", time_now);
+    uint32_t timeout = lptimer_now_msec() + 10000;
+    DEBUG("timeout: %lu\n", timeout);
 
     do {
+        DEBUG("time_now: %lu\n", lptimer_now_msec());
         /* Check time */
-        if ((lptimer_now_msec() - time_now) > 15000) {
+        if (lptimer_now_msec() > timeout) {
             return TIMEOUT_EXPIRED;
         }
 
@@ -1397,7 +1398,7 @@ int sim5300_start_up_multi_ip_up_connection(sim5300_dev_t *sim5300_dev,
                 break;
             }
         }
-    } while (res >= 0);
+    } while (true);
 
     printf("[SIM5300] Start %s connect %i to %s:%s\n", mode, n, address, port);
 
@@ -1431,6 +1432,16 @@ int sim5300_start_up_multi_ip_up_connection(sim5300_dev_t *sim5300_dev,
  * @returns     UNKNOWN_RESP           - ERROR: Unknown response
  * @returns     UNDEFINED_ERROR        - ERROR: Undefined error 
  */
+/* TODO: Delete */
+volatile uint32_t uart_isr_counter;
+volatile uint32_t uart_isr_EVENTS_CTS;
+volatile uint32_t uart_isr_EVENTS_NCTS;
+volatile uint32_t uart_isr_EVENTS_RXDRDY;
+volatile uint32_t uart_isr_EVENTS_TXDRDY;
+volatile uint32_t uart_isr_EVENTS_ERROR;
+volatile uint32_t uart_isr_EVENTS_RXTO;
+volatile uint32_t uart_isr_error[100] = {};
+
 int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
                                                      uint8_t        mode,
                                                      uint8_t        n,
@@ -1498,6 +1509,16 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
             /* Sleep on 50 ms */
             lptimer_usleep(50);
 
+            /* TODO: Delete */
+            uart_isr_counter = 0;
+            uart_isr_EVENTS_CTS = 0;
+            uart_isr_EVENTS_NCTS = 0;
+            uart_isr_EVENTS_RXDRDY = 0;
+            uart_isr_EVENTS_TXDRDY = 0;
+            uart_isr_EVENTS_ERROR = 0;
+            uart_isr_EVENTS_RXTO = 0;
+            memset((uint8_t*)uart_isr_error, 0x00, sizeof(uart_isr_error));
+
             /* Send AT command */
             at_drain(&sim5300_dev->at_dev);
             res = at_send_cmd(&sim5300_dev->at_dev, cmd_CIPRXGET, SIM5300_MAX_TIMEOUT);
@@ -1545,14 +1566,28 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
             }
 
             /* Copy received data */
-            receive_length = at_recv_bytes(&sim5300_dev->at_dev, (char*)data_for_receive, receive_length, SIM5300_MAX_TIMEOUT);
+            // receive_length = at_recv_bytes(&sim5300_dev->at_dev, (char*)data_for_receive, receive_length, SIM5300_MAX_TIMEOUT);
 
-            /* START DEBUG  TODO: DELETE */
-            // unsigned int test = at_recv_bytes(&sim5300_dev->at_dev, (char*)data_for_receive, receive_length, SIM5300_MAX_TIMEOUT);
-            // if (test != receive_length) {
-            //     printf("GAVNOEBANOE: %i != %i\n", test, receive_length);
-            // }
-            // receive_length = test;
+            /* START DEBUG  TODO: Delete */
+            puts("IN DEBUG");
+            unsigned int test = at_recv_bytes(&sim5300_dev->at_dev, (char*)data_for_receive, receive_length, SIM5300_MAX_TIMEOUT);
+            if (test != receive_length) {
+                printf("GAVNOEBANOE: %i != %i\n", test, receive_length);
+            }
+            receive_length = test;
+            printf("\tuart_isr_counter:       0x%08lX; %li\n", uart_isr_counter, uart_isr_counter);
+            printf("\tuart_isr_EVENTS_CTS:    0x%08lX; %li\n", uart_isr_EVENTS_CTS, uart_isr_EVENTS_CTS);
+            printf("\tuart_isr_EVENTS_NCTS:   0x%08lX; %li\n", uart_isr_EVENTS_NCTS, uart_isr_EVENTS_NCTS);
+            printf("\tuart_isr_EVENTS_RXDRDY: 0x%08lX; %li\n", uart_isr_EVENTS_RXDRDY, uart_isr_EVENTS_RXDRDY);
+            printf("\tuart_isr_EVENTS_TXDRDY: 0x%08lX; %li\n", uart_isr_EVENTS_TXDRDY, uart_isr_EVENTS_TXDRDY);
+            printf("\tuart_isr_EVENTS_ERROR:  0x%08lX; %li\n", uart_isr_EVENTS_ERROR, uart_isr_EVENTS_ERROR);
+            printf("\tuart_isr_EVENTS_RXTO:   0x%08lX; %li\n", uart_isr_EVENTS_RXTO, uart_isr_EVENTS_RXTO);
+            if (uart_isr_EVENTS_ERROR > 0) {
+                printf("\tERRORS:\n");
+                for (uint8_t i = 0; i <= uart_isr_EVENTS_ERROR-1; i++) {
+                    printf("\t\t%i:   0x%08lX; %li\n", i+1, uart_isr_error[i], uart_isr_error[i]);
+                }
+            }
             /* END DEBUG */
 
             /* Read empty string */ 
@@ -1652,6 +1687,8 @@ int sim5300_send_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
     /* CMD with lenth data for send (AT+CIPSEND=n,data_size) */
     char cmd_CIPSEND[22];
     snprintf(cmd_CIPSEND, 22, "AT+CIPSEND=%i,%i", n, data_size);
+
+    /* Send command */
     at_drain(&sim5300_dev->at_dev);
     int res = at_send_cmd(&sim5300_dev->at_dev, cmd_CIPSEND, SIM5300_MAX_TIMEOUT);
     if (res != SIM5300_OK) {
@@ -1666,24 +1703,35 @@ int sim5300_send_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
 
     /* Check on valid data */
     res = at_recv_bytes(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, data_size + 4, 3000000);
-    if ((!(memcmp(sim5300_dev->at_dev_resp, "> ", 2) == 0)) && (!(memcmp((uint8_t*)(sim5300_dev->at_dev_resp) + 2, data_for_send, data_size) == 0))) {
+    if ((!(memcmp(sim5300_dev->at_dev_resp, "> ", 2)                                  == 0)) && 
+        (!(memcmp((uint8_t*)(sim5300_dev->at_dev_resp) + 2, data_for_send, data_size) == 0))) {
         puts("[SIM5300] Data for send don't valid");
 
         return INVALID_DATA;
     } 
 
-    // TODO: TIME ON EXIT on lptimer_now_msec
-    for (uint16_t i = 0; i < 500; i++) {
+    /* Create string with resp */
+    char resp_on_CIPSEND[11];
+    snprintf(resp_on_CIPSEND, 11, "%i, SEND OK", n);
+
+    /* Get time now */
+    uint32_t timeout = lptimer_now_msec();
+    DEBUG("In timeout: %li\n", timeout);
+
+    /* Try get resp on timeout */
+    while ((timeout + 5000) > lptimer_now_msec()) {
+        DEBUG("Body timeout: %li\n", lptimer_now_msec());
+
         res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
+        DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
 
         /* Check read len string */
         if (res != 10) {
             lptimer_usleep(10);
             continue;
-        } 
+        }
 
-        char resp_on_CIPSEND[11];
-        snprintf(resp_on_CIPSEND, 11, "%i, SEND OK", n);
+        /* Compare recv */
         if (memcmp(sim5300_dev->at_dev_resp, resp_on_CIPSEND, 10) != 0) {
             return UNKNOWN_RESP;
         }
@@ -1887,7 +1935,43 @@ int sim5300_receive(sim5300_dev_t *sim5300_dev,
         return ARGUMENT_NULL_ERROR;
     }   
 
-    return sim5300_receive_data_through_multi_ip_connection(sim5300_dev, 2, sockfd, buffer, buffer_len);
+    int    res;
+    size_t recv_sz = 0;
+    size_t recv_chank;
+    printf("[SIM5300] Recv need %i byte\n", buffer_len);
+
+    /* Recv data */
+    do {
+        /* Calculate recv_chank */
+        recv_chank = buffer_len - recv_sz; 
+        if (recv_chank >= RECEIVE_MAX_LEN) {
+            recv_chank = RECEIVE_MAX_LEN;
+        }
+
+        /* Recv chank */
+        res = sim5300_receive_data_through_multi_ip_connection(sim5300_dev,
+                                                               2,
+                                                               sockfd,
+                                                               buffer + recv_sz,
+                                                               recv_chank);
+        
+        /* Exit on error */
+        if (res < 0) {
+            printf("[SIM5300] Recv ERROR: %i\n", res);
+
+            return res;
+        }
+        
+        recv_sz += res;
+        printf("[SIM5300] Recv %i byte\n", recv_sz);
+
+        /* Exit on no data for receptions */
+        if (res == 0) {
+            break;
+        }
+    } while (recv_sz < buffer_len);
+
+    return recv_sz;
 }
 
 /*---------------------------------------------------------------------------*/

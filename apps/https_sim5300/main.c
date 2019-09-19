@@ -181,91 +181,27 @@ static uint8_t server_answear[1024] = {};
 
 time_t get_epoch_time(struct tm *time) {
     (void) time;
-    return 1567096992;
+    return 1568726705;
 }
 
 int unwired_recv(WOLFSSL *ssl, char *buf, int sz, void *ctx) {
     (void) ssl;
     (void) ctx;
 
-    int res;
-
-    printf("[Socket] Recv\n");
-
-    if (sz <= RECEIVE_MAX_LEN) {
-        /* Receive data up to RECEIVE_MAX_LEN bytes in size */
-        res = sim5300_receive(&sim5300_dev,
-                               sockfd, 
-                               (uint8_t*)buf,
-                               sz);
-
-        if (res < 0) {
-            printf("[DEBUG] RECV ERROR: %i\n", res);
-
-            return res;
-        }
-
-        return res;
-    } else {
-        /* Receiving data larger than RECEIVE_MAX_LEN bytes */
-        uint16_t recv_sz = 0;
-        printf("[DEBUG] RECV NEED %i BYTE\n", sz);
-
-        do {
-            if ((sz - recv_sz) >= RECEIVE_MAX_LEN) {
-                res = sim5300_receive(&sim5300_dev,
-                                      sockfd, 
-                                      (uint8_t*)buf + recv_sz,
-                                      RECEIVE_MAX_LEN);
-                
-                if (res < 0) {
-                    printf("[DEBUG] RECV ERROR: %i\n", res);
-
-                    return res;
-                }
-
-                recv_sz += res;
-            } else {
-                res = sim5300_receive(&sim5300_dev,
-                                      sockfd, 
-                                      (uint8_t*)buf + recv_sz,
-                                      sz - recv_sz);
-                
-                if (res < 0) {
-                    printf("[DEBUG] RECV ERROR: %i\n", res);
-
-                    return res;
-                }
-
-                recv_sz += res;
-                printf("[DEBUG] RECV %i BYTE\n", recv_sz);
-
-                break;
-            }
-        } while (recv_sz < sz);
-
-        return recv_sz;
-    }
+    return sim5300_receive(&sim5300_dev,
+                            sockfd, 
+                            (uint8_t*)buf,
+                            sz);
 }
 
 int unwired_send(WOLFSSL *ssl, char *buf, int sz, void *ctx) {
     (void) ssl;
     (void) ctx;
 
-    printf("[Socket] Send\n");
-
-    int res = sim5300_send(&sim5300_dev,
-                            sockfd, 
-                            (uint8_t*)buf,
-                            sz);
-
-    if (res < 0) {
-        printf("[DEBUG] SEND ERROR: %i\n", res);
-
-        return res;
-    }
-
-    return res;
+    return sim5300_send(&sim5300_dev,
+                         sockfd, 
+                         (uint8_t*)buf,
+                         sz);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -304,10 +240,7 @@ void sim5300_power_on(void) {
 /*---------------------------------------------------------------------------*/
 int main(void)
 {
-    // gpio_init(RWCAR_GSM_RX, GPIO_OUT);
-    // gpio_set(RWCAR_GSM_RX);
-
-    // while(1);
+    puts("Start Tele2Med WolfSSL");
 
     int res;
 
@@ -344,6 +277,7 @@ int main(void)
 
     res = sim5300_connect(&sim5300_dev, 
                            sockfd, 
+                        //    "www.unwireddevices.com",
                            "devapi.tis-online.com", 
                            "443", 
                            "TCP");
@@ -354,8 +288,6 @@ int main(void)
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////
-    puts("Start Tele2Med WolfSSL");
-
     /* declare wolfSSL objects */
     WOLFSSL_CTX* ctx;
     WOLFSSL*     ssl;
@@ -461,6 +393,12 @@ int main(void)
     printf("\n");
 
     od_hex_dump(server_answear, sizeof(server_answear), OD_WIDTH_DEFAULT);
+
+    // DEBUG DELETE
+    while(1) {
+        LED0_TOGGLE;
+        lptimer_usleep(100);
+    }
 
     // /* Print to stdout any data the server sends */
     // printf("Server sent a reply!\n");

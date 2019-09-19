@@ -35,8 +35,11 @@
 extern "C" {
 #endif
 
-#define SIM5300_MAX_TIMEOUT     (1000000)   /**< Maximum time waiting for a response */ 
-#define RECEIVE_MAX_LEN         (1460)      /**< Max requested number of data bytes (1-1460 bytes) to be read */
+#define SIM5300_MAX_TIMEOUT         (1000000)   /**< Maximum time waiting for a response */ 
+
+#if !defined(RECEIVE_MAX_LEN)
+    #define RECEIVE_MAX_LEN         (1460)      /**< Max requested number of data bytes (1-1460 bytes) to be read */
+#endif /* if !defined(RECEIVE_MAX_LEN) */
 
 /**
  * @brief SIM5300 ERRORS

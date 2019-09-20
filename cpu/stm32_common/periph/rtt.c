@@ -187,11 +187,11 @@ void isr_lptim1(void)
  * not compatible with regular RTC due to clock settings */
  
 /* F1 doesn't have RTC_SSR, L0, L4, G0, F7, H7 have LPTIMs */
-#elif defined(CPU_FAM_STM32L1) || defined(CPU_FAM_STM32F0) || \
+#elif defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32F0) || \
       defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F3) || \
       defined(CPU_FAM_STM32F4)
 
-#if defined(CPU_FAM_STM32L1)
+#if defined(CPU_FAM_STM32L1) || defined(CPU_FAM_STM32L0)
 #define EN_REG              (RCC->CSR)
 #define EN_BIT              (RCC_CSR_RTCEN)
 #define RST_BIT             (RCC_CSR_RTCRST)
@@ -207,7 +207,7 @@ void isr_lptim1(void)
 #endif
 
 /* interrupt line name mapping */
-#if defined(CPU_FAM_STM32F0)
+#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32L0)
 #define IRQN                (RTC_IRQn)
 #define IRQNWU              (RTC_IRQn)
 #define ISR_NAME            isr_rtc
@@ -221,8 +221,13 @@ void isr_lptim1(void)
 #define WPK1                (0xCA)
 #define WPK2                (0x53)
 
+#if defined(CPU_FAM_STM32L0)
+#define EXTI_IMR_BIT        (EXTI_IMR_IM17)
+#define EXTI_IMRWU_BIT      (EXTI_IMR_IM20)
+#else
 #define EXTI_IMR_BIT        (EXTI_IMR_MR17)
 #define EXTI_IMRWU_BIT      (EXTI_IMR_MR20)
+#endif
 #define EXTI_FTSR_BIT       (EXTI_FTSR_TR17)
 #define EXTI_RTSR_BIT       (EXTI_RTSR_TR17)
 #define EXTI_PR_BIT         (EXTI_PR_PR17)

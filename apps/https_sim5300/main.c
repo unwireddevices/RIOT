@@ -59,8 +59,6 @@
 #define AT_DEV_BUF_SIZE         (2048)          /* The size of the buffer for all incoming data from modem */
 #define AT_DEV_RESP_SIZE        (2048)          /* The size of the buffer to answer the command from the modem */
 
-#define rtctimers_millis_sleep lptimer_usleep
-
 static sim5300_dev_t sim5300_dev;               /* Struct for SIM5300 */
 
 static int sockfd;                              /* Socket */
@@ -205,52 +203,18 @@ int unwired_send(WOLFSSL *ssl, char *buf, int sz, void *ctx) {
 }
 
 /*---------------------------------------------------------------------------*/
-/* Power on for SIM5300 */
-void sim5300_power_on(void) {
-    puts("[SIM5300] Power on");
-
-    /* MODEM_POWER_ENABLE to Hi */
-    gpio_init(RWCAR_GSM_POWER, GPIO_OUT);
-    gpio_set(RWCAR_GSM_POWER);
-
-    /* 3G_PWR to Hi on 100 ms*/
-    gpio_init(RWCAR_GSM_ENABLE, GPIO_OUT);
-    gpio_set(RWCAR_GSM_ENABLE);
-
-    /* 500ms sleep and clear */
-    rtctimers_millis_sleep(SIM5300_TIME_ON);
-    gpio_clear(RWCAR_GSM_ENABLE);
-}
-
-/*---------------------------------------------------------------------------*/
-/* Power off for SIM5300 */
-// void sim5300_power_off(void) {
-//     /* Power off UART for modem */
-//     uart_poweroff(at_dev.uart);
-
-//     /* T2M_GSMPOWER to Low */
-//     gpio_init(RWCAR_GSM_POWER, GPIO_OUT);
-//     gpio_clear(RWCAR_GSM_POWER);
-
-//     /* Modem is not initialized */
-//     sim_status.modem = MODEM_NOT_INITIALIZED;
-//     puts("[SIM5300] Power off");
-// }
-
-/*---------------------------------------------------------------------------*/
 int main(void)
 {
     puts("Start Tele2Med WolfSSL");
 
     int res;
 
-    /* SIM5300 power on */
-    sim5300_power_on();
-
-    /* We wait while SIM5300 is initialized */
-    rtctimers_millis_sleep(SIM5300_TIME_ON_UART);
-
     /* Init SIM5300 */
+    sim5300_dev.power_en_pin    = RWCAR_GSM_POWER;
+    sim5300_dev.power_act_level = HIGH;
+    sim5300_dev.gsm_en_pin      = RWCAR_GSM_ENABLE;
+    sim5300_dev.gsm_act_level   = HIGH;
+    
     res = sim5300_init(&sim5300_dev, SIM5300_UART, SIM5300_BAUDRATE, at_dev_buf, AT_DEV_RESP_SIZE, at_dev_resp, AT_DEV_RESP_SIZE);
     if (res != SIM5300_OK) {
         puts("sim5300_init ERROR");
@@ -375,7 +339,7 @@ int main(void)
     od_hex_dump(server_answear, sizeof(server_answear), OD_WIDTH_DEFAULT);
 
 /////////////////////////////////
-    rtctimers_millis_sleep(1000);
+    lptimer_usleep(1000);
 
     /* Read the server data into our buff array */
     memset(server_answear, 0x00, sizeof(server_answear));

@@ -51,6 +51,115 @@
 /*------------------------ START LOW LEVEL FUNCTION -------------------------*/
 /*---------------------------------------------------------------------------*/
 /**
+ * @brief       Power on for SIM5300
+ *
+ * @param[in]   sim5300_dev         Device to operate on
+ * 
+ * Power on for SIM5300
+ * 
+ * @returns     SIM5300_OK             - OK
+ * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ */
+int sim5300_power_on(sim5300_dev_t *sim5300_dev) {
+    /* Test NULL device */
+    if (sim5300_dev == NULL) {
+        puts("sim5300_dev = NULL");
+
+        return SIM5300_DEV_ERROR;
+    } 
+
+    puts("[SIM5300] Power on");
+
+    /* Power on */
+    if (sim5300_dev->power_en_pin != GPIO_UNDEF) {
+        /* Init GPIO */
+        gpio_init(sim5300_dev->power_en_pin, GPIO_OUT);
+
+        /* Set or clear GPIO */
+        if (sim5300_dev->power_act_level == HIGH) {
+            gpio_set(sim5300_dev->power_en_pin);
+        } else {
+            gpio_clear(sim5300_dev->power_en_pin);
+        }
+    }
+
+    /* Power on SIM5300 */
+    if (sim5300_dev->gsm_en_pin != GPIO_UNDEF) {
+        /* Init GPIO */
+        gpio_init(sim5300_dev->gsm_en_pin, GPIO_OUT);
+
+        /* Set or clear GPIO */
+        if (sim5300_dev->gsm_act_level == HIGH) {
+            gpio_set(sim5300_dev->gsm_en_pin);
+        } else {
+            gpio_clear(sim5300_dev->gsm_en_pin);
+        }
+    }
+
+    /* 500ms sleep */
+    lptimer_usleep(SIM5300_TIME_ON);
+
+    /* End start power on SIM5300 */
+    if (sim5300_dev->gsm_en_pin != GPIO_UNDEF) {
+        /* Init GPIO */
+        gpio_init(sim5300_dev->gsm_en_pin, GPIO_OUT);
+
+        /* Set or clear GPIO */
+        if (sim5300_dev->gsm_act_level == HIGH) {
+            gpio_clear(sim5300_dev->gsm_en_pin);
+        } else {
+            gpio_set(sim5300_dev->gsm_en_pin);
+        }
+    }
+
+    /* We wait while SIM5300 is initialized */
+    lptimer_usleep(SIM5300_TIME_ON_UART);
+
+    return SIM5300_OK;
+}
+
+/*---------------------------------------------------------------------------*/
+/**
+ * @brief       Power off for SIM5300
+ *
+ * @param[in]   sim5300_dev         Device to operate on
+ * 
+ * Power off for SIM5300
+ * 
+ * @returns     SIM5300_OK             - OK
+ * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ */
+int sim5300_power_off(sim5300_dev_t *sim5300_dev) {
+    /* Test NULL device */
+    if (sim5300_dev == NULL) {
+        puts("sim5300_dev = NULL");
+
+        return SIM5300_DEV_ERROR;
+    } 
+
+    /* Power off UART for modem */
+    uart_poweroff(sim5300_dev->at_dev.uart);
+
+    /* Power off */
+    if (sim5300_dev->power_en_pin != GPIO_UNDEF) {
+        /* Init GPIO */
+        gpio_init(sim5300_dev->power_en_pin, GPIO_OUT);
+
+        /* Set or clear GPIO */
+        if (sim5300_dev->power_act_level) {
+            gpio_clear(sim5300_dev->power_en_pin);
+        } else {
+            gpio_set(sim5300_dev->power_en_pin);
+        }
+    }
+
+    puts("[SIM5300] Power off");
+
+    return SIM5300_OK;
+}
+
+/*---------------------------------------------------------------------------*/
+/**
  * @brief       Send ATtention Code
  *
  * @param[in]   sim5300_dev         Device to operate on
@@ -1774,29 +1883,7 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
             }
 
             /* Copy received data */
-            // receive_length = at_recv_bytes(&sim5300_dev->at_dev, (char*)data_for_receive, receive_length, SIM5300_MAX_TIMEOUT);
-
-            /* START DEBUG  TODO: Delete */
-            puts("IN DEBUG");
-            unsigned int test = at_recv_bytes(&sim5300_dev->at_dev, (char*)data_for_receive, receive_length, SIM5300_MAX_TIMEOUT);
-            if (test != receive_length) {
-                printf("GAVNOEBANOE: %i != %i\n", test, receive_length);
-            }
-            receive_length = test;
-            printf("\tuart_isr_counter:       0x%08lX; %li\n", uart_isr_counter, uart_isr_counter);
-            printf("\tuart_isr_EVENTS_CTS:    0x%08lX; %li\n", uart_isr_EVENTS_CTS, uart_isr_EVENTS_CTS);
-            printf("\tuart_isr_EVENTS_NCTS:   0x%08lX; %li\n", uart_isr_EVENTS_NCTS, uart_isr_EVENTS_NCTS);
-            printf("\tuart_isr_EVENTS_RXDRDY: 0x%08lX; %li\n", uart_isr_EVENTS_RXDRDY, uart_isr_EVENTS_RXDRDY);
-            printf("\tuart_isr_EVENTS_TXDRDY: 0x%08lX; %li\n", uart_isr_EVENTS_TXDRDY, uart_isr_EVENTS_TXDRDY);
-            printf("\tuart_isr_EVENTS_ERROR:  0x%08lX; %li\n", uart_isr_EVENTS_ERROR, uart_isr_EVENTS_ERROR);
-            printf("\tuart_isr_EVENTS_RXTO:   0x%08lX; %li\n", uart_isr_EVENTS_RXTO, uart_isr_EVENTS_RXTO);
-            if (uart_isr_EVENTS_ERROR > 0) {
-                printf("\tERRORS:\n");
-                for (uint8_t i = 0; i <= uart_isr_EVENTS_ERROR-1; i++) {
-                    printf("\t\t%i:   0x%08lX; %li\n", i+1, uart_isr_error[i], uart_isr_error[i]);
-                }
-            }
-            /* END DEBUG */
+            receive_length = at_recv_bytes(&sim5300_dev->at_dev, (char*)data_for_receive, receive_length, SIM5300_MAX_TIMEOUT);
 
             /* Read empty string */ 
             res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
@@ -2812,6 +2899,9 @@ int sim5300_init(sim5300_dev_t *sim5300_dev,
     
     puts("[SIM5300] Initialization...");
 
+    /* Power on SIM5300 */
+    sim5300_power_on(sim5300_dev);
+
     /* Structure initialization */
     sim5300_dev->at_dev.uart      = uart;
     sim5300_dev->at_dev_resp      = at_dev_resp;
@@ -2828,6 +2918,8 @@ int sim5300_init(sim5300_dev_t *sim5300_dev,
         return res;
     }
     
+
+
     /* SIM5300 connection */
     res = sim5300_communication_test(sim5300_dev);
     if(res != SIM5300_OK) {

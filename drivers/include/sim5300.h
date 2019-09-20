@@ -36,6 +36,8 @@ extern "C" {
 #endif
 
 #define SIM5300_MAX_TIMEOUT         (1000000)   /**< Maximum time waiting for a response */ 
+#define SIM5300_TIME_ON             (500)       /**< The time of active low level impulse of PWRKEY pin to power on module. Min: 50ms, typ: 100ms */
+#define SIM5300_TIME_ON_UART        (3000)      /**< The time from power-on issue to UART port ready. Min: 3s, max: 5s */
 
 #if !defined(RECEIVE_MAX_LEN)
     #define RECEIVE_MAX_LEN         (1460)      /**< Max requested number of data bytes (1-1460 bytes) to be read */
@@ -80,13 +82,25 @@ enum sim5300_error {
 };
 
 /**
+ * @brief SIM5300 enum GPIO level
+ */
+typedef enum {
+    LOW  = 0,             /**< Low level */
+    HIGH = 1,             /**< High level */          
+} sim5300_gpio_level_t;
+
+/**
  * @brief SIM5300 device structure
  */
 typedef struct {
-    at_dev_t  at_dev;           /**< AT device structure */
-    char     *at_dev_resp;      /**< Input buffer for parse response from SIM5300 */
-    uint16_t  at_dev_resp_size; /**< Size of @p at_dev_resp */
-    bool      socketfd[8];      /**< Socket status array */
+    at_dev_t             at_dev;           /**< AT device structure */
+    char                *at_dev_resp;      /**< Input buffer for parse response from SIM5300 */
+    uint16_t             at_dev_resp_size; /**< Size of @p at_dev_resp */
+    bool                 socketfd[8];      /**< Socket status array */
+    gpio_t               power_en_pin;     /**< Pin for power enable */
+    sim5300_gpio_level_t power_act_level;  /**< Active level for power enable pin */
+    gpio_t               gsm_en_pin;       /**< Pin for power enable SIN5300 */
+    sim5300_gpio_level_t gsm_act_level;    /**< Active level for power enable SIM5300 pin */
 } sim5300_dev_t;
 
 /**
@@ -196,6 +210,32 @@ typedef struct {
 
 /*---------------------------------------------------------------------------*/
 /*------------------------ START LOW LEVEL FUNCTION -------------------------*/
+/*---------------------------------------------------------------------------*/
+/**
+ * @brief       Power on for SIM5300
+ *
+ * @param[in]   sim5300_dev         Device to operate on
+ * 
+ * Power on for SIM5300
+ * 
+ * @returns     SIM5300_OK             - OK
+ * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ */
+int sim5300_power_on(sim5300_dev_t *sim5300_dev);
+
+/*---------------------------------------------------------------------------*/
+/**
+ * @brief       Power off for SIM5300
+ *
+ * @param[in]   sim5300_dev         Device to operate on
+ * 
+ * Power off for SIM5300
+ * 
+ * @returns     SIM5300_OK             - OK
+ * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ */
+int sim5300_power_off(sim5300_dev_t *sim5300_dev);
+
 /*---------------------------------------------------------------------------*/
 /**
  * @brief       Send ATtention Code

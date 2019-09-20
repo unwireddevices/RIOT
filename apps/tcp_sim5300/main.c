@@ -227,37 +227,39 @@ int main(void)
                                SERVER_ADDRES, 
                                SERVER_PORT, 
                                SERVER_TYPE_CONNECTION);
+        printf("\t\tCONNECT RES: %i\n", res);
         if (res < SIM5300_OK) {
             printf("Error start socket: %i\n", res);
 
             return -1;
         }
 
-        // while(1);
-
         printf("data_counter: %li\n", data_counter);
 
         // res = sim5300_send(&sim5300_dev, sockfd, server_send, sizeof(server_send)-1);
+        // printf("\t\tSEND RES: %i\n", res);
 
         data_counter++;
 
-        while (1) {
-            while (res <= 0) {
-                res = sim5300_receive(&sim5300_dev, sockfd, server_resp, sizeof(server_resp));
-            }
-            printf("%s\n", server_resp);
-
+        do {
+            res = sim5300_receive(&sim5300_dev, sockfd, server_resp, sizeof(server_resp));
             lptimer_usleep(1000);
+        } while (res == 0);
+        
+        printf("\t\tRESP RES: %i\n", res);
+        if (res > 0) {
+            printf("%s\n", server_resp);
         }
 
         res = sim5300_close(&sim5300_dev, sockfd);
+        printf("\t\tCLOSE RES: %i\n", res);
         if (res != SIM5300_OK) {
             printf("Error close socket: %i\n", res);
 
             return -1;
         }
 
-        lptimer_usleep(3000);
+        lptimer_usleep(7000);
     }
     puts("OUT");
 

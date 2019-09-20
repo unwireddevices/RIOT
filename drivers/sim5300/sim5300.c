@@ -1018,6 +1018,233 @@ int sim5300_get_local_ip_address(sim5300_dev_t        *sim5300_dev,
 
 /*---------------------------------------------------------------------------*/
 /**
+ * @brief       Query current connection status
+ *
+ * @param[in]   sim5300_dev                 Device to operate on
+ * @param[in]   n                           A numeric parameter which indicates the connection number
+ * @param[out]  sim5300_set_cipstatus_resp  Structure with response data
+ * 
+ * AT+CIPSTATUS Query current connection status
+ * Query current connection status
+ * 
+ * @returns     SIM5300_OK              - OK
+ * @returns     SIM5300_DEV_ERROR       - ERROR: sim5300_dev == NULL
+ * @returns     ARGUMENT_RANGE_ERROR    - ERROR: Invalid argument value
+ * @returns     ARGUMENT_NULL_ERROR     - ERROR: Pointer to function argument == NULL
+ * @returns     SEND_CMD_GET_RESP_ERROR - ERROR: at_send_cmd_get_resp() < 0
+ * @returns     PARSE_ERROR             - ERROR: sscanf() != desired number of variables
+ */
+int sim5300_set_query_current_connection_status(sim5300_dev_t                *sim5300_dev,
+                                                uint8_t                       n,
+                                                sim5300_set_cipstatus_resp_t *sim5300_set_cipstatus_resp) {
+    /* Test NULL device */
+    if (sim5300_dev == NULL) {
+        puts("sim5300_dev = NULL");
+
+        return SIM5300_DEV_ERROR;
+    } 
+    
+    /* Test range argument */
+    if (n > 7) {
+        printf("[SIM5300] sim5300_set_gprs_service_state() ERROR argument: %i. (range 0-7)\n", n);
+
+        return ARGUMENT_RANGE_ERROR;
+    }
+
+    /* NULL ptr */
+    if (sim5300_set_cipstatus_resp == NULL) {
+        return ARGUMENT_NULL_ERROR;
+    }
+
+    /* Create a command to send data */
+    char cmd_CIPSTATUSn[15];
+    snprintf(cmd_CIPSTATUSn, 15, "AT+CIPSTATUS=%i", n);    
+    
+    /* Set query current connection status */
+    int res = at_send_cmd_get_resp(&sim5300_dev->at_dev, cmd_CIPSTATUSn, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, SIM5300_MAX_TIMEOUT); 
+    if (res <= SIM5300_OK) {
+        puts("[SIM5300] AT+CIFSR ERROR");
+
+        return SEND_CMD_GET_RESP_ERROR;
+    }
+
+    /* Debug output */
+    DEBUG("len: %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+
+    uint8_t  resp_len = res;
+    char    *resp = sim5300_dev->at_dev_resp;
+    uint8_t  parse_buffer[32];
+    uint8_t  parse_len;
+    uint8_t  start_parse;
+    uint8_t  end_parse;
+
+    if (memcmp(resp, "+CIPSTATUS: ", 12) != 0) {
+        puts("[SIM5300] Parse error");
+
+        return PARSE_ERROR;
+    }
+
+    start_parse = 12;
+    end_parse   = 0;
+
+    /* Parse n */
+    for (uint8_t i = start_parse; i < resp_len; i++) {
+        if (resp[i] == ',') {
+            if (start_parse == i) {
+                return PARSE_ERROR;
+            } else {
+                end_parse = i;
+                parse_len = end_parse - start_parse;
+
+                memcpy(parse_buffer, resp + start_parse, end_parse - start_parse);
+                parse_buffer[parse_len] = 0x00;
+
+                res = sscanf((char*)parse_buffer, "%i", &sim5300_set_cipstatus_resp->n);
+                if (res != 1) {
+                    puts("[SIM5300] Parse error: n");
+
+                    return PARSE_ERROR;
+                }
+
+                DEBUG("sim5300_set_cipstatus_resp->n: %i\n", sim5300_set_cipstatus_resp->n);
+
+                break;
+            }
+        }
+    }
+
+    start_parse = end_parse + 1;
+
+    /* Parse bearer */
+    for (uint8_t i = start_parse; i < resp_len; i++) {
+        if (resp[i] == ',') {
+            if (start_parse == i) {
+                end_parse = i;
+
+                sim5300_set_cipstatus_resp->bearer = 0;
+                DEBUG("sim5300_set_cipstatus_resp->bearer: %i\n", sim5300_set_cipstatus_resp->bearer);
+
+                break;
+            } else {
+                end_parse = i;
+                parse_len = end_parse - start_parse;
+
+                memcpy(parse_buffer, resp + start_parse, end_parse - start_parse);
+                parse_buffer[parse_len] = 0x00;
+
+                res = sscanf((char*)parse_buffer, "%i", &sim5300_set_cipstatus_resp->bearer);
+                if (res != 1) {
+                    puts("[SIM5300] Parse error: bearer");
+
+                    return PARSE_ERROR;
+                }
+
+                printf("sim5300_set_cipstatus_resp->bearer: %i\n", sim5300_set_cipstatus_resp->bearer);
+
+                break;
+            }
+        }
+    }
+
+    start_parse = end_parse + 1;
+
+    /* Parse type_connection */
+    for (uint8_t i = start_parse; i < resp_len; i++) {
+        if (resp[i] == ',') {
+            if (start_parse == i) {
+                puts("[SIM5300] Parse error: type_connection");
+
+                return PARSE_ERROR;
+            } else {
+                end_parse = i;
+                parse_len = end_parse - start_parse;
+
+                if (parse_len == 2) {
+                    memset(sim5300_set_cipstatus_resp->type_connection, 0x00, sizeof(sim5300_set_cipstatus_resp->type_connection));
+                } else if (parse_len == 5) {
+                    memcpy(sim5300_set_cipstatus_resp->type_connection, resp + start_parse + 1, end_parse - start_parse - 2);
+                    sim5300_set_cipstatus_resp->type_connection[end_parse - start_parse - 2] = 0x00;
+                } else {
+                    puts("[SIM5300] Parse error: type_connection");
+
+                    return PARSE_ERROR;
+                }
+
+                DEBUG("sim5300_set_cipstatus_resp->type_connection = \"%s\"\n", sim5300_set_cipstatus_resp->type_connection);
+
+                break;
+            }
+        }
+    }
+
+    start_parse = end_parse + 1;
+
+    /* Parse ip_address */
+    for (uint8_t i = start_parse; i < resp_len; i++) {
+        if (resp[i] == ',') {
+            if (start_parse == i) {
+                puts("[SIM5300] Parse error: ip_address");
+
+                return PARSE_ERROR;
+            } else {
+                end_parse = i;
+                parse_len = end_parse - start_parse;
+
+                if (parse_len == 2) {
+                    memset(sim5300_set_cipstatus_resp->ip_address, 0x00, sizeof(sim5300_set_cipstatus_resp->ip_address));
+                } else {
+                    memcpy(sim5300_set_cipstatus_resp->ip_address, resp + start_parse + 1, end_parse - start_parse - 2);
+                    sim5300_set_cipstatus_resp->ip_address[end_parse - start_parse - 2] = 0x00;
+                }
+
+                DEBUG("sim5300_set_cipstatus_resp->ip_address = \"%s\"\n", sim5300_set_cipstatus_resp->ip_address);
+
+                break;
+            }
+        }
+    }
+
+    start_parse = end_parse + 1;
+
+    /* Parse port */
+    for (uint8_t i = start_parse; i < resp_len; i++) {
+        if (resp[i] == ',') {
+            if (start_parse == i) {
+                puts("[SIM5300] Parse error: port");
+
+                return PARSE_ERROR;
+            } else {
+                end_parse = i;
+                parse_len = end_parse - start_parse;
+
+                if (parse_len == 2) {
+                    memset(sim5300_set_cipstatus_resp->port, 0x00, sizeof(sim5300_set_cipstatus_resp->port));
+                } else {
+                    memcpy(sim5300_set_cipstatus_resp->port, resp + start_parse + 1, end_parse - start_parse - 2);
+                    sim5300_set_cipstatus_resp->port[end_parse - start_parse - 2] = 0x00;
+                }
+
+                DEBUG("sim5300_set_cipstatus_resp->port = \"%s\"\n", sim5300_set_cipstatus_resp->port);
+
+                break;
+            }
+        }
+    }
+
+    start_parse = end_parse + 1;
+    end_parse   = resp_len;
+
+    /* Parse port */
+    memcpy(sim5300_set_cipstatus_resp->client_state, resp + start_parse + 1, end_parse - start_parse - 2);
+    sim5300_set_cipstatus_resp->client_state[end_parse - start_parse - 2] = 0x00;
+
+    DEBUG("sim5300_set_cipstatus_resp->client_state = \"%s\"\n", sim5300_set_cipstatus_resp->client_state);
+
+    return SIM5300_OK;
+}
+
+/*---------------------------------------------------------------------------*/
+/**
  * @brief       Start up multi-IP connection
  *
  * @param[in]   sim5300_dev     Device to operate on
@@ -1432,15 +1659,6 @@ int sim5300_start_up_multi_ip_up_connection(sim5300_dev_t *sim5300_dev,
  * @returns     UNKNOWN_RESP           - ERROR: Unknown response
  * @returns     UNDEFINED_ERROR        - ERROR: Undefined error 
  */
-/* TODO: Delete */
-volatile uint32_t uart_isr_counter;
-volatile uint32_t uart_isr_EVENTS_CTS;
-volatile uint32_t uart_isr_EVENTS_NCTS;
-volatile uint32_t uart_isr_EVENTS_RXDRDY;
-volatile uint32_t uart_isr_EVENTS_TXDRDY;
-volatile uint32_t uart_isr_EVENTS_ERROR;
-volatile uint32_t uart_isr_EVENTS_RXTO;
-volatile uint32_t uart_isr_error[100] = {};
 
 int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
                                                      uint8_t        mode,
@@ -1508,16 +1726,6 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
 
             /* Sleep on 50 ms */
             lptimer_usleep(50);
-
-            /* TODO: Delete */
-            uart_isr_counter = 0;
-            uart_isr_EVENTS_CTS = 0;
-            uart_isr_EVENTS_NCTS = 0;
-            uart_isr_EVENTS_RXDRDY = 0;
-            uart_isr_EVENTS_TXDRDY = 0;
-            uart_isr_EVENTS_ERROR = 0;
-            uart_isr_EVENTS_RXTO = 0;
-            memset((uint8_t*)uart_isr_error, 0x00, sizeof(uart_isr_error));
 
             /* Send AT command */
             at_drain(&sim5300_dev->at_dev);
@@ -1893,7 +2101,41 @@ int sim5300_send(sim5300_dev_t *sim5300_dev,
         return ARGUMENT_NULL_ERROR;
     }
  
-    return sim5300_send_data_through_multi_ip_connection(sim5300_dev, sockfd, buffer, buffer_len);
+    int res = sim5300_send_data_through_multi_ip_connection(sim5300_dev, sockfd, buffer, buffer_len);
+    if (res >= 0) {
+        return res;
+    }
+
+    int error = res;
+
+    /* Get state connection */
+    sim5300_set_cipstatus_resp_t sim5300_set_cipstatus_resp;
+    res = sim5300_set_query_current_connection_status(sim5300_dev,
+                                                      0,
+                                                      &sim5300_set_cipstatus_resp);
+
+    DEBUG("res: %i; resp: %s\n", res, sim5300_set_cipstatus_resp.client_state);
+    if (res < SIM5300_OK) {
+        return res;
+    }
+
+    if (strcmp(sim5300_set_cipstatus_resp.client_state, "CONNECTED") == 0) {
+        return error;
+    } 
+
+    if (strcmp(sim5300_set_cipstatus_resp.client_state, "REMOTE CLOSING") == 0) {
+        return SOCKET_REMOTE_CLOSING;
+    } 
+
+    if (strcmp(sim5300_set_cipstatus_resp.client_state, "CLOSING") == 0) {
+        return SOCKET_CLOSING;
+    } 
+
+    if (strcmp(sim5300_set_cipstatus_resp.client_state, "CLOSED") == 0) {
+        return SOCKET_CLOSED;
+    } 
+
+    return UNDEFINED_ERROR;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1954,12 +2196,39 @@ int sim5300_receive(sim5300_dev_t *sim5300_dev,
                                                                sockfd,
                                                                buffer + recv_sz,
                                                                recv_chank);
-        
+
         /* Exit on error */
         if (res < 0) {
-            printf("[SIM5300] Recv ERROR: %i\n", res);
+            int error = res;
 
-            return res;
+            /* Get state connection */
+            sim5300_set_cipstatus_resp_t sim5300_set_cipstatus_resp;
+            res = sim5300_set_query_current_connection_status(sim5300_dev,
+                                                              0,
+                                                              &sim5300_set_cipstatus_resp);
+            DEBUG("res: %i; resp: %s\n", res, sim5300_set_cipstatus_resp.client_state);
+
+            if (res < SIM5300_OK) {
+                return res;
+            }
+
+            if (strcmp(sim5300_set_cipstatus_resp.client_state, "CONNECTED") == 0) {
+                return error;
+            } 
+
+            if (strcmp(sim5300_set_cipstatus_resp.client_state, "REMOTE CLOSING") == 0) {
+                return SOCKET_REMOTE_CLOSING;
+            } 
+
+            if (strcmp(sim5300_set_cipstatus_resp.client_state, "CLOSING") == 0) {
+                return SOCKET_CLOSING;
+            } 
+
+            if (strcmp(sim5300_set_cipstatus_resp.client_state, "CLOSED") == 0) {
+                return SOCKET_CLOSED;
+            } 
+
+            return UNDEFINED_ERROR;
         }
         
         recv_sz += res;
@@ -2003,6 +2272,55 @@ int sim5300_close(sim5300_dev_t *sim5300_dev,
     }
 
     int res; 
+
+    /* Get state connection */
+    sim5300_set_cipstatus_resp_t sim5300_set_cipstatus_resp;
+    res = sim5300_set_query_current_connection_status(sim5300_dev,
+                                                      0,
+                                                      &sim5300_set_cipstatus_resp);
+
+    DEBUG("res: %i; resp: %s\n", res, sim5300_set_cipstatus_resp.client_state);
+    if (res < SIM5300_OK) {
+        return res;
+    }
+
+    if (strcmp(sim5300_set_cipstatus_resp.client_state, "CLOSED") == 0) {
+        /* Free the socket */
+        sim5300_dev->socketfd[sockfd] = false;
+
+        return SIM5300_OK;
+    } 
+
+    if ((strcmp(sim5300_set_cipstatus_resp.client_state, "REMOTE CLOSING") == 0) ||
+        (strcmp(sim5300_set_cipstatus_resp.client_state, "CLOSING")        == 0)) {
+        /* Close socket */
+        res = sim5300_close_up_multi_ip_connection(sim5300_dev, 
+                                                sockfd,  
+                                                0);
+
+        if(res == SIM5300_OK) {
+            /* Free the socket */
+            sim5300_dev->socketfd[sockfd] = false;
+
+            return SIM5300_OK;
+        }
+        do {
+            res = sim5300_set_query_current_connection_status(sim5300_dev,
+                                                            0,
+                                                            &sim5300_set_cipstatus_resp);
+            DEBUG("res: %i; resp: %s\n", res, sim5300_set_cipstatus_resp.client_state);
+
+            if (res < SIM5300_OK) {
+                return res;
+            }
+
+        } while (strcmp(sim5300_set_cipstatus_resp.client_state, "CLOSED") != 0);
+
+        /* Free the socket */
+        sim5300_dev->socketfd[sockfd] = false;
+
+        return SIM5300_OK;
+    } 
     
     /* Close socket */
     res = sim5300_close_up_multi_ip_connection(sim5300_dev, 
@@ -2389,6 +2707,12 @@ int sim5300_start_internet(sim5300_dev_t               *sim5300_dev,
     /* AT+CDNSCFG="8.8.8.8","8.8.4.4" */
 
     /* AT+CIPSTATUS */
+    /* Get state connection */
+    // sim5300_set_cipstatus_resp_t sim5300_set_cipstatus_resp;
+    // res = sim5300_set_query_current_connection_status(sim5300_dev,
+    //                                                   0,
+    //                                                   &sim5300_set_cipstatus_resp);
+    // printf("res: %i\n", res);
 
     /* ping */
     // sim5300_cipping_resp_t sim5300_cipping_resp[3] = {};

@@ -68,8 +68,9 @@ enum sim5300_error {
     SIM5300_NOT_ANSWERING        = -19,     /**< ERROR: SIM5300 not answering */
     UNABLE_TO_CREATE_SOCKET      = -20,     /**< ERROR: Unable to create socket */
     INVALID_DATA                 = -21,     /**< ERROR: Invalid data */
-    // NO_INTERNET_SETTINGS_FOUND   = -22,     /**< ERROR:  */
-    // NO_INTERNET_SETTINGS_FOUND   = -23,     /**< ERROR:  */
+    SOCKET_REMOTE_CLOSING        = -22,     /**< ERROR: Socket remote closing */
+    SOCKET_CLOSING               = -23,     /**< ERROR: Socket closing */
+    SOCKET_CLOSED                = -24,     /**< ERROR: Socket closed */
     // NO_INTERNET_SETTINGS_FOUND   = -24,     /**< ERROR:  */
     // NO_INTERNET_SETTINGS_FOUND   = -25,     /**< ERROR:  */
     // NO_INTERNET_SETTINGS_FOUND   = -26,     /**< ERROR:  */
@@ -163,6 +164,18 @@ typedef struct {
 typedef struct {
     int local_ip_address[4];    /**< IP address assigned from GPRS */
 } sim5300_cifsr_resp_t;
+
+/**
+ * @brief SIM5300 response on set AT+CIPSTATUS
+ */
+typedef struct {
+    int  n;
+    int  bearer;
+    char type_connection[32];
+    char ip_address[32];
+    char port[32];
+    char client_state[32];
+} sim5300_set_cipstatus_resp_t;
 
 /**
  * @brief SIM5300 response on AT+CIPPING
@@ -491,6 +504,28 @@ int sim5300_bring_up_wireless_connection(sim5300_dev_t *sim5300_dev);
  */
 int sim5300_get_local_ip_address(sim5300_dev_t        *sim5300_dev,
                                  sim5300_cifsr_resp_t *sim5300_cifsr_resp);
+
+/*---------------------------------------------------------------------------*/
+/**
+ * @brief       Query current connection status
+ *
+ * @param[in]   sim5300_dev                 Device to operate on
+ * @param[in]   n                           A numeric parameter which indicates the connection number
+ * @param[out]  sim5300_set_cipstatus_resp  Structure with response data
+ * 
+ * AT+CIPSTATUS Query current connection status
+ * Query current connection status
+ * 
+ * @returns     SIM5300_OK              - OK
+ * @returns     SIM5300_DEV_ERROR       - ERROR: sim5300_dev == NULL
+ * @returns     ARGUMENT_RANGE_ERROR    - ERROR: Invalid argument value
+ * @returns     ARGUMENT_NULL_ERROR     - ERROR: Pointer to function argument == NULL
+ * @returns     SEND_CMD_GET_RESP_ERROR - ERROR: at_send_cmd_get_resp() < 0
+ * @returns     PARSE_ERROR             - ERROR: sscanf() != desired number of variables
+ */
+int sim5300_set_query_current_connection_status(sim5300_dev_t                *sim5300_dev,
+                                                uint8_t                       n,
+                                                sim5300_set_cipstatus_resp_t *sim5300_set_cipstatus_resp);
 
 /*---------------------------------------------------------------------------*/
 /**

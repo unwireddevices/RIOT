@@ -73,8 +73,11 @@ extern "C" {
 #define UNWD_CONNECT_BTN		GPIO_UNDEF
 
 /** LEDs */
-#define LED0_PIN   GPIO_PIN(PORT_A, 0)
+#define LED0_PIN   GPIO_UNDEF
 #define LED1_PIN     GPIO_UNDEF
+
+#define UMDK_GASSENSOR_MODULE_EN_PIN    GPIO_PIN(PORT_A, 14)
+#define UMDK_GASSENSOR_ADC_LINE         ADC_LINE(7)
 
 /** @} */
 

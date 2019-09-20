@@ -76,15 +76,18 @@ static const timer_conf_t timer_config[] = {
  * @name Real time counter configuration
  * @{
  */
-#define RTC_NUMOF           (1U)
+#define RTC_NUMOF           (0U)
 
-/* STM32 backup registers in use */
+/**
+ * @name Basic RTT emulation on top of RTC with 1024 Hz frequency
+ * @{
+ */
+#define RTT_FREQUENCY       (1024)
+#define RTT_MAX_VALUE       (0x7ffful)
 
-#define RTC_REGBACKUP_BOOTLOADER        (0)
-#define RTC_REGBACKUP_BOOTMODE          (0)
-#define RTC_REGBACKUP_UNWDSMODULE       (1)
-
-#define RTC_REGBACKUP_BOOTLOADER_VALUE  (0xB00710AD)
+#define LPTIMER_HZ          RTT_FREQUENCY
+#define LPTIMER_MAX_VALUE   RTT_MAX_VALUE
+#define LPTIMER_WIDTH       (15)
 
 /**
  * @brief UART configuration
@@ -235,6 +238,8 @@ static const adc_conf_t adc_config[] = {
     { .pin = GPIO_PIN(PORT_A, 5), .chan = 5,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
     { .pin = GPIO_PIN(PORT_A, 6), .chan = 6,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
 	{ .pin = GPIO_PIN(PORT_A, 7), .chan = 7,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+    { .pin = GPIO_PIN(PORT_B, 0), .chan = 8,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+    { .pin = GPIO_PIN(PORT_B, 1), .chan = 9,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
 	{ .pin = GPIO_UNDEF,          .chan = ADC_VREF_CHANNEL,        /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
 	{ .pin = GPIO_UNDEF,          .chan = ADC_TEMPERATURE_CHANNEL, /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
 };

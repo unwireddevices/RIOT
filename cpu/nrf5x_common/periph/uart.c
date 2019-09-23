@@ -24,6 +24,7 @@
  * @author      Jan Wagner <mail@jwagner.eu>
  * @author      Alexandre Abadie <alexandre.abadie@inria.fr>
  * @author      Oleg Artamonov <oleg@unwds.com>
+ * @author      Oleg Manchenko <manchenkoos@gmail.com>
  *
  * @}
  */
@@ -53,6 +54,7 @@
 #define UART_HWFLOWCTRL (uart_config[uart].rts_pin != (uint8_t)GPIO_UNDEF && \
                          uart_config[uart].cts_pin != (uint8_t)GPIO_UNDEF)
 #define ISR_CTX         isr_ctx[uart]
+#define MAX_LEN_FOR_SEND_VIA_EASY_DMA   (0xFF)
 
 #if defined(MODULE_PERIPH_UART_DMA_TX)
 #include <string.h>
@@ -303,7 +305,7 @@ void uart_write(uart_t uart, const uint8_t *data, size_t len)
 #endif
 
     if (uart_config[uart].tx_pin != PSEL_TXD) {
-        /* pin changes must be done with UART disabled */
+        /* Pin changes must be done with UART disabled */
         dev(uart)->ENABLE = UARTE_ENABLE_ENABLE_Disabled;
         
         gpio_t uart_pin_prev = PSEL_TXD;
@@ -312,29 +314,64 @@ void uart_write(uart_t uart, const uint8_t *data, size_t len)
         gpio_init(UART_PIN_TX, UART_PIN_TXMODE);
         PSEL_TXD = UART_PIN_TX;
         
-        /* restart UART */
-        dev(uart)->ENABLE = UARTE_ENABLE_ENABLE_Enabled;
+        /* Restart UART */
+        dev(uart)->ENABLE        = UARTE_ENABLE_ENABLE_Enabled;
         dev(uart)->TASKS_STARTRX = 1;
     }
 
-    /* set data to transfer to DMA TX pointer */
-    dev(uart)->TXD.PTR = data_ptr;
-    dev(uart)->TXD.MAXCNT = len;
-    /* start transmission */
-    dev(uart)->TASKS_STARTTX = 1;
+    /* Send data via UART */
+    if (len <= MAX_LEN_FOR_SEND_VIA_EASY_DMA) {
+        /* Set data to transfer to DMA TX pointer */
+        dev(uart)->TXD.PTR    = data_ptr;
+        dev(uart)->TXD.MAXCNT = len;
+
+        /* Start transmission */
+        dev(uart)->TASKS_STARTTX = 1;
+    } else {
+        size_t sent_byte = 0;
+        size_t send_byte;
+
+        /* Sending a command in multiple packages */
+        do {
+            /* The remaining number of bytes to send */
+            send_byte = len - sent_byte;
+
+            /* Trimming to MAX_LEN_FOR_SEND_VIA_EASY_DMA */
+            if (send_byte > MAX_LEN_FOR_SEND_VIA_EASY_DMA) {
+                send_byte = MAX_LEN_FOR_SEND_VIA_EASY_DMA;
+            } 
+
+            /* Set data to transfer to DMA TX pointer */
+            dev(uart)->TXD.PTR    = data_ptr + sent_byte;
+            dev(uart)->TXD.MAXCNT = send_byte;
+
+            /* Start transmission */
+            dev(uart)->TASKS_STARTTX = 1;
+
+            /* Wait for the end of transmission */
+            while (dev(uart)->EVENTS_ENDTX == 0) {}
+            
+            /* Reset endtx flag */
+            dev(uart)->EVENTS_ENDTX = 0;
+
+            /* Update the number of bytes sent */
+            sent_byte += send_byte;
+        } while (sent_byte < len);
+    }
 
 #if defined(MODULE_PERIPH_UART_DMA_TX)
     if (blocking) {
         while (dev(uart)->EVENTS_ENDTX == 0) {}
         
-        /* reset endtx flag */
+        /* Reset endtx flag */
         dev(uart)->EVENTS_ENDTX = 0;
         _uart_unlock();
     }
 #else
-    /* wait for the end of transmission */
+    /* Wait for the end of transmission */
     while (dev(uart)->EVENTS_ENDTX == 0) {}
-    /* reset endtx flag */
+
+    /* Reset endtx flag */
     dev(uart)->EVENTS_ENDTX = 0;
 #endif
 }

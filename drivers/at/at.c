@@ -18,9 +18,15 @@
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-#ifndef AT_PRINT_INCOMING
-#define AT_PRINT_INCOMING (0)
+#if !defined(AT_PRINT_INCOMING)
+    #define AT_PRINT_INCOMING (0)
 #endif
+
+#if !defined(TX_BUF_LEN)
+    #define TX_BUF_LEN  (32)
+#endif
+
+static uint8_t tx_buf[TX_BUF_LEN];
 
 static void _isrpipe_write_one_wrapper(void *_isrpipe, uint8_t data)
 {
@@ -31,7 +37,9 @@ int at_dev_init(at_dev_t *dev, uart_t uart, uint32_t baudrate, char *buf, size_t
 {
     dev->uart = uart;
     isrpipe_init(&dev->isrpipe, buf, bufsize);
-    uart_init(uart, baudrate, _isrpipe_write_one_wrapper,
+    uart_init(uart, 
+              baudrate, 
+              _isrpipe_write_one_wrapper, 
               &dev->isrpipe);
 
     return 0;
@@ -85,8 +93,43 @@ int at_send_cmd(at_dev_t *dev, const char *command, uint32_t timeout)
 {
     size_t cmdlen = strlen(command);
 
-    uart_write(dev->uart, (const uint8_t *)command, cmdlen);
-    uart_write(dev->uart, (const uint8_t *)AT_SEND_EOL, AT_SEND_EOL_LEN);
+    /* Send data */
+    if (cmdlen <= TX_BUF_LEN) {
+        /* Copy data to buffer */
+        memcpy(tx_buf, (uint8_t*)command, cmdlen);
+
+        /* Send cmd */
+        uart_write(dev->uart, tx_buf, cmdlen);
+    } else {
+        size_t send_byte = 0;
+        size_t copy_byte;
+
+        /* Sending a command in multiple packages */
+        do {
+            /* The remaining number of bytes to send */
+            copy_byte = cmdlen - send_byte;
+
+            /* Trimming to Buffer Level */
+            if (copy_byte > TX_BUF_LEN) {
+                copy_byte = TX_BUF_LEN;
+            } 
+
+            /* Copy data to buffer */
+            memcpy(tx_buf, (uint8_t*)(command + send_byte), copy_byte);
+
+            /* Send cmd */
+            uart_write(dev->uart, tx_buf, copy_byte);
+
+            /* Update the number of bytes sent */
+            send_byte += copy_byte;
+        } while (send_byte < cmdlen);
+    }
+
+    /* Copy EOL for send */
+    memcpy(tx_buf, (const uint8_t*)AT_SEND_EOL, AT_SEND_EOL_LEN);
+
+    /* Send EOL */
+    uart_write(dev->uart, tx_buf, AT_SEND_EOL_LEN);
 
     if (AT_SEND_ECHO) {
         if (at_expect_bytes(dev, command, timeout)) {

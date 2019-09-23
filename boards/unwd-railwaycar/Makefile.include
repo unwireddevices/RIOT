@@ -1,2 +1,0 @@
-export CPU_MODEL = nrf52832xxaa
-export CPU = nrf52

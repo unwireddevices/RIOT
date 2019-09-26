@@ -31,11 +31,8 @@
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-#if !defined(US_PER_MS)
-#define US_PER_MS 1UL
-#endif
-
 extern sx127x_t sx127x;
+
 /*
  * Radio driver functions implementation wrappers, the netdev2 object
  * is known within the scope of the function
@@ -125,7 +122,7 @@ void SX127XSetTxConfig(RadioModems_t modem, int8_t power, uint32_t fdev,
     sx127x_set_tx_power(&sx127x, power);
     sx127x_set_preamble_length(&sx127x, preambleLen);
     sx127x_set_rx_single(&sx127x, false);
-    sx127x_set_tx_timeout(&sx127x, timeout); /* base unit us, LoRaMAC ms */
+    sx127x_set_tx_timeout(&sx127x, timeout * US_PER_MS); /* base unit us, LoRaMAC ms */
 }
 
 uint32_t SX127XTimeOnAir(RadioModems_t modem, uint8_t pktLen)
@@ -136,13 +133,6 @@ uint32_t SX127XTimeOnAir(RadioModems_t modem, uint8_t pktLen)
 
 void SX127XSend(uint8_t *buffer, uint8_t size)
 {
-#if ENABLE_DEBUG
-    printf("SX1276: send 0x");
-    for (int i = 0; i < size; i++) {
-        printf("%02X", buffer[i]);
-    }
-    printf("\n");
-#endif
     netdev_t *dev = (netdev_t *)&sx127x;
     iolist_t iol = {
         .iol_base = buffer,
@@ -163,7 +153,7 @@ void SX127XStandby(void)
 
 void SX127XRx(uint32_t timeout)
 {
-    sx127x_set_rx_timeout(&sx127x, timeout);
+    sx127x_set_rx_timeout(&sx127x, timeout * US_PER_MS);
     sx127x_set_rx(&sx127x);
 }
 
@@ -283,7 +273,7 @@ const struct Radio_s Radio =
     SX127XSetMaxPayloadLength,
     SX127XSetPublicNetwork,
     SX127XGetWakeupTime,
-    SX127XIrqProcess,       /* SX126x only */
-    SX127XRxBoosted,        /* SX126x only */
-    SX127XSetRxDutyCycle    /* SX126x only */
+    SX127XIrqProcess,
+    SX127XRxBoosted,
+    SX127XSetRxDutyCycle,
 };

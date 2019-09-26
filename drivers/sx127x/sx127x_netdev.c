@@ -122,7 +122,7 @@ static int _recv(netdev_t *netdev, void *buf, size_t len, void *info)
                 }
 
                 lptimer_remove(&dev->_internal.rx_timeout_timer);
-                netdev->event_callback(netdev, NETDEV_EVENT_CRC_ERROR, netdev->event_callback_arg);
+                netdev->event_callback(netdev, NETDEV_EVENT_CRC_ERROR);
                 return -EBADMSG;
             }
 
@@ -534,7 +534,7 @@ static void _on_dio0_irq(void *arg)
     switch (dev->settings.state) {
         case SX127X_RF_RX_RUNNING:
             DEBUG("sx127x_on_dio0: NETDEV_EVENT_RX_COMPLETE\n");
-            netdev->event_callback(netdev, NETDEV_EVENT_RX_COMPLETE, netdev->event_callback_arg);
+            netdev->event_callback(netdev, NETDEV_EVENT_RX_COMPLETE);
             break;
         case SX127X_RF_TX_RUNNING:
             lptimer_remove(&dev->_internal.tx_timeout_timer);
@@ -548,7 +548,7 @@ static void _on_dio0_irq(void *arg)
                 case SX127X_MODEM_FSK:
                 default:
                     sx127x_set_state(dev, SX127X_RF_IDLE);
-                    netdev->event_callback(netdev, NETDEV_EVENT_TX_COMPLETE, netdev->event_callback_arg);
+                    netdev->event_callback(netdev, NETDEV_EVENT_TX_COMPLETE);
                     DEBUG("sx127x_on_dio0: NETDEV_EVENT_TX_COMPLETE\n");
                     break;
             }
@@ -581,7 +581,7 @@ static void _on_dio1_irq(void *arg)
                     DEBUG("sx127x_on_dio1: clear IRQ\n");
                     sx127x_reg_write(dev, SX127X_REG_LR_IRQFLAGS, SX127X_RF_LORA_IRQFLAGS_RXTIMEOUT);
                     sx127x_set_state(dev, SX127X_RF_IDLE);
-                    netdev->event_callback(netdev, NETDEV_EVENT_RX_TIMEOUT, netdev->event_callback_arg);
+                    netdev->event_callback(netdev, NETDEV_EVENT_RX_TIMEOUT);
                     DEBUG("sx127x_on_dio1: NETDEV_EVENT_RX_TIMEOUT\n");
                     break;
                 default:
@@ -625,7 +625,7 @@ static void _on_dio2_irq(void *arg)
 
                         dev->_internal.last_channel = (sx127x_reg_read(dev, SX127X_REG_LR_HOPCHANNEL) &
                                                        SX127X_RF_LORA_HOPCHANNEL_CHANNEL_MASK);
-                        netdev->event_callback(netdev, NETDEV_EVENT_FHSS_CHANGE_CHANNEL, netdev->event_callback_arg);
+                        netdev->event_callback(netdev, NETDEV_EVENT_FHSS_CHANGE_CHANNEL);
                     }
 
                     break;
@@ -645,7 +645,7 @@ static void _on_dio2_irq(void *arg)
 
                         dev->_internal.last_channel = (sx127x_reg_read(dev, SX127X_REG_LR_HOPCHANNEL) &
                                                        SX127X_RF_LORA_HOPCHANNEL_CHANNEL_MASK);
-                        netdev->event_callback(netdev, NETDEV_EVENT_FHSS_CHANGE_CHANNEL, netdev->event_callback_arg);
+                        netdev->event_callback(netdev, NETDEV_EVENT_FHSS_CHANGE_CHANNEL);
                     }
                     break;
                 default:
@@ -672,7 +672,7 @@ static void _on_dio3_irq(void *arg)
             if ((sx127x_reg_read(dev, SX127X_REG_LR_IRQFLAGS) & SX127X_RF_LORA_IRQFLAGS_VALIDHEADER) == SX127X_RF_LORA_IRQFLAGS_VALIDHEADER) {
                 /* ValidHeader event */
                 sx127x_reg_write(dev, SX127X_REG_LR_IRQFLAGS, SX127X_RF_LORA_IRQFLAGS_VALIDHEADER);
-                netdev->event_callback(netdev, NETDEV_EVENT_VALID_HEADER, netdev->event_callback_arg);
+                netdev->event_callback(netdev, NETDEV_EVENT_VALID_HEADER);
             } else {
                 /* CadDone event */
                 bool cad_success = (sx127x_reg_read(dev, SX127X_REG_LR_IRQFLAGS) & SX127X_RF_LORA_IRQFLAGS_CADDETECTED) == SX127X_RF_LORA_IRQFLAGS_CADDETECTED;
@@ -683,9 +683,9 @@ static void _on_dio3_irq(void *arg)
                                                        SX127X_RF_LORA_IRQFLAGS_CADDETECTED);
                 
                 if (cad_success) {
-                    netdev->event_callback(netdev, NETDEV_EVENT_CAD_DETECTED, netdev->event_callback_arg);
+                    netdev->event_callback(netdev, NETDEV_EVENT_CAD_DETECTED);
                 } else {
-                    netdev->event_callback(netdev, NETDEV_EVENT_CAD_DONE, netdev->event_callback_arg);
+                    netdev->event_callback(netdev, NETDEV_EVENT_CAD_DONE);
                 }
             }
             break;

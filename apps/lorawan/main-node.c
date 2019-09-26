@@ -96,13 +96,14 @@ static node_data_t node_data;
 static msg_t msg_join = { .type = NODE_MSG_JOIN };
 static msg_t msg_data = { .type = NODE_MSG_SEND };
 static kernel_pid_t sender_pid;
+static kernel_pid_t receiver_pid;
 static lptimer_t join_retry_timer;
 static lptimer_t send_retry_timer;
 
 static kernel_pid_t main_thread_pid;
-static kernel_pid_t loramac_pid;
 
 static char sender_stack[2048];
+static char receiver_stack[2048];
 
 static semtech_loramac_t ls;
 
@@ -130,9 +131,7 @@ void radio_init(void)
     sx127x_params.rfswitch_pin = SX127X_RFSWITCH;
     sx127x_params.rfswitch_active_level = SX127X_GET_RFSWITCH_ACTIVE_LEVEL();
     
-    loramac_pid = semtech_loramac_init(&ls, &sx127x_params);
-
-    if (loramac_pid > KERNEL_PID_UNDEF) {
+    if (semtech_loramac_init(&ls, &sx127x_params) == 0) {
         puts("[LoRa] LoRaMAC successfully initialized");
     } else {
         puts("[LoRa] LoRaMAC initialization failed");
@@ -160,7 +159,7 @@ static int node_join(semtech_loramac_t *ls) {
 
 static void lora_resend_packet(void) {
     /* schedule packet retransmission */
-    puts("[info] Scheduling packet retransmission in 30 seconds");
+    puts("[LoRa] packet retransmission in 30 seconds");
     
     lptimer_set_msg(&send_retry_timer, 30000, &msg_data, sender_pid);
 }
@@ -177,179 +176,179 @@ static void *sender_thread(void *arg) {
     while (1) {
         msg_receive(&msg);
 
-        if (msg.sender_pid != loramac_pid) {
-            int res;
-            
-            if (msg.type == NODE_MSG_SEND) {
-                node_data_t *data = msg.content.ptr;
-                res = semtech_loramac_send(ls, data->buffer, data->length);
+        int res;
+        
+        if (msg.type == NODE_MSG_SEND) {
+            node_data_t *data = msg.content.ptr;
+            res = semtech_loramac_send(ls, data->buffer, data->length);
 
-                switch (res) {
-                    case SEMTECH_LORAMAC_BUSY:
-                        puts("[error] MAC already busy");
+            switch (res) {
+                case SEMTECH_LORAMAC_BUSY:
+                    puts("[error] MAC already busy");
+                    lora_resend_packet();
+                    break;
+                case SEMTECH_LORAMAC_NOT_JOINED: {
+                    puts("[error] not joined to the network");
+
+                    if (current_join_retries == 0) {
+                        puts("[LoRa] attempting to rejoin");
                         lora_resend_packet();
-                        break;
-                    case SEMTECH_LORAMAC_NOT_JOINED: {
-                        puts("[error] Not joined to the network");
-
-                        if (current_join_retries == 0) {
-                            puts("[info] Attempting to rejoin");
-                            lora_resend_packet();
-                            msg_send(&msg_join, sender_pid);
-                        } else {
-                            puts("[info] Waiting for the node to join");
-                        }
-                        break;
+                        msg_send(&msg_join, sender_pid);
+                    } else {
+                        puts("[LoRa] waiting for the node to join");
                     }
-                    case SEMTECH_LORAMAC_TX_OK:
-                        puts("[info] TX is in progress");
-                        break;
-                    case SEMTECH_LORAMAC_DUTYCYCLE_RESTRICTED:
-                        puts("[error] TX duty cycle restricted");
+                    break;
+                }
+                case SEMTECH_LORAMAC_TX_OK:
+                    puts("[LoRa] TX is in progress");
+                    break;
+                case SEMTECH_LORAMAC_TX_DONE:
+                    puts("[LoRa] TX done");
+                    break;
+                case SEMTECH_LORAMAC_DUTYCYCLE_RESTRICTED:
+                    puts("[error] TX duty cycle restricted");
+                    lora_resend_packet();
+                    break;
+                case SEMTECH_LORAMAC_TX_CNF_FAILED:
+                    puts("[LoRa] uplink confirmation failed");
+                    uplinks_failed++;
+                    
+                    if (uplinks_failed > unwds_get_node_settings().max_retr) {
+                        puts("[LoRa] too many uplinks failed, rejoining");
+                        current_join_retries = 0;
+                        uplinks_failed = 0;
+                        msg_send(&msg_join, sender_pid);
+                    } else {
                         lora_resend_packet();
+                    }
+                    break;
+                default:
+                    printf("[warning] Unknown response %d\n", res);
+                    break;
+            }
+        }
+        
+        if (msg.type == NODE_MSG_JOIN) {
+            res = node_join(ls);
+            
+            switch (res) {
+            case SEMTECH_LORAMAC_JOIN_SUCCEEDED: {
+                current_join_retries = 0;
+                puts("[LoRa] successfully joined to the network");
+                
+                /* transmitting a packet with module data */
+                module_data_t data = {};
+                
+                /* first byte */
+                data.data[0] = UNWDS_LORAWAN_SYSTEM_MODULE_ID;
+                data.length++;
+                
+                /* second byte - device class and settings */
+                /* bits 0-1: device class */
+                switch (unwds_get_node_settings().nodeclass) {
+                    case (LS_ED_CLASS_A):
+                        break;
+                    case (LS_ED_CLASS_B):
+                        data.data[1] = 1 << 0;
+                        break;
+                    case (LS_ED_CLASS_C):
+                        data.data[1] = 1 << 1;
                         break;
                     default:
-                        printf("[warning] Unknown response %d\n", res);
                         break;
                 }
-            }
-            
-            if (msg.type == NODE_MSG_JOIN) {
-                res = node_join(ls);
                 
-                switch (res) {
-                case SEMTECH_LORAMAC_JOIN_SUCCEEDED: {
+                /* bit 2: ADR */
+                if (unwds_get_node_settings().adr) {
+                    data.data[1] |= 1 << 2;
+                }
+                
+                /* bit 3: CNF */
+                if (unwds_get_node_settings().confirmation) {
+                    data.data[1] |= 1 << 3;
+                }
+                
+                /* bit 7: FPort usage for module addressing */
+                #if !defined LORAWAN_DONT_USE_FPORT
+                data.data[1] |= 1 << 7;
+                #endif
+
+                data.length++;
+
+                unwds_callback(&data);
+                break;
+            }
+            case SEMTECH_LORAMAC_BUSY:
+            case SEMTECH_LORAMAC_NOT_JOINED:
+            case SEMTECH_LORAMAC_JOIN_FAILED:
+            case SEMTECH_LORAMAC_DUTYCYCLE_RESTRICTED:
+            {
+                printf("[LoRa] join failed: code %d\n", res);
+                if ((current_join_retries > unwds_get_node_settings().max_retr) &&
+                    (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A)) {
+                    /* class A node: go to sleep */
+                    puts("[LoRa] maximum join retries exceeded, stopping");
                     current_join_retries = 0;
-                    puts("[LoRa] successfully joined to the network");
+                } else {
+                    puts("[LoRa] join request timed out, resending");
                     
-                    /* transmitting a packet with module data */
-                    module_data_t data = {};
-                    
-                    /* first byte */
-                    data.data[0] = UNWDS_LORAWAN_SYSTEM_MODULE_ID;
-                    data.length++;
-                    
-                    /* second byte - device class and settings */
-                    /* bits 0-1: device class */
-                    switch (unwds_get_node_settings().nodeclass) {
-                        case (LS_ED_CLASS_A):
-                            break;
-                        case (LS_ED_CLASS_B):
-                            data.data[1] = 1 << 0;
-                            break;
-                        case (LS_ED_CLASS_C):
-                            data.data[1] = 1 << 1;
-                            break;
-                        default:
-                            break;
-                    }
-                    
-                    /* bit 2: ADR */
-                    if (unwds_get_node_settings().adr) {
-                        data.data[1] |= 1 << 2;
-                    }
-                    
-                    /* bit 3: CNF */
-                    if (unwds_get_node_settings().confirmation) {
-                        data.data[1] |= 1 << 3;
-                    }
-                    
-                    /* bit 7: FPort usage for module addressing */
-                    #if !defined LORAWAN_DONT_USE_FPORT
-                    data.data[1] |= 1 << 7;
-                    #endif
-
-                    data.length++;
-
-                    unwds_callback(&data);
-                    break;
-                }
-                case SEMTECH_LORAMAC_RESTRICTED:
-                case SEMTECH_LORAMAC_BUSY:
-                case SEMTECH_LORAMAC_NOT_JOINED:
-                case SEMTECH_LORAMAC_JOIN_FAILED:
-                case SEMTECH_LORAMAC_DUTYCYCLE_RESTRICTED:
-                {
-                    printf("[LoRa] LoRaMAC join failed: code %d\n", res);
-                    if ((current_join_retries > unwds_get_node_settings().max_retr) &&
-                        (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A)) {
-                        /* class A node: go to sleep */
-                        puts("[LoRa] maximum join retries exceeded, stopping");
-                        current_join_retries = 0;
-                    } else {
-                        puts("[LoRa] join request timed out, resending");
-                        
-                        /* Pseudorandom delay for collision avoidance */
-                        unsigned int delay = random_uint32_range(30000 + (current_join_retries - 1)*60000, 90000 + (current_join_retries - 1)*60000);
-                        printf("[LoRa] random delay %d s\n", delay/1000);
-                        lptimer_set_msg(&join_retry_timer, delay, &msg_join, sender_pid);
-                    }
-                    break;
-                }
-                default:
-                    printf("[LoRa] join request: unknown response %d\n", res);
                     /* Pseudorandom delay for collision avoidance */
                     unsigned int delay = random_uint32_range(30000 + (current_join_retries - 1)*60000, 90000 + (current_join_retries - 1)*60000);
                     printf("[LoRa] random delay %d s\n", delay/1000);
                     lptimer_set_msg(&join_retry_timer, delay, &msg_join, sender_pid);
-                    break;
                 }
+                break;
             }
-        } else {
-            switch (msg.type) {
-                case MSG_TYPE_LORAMAC_TX_STATUS: {
-                    if (msg.content.value == SEMTECH_LORAMAC_TX_DONE) {
-                        puts("[LoRa] TX done");
-                        break;
-                    }
-                    
-                    if (msg.content.value == SEMTECH_LORAMAC_TX_CNF_FAILED) {
-                        puts("[LoRa] Uplink confirmation failed");
-                        uplinks_failed++;
-                        
-                        if (uplinks_failed > unwds_get_node_settings().max_retr) {
-                            puts("[LoRa] Too many uplinks failed, rejoining");
-                            current_join_retries = 0;
-                            uplinks_failed = 0;
-                            msg_send(&msg_join, sender_pid);
-                        } else {
-                            lora_resend_packet();
-                        }
-                        break;
-                    }
-                    
-                    printf("[LoRa] Unknown TX status %lu\n", msg.content.value);
-                    break;
-                }
-                case MSG_TYPE_LORAMAC_RX: {
-                    if ((ls->rx_data.payload_len == 0) && ls->rx_data.ack) {
-                        printf("[LoRa] Ack received: RSSI %d, DR %d\n",
-                                ls->rx_data.rssi,
-                                ls->rx_data.datarate);
-                    } else {
-                        printf("[LoRa] Data received: %d bytes, port %d, RSSI %d, DR %d\n",
-                                ls->rx_data.payload_len,
-                                ls->rx_data.port,
-                                ls->rx_data.rssi,
-                                ls->rx_data.datarate);
+            default:
+                printf("[LoRa] join request: unknown response %d\n", res);
+                /* Pseudorandom delay for collision avoidance */
+                unsigned int delay = random_uint32_range(30000 + (current_join_retries - 1)*60000, 90000 + (current_join_retries - 1)*60000);
+                printf("[LoRa] random delay %d s\n", delay/1000);
+                lptimer_set_msg(&join_retry_timer, delay, &msg_join, sender_pid);
+                break;
+            }
+        }
+    }
+    return NULL;
+}
+
+static void *receiver_thread(void *arg) {
+    semtech_loramac_t *ls = (semtech_loramac_t *)arg;
+    
+    puts("[LoRa] receiver thread started");
+    
+    while (1) {
+        int res = semtech_loramac_recv(ls);
+        switch (res) {
+            case SEMTECH_LORAMAC_RX_DATA: {
+                printf("[LoRa] data received: %d bytes, port %d, RSSI %d, DR %d\n",
+                        ls->rx_data.payload_len,
+                        ls->rx_data.port,
+                        ls->rx_data.rssi,
+                        ls->rx_data.datarate);
 #if ENABLE_DEBUG
-                        printf("[LoRa] Hex data: ");
-                        for (int l = 0; l < ls->rx_data.payload_len; l++) {
-                            printf("%02X ", ls->rx_data.payload[l]);
-                        }
-                        printf("\n");
-#endif
-                        appdata_received(ls->rx_data.payload, ls->rx_data.payload_len, ls->rx_data.port);
-                    }
-                    break;
+                printf("[LoRa] hex data: ");
+                for (int l = 0; l < ls->rx_data.payload_len; l++) {
+                    printf("%02X ", ls->rx_data.payload[l]);
                 }
-                case MSG_TYPE_LORAMAC_JOIN:
-                    puts("[LoRa] LoRaMAC join notification\n");
-                    break;
-                default:
-                    DEBUG("[LoRa] Unidentified LoRaMAC msg type %d\n", msg.type);
-                    break;
+                printf("\n");
+#endif
+                appdata_received(ls->rx_data.payload, ls->rx_data.payload_len, ls->rx_data.port);
+                break;
             }
+            case SEMTECH_LORAMAC_RX_LINK_CHECK: {
+                printf("[LoRa] link check: margin %d, gateways %d\n",
+                        ls->link_chk.demod_margin,
+                        ls->link_chk.nb_gateways);
+                break;
+            }
+            case SEMTECH_LORAMAC_RX_CONFIRMED: {
+                puts("[LoRa] ack received");
+                break;
+            }
+            default:
+                printf("[LoRa] unknown LoRaMAC response %d\n", res);
+                break;
         }
     }
     return NULL;
@@ -357,16 +356,13 @@ static void *sender_thread(void *arg) {
 
 static bool appdata_received(uint8_t *buf, size_t buflen, uint8_t fport)
 {
+#if ENABLE_DEBUG
     char hex[100] = {};
-
     bytes_to_hex(buf, buflen, hex, false);
-
     printf("[LoRa] received data: \"%s\"\n", hex);
-    blink_led(LED0_PIN);
+#endif
 
-    if (buflen < 2) {
-        return true;
-    }
+    blink_led(LED0_PIN);
 
 #if defined LORAWAN_DONT_USE_FPORT
     (void)fport;
@@ -386,9 +382,6 @@ static bool appdata_received(uint8_t *buf, size_t buflen, uint8_t fport)
     cmd.length = buflen;
 #endif
 
-    /* Save RSSI value */
-    /* cmd.rssi = ls._internal.last_rssi; */
-
     /* Send command to the module */
     module_data_t reply = {};
 
@@ -404,6 +397,8 @@ static bool appdata_received(uint8_t *buf, size_t buflen, uint8_t fport)
     }
     
     if (result != UNWDS_MODULE_NO_DATA) {
+        /* wait a bit */
+        lptimer_sleep(3000);
         unwds_callback(&reply);
     }
 
@@ -558,13 +553,13 @@ static void print_config(void)
     uint8_t *key;
     if (unwds_get_node_settings().no_join) {
         key = config_get_appskey();
-        printf("AppsKey = 0x....%01X%01X\n", key[14], key[15]);
+        printf("AppsKey = 0x....%02X%02X\n", key[14], key[15]);
         
         key = config_get_nwkskey();
-        printf("NwksKey = 0x....%01X%01X\n", key[14], key[15]);
+        printf("NwksKey = 0x....%02X%02X\n", key[14], key[15]);
     } else {
         key = config_get_appkey();
-        printf("AppKey = 0x....%01X%01X\n", key[14], key[15]);
+        printf("AppKey = 0x....%02X%02X\n", key[14], key[15]);
     }
 #endif
 
@@ -753,12 +748,12 @@ static void unwds_callback(module_data_t *buf)
         if (buf->length < 31) {
             bytes = 32;
         } else {
-            printf("[LoRa] Payload too big: %d bytes (should be 30 bytes max)\n", buf->length);
+            printf("[LoRa] payload too big: %d bytes (should be 30 bytes max)\n", buf->length);
             return;
         }
     }
     
-    printf("[LoRa] Payload size %d bytes + 2 status bytes -> %d bytes\n", buf->length, bytes);
+    printf("[LoRa] payload size %d bytes + 2 status bytes -> %d bytes\n", buf->length, bytes);
 #else
     if (buf->length < 16) {
         bytes = 16;
@@ -766,7 +761,7 @@ static void unwds_callback(module_data_t *buf)
         if (buf->length < 32) {
             bytes = 32;
         } else {
-            printf("[LoRa] Payload too big: %d bytes (should be 31 bytes max)\n", buf->length);
+            printf("[LoRa] payload too big: %d bytes (should be 31 bytes max)\n", buf->length);
             return;
         }
     }
@@ -775,7 +770,7 @@ static void unwds_callback(module_data_t *buf)
     node_data.fport = buf->data[0];
     memmove(&buf->data[0], &buf->data[1], buf->length - 1);
     
-    printf("[LoRa] Payload size %d bytes + 2 status bytes -> %d bytes\n", buf->length - 1, bytes);
+    printf("[LoRa] payload size %d bytes + 2 status bytes -> %d bytes\n", buf->length - 1, bytes);
 #endif
     buf->length = bytes;
     
@@ -844,6 +839,9 @@ void init_normal(shell_command_t *commands)
     } else {
         sender_pid = thread_create(sender_stack, sizeof(sender_stack), THREAD_PRIORITY_MAIN - 2,
                                    THREAD_CREATE_STACKTEST, sender_thread, &ls,  "LoRa sender thread");
+                                   
+        receiver_pid = thread_create(receiver_stack, sizeof(receiver_stack), THREAD_PRIORITY_MAIN - 2,
+                                   THREAD_CREATE_STACKTEST, receiver_thread, &ls,  "LoRa receiver thread");
 
         unwds_device_init(unwds_callback, unwds_init, unwds_join, unwds_sleep);
     }

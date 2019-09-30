@@ -244,8 +244,8 @@ static const adc_conf_t adc_config[] = {
 	{ .pin = GPIO_UNDEF,          .chan = ADC_TEMPERATURE_CHANNEL, /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
 };
 
-#define ADC_VREF_INDEX          7
-#define ADC_TEMPERATURE_INDEX   8
+#define ADC_VREF_INDEX          9
+#define ADC_TEMPERATURE_INDEX   10
 
 #define ADC_NUMOF           (sizeof(adc_config) / sizeof(adc_config[0]))
 /** @} */

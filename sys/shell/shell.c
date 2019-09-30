@@ -246,7 +246,7 @@ static int readline(char *buf, size_t size)
         /* We allow Unix linebreaks (\n), DOS linebreaks (\r\n), and Mac linebreaks (\r). */
         /* QEMU transmits only a single '\r' == 13 on hitting enter ("-serial stdio"). */
         /* DOS newlines are handled like hitting enter twice, but empty lines are ignored. */
-        if (c == '\r' || c == '\n') {
+        if (c == '\r' || c == '\n' || c == ';') {
             *line_buf_ptr = '\0';
 #ifndef SHELL_NO_ECHO
             _putchar('\r');

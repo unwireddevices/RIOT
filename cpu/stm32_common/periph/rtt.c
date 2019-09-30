@@ -24,8 +24,13 @@
 #include "periph/rtt.h"
 #include "stmclk.h"
 
+/* temporary as RTT based on LPTIM1 is not stable yet */
+#undef LPTIM1
+
 /* this driver is only valid for STM CPUs that provide LPTIMERs */
 #if defined(LPTIM1)
+
+#error "Shitty code"
 
 /* figure out the used pre-scaler */
 #if (RTT_FREQUENCY == 32768)

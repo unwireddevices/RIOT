@@ -755,16 +755,7 @@ static void unwds_callback(module_data_t *buf)
     
     printf("[LoRa] payload size %d bytes + 2 status bytes -> %d bytes\n", buf->length, bytes);
 #else
-    if (buf->length < 16) {
-        bytes = 16;
-    } else {
-        if (buf->length < 32) {
-            bytes = 32;
-        } else {
-            printf("[LoRa] payload too big: %d bytes (should be 31 bytes max)\n", buf->length);
-            return;
-        }
-    }
+    bytes = buf->length + 1;
     
     /* move module ID to FPort */
     node_data.fport = buf->data[0];

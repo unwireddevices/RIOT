@@ -223,7 +223,7 @@ static void *sender_thread(void *arg) {
                     }
                     break;
                 default:
-                    printf("[warning] Unknown response %d\n", res);
+                    printf("[LoRa] send: unknown response %d\n", res);
                     break;
             }
         }

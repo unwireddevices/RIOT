@@ -447,8 +447,8 @@ typedef enum {
 typedef struct {
     I2C_TypeDef *dev;       /**< i2c device */
     i2c_speed_t speed;      /**< i2c bus speed */
-    gpio_t scl_pin;         /**< scl pin number */
-    gpio_t sda_pin;         /**< sda pin number */
+    gpio_t scl;         /**< scl pin number */
+    gpio_t sda;         /**< sda pin number */
 #ifndef CPU_FAM_STM32F1
     gpio_af_t scl_af;       /**< scl pin alternate function value */
     gpio_af_t sda_af;       /**< sda pin alternate function value */

@@ -282,8 +282,8 @@ typedef enum {
 typedef struct {
     SercomI2cm *dev;        /**< pointer to the used I2C device */
     i2c_speed_t speed;      /**< baudrate used for the bus */
-    gpio_t scl_pin;         /**< used SCL pin */
-    gpio_t sda_pin;         /**< used MOSI pin */
+    gpio_t scl;         /**< used SCL pin */
+    gpio_t sda;         /**< used MOSI pin */
     gpio_mux_t mux;         /**< alternate function (mux) */
     uint8_t gclk_src;       /**< GCLK source which supplys SERCOM */
     uint8_t flags;          /**< allow SERCOM to run in standby mode */

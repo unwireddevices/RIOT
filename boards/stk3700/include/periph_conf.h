@@ -111,8 +111,8 @@ static const dac_chan_conf_t dac_channel_config[] = {
 static const i2c_conf_t i2c_config[] = {
     {
         .dev = I2C0,
-        .sda_pin = GPIO_PIN(PD, 6),
-        .scl_pin = GPIO_PIN(PD, 7),
+        .sda = GPIO_PIN(PD, 6),
+        .scl = GPIO_PIN(PD, 7),
         .loc = I2C_ROUTE_LOCATION_LOC1,
         .cmu = cmuClock_I2C0,
         .irq = I2C0_IRQn,
@@ -120,8 +120,8 @@ static const i2c_conf_t i2c_config[] = {
     },
     {
         .dev = I2C1,
-        .sda_pin = GPIO_PIN(PC, 4),
-        .scl_pin = GPIO_PIN(PC, 5),
+        .sda = GPIO_PIN(PC, 4),
+        .scl = GPIO_PIN(PC, 5),
         .loc = I2C_ROUTE_LOCATION_LOC0,
         .cmu = cmuClock_I2C1,
         .irq = I2C1_IRQn,

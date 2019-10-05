@@ -116,8 +116,8 @@ static const uart_conf_t uart_config[] = {
 static const i2c_conf_t i2c_config[] = {
     {
         .speed = I2C_SPEED_FAST,    /**< bus speed */
-        .scl_pin = GPIO_PIN(1, 5),  /* SI7006 Temp/RH sensor */
-        .sda_pin = GPIO_PIN(1, 4)   /* SI7006 Temp/RH sensor */
+        .scl = GPIO_PIN(1, 5),  /* SI7006 Temp/RH sensor */
+        .sda = GPIO_PIN(1, 4)   /* SI7006 Temp/RH sensor */
     },
 };
 

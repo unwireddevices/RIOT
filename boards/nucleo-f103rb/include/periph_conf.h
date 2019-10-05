@@ -146,8 +146,8 @@ static const i2c_conf_t i2c_config[] = {
     {
         .dev            = I2C1,
         .speed          = I2C_SPEED_NORMAL,
-        .scl_pin        = GPIO_PIN(PORT_B, 8),
-        .sda_pin        = GPIO_PIN(PORT_B, 9),
+        .scl        = GPIO_PIN(PORT_B, 8),
+        .sda        = GPIO_PIN(PORT_B, 9),
         .bus            = APB1,
         .rcc_mask       = RCC_APB1ENR_I2C1EN,
         .clk            = CLOCK_APB1,
@@ -156,8 +156,8 @@ static const i2c_conf_t i2c_config[] = {
     {
         .dev            = I2C2,
         .speed          = I2C_SPEED_NORMAL,
-        .scl_pin        = GPIO_PIN(PORT_B, 10),
-        .sda_pin        = GPIO_PIN(PORT_B, 11),
+        .scl        = GPIO_PIN(PORT_B, 10),
+        .sda        = GPIO_PIN(PORT_B, 11),
         .bus            = APB1,
         .rcc_mask       = RCC_APB1ENR_I2C2EN,
         .clk            = CLOCK_APB1,

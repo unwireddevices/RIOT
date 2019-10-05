@@ -211,11 +211,11 @@ void i2c_init(i2c_t dev)
     if (ENABLE_INIT_DEBUG) {
         DEBUG("i2c_init: init SCL pin\n");
     }
-    gpio_init_port(conf->scl_pin, conf->scl_pcr);
+    gpio_init_port(conf->scl, conf->scl_pcr);
     if (ENABLE_INIT_DEBUG) {
         DEBUG("i2c_init: init SDA pin\n");
     }
-    gpio_init_port(conf->sda_pin, conf->sda_pcr);
+    gpio_init_port(conf->sda, conf->sda_pcr);
     /* Configure master settings */
     i2c->C1 = 0; /* Disable module while messing with the settings */
     /* Configure glitch filter register */

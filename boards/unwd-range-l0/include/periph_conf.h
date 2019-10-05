@@ -196,8 +196,8 @@ static const i2c_conf_t i2c_config[] = {
     {
         .dev            = I2C2,
         .speed          = I2C_SPEED_NORMAL,
-        .scl_pin        = GPIO_PIN(PORT_B, 13),
-        .sda_pin        = GPIO_PIN(PORT_B, 14),
+        .scl        = GPIO_PIN(PORT_B, 13),
+        .sda        = GPIO_PIN(PORT_B, 14),
         .scl_af         = GPIO_AF5,
         .sda_af         = GPIO_AF5,
         .bus            = APB1,
@@ -207,8 +207,8 @@ static const i2c_conf_t i2c_config[] = {
     {
         .dev            = I2C1,
         .speed          = I2C_SPEED_NORMAL,
-        .scl_pin        = GPIO_PIN(PORT_B,  6),
-        .sda_pin        = GPIO_PIN(PORT_B,  7),
+        .scl        = GPIO_PIN(PORT_B,  6),
+        .sda        = GPIO_PIN(PORT_B,  7),
         .scl_af         = GPIO_AF1,
         .sda_af         = GPIO_AF1,
         .bus            = APB1,

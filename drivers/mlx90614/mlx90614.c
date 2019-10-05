@@ -20,10 +20,10 @@ int mlx90614_init(mlx90614_t *dev)
 	i2c_acquire(dev->params.i2c);
     
     /* switching to I2C mode by pulling SCL low for 2 ms */
-    gpio_init(i2c_config[dev->params.i2c].scl_pin, GPIO_OD);
-    gpio_clear(i2c_config[dev->params.i2c].scl_pin);
+    gpio_init(i2c_config[dev->params.i2c].scl, GPIO_OD);
+    gpio_clear(i2c_config[dev->params.i2c].scl);
     xtimer_spin(xtimer_ticks_from_usec(2000));
-    gpio_set(i2c_config[dev->params.i2c].scl_pin);
+    gpio_set(i2c_config[dev->params.i2c].scl);
     xtimer_spin(xtimer_ticks_from_usec(2000));
     
     i2c_init(dev->params.i2c);

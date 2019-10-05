@@ -109,22 +109,22 @@ void i2c_init(i2c_t dev)
 
     /* configure pins */
     DEBUG("[i2c] init: configuring pins\n");
-    gpio_init(i2c_config[dev].scl_pin, GPIO_OD_PU);
-    gpio_init(i2c_config[dev].sda_pin, GPIO_OD_PU);
+    gpio_init(i2c_config[dev].scl, GPIO_OD_PU);
+    gpio_init(i2c_config[dev].sda, GPIO_OD_PU);
 #ifdef CPU_FAM_STM32F1
     /* This is needed in case the remapped pins are used */
-    if (i2c_config[dev].scl_pin == GPIO_PIN(PORT_B, 8) ||
-        i2c_config[dev].sda_pin == GPIO_PIN(PORT_B, 9)) {
+    if (i2c_config[dev].scl == GPIO_PIN(PORT_B, 8) ||
+        i2c_config[dev].sda == GPIO_PIN(PORT_B, 9)) {
         /* The remapping periph clock must first be enabled */
         RCC->APB2ENR |= RCC_APB2ENR_AFIOEN;
         /* Then the remap can occur */
         AFIO->MAPR |= AFIO_MAPR_I2C1_REMAP;
     }
-    gpio_init_af(i2c_config[dev].scl_pin, GPIO_AF_OUT_OD);
-    gpio_init_af(i2c_config[dev].sda_pin, GPIO_AF_OUT_OD);
+    gpio_init_af(i2c_config[dev].scl, GPIO_AF_OUT_OD);
+    gpio_init_af(i2c_config[dev].sda, GPIO_AF_OUT_OD);
 #else
-    gpio_init_af(i2c_config[dev].scl_pin, i2c_config[dev].scl_af);
-    gpio_init_af(i2c_config[dev].sda_pin, i2c_config[dev].sda_af);
+    gpio_init_af(i2c_config[dev].scl, i2c_config[dev].scl_af);
+    gpio_init_af(i2c_config[dev].sda, i2c_config[dev].sda_af);
 #endif
 
     /* configure device */
@@ -138,19 +138,19 @@ void i2c_init(i2c_t dev)
         /* disable peripheral */
         i2c->CR1 &= ~I2C_CR1_PE;
         /* toggle both pins to reset analog filter */
-        gpio_init(i2c_config[dev].scl_pin, GPIO_OD);
-        gpio_init(i2c_config[dev].sda_pin, GPIO_OD);
-        gpio_set(i2c_config[dev].sda_pin);
-        gpio_set(i2c_config[dev].scl_pin);
-        gpio_clear(i2c_config[dev].sda_pin);
-        gpio_clear(i2c_config[dev].scl_pin);
-        gpio_set(i2c_config[dev].sda_pin);
-        gpio_set(i2c_config[dev].scl_pin);
+        gpio_init(i2c_config[dev].scl, GPIO_OD);
+        gpio_init(i2c_config[dev].sda, GPIO_OD);
+        gpio_set(i2c_config[dev].sda);
+        gpio_set(i2c_config[dev].scl);
+        gpio_clear(i2c_config[dev].sda);
+        gpio_clear(i2c_config[dev].scl);
+        gpio_set(i2c_config[dev].sda);
+        gpio_set(i2c_config[dev].scl);
         /* reset pins for alternate function */
-        gpio_init(i2c_config[dev].scl_pin, GPIO_OD_PU);
-        gpio_init(i2c_config[dev].sda_pin, GPIO_OD_PU);
-        gpio_init_af(i2c_config[dev].scl_pin, i2c_config[dev].scl_af);
-        gpio_init_af(i2c_config[dev].sda_pin, i2c_config[dev].sda_af);
+        gpio_init(i2c_config[dev].scl, GPIO_OD_PU);
+        gpio_init(i2c_config[dev].sda, GPIO_OD_PU);
+        gpio_init_af(i2c_config[dev].scl, i2c_config[dev].scl_af);
+        gpio_init_af(i2c_config[dev].sda, i2c_config[dev].sda_af);
         /* make peripheral soft reset */
         i2c->CR1 |= I2C_CR1_SWRST;
         i2c->CR1 &= ~I2C_CR1_SWRST;

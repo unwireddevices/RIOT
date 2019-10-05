@@ -385,8 +385,8 @@ typedef enum {
  */
 typedef struct {
     I2C_Type *i2c;          /**< Pointer to hardware module registers */
-    gpio_t scl_pin;         /**< SCL GPIO pin */
-    gpio_t sda_pin;         /**< SDA GPIO pin */
+    gpio_t scl;         /**< SCL GPIO pin */
+    gpio_t sda;         /**< SDA GPIO pin */
     uint32_t freq;          /**< I2C module clock frequency, usually CLOCK_BUSCLOCK or CLOCK_CORECLOCK */
     i2c_speed_t speed;      /**< Configured bus speed, actual speed may be lower but never higher */
     IRQn_Type irqn;         /**< IRQ number for this module */

@@ -37,8 +37,8 @@
 static const i2c_conf_t i2c_config[] = {
     {
         .speed = I2C_SPEED_FAST,    /**< bus speed */
-        .scl_pin = GPIO_PIN(1, 1),  /**< GPIO_PB1 */
-        .sda_pin = GPIO_PIN(1, 0)   /**< GPIO_PB0 */
+        .scl = GPIO_PIN(1, 1),  /**< GPIO_PB1 */
+        .sda = GPIO_PIN(1, 0)   /**< GPIO_PB0 */
     },
 };
 

@@ -35,8 +35,8 @@
 #include "debug.h"
 
 /* short cuts macros */
-#define SCL_PIN(x)  (i2c_config[x].scl_pin)
-#define SDA_PIN(x)  (i2c_config[x].sda_pin)
+#define SCL_PIN(x)  (i2c_config[x].scl)
+#define SDA_PIN(x)  (i2c_config[x].sda)
 #define SPEED(x)    (i2c_config[x].speed)
 
 /* I2CM_CTRL Bits */

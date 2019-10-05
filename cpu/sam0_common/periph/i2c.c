@@ -122,8 +122,8 @@ void i2c_init(i2c_t dev)
     }
 
     /************ SERCOM PAD0 - SDA and SERCOM PAD1 - SCL *************/
-    gpio_init_mux(i2c_config[dev].sda_pin, i2c_config[dev].mux);
-    gpio_init_mux(i2c_config[dev].scl_pin, i2c_config[dev].mux);
+    gpio_init_mux(i2c_config[dev].sda, i2c_config[dev].mux);
+    gpio_init_mux(i2c_config[dev].scl, i2c_config[dev].mux);
 
     /* I2C CONFIGURATION */
     while (bus(dev)->SYNCBUSY.reg & SERCOM_I2CM_SYNCBUSY_MASK) {}

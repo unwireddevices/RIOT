@@ -123,8 +123,8 @@ typedef enum {
  */
 typedef struct {
     i2c_speed_t speed;      /**< baudrate used for the bus */
-    gpio_t scl_pin;         /**< pin used for SCL */
-    gpio_t sda_pin;         /**< pin used for SDA */
+    gpio_t scl;         /**< pin used for SCL */
+    gpio_t sda;         /**< pin used for SDA */
 } i2c_conf_t;
 
 /**

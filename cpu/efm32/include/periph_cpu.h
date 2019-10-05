@@ -247,8 +247,8 @@ typedef enum {
  */
 typedef struct {
     I2C_TypeDef *dev;       /**< USART device used */
-    gpio_t sda_pin;         /**< pin used for SDA */
-    gpio_t scl_pin;         /**< pin used for SCL */
+    gpio_t sda;         /**< pin used for SDA */
+    gpio_t scl;         /**< pin used for SCL */
     uint32_t loc;           /**< location of I2C pins */
     CMU_Clock_TypeDef cmu;  /**< the device CMU channel */
     IRQn_Type irq;          /**< the devices base IRQ channel */

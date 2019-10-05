@@ -112,8 +112,8 @@ static const uart_conf_t uart_config[] = {
 static const i2c_conf_t i2c_config[] = {
     {
         .speed = I2C_SPEED_FAST,    /**< bus speed */
-        .scl_pin = GPIO_PIN(1, 3),  /**< GPIO_PB3, OpenBattery */
-        .sda_pin = GPIO_PIN(1, 4)   /**< GPIO_PB4, OpenBattery */
+        .scl = GPIO_PIN(1, 3),  /**< GPIO_PB3, OpenBattery */
+        .sda = GPIO_PIN(1, 4)   /**< GPIO_PB4, OpenBattery */
     },
 };
 

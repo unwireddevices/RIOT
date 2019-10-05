@@ -89,8 +89,8 @@ static const uart_conf_t uart_config[] = {
 static const i2c_conf_t i2c_config[] = {
     {
         .speed = I2C_SPEED_FAST,    /**< bus speed */
-        .scl_pin = GPIO_PIN(0, 2),  /**< GPIO_PA2, SPI_SCK  on SmartRF06 */
-        .sda_pin = GPIO_PIN(0, 4)   /**< GPIO_PA4, SPI_MOSI on SmartRF06 */
+        .scl = GPIO_PIN(0, 2),  /**< GPIO_PA2, SPI_SCK  on SmartRF06 */
+        .sda = GPIO_PIN(0, 4)   /**< GPIO_PA4, SPI_MOSI on SmartRF06 */
     },
 };
 

@@ -1,0 +1,135 @@
+From eceb0d3992b9a5a3bec1f2c1a7a16477c0d45f8e Mon Sep 17 00:00:00 2001
+From: Oleg Artamonov <oleg@unwds.com>
+Date: Tue, 8 Oct 2019 12:36:55 +0300
+Subject: [PATCH] LBT support added for RU864 and KZ865 regions
+
+---
+ src/mac/region/RegionKZ865.c | 20 ++++++++++++++++----
+ src/mac/region/RegionKZ865.h | 10 ++++++++++
+ src/mac/region/RegionRU864.c | 20 ++++++++++++++++----
+ src/mac/region/RegionRU864.h | 10 ++++++++++
+ 4 files changed, 52 insertions(+), 8 deletions(-)
+
+diff --git a/src/mac/region/RegionKZ865.c b/src/mac/region/RegionKZ865.c
+index c06aa9f..e24b301 100644
+--- a/src/mac/region/RegionKZ865.c
++++ b/src/mac/region/RegionKZ865.c
+@@ -855,6 +855,7 @@ void RegionKZ865CalcBackOff( CalcBackOffParams_t* calcBackOff )
+ 
+ LoRaMacStatus_t RegionKZ865NextChannel( NextChanParams_t* nextChanParams, uint8_t* channel, TimerTime_t* time, TimerTime_t* aggregatedTimeOff )
+ {
++    uint8_t channelNext = 0;
+     uint8_t nbEnabledChannels = 0;
+     uint8_t delayTx = 0;
+     uint8_t enabledChannels[KZ865_MAX_NB_CHANNELS] = { 0 };
+@@ -886,11 +887,22 @@ LoRaMacStatus_t RegionKZ865NextChannel( NextChanParams_t* nextChanParams, uint8_
+ 
+     if( nbEnabledChannels > 0 )
+     {
+-        // We found a valid channel
+-        *channel = enabledChannels[randr( 0, nbEnabledChannels - 1 )];
++        for( uint8_t  i = 0, j = randr( 0, nbEnabledChannels - 1 ); i < KZ865_MAX_NB_CHANNELS; i++ )
++        {
++            channelNext = enabledChannels[j];
++            j = ( j + 1 ) % nbEnabledChannels;
+ 
+-        *time = 0;
+-        return LORAMAC_STATUS_OK;
++            // Perform carrier sense for KZ865_CARRIER_SENSE_TIME
++            // If the channel is free, we can stop the LBT mechanism
++            if( Radio.IsChannelFree( MODEM_LORA, Channels[channelNext].Frequency, KZ865_RSSI_FREE_TH, KZ865_CARRIER_SENSE_TIME ) == true )
++            {
++                // Free channel found
++                *channel = channelNext;
++                *time = 0;
++                return LORAMAC_STATUS_OK;
++            }
++        }
++        return LORAMAC_STATUS_NO_FREE_CHANNEL_FOUND;
+     }
+     else
+     {
+diff --git a/src/mac/region/RegionKZ865.h b/src/mac/region/RegionKZ865.h
+index f0d2242..a3c2db7 100644
+--- a/src/mac/region/RegionKZ865.h
++++ b/src/mac/region/RegionKZ865.h
+@@ -223,6 +223,16 @@
+ #define KZ865_JOIN_CHANNELS                         ( uint16_t )( LC( 1 ) | LC( 2 ) | LC( 3 ) )
+ 
+ /*!
++ * RSSI threshold for a free channel [dBm]
++ */
++#define KZ865_RSSI_FREE_TH                          -85
++
++/*!
++ * Specifies the time the node performs a carrier sense
++ */
++#define KZ865_CARRIER_SENSE_TIME                    6
++
++/*!
+  * Data rates table definition
+  */
+ static const uint8_t DataratesKZ865[]  = { 12, 11, 10,  9,  8,  7,  7, 50 };
+diff --git a/src/mac/region/RegionRU864.c b/src/mac/region/RegionRU864.c
+index 5286e32..56e1ee3 100644
+--- a/src/mac/region/RegionRU864.c
++++ b/src/mac/region/RegionRU864.c
+@@ -852,6 +852,7 @@ void RegionRU864CalcBackOff( CalcBackOffParams_t* calcBackOff )
+ 
+ LoRaMacStatus_t RegionRU864NextChannel( NextChanParams_t* nextChanParams, uint8_t* channel, TimerTime_t* time, TimerTime_t* aggregatedTimeOff )
+ {
++    uint8_t channelNext = 0;
+     uint8_t nbEnabledChannels = 0;
+     uint8_t delayTx = 0;
+     uint8_t enabledChannels[RU864_MAX_NB_CHANNELS] = { 0 };
+@@ -883,11 +884,22 @@ LoRaMacStatus_t RegionRU864NextChannel( NextChanParams_t* nextChanParams, uint8_
+ 
+     if( nbEnabledChannels > 0 )
+     {
+-        // We found a valid channel
+-        *channel = enabledChannels[randr( 0, nbEnabledChannels - 1 )];
++        for( uint8_t  i = 0, j = randr( 0, nbEnabledChannels - 1 ); i < RU864_MAX_NB_CHANNELS; i++ )
++        {
++            channelNext = enabledChannels[j];
++            j = ( j + 1 ) % nbEnabledChannels;
+ 
+-        *time = 0;
+-        return LORAMAC_STATUS_OK;
++            // Perform carrier sense for RU864_CARRIER_SENSE_TIME
++            // If the channel is free, we can stop the LBT mechanism
++            if( Radio.IsChannelFree( MODEM_LORA, Channels[channelNext].Frequency, RU864_RSSI_FREE_TH, RU864_CARRIER_SENSE_TIME ) == true )
++            {
++                // Free channel found
++                *channel = channelNext;
++                *time = 0;
++                return LORAMAC_STATUS_OK;
++            }
++        }
++        return LORAMAC_STATUS_NO_FREE_CHANNEL_FOUND;
+     }
+     else
+     {
+diff --git a/src/mac/region/RegionRU864.h b/src/mac/region/RegionRU864.h
+index 5f47a7e..4db0756 100644
+--- a/src/mac/region/RegionRU864.h
++++ b/src/mac/region/RegionRU864.h
+@@ -215,6 +215,16 @@
+ #define RU864_JOIN_CHANNELS                         ( uint16_t )( LC( 1 ) | LC( 2 ) )
+ 
+ /*!
++ * RSSI threshold for a free channel [dBm]
++ */
++#define RU864_RSSI_FREE_TH                          -85
++
++/*!
++ * Specifies the time the node performs a carrier sense
++ */
++#define RU864_CARRIER_SENSE_TIME                    6
++
++/*!
+  * Data rates table definition
+  */
+ static const uint8_t DataratesRU864[]  = { 12, 11, 10,  9,  8,  7,  7, 50 };
+-- 
+2.7.4
+

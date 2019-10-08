@@ -93,8 +93,11 @@ void i2c_init(i2c_t dev)
     DEBUG("[i2c] init: configuring pins\n");
     /* configure pins */
     gpio_init(i2c_config[dev].scl, GPIO_OD_PU);
-    gpio_init_af(i2c_config[dev].scl, i2c_config[dev].scl_af);
     gpio_init(i2c_config[dev].sda, GPIO_OD_PU);
+    
+    i2c_unstuck_sda(dev);
+    
+    gpio_init_af(i2c_config[dev].scl, i2c_config[dev].scl_af);
     gpio_init_af(i2c_config[dev].sda, i2c_config[dev].sda_af);
 
     DEBUG("[i2c] init: configuring device\n");

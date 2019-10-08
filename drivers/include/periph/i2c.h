@@ -439,6 +439,14 @@ int i2c_write_reg(i2c_t dev, uint16_t addr, uint16_t reg,
 int i2c_write_regs(i2c_t dev, uint16_t addr, uint16_t reg,
                   const void *data, size_t len, uint8_t flags);
 
+/**
+ * @brief   Toggle SCL in case if SDA stuck low by slave
+ * 
+ * @note    To be used by CPU I2C driver only
+ *
+ * @param[in]  dev          I2C peripheral device
+ */
+void i2c_unstuck_sda(i2c_t dev);
 
 #ifdef __cplusplus
 }

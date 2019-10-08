@@ -111,6 +111,9 @@ void i2c_init(i2c_t dev)
     DEBUG("[i2c] init: configuring pins\n");
     gpio_init(i2c_config[dev].scl, GPIO_OD_PU);
     gpio_init(i2c_config[dev].sda, GPIO_OD_PU);
+    
+    i2c_unstuck_sda(dev);
+    
 #ifdef CPU_FAM_STM32F1
     /* This is needed in case the remapped pins are used */
     if (i2c_config[dev].scl == GPIO_PIN(PORT_B, 8) ||

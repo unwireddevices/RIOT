@@ -21,7 +21,9 @@
 
 #include "board.h"
 #include "cpu.h"
+#include "xtimer.h"
 #include "periph/i2c.h"
+#include "periph/gpio.h"
 
 #ifdef I2C_NUMOF
 
@@ -77,6 +79,17 @@ int __attribute__((weak)) i2c_write_regs(i2c_t dev, uint16_t addr, uint16_t reg,
     }
     /* Then write data to the device */
     return i2c_write_bytes(dev, addr, data, len, flags | I2C_NOSTART);
+}
+
+void i2c_unstuck_sda(i2c_t dev) {
+    if (gpio_read(i2c_config[dev].sda == 0)) {
+        do {
+            gpio_clear(i2c_config[dev].scl);
+            xtimer_spin(xtimer_ticks_from_usec(5));
+            gpio_set(i2c_config[dev].scl);
+            xtimer_spin(xtimer_ticks_from_usec(5));
+        } while (gpio_read(i2c_config[dev].sda == 0));
+    }
 }
 
 #endif /* I2C_NUMOF */

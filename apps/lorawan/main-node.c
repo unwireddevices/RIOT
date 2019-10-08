@@ -81,6 +81,7 @@ extern "C" {
 typedef enum {
     NODE_MSG_JOIN,
     NODE_MSG_SEND,
+    NODE_MSG_RETX,
 } node_message_types_t;
 
 typedef struct {
@@ -95,6 +96,7 @@ static node_data_t node_data;
 
 static msg_t msg_join = { .type = NODE_MSG_JOIN };
 static msg_t msg_data = { .type = NODE_MSG_SEND };
+static msg_t msg_retx = { .type = NODE_MSG_RETX };
 static kernel_pid_t sender_pid;
 static kernel_pid_t receiver_pid;
 static lptimer_t join_retry_timer;
@@ -109,6 +111,7 @@ static semtech_loramac_t ls;
 
 static uint8_t current_join_retries = 0;
 static uint8_t uplinks_failed = 0;
+static uint32_t lora_frm_cnt = 0;
 
 static bool appdata_received(uint8_t *buf, size_t buflen, uint8_t fport);
 static void unwds_callback(module_data_t *buf);
@@ -161,7 +164,7 @@ static void lora_resend_packet(void) {
     /* schedule packet retransmission */
     puts("[LoRa] packet retransmission in 30 seconds");
     
-    lptimer_set_msg(&send_retry_timer, 30000, &msg_data, sender_pid);
+    lptimer_set_msg(&send_retry_timer, 30000, &msg_retx, sender_pid);
 }
 
 static void *sender_thread(void *arg) {
@@ -178,8 +181,16 @@ static void *sender_thread(void *arg) {
 
         int res;
         
-        if (msg.type == NODE_MSG_SEND) {
+        if ((msg.type == NODE_MSG_SEND) || (msg.type == NODE_MSG_RETX))  {
             node_data_t *data = msg.content.ptr;
+
+            if (msg.type == NODE_MSG_RETX) {
+                /* retransmissions should have the same frame counter as original package */
+                semtech_loramac_set_uplink_counter(ls, lora_frm_cnt);
+            } else {
+                lora_frm_cnt = semtech_loramac_get_uplink_counter(ls);
+            }
+            
             res = semtech_loramac_send(ls, data->buffer, data->length);
 
             switch (res) {

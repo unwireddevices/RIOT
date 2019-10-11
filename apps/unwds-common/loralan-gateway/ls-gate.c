@@ -602,7 +602,7 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
             ch->_internal.device->driver->set(ch->_internal.device, NETOPT_STATE, &state, sizeof(uint8_t));
             break;
             
-        case NETDEV_EVENT_VALID_HEADER:
+        case NETDEV_EVENT_RX_STARTED:
             DEBUG("ls-gate: header received, switch to RX state");
             ch->state = LS_GATE_CHANNEL_STATE_RX;
             break;

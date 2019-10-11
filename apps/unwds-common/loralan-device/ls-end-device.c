@@ -639,7 +639,7 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event)
             ls_ed_sleep(p_ls);
             break;
             
-        case NETDEV_EVENT_VALID_HEADER:
+        case NETDEV_EVENT_RX_STARTED:
             puts("[LoRa] header received, switch to RX state");
             p_ls->state = LS_ED_LISTENING;
             break;

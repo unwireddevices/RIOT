@@ -78,6 +78,9 @@ extern "C" {
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
+#define LORAWAN_RESEND_DELAY_MS     30000U
+#define LORAWAN_MIN_TX_DELAY_MS     5000U
+
 typedef enum {
     NODE_MSG_JOIN,
     NODE_MSG_SEND,
@@ -112,6 +115,7 @@ static semtech_loramac_t ls;
 static uint8_t current_join_retries = 0;
 static uint8_t uplinks_failed = 0;
 static uint32_t lora_frm_cnt = 0;
+static uint32_t last_tx_time = 0;
 
 static bool appdata_received(uint8_t *buf, size_t buflen, uint8_t fport);
 static void unwds_callback(module_data_t *buf);
@@ -160,11 +164,19 @@ static int node_join(semtech_loramac_t *ls) {
     return (semtech_loramac_join(ls, join_type));
 }
 
-static void lora_resend_packet(void) {
+static void lora_resend_packet(bool delay) {
     /* schedule packet retransmission */
-    puts("[LoRa] packet retransmission in 30 seconds");
-    
-    lptimer_set_msg(&send_retry_timer, 30000, &msg_retx, sender_pid);
+    msg_retx.content.ptr = &node_data;
+
+    if (delay) {
+        /* introduce additional delay */
+        lptimer_set_msg(&send_retry_timer, LORAWAN_RESEND_DELAY_MS, &msg_retx, sender_pid);
+        printf("[LoRa] packet retransmission in %u seconds\n", LORAWAN_RESEND_DELAY_MS/1000);
+    } else {
+        /* resend packet ASAP */
+        puts("[LoRa] packet retransmission now");
+        msg_send(&msg_retx, sender_pid);
+    }
 }
 
 static void *sender_thread(void *arg) {
@@ -176,10 +188,23 @@ static void *sender_thread(void *arg) {
     
     puts("[LoRa] sender thread started");
     
+    last_tx_time = lptimer_now().ticks32;
+    
     while (1) {
         msg_receive(&msg);
 
         int res;
+        
+        /* 10 seconds minimum interval between transmissions */
+        uint32_t tx_delay = 0;
+        uint32_t now = lptimer_now().ticks32;
+
+        if (last_tx_time + LORAWAN_MIN_TX_DELAY_MS > now) {
+            printf("[LoRa] warning: %u sec minimum TX interval\n", LORAWAN_MIN_TX_DELAY_MS/1000);
+            tx_delay = last_tx_time + LORAWAN_MIN_TX_DELAY_MS - now;
+            printf("[LoRa] delaying TX by %lu ms\n", tx_delay);
+            lptimer_sleep(tx_delay);
+        }
         
         if ((msg.type == NODE_MSG_SEND) || (msg.type == NODE_MSG_RETX))  {
             node_data_t *data = msg.content.ptr;
@@ -187,23 +212,25 @@ static void *sender_thread(void *arg) {
             if (msg.type == NODE_MSG_RETX) {
                 /* retransmissions should have the same frame counter as original package */
                 semtech_loramac_set_uplink_counter(ls, lora_frm_cnt);
+                puts("[LoRa] packet retransmission");
             } else {
                 lora_frm_cnt = semtech_loramac_get_uplink_counter(ls);
+                puts("[LoRa] sending new packet");
             }
             
             res = semtech_loramac_send(ls, data->buffer, data->length);
 
             switch (res) {
                 case SEMTECH_LORAMAC_BUSY:
-                    puts("[error] MAC already busy");
-                    lora_resend_packet();
+                    puts("[LoRa] MAC already busy");
+                    lora_resend_packet(true);
                     break;
                 case SEMTECH_LORAMAC_NOT_JOINED: {
-                    puts("[error] not joined to the network");
+                    puts("[LoRa] not joined to the network");
 
                     if (current_join_retries == 0) {
                         puts("[LoRa] attempting to rejoin");
-                        lora_resend_packet();
+                        lora_resend_packet(true);
                         msg_send(&msg_join, sender_pid);
                     } else {
                         puts("[LoRa] waiting for the node to join");
@@ -217,8 +244,8 @@ static void *sender_thread(void *arg) {
                     puts("[LoRa] TX done");
                     break;
                 case SEMTECH_LORAMAC_DUTYCYCLE_RESTRICTED:
-                    puts("[error] TX duty cycle restricted");
-                    lora_resend_packet();
+                    puts("[LoRa] TX duty cycle restricted");
+                    lora_resend_packet(true);
                     break;
                 case SEMTECH_LORAMAC_TX_CNF_FAILED:
                     puts("[LoRa] uplink confirmation failed");
@@ -230,8 +257,12 @@ static void *sender_thread(void *arg) {
                         uplinks_failed = 0;
                         msg_send(&msg_join, sender_pid);
                     } else {
-                        lora_resend_packet();
+                        lora_resend_packet(true);
                     }
+                    break;
+                case SEMTECH_LORAMAC_NO_FREE_CHANNEL:
+                    puts("[LoRa] LBT no free channels");
+                    lora_resend_packet(false); /* resend with minimum possible delay */
                     break;
                 default:
                     printf("[LoRa] send: unknown response %d\n", res);
@@ -241,7 +272,7 @@ static void *sender_thread(void *arg) {
         
         if (msg.type == NODE_MSG_JOIN) {
             res = node_join(ls);
-            
+
             switch (res) {
             case SEMTECH_LORAMAC_JOIN_SUCCEEDED: {
                 current_join_retries = 0;
@@ -319,6 +350,7 @@ static void *sender_thread(void *arg) {
                 break;
             }
         }
+        last_tx_time = lptimer_now().ticks32;
     }
     return NULL;
 }

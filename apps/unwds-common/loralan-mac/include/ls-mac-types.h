@@ -160,10 +160,19 @@ typedef struct {
 /**
  * LS Frame.
  */
+
+#if defined(UNWDS_MAC_LORAWAN)
+typedef struct {
+    uint8_t data[32];              /**< Payload data, 32 bytes max */
+    uint8_t length;                /**< Payload length */
+    uint8_t fport;                 /**< LoRaWAN FPort */
+} ls_frame_t;
+#else
 typedef struct {
     ls_header_t header;            /**< LS frame header */
     ls_payload_t payload;          /**< LS frame payload */
 } ls_frame_t;
+#endif
 
 typedef struct {
     ls_header_r1_t header;         /**< LS frame header */

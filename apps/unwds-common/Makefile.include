@@ -149,6 +149,7 @@ USEMODULE += lptimer
 
 USEMODULE += sx127x
 
+USEMODULE += loralan-mac
 USEMODULE += loralan-common
 USEMODULE += unwds-common
 

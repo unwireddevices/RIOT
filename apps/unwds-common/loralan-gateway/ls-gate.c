@@ -64,7 +64,7 @@ static msg_t msg_rx1_expired;
 static lptimer_t uq_send_delay_timer;
 #define UQ_SEND_DELAY_MS    100
 
-ls_gate_channel_t *channel;
+static ls_gate_channel_t *channel;
 
 static void schedule_tx(ls_gate_channel_t *ch) {
 	/* Can send next frame only if channel is doing nothing */

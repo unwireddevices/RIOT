@@ -268,8 +268,8 @@ ifneq (,$(filter lis2dh12%,$(USEMODULE)))
   ifneq (,$(filter lis2dh12_i2c,$(USEMODULE)))
     FEATURES_REQUIRED += periph_i2c
     FEATURES_REQUIRED += periph_gpio
-    FEATURES_REQUIRED += lptimer
-    USEMODULE += lptimer
+    FEATURES_REQUIRED += xtimer
+    USEMODULE += xtimer
   else
     FEATURES_REQUIRED += periph_gpio
     FEATURES_REQUIRED += periph_spi

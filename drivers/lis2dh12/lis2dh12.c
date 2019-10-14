@@ -22,7 +22,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "lptimer.h"
+#include "xtimer.h"
 
 #include "assert.h"
 
@@ -143,14 +143,6 @@ static int _write(const lis2dh12_t *dev, uint8_t reg, uint8_t *data, uint16_t le
     /* Release the bus for other threads. */
     i2c_release(dev->params.i2c_dev);
     return status;
-}
-
-#define POWER_ON_DELAY_MS   110
-
-static void _lis2dh12_delay_ms(uint32_t millis)
-{
-    /* Delay to start */
-    lptimer_sleep(millis);
 }
 
 static int _lis2dh12_read_reg(lis2dh12_t *dev, uint8_t reg, uint8_t* data, uint16_t len)
@@ -525,10 +517,52 @@ int lis2dh12_power_on(lis2dh12_t *dev)
         return -LIS2DH12_ERROR_I2C;
     }
 
-    _lis2dh12_delay_ms(POWER_ON_DELAY_MS);
-
-    /* Discard first measurement after power-on*/
     if (dev->params.rate != LIS2DH12_RATE_POWER_DOWN) {
+        uint32_t power_on_delay_us;
+        
+        switch (dev->params.res) {
+            case LIS2DH12_HR_12BIT: {
+                switch (dev->params.rate) {
+                    case LIS2DH12_RATE_10HZ:
+                        power_on_delay_us = 7000/10;
+                        break;
+                    case LIS2DH12_RATE_25HZ:
+                        power_on_delay_us = 7000/25;
+                        break;
+                    case LIS2DH12_RATE_50HZ:
+                        power_on_delay_us = 7000/50;
+                        break;
+                    case LIS2DH12_RATE_100HZ:
+                        power_on_delay_us = 7000/100;
+                        break;
+                    case LIS2DH12_RATE_200HZ:
+                        power_on_delay_us = 7000/200;
+                        break;
+                    case LIS2DH12_RATE_400HZ:
+                        power_on_delay_us = 7000/400;
+                        break;
+                    case LIS2DH12_RATE_5376Hz:
+                        power_on_delay_us = 7000/1344;
+                        break;
+                    default:
+                        power_on_delay_us = 7000;
+                        break;
+                }
+            }
+            case LIS2DH12_NM_10BIT:
+                power_on_delay_us = 1600;
+                break;
+            case LIS2DH12_LP_8BIT:
+                power_on_delay_us = 1000;
+                break;
+            default:
+                power_on_delay_us = 7000;
+                break;
+        }
+        
+        xtimer_spin(xtimer_ticks_from_usec(power_on_delay_us));
+
+        /* Discard first measurement after power-on*/
         uint8_t unused[6] = {0x00};
         if (_lis2dh12_read_reg(dev, LIS2DH12_REG_OUT_X_L, unused, 6) < 0) {
             return -LIS2DH12_ERROR_I2C;

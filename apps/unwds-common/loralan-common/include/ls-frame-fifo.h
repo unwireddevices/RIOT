@@ -37,9 +37,9 @@
 #include "ls-mac-types.h"
 
 /**
- * @brief The biggest possible queue size.
+ * @brief The biggest possible queue size. Must be power of 2.
  */
-#define LS_MAX_FRAME_FIFO_SIZE 3
+#define LS_MAX_FRAME_FIFO_SIZE 4
 
 /**
  * @brief describes the frame queue.

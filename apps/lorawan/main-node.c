@@ -77,8 +77,7 @@ extern "C" {
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-#define LORAWAN_RESEND_DELAY_MS     15000U
-#define LORAWAN_SENDNEXT_DELAY_MS   30000U
+#define LORAWAN_SENDNEXT_DELAY_MS   10000U
 #define LORAWAN_MIN_TX_DELAY_MS     5000U
 
 typedef enum {
@@ -91,6 +90,7 @@ static msg_t msg_data = { .type = NODE_MSG_SEND };
 static kernel_pid_t sender_pid;
 static kernel_pid_t receiver_pid;
 static lptimer_t join_retry_timer;
+static lptimer_t send_timer;
 
 static kernel_pid_t main_thread_pid;
 
@@ -180,10 +180,15 @@ static void *sender_thread(void *arg) {
         }
         
         if (msg.type == NODE_MSG_SEND) {
+            if (ls_frame_fifo_empty(&fifo_lorapacket)) {
+                puts("[LoRa] FIFO empty, nothing to send");
+                continue;
+            }
+            
             /* Get frame from FIFO */
             ls_frame_t frame;
             if (!ls_frame_fifo_peek(&fifo_lorapacket, &frame)) {
-                DEBUG("[LoRa] error getting frame from FIFO\n");
+                printf("[LoRa] error getting frame from FIFO\n");
                 continue;
             }
 
@@ -257,6 +262,13 @@ static void *sender_thread(void *arg) {
                     /* remove frame from FIFO */
                     ls_frame_fifo_pop(&fifo_lorapacket, NULL);
                     break;
+            }
+            
+            if (!ls_frame_fifo_empty(&fifo_lorapacket)) {
+                printf("[LoRa] Queue not empty, sending next packet in %d sec\n", LORAWAN_SENDNEXT_DELAY_MS);
+                lptimer_set_msg(&send_timer, LORAWAN_SENDNEXT_DELAY_MS, &msg_data, sender_pid);
+            } else {
+                lptimer_remove(&send_timer);
             }
         }
         

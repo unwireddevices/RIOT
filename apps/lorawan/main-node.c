@@ -265,7 +265,7 @@ static void *sender_thread(void *arg) {
             }
             
             if (!ls_frame_fifo_empty(&fifo_lorapacket)) {
-                printf("[LoRa] Queue not empty, sending next packet in %d sec\n", LORAWAN_SENDNEXT_DELAY_MS);
+                printf("[LoRa] queue not empty, sending next packet in %d sec\n", LORAWAN_SENDNEXT_DELAY_MS/1000);
                 lptimer_set_msg(&send_timer, LORAWAN_SENDNEXT_DELAY_MS, &msg_data, sender_pid);
             } else {
                 lptimer_remove(&send_timer);

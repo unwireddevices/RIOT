@@ -835,10 +835,10 @@ void sx1280_set_ranging_request_address(const sx128x_t *dev, uint32_t address)
     }
 }
 
-double sx1280_get_ranging_result(const sx128x_t *dev, sx128x_radio_ranging_result_types_t result_type)
+int32_t sx1280_get_ranging_result(const sx128x_t *dev, sx128x_radio_ranging_result_types_t result_type)
 {
     uint32_t val_lsb = 0;
-    double val = 0.0;
+    int32_t val = 0;
 
     switch(sx1280_get_packet_type())
     {
@@ -856,7 +856,19 @@ double sx1280_get_ranging_result(const sx128x_t *dev, sx128x_radio_ranging_resul
             {
                 case SX128X_RANGING_RESULT_RAW:
                     // Convert the ranging LSB to distance in meter
-                    val = (double)sx1280_complement2(val_lsb, 24) / (double)sx1280_get_lora_bandwidth() * 36621.09375;
+                    // The theoretical conversion from register value to distance [m] is given by:
+                    // distance [m] = ( complement2( register ) * 150 ) / ( 2^12 * bandwidth[MHz] ) )
+                    // The API provide BW in [Hz] so the implemented formula is (complement2( register ) / bandwidth[Hz]) * A,
+                    // where A = 150 / (2^12 / 1e6) = 36621.09
+                    DEBUG("val_lsb is %08" PRIx32 "\n", val_lsb);
+                    int32_t bw = sx1280_get_lora_bandwidth();
+                    DEBUG("bw is %" PRIi32 "Hz\n", bw);
+                    int32_t tws_compl = sx1280_complement2(val_lsb, 24) ;
+                    DEBUG("tws_compl is %" PRIi32 "\n", tws_compl);
+                    int32_t coefficient_a = (150 * 1000000) / (1 << 12);
+                    DEBUG("coefficient_a is %" PRIi32 "\n", coefficient_a);
+                    val = (int32_t)((int64_t)((int64_t)tws_compl * coefficient_a * 1000) / bw);
+                    DEBUG("val is %" PRIi32 "meter\n", val);
                     break;
 
                 case SX128X_RANGING_RESULT_AVERAGED:
@@ -998,23 +1010,29 @@ int8_t sx1280_get_hex_file_line_fields(char *line, uint8_t *bytes, uint16_t *add
     return 1;
 }
 
-double sx1280_get_frequency_error(const sx128x_t *dev)
+int32_t sx1280_get_frequency_error(const sx128x_t *dev)
 {
     uint8_t efe_raw[3] = {0};
     uint32_t efe = 0;
-    double efe_hz = 0.0;
+    int32_t efe_hz = 0;
 
     switch( sx1280_get_packet_type())
     {
         case SX128X_PACKET_TYPE_LORA:
         case SX128X_PACKET_TYPE_RANGING:
-            efe_raw[0] = sx1280_hal_read_register(dev, SX128X_REG_LR_ESTIMATED_FREQUENCY_ERROR_MSB );
-            efe_raw[1] = sx1280_hal_read_register(dev, SX128X_REG_LR_ESTIMATED_FREQUENCY_ERROR_MSB + 1 );
-            efe_raw[2] = sx1280_hal_read_register(dev, SX128X_REG_LR_ESTIMATED_FREQUENCY_ERROR_MSB + 2 );
-            efe = (efe_raw[0]<<16) | (efe_raw[1]<<8) | efe_raw[2];
+            efe_raw[0] = sx1280_hal_read_register(dev, SX128X_REG_LR_ESTIMATED_FREQUENCY_ERROR_MSB);
+            efe_raw[1] = sx1280_hal_read_register(dev, SX128X_REG_LR_ESTIMATED_FREQUENCY_ERROR_MSB + 1);
+            efe_raw[2] = sx1280_hal_read_register(dev, SX128X_REG_LR_ESTIMATED_FREQUENCY_ERROR_MSB + 2);
+            efe = (efe_raw[0] << 16) | (efe_raw[1] << 8) | efe_raw[2];
             efe &= SX128X_REG_LR_ESTIMATED_FREQUENCY_ERROR_MASK;
 
-            efe_hz = 1.55 * (double)sx1280_complement2(efe, 20) / (1600.0 / (double)sx1280_get_lora_bandwidth() * 1000.0);
+            // FrequencyError[Hz] = 1.55 x ( SignedFeiReading / 1600 / BW[kHz])
+            DEBUG("Signed Fei Reading %08" PRIx32 "\n", efe);
+
+            efe_hz = sx1280_complement2(efe, 20) * (sx1280_get_lora_bandwidth() / (1600 * 1000));
+            DEBUG("Signed Fei Reading %08" PRIx32 "Hz\n", efe_hz);
+
+            efe_hz = (1550 * efe_hz) / 1000;
             break;
 
         case SX128X_PACKET_TYPE_NONE:
@@ -1060,7 +1078,9 @@ int32_t sx1280_get_lora_bandwidth(void)
     return bw_value;
 }
 
-double sx1280_get_ranging_correction_per_sf_bw_gain(const sx128x_radio_lora_spreading_factors_t sf, const sx128x_radio_lora_bandwidths_t bw, const int8_t gain)
+int32_t sx1280_get_ranging_correction_per_sf_bw_gain(const sx128x_radio_lora_spreading_factors_t sf, 
+                                                     const sx128x_radio_lora_bandwidths_t bw, 
+                                                     const int8_t gain)
 {
     uint8_t sf_index = 0;
     uint8_t bw_index = 0;
@@ -1092,11 +1112,6 @@ double sx1280_get_ranging_correction_per_sf_bw_gain(const sx128x_radio_lora_spre
             break;
     }
     switch(bw){
-        case SX128X_LORA_BW_0200:
-            /* FIXME: Change the return value */
-            LOG_ERROR("[SX128X] Ranging: Value bandwidth is incorrect\n");
-            return -256;
-            break;
         case SX128X_LORA_BW_0400:
             bw_index = 0;
             break;
@@ -1106,9 +1121,11 @@ double sx1280_get_ranging_correction_per_sf_bw_gain(const sx128x_radio_lora_spre
         case SX128X_LORA_BW_1600:
             bw_index = 2;
             break;
+        default:
+            break;
     }
     
-    double correction = ranging_correction_per_sf_bw_gain[sf_index][bw_index][gain];
+    int32_t correction = ranging_correction_per_sf_bw_gain[sf_index][bw_index][gain];
     return correction;
 }
 
@@ -1144,11 +1161,6 @@ double sx1280_compute_ranging_correction_polynome(const sx128x_radio_lora_spread
             break;
     }
     switch(bw){
-        case SX128X_LORA_BW_0200:
-            /* FIXME: Change the return value */
-            LOG_ERROR("[SX128X] Ranging: Value bandwidth is incorrect\n");
-            return -256;
-            break;
         case SX128X_LORA_BW_0400:
             bw_index = 0;
             break;
@@ -1157,6 +1169,8 @@ double sx1280_compute_ranging_correction_polynome(const sx128x_radio_lora_spread
             break;
         case SX128X_LORA_BW_1600:
             bw_index = 2;
+            break;
+        default:
             break;
     }
     const sx128x_ranging_correction_polynomes_t *polynome = ranging_correction_polynomes_per_sf_bw[sf_index][bw_index];

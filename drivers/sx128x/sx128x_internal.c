@@ -50,11 +50,11 @@ static uint8_t hal_rx_buffer[MAX_HAL_BUFFER_SIZE] = {0x00};
 
 void sx1280_hal_wait_on_busy(const sx128x_t *dev)
 {
-    uint16_t timeout = 0xFFFF;
+    volatile uint16_t timeout = 0xFFFF;
 
     do {
-        lptimer_sleep(10);
-    } while ((gpio_read(dev->params.busy_pin) != 0x00) && (--timeout));
+        //do Nothing
+    } while ((gpio_read(dev->params.busy_pin) != 0x0000) && (--timeout));
 }
 
 void sx1280_hal_init(const sx128x_t *dev, dio_irq_handler *irq_handlers)
@@ -182,6 +182,7 @@ void sx1280_hal_write_command(const sx128x_t *dev, sx128x_radio_commands_t comma
 {
 
     uint16_t hal_size  = size + 1;
+
     sx1280_hal_wait_on_busy(dev);
 
     spi_acquire(dev->params.spi_dev, SPI_CS_UNDEF, dev->params.spi_mode, dev->params.spi_speed);

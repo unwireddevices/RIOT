@@ -44,7 +44,7 @@
 extern "C" {
 #endif
 
-const double *ranging_correction_per_sf_bw_gain[6][3] = {
+const int32_t *ranging_correction_per_sf_bw_gain[6][3] = {
     { &ranging_correction_sf5_bw0400[0],  &ranging_correction_sf5_bw0800[0],  &ranging_correction_sf5_bw1600[0] },
     { &ranging_correction_sf6_bw0400[0],  &ranging_correction_sf6_bw0800[0],  &ranging_correction_sf6_bw1600[0] },
     { &ranging_correction_sf7_bw0400[0],  &ranging_correction_sf7_bw0800[0],  &ranging_correction_sf7_bw1600[0] },

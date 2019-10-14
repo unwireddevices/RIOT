@@ -901,7 +901,7 @@ int32_t sx1280_get_lora_bandwidth(void);
  *
  * @retval correction              Corrected ranging raw value 
  */
-double sx1280_get_ranging_correction_per_sf_bw_gain(const sx128x_radio_lora_spreading_factors_t sf, const sx128x_radio_lora_bandwidths_t bw, const int8_t gain);
+int32_t sx1280_get_ranging_correction_per_sf_bw_gain(const sx128x_radio_lora_spreading_factors_t sf, const sx128x_radio_lora_bandwidths_t bw, const int8_t gain);
 
 /**
  * @brief Returns the short range corrected distance
@@ -1455,7 +1455,7 @@ void sx1280_set_ranging_request_address(const sx128x_t *dev, uint32_t address);
  *
  * @retval     ranging                  The ranging measure filtered according to resultType [m]
  */
-double sx1280_get_ranging_result(const sx128x_t *dev, sx128x_radio_ranging_result_types_t result_type);
+int32_t sx1280_get_ranging_result(const sx128x_t *dev, sx128x_radio_ranging_result_types_t result_type);
 
 /**
  * @brief Sets the standard processing delay between Master and Slave
@@ -1526,7 +1526,7 @@ void sx1280_ranging_set_filter_num_samples(const sx128x_t *dev, uint8_t num);
  * 
  * @retval     efe                      The estimated frequency error [Hz]
  */
-double sx1280_get_frequency_error(const sx128x_t *dev);
+int32_t sx1280_get_frequency_error(const sx128x_t *dev);
 
 /**
  * @brief Process the analysis of radio IRQs and calls callback functions

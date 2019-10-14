@@ -31,6 +31,7 @@
 #ifndef UNWIRED_MODULES_LORALAN_MAC_TYPES_H_
 #define UNWIRED_MODULES_LORALAN_MAC_TYPES_H_
 
+#include <stdbool.h>
 #include "crypto/aes.h"
 
 /**
@@ -166,6 +167,7 @@ typedef struct {
     uint8_t data[32];              /**< Payload data, 32 bytes max */
     uint8_t length;                /**< Payload length */
     uint8_t fport;                 /**< LoRaWAN FPort */
+    bool    retransmit;            /**< Frame already transmitted, but ACK failed */
 } ls_frame_t;
 #else
 typedef struct {

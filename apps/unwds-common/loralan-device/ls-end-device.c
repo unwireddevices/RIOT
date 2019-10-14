@@ -54,6 +54,9 @@ extern "C" {
 #define SX127X_LORA_MSG_QUEUE   (16U)
 #define SX127X_STACKSIZE        (2*THREAD_STACKSIZE_DEFAULT)
 #define MSG_TYPE_ISR            (0x3456)
+
+#if !defined(UNWDS_MAC_LORAWAN)
+
 static char isr_stack[SX127X_STACKSIZE];
 static kernel_pid_t isr_pid;
 
@@ -1225,6 +1228,8 @@ int ls_ed_req_time(ls_ed_t *ls)
 
     return LS_OK;
 }
+
+#endif /* !defined(UNWDS_MAC_LORAWAN */
 
 #ifdef __cplusplus
 }

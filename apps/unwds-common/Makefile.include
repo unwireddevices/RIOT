@@ -149,16 +149,12 @@ USEMODULE += lptimer
 
 USEMODULE += sx127x
 
-USEMODULE += loralan-mac
 USEMODULE += loralan-common
 USEMODULE += unwds-common
 
-DIRS += $(RIOTBASE)/apps/unwds-common/loralan-device/
-DIRS += $(RIOTBASE)/apps/unwds-common/loralan-mac/
 DIRS += $(RIOTBASE)/apps/unwds-common/loralan-common/
 DIRS += $(RIOTBASE)/apps/unwds-common/unwds-common/
 
-INCLUDES += -I$(RIOTBASE)/apps/unwds-common/loralan-device/include/
 INCLUDES += -I$(RIOTBASE)/apps/unwds-common/loralan-mac/include/
 INCLUDES += -I$(RIOTBASE)/apps/unwds-common/loralan-common/include/
 INCLUDES += -I$(RIOTBASE)/apps/unwds-common/unwds-common/include/

@@ -66,6 +66,9 @@ DIRS += $(RIOTBASE)/apps/unwds-common/loralan-gateway/
 DIRS += $(RIOTBASE)/apps/unwds-common/unwds-common/
 
 USEMODULE += loralan-gateway
+USEMODULE += loralan-mac
+USEMODULE += loralan-common
+USEMODULE += unwds-common
 
 INCLUDES += -I$(RIOTBASE)/apps/unwds-common/loralan-mac/include/
 INCLUDES += -I$(RIOTBASE)/apps/unwds-common/loralan-common/include/

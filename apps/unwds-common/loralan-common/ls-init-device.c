@@ -60,7 +60,6 @@ extern "C" {
 #include "ls-settings.h"
 #include "ls-config.h"
 #include "ls-init-device.h"
-#include "ls-mac.h"
 
 #define ENABLE_DEBUG    0
 #include "debug.h"

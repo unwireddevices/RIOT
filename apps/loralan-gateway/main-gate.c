@@ -551,8 +551,8 @@ static void watchdog_start(void) {
     iwdg_timer.callback = iwdg_reset;
     lptimer_set(&iwdg_timer, IWDG_TIMEOUT);
     
-	wdg_set_prescaler(IWDG_PRESCALER);
-    wdg_set_reload(IWDG_RELOAD);
+	/* IWDG period is 18 seconds minimum, 28 seconds typical */
+    wdg_set_reload(28);
 
     /* Start watchdog */
     wdg_reload();

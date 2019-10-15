@@ -68,8 +68,8 @@ int main(void)
     fdc2212.settle_count[0] = PROXIMITY_SETTLECOUNT;
     fdc2212.freq_in_sel[0]  = 0x02;
     fdc2212.freq_divider[0] = 0x01;
-    fdc2212.idrive[0]       = FDC2212_IDRIVE_0P052;
-
+    fdc2212.idrive[0]       = FDC2212_IDRIVE_0P264; /* Sensor drive current: to ensure that the oscillation amplitude is between 1.2V and 1.8V    */
+                                                    /* if IDRIVE is equal FDC2212_IDRIVE_0P264 then V(pk) is 1.6V (Datasheet fdc2212: 10.2.3.2.2) */
     printf("Initializing FDC2212 sensor on I2C #%d... ", fdc2212_params.i2c_dev);
     if (fdc2212_init(&fdc2212, &fdc2212_params) == 0) {
         puts("[OK]");

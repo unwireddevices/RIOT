@@ -167,23 +167,23 @@ int fdc2212_init(fdc2212_t *dev, const fdc2212_params_t *params)
             DEBUG_DEV("couldn't write the setting for SETTLECOUNT in register FDC2212_REG_SETTLECOUNT_CH%d",  dev, i);
             return -FDC2212_ERROR_I2C;
         }
-        /* TODO: Needs further study */
-        // /* Setting the frequency divider */
-        // if (dev->freq_divider[i] == 0x0000) {
-        //     DEBUG_DEV("invalid setting for CH%d_FREF_DIVIDER for channel %d", dev, i, i);
-        //     return -FDC2212_ERROR_SETTING_INV;
-        // }
+        
+        /* Setting the frequency divider */
+        if (dev->freq_divider[i] == 0x0000) {
+            DEBUG_DEV("invalid setting for CH%d_FREF_DIVIDER for channel %d", dev, i, i);
+            return -FDC2212_ERROR_SETTING_INV;
+        }
 
-        // dev->freq_divider[i] &= FDC2212_CLOCK_DIVIDERS_CH1_FREF_DIVIDER_MASK;
-        // dev->freq_in_sel[i] &= 0x03;
-        // uint16_t reg_dividers = ((dev->freq_in_sel[i] << FDC2212_CLOCK_DIVIDERS_CH0_FIN_SEL_SHIFT) | 
-        //                          (dev->freq_divider[i] & FDC2212_CLOCK_DIVIDERS_CH0_FREF_DIVIDER_MASK));
-        // byteorder_swap((void *)&reg_dividers, sizeof(reg_dividers));
+        dev->freq_divider[i] &= FDC2212_CLOCK_DIVIDERS_CH1_FREF_DIVIDER_MASK;
+        dev->freq_in_sel[i] &= 0x03;
+        uint16_t reg_dividers = ((dev->freq_in_sel[i] << FDC2212_CLOCK_DIVIDERS_CH0_FIN_SEL_SHIFT) | 
+                                 (dev->freq_divider[i] & FDC2212_CLOCK_DIVIDERS_CH0_FREF_DIVIDER_MASK));
+        byteorder_swap((void *)&reg_dividers, sizeof(reg_dividers));
 
-        // if (_reg_write(dev, FDC2212_REG_CLOCK_DIVIDERS_CH0 + i, (uint8_t *)&reg_dividers, 2) != FDC2212_OK) {
-        //     DEBUG_DEV("couldn't write the setting for FREF_DIVIDER in register FDC2212_REG_CLOCK_DIVIDERS_CH%d", dev, i);
-        //     return -FDC2212_ERROR_I2C;
-        // }
+        if (_reg_write(dev, FDC2212_REG_CLOCK_DIVIDERS_CH0 + i, (uint8_t *)&reg_dividers, 2) != FDC2212_OK) {
+            DEBUG_DEV("couldn't write the setting for FREF_DIVIDER in register FDC2212_REG_CLOCK_DIVIDERS_CH%d", dev, i);
+            return -FDC2212_ERROR_I2C;
+        }
     }
 
     /* Select single channel measurement and configure */

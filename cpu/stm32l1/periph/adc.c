@@ -37,6 +37,14 @@
 #define ADC_CLOCK_LOW       (ADC_CCR_ADCPRE_1)
 
 /**
+ * @brief   ADC calibration addresses
+ *
+ */
+#define  ADC_VREFINT_CAL    ((uint16_t *)0x1FF800F8)      /*!< VREFINT calibration data address */
+#define  ADC_TS_CAL1        ((uint16_t *)0x1FF800FA)      /*!< Temperature Sensor calibration data address */
+#define  ADC_TS_CAL2        ((uint16_t *)0x1FF800FE)      /*!< Temperature Sensor calibration data address */
+
+/**
  * @brief   ADC sample time, cycles
  */
 #define ADC_SAMPLE_TIME_4C    (0)
@@ -326,7 +334,7 @@ int adc_sampling_start(adc_t line, adc_res_t res, uint16_t *buf, uint16_t wsize,
     /* enable DMA clock */
     periph_clk_en(AHB, RCC_AHBENR_DMA1EN);
     /* disable DMA channel */
-    DMA1_Channel1->CCR &= ~DMA_CCR1_EN;
+    DMA1_Channel1->CCR &= ~DMA_CCR_EN;
     
     /* set resolution */
     ADC1->CR1 |= res & ADC_CR1_RES;
@@ -343,15 +351,15 @@ int adc_sampling_start(adc_t line, adc_res_t res, uint16_t *buf, uint16_t wsize,
     /* setup DMA channel 1 */
     DMA1_Channel1->CCR = 0;
     /* high priority */
-    DMA1_Channel1->CCR |= DMA_CCR1_PL_1;
+    DMA1_Channel1->CCR |= DMA_CCR_PL_1;
     /* 16-bit memory size */
-    DMA1_Channel1->CCR |= DMA_CCR1_MSIZE_0;
+    DMA1_Channel1->CCR |= DMA_CCR_MSIZE_0;
     /* 16-bit peripheral size */
-    DMA1_Channel1->CCR |= DMA_CCR1_PSIZE_0;
+    DMA1_Channel1->CCR |= DMA_CCR_PSIZE_0;
     /* memory increment mode */
-    DMA1_Channel1->CCR |= DMA_CCR1_MINC;
+    DMA1_Channel1->CCR |= DMA_CCR_MINC;
     /* transfer completed IRQ */
-    DMA1_Channel1->CCR |= DMA_CCR1_TCIE;
+    DMA1_Channel1->CCR |= DMA_CCR_TCIE;
     /* number of data */
     DMA1_Channel1->CNDTR = wsize;
     /* peripheral address */
@@ -364,8 +372,8 @@ int adc_sampling_start(adc_t line, adc_res_t res, uint16_t *buf, uint16_t wsize,
     
     if (mode == ADC_CONTINUOUS_CIRCULAR) {
         ADC1->CR2 |= ADC_CR2_DDS;
-        DMA1_Channel1->CCR |= DMA_CCR1_CIRC;
-        DMA1_Channel1->CCR |= DMA_CCR1_HTIE;
+        DMA1_Channel1->CCR |= DMA_CCR_CIRC;
+        DMA1_Channel1->CCR |= DMA_CCR_HTIE;
     } else {
         ADC1->CR2 &= ~ADC_CR2_DDS;
     }
@@ -380,7 +388,7 @@ int adc_sampling_start(adc_t line, adc_res_t res, uint16_t *buf, uint16_t wsize,
     NVIC_EnableIRQ(DMA1_Channel1_IRQn);
     
     /* Enable DMA channel */
-    DMA1_Channel1->CCR |= DMA_CCR1_EN;
+    DMA1_Channel1->CCR |= DMA_CCR_EN;
 
     start();
     
@@ -395,7 +403,7 @@ int adc_sampling_stop(void) {
     ADC1->CR2 &= ~ADC_CR2_DMA;
 
     /* disable DMA channel */
-    DMA1_Channel1->CCR &= ~DMA_CCR1_EN;
+    DMA1_Channel1->CCR &= ~DMA_CCR_EN;
     
     /* disable IRQ */
     NVIC_DisableIRQ(DMA1_Channel1_IRQn);

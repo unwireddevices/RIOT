@@ -40,9 +40,9 @@ extern void _wait_for_pending_operations(void);
 #if defined(CPU_FAM_STM32L0)
     uint32_t eeprom_start_addr = DATA_EEPROM_BASE;
 #elif defined(CPU_FAM_STM32L1)
-    uint32_t eeprom_start_addr = EEPROM_BASE;
+    uint32_t eeprom_start_addr = FLASH_EEPROM_BASE;
 #else
-    #error "periph/eeprom: EEPROM_BASE is not defined"
+    #error "periph/eeprom: *_EEPROM_BASE is not defined"
 #endif
 
 static union {

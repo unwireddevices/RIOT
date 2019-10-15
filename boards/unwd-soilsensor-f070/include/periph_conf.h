@@ -143,13 +143,13 @@ static const pwm_conf_t pwm_config[] = {
  * @brief   ADC configuration
  * @{
  */
-#define ADC_CONFIG {            \
-    { GPIO_PIN(PORT_A, 0), 0 },\
-    { GPIO_PIN(PORT_A, 1), 1 },\
-    { GPIO_UNDEF, 17 },\
-}
+static const adc_conf_t adc_config[] = {
+    { .pin = GPIO_PIN(PORT_A, 0), .chan = 1,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+    { .pin = GPIO_PIN(PORT_A, 1), .chan = 2,                       /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+	{ .pin = GPIO_UNDEF,          .chan = 17,                      /* .trigger = ADC_EXT_TRIGGER_TIM9TRGO */ },
+};
 
-#define ADC_NUMOF           (3)
+#define ADC_NUMOF           (sizeof(adc_config) / sizeof(adc_config[0]))
 
 /** @} */
 

@@ -46,14 +46,23 @@
  */
 #if defined(CPU_MODEL_STM32L151RBA) || defined(CPU_MODEL_STM32L151CB)
 #define STM32L1XX_MD (1U)
-#elif defined(CPU_MODEL_STM32L151RC)
+#elif defined(CPU_MODEL_STM32L151RC) || defined(CPU_MODEL_STM32L151CC)
 #define STM32L1XX_MDP (1U)
 #else
 #define STM32L1XX_XL (1U)
 #endif
 
 #include "cpu_conf_common.h"
-#include "vendor/stm32l1xx.h"
+
+#if defined(CPU_MODEL_STM32L151RB_A) || defined(CPU_MODEL_STM32L151CB_A)
+#include "vendor/stm32l151xba.h"
+#elif defined(CPU_MODEL_STM32L151CB)
+#include "vendor/stm32l151xb.h"
+#elif defined(CPU_MODEL_STM32L151RC) || defined(CPU_MODEL_STM32L151CC)
+#include "vendor/stm32l151xc.h"
+#elif defined(CPU_MODEL_STM32L152RE)
+#include "vendor/stm32l152xe.h"
+#endif
 
 #define  FLASH_PDKEY1                       ((uint32_t)0x04152637)       /*!< FLASH_PEC and data matrix Key 1 */
 #define  FLASH_PDKEY2                       ((uint32_t)0xFAFBFCFD)       /*!< FLASH_PEC and data matrix Key 2 */

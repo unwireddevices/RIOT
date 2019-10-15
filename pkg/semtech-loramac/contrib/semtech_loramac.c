@@ -130,6 +130,10 @@ static uint8_t _semtech_loramac_send(semtech_loramac_t *mac,
             DEBUG("[semtech-loramac] MCPS request: dutycycle restricted\n");
             ret = SEMTECH_LORAMAC_DUTYCYCLE_RESTRICTED;
             break;
+        case LORAMAC_STATUS_NO_FREE_CHANNEL_FOUND:
+            DEBUG("[semtech-loramac] MCPS request: no free channel found\n");
+            ret = SEMTECH_LORAMAC_NO_FREE_CHANNEL;
+            break;
         default:
             DEBUG("[semtech-loramac] MCPS request: unknown status %d\n",
                   req_status);

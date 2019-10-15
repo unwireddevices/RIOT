@@ -672,7 +672,7 @@ static void _on_dio3_irq(void *arg)
             if ((sx127x_reg_read(dev, SX127X_REG_LR_IRQFLAGS) & SX127X_RF_LORA_IRQFLAGS_VALIDHEADER) == SX127X_RF_LORA_IRQFLAGS_VALIDHEADER) {
                 /* ValidHeader event */
                 sx127x_reg_write(dev, SX127X_REG_LR_IRQFLAGS, SX127X_RF_LORA_IRQFLAGS_VALIDHEADER);
-                netdev->event_callback(netdev, NETDEV_EVENT_VALID_HEADER);
+                netdev->event_callback(netdev, NETDEV_EVENT_RX_STARTED);
             } else {
                 /* CadDone event */
                 bool cad_success = (sx127x_reg_read(dev, SX127X_REG_LR_IRQFLAGS) & SX127X_RF_LORA_IRQFLAGS_CADDETECTED) == SX127X_RF_LORA_IRQFLAGS_CADDETECTED;

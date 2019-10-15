@@ -64,6 +64,8 @@ static msg_t msg_rx1_expired;
 static lptimer_t uq_send_delay_timer;
 #define UQ_SEND_DELAY_MS    100
 
+static ls_gate_channel_t *channel;
+
 static void schedule_tx(ls_gate_channel_t *ch) {
 	/* Can send next frame only if channel is doing nothing */
 	if (ch->state != LS_GATE_CHANNEL_STATE_IDLE) {
@@ -498,10 +500,13 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
             }
 
             DEBUG("ls-gate: time request received\n");
-
+            
             ls_time_req_ack_t ack;
             struct tm current_time;
+            /* RTC can't be used with lptimer on STM32L1 */
+            /*
             rtc_get_time(&current_time);
+            */
             ack.gate_time = mktime(&current_time);
 
             enqueue_frame(ch, frame->header.dev_addr, LS_DL_TIME_ACK, (uint8_t *) &ack, sizeof(ls_time_req_ack_t));
@@ -515,7 +520,7 @@ static bool frame_recv(ls_gate_t *ls, ls_gate_channel_t *ch, ls_frame_t *frame)
     }
 }
 
-static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
+static void sx127x_handler(netdev_t *dev, netdev_event_t event)
 {
     if (event == NETDEV_EVENT_ISR) {
         msg_t msg;
@@ -527,14 +532,11 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
         return;
     }
     
-    assert(arg != NULL);
-    ls_gate_channel_t *ch = (ls_gate_channel_t *)arg;
-    
     switch (event) {
         case NETDEV_EVENT_RX_COMPLETE: {
             int len;
             netdev_lora_rx_info_t  packet_info;
-            ls_gate_t *ls = (ls_gate_t *) ch->_internal.gate;
+            ls_gate_t *ls = (ls_gate_t *) channel->_internal.gate;
             uint8_t message[LS_FRAME_SIZE];
             
             len = dev->driver->recv(dev, NULL, 0, 0);
@@ -557,16 +559,16 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
 #endif
 
             DEBUG("ls-gate: state = IDLE\n");
-            ch->state = LS_GATE_CHANNEL_STATE_IDLE;
+            channel->state = LS_GATE_CHANNEL_STATE_IDLE;
             
-            ch->last_rssi = packet_info.rssi;
+            channel->last_rssi = packet_info.rssi;
 
             /* Copy packet's data as a frame to our stack */
             ls_frame_t *frame = (ls_frame_t *) message;
 
             /* Check frame format */
             if (ls_validate_frame(message, len)) {
-                if (!frame_recv(ls, ch, frame)) {
+                if (!frame_recv(ls, channel, frame)) {
                     DEBUG("ls-gate: ls-gate: well-formed frame discarded\n");
                 }
             }
@@ -579,32 +581,32 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event, void *arg)
         case NETDEV_EVENT_CRC_ERROR:
             DEBUG("ls-gate: CRC error\n");
             DEBUG("ls-gate: state = IDLE\n");
-            ch->state = LS_GATE_CHANNEL_STATE_IDLE;
+            channel->state = LS_GATE_CHANNEL_STATE_IDLE;
             break;
 
         case NETDEV_EVENT_TX_COMPLETE:
             DEBUG("ls-gate: TX done\n");
-            open_rx_windows(ch);
+            open_rx_windows(channel);
 
             break;
 
         case NETDEV_EVENT_RX_TIMEOUT:
             DEBUG("ls-gate: RX timeout\n");
             DEBUG("ls-gate: state = IDLE\n");
-            ch->state = LS_GATE_CHANNEL_STATE_IDLE;
+            channel->state = LS_GATE_CHANNEL_STATE_IDLE;
             break;
 
         case NETDEV_EVENT_TX_TIMEOUT:
         	DEBUG("ls-gate: TX timeout");
-            ch->_internal.device->driver->init(ch->_internal.device);
-            prepare_sx127x(ch);
+            channel->_internal.device->driver->init(channel->_internal.device);
+            prepare_sx127x(channel);
             uint8_t state = NETOPT_STATE_RX;
-            ch->_internal.device->driver->set(ch->_internal.device, NETOPT_STATE, &state, sizeof(uint8_t));
+            channel->_internal.device->driver->set(channel->_internal.device, NETOPT_STATE, &state, sizeof(uint8_t));
             break;
             
-        case NETDEV_EVENT_VALID_HEADER:
+        case NETDEV_EVENT_RX_STARTED:
             DEBUG("ls-gate: header received, switch to RX state");
-            ch->state = LS_GATE_CHANNEL_STATE_RX;
+            channel->state = LS_GATE_CHANNEL_STATE_RX;
             break;
 
         default:
@@ -868,6 +870,9 @@ int ls_gate_init(ls_gate_t *ls)
     assert(ls != NULL);
     assert(ls->channels != NULL);
     assert(ls->num_channels > 0);
+    
+    /* temporary */
+    channel = &ls->channels[0];
 
     msg_ping.type = LS_GATE_PING;
     msg_rx1_expired.type = LS_GATE_RX1_EXPIRED;

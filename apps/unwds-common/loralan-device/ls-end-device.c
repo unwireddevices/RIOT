@@ -54,6 +54,9 @@ extern "C" {
 #define SX127X_LORA_MSG_QUEUE   (16U)
 #define SX127X_STACKSIZE        (2*THREAD_STACKSIZE_DEFAULT)
 #define MSG_TYPE_ISR            (0x3456)
+
+#if !defined(UNWDS_MAC_LORAWAN)
+
 static char isr_stack[SX127X_STACKSIZE];
 static kernel_pid_t isr_pid;
 
@@ -639,7 +642,7 @@ static void sx127x_handler(netdev_t *dev, netdev_event_t event)
             ls_ed_sleep(p_ls);
             break;
             
-        case NETDEV_EVENT_VALID_HEADER:
+        case NETDEV_EVENT_RX_STARTED:
             puts("[LoRa] header received, switch to RX state");
             p_ls->state = LS_ED_LISTENING;
             break;
@@ -1225,6 +1228,8 @@ int ls_ed_req_time(ls_ed_t *ls)
 
     return LS_OK;
 }
+
+#endif /* !defined(UNWDS_MAC_LORAWAN */
 
 #ifdef __cplusplus
 }

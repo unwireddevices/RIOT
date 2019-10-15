@@ -78,7 +78,7 @@ static size_t get_cpu_eeprom_size(void) {
 #if defined(CPU_FAM_STM32L0)
     return cpu_find_memory_size((char *)DATA_EEPROM_BASE, 512, 6*1024);
 #elif defined(CPU_FAM_STM32L1)
-    return cpu_find_memory_size((char *)EEPROM_BASE, 2*1024, 16*1024);
+    return cpu_find_memory_size((char *)FLASH_EEPROM_BASE, 2*1024, 16*1024);
 #else
     return 0;
 #endif

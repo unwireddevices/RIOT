@@ -1,5 +1,5 @@
 # name of your application
-APPLICATION = lorawan-commercial
+APPLICATION = lorawan
 
 # application-specific modules
 USEPKG += semtech-loramac

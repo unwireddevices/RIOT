@@ -30,9 +30,10 @@
 
 static inline void _pm_before(void) 
 {
-    uint32_t i;
+    /* uint32_t i; */
     
     /* Stop UARTs */
+    /*
 #if defined(CPU_FAM_NRF52)
     for (i = 0; i < UART_NUMOF; i++) {
         uart_config[i].dev->TASKS_STOPRX = 1;
@@ -43,20 +44,24 @@ static inline void _pm_before(void)
 #else
     NRF_UART0->TASKS_SUSPEND = 1;
 #endif
+    */
 
     /* Stop timers */
+    /*
     for (i = 0; i < TIMER_NUMOF; i++) {
         timer_config[i].dev->TASKS_STOP = 1;
     }
+    */
 
     clock_stop_hf();
 }
 
 static inline void _pm_after(void) 
 {
-    uint32_t i;
+    /* uint32_t i; */
     
     /* Start UARTs */
+    /*
 #if defined(CPU_FAM_NRF52)
     for (i = 0; i < UART_NUMOF; i++) {
         uart_config[i].dev->ENABLE = UARTE_ENABLE_ENABLE_Enabled;
@@ -67,11 +72,14 @@ static inline void _pm_after(void)
     NRF_UART0->TASKS_STARTTX = 1;
     NRF_UART0->TASKS_STARTRX = 1;
 #endif
+    */
 
     /* Stop timers */
+    /*
     for (i = 0; i < TIMER_NUMOF; i++) {
         timer_config[i].dev->TASKS_START = 1;
     }
+    */
 }
 
 void pm_off(void)

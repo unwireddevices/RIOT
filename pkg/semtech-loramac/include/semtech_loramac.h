@@ -71,7 +71,8 @@ enum {
     SEMTECH_LORAMAC_RX_LINK_CHECK,              /**< Link check info received */
     SEMTECH_LORAMAC_RX_CONFIRMED,               /**< Confirmed ACK received */
     SEMTECH_LORAMAC_BUSY,                       /**< Internal MAC is busy */
-    SEMTECH_LORAMAC_DUTYCYCLE_RESTRICTED        /**< Restricted access to channels */
+    SEMTECH_LORAMAC_DUTYCYCLE_RESTRICTED,       /**< Restricted access to channels */
+    SEMTECH_LORAMAC_NO_FREE_CHANNEL             /**< No free channel found (with LBT enabled) */
 };
 
 /**

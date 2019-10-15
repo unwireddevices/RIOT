@@ -44,20 +44,25 @@ extern "C" {
 #include "periph/rtc.h"
 #include "periph/gpio.h"
 #include "periph/adc.h"
+#include "periph/wdg.h"
+#include "lptimer.h"
 #include "random.h"
+#include "fmt.h"
+#include "byteorder.h"
+#include "mutex.h"
 
 #include "net/lora.h"
 #include "net/netdev.h"
+#include "net/loramac.h"
+#include "semtech_loramac.h"
 #include "sx127x_internal.h"
 #include "sx127x_params.h"
 #include "sx127x_netdev.h"
 
-#include "fmt.h"
-#include "byteorder.h"
-
 #include "ls-settings.h"
 #include "ls-config.h"
 #include "ls-init-device.h"
+#include "ls-frame-fifo.h"
 
 #include "board.h"
 
@@ -69,38 +74,23 @@ extern "C" {
 #include "main.h"
 #include "utils.h"
 
-#include "periph/wdg.h"
-#include "lptimer.h"
-
-#include "net/loramac.h"
-#include "semtech_loramac.h"
-
 #define ENABLE_DEBUG (0)
 #include "debug.h"
+
+#define LORAWAN_SENDNEXT_DELAY_MS   10000U
+#define LORAWAN_MIN_TX_DELAY_MS     5000U
 
 typedef enum {
     NODE_MSG_JOIN,
     NODE_MSG_SEND,
-    NODE_MSG_RETX,
 } node_message_types_t;
-
-typedef struct {
-    uint8_t *buffer;
-    uint32_t length;
-#if !defined LORAWAN_DONT_USE_FPORT
-    uint8_t fport;
-#endif
-} node_data_t;
-
-static node_data_t node_data;
 
 static msg_t msg_join = { .type = NODE_MSG_JOIN };
 static msg_t msg_data = { .type = NODE_MSG_SEND };
-static msg_t msg_retx = { .type = NODE_MSG_RETX };
 static kernel_pid_t sender_pid;
 static kernel_pid_t receiver_pid;
 static lptimer_t join_retry_timer;
-static lptimer_t send_retry_timer;
+static lptimer_t send_timer;
 
 static kernel_pid_t main_thread_pid;
 
@@ -108,10 +98,13 @@ static char sender_stack[2048];
 static char receiver_stack[2048];
 
 static semtech_loramac_t ls;
+static ls_frame_fifo_t  fifo_lorapacket;
+static mutex_t curr_frame_mutex;
 
 static uint8_t current_join_retries = 0;
 static uint8_t uplinks_failed = 0;
 static uint32_t lora_frm_cnt = 0;
+static uint32_t last_tx_time = 0;
 
 static bool appdata_received(uint8_t *buf, size_t buflen, uint8_t fport);
 static void unwds_callback(module_data_t *buf);
@@ -160,13 +153,6 @@ static int node_join(semtech_loramac_t *ls) {
     return (semtech_loramac_join(ls, join_type));
 }
 
-static void lora_resend_packet(void) {
-    /* schedule packet retransmission */
-    puts("[LoRa] packet retransmission in 30 seconds");
-    
-    lptimer_set_msg(&send_retry_timer, 30000, &msg_retx, sender_pid);
-}
-
 static void *sender_thread(void *arg) {
     semtech_loramac_t *ls = (semtech_loramac_t *)arg;
     
@@ -176,38 +162,74 @@ static void *sender_thread(void *arg) {
     
     puts("[LoRa] sender thread started");
     
+    last_tx_time = lptimer_now().ticks32;
+    
     while (1) {
         msg_receive(&msg);
 
         int res;
         
-        if ((msg.type == NODE_MSG_SEND) || (msg.type == NODE_MSG_RETX))  {
-            node_data_t *data = msg.content.ptr;
+        /* minimum interval between transmissions */
+        uint32_t tx_delay = 0;
+        uint32_t now = lptimer_now().ticks32;
 
-            if (msg.type == NODE_MSG_RETX) {
-                /* retransmissions should have the same frame counter as original package */
-                semtech_loramac_set_uplink_counter(ls, lora_frm_cnt);
-            } else {
-                lora_frm_cnt = semtech_loramac_get_uplink_counter(ls);
+        if (last_tx_time + LORAWAN_MIN_TX_DELAY_MS > now) {
+            tx_delay = last_tx_time + LORAWAN_MIN_TX_DELAY_MS - now;
+            printf("[LoRa] delaying TX by %lu ms\n", tx_delay);
+            lptimer_sleep(tx_delay);
+        }
+        
+        if (msg.type == NODE_MSG_SEND) {
+            if (ls_frame_fifo_empty(&fifo_lorapacket)) {
+                puts("[LoRa] FIFO empty, nothing to send");
+                continue;
             }
             
-            res = semtech_loramac_send(ls, data->buffer, data->length);
+            /* Get frame from FIFO */
+            ls_frame_t frame;
+            if (!ls_frame_fifo_peek(&fifo_lorapacket, &frame)) {
+                printf("[LoRa] error getting frame from FIFO\n");
+                continue;
+            }
+
+            if (frame.retransmit) {
+                /* retransmissions should have the same frame counter as original package */
+                semtech_loramac_set_uplink_counter(ls, lora_frm_cnt);
+                puts("[LoRa] packet retransmission");
+            } else {
+                lora_frm_cnt = semtech_loramac_get_uplink_counter(ls);
+                puts("[LoRa] sending new packet");
+            }
+            
+            res = semtech_loramac_send(ls, frame.data, frame.length);
 
             switch (res) {
                 case SEMTECH_LORAMAC_BUSY:
-                    puts("[error] MAC already busy");
-                    lora_resend_packet();
+                    puts("[LoRa] MAC already busy");
+                    frame.retransmit = true;
+                    ls_frame_fifo_replace(&fifo_lorapacket, &frame);
+                    break;
+                case SEMTECH_LORAMAC_DUTYCYCLE_RESTRICTED:
+                    puts("[LoRa] TX duty cycle restricted");
+                    frame.retransmit = true;
+                    ls_frame_fifo_replace(&fifo_lorapacket, &frame);
+                    break;
+                case SEMTECH_LORAMAC_NO_FREE_CHANNEL:
+                    puts("[LoRa] LBT no free channels");
+                    frame.retransmit = true;
+                    ls_frame_fifo_replace(&fifo_lorapacket, &frame);
                     break;
                 case SEMTECH_LORAMAC_NOT_JOINED: {
-                    puts("[error] not joined to the network");
+                    puts("[LoRa] not joined to the network");
 
                     if (current_join_retries == 0) {
                         puts("[LoRa] attempting to rejoin");
-                        lora_resend_packet();
                         msg_send(&msg_join, sender_pid);
                     } else {
                         puts("[LoRa] waiting for the node to join");
                     }
+                    frame.retransmit = true;
+                    ls_frame_fifo_replace(&fifo_lorapacket, &frame);
                     break;
                 }
                 case SEMTECH_LORAMAC_TX_OK:
@@ -215,10 +237,9 @@ static void *sender_thread(void *arg) {
                     break;
                 case SEMTECH_LORAMAC_TX_DONE:
                     puts("[LoRa] TX done");
-                    break;
-                case SEMTECH_LORAMAC_DUTYCYCLE_RESTRICTED:
-                    puts("[error] TX duty cycle restricted");
-                    lora_resend_packet();
+                    
+                    /* remove transmitted frame from FIFO */
+                    ls_frame_fifo_pop(&fifo_lorapacket, NULL);
                     break;
                 case SEMTECH_LORAMAC_TX_CNF_FAILED:
                     puts("[LoRa] uplink confirmation failed");
@@ -229,19 +250,31 @@ static void *sender_thread(void *arg) {
                         current_join_retries = 0;
                         uplinks_failed = 0;
                         msg_send(&msg_join, sender_pid);
+                        frame.retransmit = false;
                     } else {
-                        lora_resend_packet();
+                        frame.retransmit = true;
                     }
+                    ls_frame_fifo_replace(&fifo_lorapacket, &frame);
                     break;
                 default:
+                    /* fix if ever happened */
                     printf("[LoRa] send: unknown response %d\n", res);
+                    /* remove frame from FIFO */
+                    ls_frame_fifo_pop(&fifo_lorapacket, NULL);
                     break;
+            }
+            
+            if (!ls_frame_fifo_empty(&fifo_lorapacket)) {
+                printf("[LoRa] queue not empty, sending next packet in %d sec\n", LORAWAN_SENDNEXT_DELAY_MS/1000);
+                lptimer_set_msg(&send_timer, LORAWAN_SENDNEXT_DELAY_MS, &msg_data, sender_pid);
+            } else {
+                lptimer_remove(&send_timer);
             }
         }
         
         if (msg.type == NODE_MSG_JOIN) {
             res = node_join(ls);
-            
+
             switch (res) {
             case SEMTECH_LORAMAC_JOIN_SUCCEEDED: {
                 current_join_retries = 0;
@@ -280,9 +313,7 @@ static void *sender_thread(void *arg) {
                 }
                 
                 /* bit 7: FPort usage for module addressing */
-                #if !defined LORAWAN_DONT_USE_FPORT
                 data.data[1] |= 1 << 7;
-                #endif
 
                 data.length++;
 
@@ -319,6 +350,7 @@ static void *sender_thread(void *arg) {
                 break;
             }
         }
+        last_tx_time = lptimer_now().ticks32;
     }
     return NULL;
 }
@@ -472,6 +504,9 @@ static void ls_setup(semtech_loramac_t *ls)
     }
 
     semtech_loramac_set_tx_port(ls, LORAMAC_DEFAULT_TX_PORT); /* port 2 */
+    
+    /* initialize FIFO for uplink packets */
+    ls_frame_fifo_init(&fifo_lorapacket);
     
     puts("[LoRa] LoRaMAC values set");
 }
@@ -750,64 +785,68 @@ shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX] = {
 
 static void unwds_callback(module_data_t *buf)
 {
-    uint8_t bytes = 0;
-    
-#if defined LORAWAN_DONT_USE_FPORT
-    if (buf->length < 15) {
-        bytes = 16;
-    } else {
-        if (buf->length < 31) {
-            bytes = 32;
-        } else {
-            printf("[LoRa] payload too big: %d bytes (should be 30 bytes max)\n", buf->length);
-            return;
-        }
-    }
-    
-    printf("[LoRa] payload size %d bytes + 2 status bytes -> %d bytes\n", buf->length, bytes);
-#else
-    bytes = buf->length + 1;
-    
-    /* move module ID to FPort */
-    node_data.fport = buf->data[0];
-    memmove(&buf->data[0], &buf->data[1], buf->length - 1);
-    
-    printf("[LoRa] payload size %d bytes + 2 status bytes -> %d bytes\n", buf->length - 1, bytes);
-#endif
-    buf->length = bytes;
-    
+    /* get MCU temperature and supply voltage */
     cpu_update_status();
     int8_t temperature = INT8_MIN;
     uint8_t voltage = 0;
     
     if (cpu_status.temp.core_temp != INT16_MIN) {
         temperature = cpu_status.temp.core_temp;
-        printf("MCU temperature is %d C\n", temperature);
+        printf("[LoRa] MCU temperature is %d C\n", temperature);
     }
     if (cpu_status.voltage.vdd != INT16_MIN) {
         voltage = cpu_status.voltage.vdd/50;
-        printf("Battery voltage %d mV\n", voltage * 50);
+        printf("[LoRa] Battery voltage %d mV\n", voltage * 50);
     }
     convert_to_be_sam((void *)&temperature, 1);
-    buf->data[bytes - 2] = temperature;
-    buf->data[bytes - 1] = voltage;
+    
+    mutex_lock(&curr_frame_mutex);
+    
+    ls_frame_t frame;
+    
+    /* this is a new frame */
+    frame.retransmit = false;
+
+    /* move module ID to FPort */
+    frame.fport = buf->data[0];
+    memcpy(frame.data, &buf->data[1], buf->length - 1);
+
+    /* 1 byte moved to FPort, 2 bytes to be added */
+    frame.length = buf->length + 1;
+    
+    if (frame.length > 32) {
+        printf("[LoRa] payload too big (%d bytes)\n", frame.length);
+        return;
+    }
+    
+    printf("[LoRa] payload size %d bytes\n", frame.length);
+
+    frame.data[frame.length - 2] = temperature;
+    frame.data[frame.length - 1] = voltage;
     
 #if ENABLE_DEBUG
-    for (int k = 0; k < buf->length; k++) {
-        printf("%02X ", buf->data[k]);
+    for (int k = 0; k < frame.length; k++) {
+        printf("%02X ", frame.data[k]);
     }
     printf("\n");
 #endif
-
-    node_data.buffer = buf->data;
-    node_data.length = buf->length;
-    msg_data.content.ptr = &node_data;
     
-    /* remove any previously scheduled messages */
-    lptimer_remove(&send_retry_timer);
+    /* push frame to FIFO */
+    if (ls_frame_fifo_full(&fifo_lorapacket)) {
+        DEBUG("[LoRa] remove oldest frame from FIFO\n");
+        ls_frame_fifo_pop(&fifo_lorapacket, NULL);
+    }
+    
+    if (!ls_frame_fifo_push(&fifo_lorapacket, &frame)) {
+    	mutex_unlock(&curr_frame_mutex);
+        DEBUG("[LoRa] FIFO error\n");
+        return;
+    }
     
     /* send data */
     msg_send(&msg_data, sender_pid);
+    
+    mutex_unlock(&curr_frame_mutex);
 
     blink_led(LED0_PIN);
 }
@@ -847,7 +886,7 @@ void init_normal(shell_command_t *commands)
 
         unwds_device_init(unwds_callback, unwds_init, unwds_join, unwds_sleep);
     }
-    
+
     /* Add our commands to shell */
     int i = 0;
     do {

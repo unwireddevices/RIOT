@@ -63,12 +63,21 @@ typedef enum {
 
 #endif /* ndef DOXYGEN */
 
+typedef enum {
+    ADC_EXT_TRIGGER_TIM1TRGO,
+    ADC_EXT_TRIGGER_TIM1CC4,
+    ADC_EXT_TRIGGER_TIM2TRGO,
+    ADC_EXT_TRIGGER_TIM3TRGO,
+    ADC_EXT_TRIGGER_TIM15TRGO
+} adc_trigger_t;
+
 /**
  * @brief   ADC line configuration values
  */
 typedef struct {
     gpio_t pin;             /**< pin to use */
     uint8_t chan;           /**< internal channel the pin is connected to */
+    adc_trigger_t trigger;  /**< external trigger if used */
 } adc_conf_t;
 
 #ifdef __cplusplus

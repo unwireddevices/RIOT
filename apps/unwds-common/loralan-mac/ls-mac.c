@@ -40,6 +40,8 @@ extern "C" {
 #include "ls-mac.h"
 #include "ls-crypto.h"
 
+#if !defined(UNWDS_MAC_LORAWAN)
+
 void ls_assemble_frame(ls_addr_t addr, ls_type_t type, uint8_t *buf, size_t buflen, ls_frame_t *frame)
 {
     memset(frame, 0, sizeof(ls_frame_t));
@@ -71,6 +73,8 @@ bool ls_validate_frame(uint8_t *buf, size_t buflen)
 
     return true;
 }
+
+#endif
 
 #ifdef __cplusplus
 }

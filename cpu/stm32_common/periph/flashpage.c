@@ -38,7 +38,6 @@
 #define CNTRL_REG              (FLASH->PECR)
 #define CNTRL_REG_LOCK         (FLASH_PECR_PELOCK)
 #define FLASH_CR_PER           (FLASH_PECR_ERASE | FLASH_PECR_PROG)
-#define FLASH_CR_PG            (FLASH_PECR_FPRG | FLASH_PECR_PROG)
 #define FLASHPAGE_DIV          (4U) /* write 4 bytes in one go */
 #else
 #if defined(CPU_FAM_STM32L4)
@@ -77,7 +76,9 @@ static void _erase_page(void *page_addr)
     uint32_t *dst = page_addr;
 #else
     uint16_t *dst = page_addr;
-
+#endif
+#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \
+    defined(CPU_FAM_STM32F3)
     uint32_t hsi_state = (RCC->CR & RCC_CR_HSION);
     /* the internal RC oscillator (HSI) must be enabled */
     stmclk_enable_hsi();
@@ -98,27 +99,23 @@ static void _erase_page(void *page_addr)
     *dst = (uint32_t)0;
 #elif defined(CPU_FAM_STM32L4)
     DEBUG("[flashpage] erase: setting the page address\n");
-    CNTRL_REG |= FLASH_CR_PER;
     uint8_t pn;
-
-    if ((cpu_status.flash.size / FLASHPAGE_SIZE) <= 256) {
-        pn = (uint8_t)flashpage_page(dst);
-    } else {
-        uint16_t page = flashpage_page(dst);
-        if (page > 255) {
-            CNTRL_REG |= FLASH_CR_BKER;
-        }
-        else {
-            CNTRL_REG &= ~FLASH_CR_BKER;
-        }
-        pn = (uint8_t)page;
+#if FLASHPAGE_NUMOF <= 256
+    pn = (uint8_t)flashpage_page(dst);
+#else
+    uint16_t page = flashpage_page(dst);
+    if (page > 255) {
+        CNTRL_REG |= FLASH_CR_BKER;
+    }
+    else {
+        CNTRL_REG &= ~FLASH_CR_BKER;
     }
     pn = (uint8_t)page;
 #endif
     CNTRL_REG &= ~FLASH_CR_PNB;
     CNTRL_REG |= (uint32_t)(pn << FLASH_CR_PNB_Pos);
     CNTRL_REG |= FLASH_CR_STRT;
-#else /* CPU_FAM_STM32F0 || CPU_FAM_STM32F1 */
+#else /* CPU_FAM_STM32F0 || CPU_FAM_STM32F1 || CPU_FAM_STM32F3 */
     DEBUG("[flashpage] erase: setting the page address\n");
     FLASH->AR = (uint32_t)dst;
     /* trigger the page erase and wait for it to be finished */
@@ -135,8 +132,8 @@ static void _erase_page(void *page_addr)
     /* lock the flash module again */
     _lock();
 
-#if !(defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L1) || \
-      defined(CPU_FAM_STM32L4))
+#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \
+    defined(CPU_FAM_STM32F3)
     /* restore the HSI state */
     if (!hsi_state) {
         stmclk_disable_hsi();
@@ -156,7 +153,7 @@ void flashpage_write_raw(void *target_addr, const void *data, size_t len)
 
     /* ensure the length doesn't exceed the actual flash size */
     assert(((unsigned)target_addr + len) <
-           (CPU_FLASH_BASE + (FLASHPAGE_SIZE * (cpu_status.flash.size / FLASHPAGE_SIZE))) + 1);
+           (CPU_FLASH_BASE + (FLASHPAGE_SIZE * FLASHPAGE_NUMOF)) + 1);
 
 #if defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L1)
     uint32_t *dst = target_addr;
@@ -167,7 +164,10 @@ void flashpage_write_raw(void *target_addr, const void *data, size_t len)
 #else
     uint16_t *dst = (uint16_t *)target_addr;
     const uint16_t *data_addr = data;
+#endif
 
+#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \
+    defined(CPU_FAM_STM32F3)
     uint32_t hsi_state = (RCC->CR & RCC_CR_HSION);
     /* the internal RC oscillator (HSI) must be enabled */
     stmclk_enable_hsi();
@@ -176,8 +176,12 @@ void flashpage_write_raw(void *target_addr, const void *data, size_t len)
     /* unlock the flash module */
     _unlock_flash();
 
+    /* make sure no flash operation is ongoing */
+    _wait_for_pending_operations();
+
     DEBUG("[flashpage_raw] write: now writing the data\n");
-#if !(defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L1))
+#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \
+    defined(CPU_FAM_STM32F3) || defined(CPU_FAM_STM32L4)
     /* set PG bit and program page to flash */
     CNTRL_REG |= FLASH_CR_PG;
 #endif
@@ -189,14 +193,17 @@ void flashpage_write_raw(void *target_addr, const void *data, size_t len)
     }
 
     /* clear program bit again */
+#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \
+    defined(CPU_FAM_STM32F3) || defined(CPU_FAM_STM32L4)
     CNTRL_REG &= ~(FLASH_CR_PG);
+#endif
     DEBUG("[flashpage_raw] write: done writing data\n");
 
     /* lock the flash module again */
     _lock();
 
-#if !(defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L1) || \
-      defined(CPU_FAM_STM32L4))
+#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \
+    defined(CPU_FAM_STM32F3)
     /* restore the HSI state */
     if (!hsi_state) {
         stmclk_disable_hsi();
@@ -206,7 +213,7 @@ void flashpage_write_raw(void *target_addr, const void *data, size_t len)
 
 void flashpage_write(uint32_t page, const void *data, const uint32_t data_size)
 {
-    assert(page < (cpu_status.flash.size / FLASHPAGE_SIZE));
+    assert(page < (int)FLASHPAGE_NUMOF);
     assert(data_size < FLASHPAGE_SIZE);
 
 #if defined(CPU_FAM_STM32L0) || defined(CPU_FAM_STM32L1)

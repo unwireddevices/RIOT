@@ -22,15 +22,11 @@
 #include "cpu.h"
 #include "mutex.h"
 #include "periph/adc.h"
+#include "periph/pm.h"
 
 /* Factory calibration data */
 #define ADC_VREFINT_CAL     (0x1FFFF7BAUL)
 #define ADC_TSENSE_CAL1     (0x1FFFF7B8UL)
-
-/**
- * @brief   Load the ADC configuration
- */
-static const adc_conf_t adc_config[] = ADC_CONFIG;
 
 /**
  * @brief   Allocate locks for all three available ADC device
@@ -189,4 +185,130 @@ int adc_sample(adc_t line,  adc_res_t res)
     done();
     
     return sample;
+}
+
+static adc_cb_t adc_dma_callback;
+
+int adc_sampling_start(adc_t line, adc_res_t res, uint16_t *buf, uint16_t wsize, adc_cb_t adc_cb, adc_conconv_mode_t mode)
+{
+    /* check if resolution is applicable */
+    if ( (res != ADC_RES_6BIT) &&
+         (res != ADC_RES_8BIT) &&
+         (res != ADC_RES_10BIT) &&
+         (res != ADC_RES_12BIT)) {
+        return -1;
+    }
+    
+    if ((!buf) || (!wsize)) {
+        return -1;
+    }
+    
+    adc_dma_callback = adc_cb;
+
+    /* lock and power on the ADC device  */
+    prep();
+
+    /* disable DMA */
+    ADC1->CFGR1 &= ~ADC_CFGR1_DMAEN;
+    
+    /* enable DMA clock */
+    periph_clk_en(AHB, RCC_AHBENR_DMA1EN);
+    /* disable DMA channel */
+    DMA1_Channel1->CCR &= ~DMA_CCR_EN;
+    
+    /* set resolution and channel */
+    ADC1->CFGR1 &= ~ADC_CFGR1_RES;
+    ADC1->CFGR1 |= res & ADC_CFGR1_RES;
+    
+    /* set trigger event: hardware trigger rising edge */
+    ADC1->CFGR1 &= ~ADC_CFGR1_EXTSEL;
+    ADC1->CFGR1 |= ((uint32_t)adc_config[line].trigger << 6);
+    ADC1->CFGR1 &= ~ADC_CFGR1_EXTEN;
+    ADC1->CFGR1 |= ADC_CFGR1_EXTEN_0;
+    
+    /* enable DMA */
+    ADC1->CFGR1 |= ADC_CFGR1_DMAEN;
+    
+    /* setup DMA channel 1 */
+    DMA1_Channel1->CCR = 0;
+    /* high priority */
+    DMA1_Channel1->CCR |= DMA_CCR_PL_1;
+    /* 16-bit memory size */
+    DMA1_Channel1->CCR |= DMA_CCR_MSIZE_0;
+    /* 16-bit peripheral size */
+    DMA1_Channel1->CCR |= DMA_CCR_PSIZE_0;
+    /* memory increment mode */
+    DMA1_Channel1->CCR |= DMA_CCR_MINC;
+    /* transfer completed IRQ */
+    DMA1_Channel1->CCR |= DMA_CCR_TCIE;
+    /* number of data */
+    DMA1_Channel1->CNDTR = wsize;
+    /* peripheral address */
+    DMA1_Channel1->CPAR = (uint32_t)(&ADC1->DR);
+    /* memory address */
+    DMA1_Channel1->CMAR = (uint32_t)buf;
+    
+    /* disable interrupt */
+    ADC1->IER &= ~ADC_IER_EOCIE;
+    
+    if (mode == ADC_CONTINUOUS_CIRCULAR) {
+        ADC1->CFGR1 |= ADC_CFGR1_DMACFG;
+        DMA1_Channel1->CCR |= DMA_CCR_CIRC;
+        DMA1_Channel1->CCR |= DMA_CCR_HTIE;
+    } else {
+        ADC1->CFGR1 &= ~ADC_CFGR1_DMACFG;
+    }
+    
+    /* select ADC channel */
+    ADC1->CHSELR = (1 << adc_config[line].chan);
+
+    /* enable DMA IRQ */
+    NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+    
+    /* Enable DMA channel */
+    DMA1_Channel1->CCR |= DMA_CCR_EN;
+    
+    /* block STOP mode */
+    pm_block(PM_SLEEP);
+    
+    return 0;
+}
+
+int adc_sampling_stop(void) {
+    /* disable DMA */
+    ADC1->CFGR1 &= ~ADC_CFGR1_DMAEN;
+
+    /* disable DMA channel */
+    DMA1_Channel1->CCR &= ~DMA_CCR_EN;
+    
+    /* disable IRQ */
+    NVIC_DisableIRQ(DMA1_Channel1_IRQn);
+    
+    /* power off and unlock ADC */
+    done();
+    
+    /* unblock STOP mode */
+    pm_unblock(PM_SLEEP);
+    
+    return 0;
+}
+
+void isr_dma1_ch1(void) {
+    if (DMA1->ISR & DMA_ISR_HTIF1) {
+        /* half-tranfer */
+        DMA1->IFCR |= DMA_IFCR_CHTIF1;
+        
+        adc_dma_callback(ADC_DMA_CALLBACK_HALF);
+    }
+    
+    if (DMA1->ISR & DMA_ISR_TCIF1) {
+        /* transfer completed */
+        DMA1->IFCR |= DMA_IFCR_CTCIF1;
+        
+        if (!(ADC1->CFGR1 & ADC_CFGR1_DMACFG)) {
+            adc_sampling_stop();
+        }
+        
+        adc_dma_callback(ADC_DMA_CALLBACK_COMPLETED);
+    }
 }

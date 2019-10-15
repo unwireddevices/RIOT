@@ -88,11 +88,16 @@ static void jump_to_bootloader(void) {
 
 #if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \
     defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F3) || \
-    defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32F7)
+    defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32F7) || \
+    defined(CPU_FAM_STM32L1)
 
 #define STM32_CPU_MAX_GPIOS    (12U)
 
-#if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F3)
+#if defined(CPU_FAM_STM32L1)
+#define GPIO_CLK              (AHB)
+#define GPIO_CLK_ENR          (RCC->AHBENR)
+#define GPIO_CLK_ENR_MASK     (0x0000FFFF)
+#elif defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F3)
 #define GPIO_CLK              (AHB)
 #define GPIO_CLK_ENR          (RCC->AHBENR)
 #define GPIO_CLK_ENR_MASK     (0xFFFF0000)
@@ -131,7 +136,7 @@ static void _gpio_init_ain(void)
     for (uint8_t i = 0; i < STM32_CPU_MAX_GPIOS; i++) {
         GPIO_TypeDef *port;
         port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
-        if (IS_GPIO_ALL_INSTANCE(port)) {
+        if (IS_GPIO_ALL_INSTANCE(port) && cpu_check_address((char *)port)) {
             if (!DISABLE_JTAG) {
 #if defined(CPU_FAM_STM32F1)
                 switch (i) {
@@ -203,35 +208,11 @@ void cpu_init(void)
     
     /* initialize the system clock as configured in the periph_conf.h */
     stmclk_init_sysclk();
-    
-#if defined(CPU_FAM_STM32L1)
-    /* switch all GPIOs to AIN mode to minimize power consumption */
-    uint8_t i;
-    GPIO_TypeDef *port;
-    
-    /* enable GPIO clock */
-    uint32_t ahb_gpio_clocks = RCC->AHBENR & 0xFF;
-    periph_clk_en(AHB, 0xFF);
-    
-    for (i = 0; i < 8; i++) {
-        port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
-        if (cpu_check_address((char *)port)) {
-            port->MODER = 0xffffffff;
-        } else {
-            break;
-        }
-    }
-    
-    /* restore GPIO clock */
-    uint32_t tmpreg = RCC->AHBENR;
-    tmpreg &= ~((uint32_t)0xFF);
-    tmpreg |= ahb_gpio_clocks;
-    periph_clk_en(AHB, tmpreg);
-#endif
 
 #if defined(CPU_FAM_STM32F0) || defined(CPU_FAM_STM32F1) || \
     defined(CPU_FAM_STM32F2) || defined(CPU_FAM_STM32F3) || \
-    defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32F7)
+    defined(CPU_FAM_STM32F4) || defined(CPU_FAM_STM32F7) || \
+    defined(CPU_FAM_STM32L1)
     _gpio_init_ain();
 #endif
 

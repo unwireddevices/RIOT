@@ -42,6 +42,8 @@
 
 #include "byteorder.h"
 
+#if !defined(UNWDS_MAC_LORAWAN)
+
 typedef struct  __attribute__((packed)) {
     uint8_t fb;
     uint32_t u8_pad;
@@ -180,6 +182,8 @@ void ls_derive_keys(ls_nonce_t dev_nonce, uint32_t app_nonce, ls_addr_t addr, ui
         memcpy(key_aes, hash + 16, 16);
     }
 }
+
+#endif
 
 #ifdef __cplusplus
 }

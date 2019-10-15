@@ -37,9 +37,9 @@
 #include "ls-mac-types.h"
 
 /**
- * @brief The biggest possible queue size.
+ * @brief The biggest possible queue size. Must be power of 2.
  */
-#define LS_MAX_FRAME_FIFO_SIZE 8
+#define LS_MAX_FRAME_FIFO_SIZE 4
 
 /**
  * @brief describes the frame queue.
@@ -79,6 +79,16 @@ bool ls_frame_fifo_pop(ls_frame_fifo_t *fifo, ls_frame_t *frame);
  * @return false if queue is empty
  */
 bool ls_frame_fifo_peek(ls_frame_fifo_t *fifo, ls_frame_t *frame);
+
+/**
+ * @brief replaces oldest element in FIFO.
+ *
+ * @param	*fifo	pointer to the FIFO structure
+ * @param	*frame	pointer to the replacement frame
+ *
+ * @return false if queue is empty
+ */
+bool ls_frame_fifo_replace(ls_frame_fifo_t *fifo, ls_frame_t *frame);
 
 /**
  * @brief inserts element into the queue.

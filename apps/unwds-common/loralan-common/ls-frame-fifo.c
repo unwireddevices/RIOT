@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Unwired Devices LLC <info@unwds.com>
+ * Copyright (C) 2016-2019 Unwired Devices LLC <info@unwds.com>
 
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the "Software"),
@@ -78,6 +78,18 @@ bool ls_frame_fifo_peek(ls_frame_fifo_t *fifo, ls_frame_t *frame) {
 
 	mutex_lock(&fifo->mutex);
 	*frame = fifo->fifo[fifo->front];
+	mutex_unlock(&fifo->mutex);
+
+	return true;
+}
+
+bool ls_frame_fifo_replace(ls_frame_fifo_t *fifo, ls_frame_t *frame) {
+	if (ls_frame_fifo_empty(fifo)) {
+		return false;
+	}
+
+	mutex_lock(&fifo->mutex);
+	fifo->fifo[fifo->front] = *frame;
 	mutex_unlock(&fifo->mutex);
 
 	return true;

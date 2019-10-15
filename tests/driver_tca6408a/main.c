@@ -1,7 +1,5 @@
 /*
- * Copyright (C) 2014 Freie Universität Berlin
- * Copyright (C) 2014 PHYTEC Messtechnik GmbH
- *               2017 HAW Hamburg
+ * Copyright (C) 2019 Unwired Devices [info@unwds.com]
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -9,15 +7,13 @@
  */
 
 /**
- * @ingroup tests
+ * @ingroup     tests
  * @{
  *
  * @file
- * @brief       Test application for the TMP006 sensor driver.
+ * @brief       Test application for the TCA6408A I/O Expander driver
  *
- * @author      Hauke Petersen <hauke.petersen@fu-berlin.de>
- * @author      Johann Fischer <j.fischer@phytec.de>
- * @author      Sebastian Meiling <s@mlng.net>
+ * @author      Alexander Ugorelov <info@unwds.com>
  *
  * @}
  */

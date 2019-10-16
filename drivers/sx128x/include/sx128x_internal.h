@@ -41,7 +41,7 @@ void sx1280_hal_wait_on_busy(const sx128x_t *dev);
  * @param dev 
  * @param irq_handlers 
  */
-void sx1280_hal_init(const sx128x_t *dev, dio_irq_handler *irq_handlers);
+void sx1280_hal_init(sx128x_t *dev, dio_irq_handler *irq_handlers);
 
 /**
  * @brief 
@@ -50,7 +50,7 @@ void sx1280_hal_init(const sx128x_t *dev, dio_irq_handler *irq_handlers);
  * @param irq_handlers 
  * @return int 
  */
-int sx1280_hal_io_irq_init(const sx128x_t *dev, dio_irq_handler *irq_handlers);
+int sx1280_hal_io_irq_init(sx128x_t *dev, dio_irq_handler *irq_handlers);
 
 
 /**

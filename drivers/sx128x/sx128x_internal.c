@@ -57,7 +57,7 @@ void sx1280_hal_wait_on_busy(const sx128x_t *dev)
     } while ((gpio_read(dev->params.busy_pin) != 0x0000) && (--timeout));
 }
 
-void sx1280_hal_init(const sx128x_t *dev, dio_irq_handler *irq_handlers)
+void sx1280_hal_init(sx128x_t *dev, dio_irq_handler *irq_handlers)
 {
     /* Initialize RESET pin */
     gpio_init(dev->params.reset_pin, GPIO_OUT);
@@ -79,26 +79,26 @@ void sx1280_hal_init(const sx128x_t *dev, dio_irq_handler *irq_handlers)
     sx1280_hal_io_irq_init(dev, irq_handlers);
 }
 
-int sx1280_hal_io_irq_init(const sx128x_t *dev, dio_irq_handler *irq_handlers)
+int sx1280_hal_io_irq_init(sx128x_t *dev, dio_irq_handler *irq_handlers)
 {
     int status = 0;
 
     if (dev->params.dio1_pin != GPIO_UNDEF) {
-        status = gpio_init_int(dev->params.dio1_pin, GPIO_IN, GPIO_RISING, irq_handlers[0], NULL);
+        status = gpio_init_int(dev->params.dio1_pin, GPIO_IN, GPIO_RISING, irq_handlers[0], dev);
         if (status < 0) {
             LOG_ERROR("[SX128X] Error: failed to initialize DIO1 pin\n");
         }
     }
 
     if (dev->params.dio2_pin != GPIO_UNDEF) {
-        status = gpio_init_int(dev->params.dio2_pin, GPIO_IN, GPIO_RISING, irq_handlers[0], NULL);
+        status = gpio_init_int(dev->params.dio2_pin, GPIO_IN, GPIO_RISING, irq_handlers[0], dev);
         if (status < 0) {
             LOG_ERROR("[SX128X] Error: failed to initialize DIO2 pin\n");
         }
     }
 
     if (dev->params.dio3_pin != GPIO_UNDEF) {
-        status = gpio_init_int(dev->params.dio3_pin, GPIO_IN, GPIO_RISING, irq_handlers[0], NULL);
+        status = gpio_init_int(dev->params.dio3_pin, GPIO_IN, GPIO_RISING, irq_handlers[0], dev);
         if (status < 0) {
             LOG_ERROR("[SX128X] Error: failed to initialize DIO3 pin\n");
         }

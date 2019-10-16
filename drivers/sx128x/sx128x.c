@@ -529,7 +529,7 @@ uint16_t sx1280_get_irq_status(const sx128x_t *dev)
 
     sx1280_hal_read_command(dev, SX128X_RADIO_GET_IRQSTATUS, irq_status, 2);
 
-    return (irq_status[0] << 8) | irq_status[1];
+    return ((irq_status[0] << 8) | irq_status[1]);
 }
 
 void sx1280_clear_irq_status(const sx128x_t *dev, uint16_t irq)
@@ -1200,7 +1200,9 @@ void sx1280_on_dio_irq(void *arg)
     if(polling_mode == true) {
         irq_state = true;
     } else {
-        sx1280_process_irqs(dev);
+        if (dev->cb) {
+            dev->cb(dev->arg);
+        }
     }
 }
 

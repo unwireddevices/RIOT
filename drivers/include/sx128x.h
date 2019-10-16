@@ -138,6 +138,8 @@ typedef struct {
     // netdev_t netdev;                    /**< Netdev parent struct */
     // sx128x_radio_settings_t settings;   /**< Radio settings */
     sx128x_params_t params;             /**< Device driver parameters */
+    dio_irq_handler cb;                     /**< callback */
+    void *arg;                          /**< callback param */
     // sx128x_internal_t _internal;        /**< Internal sx128x data used within the driver */
     // sx128x_flags_t irq;                 /**< Device IRQ flags */
 } sx128x_t;
@@ -971,7 +973,7 @@ void sx1280_set_polling_mode(void);
  * // Initializations and callbacks declaration/definition
  * FIXME: radio = SX1280(mosi, miso, sclk, nss, busy, int1, int2, int3, rst, &callbacks);
  * sx1280_init();
- * sx1280_set_interrupt_mode();   // Optionnal. Driver default behavior
+ * sx1280_set_interrupt_mode();   // Optional. Driver default behavior
  *
  * while(true) {
  *     // Do some applicative work

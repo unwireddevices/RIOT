@@ -88,15 +88,18 @@ static struct {
     char        mqtt_topic[50];
 } atmodem_mqtt_config;
 
+uint8_t mqtt_buf[1000];
+char mqtt_payload[1000];
+
 typedef struct {
     uint8_t *buffer;
     uint32_t length;
 } node_data_t;
 
-#define AT_DEV_BUF_SIZE         (2048)
+#define AT_DEV_BUF_SIZE         (256)
 static char at_dev_buf[AT_DEV_BUF_SIZE];
 
-#define AT_DEV_RESP_SIZE        (2048)
+#define AT_DEV_RESP_SIZE        (1024)
 static char at_dev_resp[AT_DEV_RESP_SIZE];
 
 #define SIM5300_UART            (1)
@@ -114,12 +117,11 @@ static msg_t msg_data = { .type = NODE_MSG_SEND };
 static kernel_pid_t sender_pid;
 static kernel_pid_t receiver_pid;
 
-static kernel_pid_t main_thread_pid;
-
 static char sender_stack[2048];
 static char receiver_stack[2048];
-
-// static bool appdata_received(uint8_t *buf, size_t buflen, uint8_t fport);
+/*
+static bool appdata_received(uint8_t *buf, size_t buflen, uint8_t fport);
+*/
 static void unwds_callback(module_data_t *buf);
 
 static void *sender_thread(void *arg) {
@@ -136,33 +138,42 @@ static void *sender_thread(void *arg) {
 
         int res;
         
+        printf("[GSM] Powering up modem\n");
+        
         if (msg.type == NODE_MSG_SEND) {
             node_data_t *ptr = msg.content.ptr;
 
             res = sim5300_init(&sim5300_dev, SIM5300_UART, SIM5300_BAUDRATE, at_dev_buf, AT_DEV_BUF_SIZE, at_dev_resp, AT_DEV_RESP_SIZE);
             if (res != SIM5300_OK) {
-                DEBUG("[GSM] Error initializing modem\n");
+                printf("[GSM] Error initializing modem\n");
                 continue;
-            } 
-            
-            res = sim5300_start_internet(&sim5300_dev, 30, NULL);
-            if (res != SIM5300_OK) {
-                DEBUG("[GSM] Error setting up modem\n");
-                continue;
+            } else {
+                printf("[GSM] Modem initialized\n");
             }
 
+            res = sim5300_start_internet(&sim5300_dev, 30, NULL);
+            if (res != SIM5300_OK) {
+                printf("[GSM] Error setting up modem\n");
+                continue;
+            } else {
+                printf("[GSM] Modem ready\n");
+            }
+
+            /*
             switch (res) {
                 default:
                     DEBUG("[GSM] send: unknown response %d\n", res);
                     break;
             }
-            
+            */
             
             int sockfd = sim5300_socket(&sim5300_dev);
             
             if (sockfd < SIM5300_OK) {
                 DEBUG("[GSM] Socket open error: %i\n", sockfd);
                 continue;
+            } else {
+                printf("[GSM] Socket ready\n");
             }
             
             res = sim5300_connect(&sim5300_dev, 
@@ -173,14 +184,14 @@ static void *sender_thread(void *arg) {
             if (res < SIM5300_OK) {
                 DEBUG("[GSM] Connection error: %i\n", res);
                 continue;
+            }  else {
+                printf("[GSM] Modem connected\n");
             }
             
             puts("Building MQTT packet");
-                
+
             /* build MQTT packet */
-            uint8_t buf[1000];
-            char payload[1000];
-            size_t buflen = sizeof(buf);
+            size_t buflen = sizeof(mqtt_buf);
             
             MQTTPacket_connectData data = MQTTPacket_connectData_initializer;
             MQTTString topicString = MQTTString_initializer;
@@ -189,12 +200,12 @@ static void *sender_thread(void *arg) {
             data.cleansession = 1;
             data.MQTTVersion = 4;
             
-            /* encode payload to Base64 */
-            base64_encode(ptr->buffer, ptr->length, buf, &buflen);
-            buf[buflen] = 0;
+            /* encode mqtt_payload to Base64 */
+            base64_encode(ptr->buffer, ptr->length, mqtt_buf, &buflen);
+            mqtt_buf[buflen] = 0;
             
             /* restore buffer size */
-            buflen = sizeof(buf);
+            buflen = sizeof(mqtt_buf);
             
             uint64_t id = config_get_nodeid();
 
@@ -215,18 +226,18 @@ static void *sender_thread(void *arg) {
             sim5300_get_signal_quality_report(&sim5300_dev, &sim5300_csq_resp);
             int rssi = sim5300_csq_resp.rssi;
             
-            snprintf(payload, sizeof(payload), "{"      \
+            snprintf(mqtt_payload, sizeof(mqtt_payload), "{"      \
                     "\"id\": \"%08lu%08lu\","           \
                     "\"rssi\": \"%d\","                 \
                     "\"temperature\": \"%d\","          \
                     "\"battery\": \"%d\","              \
-                    "\"payload\": \"%s\""               \
+                    "\"mqtt_payload\": \"%s\""               \
                     "}",                                \
                     (uint32_t)(id >> 32),               \
                     (uint32_t)(id & 0xFFFFFFFF), rssi,  \
-                    temperature, voltage, buf);
+                    temperature, voltage, mqtt_buf);
                 
-            int payloadlen = strlen(payload);                
+            int payloadlen = strlen(mqtt_payload);                
             
             int len = 0;
             
@@ -235,16 +246,18 @@ static void *sender_thread(void *arg) {
             memcpy(data.username.cstring, atmodem_mqtt_config.mqtt_user, strlen(atmodem_mqtt_config.mqtt_user) + 1);
             memcpy(data.password.cstring, atmodem_mqtt_config.mqtt_password, strlen(atmodem_mqtt_config.mqtt_password) + 1);
             
-            len = MQTTSerialize_connect((unsigned char *)buf, buflen, &data);
+            len = MQTTSerialize_connect((unsigned char *)mqtt_buf, buflen, &data);
 
             memcpy(topicString.cstring, atmodem_mqtt_config.mqtt_topic, strlen(atmodem_mqtt_config.mqtt_topic) + 1);
             
-            len += MQTTSerialize_publish((unsigned char *)(buf + len), buflen - len, 0, 0, 0, 0, topicString, (unsigned char *)payload, payloadlen);
-            len += MQTTSerialize_disconnect((unsigned char *)(buf + len), buflen - len);
+            len += MQTTSerialize_publish((unsigned char *)(mqtt_buf + len), buflen - len, 0, 0, 0, 0, topicString, (unsigned char *)mqtt_payload, payloadlen);
+            len += MQTTSerialize_disconnect((unsigned char *)(mqtt_buf + len), buflen - len);
             
             printf("MQTT: JSON %d bytes, total message %d bytes\n", payloadlen, len);
+            
+            printf("%s\n", mqtt_payload);
 
-            res = sim5300_send(&sim5300_dev, sockfd, buf, len);
+            res = sim5300_send(&sim5300_dev, sockfd, mqtt_buf, len);
             
             res = sim5300_close(&sim5300_dev, sockfd);
             if (res != SIM5300_OK) {
@@ -332,19 +345,30 @@ int ls_set_cmd(int argc, char **argv)
 
     (void) argv;
     (void) argc;
-    /*
+
     char *key = argv[1];
     char *value = argv[2];
     
-    if (strcmp(key, "otaa") == 0) {
-        int v = atoi(value);
-        if (v) {
-            unwds_set_nojoin(false);
-        } else {
-            unwds_set_nojoin(true);
+    if (strcmp(key, "class") == 0) {
+        char v = value[0];
+
+        if (v != 'A' && v != 'C') {
+            puts("set сlass: A or C");
+            return 1;
+        }
+
+        if (v == 'A') {
+            unwds_set_class(LS_ED_CLASS_A);
+        }
+        /*
+        else if (v == 'B') {
+            unwds_set_class(LS_ED_CLASS_B);
+        }
+        */
+        else if (v == 'C') {
+            unwds_set_class(LS_ED_CLASS_C);
         }
     }
-    */
 
     return 0;
 }
@@ -356,6 +380,15 @@ static void print_config(void)
     uint64_t eui64 = config_get_nodeid();
 
     printf("DevEUI = 0x%08x%08x\n", (unsigned int) (eui64 >> 32), (unsigned int) (eui64 & 0xFFFFFFFF));
+    
+    char nodeclass = 'A'; // unwds_get_node_settings().nodeclass == LS_ED_CLASS_A
+    if (unwds_get_node_settings().nodeclass == LS_ED_CLASS_B) {
+        nodeclass = 'B';
+    }
+    else if (unwds_get_node_settings().nodeclass == LS_ED_CLASS_C) {
+        nodeclass = 'C';
+    }
+    printf("CLASS = %c\n", nodeclass);
 
     puts("[ enabled modules ]");
     unwds_list_modules(unwds_get_node_settings().enabled_mods, true);
@@ -480,9 +513,41 @@ static int ls_safe_cmd(int argc, char **argv) {
 #if defined RTC_REGBACKUP_BOOTMODE
     uint32_t bootmode = UNWDS_BOOT_SAFE_MODE;
     rtc_save_backup(bootmode, RTC_REGBACKUP_BOOTMODE);
-#endif
     puts("Rebooting in safe mode");
     NVIC_SystemReset();
+#else
+    puts("Safe mode not supported");
+#endif
+    return 0;
+}
+
+static char str_send_buf[200] = { 0 };
+
+static int ls_send_cmd(int argc, char **argv) {
+    (void) argv;
+    uint32_t len = 0;
+    
+    if (argc > 1) {
+        strcpy(str_send_buf, argv[1]);
+        len = strlen(argv[1]) + 1;
+        for (int i = 2; i < argc; i++) {
+            if (strlen(argv[i]) + 1 + len > 200) {
+                puts("String too long, truncating");
+                break;
+            }
+            strcat(str_send_buf, " ");
+            strcat(str_send_buf, argv[i]);
+            len += 1 + strlen(argv[i]);
+        }
+        node_data.buffer = (uint8_t *)str_send_buf;
+        node_data.length = strlen(str_send_buf) + 1;
+        msg_data.content.ptr = &node_data;
+        
+        /* send data */
+        msg_send(&msg_data, sender_pid);
+        
+        blink_led(LED0_PIN);
+    }
     return 0;
 }
 
@@ -493,6 +558,7 @@ shell_command_t shell_commands[UNWDS_SHELL_COMMANDS_MAX] = {
     { "mod", "<name> <enable|disable>	-- disable or enable selected module", ls_module_cmd },
     { "cmd", "<modid> <cmdhex> -- send command to another UNWDS device", ls_cmd_cmd },
     { "safe", " -- reboot in safe mode", ls_safe_cmd },
+    { "send", " -- send string over GSM", ls_send_cmd },
     { NULL, NULL, NULL },
 };
 
@@ -533,8 +599,10 @@ static void unwds_sleep(void) {
 
 void init_normal(shell_command_t *commands)
 {
-    /* should always be 2 */
-    main_thread_pid = thread_getpid();
+    sim5300_dev.power_en_pin    = GPIO_UNDEF;
+    sim5300_dev.power_act_level = HIGH;
+    sim5300_dev.gsm_en_pin      = GPIO_PIN(PORT_A, 11);
+    sim5300_dev.gsm_act_level   = LOW;
     
     bool cfg_valid = unwds_config_load();
     print_config();

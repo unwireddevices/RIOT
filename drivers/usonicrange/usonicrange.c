@@ -27,7 +27,7 @@
 #include "lptimer.h"
 #include "periph/adc.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 #ifdef __cplusplus
@@ -349,6 +349,7 @@ static int usound_measure_distance(usonicrange_t *dev) {
 
             if (i == limit) {
                 result = -USONICRANGE_MINDISTANCE;
+                DEBUG("Signal above 3500 at sample %d\n", limit);
                 break;
             }
 
@@ -359,15 +360,18 @@ static int usound_measure_distance(usonicrange_t *dev) {
 
             if (dev->signalbuffer[limit] > 750) {
                 result = -USONICRANGE_MINDISTANCE;
+                DEBUG("Signal above 750 at sample %d\n", limit);
                 break;
             }
 
+            int s = i;
             for ( ; i < limit; i++) {
                 if ((dev->signalbuffer[i + 1] > USONICRANGE_SIGNAL_THRESHOLD) &&
                     (dev->signalbuffer[i + 1] > dev->signalbuffer[i]) &&
                     (dev->signalbuffer[i + 2] > dev->signalbuffer[i + 1])) {
 
                     result = -USONICRANGE_MINDISTANCE;
+                    DEBUG("Signal nonmonotonic on samples %d to %d\n", s, i);
                     break;
                 }
             }

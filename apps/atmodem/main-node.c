@@ -114,8 +114,8 @@ static msg_t msg_data = { .type = NODE_MSG_SEND };
 static kernel_pid_t sender_pid;
 static kernel_pid_t receiver_pid;
 
-static char sender_stack[2048];
-static char receiver_stack[2048];
+static char sender_stack[1024];
+static char receiver_stack[1024];
 /*
 static bool appdata_received(uint8_t *buf, size_t buflen, uint8_t fport);
 */

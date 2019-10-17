@@ -35,7 +35,9 @@
 
 #define UMDK_INCLINOMETER_STACK_SIZE            1024
 
+#ifndef UMDK_INCLINOMETER_I2C
 #define UMDK_INCLINOMETER_I2C                   1
+#endif
 
 #define UMDK_INCLINOMETER_PUBLISH_PERIOD_SEC    60
 #define UMDK_INCLINOMETER_RATE_SEC              10

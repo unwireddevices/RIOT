@@ -56,6 +56,12 @@ extern "C" {
 #include "lis2hh12.h"
 #include "lis2hh12_params.h"
 
+#include "lis2dh12.h"
+#include "lis2dh12_params.h"
+
+#include "lis3dh.h"
+#include "lis3dh_params.h"
+
 #include "adxl345.h"
 #include "adxl345_params.h"
 
@@ -74,9 +80,11 @@ extern "C" {
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
-static lis2hh12_t dev_lis2hh12;
-static adxl345_t dev_adxl345;
-static lsm6ds3_t dev_lsm6ds3;
+static lis2hh12_t   dev_lis2hh12;
+static adxl345_t    dev_adxl345;
+static lsm6ds3_t    dev_lsm6ds3;
+static lis2dh12_t   dev_lis2dh12;
+static lis3dh_t     dev_lis3dh;
 
 static uwnds_cb_t *callback;
 
@@ -118,11 +126,15 @@ typedef enum {
     UMDK_INCLINOMETER_LSM6DS3  = 1,
     UMDK_INCLINOMETER_LIS2HH12 = 1 << 1,
     UMDK_INCLINOMETER_ADXL345  = 1 << 2,
+    UMDK_INCLINOMETER_LIS2DH12 = 1 << 3,
+    UMDK_INCLINOMETER_LIS3DH   = 1 << 4,
 } umdk_inclinometer_active_sensors_t;
 
 static uint8_t active_sensors = 0;
 
 static bool init_sensor(void) {
+    printf("[umdk-" _UMDK_NAME_ "] Initializing INCLINOMETER on I2C #%d\n", I2C_DEV(UMDK_INCLINOMETER_I2C));
+    
 	lis2hh12_params_t lis2hh12_params;
     
     lis2hh12_params.i2c = I2C_DEV(UMDK_INCLINOMETER_I2C);        /**< I2C device */
@@ -131,8 +143,6 @@ static bool init_sensor(void) {
     lis2hh12_params.scale = LIS2HH12_SCALE_2G;          /**< Scale factor */
     lis2hh12_params.resolution = LIS2HH12_RES_HR;       /**< Resolution */
 
-	printf("[umdk-" _UMDK_NAME_ "] Initializing INCLINOMETER on I2C #%d\n", lis2hh12_params.i2c);
-    
     if (lis2hh12_init(&dev_lis2hh12, &lis2hh12_params) == 0) {
         puts("[umdk-" _UMDK_NAME_ "] STMicro LIS2HH12 sensor found");
         active_sensors |= UMDK_INCLINOMETER_LIS2HH12;
@@ -140,6 +150,36 @@ static bool init_sensor(void) {
         return true;
     }
     
+    lis2dh12_params_t lis2dh12_params;
+    
+    lis2dh12_params.i2c_dev = I2C_DEV(UMDK_INCLINOMETER_I2C);        /**< I2C device */
+    lis2dh12_params.i2c_addr = LIS2DH12_I2C_SAD_L;      /**< Accelerometer I2C address */
+    lis2dh12_params.rate = LIS2DH12_RATE_50HZ;          /**< Output data rate */
+    lis2dh12_params.scale = LIS2DH12_SCALE_2G;          /**< Scale factor */
+    lis2dh12_params.res = LIS2DH12_HR_12BIT;            /**< Resolution */
+    
+    if (lis2dh12_init(&dev_lis2dh12, &lis2dh12_params) == LIS2DH12_OK) {
+        puts("[umdk-" _UMDK_NAME_ "] STMicro LIS2DH12 sensor found");
+        active_sensors |= UMDK_INCLINOMETER_LIS2DH12;
+        lis2dh12_power_off(&dev_lis2dh12);
+        return true;
+    }
+    
+    lis3dh_params_t lis3dh_params;
+    
+    lis3dh_params.i2c = I2C_DEV(UMDK_INCLINOMETER_I2C); /**< I2C device */
+    lis3dh_params.addr = LIS3DH_I2C_SAD_L;              /**< Accelerometer I2C address */
+    lis3dh_params.odr = LIS3DH_ODR_50Hz;                /**< Output data rate */
+    lis3dh_params.scale = LIS3DH_2g;                    /**< Scale factor */
+    lis3dh_params.op_mode = LIS3DH_HR_12bit;            /**< Resolution */
+    
+    if (lis3dh_init(&dev_lis3dh, &lis3dh_params, NULL, NULL) == 0) {
+        puts("[umdk-" _UMDK_NAME_ "] STMicro LIS3DH sensor found");
+        active_sensors |= UMDK_INCLINOMETER_LIS3DH;
+        lis3dh_power_off(&dev_lis3dh);
+        return true;
+    }
+
     adxl345_params_t adxl_params = ADXL345_PARAMS;
     adxl_params.i2c = I2C_DEV(UMDK_INCLINOMETER_I2C);
     adxl_params.addr = ADXL345_PARAM_ADDR;
@@ -242,6 +282,28 @@ static void *measure_thread(void *arg) {
             x = lsm6ds3_data.acc_x;
             y = lsm6ds3_data.acc_y;
             z = lsm6ds3_data.acc_z;
+        }
+        
+        if (active_sensors & UMDK_INCLINOMETER_LIS2DH12) {
+            lis2dh12_acc_t lis2dh12_data;
+            lis2dh12_power_on(&dev_lis2dh12);
+            lis2dh12_read_xyz(&dev_lis2dh12, &lis2dh12_data);
+            lis2dh12_power_off(&dev_lis2dh12);
+            
+            x = lis2dh12_data.axis_x;
+            y = lis2dh12_data.axis_y;
+            z = lis2dh12_data.axis_z;
+        }
+        
+        if (active_sensors & UMDK_INCLINOMETER_LIS3DH) {
+            lis3dh_acceleration_t lis3dh_data;
+            lis3dh_power_on(&dev_lis3dh);
+            lis3dh_read_xyz(&dev_lis3dh, &lis3dh_data);
+            lis3dh_power_off(&dev_lis3dh);
+            
+            x = lis3dh_data.axis_x;
+            y = lis3dh_data.axis_y;
+            z = lis3dh_data.axis_z;
         }
 
         char acc[3][10];

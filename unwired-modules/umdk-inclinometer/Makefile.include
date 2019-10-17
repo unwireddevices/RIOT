@@ -1,3 +1,7 @@
 USEMODULE += lis2hh12
 USEMODULE += adxl345
 USEMODULE += lsm6ds3
+USEMODULE += lis3dh
+USEMODULE += lis3dh_i2c
+USEMODULE += lis2dh12
+USEMODULE += lis2dh12_i2c

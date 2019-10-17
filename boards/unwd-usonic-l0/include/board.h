@@ -68,30 +68,27 @@ extern "C" {
 #define SX127X_SPI 0
 #define SX127X_SPI_NSS  GPIO_PIN(PORT_A, 4)
 
+/** Console UART */
+#define UART_STDIO_DEV          UART_DEV(0)
+#define UART_STDIO_BAUDRATE     (115200U)
+#define UART_STDIO_RX_BUFSIZE   (64U)
+
 /** "Connect" Button */
-#define UNWD_USE_CONNECT_BTN	0
-#define UNWD_CONNECT_BTN		GPIO_UNDEF
+#define UNWD_USE_CONNECT_BTN	1
+#define UNWD_CONNECT_BTN		GPIO_PIN(PORT_B, 0)
 
 /** LEDs */
-#define LED0_PIN   GPIO_UNDEF
-#define LED1_PIN     GPIO_UNDEF
-
-#define UMDK_GASSENSOR_MODULE_EN_PIN    GPIO_PIN(PORT_A, 14)
-#define UMDK_GASSENSOR_ADC_LINE         ADC_LINE(7)
-
-/** @} */
-
-#define UART_STDIO_DEV              UART_DEV(0)
-#define UART_STDIO_BAUDRATE         (115200U)
-#define UART_STDIO_RX_BUFSIZE       (64U)
-
+#define LED0_PIN                GPIO_PIN(PORT_B, 1)
+#define LED1_PIN                GPIO_UNDEF
 /** Ultrasonic rangefinder configuration */
-#define UMDK_USONIC_PWREN       GPIO_PIN(PORT_A, 6)
-#define UMDK_USONIC_ADC_PIN     GPIO_PIN(PORT_A, 4)
 #define UMDK_USONIC_ADC_CH      4
-#define UMDK_USONIC_SILENCE_PIN GPIO_PIN(PORT_A, 7)
-#define UMDK_USONIC_BEEP_PIN    GPIO_PIN(PORT_A, 8)
-#define UMDK_USONIC_DISRUPT_PIN GPIO_PIN(PORT_A, 5)
+#define UMDK_USONIC_DAMPING_PIN GPIO_PIN(PORT_A, 7)
+#define UMDK_USONIC_RX_PIN      GPIO_PIN(PORT_A, 5)
+#define UMDK_USONIC_POWER_PIN   GPIO_UNDEF
+#define UMDK_USONIC_POWER_LEVEL GPIO_PIN(PORT_A, 6)
+#define UMDK_USONIC_TIMER       1
+#define UMDK_USONIC_PWM_DEV     0
+#define UMDK_USONIC_PWM_CHANNEL 0
 
 /** GSM modem configuration */
 #define SIMCOM_UART             (1)
@@ -102,14 +99,18 @@ extern "C" {
 #define SIMCOM_ENABLE_LEVEL     (0)
 
 /** Accelerometer configuration */
-#define UMDK_INCLINOMETER_I2C   (1)
+#define UMDK_GPS_DEV            (2)
+#define UMDK_GPS_ENABLE_PIN     GPIO_PIN(PORT_A, 12)
+
+/** GPS configuration */
+#define SIMCOM_UART             (1)
 
 /** GPIO Ports */
-#define UNWD_GPIO_1 GPIO_PIN(PORT_B, 1)
-#define UNWD_GPIO_4 GPIO_PIN(PORT_A, 4)
-#define UNWD_GPIO_5 GPIO_PIN(PORT_A, 5)
-#define UNWD_GPIO_6 GPIO_PIN(PORT_B, 8)
-#define UNWD_GPIO_7 GPIO_PIN(PORT_B, 9)
+#define UNWD_GPIO_1  GPIO_PIN(PORT_B, 1)
+#define UNWD_GPIO_4  GPIO_PIN(PORT_A, 4)
+#define UNWD_GPIO_5  GPIO_PIN(PORT_A, 5)
+#define UNWD_GPIO_6  GPIO_PIN(PORT_B, 8)
+#define UNWD_GPIO_7  GPIO_PIN(PORT_B, 9)
 #define UNWD_GPIO_16 GPIO_PIN(PORT_B, 3)
 #define UNWD_GPIO_17 GPIO_PIN(PORT_A, 15)
 

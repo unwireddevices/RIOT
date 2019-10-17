@@ -75,7 +75,7 @@ static const timer_conf_t timer_config[] = {
 };
 
 #define TIMER_0_ISR         isr_tim2
-#define TIMER_1_ISR         isr_tim6
+#define TIMER_1_ISR         isr_tim6_dac
 
 #define TIMER_NUMOF         (sizeof(timer_config) / sizeof(timer_config[0]))
 /** @} */

@@ -88,8 +88,8 @@ static struct {
     char        mqtt_topic[50];
 } atmodem_mqtt_config;
 
-uint8_t mqtt_buf[1000];
-char mqtt_payload[1000];
+static uint8_t mqtt_buf[1000];
+static char mqtt_payload[1000];
 
 typedef struct {
     uint8_t *buffer;
@@ -101,9 +101,6 @@ static char at_dev_buf[AT_DEV_BUF_SIZE];
 
 #define AT_DEV_RESP_SIZE        (1024)
 static char at_dev_resp[AT_DEV_RESP_SIZE];
-
-#define SIMCOM_UART            (1)
-#define SIMCOM_BAUDRATE        (115200)
 
 #define SERVER_ADDRES           "example.com"
 #define SERVER_PORT             "8080"
@@ -599,10 +596,10 @@ static void unwds_sleep(void) {
 
 void init_normal(shell_command_t *commands)
 {
-    simcom_dev.power_en_pin    = GPIO_UNDEF;
-    simcom_dev.power_act_level = HIGH;
-    simcom_dev.gsm_en_pin      = GPIO_PIN(PORT_A, 11);
-    simcom_dev.gsm_act_level   = LOW;
+    simcom_dev.power_en_pin    = SIMCOM_DCDC_PIN;
+    simcom_dev.power_act_level = SIMCOM_DCDC_LEVEL;
+    simcom_dev.gsm_en_pin      = SIMCOM_ENABLE_PIN;
+    simcom_dev.gsm_act_level   = SIMCOM_ENABLE_LEVEL;
     
     bool cfg_valid = unwds_config_load();
     print_config();

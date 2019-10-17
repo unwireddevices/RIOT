@@ -81,11 +81,11 @@ extern "C" {
 #define LED0_PIN                GPIO_PIN(PORT_B, 1)
 #define LED1_PIN                GPIO_UNDEF
 /** Ultrasonic rangefinder configuration */
-#define UMDK_USONIC_ADC_CH      4
+#define UMDK_USONIC_ADC_CH      3
 #define UMDK_USONIC_DAMPING_PIN GPIO_PIN(PORT_A, 7)
 #define UMDK_USONIC_RX_PIN      GPIO_PIN(PORT_A, 5)
-#define UMDK_USONIC_POWER_PIN   GPIO_UNDEF
-#define UMDK_USONIC_POWER_LEVEL GPIO_PIN(PORT_A, 6)
+#define UMDK_USONIC_POWER_PIN   GPIO_PIN(PORT_A, 8)
+#define UMDK_USONIC_POWER_LEVEL 1
 #define UMDK_USONIC_TIMER       1
 #define UMDK_USONIC_PWM_DEV     0
 #define UMDK_USONIC_PWM_CHANNEL 0

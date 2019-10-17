@@ -70,47 +70,30 @@ int sim5300_power_on(sim5300_dev_t *sim5300_dev) {
 
     puts("[SIM5300] Power on");
 
-    /* Power on */
-    if (sim5300_dev->power_en_pin != GPIO_UNDEF) {
-        /* Init GPIO */
-        gpio_init(sim5300_dev->power_en_pin, GPIO_OUT);
-
-        /* Set or clear GPIO */
-        if (sim5300_dev->power_act_level == HIGH) {
-            gpio_set(sim5300_dev->power_en_pin);
-        } else {
-            gpio_clear(sim5300_dev->power_en_pin);
-        }
+    /* DC/DC power on */
+    if (sim5300_dev->power_act_level == HIGH) {
+        gpio_set(sim5300_dev->power_en_pin);
+    } else {
+        gpio_clear(sim5300_dev->power_en_pin);
     }
 
-    /* Power on SIM5300 */
-    if (sim5300_dev->gsm_en_pin != GPIO_UNDEF) {
-        /* Init GPIO */
-        gpio_init(sim5300_dev->gsm_en_pin, GPIO_OUT);
-
-        /* Set or clear GPIO */
-        if (sim5300_dev->gsm_act_level == HIGH) {
-            gpio_set(sim5300_dev->gsm_en_pin);
-        } else {
-            gpio_clear(sim5300_dev->gsm_en_pin);
-        }
+    /* Enable modem */
+    if (sim5300_dev->gsm_act_level == HIGH) {
+        gpio_set(sim5300_dev->gsm_en_pin);
+    } else {
+        gpio_clear(sim5300_dev->gsm_en_pin);
     }
 
     /* 500ms sleep */
     lptimer_usleep(SIM5300_TIME_ON);
 
-    /* End start power on SIM5300 */
-    if (sim5300_dev->gsm_en_pin != GPIO_UNDEF) {
-        /* Init GPIO */
-        gpio_init(sim5300_dev->gsm_en_pin, GPIO_OUT);
-
-        /* Set or clear GPIO */
-        if (sim5300_dev->gsm_act_level == HIGH) {
-            gpio_clear(sim5300_dev->gsm_en_pin);
-        } else {
-            gpio_set(sim5300_dev->gsm_en_pin);
-        }
+    /* Set or clear GPIO */
+    if (sim5300_dev->gsm_act_level == HIGH) {
+        gpio_clear(sim5300_dev->gsm_en_pin);
+    } else {
+        gpio_set(sim5300_dev->gsm_en_pin);
     }
+    /* Modem enabled */
 
     /* We wait while SIM5300 is initialized */
     lptimer_usleep(SIM5300_TIME_ON_UART);
@@ -140,17 +123,11 @@ int sim5300_power_off(sim5300_dev_t *sim5300_dev) {
     /* Power off UART for modem */
     uart_poweroff(sim5300_dev->at_dev.uart);
 
-    /* Power off */
-    if (sim5300_dev->power_en_pin != GPIO_UNDEF) {
-        /* Init GPIO */
-        gpio_init(sim5300_dev->power_en_pin, GPIO_OUT);
-
-        /* Set or clear GPIO */
-        if (sim5300_dev->power_act_level) {
-            gpio_clear(sim5300_dev->power_en_pin);
-        } else {
-            gpio_set(sim5300_dev->power_en_pin);
-        }
+    /* Disable DC/DC */
+    if (sim5300_dev->power_act_level == HIGH) {
+        gpio_clear(sim5300_dev->power_en_pin);
+    } else {
+        gpio_set(sim5300_dev->power_en_pin);
     }
 
     puts("[SIM5300] Power off");
@@ -2898,6 +2875,9 @@ int sim5300_init(sim5300_dev_t *sim5300_dev,
     int res;
     
     puts("[SIM5300] Initialization...");
+    
+    gpio_init(sim5300_dev->power_en_pin, GPIO_OUT);
+    gpio_init(sim5300_dev->gsm_en_pin, GPIO_OUT);
 
     /* Power on SIM5300 */
     sim5300_power_on(sim5300_dev);

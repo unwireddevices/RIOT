@@ -32,17 +32,35 @@
 #define UMDK_USONIC_H
 
 #include "unwds-common.h"
+#include "board.h"
 
 #define UMDK_USONIC_PUBLISH_PERIOD_MIN 1
 
 #define UMDK_USONIC_STACK_SIZE 2048
 
+#ifndef UMDK_USONIC_PWREN
 #define UMDK_USONIC_PWREN       GPIO_PIN(PORT_B, 1)
+#endif
+
+#ifndef UMDK_USONIC_ADC_PIN
 #define UMDK_USONIC_ADC_PIN     GPIO_PIN(PORT_A, 5)
+#endif
+
+#ifndef UMDK_USONIC_ADC_CH
 #define UMDK_USONIC_ADC_CH      5
+#endif
+
+#ifndef UMDK_USONIC_SILENCE_PIN
 #define UMDK_USONIC_SILENCE_PIN GPIO_PIN(PORT_A, 2)
+#endif
+
+#ifndef UMDK_USONIC_BEEP_PIN
 #define UMDK_USONIC_BEEP_PIN    GPIO_PIN(PORT_A, 3)
+#endif
+
+#ifndef UMDK_USONIC_DISRUPT_PIN
 #define UMDK_USONIC_DISRUPT_PIN GPIO_PIN(PORT_A, 4)
+#endif
 
 
 typedef enum {

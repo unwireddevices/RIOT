@@ -347,7 +347,7 @@ void umdk_usonic_init(uwnds_cb_t *event_callback) {
     umdk_usonic_print_settings();
 
     if (!init_sensor()) {
-        printf("[umdk-" _UMDK_NAME_ "] Unable to init sensor!");
+        puts("[umdk-" _UMDK_NAME_ "] Unable to init sensor!");
         return;
     }
     
@@ -364,21 +364,24 @@ void umdk_usonic_init(uwnds_cb_t *event_callback) {
 
     char *stack = (char *) allocate_stack(UMDK_USONIC_STACK_SIZE);
 	if (!stack) {
+        puts("[umdk-" _UMDK_NAME_ "] Stack allocation failed");
 		return;
 	}
     
     /* double sized to accomodate UINT16_T */
     usonic_dev.dmabuffer = (void *) allocate_stack(2*USONICRANGE_DMABUF_SIZE);
 	if (!usonic_dev.dmabuffer) {
+        puts("[umdk-" _UMDK_NAME_ "] DMA buffer allocation failed");
 		return;
 	}
     
     /* double sized to accomodate UINT16_T */
     usonic_dev.signalbuffer = (void *) allocate_stack(2*USONICRANGE_SIGNALBUF_SIZE);
 	if (!usonic_dev.signalbuffer) {
+        puts("[umdk-" _UMDK_NAME_ "] Signal buffer allocation failed");
 		return;
 	}
-    
+    /*
     usonic_dev.timer = 1;
     usonic_dev.pwm = 0;
     usonic_dev.pwm_channel = 3;
@@ -391,7 +394,7 @@ void umdk_usonic_init(uwnds_cb_t *event_callback) {
     usonic_dev.suppress_time = USONICRANGE_SUPPRESS_PERIOD_US;
     
     usonicrange_init(&usonic_dev);
-
+    */
     timer_pid = thread_create(stack, UMDK_USONIC_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "usonic thread");
     
     /* Start publishing timer */

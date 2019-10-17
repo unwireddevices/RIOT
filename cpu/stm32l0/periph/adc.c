@@ -55,17 +55,6 @@ static inline void done(void)
 
 static void _enable_adc(void)
 {
-    if ((ADC1->CR & ADC_CR_ADEN) != 0) {
-        ADC1->CR |= ADC_CR_ADDIS;
-        while(ADC1->CR & ADC_CR_ADEN) {} /* Wait for ADC disabled */
-    }
-
-    if ((ADC1->CR & ADC_CR_ADEN) == 0) {
-        /* Then, start a calibration */
-        ADC1->CR |= ADC_CR_ADCAL;
-        while(ADC1->CR & ADC_CR_ADCAL) {} /* Wait for the end of calibration */
-    }
-
     /* Clear flag */
     ADC1->ISR |= ADC_ISR_ADRDY;
 
@@ -78,14 +67,15 @@ static void _enable_adc(void)
 
 static void _disable_adc(void)
 {
+    /* Stop any ongoing conversion */
+    ADC1->CR |= ADC_CR_ADSTP;
+    while (ADC1->CR & ADC_CR_ADSTP) {}
+    
     /* Disable ADC */
-    if ((ADC1->CR & ADC_CR_ADEN) != 0) {
-        ADC1->CR |= ADC_CR_ADDIS;
-        while(ADC1->CR & ADC_CR_ADEN) {} /* Wait for ADC disabled */
-        /* Disable Voltage regulator */
-        ADC1->CR = 0;
-        ADC1->ISR = 0;
-    }
+    ADC1->CR |= ADC_CR_ADDIS;
+    while (ADC1->CR & ADC_CR_ADEN) {}
+
+    ADC1->ISR = 0;
 }
 
 int adc_init(adc_t line)
@@ -117,8 +107,21 @@ int adc_init(adc_t line)
     ADC1->SMPR |= ADC_SMPR_SMP;
     /* clear previous flag */
     ADC1->ISR |= ADC_ISR_EOC;
+    
+    if ((ADC1->CR & ADC_CR_ADEN) != 0) {
+        ADC1->CR |= ADC_CR_ADDIS;
+        while(ADC1->CR & ADC_CR_ADEN) {} /* Wait for ADC disabled */
+    }
+    
+    if ((ADC1->CFGR1 & ADC_CFGR1_DMAEN) != 0) {
+        while(ADC1->CFGR1 & ADC_CFGR1_DMAEN) {} /* Wait for DMA disabled */
+    }
 
-    /* power off an release device for now */
+    /* Then, start a calibration */
+    ADC1->CR |= ADC_CR_ADCAL;
+    while(ADC1->CR & ADC_CR_ADCAL) {} /* Wait for the end of calibration */
+
+    /* power off and release device for now */
     done();
 
     return 0;
@@ -257,10 +260,14 @@ int adc_sampling_start(adc_t line, adc_res_t res, uint16_t *buf, uint16_t wsize,
         return -1;
     }
     
+    /* block STOP mode */
+    pm_block(PM_SLEEP);
+
     adc_dma_callback = adc_cb;
 
     /* lock and power on the ADC device  */
     prep();
+    _enable_adc();
 
     /* disable DMA */
     ADC1->CFGR1 &= ~ADC_CFGR1_DMAEN;
@@ -322,10 +329,8 @@ int adc_sampling_start(adc_t line, adc_res_t res, uint16_t *buf, uint16_t wsize,
     /* Enable DMA channel */
     DMA1_Channel1->CCR |= DMA_CCR_EN;
 
-    _enable_adc();
-    
-    /* block STOP mode */
-    pm_block(PM_SLEEP);
+    /* start ADC */
+    ADC1->CR |= ADC_CR_ADSTART;
     
     return 0;
 }
@@ -350,7 +355,7 @@ int adc_sampling_stop(void) {
     return 0;
 }
 
-void isr_dma1_ch1(void) {
+void isr_dma1_channel1(void) {
     if (DMA1->ISR & DMA_ISR_HTIF1) {
         /* half-tranfer */
         DMA1->IFCR |= DMA_IFCR_CHTIF1;

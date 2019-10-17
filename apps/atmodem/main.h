@@ -24,57 +24,19 @@
  * @ingroup     
  * @brief       
  * @{
- * @file        umdk-usonic.h
- * @brief       umdk-usonic driver module definitions
- * @author      Dmitry Golik
+ * @file
+ * @brief       
+ * @author      Evgeniy Ponomarev
  */
-#ifndef UMDK_USONIC_H
-#define UMDK_USONIC_H
+#ifndef LORALAN_DEVICE_MAIN_H_
+#define LORALAN_DEVICE_MAIN_H_
 
+#define DISPLAY_JOINKEY_2BYTES 1
+#define DISPLAY_DEVNONCE_BYTE 1
+
+#include "shell.h"
 #include "unwds-common.h"
-#include "board.h"
 
-#define UMDK_USONIC_PUBLISH_PERIOD_MIN 1
+extern void init_node(shell_command_t *commands);
 
-#define UMDK_USONIC_STACK_SIZE 2048
-
-#ifndef UMDK_USONIC_PWREN
-#define UMDK_USONIC_PWREN       GPIO_PIN(PORT_B, 1)
-#endif
-
-#ifndef UMDK_USONIC_ADC_PIN
-#define UMDK_USONIC_ADC_PIN     GPIO_PIN(PORT_A, 5)
-#endif
-
-#ifndef UMDK_USONIC_ADC_CH
-#define UMDK_USONIC_ADC_CH      5
-#endif
-
-#ifndef UMDK_USONIC_SILENCE_PIN
-#define UMDK_USONIC_SILENCE_PIN GPIO_PIN(PORT_A, 2)
-#endif
-
-#ifndef UMDK_USONIC_BEEP_PIN
-#define UMDK_USONIC_BEEP_PIN    GPIO_PIN(PORT_A, 3)
-#endif
-
-#ifndef UMDK_USONIC_DISRUPT_PIN
-#define UMDK_USONIC_DISRUPT_PIN GPIO_PIN(PORT_A, 4)
-#endif
-
-
-typedef enum {
-    UMDK_USONIC_CMD_SET_PERIOD = 0,
-    UMDK_USONIC_CMD_POLL = 1,
-    UMDK_USONIC_CMD_INIT_SENSOR = 2,
-} umdk_usonic_cmd_t;
-
-typedef enum {
-    UMDK_USONIC_MODE_DISTANCE = 0,
-    UMDK_USONIC_MODE_THRESHOLD = 1,
-} umdk_usonic_mode_t;
-
-void umdk_usonic_init(uwnds_cb_t *event_callback);
-bool umdk_usonic_cmd(module_data_t *data, module_data_t *reply);
-
-#endif /* UMDK_USONIC_H */
+#endif /* LORALAN_DEVICE_MAIN_H_ */

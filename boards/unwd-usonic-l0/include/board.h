@@ -101,7 +101,8 @@ extern "C" {
 #define SIMCOM_ENABLE_PIN       GPIO_PIN(PORT_A, 11)
 #define SIMCOM_ENABLE_LEVEL     (0)
 
-/** GSM modem configuration */
+/** Accelerometer configuration */
+#define UMDK_INCLINOMETER_I2C   (1)
 
 /** GPIO Ports */
 #define UNWD_GPIO_1 GPIO_PIN(PORT_B, 1)

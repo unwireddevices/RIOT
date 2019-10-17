@@ -74,7 +74,7 @@ static inline void start(void) {
 }
 
 static inline void stop(void) {
-    /* enable the ADC module */
+    /* disable the ADC module */
     ADC1->CR2 &= ~ADC_CR2_ADON;
 
     /* Wait for ADC to become ready */

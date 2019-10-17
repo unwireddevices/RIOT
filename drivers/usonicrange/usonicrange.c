@@ -313,7 +313,7 @@ static int usound_measure_distance(usonicrange_t *dev) {
 
         /* suppress transducer ringing */
         gpio_set(dev->damping_pin);
-        xtimer_usleep(dev->damping_time);
+        xtimer_spin(xtimer_ticks_from_usec(dev->damping_time));
         gpio_clear(dev->damping_pin);
 
         /* start ADC acquisition */

@@ -1,29 +1,17 @@
 /*
- * Copyright (C) 2006-2017 wolfSSL Inc.
+ * Copyright (C) 2019 Unwired Devices
  *
- * This file is part of wolfSSL.
- *
- * wolfSSL is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * wolfSSL is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
  */
 
 /**
- * @ingroup     examples
+ * @ingroup     tests
  * @{
  *
  * @file
- * @brief       wolfSSL client example
+ * @brief       SimCom AT modem plus WolfSSL example
  *
  * @author      Oleg Manchenko
  *
@@ -46,25 +34,24 @@
 #include <wolfssl/certs_test.h>
 
 #include "periph/gpio.h"
-// #include "rtctimers-millis.h"
 #include "lptimer.h"
-#include "sim5300.h"
+#include "simcom.h"
 
 #include "od.h"
-#define SIM5300_TIME_ON         (500)           /* The time of active low level impulse of PWRKEY pin to power on module. Min: 50ms, typ: 100ms */
-// #define SIM5300_UART            (T2M_UART_GSM)  /* UART number for modem */
-#define SIM5300_UART            (2)             /* UART number for modem */
-#define SIM5300_BAUDRATE        (STDIO_UART_BAUDRATE)   /* UART baudrate for modem*/
-#define SIM5300_TIME_ON_UART    (3000)          /* The time from power-on issue to UART port ready. Min: 3s, max: 5s */
+#define SIMCOM_TIME_ON         (500)           /* The time of active low level impulse of PWRKEY pin to power on module. Min: 50ms, typ: 100ms */
+// #define SIMCOM_UART            (T2M_UART_GSM)  /* UART number for modem */
+#define SIMCOM_UART            (2)             /* UART number for modem */
+#define SIMCOM_BAUDRATE        (STDIO_UART_BAUDRATE)   /* UART baudrate for modem*/
+#define SIMCOM_TIME_ON_UART    (3000)          /* The time from power-on issue to UART port ready. Min: 3s, max: 5s */
 #define AT_DEV_BUF_SIZE         (2048)          /* The size of the buffer for all incoming data from modem */
 #define AT_DEV_RESP_SIZE        (2048)          /* The size of the buffer to answer the command from the modem */
 
-static sim5300_dev_t sim5300_dev;               /* Struct for SIM5300 */
+static simcom_dev_t simcom_dev;               /* Struct for SIMCOM */
 
 static int sockfd;                              /* Socket */
 
-static char at_dev_buf[AT_DEV_BUF_SIZE];        /* Buffer for incoming data from modem SIM5300 */
-static char at_dev_resp[AT_DEV_RESP_SIZE];      /* Buffer for parse incoming data from modem SIM5300 */
+static char at_dev_buf[AT_DEV_BUF_SIZE];        /* Buffer for incoming data from modem SIMCOM */
+static char at_dev_resp[AT_DEV_RESP_SIZE];      /* Buffer for parse incoming data from modem SIMCOM */
 
 static unsigned char t2m_cert[846] = {
 	0x30, 0x82, 0x03, 0x4A, 0x30, 0x82, 0x02, 0x32, 0xA0, 0x03, 0x02, 0x01,
@@ -186,7 +173,7 @@ int unwired_recv(WOLFSSL *ssl, char *buf, int sz, void *ctx) {
     (void) ssl;
     (void) ctx;
 
-    return sim5300_receive(&sim5300_dev,
+    return simcom_receive(&simcom_dev,
                             sockfd, 
                             (uint8_t*)buf,
                             sz);
@@ -196,7 +183,7 @@ int unwired_send(WOLFSSL *ssl, char *buf, int sz, void *ctx) {
     (void) ssl;
     (void) ctx;
 
-    return sim5300_send(&sim5300_dev,
+    return simcom_send(&simcom_dev,
                          sockfd, 
                          (uint8_t*)buf,
                          sz);
@@ -209,43 +196,43 @@ int main(void)
 
     int res;
 
-    /* Init SIM5300 */
-    sim5300_dev.power_en_pin    = RWCAR_GSM_POWER;
-    sim5300_dev.power_act_level = HIGH;
-    sim5300_dev.gsm_en_pin      = RWCAR_GSM_ENABLE;
-    sim5300_dev.gsm_act_level   = HIGH;
+    /* Init SIMCOM */
+    simcom_dev.power_en_pin    = RWCAR_GSM_POWER;
+    simcom_dev.power_act_level = HIGH;
+    simcom_dev.gsm_en_pin      = RWCAR_GSM_ENABLE;
+    simcom_dev.gsm_act_level   = HIGH;
     
-    res = sim5300_init(&sim5300_dev, SIM5300_UART, SIM5300_BAUDRATE, at_dev_buf, AT_DEV_RESP_SIZE, at_dev_resp, AT_DEV_RESP_SIZE);
-    if (res != SIM5300_OK) {
-        puts("sim5300_init ERROR");
+    res = simcom_init(&simcom_dev, SIMCOM_UART, SIMCOM_BAUDRATE, at_dev_buf, AT_DEV_RESP_SIZE, at_dev_resp, AT_DEV_RESP_SIZE);
+    if (res != SIMCOM_OK) {
+        puts("simcom_init ERROR");
 
         return -1;
     } 
 
-    /* Set internet settings SIM5300 */
-    res = sim5300_start_internet(&sim5300_dev, 30, NULL);
-    if (res == SIM5300_OK) {
-        puts("[SIM5300] Set internet settings OK");
+    /* Set internet settings SIMCOM */
+    res = simcom_start_internet(&simcom_dev, 30, NULL);
+    if (res == SIMCOM_OK) {
+        puts("[SIMCOM] Set internet settings OK");
     } else {
-        puts("[SIM5300] Set internet settings ERROR");
+        puts("[SIMCOM] Set internet settings ERROR");
         return -1;
     }
     
     //////// START SOCKET //////////
-    sockfd = sim5300_socket(&sim5300_dev);
-    if (sockfd < SIM5300_OK) {
+    sockfd = simcom_socket(&simcom_dev);
+    if (sockfd < SIMCOM_OK) {
         printf("Error get socket: %i\n", sockfd);
 
         return -1;
     }
 
-    res = sim5300_connect(&sim5300_dev, 
+    res = simcom_connect(&simcom_dev, 
                            sockfd, 
                         //    "www.unwireddevices.com",
                            "devapi.tis-online.com", 
                            "443", 
                            "TCP");
-    if (res < SIM5300_OK) {
+    if (res < SIMCOM_OK) {
         printf("Error start socket: %i\n", res);
 
         return -1;

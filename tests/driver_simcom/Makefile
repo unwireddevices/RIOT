@@ -1,4 +1,4 @@
-APPLICATION = sim5300_test
+APPLICATION = simcom_test
 
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../..
@@ -7,8 +7,7 @@ RIOTBASE ?= $(CURDIR)/../..
 BOARD ?= unwd-railwaycar
 
 USEMODULE += lptimer
-USEMODULE += sim5300
-USEMODULE += at
+USEMODULE += simcom
 USEMODULE += od
 
 FEATURES_REQUIRED += periph_rtt

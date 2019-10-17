@@ -7,9 +7,9 @@
  */
 
 /**
- * @defgroup    SIM5300 driver 
+ * @defgroup    SimCom AT modem driver 
  * @ingroup     drivers
- * @brief       SIM5300 driver 
+ * @brief       SimCom AT modem driver 
  *
  * 
  *
@@ -20,7 +20,7 @@
  *
  * @file
  *
- * @brief       SIM5300 driver 
+ * @brief       SimCom AT modem driver 
  * @author      Oleg Manchenko <man4enkoos@gmail.com>
  */
 
@@ -34,7 +34,7 @@
 #include "od.h"
 
 
-#include "sim5300.h"
+#include "simcom.h"
 
 #include "lptimer.h"
 
@@ -51,117 +51,117 @@
 /*------------------------ START LOW LEVEL FUNCTION -------------------------*/
 /*---------------------------------------------------------------------------*/
 /**
- * @brief       Power on for SIM5300
+ * @brief       Power on for SIMCOM
  *
- * @param[in]   sim5300_dev         Device to operate on
+ * @param[in]   simcom_dev         Device to operate on
  * 
- * Power on for SIM5300
+ * Power on for SIMCOM
  * 
- * @returns     SIM5300_OK             - OK
- * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_OK             - OK
+ * @returns     SIMCOM_DEV_ERROR      - ERROR: simcom_dev == NULL
  */
-int sim5300_power_on(sim5300_dev_t *sim5300_dev) {
+int simcom_power_on(simcom_dev_t *simcom_dev) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     } 
 
-    puts("[SIM5300] Power on");
+    puts("[SIMCOM] Power on");
 
     /* DC/DC power on */
-    if (sim5300_dev->power_act_level == HIGH) {
-        gpio_set(sim5300_dev->power_en_pin);
+    if (simcom_dev->power_act_level == HIGH) {
+        gpio_set(simcom_dev->power_en_pin);
     } else {
-        gpio_clear(sim5300_dev->power_en_pin);
+        gpio_clear(simcom_dev->power_en_pin);
     }
 
     /* Enable modem */
-    if (sim5300_dev->gsm_act_level == HIGH) {
-        gpio_set(sim5300_dev->gsm_en_pin);
+    if (simcom_dev->gsm_act_level == HIGH) {
+        gpio_set(simcom_dev->gsm_en_pin);
     } else {
-        gpio_clear(sim5300_dev->gsm_en_pin);
+        gpio_clear(simcom_dev->gsm_en_pin);
     }
 
     /* 500ms sleep */
-    lptimer_usleep(SIM5300_TIME_ON);
+    lptimer_usleep(SIMCOM_TIME_ON);
 
     /* Set or clear GPIO */
-    if (sim5300_dev->gsm_act_level == HIGH) {
-        gpio_clear(sim5300_dev->gsm_en_pin);
+    if (simcom_dev->gsm_act_level == HIGH) {
+        gpio_clear(simcom_dev->gsm_en_pin);
     } else {
-        gpio_set(sim5300_dev->gsm_en_pin);
+        gpio_set(simcom_dev->gsm_en_pin);
     }
     /* Modem enabled */
 
-    /* We wait while SIM5300 is initialized */
-    lptimer_usleep(SIM5300_TIME_ON_UART);
+    /* We wait while SIMCOM is initialized */
+    lptimer_usleep(SIMCOM_TIME_ON_UART);
 
-    return SIM5300_OK;
+    return SIMCOM_OK;
 }
 
 /*---------------------------------------------------------------------------*/
 /**
- * @brief       Power off for SIM5300
+ * @brief       Power off for SIMCOM
  *
- * @param[in]   sim5300_dev         Device to operate on
+ * @param[in]   simcom_dev         Device to operate on
  * 
- * Power off for SIM5300
+ * Power off for SIMCOM
  * 
- * @returns     SIM5300_OK             - OK
- * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_OK             - OK
+ * @returns     SIMCOM_DEV_ERROR      - ERROR: simcom_dev == NULL
  */
-int sim5300_power_off(sim5300_dev_t *sim5300_dev) {
+int simcom_power_off(simcom_dev_t *simcom_dev) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     } 
 
     /* Power off UART for modem */
-    uart_poweroff(sim5300_dev->at_dev.uart);
+    uart_poweroff(simcom_dev->at_dev.uart);
 
     /* Disable DC/DC */
-    if (sim5300_dev->power_act_level == HIGH) {
-        gpio_clear(sim5300_dev->power_en_pin);
+    if (simcom_dev->power_act_level == HIGH) {
+        gpio_clear(simcom_dev->power_en_pin);
     } else {
-        gpio_set(sim5300_dev->power_en_pin);
+        gpio_set(simcom_dev->power_en_pin);
     }
 
-    puts("[SIM5300] Power off");
+    puts("[SIMCOM] Power off");
 
-    return SIM5300_OK;
+    return SIMCOM_OK;
 }
 
 /*---------------------------------------------------------------------------*/
 /**
  * @brief       Send ATtention Code
  *
- * @param[in]   sim5300_dev         Device to operate on
+ * @param[in]   simcom_dev         Device to operate on
  * 
  * AT – ATtention Code
- * This is the prefix for all commands except A/. When entered on its own, the SIM5300 will respond OK.
+ * This is the prefix for all commands except A/. When entered on its own, the SIMCOM will respond OK.
  * 
- * @returns     SIM5300_OK             - OK
- * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_OK             - OK
+ * @returns     SIMCOM_DEV_ERROR      - ERROR: simcom_dev == NULL
  * @returns     SEND_CMD_WAIT_OK_ERROR - ERROR: at_send_cmd_wait_ok() != 0
  */
-int sim5300_send_at(sim5300_dev_t *sim5300_dev) {
+int simcom_send_at(simcom_dev_t *simcom_dev) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     } 
         
-    puts("[SIM5300] Send AT");
+    puts("[SIMCOM] Send AT");
 
     /* Send AT */
-    int res = at_send_cmd_wait_ok(&sim5300_dev->at_dev, "AT", SIM5300_MAX_TIMEOUT);
-    if (res == SIM5300_OK) {
-        return SIM5300_OK;
+    int res = at_send_cmd_wait_ok(&simcom_dev->at_dev, "AT", SIMCOM_MAX_TIMEOUT);
+    if (res == SIMCOM_OK) {
+        return SIMCOM_OK;
     } else {
         return SEND_CMD_WAIT_OK_ERROR;
     }
@@ -171,88 +171,88 @@ int sim5300_send_at(sim5300_dev_t *sim5300_dev) {
 /**
  * @brief       Get SIM inserted status reporting 
  *
- * @param[in]   sim5300_dev             Device to operate on
- * @param[out]  sim5300_csmins_resp     Structure with response data
+ * @param[in]   simcom_dev             Device to operate on
+ * @param[out]  simcom_csmins_resp     Structure with response data
  * 
  * AT+CSMINS – SIM Inserted Status Reporting
  * Get SIM inserted status reporting 
  * 
- * @returns     SIM5300_OK              - OK
- * @returns     SIM5300_DEV_ERROR       - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_OK              - OK
+ * @returns     SIMCOM_DEV_ERROR       - ERROR: simcom_dev == NULL
  * @returns     ARGUMENT_NULL_ERROR     - ERROR: Pointer to function argument == NULL
  * @returns     SEND_CMD_GET_RESP_ERROR - ERROR: at_send_cmd_get_resp() < 0
  * @returns     PARSE_ERROR             - ERROR: sscanf() != desired number of variables
  */
-int sim5300_get_sim_inserted_status_reporting(sim5300_dev_t         *sim5300_dev,
-                                              sim5300_csmins_resp_t *sim5300_csmins_resp) {
+int simcom_get_sim_inserted_status_reporting(simcom_dev_t         *simcom_dev,
+                                              simcom_csmins_resp_t *simcom_csmins_resp) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     } 
 
     /* NULL ptr */
-    if (sim5300_csmins_resp == NULL) {
+    if (simcom_csmins_resp == NULL) {
         return ARGUMENT_NULL_ERROR;
     }
 
     /* Get SIM Inserted Status Reporting */
-    int res = at_send_cmd_get_resp(&sim5300_dev->at_dev, "AT+CSMINS?", sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, SIM5300_MAX_TIMEOUT); 
-    if (res <= SIM5300_OK) {
-        puts("[SIM5300] AT+CSMINS? ERROR");
+    int res = at_send_cmd_get_resp(&simcom_dev->at_dev, "AT+CSMINS?", simcom_dev->at_dev_resp, simcom_dev->at_dev_resp_size, SIMCOM_MAX_TIMEOUT); 
+    if (res <= SIMCOM_OK) {
+        puts("[SIMCOM] AT+CSMINS? ERROR");
 
         return SEND_CMD_GET_RESP_ERROR;
     }
 
     /* Debug output */
-    DEBUG("len: %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+    DEBUG("len: %i, data: %s\n", res, simcom_dev->at_dev_resp);
 
     /* Parse string */
-    res = sscanf(sim5300_dev->at_dev_resp, "+CSMINS: %i,%i", &sim5300_csmins_resp->n,
-                                                             &sim5300_csmins_resp->sim_inserted);
+    res = sscanf(simcom_dev->at_dev_resp, "+CSMINS: %i,%i", &simcom_csmins_resp->n,
+                                                             &simcom_csmins_resp->sim_inserted);
 
     /* Check result */
     if (res != 2) {
-        puts("[SIM5300] Parse error");
+        puts("[SIMCOM] Parse error");
 
         return PARSE_ERROR;
     }
 
     /* Debug output */
-    DEBUG("n = %i\n",            sim5300_csmins_resp->n);
-    DEBUG("sim_inserted = %i\n", sim5300_csmins_resp->sim_inserted);
+    DEBUG("n = %i\n",            simcom_csmins_resp->n);
+    DEBUG("sim_inserted = %i\n", simcom_csmins_resp->sim_inserted);
 
-    return SIM5300_OK;    
+    return SIMCOM_OK;    
 }
 
 /*---------------------------------------------------------------------------*/
 /**
  * @brief       Set SIM inserted status reporting 
  *
- * @param[in]   sim5300_dev     Device to operate on
+ * @param[in]   simcom_dev     Device to operate on
  * @param[in]   n               A numeric parameter to show an unsolicited event code indicating whether the SIM has been inserted or removed.
  * 
  * AT+CSMINS – SIM Inserted Status Reporting
  * Set SIM inserted status reporting 
  * 
- * @returns     SIM5300_OK             - OK
- * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_OK             - OK
+ * @returns     SIMCOM_DEV_ERROR      - ERROR: simcom_dev == NULL
  * @returns     ARGUMENT_RANGE_ERROR   - ERROR: Invalid argument value
  * @returns     SEND_CMD_WAIT_OK_ERROR - ERROR: at_send_cmd_wait_ok() != 0
  */
-int sim5300_set_sim_inserted_status_reporting(sim5300_dev_t *sim5300_dev, 
+int simcom_set_sim_inserted_status_reporting(simcom_dev_t *simcom_dev, 
                                               uint8_t        n) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     } 
     
     /* Test range argument */
     if (n > 1) {
-        printf("[SIM5300] sim5300_set_sim_inserted_status_reporting() ERROR argument: %i. (range 0-1)\n", n);
+        printf("[SIMCOM] simcom_set_sim_inserted_status_reporting() ERROR argument: %i. (range 0-1)\n", n);
 
         return ARGUMENT_RANGE_ERROR;
     }
@@ -262,20 +262,20 @@ int sim5300_set_sim_inserted_status_reporting(sim5300_dev_t *sim5300_dev,
     snprintf(cmd_CSMINSn, 12, "AT+CSMINS=%i", n);
 
     /* Send AT command */
-    int res = at_send_cmd_wait_ok(&sim5300_dev->at_dev, cmd_CSMINSn, SIM5300_MAX_TIMEOUT);
+    int res = at_send_cmd_wait_ok(&simcom_dev->at_dev, cmd_CSMINSn, SIMCOM_MAX_TIMEOUT);
 
     /* Return result */
-    if (res == SIM5300_OK) {
+    if (res == SIMCOM_OK) {
         /* Print result */
         if (n == 0) {
-            puts("[SIM5300] Disabled showing an unsolicited event code");
+            puts("[SIMCOM] Disabled showing an unsolicited event code");
         } else {
-            puts("[SIM5300] Enabled showing an unsolicited event code ");
+            puts("[SIMCOM] Enabled showing an unsolicited event code ");
         }
 
-        return SIM5300_OK;
+        return SIMCOM_OK;
     } else {
-        puts("[SIM5300] sim5300_set_sim_inserted_status_reporting() ERROR");
+        puts("[SIMCOM] simcom_set_sim_inserted_status_reporting() ERROR");
 
         return SEND_CMD_WAIT_OK_ERROR;
     }
@@ -285,192 +285,192 @@ int sim5300_set_sim_inserted_status_reporting(sim5300_dev_t *sim5300_dev,
 /**
  * @brief       Get PIN status
  *
- * @param[in]   sim5300_dev             Device to operate on
- * @param[out]  sim5300_cpin_resp       Structure with response data
+ * @param[in]   simcom_dev             Device to operate on
+ * @param[out]  simcom_cpin_resp       Structure with response data
  * 
  * AT+CPIN Enter PIN
  * Get PIN status
  * 
- * @returns     SIM5300_OK              - OK
- * @returns     SIM5300_DEV_ERROR       - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_OK              - OK
+ * @returns     SIMCOM_DEV_ERROR       - ERROR: simcom_dev == NULL
  * @returns     ARGUMENT_NULL_ERROR     - ERROR: Pointer to function argument == NULL
  * @returns     SEND_CMD_GET_RESP_ERROR - ERROR: at_send_cmd_get_resp() < 0
  * @returns     UNKNOWN_RESP            - ERROR: Unknown response
  */
-int sim5300_get_pin_status(sim5300_dev_t       *sim5300_dev,
-                           sim5300_cpin_resp_t *sim5300_cpin_resp) {
+int simcom_get_pin_status(simcom_dev_t       *simcom_dev,
+                           simcom_cpin_resp_t *simcom_cpin_resp) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     } 
 
     /* NULL ptr */
-    if (sim5300_cpin_resp == NULL) {
+    if (simcom_cpin_resp == NULL) {
         return ARGUMENT_NULL_ERROR;
     }
 
     /* Get alphanumeric string indicating whether some password is required or not. */
-    int res = at_send_cmd_get_resp(&sim5300_dev->at_dev, "AT+CPIN?", sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, SIM5300_MAX_TIMEOUT); 
-    if (res <= SIM5300_OK) {
-        puts("[SIM5300] AT+CPIN? ERROR");
+    int res = at_send_cmd_get_resp(&simcom_dev->at_dev, "AT+CPIN?", simcom_dev->at_dev_resp, simcom_dev->at_dev_resp_size, SIMCOM_MAX_TIMEOUT); 
+    if (res <= SIMCOM_OK) {
+        puts("[SIMCOM] AT+CPIN? ERROR");
 
         return SEND_CMD_GET_RESP_ERROR;
     }
 
     /* Debug output */
-    DEBUG("len: %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+    DEBUG("len: %i, data: %s\n", res, simcom_dev->at_dev_resp);
 
     /* Parse string */
-    if(strcmp("+CPIN: READY", sim5300_dev->at_dev_resp) == 0) {
-        puts("[SIM5300] MT is not pending for any password");
-        *sim5300_cpin_resp = READY;
+    if(strcmp("+CPIN: READY", simcom_dev->at_dev_resp) == 0) {
+        puts("[SIMCOM] MT is not pending for any password");
+        *simcom_cpin_resp = READY;
 
-    } else if (strcmp("+CPIN: SIM PIN", sim5300_dev->at_dev_resp) == 0) {
-        puts("[SIM5300] MT is waiting SIM PIN to be given");
-        *sim5300_cpin_resp = SIM_PIN;
+    } else if (strcmp("+CPIN: SIM PIN", simcom_dev->at_dev_resp) == 0) {
+        puts("[SIMCOM] MT is waiting SIM PIN to be given");
+        *simcom_cpin_resp = SIM_PIN;
 
-    } else if (strcmp("+CPIN: SIM PUK", sim5300_dev->at_dev_resp) == 0) {
-        puts("[SIM5300] MT is waiting for SIM PUK to be given");
-        *sim5300_cpin_resp = SIM_PUK;
+    } else if (strcmp("+CPIN: SIM PUK", simcom_dev->at_dev_resp) == 0) {
+        puts("[SIMCOM] MT is waiting for SIM PUK to be given");
+        *simcom_cpin_resp = SIM_PUK;
 
-    } else if (strcmp("+CPIN: PH_SIM PIN", sim5300_dev->at_dev_resp) == 0) {
-        puts("[SIM5300] ME is waiting for phone to SIM card (antitheft)");
-        *sim5300_cpin_resp = PH_SIM_PIN;
+    } else if (strcmp("+CPIN: PH_SIM PIN", simcom_dev->at_dev_resp) == 0) {
+        puts("[SIMCOM] ME is waiting for phone to SIM card (antitheft)");
+        *simcom_cpin_resp = PH_SIM_PIN;
 
-    } else if (strcmp("+CPIN: PH_SIM PUK", sim5300_dev->at_dev_resp) == 0) {
-        puts("[SIM5300] ME is waiting for SIM PUK (antitheft)");
-        *sim5300_cpin_resp = PH_SIM_PUK;
+    } else if (strcmp("+CPIN: PH_SIM PUK", simcom_dev->at_dev_resp) == 0) {
+        puts("[SIMCOM] ME is waiting for SIM PUK (antitheft)");
+        *simcom_cpin_resp = PH_SIM_PUK;
 
-    } else if (strcmp("+CPIN: SIM PIN2", sim5300_dev->at_dev_resp) == 0) {
-        puts("[SIM5300] SIM PIN2");
-        *sim5300_cpin_resp = SIM_PIN2;
+    } else if (strcmp("+CPIN: SIM PIN2", simcom_dev->at_dev_resp) == 0) {
+        puts("[SIMCOM] SIM PIN2");
+        *simcom_cpin_resp = SIM_PIN2;
 
-    } else if (strcmp("+CPIN: SIM PUK2", sim5300_dev->at_dev_resp) == 0) {
-        puts("[SIM5300] SIM PUK2");
-        *sim5300_cpin_resp = SIM_PUK2;
+    } else if (strcmp("+CPIN: SIM PUK2", simcom_dev->at_dev_resp) == 0) {
+        puts("[SIMCOM] SIM PUK2");
+        *simcom_cpin_resp = SIM_PUK2;
 
-    } else if (strcmp("ERROR", sim5300_dev->at_dev_resp) == 0) {
-        puts("[SIM5300] SIM ERROR (may not be installed SIM card)");
+    } else if (strcmp("ERROR", simcom_dev->at_dev_resp) == 0) {
+        puts("[SIMCOM] SIM ERROR (may not be installed SIM card)");
 
         return UNKNOWN_RESP;
     } else {
-        puts("[SIM5300] Unknown response");
+        puts("[SIMCOM] Unknown response");
 
         return UNKNOWN_RESP;
     }
 
-    return SIM5300_OK;
+    return SIMCOM_OK;
 }
 
 /*---------------------------------------------------------------------------*/
 /**
  * @brief       Get network registration
  *
- * @param[in]   sim5300_dev             Device to operate on
- * @param[out]  sim5300_creg_resp       Structure with response data
+ * @param[in]   simcom_dev             Device to operate on
+ * @param[out]  simcom_creg_resp       Structure with response data
  * 
  * AT+CREG Network registration
  * Get network registration
  * 
- * @returns     SIM5300_OK              - OK
- * @returns     SIM5300_DEV_ERROR       - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_OK              - OK
+ * @returns     SIMCOM_DEV_ERROR       - ERROR: simcom_dev == NULL
  * @returns     ARGUMENT_NULL_ERROR     - ERROR: Pointer to function argument == NULL
  * @returns     SEND_CMD_GET_RESP_ERROR - ERROR: at_send_cmd_get_resp() < 0
  * @returns     PARSE_ERROR             - ERROR: sscanf() != desired number of variables
  */
-int sim5300_get_network_registration(sim5300_dev_t       *sim5300_dev,
-                                     sim5300_creg_resp_t *sim5300_creg_resp) {
+int simcom_get_network_registration(simcom_dev_t       *simcom_dev,
+                                     simcom_creg_resp_t *simcom_creg_resp) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     } 
 
     /* NULL ptr */
-    if (sim5300_creg_resp == NULL) {
+    if (simcom_creg_resp == NULL) {
         return ARGUMENT_NULL_ERROR;
     }
 
     /* Get Network Registration */
-    int res = at_send_cmd_get_resp(&sim5300_dev->at_dev, "AT+CREG?", sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, SIM5300_MAX_TIMEOUT); 
-    if (res <= SIM5300_OK) {
-        puts("[SIM5300] AT+CREG? ERROR");
+    int res = at_send_cmd_get_resp(&simcom_dev->at_dev, "AT+CREG?", simcom_dev->at_dev_resp, simcom_dev->at_dev_resp_size, SIMCOM_MAX_TIMEOUT); 
+    if (res <= SIMCOM_OK) {
+        puts("[SIMCOM] AT+CREG? ERROR");
 
         return SEND_CMD_GET_RESP_ERROR;
     }
 
     /* Debug output */
-    DEBUG("len: %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+    DEBUG("len: %i, data: %s\n", res, simcom_dev->at_dev_resp);
 
     /* Parse string */
-    res = sscanf(sim5300_dev->at_dev_resp, "+CREG: %i,%i", &sim5300_creg_resp->n,
-                                                           &sim5300_creg_resp->stat);
+    res = sscanf(simcom_dev->at_dev_resp, "+CREG: %i,%i", &simcom_creg_resp->n,
+                                                           &simcom_creg_resp->stat);
 
     /* Check result */
     if (res != 2) {
-        puts("[SIM5300] Parse error");
+        puts("[SIMCOM] Parse error");
 
         return PARSE_ERROR;
     }
 
     /* Debug output */
-    DEBUG("n = %i\n",    sim5300_creg_resp->n);
-    DEBUG("stat = %i\n", sim5300_creg_resp->stat);
+    DEBUG("n = %i\n",    simcom_creg_resp->n);
+    DEBUG("stat = %i\n", simcom_creg_resp->stat);
 
-    return SIM5300_OK;    
+    return SIMCOM_OK;    
 }
 
 /*---------------------------------------------------------------------------*/
 /**
  * @brief       Get reject incoming call 
  *
- * @param[in]   sim5300_dev             Device to operate on
- * @param[out]  sim5300_gsmbusy_resp    Structure with response data
+ * @param[in]   simcom_dev             Device to operate on
+ * @param[out]  simcom_gsmbusy_resp    Structure with response data
  * 
  * AT+GSMBUSY Reject incoming call
  * Get reject incoming call 
  * 
- * @returns     SIM5300_OK              - OK
- * @returns     SIM5300_DEV_ERROR       - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_OK              - OK
+ * @returns     SIMCOM_DEV_ERROR       - ERROR: simcom_dev == NULL
  * @returns     ARGUMENT_NULL_ERROR     - ERROR: Pointer to function argument == NULL
  * @returns     SEND_CMD_GET_RESP_ERROR - ERROR: at_send_cmd_get_resp() < 0
  * @returns     PARSE_ERROR             - ERROR: sscanf() != desired number of variables
  * @returns     UNKNOWN_RESP            - ERROR: Unknown response
  */
-int sim5300_get_reject_incoming_call(sim5300_dev_t          *sim5300_dev,
-                                     sim5300_gsmbusy_resp_t *sim5300_gsmbusy_resp) {
+int simcom_get_reject_incoming_call(simcom_dev_t          *simcom_dev,
+                                     simcom_gsmbusy_resp_t *simcom_gsmbusy_resp) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     } 
 
     /* NULL ptr */
-    if (sim5300_gsmbusy_resp == NULL) {
+    if (simcom_gsmbusy_resp == NULL) {
         return ARGUMENT_NULL_ERROR;
     }
     
     /* Send AT command */
-    int res = at_send_cmd_get_resp(&sim5300_dev->at_dev, "AT+GSMBUSY?", sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, SIM5300_MAX_TIMEOUT);
+    int res = at_send_cmd_get_resp(&simcom_dev->at_dev, "AT+GSMBUSY?", simcom_dev->at_dev_resp, simcom_dev->at_dev_resp_size, SIMCOM_MAX_TIMEOUT);
     
     /* Check return code */
-    if (res <= SIM5300_OK) {
-        puts("[SIM5300] AT+GSMBUSY? ERROR");
+    if (res <= SIMCOM_OK) {
+        puts("[SIMCOM] AT+GSMBUSY? ERROR");
 
         return SEND_CMD_GET_RESP_ERROR;
     }
 
     /* Parse string */
     int mode;
-    res = sscanf(sim5300_dev->at_dev_resp, "+GSMBUSY: %i", &mode);
+    res = sscanf(simcom_dev->at_dev_resp, "+GSMBUSY: %i", &mode);
 
     /* Check result */
     if (res != 1) {
-        puts("[SIM5300] Parse error");
+        puts("[SIMCOM] Parse error");
 
         return PARSE_ERROR;
     }
@@ -478,56 +478,56 @@ int sim5300_get_reject_incoming_call(sim5300_dev_t          *sim5300_dev,
     /* Print result */
     switch (mode) {
         case ENABLE_INCOMING_CALL:
-            puts("[SIM5300] Enable incoming call");
+            puts("[SIMCOM] Enable incoming call");
 
             break;
         case FORBID_ALL_INCOMING_CALLS:
-            puts("[SIM5300] Forbid all incoming calls");
+            puts("[SIMCOM] Forbid all incoming calls");
 
             break;
         case FORBID_INCOMING_VOICE_CALLS_BUT_ENABLE_CSD_CALLS:
-            puts("[SIM5300] Forbid incoming voice calls but enable CSD calls");
+            puts("[SIMCOM] Forbid incoming voice calls but enable CSD calls");
 
             break;
         default:
-            puts("[SIM5300] Unknow mode");
+            puts("[SIMCOM] Unknow mode");
             
             return UNKNOWN_RESP;
     }
 
     /* Copy mode from resp */
-    *sim5300_gsmbusy_resp = mode;
+    *simcom_gsmbusy_resp = mode;
 
-    return SIM5300_OK;
+    return SIMCOM_OK;
 }
 
 /*---------------------------------------------------------------------------*/
 /**
  * @brief       Set reject incoming call 
  *
- * @param[in]   sim5300_dev     Device to operate on
+ * @param[in]   simcom_dev     Device to operate on
  * @param[in]   mode            Mode
  * 
  * AT+GSMBUSY Reject incoming call
  * Set reject incoming call 
  * 
- * @returns     SIM5300_OK             - OK
- * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_OK             - OK
+ * @returns     SIMCOM_DEV_ERROR      - ERROR: simcom_dev == NULL
  * @returns     ARGUMENT_RANGE_ERROR   - ERROR: Invalid argument value
  * @returns     SEND_CMD_WAIT_OK_ERROR - ERROR: at_send_cmd_wait_ok() != 0
  */
-int sim5300_set_reject_incoming_call(sim5300_dev_t *sim5300_dev, 
+int simcom_set_reject_incoming_call(simcom_dev_t *simcom_dev, 
                                      uint8_t        mode) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     } 
     
     /* Test range argument */
     if (mode > 2) {
-        printf("[SIM5300] sim5300_set_reject_incoming_call() ERROR argument: %i. (range 0-2)\n", mode);
+        printf("[SIMCOM] simcom_set_reject_incoming_call() ERROR argument: %i. (range 0-2)\n", mode);
 
         return ARGUMENT_RANGE_ERROR;
     }
@@ -537,22 +537,22 @@ int sim5300_set_reject_incoming_call(sim5300_dev_t *sim5300_dev,
     snprintf(cmd_GSMBUSYn, 13, "AT+GSMBUSY=%i", mode);
 
     /* Send AT command */
-    int res = at_send_cmd_wait_ok(&sim5300_dev->at_dev, cmd_GSMBUSYn, SIM5300_MAX_TIMEOUT);
+    int res = at_send_cmd_wait_ok(&simcom_dev->at_dev, cmd_GSMBUSYn, SIMCOM_MAX_TIMEOUT);
 
     /* Return result */
-    if (res == SIM5300_OK) {
+    if (res == SIMCOM_OK) {
         /* Print result */
         if (mode == 0) {
-            puts("[SIM5300] Enable incoming call");
+            puts("[SIMCOM] Enable incoming call");
         } else if (mode == 1) {
-            puts("[SIM5300] Forbid all incoming calls");
+            puts("[SIMCOM] Forbid all incoming calls");
         } else {
-            puts("[SIM5300] Forbid incoming voice calls but enable CSD calls");
+            puts("[SIMCOM] Forbid incoming voice calls but enable CSD calls");
         }
 
-        return SIM5300_OK;
+        return SIMCOM_OK;
     } else {
-        puts("[SIM5300] sim5300_set_reject_incoming_call() ERROR");
+        puts("[SIMCOM] simcom_set_reject_incoming_call() ERROR");
 
         return SEND_CMD_WAIT_OK_ERROR;
     }
@@ -562,135 +562,135 @@ int sim5300_set_reject_incoming_call(sim5300_dev_t *sim5300_dev,
 /**
  * @brief       Get signal quality report
  *
- * @param[in]   sim5300_dev             Device to operate on
- * @param[out]  sim5300_csq_resp        Structure with response data
+ * @param[in]   simcom_dev             Device to operate on
+ * @param[out]  simcom_csq_resp        Structure with response data
  * 
  * AT+CSQ Signal quality report
  * Get signal quality report
  * 
- * @returns     SIM5300_OK              - OK
- * @returns     SIM5300_DEV_ERROR       - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_OK              - OK
+ * @returns     SIMCOM_DEV_ERROR       - ERROR: simcom_dev == NULL
  * @returns     ARGUMENT_NULL_ERROR     - ERROR: Pointer to function argument == NULL
  * @returns     SEND_CMD_GET_RESP_ERROR - ERROR: at_send_cmd_get_resp() < 0
  * @returns     PARSE_ERROR             - ERROR: sscanf() != desired number of variables
  */
-int sim5300_get_signal_quality_report(sim5300_dev_t      *sim5300_dev,
-                                      sim5300_csq_resp_t *sim5300_csq_resp) {
+int simcom_get_signal_quality_report(simcom_dev_t      *simcom_dev,
+                                      simcom_csq_resp_t *simcom_csq_resp) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     } 
 
     /* NULL ptr */
-    if (sim5300_csq_resp == NULL) {
+    if (simcom_csq_resp == NULL) {
         return ARGUMENT_NULL_ERROR;
     }
 
     /* Get network registration */
-    int res = at_send_cmd_get_resp(&sim5300_dev->at_dev, "AT+CSQ", sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, SIM5300_MAX_TIMEOUT); 
-    if (res <= SIM5300_OK) {
-        puts("[SIM5300] AT+CSQ ERROR");
+    int res = at_send_cmd_get_resp(&simcom_dev->at_dev, "AT+CSQ", simcom_dev->at_dev_resp, simcom_dev->at_dev_resp_size, SIMCOM_MAX_TIMEOUT); 
+    if (res <= SIMCOM_OK) {
+        puts("[SIMCOM] AT+CSQ ERROR");
 
         return SEND_CMD_GET_RESP_ERROR;
     }
 
     /* Debug output */
-    DEBUG("len: %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+    DEBUG("len: %i, data: %s\n", res, simcom_dev->at_dev_resp);
 
     /* Parse string */
     int rssi;
-    res = sscanf(sim5300_dev->at_dev_resp, "+CSQ: %i,%i", &rssi,
-                                                          &sim5300_csq_resp->ber);
+    res = sscanf(simcom_dev->at_dev_resp, "+CSQ: %i,%i", &rssi,
+                                                          &simcom_csq_resp->ber);
 
     /* Check result */
     if (res != 2) {
-        puts("[SIM5300] Parse error");
+        puts("[SIMCOM] Parse error");
 
         return PARSE_ERROR;
     }
 
     /* Calculate in -dBm */
     if (rssi == 0) {
-        sim5300_csq_resp->rssi = 115;
+        simcom_csq_resp->rssi = 115;
     } else if (rssi == 1) {
-        sim5300_csq_resp->rssi = 111;
+        simcom_csq_resp->rssi = 111;
     } else if ((rssi > 1) && (rssi <= 30)) {
-        sim5300_csq_resp->rssi = 110 - ((rssi - 2) * 2);
+        simcom_csq_resp->rssi = 110 - ((rssi - 2) * 2);
     } else if (rssi == 31) {
-        sim5300_csq_resp->rssi = 52;
+        simcom_csq_resp->rssi = 52;
     } else 
-        sim5300_csq_resp->rssi = 115; 
+        simcom_csq_resp->rssi = 115; 
 
     /* Debug output */
-    DEBUG("rssi = %i\n", sim5300_csq_resp->rssi);
-    DEBUG("ber = %i\n",  sim5300_csq_resp->ber);
+    DEBUG("rssi = %i\n", simcom_csq_resp->rssi);
+    DEBUG("ber = %i\n",  simcom_csq_resp->ber);
 
-    return SIM5300_OK; 
+    return SIMCOM_OK; 
 }   
 
 /*---------------------------------------------------------------------------*/
 /**
  * @brief       Get operator selection
  *
- * @param[in]   sim5300_dev             Device to operate on
- * @param[out]  sim5300_cops_resp       Structure with response data
+ * @param[in]   simcom_dev             Device to operate on
+ * @param[out]  simcom_cops_resp       Structure with response data
  * 
  * AT+COPS Operator selection
  * Get operator selection
  * 
- * @returns     SIM5300_OK              - OK
- * @returns     SIM5300_DEV_ERROR       - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_OK              - OK
+ * @returns     SIMCOM_DEV_ERROR       - ERROR: simcom_dev == NULL
  * @returns     ARGUMENT_NULL_ERROR     - ERROR: Pointer to function argument == NULL
  * @returns     SEND_CMD_GET_RESP_ERROR - ERROR: at_send_cmd_get_resp() < 0
  * @returns     PARSE_ERROR             - ERROR: sscanf() != desired number of variables
  */
-int sim5300_get_operator_selection(sim5300_dev_t       *sim5300_dev,
-                                   sim5300_cops_resp_t *sim5300_cops_resp) {
+int simcom_get_operator_selection(simcom_dev_t       *simcom_dev,
+                                   simcom_cops_resp_t *simcom_cops_resp) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     } 
 
     /* NULL ptr */
-    if (sim5300_cops_resp == NULL) {
+    if (simcom_cops_resp == NULL) {
         return ARGUMENT_NULL_ERROR;
     }
 
     /* Get SIM Inserted Status Reporting */
-    int res = at_send_cmd_get_resp(&sim5300_dev->at_dev, "AT+COPS?", sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, SIM5300_MAX_TIMEOUT); 
-    if (res <= SIM5300_OK) {
-        puts("[SIM5300] AT+COPS? ERROR");
+    int res = at_send_cmd_get_resp(&simcom_dev->at_dev, "AT+COPS?", simcom_dev->at_dev_resp, simcom_dev->at_dev_resp_size, SIMCOM_MAX_TIMEOUT); 
+    if (res <= SIMCOM_OK) {
+        puts("[SIMCOM] AT+COPS? ERROR");
 
         return SEND_CMD_GET_RESP_ERROR;
     }
 
     /* Debug output */
-    DEBUG("len: %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+    DEBUG("len: %i, data: %s\n", res, simcom_dev->at_dev_resp);
 
     /* Parse string */ 
-    res = sscanf(sim5300_dev->at_dev_resp, "+COPS: %i,%i,\"%[^\"]s\"", &sim5300_cops_resp->mode,
-                                                                       &sim5300_cops_resp->format,
-                                                                        sim5300_cops_resp->oper);
+    res = sscanf(simcom_dev->at_dev_resp, "+COPS: %i,%i,\"%[^\"]s\"", &simcom_cops_resp->mode,
+                                                                       &simcom_cops_resp->format,
+                                                                        simcom_cops_resp->oper);
 
     /* Check result */
     if (res == 1) {
         /* Debug output */
-        DEBUG("mode = %i\n", sim5300_cops_resp->mode);
+        DEBUG("mode = %i\n", simcom_cops_resp->mode);
 
-        return SIM5300_OK;
+        return SIMCOM_OK;
     } else if (res == 3) {
-        DEBUG("mode = %i\n", sim5300_cops_resp->mode);
-        DEBUG("format = %i\n", sim5300_cops_resp->format);
-        DEBUG("oper = %s\n", sim5300_cops_resp->oper);
-        // DEBUG("act = %i\n", sim5300_cops_resp->act);
+        DEBUG("mode = %i\n", simcom_cops_resp->mode);
+        DEBUG("format = %i\n", simcom_cops_resp->format);
+        DEBUG("oper = %s\n", simcom_cops_resp->oper);
+        // DEBUG("act = %i\n", simcom_cops_resp->act);
 
-        return SIM5300_OK;
+        return SIMCOM_OK;
     } else {
-        puts("[SIM5300] Parse error");
+        puts("[SIMCOM] Parse error");
 
         return PARSE_ERROR;
     }
@@ -700,7 +700,7 @@ int sim5300_get_operator_selection(sim5300_dev_t       *sim5300_dev,
 /**
  * @brief       Set PDP context activate or deactivate 
  *
- * @param[in]   sim5300_dev     Device to operate on
+ * @param[in]   simcom_dev     Device to operate on
  * @param[in]   state           Indicates the state of PDP context activation
  * @param[in]   cid             A numeric parameter which specifies a particular PDP context definition (see +CGDCONT Command). 
  *                              If the <cid> is omitted, it only affects the first cid.
@@ -708,24 +708,24 @@ int sim5300_get_operator_selection(sim5300_dev_t       *sim5300_dev,
  * AT+CGACT PDP context activate or deactivate
  * Set PDP context activate or deactivate 
  * 
- * @returns     SIM5300_OK             - OK
- * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_OK             - OK
+ * @returns     SIMCOM_DEV_ERROR      - ERROR: simcom_dev == NULL
  * @returns     ARGUMENT_RANGE_ERROR   - ERROR: Invalid argument value
  * @returns     SEND_CMD_WAIT_OK_ERROR - ERROR: at_send_cmd_wait_ok() != 0
  */
-int sim5300_set_state_pdp_context(sim5300_dev_t *sim5300_dev,
+int simcom_set_state_pdp_context(simcom_dev_t *simcom_dev,
                                   uint8_t        state,
                                   uint8_t        cid) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     } 
     
     /* Test range argument */
     if (state > 1) {
-        printf("[SIM5300] sim5300_set_sim_inserted_status_reporting() ERROR argument: %i. (range 0-1)\n", state);
+        printf("[SIMCOM] simcom_set_sim_inserted_status_reporting() ERROR argument: %i. (range 0-1)\n", state);
 
         return ARGUMENT_RANGE_ERROR;
     }
@@ -739,20 +739,20 @@ int sim5300_set_state_pdp_context(sim5300_dev_t *sim5300_dev,
     }
     
     /* Send AT command */
-    int res = at_send_cmd_wait_ok(&sim5300_dev->at_dev, cmd_CGACTn, 7000000); 
+    int res = at_send_cmd_wait_ok(&simcom_dev->at_dev, cmd_CGACTn, 7000000); 
 
     /* Return result */
-    if (res == SIM5300_OK) {
+    if (res == SIMCOM_OK) {
         /* Print result */
         if (state == 0) {
-            puts("[SIM5300] Deactivated PDP context");
+            puts("[SIMCOM] Deactivated PDP context");
         } else {
-            puts("[SIM5300] Activated PDP context");
+            puts("[SIMCOM] Activated PDP context");
         }
 
-        return SIM5300_OK;
+        return SIMCOM_OK;
     } else {
-        puts("[SIM5300] cmd_CGACTn ERROR");
+        puts("[SIMCOM] cmd_CGACTn ERROR");
 
         return SEND_CMD_WAIT_OK_ERROR;
     }
@@ -762,7 +762,7 @@ int sim5300_set_state_pdp_context(sim5300_dev_t *sim5300_dev,
 /**
  * @brief       Get IMSI
  *
- * @param[in]   sim5300_dev     Device to operate on
+ * @param[in]   simcom_dev     Device to operate on
  * 
  * AT+CIMI Request International Mobile Subscriber Identity (IMSI)
  * Get IMSI
@@ -770,24 +770,24 @@ int sim5300_set_state_pdp_context(sim5300_dev_t *sim5300_dev,
  * @returns     Pointer to a string - OK
  * @returns     NULL                - ERROR
  */
-char *sim5300_get_imsi(sim5300_dev_t *sim5300_dev) {
+char *simcom_get_imsi(simcom_dev_t *simcom_dev) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
         return NULL;
     } 
 
     /* Send AT command */
-    int res = at_send_cmd_get_resp(&sim5300_dev->at_dev, "AT+CIMI", sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, SIM5300_MAX_TIMEOUT);
+    int res = at_send_cmd_get_resp(&simcom_dev->at_dev, "AT+CIMI", simcom_dev->at_dev_resp, simcom_dev->at_dev_resp_size, SIMCOM_MAX_TIMEOUT);
     
     /* Return result */
-    if (res > SIM5300_OK) {
-        printf("[SIM5300] IMSI: %s\n", sim5300_dev->at_dev_resp);
+    if (res > SIMCOM_OK) {
+        printf("[SIMCOM] IMSI: %s\n", simcom_dev->at_dev_resp);
 
-        return sim5300_dev->at_dev_resp;
+        return simcom_dev->at_dev_resp;
     } else {
-        puts("[SIM5300] sim5300_get_imsi() ERROR");
+        puts("[SIMCOM] simcom_get_imsi() ERROR");
         return NULL;
     }
 }
@@ -796,24 +796,24 @@ char *sim5300_get_imsi(sim5300_dev_t *sim5300_dev) {
 /**
  * @brief       Get HNI
  *
- * @param[in]   sim5300_dev     Device to operate on
+ * @param[in]   simcom_dev     Device to operate on
  * 
  * Get Home Network Identity (HNI)
  * 
- * @returns     SIM5300_OK >= 0   - HNI
- * @returns     SIM5300_DEV_ERROR - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_OK >= 0   - HNI
+ * @returns     SIMCOM_DEV_ERROR - ERROR: simcom_dev == NULL
  * @returns     UNDEFINED_ERROR   - ERROR: Undefined error 
  */
-int sim5300_get_hni(sim5300_dev_t *sim5300_dev) {
+int simcom_get_hni(simcom_dev_t *simcom_dev) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     } 
 
     /* Get IMSI */
-    char* imsi = sim5300_get_imsi(sim5300_dev);
+    char* imsi = simcom_get_imsi(simcom_dev);
     if (imsi == NULL) {
         return UNDEFINED_ERROR;
     }
@@ -829,89 +829,89 @@ int sim5300_get_hni(sim5300_dev_t *sim5300_dev) {
 /**
  * @brief       Get GPRS service state
  *
- * @param[in]   sim5300_dev             Device to operate on
- * @param[out]  sim5300_cgatt_resp      Structure with response data
+ * @param[in]   simcom_dev             Device to operate on
+ * @param[out]  simcom_cgatt_resp      Structure with response data
  * 
  * AT+CGATT Get GPRS service state
  * Get GPRS service state
  * 
- * @returns     SIM5300_OK              - OK
- * @returns     SIM5300_DEV_ERROR       - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_OK              - OK
+ * @returns     SIMCOM_DEV_ERROR       - ERROR: simcom_dev == NULL
  * @returns     ARGUMENT_NULL_ERROR     - ERROR: Pointer to function argument == NULL
  * @returns     SEND_CMD_GET_RESP_ERROR - ERROR: at_send_cmd_get_resp() < 0
  * @returns     PARSE_ERROR             - ERROR: sscanf() != desired number of variables
  */
-int sim5300_get_gprs_service_state(sim5300_dev_t        *sim5300_dev,
-                                   sim5300_cgatt_resp_t *sim5300_cgatt_resp) {
+int simcom_get_gprs_service_state(simcom_dev_t        *simcom_dev,
+                                   simcom_cgatt_resp_t *simcom_cgatt_resp) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     } 
     
     /* NULL ptr */
-    if (sim5300_cgatt_resp == NULL) {
+    if (simcom_cgatt_resp == NULL) {
         return ARGUMENT_NULL_ERROR;
     }
 
     /* Send AT command */
-    int res = at_send_cmd_get_resp(&sim5300_dev->at_dev, "AT+CGATT?", sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, SIM5300_MAX_TIMEOUT);
+    int res = at_send_cmd_get_resp(&simcom_dev->at_dev, "AT+CGATT?", simcom_dev->at_dev_resp, simcom_dev->at_dev_resp_size, SIMCOM_MAX_TIMEOUT);
     
     /* Check return code */
-    if (res <= SIM5300_OK) {
-        puts("[SIM5300] AT+CGATT? ERROR");
+    if (res <= SIMCOM_OK) {
+        puts("[SIMCOM] AT+CGATT? ERROR");
 
         return SEND_CMD_GET_RESP_ERROR;
     }
 
     /* Parse string */
-    res = sscanf(sim5300_dev->at_dev_resp, "+CGATT: %i", &sim5300_cgatt_resp->state);
+    res = sscanf(simcom_dev->at_dev_resp, "+CGATT: %i", &simcom_cgatt_resp->state);
 
     /* Check result */
     if (res != 1) {
-        puts("[SIM5300] Parse error");
+        puts("[SIMCOM] Parse error");
 
         return PARSE_ERROR;
     }
 
     /* Print result */
-    if (sim5300_cgatt_resp->state == 1) {
-        puts("[SIM5300] GPRS attached");
+    if (simcom_cgatt_resp->state == 1) {
+        puts("[SIMCOM] GPRS attached");
     } else {
-        puts("[SIM5300] GPRS detached");
+        puts("[SIMCOM] GPRS detached");
     }
 
-    return SIM5300_OK;
+    return SIMCOM_OK;
 }
 
 /*---------------------------------------------------------------------------*/
 /**
  * @brief       Set GPRS service state
  *
- * @param[in]   sim5300_dev     Device to operate on
+ * @param[in]   simcom_dev     Device to operate on
  * @param[in]   state           Indicates the state of PDP context activation
  * 
  * AT+CGATT Set GPRS service state
  * Set GPRS service state
  * 
- * @returns     SIM5300_OK             - OK
- * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_OK             - OK
+ * @returns     SIMCOM_DEV_ERROR      - ERROR: simcom_dev == NULL
  * @returns     ARGUMENT_RANGE_ERROR   - ERROR: Invalid argument value
  * @returns     SEND_CMD_WAIT_OK_ERROR - ERROR: at_send_cmd_wait_ok() != 0
  */
-int sim5300_set_gprs_service_state(sim5300_dev_t *sim5300_dev, 
+int simcom_set_gprs_service_state(simcom_dev_t *simcom_dev, 
                                    uint8_t        state) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     } 
     
     /* Test range argument */
     if (state > 1) {
-        printf("[SIM5300] sim5300_set_gprs_service_state() ERROR argument: %i. (range 0-1)\n", state);
+        printf("[SIMCOM] simcom_set_gprs_service_state() ERROR argument: %i. (range 0-1)\n", state);
 
         return ARGUMENT_RANGE_ERROR;
     }
@@ -921,20 +921,20 @@ int sim5300_set_gprs_service_state(sim5300_dev_t *sim5300_dev,
     snprintf(cmd_CGATTn, 13, "AT+CGATT=%i", state);
 
     /* Send AT command */
-    int res = at_send_cmd_wait_ok(&sim5300_dev->at_dev, cmd_CGATTn, 7000000);
+    int res = at_send_cmd_wait_ok(&simcom_dev->at_dev, cmd_CGATTn, 7000000);
 
     /* Return result */
-    if (res == SIM5300_OK) {
+    if (res == SIMCOM_OK) {
         /* Print result */
         if (state == 1) {
-            puts("[SIM5300] GPRS attached");
+            puts("[SIMCOM] GPRS attached");
         } else {
-            puts("[SIM5300] GPRS detached");
+            puts("[SIMCOM] GPRS detached");
         }
 
-        return SIM5300_OK;
+        return SIMCOM_OK;
     } else {
-        puts("[SIM5300] cmd_CGATTn ERROR");
+        puts("[SIMCOM] cmd_CGATTn ERROR");
 
         return SEND_CMD_WAIT_OK_ERROR;
     }
@@ -944,7 +944,7 @@ int sim5300_set_gprs_service_state(sim5300_dev_t *sim5300_dev,
 /**
  * @brief       Set start task and set APN, USER NAME, PASSWORD
  *
- * @param[in]   sim5300_dev     Device to operate on
+ * @param[in]   simcom_dev     Device to operate on
  * @param[in]   apn             A string parameter which indicates the GPRS access point name
  * @param[in]   user            A string parameter which indicates the GPRS user name
  * @param[in]   password        A string parameter which indicates the GPRS password
@@ -952,20 +952,20 @@ int sim5300_set_gprs_service_state(sim5300_dev_t *sim5300_dev,
  * AT+CSTT Set start task and set APN, USER NAME, PASSWORD
  * Set start task and set APN, USER NAME, PASSWORD
  * 
- * @returns     SIM5300_OK             - OK
- * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_OK             - OK
+ * @returns     SIMCOM_DEV_ERROR      - ERROR: simcom_dev == NULL
  * @returns     ARGUMENT_NULL_ERROR    - ERROR: Pointer to function argument == NULL
  * @returns     SEND_CMD_WAIT_OK_ERROR - ERROR: at_send_cmd_wait_ok() != 0
  */
-int sim5300_set_network_settings(sim5300_dev_t *sim5300_dev,
+int simcom_set_network_settings(simcom_dev_t *simcom_dev,
                                  char          *apn,
                                  char          *user,
                                  char          *password) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     } 
 
     /* Test arguments */
@@ -985,18 +985,18 @@ int sim5300_set_network_settings(sim5300_dev_t *sim5300_dev,
     lptimer_usleep(50);
 
     /* Send AT command */
-    int res = at_send_cmd_wait_ok(&sim5300_dev->at_dev, cmd_with_settings_for_internet, SIM5300_MAX_TIMEOUT);
+    int res = at_send_cmd_wait_ok(&simcom_dev->at_dev, cmd_with_settings_for_internet, SIMCOM_MAX_TIMEOUT);
 
     /* Return result */
-    if (res == SIM5300_OK) {
+    if (res == SIMCOM_OK) {
         /* Print internet settings */
-        printf("[SIM5300] Set internet settings: APN=\"%s\", Username=\"%s\", Password=\"%s\"\n", apn, 
+        printf("[SIMCOM] Set internet settings: APN=\"%s\", Username=\"%s\", Password=\"%s\"\n", apn, 
                                                                                                   user, 
                                                                                                   password);
 
-        return SIM5300_OK;
+        return SIMCOM_OK;
     } else {
-        puts("[SIM5300] cmd_with_settings_for_internet ERROR");
+        puts("[SIMCOM] cmd_with_settings_for_internet ERROR");
 
         return SEND_CMD_WAIT_OK_ERROR;
     }
@@ -1006,34 +1006,34 @@ int sim5300_set_network_settings(sim5300_dev_t *sim5300_dev,
 /**
  * @brief       Bring up wireless connection with GPRS
  *
- * @param[in]   sim5300_dev     Device to operate on
+ * @param[in]   simcom_dev     Device to operate on
  * 
  * AT+CIICR Bring up wireless connection with GPRS
  * Bring up wireless connection with GPRS
  * 
- * @returns     SIM5300_OK             - OK
- * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_OK             - OK
+ * @returns     SIMCOM_DEV_ERROR      - ERROR: simcom_dev == NULL
  * @returns     SEND_CMD_WAIT_OK_ERROR - ERROR: at_send_cmd_wait_ok() != 0
  */
-int sim5300_bring_up_wireless_connection(sim5300_dev_t *sim5300_dev) {
+int simcom_bring_up_wireless_connection(simcom_dev_t *simcom_dev) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     } 
 
     /* Send AT command */
-    int res = at_send_cmd_wait_ok(&sim5300_dev->at_dev, "AT+CIICR", 6000000);
+    int res = at_send_cmd_wait_ok(&simcom_dev->at_dev, "AT+CIICR", 6000000);
 
     /* Return result */
-    if (res == SIM5300_OK) {
+    if (res == SIMCOM_OK) {
         /* Print result */
-        puts("[SIM5300] Bring up wireless connection with GPRS");
+        puts("[SIMCOM] Bring up wireless connection with GPRS");
 
-        return SIM5300_OK;
+        return SIMCOM_OK;
     } else {
-        puts("[SIM5300] sim5300_bring_up_wireless_connection() ERROR");
+        puts("[SIMCOM] simcom_bring_up_wireless_connection() ERROR");
 
         return SEND_CMD_WAIT_OK_ERROR;
     }
@@ -1043,102 +1043,102 @@ int sim5300_bring_up_wireless_connection(sim5300_dev_t *sim5300_dev) {
 /**
  * @brief       Get local IP address
  *
- * @param[in]   sim5300_dev             Device to operate on
- * @param[out]  sim5300_cifsr_resp      Structure with response data
+ * @param[in]   simcom_dev             Device to operate on
+ * @param[out]  simcom_cifsr_resp      Structure with response data
  * 
  * AT+CIFSR Get local IP address
  * Get local IP address
  * 
- * @returns     SIM5300_OK              - OK
- * @returns     SIM5300_DEV_ERROR       - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_OK              - OK
+ * @returns     SIMCOM_DEV_ERROR       - ERROR: simcom_dev == NULL
  * @returns     ARGUMENT_NULL_ERROR     - ERROR: Pointer to function argument == NULL
  * @returns     SEND_CMD_GET_RESP_ERROR - ERROR: at_send_cmd_get_resp() < 0
  * @returns     PARSE_ERROR             - ERROR: sscanf() != desired number of variables
  */
-int sim5300_get_local_ip_address(sim5300_dev_t        *sim5300_dev,
-                                 sim5300_cifsr_resp_t *sim5300_cifsr_resp) {
+int simcom_get_local_ip_address(simcom_dev_t        *simcom_dev,
+                                 simcom_cifsr_resp_t *simcom_cifsr_resp) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
         
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     } 
 
     /* NULL ptr */
-    if (sim5300_cifsr_resp == NULL) {
+    if (simcom_cifsr_resp == NULL) {
         return ARGUMENT_NULL_ERROR;
     }
 
     /* Get local IP address */
-    int res = at_send_cmd_get_resp(&sim5300_dev->at_dev, "AT+CIFSR", sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, SIM5300_MAX_TIMEOUT); 
-    if (res <= SIM5300_OK) {
-        puts("[SIM5300] AT+CIFSR ERROR");
+    int res = at_send_cmd_get_resp(&simcom_dev->at_dev, "AT+CIFSR", simcom_dev->at_dev_resp, simcom_dev->at_dev_resp_size, SIMCOM_MAX_TIMEOUT); 
+    if (res <= SIMCOM_OK) {
+        puts("[SIMCOM] AT+CIFSR ERROR");
 
         return SEND_CMD_GET_RESP_ERROR;
     }
 
     /* Debug output */
-    DEBUG("len: %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+    DEBUG("len: %i, data: %s\n", res, simcom_dev->at_dev_resp);
 
     /* Parse string */
-    res = sscanf(sim5300_dev->at_dev_resp, "%i.%i.%i.%i", &sim5300_cifsr_resp->local_ip_address[0],
-                                                          &sim5300_cifsr_resp->local_ip_address[1],
-                                                          &sim5300_cifsr_resp->local_ip_address[2],
-                                                          &sim5300_cifsr_resp->local_ip_address[3]);
+    res = sscanf(simcom_dev->at_dev_resp, "%i.%i.%i.%i", &simcom_cifsr_resp->local_ip_address[0],
+                                                          &simcom_cifsr_resp->local_ip_address[1],
+                                                          &simcom_cifsr_resp->local_ip_address[2],
+                                                          &simcom_cifsr_resp->local_ip_address[3]);
 
     /* Check result */
     if (res != 4) {
-        puts("[SIM5300] Parse error");
+        puts("[SIMCOM] Parse error");
 
         return PARSE_ERROR;
     }
 
     /* Print result */
-    printf("[SIM5300] Local IP address: %i.%i.%i.%i\n", sim5300_cifsr_resp->local_ip_address[0],
-                                                        sim5300_cifsr_resp->local_ip_address[1],
-                                                        sim5300_cifsr_resp->local_ip_address[2],
-                                                        sim5300_cifsr_resp->local_ip_address[3]);
+    printf("[SIMCOM] Local IP address: %i.%i.%i.%i\n", simcom_cifsr_resp->local_ip_address[0],
+                                                        simcom_cifsr_resp->local_ip_address[1],
+                                                        simcom_cifsr_resp->local_ip_address[2],
+                                                        simcom_cifsr_resp->local_ip_address[3]);
 
-    return SIM5300_OK;    
+    return SIMCOM_OK;    
 }
 
 /*---------------------------------------------------------------------------*/
 /**
  * @brief       Query current connection status
  *
- * @param[in]   sim5300_dev                 Device to operate on
+ * @param[in]   simcom_dev                 Device to operate on
  * @param[in]   n                           A numeric parameter which indicates the connection number
- * @param[out]  sim5300_set_cipstatus_resp  Structure with response data
+ * @param[out]  simcom_set_cipstatus_resp  Structure with response data
  * 
  * AT+CIPSTATUS Query current connection status
  * Query current connection status
  * 
- * @returns     SIM5300_OK              - OK
- * @returns     SIM5300_DEV_ERROR       - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_OK              - OK
+ * @returns     SIMCOM_DEV_ERROR       - ERROR: simcom_dev == NULL
  * @returns     ARGUMENT_RANGE_ERROR    - ERROR: Invalid argument value
  * @returns     ARGUMENT_NULL_ERROR     - ERROR: Pointer to function argument == NULL
  * @returns     SEND_CMD_GET_RESP_ERROR - ERROR: at_send_cmd_get_resp() < 0
  * @returns     PARSE_ERROR             - ERROR: sscanf() != desired number of variables
  */
-int sim5300_set_query_current_connection_status(sim5300_dev_t                *sim5300_dev,
+int simcom_set_query_current_connection_status(simcom_dev_t                *simcom_dev,
                                                 uint8_t                       n,
-                                                sim5300_set_cipstatus_resp_t *sim5300_set_cipstatus_resp) {
+                                                simcom_set_cipstatus_resp_t *simcom_set_cipstatus_resp) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     } 
     
     /* Test range argument */
     if (n > 7) {
-        printf("[SIM5300] sim5300_set_gprs_service_state() ERROR argument: %i. (range 0-7)\n", n);
+        printf("[SIMCOM] simcom_set_gprs_service_state() ERROR argument: %i. (range 0-7)\n", n);
 
         return ARGUMENT_RANGE_ERROR;
     }
 
     /* NULL ptr */
-    if (sim5300_set_cipstatus_resp == NULL) {
+    if (simcom_set_cipstatus_resp == NULL) {
         return ARGUMENT_NULL_ERROR;
     }
 
@@ -1147,25 +1147,25 @@ int sim5300_set_query_current_connection_status(sim5300_dev_t                *si
     snprintf(cmd_CIPSTATUSn, 15, "AT+CIPSTATUS=%i", n);    
     
     /* Set query current connection status */
-    int res = at_send_cmd_get_resp(&sim5300_dev->at_dev, cmd_CIPSTATUSn, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, SIM5300_MAX_TIMEOUT); 
-    if (res <= SIM5300_OK) {
-        puts("[SIM5300] AT+CIFSR ERROR");
+    int res = at_send_cmd_get_resp(&simcom_dev->at_dev, cmd_CIPSTATUSn, simcom_dev->at_dev_resp, simcom_dev->at_dev_resp_size, SIMCOM_MAX_TIMEOUT); 
+    if (res <= SIMCOM_OK) {
+        puts("[SIMCOM] AT+CIFSR ERROR");
 
         return SEND_CMD_GET_RESP_ERROR;
     }
 
     /* Debug output */
-    DEBUG("len: %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+    DEBUG("len: %i, data: %s\n", res, simcom_dev->at_dev_resp);
 
     uint8_t  resp_len = res;
-    char    *resp = sim5300_dev->at_dev_resp;
+    char    *resp = simcom_dev->at_dev_resp;
     uint8_t  parse_buffer[32];
     uint8_t  parse_len;
     uint8_t  start_parse;
     uint8_t  end_parse;
 
     if (memcmp(resp, "+CIPSTATUS: ", 12) != 0) {
-        puts("[SIM5300] Parse error");
+        puts("[SIMCOM] Parse error");
 
         return PARSE_ERROR;
     }
@@ -1185,14 +1185,14 @@ int sim5300_set_query_current_connection_status(sim5300_dev_t                *si
                 memcpy(parse_buffer, resp + start_parse, end_parse - start_parse);
                 parse_buffer[parse_len] = 0x00;
 
-                res = sscanf((char*)parse_buffer, "%i", &sim5300_set_cipstatus_resp->n);
+                res = sscanf((char*)parse_buffer, "%i", &simcom_set_cipstatus_resp->n);
                 if (res != 1) {
-                    puts("[SIM5300] Parse error: n");
+                    puts("[SIMCOM] Parse error: n");
 
                     return PARSE_ERROR;
                 }
 
-                DEBUG("sim5300_set_cipstatus_resp->n: %i\n", sim5300_set_cipstatus_resp->n);
+                DEBUG("simcom_set_cipstatus_resp->n: %i\n", simcom_set_cipstatus_resp->n);
 
                 break;
             }
@@ -1207,8 +1207,8 @@ int sim5300_set_query_current_connection_status(sim5300_dev_t                *si
             if (start_parse == i) {
                 end_parse = i;
 
-                sim5300_set_cipstatus_resp->bearer = 0;
-                DEBUG("sim5300_set_cipstatus_resp->bearer: %i\n", sim5300_set_cipstatus_resp->bearer);
+                simcom_set_cipstatus_resp->bearer = 0;
+                DEBUG("simcom_set_cipstatus_resp->bearer: %i\n", simcom_set_cipstatus_resp->bearer);
 
                 break;
             } else {
@@ -1218,14 +1218,14 @@ int sim5300_set_query_current_connection_status(sim5300_dev_t                *si
                 memcpy(parse_buffer, resp + start_parse, end_parse - start_parse);
                 parse_buffer[parse_len] = 0x00;
 
-                res = sscanf((char*)parse_buffer, "%i", &sim5300_set_cipstatus_resp->bearer);
+                res = sscanf((char*)parse_buffer, "%i", &simcom_set_cipstatus_resp->bearer);
                 if (res != 1) {
-                    puts("[SIM5300] Parse error: bearer");
+                    puts("[SIMCOM] Parse error: bearer");
 
                     return PARSE_ERROR;
                 }
 
-                printf("sim5300_set_cipstatus_resp->bearer: %i\n", sim5300_set_cipstatus_resp->bearer);
+                printf("simcom_set_cipstatus_resp->bearer: %i\n", simcom_set_cipstatus_resp->bearer);
 
                 break;
             }
@@ -1238,7 +1238,7 @@ int sim5300_set_query_current_connection_status(sim5300_dev_t                *si
     for (uint8_t i = start_parse; i < resp_len; i++) {
         if (resp[i] == ',') {
             if (start_parse == i) {
-                puts("[SIM5300] Parse error: type_connection");
+                puts("[SIMCOM] Parse error: type_connection");
 
                 return PARSE_ERROR;
             } else {
@@ -1246,17 +1246,17 @@ int sim5300_set_query_current_connection_status(sim5300_dev_t                *si
                 parse_len = end_parse - start_parse;
 
                 if (parse_len == 2) {
-                    memset(sim5300_set_cipstatus_resp->type_connection, 0x00, sizeof(sim5300_set_cipstatus_resp->type_connection));
+                    memset(simcom_set_cipstatus_resp->type_connection, 0x00, sizeof(simcom_set_cipstatus_resp->type_connection));
                 } else if (parse_len == 5) {
-                    memcpy(sim5300_set_cipstatus_resp->type_connection, resp + start_parse + 1, end_parse - start_parse - 2);
-                    sim5300_set_cipstatus_resp->type_connection[end_parse - start_parse - 2] = 0x00;
+                    memcpy(simcom_set_cipstatus_resp->type_connection, resp + start_parse + 1, end_parse - start_parse - 2);
+                    simcom_set_cipstatus_resp->type_connection[end_parse - start_parse - 2] = 0x00;
                 } else {
-                    puts("[SIM5300] Parse error: type_connection");
+                    puts("[SIMCOM] Parse error: type_connection");
 
                     return PARSE_ERROR;
                 }
 
-                DEBUG("sim5300_set_cipstatus_resp->type_connection = \"%s\"\n", sim5300_set_cipstatus_resp->type_connection);
+                DEBUG("simcom_set_cipstatus_resp->type_connection = \"%s\"\n", simcom_set_cipstatus_resp->type_connection);
 
                 break;
             }
@@ -1269,7 +1269,7 @@ int sim5300_set_query_current_connection_status(sim5300_dev_t                *si
     for (uint8_t i = start_parse; i < resp_len; i++) {
         if (resp[i] == ',') {
             if (start_parse == i) {
-                puts("[SIM5300] Parse error: ip_address");
+                puts("[SIMCOM] Parse error: ip_address");
 
                 return PARSE_ERROR;
             } else {
@@ -1277,13 +1277,13 @@ int sim5300_set_query_current_connection_status(sim5300_dev_t                *si
                 parse_len = end_parse - start_parse;
 
                 if (parse_len == 2) {
-                    memset(sim5300_set_cipstatus_resp->ip_address, 0x00, sizeof(sim5300_set_cipstatus_resp->ip_address));
+                    memset(simcom_set_cipstatus_resp->ip_address, 0x00, sizeof(simcom_set_cipstatus_resp->ip_address));
                 } else {
-                    memcpy(sim5300_set_cipstatus_resp->ip_address, resp + start_parse + 1, end_parse - start_parse - 2);
-                    sim5300_set_cipstatus_resp->ip_address[end_parse - start_parse - 2] = 0x00;
+                    memcpy(simcom_set_cipstatus_resp->ip_address, resp + start_parse + 1, end_parse - start_parse - 2);
+                    simcom_set_cipstatus_resp->ip_address[end_parse - start_parse - 2] = 0x00;
                 }
 
-                DEBUG("sim5300_set_cipstatus_resp->ip_address = \"%s\"\n", sim5300_set_cipstatus_resp->ip_address);
+                DEBUG("simcom_set_cipstatus_resp->ip_address = \"%s\"\n", simcom_set_cipstatus_resp->ip_address);
 
                 break;
             }
@@ -1296,7 +1296,7 @@ int sim5300_set_query_current_connection_status(sim5300_dev_t                *si
     for (uint8_t i = start_parse; i < resp_len; i++) {
         if (resp[i] == ',') {
             if (start_parse == i) {
-                puts("[SIM5300] Parse error: port");
+                puts("[SIMCOM] Parse error: port");
 
                 return PARSE_ERROR;
             } else {
@@ -1304,13 +1304,13 @@ int sim5300_set_query_current_connection_status(sim5300_dev_t                *si
                 parse_len = end_parse - start_parse;
 
                 if (parse_len == 2) {
-                    memset(sim5300_set_cipstatus_resp->port, 0x00, sizeof(sim5300_set_cipstatus_resp->port));
+                    memset(simcom_set_cipstatus_resp->port, 0x00, sizeof(simcom_set_cipstatus_resp->port));
                 } else {
-                    memcpy(sim5300_set_cipstatus_resp->port, resp + start_parse + 1, end_parse - start_parse - 2);
-                    sim5300_set_cipstatus_resp->port[end_parse - start_parse - 2] = 0x00;
+                    memcpy(simcom_set_cipstatus_resp->port, resp + start_parse + 1, end_parse - start_parse - 2);
+                    simcom_set_cipstatus_resp->port[end_parse - start_parse - 2] = 0x00;
                 }
 
-                DEBUG("sim5300_set_cipstatus_resp->port = \"%s\"\n", sim5300_set_cipstatus_resp->port);
+                DEBUG("simcom_set_cipstatus_resp->port = \"%s\"\n", simcom_set_cipstatus_resp->port);
 
                 break;
             }
@@ -1321,41 +1321,41 @@ int sim5300_set_query_current_connection_status(sim5300_dev_t                *si
     end_parse   = resp_len;
 
     /* Parse port */
-    memcpy(sim5300_set_cipstatus_resp->client_state, resp + start_parse + 1, end_parse - start_parse - 2);
-    sim5300_set_cipstatus_resp->client_state[end_parse - start_parse - 2] = 0x00;
+    memcpy(simcom_set_cipstatus_resp->client_state, resp + start_parse + 1, end_parse - start_parse - 2);
+    simcom_set_cipstatus_resp->client_state[end_parse - start_parse - 2] = 0x00;
 
-    DEBUG("sim5300_set_cipstatus_resp->client_state = \"%s\"\n", sim5300_set_cipstatus_resp->client_state);
+    DEBUG("simcom_set_cipstatus_resp->client_state = \"%s\"\n", simcom_set_cipstatus_resp->client_state);
 
-    return SIM5300_OK;
+    return SIMCOM_OK;
 }
 
 /*---------------------------------------------------------------------------*/
 /**
  * @brief       Start up multi-IP connection
  *
- * @param[in]   sim5300_dev     Device to operate on
+ * @param[in]   simcom_dev     Device to operate on
  * @param[in]   n               Mode: single IP connection or multi IP connection
  * 
  * AT+CIPMUX Start up multi-IP connection
  * Start up multi-IP connection
  * 
- * @returns     SIM5300_OK             - OK
- * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_OK             - OK
+ * @returns     SIMCOM_DEV_ERROR      - ERROR: simcom_dev == NULL
  * @returns     ARGUMENT_RANGE_ERROR   - ERROR: Invalid argument value
  * @returns     SEND_CMD_WAIT_OK_ERROR - ERROR: at_send_cmd_wait_ok() != 0
  */
-int sim5300_start_up_multi_ip_connection(sim5300_dev_t *sim5300_dev, 
+int simcom_start_up_multi_ip_connection(simcom_dev_t *simcom_dev, 
                                          uint8_t        n) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     } 
     
     /* Test range argument */
     if (n > 1) {
-        printf("[SIM5300] sim5300_start_up_multi_ip_connection() ERROR argument: %i. (range 0-1)\n", n);
+        printf("[SIMCOM] simcom_start_up_multi_ip_connection() ERROR argument: %i. (range 0-1)\n", n);
 
         return ARGUMENT_RANGE_ERROR;
     }
@@ -1365,20 +1365,20 @@ int sim5300_start_up_multi_ip_connection(sim5300_dev_t *sim5300_dev,
     snprintf(cmd_CIPMUXn, 12, "AT+CIPMUX=%i", n);
 
     /* Send AT command */
-    int res = at_send_cmd_wait_ok(&sim5300_dev->at_dev, cmd_CIPMUXn, SIM5300_MAX_TIMEOUT);
+    int res = at_send_cmd_wait_ok(&simcom_dev->at_dev, cmd_CIPMUXn, SIMCOM_MAX_TIMEOUT);
 
     /* Return result */
-    if (res == SIM5300_OK) {
+    if (res == SIMCOM_OK) {
         /* Print result */
         if (n == 0) {
-            puts("[SIM5300] Set single-IP connection");
+            puts("[SIMCOM] Set single-IP connection");
         } else {
-            puts("[SIM5300] Set multi-IP connection");
+            puts("[SIMCOM] Set multi-IP connection");
         }
 
-        return SIM5300_OK;
+        return SIMCOM_OK;
     } else {
-        puts("[SIM5300] cmd_CIPMUXn ERROR");
+        puts("[SIMCOM] cmd_CIPMUXn ERROR");
 
         return SEND_CMD_WAIT_OK_ERROR;
     }
@@ -1388,39 +1388,39 @@ int sim5300_start_up_multi_ip_connection(sim5300_dev_t *sim5300_dev,
 /**
  * @brief       Close up multi-IP connection
  *
- * @param[in]   sim5300_dev     Device to operate on
+ * @param[in]   simcom_dev     Device to operate on
  * @param[in]   id              A numeric parameter which indicates the connection number 
  * @param[in]   n               Closing type: slow or quick close 
  * 
  * AT+CIPCLOSE Close up multi-IP connection
  * Close up multi-IP connection
  * 
- * @returns     SIM5300_OK             - OK
- * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_OK             - OK
+ * @returns     SIMCOM_DEV_ERROR      - ERROR: simcom_dev == NULL
  * @returns     ARGUMENT_RANGE_ERROR   - ERROR: Invalid argument value
  * @returns     SEND_CMD_ERROR         - ERROR: at_send_cmd() != 0
  * @returns     UNKNOWN_RESP           - ERROR: Unknown response
  */
-int sim5300_close_up_multi_ip_connection(sim5300_dev_t *sim5300_dev, 
+int simcom_close_up_multi_ip_connection(simcom_dev_t *simcom_dev, 
                                          uint8_t        id,  
                                          uint8_t        n) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     } 
     
     /* Test id range argument*/
     if (id > 7) {
-        printf("[SIM5300] sim5300_close_up_multi_ip_connection() ERROR argument id: %i. (range 0-7)\n", id);
+        printf("[SIMCOM] simcom_close_up_multi_ip_connection() ERROR argument id: %i. (range 0-7)\n", id);
 
         return ARGUMENT_RANGE_ERROR;
     }
 
     /* Test n range argument */
     if (n > 1) {
-        printf("[SIM5300] sim5300_close_up_multi_ip_connection() ERROR argument: %i. (range 0-1)\n", n);
+        printf("[SIMCOM] simcom_close_up_multi_ip_connection() ERROR argument: %i. (range 0-1)\n", n);
 
         return ARGUMENT_RANGE_ERROR;
     }
@@ -1430,9 +1430,9 @@ int sim5300_close_up_multi_ip_connection(sim5300_dev_t *sim5300_dev,
     snprintf(cmd_CIPCLOSEn, 17, "AT+CIPCLOSE=%i,%i", id, n);
 
     /* Send AT command */
-    at_drain(&sim5300_dev->at_dev);
-    int res = at_send_cmd(&sim5300_dev->at_dev, cmd_CIPCLOSEn, SIM5300_MAX_TIMEOUT);
-    if (res != SIM5300_OK) {
+    at_drain(&simcom_dev->at_dev);
+    int res = at_send_cmd(&simcom_dev->at_dev, cmd_CIPCLOSEn, SIMCOM_MAX_TIMEOUT);
+    if (res != SIMCOM_OK) {
         return SEND_CMD_ERROR;
     }
 
@@ -1441,40 +1441,40 @@ int sim5300_close_up_multi_ip_connection(sim5300_dev_t *sim5300_dev,
     snprintf(resp_on_CIPCLOSE, 13, "%i, CLOSE OK", n);
 
     /* Read string */
-    res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
-    DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+    res = at_readline(&simcom_dev->at_dev, simcom_dev->at_dev_resp, simcom_dev->at_dev_resp_size, false, SIMCOM_MAX_TIMEOUT);
+    DEBUG("res = %i, data: %s\n", res, simcom_dev->at_dev_resp);
 
     /* Check read len string */
-    if (res < SIM5300_OK) {
+    if (res < SIMCOM_OK) {
         return READLINE_ERROR;
     }
 
     /* Compare resp */
-    if (memcmp(resp_on_CIPCLOSE, sim5300_dev->at_dev_resp, 11) != 0) {
+    if (memcmp(resp_on_CIPCLOSE, simcom_dev->at_dev_resp, 11) != 0) {
         return UNKNOWN_RESP;
     }
 
-    return SIM5300_OK;
+    return SIMCOM_OK;
 }
 
 /*---------------------------------------------------------------------------*/
 /* AT+CIPPING PING request */
-int sim5300_ping_request(sim5300_dev_t          *sim5300_dev,
-                         sim5300_cipping_resp_t  sim5300_cipping_resp[],
+int simcom_ping_request(simcom_dev_t          *simcom_dev,
+                         simcom_cipping_resp_t  simcom_cipping_resp[],
                          char                   *address,
                          char                   *retr_num,
                          char                   *datalen, 
                          char                   *timeout,
                          char                   *ttl) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     }   
 
     /* NULL ptr */
-    if (sim5300_cipping_resp == NULL) {
+    if (simcom_cipping_resp == NULL) {
         return ARGUMENT_NULL_ERROR;
     }
 
@@ -1522,7 +1522,7 @@ int sim5300_ping_request(sim5300_dev_t          *sim5300_dev,
 
             break;
         default:
-            puts("[SIM5300] Unknow num arg");
+            puts("[SIMCOM] Unknow num arg");
             
             return UNDEFINED_ERROR;
     }
@@ -1531,9 +1531,9 @@ int sim5300_ping_request(sim5300_dev_t          *sim5300_dev,
     DEBUG("num_arg: %i, cmd_CIPPING: %s\n", num_arg, cmd_CIPPING);
 
     /* Send AT command */
-    at_drain(&sim5300_dev->at_dev);
-    int res = at_send_cmd(&sim5300_dev->at_dev, cmd_CIPPING, 7000000);
-    if (res != SIM5300_OK) {
+    at_drain(&simcom_dev->at_dev);
+    int res = at_send_cmd(&simcom_dev->at_dev, cmd_CIPPING, 7000000);
+    if (res != SIMCOM_OK) {
         return SEND_CMD_ERROR;
     }
 
@@ -1550,27 +1550,27 @@ int sim5300_ping_request(sim5300_dev_t          *sim5300_dev,
     DEBUG("format: %s\n", format);
     do {
         /* Read string */
-        res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
-        DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+        res = at_readline(&simcom_dev->at_dev, simcom_dev->at_dev_resp, simcom_dev->at_dev_resp_size, false, SIMCOM_MAX_TIMEOUT);
+        DEBUG("res = %i, data: %s\n", res, simcom_dev->at_dev_resp);
 
         /* Check read len string */
-        if (res < SIM5300_OK) {
+        if (res < SIMCOM_OK) {
             return READLINE_ERROR;
         }
 
         /* TODO: PARSE ERROR BECAUSE IP ADDREESS HAVE: "" */
         /* Parse string */
-        res = sscanf(sim5300_dev->at_dev_resp, format, &reply_id_scan, &reply_time_scan, &ttl_scan);
+        res = sscanf(simcom_dev->at_dev_resp, format, &reply_id_scan, &reply_time_scan, &ttl_scan);
 
         /* Check result */
         if (res != 3) {
-            printf("[SIM5300] Parse error: %i\n", res);
+            printf("[SIMCOM] Parse error: %i\n", res);
 
             continue;
         }
 
-        sim5300_cipping_resp[reply_id_scan - 1].reply_time = reply_time_scan;      
-        sim5300_cipping_resp[reply_id_scan - 1].ttl = ttl_scan;    
+        simcom_cipping_resp[reply_id_scan - 1].reply_time = reply_time_scan;      
+        simcom_cipping_resp[reply_id_scan - 1].ttl = ttl_scan;    
 
         if (num_arg > 1) {
             DEBUG("atoi(%s) = %i", retr_num, atoi(retr_num));
@@ -1580,14 +1580,14 @@ int sim5300_ping_request(sim5300_dev_t          *sim5300_dev,
         }
     } while (res >= 0);
 
-    return SIM5300_OK;
+    return SIMCOM_OK;
 }
 
 /*---------------------------------------------------------------------------*/
 /**
  * @brief       Start up multi-IP TCP or UDP connection
  *
- * @param[in]   sim5300_dev     Device to operate on
+ * @param[in]   simcom_dev     Device to operate on
  * @param[in]   n               A numeric parameter which indicates the connection number
  * @param[in]   mode            A string parameter which indicates the connection type: TCP or UDP
  * @param[in]   address         A string parameter which indicates remote server IP address or domain name
@@ -1596,8 +1596,8 @@ int sim5300_ping_request(sim5300_dev_t          *sim5300_dev,
  * AT+CIPSTART Start up multi-IP TCP or UDP connection
  * Start up multi-IP TCP or UDP connection
  * 
- * @returns     SIM5300_OK             - OK
- * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_OK             - OK
+ * @returns     SIMCOM_DEV_ERROR      - ERROR: simcom_dev == NULL
  * @returns     ARGUMENT_RANGE_ERROR   - ERROR: Invalid argument value
  * @returns     ARGUMENT_NULL_ERROR    - ERROR: Pointer to function argument == NULL
  * @returns     SEND_CMD_ERROR         - ERROR: at_send_cmd() != 0
@@ -1605,21 +1605,21 @@ int sim5300_ping_request(sim5300_dev_t          *sim5300_dev,
  * @returns     UNKNOWN_RESP           - ERROR: Unknown response
  * @returns     TIMEOUT_EXPIRED        - ERROR: Timeout expired
  */
-int sim5300_start_up_multi_ip_up_connection(sim5300_dev_t *sim5300_dev,
+int simcom_start_up_multi_ip_up_connection(simcom_dev_t *simcom_dev,
                                             uint8_t        n,
                                             char          *mode,
                                             char          *address,
                                             char          *port) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     }
 
     /* Test n */
     if (n > 7) {
-        printf("[SIM5300] sim5300_start_up_multi_ip_up_connection() ERROR argument n: %i. (range 0-7)\n", n);
+        printf("[SIMCOM] simcom_start_up_multi_ip_up_connection() ERROR argument n: %i. (range 0-7)\n", n);
 
         return ARGUMENT_RANGE_ERROR;
     }
@@ -1660,15 +1660,15 @@ int sim5300_start_up_multi_ip_up_connection(sim5300_dev_t *sim5300_dev,
     DEBUG("cmd_CIPSTART: %s\n", cmd_CIPSTART);
 
     /* Send AT command */
-    at_drain(&sim5300_dev->at_dev);
-    int res = at_send_cmd(&sim5300_dev->at_dev, cmd_CIPSTART, 15000000);
-    if (res != SIM5300_OK) {
+    at_drain(&simcom_dev->at_dev);
+    int res = at_send_cmd(&simcom_dev->at_dev, cmd_CIPSTART, 15000000);
+    if (res != SIMCOM_OK) {
         return SEND_CMD_ERROR;
     }
 
     /* Read string with OK */
-    res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
-    DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+    res = at_readline(&simcom_dev->at_dev, simcom_dev->at_dev_resp, simcom_dev->at_dev_resp_size, false, SIMCOM_MAX_TIMEOUT);
+    DEBUG("res = %i, data: %s\n", res, simcom_dev->at_dev_resp);
     
     /* Check read len string */
     if (res != 2) {
@@ -1676,7 +1676,7 @@ int sim5300_start_up_multi_ip_up_connection(sim5300_dev_t *sim5300_dev,
     }
 
     /* Validation of the answer */
-    if (strcmp(sim5300_dev->at_dev_resp, "OK") != 0) {
+    if (strcmp(simcom_dev->at_dev_resp, "OK") != 0) {
         return UNKNOWN_RESP;
     }
 
@@ -1699,13 +1699,13 @@ int sim5300_start_up_multi_ip_up_connection(sim5300_dev_t *sim5300_dev,
         lptimer_usleep(50);
 
         /* Read string */
-        res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
-        DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+        res = at_readline(&simcom_dev->at_dev, simcom_dev->at_dev_resp, simcom_dev->at_dev_resp_size, false, SIMCOM_MAX_TIMEOUT);
+        DEBUG("res = %i, data: %s\n", res, simcom_dev->at_dev_resp);
 
         /* Check read len string */
         if (res == 13) {
             /* Validation of the answer */
-            if (strcmp(sim5300_dev->at_dev_resp, connect_ok) != 0) {
+            if (strcmp(simcom_dev->at_dev_resp, connect_ok) != 0) {
                 return UNKNOWN_RESP;
             } else {
                 break;
@@ -1713,16 +1713,16 @@ int sim5300_start_up_multi_ip_up_connection(sim5300_dev_t *sim5300_dev,
         }
     } while (true);
 
-    printf("[SIM5300] Start %s connect %i to %s:%s\n", mode, n, address, port);
+    printf("[SIMCOM] Start %s connect %i to %s:%s\n", mode, n, address, port);
 
-    return SIM5300_OK;
+    return SIMCOM_OK;
 }
 
 /*---------------------------------------------------------------------------*/
 /**
  * @brief       Start up multi-IP TCP or UDP connection
  *
- * @param[in]   sim5300_dev         Device to operate on
+ * @param[in]   simcom_dev         Device to operate on
  * @param[in]   mode                Mode
  * @param[in]   n                   A numeric parameter which indicates the connection number
  * @param[out]  data_for_receive    Pointer to a receive buffer
@@ -1731,9 +1731,9 @@ int sim5300_start_up_multi_ip_up_connection(sim5300_dev_t *sim5300_dev,
  * AT+CIPSTART Start up multi-IP TCP or UDP connection
  * Start up multi-IP TCP or UDP connection
  * 
- * @returns     SIM5300_OK             - OK (mode = 1)
+ * @returns     SIMCOM_OK             - OK (mode = 1)
  * @returns     res >= 0               - OK, receive_length (mode = 2)
- * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_DEV_ERROR      - ERROR: simcom_dev == NULL
  * @returns     ARGUMENT_RANGE_ERROR   - ERROR: Invalid argument value
  * @returns     ARGUMENT_NULL_ERROR    - ERROR: Pointer to function argument == NULL
  * @returns     SEND_CMD_WAIT_OK_ERROR - ERROR: at_send_cmd_wait_ok() != 0
@@ -1746,28 +1746,28 @@ int sim5300_start_up_multi_ip_up_connection(sim5300_dev_t *sim5300_dev,
  * @returns     UNDEFINED_ERROR        - ERROR: Undefined error 
  */
 
-int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
+int simcom_receive_data_through_multi_ip_connection(simcom_dev_t *simcom_dev,
                                                      uint8_t        mode,
                                                      uint8_t        n,
                                                      uint8_t       *data_for_receive,
                                                      size_t         data_size) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     }  
 
     /* Test mode */
     if (mode > 4 || mode == 0) {
-        printf("[SIM5300] sim5300_receive_data_through_multi_ip_connection() ERROR argument mode: %i. (range 1-4)\n", mode);
+        printf("[SIMCOM] simcom_receive_data_through_multi_ip_connection() ERROR argument mode: %i. (range 1-4)\n", mode);
 
         return ARGUMENT_RANGE_ERROR;
     }   
 
     /* Test n */
     if (n > 7) {
-        printf("[SIM5300] sim5300_receive_data_through_multi_ip_connection() ERROR argument n: %i. (range 0-7)\n", n);
+        printf("[SIMCOM] simcom_receive_data_through_multi_ip_connection() ERROR argument n: %i. (range 0-7)\n", n);
 
         return ARGUMENT_RANGE_ERROR;
     }   
@@ -1788,14 +1788,14 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
             snprintf(cmd_CIPRXGET, 32, "AT+CIPRXGET=%i", mode);
 
             /* Send AT command */
-            res = at_send_cmd_wait_ok(&sim5300_dev->at_dev, cmd_CIPRXGET, SIM5300_MAX_TIMEOUT);
+            res = at_send_cmd_wait_ok(&simcom_dev->at_dev, cmd_CIPRXGET, SIMCOM_MAX_TIMEOUT);
 
             /* Return result */
-            if (res != SIM5300_OK) {
+            if (res != SIMCOM_OK) {
                 return SEND_CMD_WAIT_OK_ERROR;
             }
 
-            return SIM5300_OK;
+            return SIMCOM_OK;
         case 2:
             /* Check on min len on read */
             if (data_size == 0) {
@@ -1814,8 +1814,8 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
             lptimer_usleep(50);
 
             /* Send AT command */
-            at_drain(&sim5300_dev->at_dev);
-            res = at_send_cmd(&sim5300_dev->at_dev, cmd_CIPRXGET, SIM5300_MAX_TIMEOUT);
+            at_drain(&simcom_dev->at_dev);
+            res = at_send_cmd(&simcom_dev->at_dev, cmd_CIPRXGET, SIMCOM_MAX_TIMEOUT);
             if (res != 0) {    
                 return SEND_CMD_ERROR;
             }
@@ -1824,24 +1824,24 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
             lptimer_usleep(10); 
 
             /* Get response */
-            res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
-            DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+            res = at_readline(&simcom_dev->at_dev, simcom_dev->at_dev_resp, simcom_dev->at_dev_resp_size, false, SIMCOM_MAX_TIMEOUT);
+            DEBUG("res = %i, data: %s\n", res, simcom_dev->at_dev_resp);
             
             /* Check read len string */
-            if (res < SIM5300_OK) {
+            if (res < SIMCOM_OK) {
                 return READLINE_ERROR;
             }
 
             /* Parse string */
             int id, req_length, cnf_length;
-            res = sscanf(sim5300_dev->at_dev_resp, "+CIPRXGET: 2,%i,%i,%i", &id, &req_length, &cnf_length);
+            res = sscanf(simcom_dev->at_dev_resp, "+CIPRXGET: 2,%i,%i,%i", &id, &req_length, &cnf_length);
             DEBUG("id = %i\n", id);
             DEBUG("req_length = %i\n", req_length);
             DEBUG("cnf_length = %i\n", cnf_length);
 
             /* Check result */
             if (res != 3) {
-                printf("[SIM5300] Parse error: %i\n", res);
+                printf("[SIMCOM] Parse error: %i\n", res);
 
                 return PARSE_ERROR;
             }
@@ -1860,11 +1860,11 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
             }
 
             /* Copy received data */
-            receive_length = at_recv_bytes(&sim5300_dev->at_dev, (char*)data_for_receive, receive_length, SIM5300_MAX_TIMEOUT);
+            receive_length = at_recv_bytes(&simcom_dev->at_dev, (char*)data_for_receive, receive_length, SIMCOM_MAX_TIMEOUT);
 
             /* Read empty string */ 
-            res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
-            DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+            res = at_readline(&simcom_dev->at_dev, simcom_dev->at_dev_resp, simcom_dev->at_dev_resp_size, false, SIMCOM_MAX_TIMEOUT);
+            DEBUG("res = %i, data: %s\n", res, simcom_dev->at_dev_resp);
 
             /* Check read len string */
             if (res != 0) {
@@ -1872,21 +1872,21 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
             }
 
             /* Read string with OK */
-            res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
-            DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+            res = at_readline(&simcom_dev->at_dev, simcom_dev->at_dev_resp, simcom_dev->at_dev_resp_size, false, SIMCOM_MAX_TIMEOUT);
+            DEBUG("res = %i, data: %s\n", res, simcom_dev->at_dev_resp);
             /* Check read len string */
             if (res != 2) {
                 return READLINE_ERROR;
             }
 
             /* Validation of the answer */
-            if (strcmp(sim5300_dev->at_dev_resp, "OK") != 0) {
+            if (strcmp(simcom_dev->at_dev_resp, "OK") != 0) {
                 return UNKNOWN_RESP;
             }
 
 #if ENABLE_DEBUG_DATA == 1
             /* Debug data */
-            printf("[SIM5300] Received %i byte:\n", receive_length);
+            printf("[SIMCOM] Received %i byte:\n", receive_length);
             od_hex_dump(data_for_receive, receive_length, OD_WIDTH_DEFAULT);
 #endif
 
@@ -1900,7 +1900,7 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
 
             return NOT_IMPLEMENTED;
         default:
-            puts("[SIM5300] Unknow mode");
+            puts("[SIMCOM] Unknow mode");
             
             return UNDEFINED_ERROR;
     }
@@ -1910,7 +1910,7 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
 /**
  * @brief       Send data through TCP or UDP multi IP connection
  *
- * @param[in]   sim5300_dev         Device to operate on
+ * @param[in]   simcom_dev         Device to operate on
  * @param[in]   n                   A numeric parameter which indicates the connection number
  * @param[in]   data_for_send       Pointer to send buffer
  * @param[in]   data_size           Send data size
@@ -1919,7 +1919,7 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
  * Send data through TCP or UDP multi IP connection
  * 
  * @returns     res >= 0               - OK, receive_length (mode = 2)
- * @returns     SIM5300_DEV_ERROR      - ERROR: sim5300_dev == NULL
+ * @returns     SIMCOM_DEV_ERROR      - ERROR: simcom_dev == NULL
  * @returns     ARGUMENT_RANGE_ERROR   - ERROR: Invalid argument value
  * @returns     ARGUMENT_NULL_ERROR    - ERROR: Pointer to function argument == NULL
  * @returns     SEND_CMD_ERROR         - ERROR: at_send_cmd() != 0
@@ -1927,20 +1927,20 @@ int sim5300_receive_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
  * @returns     UNKNOWN_RESP           - ERROR: Unknown response
  * @returns     TIMEOUT_EXPIRED        - ERROR: Timeout expired
  */
-int sim5300_send_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
+int simcom_send_data_through_multi_ip_connection(simcom_dev_t *simcom_dev,
                                                   uint8_t        n,
                                                   uint8_t       *data_for_send, 
                                                   size_t         data_size) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     }     
 
     /* Test n */
     if (n > 7) {
-        printf("[SIM5300] sim5300_send_data_through_multi_ip_connection() ERROR argument n: %i. (range 0-7)\n", n);
+        printf("[SIMCOM] simcom_send_data_through_multi_ip_connection() ERROR argument n: %i. (range 0-7)\n", n);
 
         return ARGUMENT_RANGE_ERROR;
     }  
@@ -1961,9 +1961,9 @@ int sim5300_send_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
     snprintf(cmd_CIPSEND, 22, "AT+CIPSEND=%i,%i", n, data_size);
 
     /* Send command */
-    at_drain(&sim5300_dev->at_dev);
-    int res = at_send_cmd(&sim5300_dev->at_dev, cmd_CIPSEND, SIM5300_MAX_TIMEOUT);
-    if (res != SIM5300_OK) {
+    at_drain(&simcom_dev->at_dev);
+    int res = at_send_cmd(&simcom_dev->at_dev, cmd_CIPSEND, SIMCOM_MAX_TIMEOUT);
+    if (res != SIMCOM_OK) {
         return SEND_CMD_ERROR;
     } 
 
@@ -1971,13 +1971,13 @@ int sim5300_send_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
     lptimer_usleep(30);
 
     /* Send data */
-    at_send_bytes(&sim5300_dev->at_dev, (char*)data_for_send, data_size);
+    at_send_bytes(&simcom_dev->at_dev, (char*)data_for_send, data_size);
 
     /* Check on valid data */
-    res = at_recv_bytes(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, data_size + 4, 3000000);
-    if ((!(memcmp(sim5300_dev->at_dev_resp, "> ", 2)                                  == 0)) && 
-        (!(memcmp((uint8_t*)(sim5300_dev->at_dev_resp) + 2, data_for_send, data_size) == 0))) {
-        puts("[SIM5300] Data for send don't valid");
+    res = at_recv_bytes(&simcom_dev->at_dev, simcom_dev->at_dev_resp, data_size + 4, 3000000);
+    if ((!(memcmp(simcom_dev->at_dev_resp, "> ", 2)                                  == 0)) && 
+        (!(memcmp((uint8_t*)(simcom_dev->at_dev_resp) + 2, data_for_send, data_size) == 0))) {
+        puts("[SIMCOM] Data for send don't valid");
 
         return INVALID_DATA;
     } 
@@ -1994,8 +1994,8 @@ int sim5300_send_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
     while ((timeout + 5000) > lptimer_now_msec()) {
         DEBUG("Body timeout: %li\n", lptimer_now_msec());
 
-        res = at_readline(&sim5300_dev->at_dev, sim5300_dev->at_dev_resp, sim5300_dev->at_dev_resp_size, false, SIM5300_MAX_TIMEOUT);
-        DEBUG("res = %i, data: %s\n", res, sim5300_dev->at_dev_resp);
+        res = at_readline(&simcom_dev->at_dev, simcom_dev->at_dev_resp, simcom_dev->at_dev_resp_size, false, SIMCOM_MAX_TIMEOUT);
+        DEBUG("res = %i, data: %s\n", res, simcom_dev->at_dev_resp);
 
         /* Check read len string */
         if (res != 10) {
@@ -2004,13 +2004,13 @@ int sim5300_send_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
         }
 
         /* Compare recv */
-        if (memcmp(sim5300_dev->at_dev_resp, resp_on_CIPSEND, 10) != 0) {
+        if (memcmp(simcom_dev->at_dev_resp, resp_on_CIPSEND, 10) != 0) {
             return UNKNOWN_RESP;
         }
 
 #if ENABLE_DEBUG_DATA == 1
     /* Debug data */
-    printf("[SIM5300] Sent %i byte:\n", data_size);
+    printf("[SIMCOM] Sent %i byte:\n", data_size);
     od_hex_dump(data_for_send, data_size, OD_WIDTH_DEFAULT);
 #endif
 
@@ -2030,26 +2030,26 @@ int sim5300_send_data_through_multi_ip_connection(sim5300_dev_t *sim5300_dev,
 /**
  * @brief       Creating socket file descriptor
  *
- * @param[in]   sim5300_dev                 Device to operate on
+ * @param[in]   simcom_dev                 Device to operate on
  * 
  * Creating socket file descriptor
  * 
  * @returns     res >= 0               - OK, Socket file descriptor
- * @returns     res <  0               - ERROR: See sim5300_error
+ * @returns     res <  0               - ERROR: See simcom_error
  */
-int sim5300_socket(sim5300_dev_t *sim5300_dev) {
+int simcom_socket(simcom_dev_t *simcom_dev) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     }   
 
     /* Search free socket */
     for(uint8_t i = 0; i < 8; i++) {
-        if (!sim5300_dev->socketfd[i]) {
+        if (!simcom_dev->socketfd[i]) {
             /* Mark as busy */
-            sim5300_dev->socketfd[i] = true;
+            simcom_dev->socketfd[i] = true;
 
             return i;
         }
@@ -2062,7 +2062,7 @@ int sim5300_socket(sim5300_dev_t *sim5300_dev) {
 /**
  * @brief       Connect to server
  *
- * @param[in]   sim5300_dev                 Device to operate on
+ * @param[in]   simcom_dev                 Device to operate on
  * @param[in]   sockfd                      Socket file descriptor
  * @param[in]   address                     String with address or domain for connect
  * @param[in]   port                        String with port number for connect
@@ -2070,24 +2070,24 @@ int sim5300_socket(sim5300_dev_t *sim5300_dev) {
  * 
  * Connect to server
  * 
- * @returns     SIM5300_OK             - OK
- * @returns     res < 0                - ERROR: See sim5300_error
+ * @returns     SIMCOM_OK             - OK
+ * @returns     res < 0                - ERROR: See simcom_error
  */
-int sim5300_connect(sim5300_dev_t *sim5300_dev,
+int simcom_connect(simcom_dev_t *simcom_dev,
                     int            sockfd, 
                     char          *address,
                     char          *port,
                     char          *type) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     }   
 
     /* Test sockfd */
     if (sockfd > 7) {
-        printf("[SIM5300] sim5300_connect() ERROR argument sockfd: %i. (range 0-7)\n", sockfd);
+        printf("[SIMCOM] simcom_connect() ERROR argument sockfd: %i. (range 0-7)\n", sockfd);
 
         return ARGUMENT_RANGE_ERROR;
     }
@@ -2116,21 +2116,21 @@ int sim5300_connect(sim5300_dev_t *sim5300_dev,
     int res;
 
     /* Start up multi-IP TCP or UDP connection */
-    res = sim5300_start_up_multi_ip_up_connection(sim5300_dev, sockfd, type, address, port);
+    res = simcom_start_up_multi_ip_up_connection(simcom_dev, sockfd, type, address, port);
     if (res < 0) {
-        printf("[SIM5300] Error start connection: %i\n", res);
+        printf("[SIMCOM] Error start connection: %i\n", res);
 
         return res;
     }
 
-    return SIM5300_OK;
+    return SIMCOM_OK;
 }
 
 /*---------------------------------------------------------------------------*/
 /**
  * @brief       Send data via socket
  *
- * @param[in]   sim5300_dev         Device to operate on
+ * @param[in]   simcom_dev         Device to operate on
  * @param[in]   sockfd              Socket file descriptor
  * @param[in]   buffer              Pointer to send buffer
  * @param[in]   buffer_len          Send data size
@@ -2138,22 +2138,22 @@ int sim5300_connect(sim5300_dev_t *sim5300_dev,
  * Send data via socket
  * 
  * @returns     res >= 0               - OK, Send length 
- * @returns     res <  0               - ERROR: See sim5300_error
+ * @returns     res <  0               - ERROR: See simcom_error
  */
-int sim5300_send(sim5300_dev_t *sim5300_dev,
+int simcom_send(simcom_dev_t *simcom_dev,
                  int            sockfd, 
                  uint8_t       *buffer,
                  size_t         buffer_len) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     }   
 
     /* Test sockfd */
     if (sockfd > 7) {
-        printf("[SIM5300] sim5300_send() ERROR argument sockfd: %i. (range 0-7)\n", sockfd);
+        printf("[SIMCOM] simcom_send() ERROR argument sockfd: %i. (range 0-7)\n", sockfd);
 
         return ARGUMENT_RANGE_ERROR;
     } 
@@ -2165,7 +2165,7 @@ int sim5300_send(sim5300_dev_t *sim5300_dev,
         return ARGUMENT_NULL_ERROR;
     }
  
-    int res = sim5300_send_data_through_multi_ip_connection(sim5300_dev, sockfd, buffer, buffer_len);
+    int res = simcom_send_data_through_multi_ip_connection(simcom_dev, sockfd, buffer, buffer_len);
     if (res >= 0) {
         return res;
     }
@@ -2173,29 +2173,29 @@ int sim5300_send(sim5300_dev_t *sim5300_dev,
     int error = res;
 
     /* Get state connection */
-    sim5300_set_cipstatus_resp_t sim5300_set_cipstatus_resp;
-    res = sim5300_set_query_current_connection_status(sim5300_dev,
+    simcom_set_cipstatus_resp_t simcom_set_cipstatus_resp;
+    res = simcom_set_query_current_connection_status(simcom_dev,
                                                       0,
-                                                      &sim5300_set_cipstatus_resp);
+                                                      &simcom_set_cipstatus_resp);
 
-    DEBUG("res: %i; resp: %s\n", res, sim5300_set_cipstatus_resp.client_state);
-    if (res < SIM5300_OK) {
+    DEBUG("res: %i; resp: %s\n", res, simcom_set_cipstatus_resp.client_state);
+    if (res < SIMCOM_OK) {
         return res;
     }
 
-    if (strcmp(sim5300_set_cipstatus_resp.client_state, "CONNECTED") == 0) {
+    if (strcmp(simcom_set_cipstatus_resp.client_state, "CONNECTED") == 0) {
         return error;
     } 
 
-    if (strcmp(sim5300_set_cipstatus_resp.client_state, "REMOTE CLOSING") == 0) {
+    if (strcmp(simcom_set_cipstatus_resp.client_state, "REMOTE CLOSING") == 0) {
         return SOCKET_REMOTE_CLOSING;
     } 
 
-    if (strcmp(sim5300_set_cipstatus_resp.client_state, "CLOSING") == 0) {
+    if (strcmp(simcom_set_cipstatus_resp.client_state, "CLOSING") == 0) {
         return SOCKET_CLOSING;
     } 
 
-    if (strcmp(sim5300_set_cipstatus_resp.client_state, "CLOSED") == 0) {
+    if (strcmp(simcom_set_cipstatus_resp.client_state, "CLOSED") == 0) {
         return SOCKET_CLOSED;
     } 
 
@@ -2206,7 +2206,7 @@ int sim5300_send(sim5300_dev_t *sim5300_dev,
 /**
  * @brief       Received data via socket
  *
- * @param[in]   sim5300_dev         Device to operate on
+ * @param[in]   simcom_dev         Device to operate on
  * @param[in]   sockfd              Socket file descriptor
  * @param[out]  buffer              Pointer to a receive buffer
  * @param[in]   buffer_len          Received data size
@@ -2214,22 +2214,22 @@ int sim5300_send(sim5300_dev_t *sim5300_dev,
  * Received data via socket
  * 
  * @returns     res >= 0               - OK, Receive length 
- * @returns     res <  0               - ERROR: See sim5300_error
+ * @returns     res <  0               - ERROR: See simcom_error
  */
-int sim5300_receive(sim5300_dev_t *sim5300_dev,
+int simcom_receive(simcom_dev_t *simcom_dev,
                     int            sockfd, 
                     uint8_t       *buffer,
                     size_t         buffer_len) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     }   
 
     /* Test sockfd */
     if (sockfd > 7) {
-        printf("[SIM5300] sim5300_send() ERROR argument sockfd: %i. (range 0-7)\n", sockfd);
+        printf("[SIMCOM] simcom_send() ERROR argument sockfd: %i. (range 0-7)\n", sockfd);
 
         return ARGUMENT_RANGE_ERROR;
     } 
@@ -2244,7 +2244,7 @@ int sim5300_receive(sim5300_dev_t *sim5300_dev,
     int    res;
     size_t recv_sz = 0;
     size_t recv_chank;
-    printf("[SIM5300] Recv need %i byte\n", buffer_len);
+    printf("[SIMCOM] Recv need %i byte\n", buffer_len);
 
     /* Recv data */
     do {
@@ -2255,7 +2255,7 @@ int sim5300_receive(sim5300_dev_t *sim5300_dev,
         }
 
         /* Recv chank */
-        res = sim5300_receive_data_through_multi_ip_connection(sim5300_dev,
+        res = simcom_receive_data_through_multi_ip_connection(simcom_dev,
                                                                2,
                                                                sockfd,
                                                                buffer + recv_sz,
@@ -2266,29 +2266,29 @@ int sim5300_receive(sim5300_dev_t *sim5300_dev,
             int error = res;
 
             /* Get state connection */
-            sim5300_set_cipstatus_resp_t sim5300_set_cipstatus_resp;
-            res = sim5300_set_query_current_connection_status(sim5300_dev,
+            simcom_set_cipstatus_resp_t simcom_set_cipstatus_resp;
+            res = simcom_set_query_current_connection_status(simcom_dev,
                                                               0,
-                                                              &sim5300_set_cipstatus_resp);
-            DEBUG("res: %i; resp: %s\n", res, sim5300_set_cipstatus_resp.client_state);
+                                                              &simcom_set_cipstatus_resp);
+            DEBUG("res: %i; resp: %s\n", res, simcom_set_cipstatus_resp.client_state);
 
-            if (res < SIM5300_OK) {
+            if (res < SIMCOM_OK) {
                 return res;
             }
 
-            if (strcmp(sim5300_set_cipstatus_resp.client_state, "CONNECTED") == 0) {
+            if (strcmp(simcom_set_cipstatus_resp.client_state, "CONNECTED") == 0) {
                 return error;
             } 
 
-            if (strcmp(sim5300_set_cipstatus_resp.client_state, "REMOTE CLOSING") == 0) {
+            if (strcmp(simcom_set_cipstatus_resp.client_state, "REMOTE CLOSING") == 0) {
                 return SOCKET_REMOTE_CLOSING;
             } 
 
-            if (strcmp(sim5300_set_cipstatus_resp.client_state, "CLOSING") == 0) {
+            if (strcmp(simcom_set_cipstatus_resp.client_state, "CLOSING") == 0) {
                 return SOCKET_CLOSING;
             } 
 
-            if (strcmp(sim5300_set_cipstatus_resp.client_state, "CLOSED") == 0) {
+            if (strcmp(simcom_set_cipstatus_resp.client_state, "CLOSED") == 0) {
                 return SOCKET_CLOSED;
             } 
 
@@ -2296,7 +2296,7 @@ int sim5300_receive(sim5300_dev_t *sim5300_dev,
         }
         
         recv_sz += res;
-        printf("[SIM5300] Recv %i byte\n", recv_sz);
+        printf("[SIMCOM] Recv %i byte\n", recv_sz);
 
         /* Exit on no data for receptions */
         if (res == 0) {
@@ -2311,26 +2311,26 @@ int sim5300_receive(sim5300_dev_t *sim5300_dev,
 /**
  * @brief       Close socket file descriptor
  *
- * @param[in]   sim5300_dev         Device to operate on
+ * @param[in]   simcom_dev         Device to operate on
  * @param[in]   sockfd              Socket file descriptor
  * 
  * Close socket file descriptor
  * 
- * @returns     SIM5300_OK             - OK
- * @returns     res < 0                - ERROR: See sim5300_error
+ * @returns     SIMCOM_OK             - OK
+ * @returns     res < 0                - ERROR: See simcom_error
  */
-int sim5300_close(sim5300_dev_t *sim5300_dev,
+int simcom_close(simcom_dev_t *simcom_dev,
                   int            sockfd) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     }   
 
     /* Test sockfd */
     if (sockfd > 7) {
-        printf("[SIM5300] sim5300_close() ERROR argument sockfd: %i. (range 0-7)\n", sockfd);
+        printf("[SIMCOM] simcom_close() ERROR argument sockfd: %i. (range 0-7)\n", sockfd);
 
         return ARGUMENT_RANGE_ERROR;
     }
@@ -2338,69 +2338,69 @@ int sim5300_close(sim5300_dev_t *sim5300_dev,
     int res; 
 
     /* Get state connection */
-    sim5300_set_cipstatus_resp_t sim5300_set_cipstatus_resp;
-    res = sim5300_set_query_current_connection_status(sim5300_dev,
+    simcom_set_cipstatus_resp_t simcom_set_cipstatus_resp;
+    res = simcom_set_query_current_connection_status(simcom_dev,
                                                       0,
-                                                      &sim5300_set_cipstatus_resp);
+                                                      &simcom_set_cipstatus_resp);
 
-    DEBUG("res: %i; resp: %s\n", res, sim5300_set_cipstatus_resp.client_state);
-    if (res < SIM5300_OK) {
+    DEBUG("res: %i; resp: %s\n", res, simcom_set_cipstatus_resp.client_state);
+    if (res < SIMCOM_OK) {
         return res;
     }
 
-    if (strcmp(sim5300_set_cipstatus_resp.client_state, "CLOSED") == 0) {
+    if (strcmp(simcom_set_cipstatus_resp.client_state, "CLOSED") == 0) {
         /* Free the socket */
-        sim5300_dev->socketfd[sockfd] = false;
+        simcom_dev->socketfd[sockfd] = false;
 
-        return SIM5300_OK;
+        return SIMCOM_OK;
     } 
 
-    if ((strcmp(sim5300_set_cipstatus_resp.client_state, "REMOTE CLOSING") == 0) ||
-        (strcmp(sim5300_set_cipstatus_resp.client_state, "CLOSING")        == 0)) {
+    if ((strcmp(simcom_set_cipstatus_resp.client_state, "REMOTE CLOSING") == 0) ||
+        (strcmp(simcom_set_cipstatus_resp.client_state, "CLOSING")        == 0)) {
         /* Close socket */
-        res = sim5300_close_up_multi_ip_connection(sim5300_dev, 
+        res = simcom_close_up_multi_ip_connection(simcom_dev, 
                                                 sockfd,  
                                                 0);
 
-        if(res == SIM5300_OK) {
+        if(res == SIMCOM_OK) {
             /* Free the socket */
-            sim5300_dev->socketfd[sockfd] = false;
+            simcom_dev->socketfd[sockfd] = false;
 
-            return SIM5300_OK;
+            return SIMCOM_OK;
         }
         do {
-            res = sim5300_set_query_current_connection_status(sim5300_dev,
+            res = simcom_set_query_current_connection_status(simcom_dev,
                                                             0,
-                                                            &sim5300_set_cipstatus_resp);
-            DEBUG("res: %i; resp: %s\n", res, sim5300_set_cipstatus_resp.client_state);
+                                                            &simcom_set_cipstatus_resp);
+            DEBUG("res: %i; resp: %s\n", res, simcom_set_cipstatus_resp.client_state);
 
-            if (res < SIM5300_OK) {
+            if (res < SIMCOM_OK) {
                 return res;
             }
 
-        } while (strcmp(sim5300_set_cipstatus_resp.client_state, "CLOSED") != 0);
+        } while (strcmp(simcom_set_cipstatus_resp.client_state, "CLOSED") != 0);
 
         /* Free the socket */
-        sim5300_dev->socketfd[sockfd] = false;
+        simcom_dev->socketfd[sockfd] = false;
 
-        return SIM5300_OK;
+        return SIMCOM_OK;
     } 
     
     /* Close socket */
-    res = sim5300_close_up_multi_ip_connection(sim5300_dev, 
+    res = simcom_close_up_multi_ip_connection(simcom_dev, 
                                                sockfd,  
                                                0);
 
-    if(res != SIM5300_OK) {
-        printf("[SIM5300] Error close socket %i\n", sockfd); 
+    if(res != SIMCOM_OK) {
+        printf("[SIMCOM] Error close socket %i\n", sockfd); 
 
         return res;
     }
 
     /* Free the socket */
-    sim5300_dev->socketfd[sockfd] = false;
+    simcom_dev->socketfd[sockfd] = false;
 
-    return SIM5300_OK;
+    return SIMCOM_OK;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -2413,21 +2413,21 @@ int sim5300_close(sim5300_dev_t *sim5300_dev,
 /**
  * @brief       Get internet settings from base
  *
- * @param[in]   sim5300_dev                 Device to operate on
+ * @param[in]   simcom_dev                 Device to operate on
  * @param[in]   hni                         Home Network Identity (HNI)
- * @param[out]  sim5300_internet_settings   Structure with response data
+ * @param[out]  simcom_internet_settings   Structure with response data
  * 
  * Get internet settings from base
  * 
- * @returns     SIM5300_OK                  - OK
+ * @returns     SIMCOM_OK                  - OK
  * @returns     NO_INTERNET_SETTINGS_FOUND  - ERROR: No internet settings found  
  */
-int sim5300_get_internet_settings_from_base(sim5300_dev_t               *sim5300_dev,
+int simcom_get_internet_settings_from_base(simcom_dev_t               *simcom_dev,
                                             uint32_t                     hni,
-                                            sim5300_internet_settings_t *sim5300_internet_settings) {
-    (void)sim5300_dev;
+                                            simcom_internet_settings_t *simcom_internet_settings) {
+    (void)simcom_dev;
 
-    printf("[SIM5300] Get internet settings from base for HNI: %lu\n", hni);
+    printf("[SIMCOM] Get internet settings from base for HNI: %lu\n", hni);
 
     /* Get standart settings */
     switch (hni) {
@@ -2437,16 +2437,16 @@ int sim5300_get_internet_settings_from_base(sim5300_dev_t               *sim5300
 
         /* +COPN: "25001","MTS RUS" */
         case 25001:
-            snprintf(sim5300_internet_settings->apn, 32, "internet.mts.ru");   /* Access Point Name */
-            snprintf(sim5300_internet_settings->username, 32, "mts");          /* Username */
-            snprintf(sim5300_internet_settings->password, 32, "mts");          /* Password */
+            snprintf(simcom_internet_settings->apn, 32, "internet.mts.ru");   /* Access Point Name */
+            snprintf(simcom_internet_settings->username, 32, "mts");          /* Username */
+            snprintf(simcom_internet_settings->password, 32, "mts");          /* Password */
             break;
 
         /* +COPN: "25002","MegaFon RUS" */
         case 25002:
-            snprintf(sim5300_internet_settings->apn, 32, "internet");      /* Access Point Name */
-            memset(sim5300_internet_settings->username, 0x00, 32);         /* Username */ 
-            memset(sim5300_internet_settings->password, 0x00, 32);         /* Password */
+            snprintf(simcom_internet_settings->apn, 32, "internet");      /* Access Point Name */
+            memset(simcom_internet_settings->username, 0x00, 32);         /* Username */ 
+            memset(simcom_internet_settings->password, 0x00, 32);         /* Password */
             break;
 
         // /* +COPN: "25003","ROSTELECOM" */
@@ -2486,9 +2486,9 @@ int sim5300_get_internet_settings_from_base(sim5300_dev_t               *sim5300
 
         /* +COPN: "25011","Yota" */
         case 25011:
-            snprintf(sim5300_internet_settings->apn, 32, "internet.yota");     /* Access Point Name */
-            memset(sim5300_internet_settings->username, 0x00, 32);             /* Username */
-            memset(sim5300_internet_settings->password, 0x00, 32);             /* Password */   
+            snprintf(simcom_internet_settings->apn, 32, "internet.yota");     /* Access Point Name */
+            memset(simcom_internet_settings->username, 0x00, 32);             /* Username */
+            memset(simcom_internet_settings->password, 0x00, 32);             /* Password */   
             break;
 
         // /* +COPN: "25012","ROSTELECOM" */
@@ -2503,9 +2503,9 @@ int sim5300_get_internet_settings_from_base(sim5300_dev_t               *sim5300
 
         /*  */
         case 25014:
-            snprintf(sim5300_internet_settings->apn, 32, "internet");  /* Access Point Name */
-            memset(sim5300_internet_settings->username, 0x00, 32);     /* Username */ 
-            memset(sim5300_internet_settings->password, 0x00, 32);     /* Password */
+            snprintf(simcom_internet_settings->apn, 32, "internet");  /* Access Point Name */
+            memset(simcom_internet_settings->username, 0x00, 32);     /* Username */ 
+            memset(simcom_internet_settings->password, 0x00, 32);     /* Password */
             break;
 
         // /* +COPN: "25015","RUS15, RUS SMARTS" */
@@ -2525,9 +2525,9 @@ int sim5300_get_internet_settings_from_base(sim5300_dev_t               *sim5300
 
         /* Tele2 AB (Tele2) */
         case 25020:
-            snprintf(sim5300_internet_settings->apn, 32, "internet.tele2.ru");     /* Access Point Name */
-            memset(sim5300_internet_settings->username, 0x00, 32);                 /* Username */
-            memset(sim5300_internet_settings->password, 0x00, 32);                 /* Password */  
+            snprintf(simcom_internet_settings->apn, 32, "internet.tele2.ru");     /* Access Point Name */
+            memset(simcom_internet_settings->username, 0x00, 32);                 /* Username */
+            memset(simcom_internet_settings->password, 0x00, 32);                 /* Password */  
             break;
 
         // /*  */
@@ -2542,9 +2542,9 @@ int sim5300_get_internet_settings_from_base(sim5300_dev_t               *sim5300
 
         /*  */
         case 25028:
-            snprintf(sim5300_internet_settings->apn, 32, "internet.beeline.ru");   /* Access Point Name */
-            snprintf(sim5300_internet_settings->username, 32, "beeline");          /* Username */
-            snprintf(sim5300_internet_settings->password, 32, "beeline");          /* Password */
+            snprintf(simcom_internet_settings->apn, 32, "internet.beeline.ru");   /* Access Point Name */
+            snprintf(simcom_internet_settings->username, 32, "beeline");          /* Username */
+            snprintf(simcom_internet_settings->password, 32, "beeline");          /* Password */
             break;
 
         // /* +COPN: "25035","MOTIV" */
@@ -2559,9 +2559,9 @@ int sim5300_get_internet_settings_from_base(sim5300_dev_t               *sim5300
 
         /* +COPN: "25039","ROSTELECOM" */
         case 25039:
-            snprintf(sim5300_internet_settings->apn, 32, "internet.rt.ru");    /* Access Point Name */
-            memset(sim5300_internet_settings->username, 0x00, 32);             /* Username */
-            memset(sim5300_internet_settings->password, 0x00, 32);             /* Password */ 
+            snprintf(simcom_internet_settings->apn, 32, "internet.rt.ru");    /* Access Point Name */
+            memset(simcom_internet_settings->username, 0x00, 32);             /* Username */
+            memset(simcom_internet_settings->password, 0x00, 32);             /* Password */ 
             break;
 
         // /* OJSC Multiregional TransitTelecom (MTT) */
@@ -2571,106 +2571,106 @@ int sim5300_get_internet_settings_from_base(sim5300_dev_t               *sim5300
 
         /* Tinkoff */
         case 25062:
-            snprintf(sim5300_internet_settings->apn, 32, "m.tinkoff");     /* Access Point Name */
-            memset(sim5300_internet_settings->username, 0x00, 32);         /* Username */
-            memset(sim5300_internet_settings->password, 0x00, 32);         /* Password */  
+            snprintf(simcom_internet_settings->apn, 32, "m.tinkoff");     /* Access Point Name */
+            memset(simcom_internet_settings->username, 0x00, 32);         /* Username */
+            memset(simcom_internet_settings->password, 0x00, 32);         /* Password */  
             break;
 
         /* +COPN: "25099","Beeline" */
         case 25099:
-            snprintf(sim5300_internet_settings->apn, 32, "internet.beeline.ru");   /* Access Point Name */
-            snprintf(sim5300_internet_settings->username, 32, "beeline");          /* Username */
-            snprintf(sim5300_internet_settings->password, 32, "beeline");          /* Password */
+            snprintf(simcom_internet_settings->apn, 32, "internet.beeline.ru");   /* Access Point Name */
+            snprintf(simcom_internet_settings->username, 32, "beeline");          /* Username */
+            snprintf(simcom_internet_settings->password, 32, "beeline");          /* Password */
             break;    
 
         /* Unknown operator */
         default: 
-            memset(sim5300_internet_settings->apn,      0x00, 32);     /* Access Point Name */
-            memset(sim5300_internet_settings->username, 0x00, 32);     /* Username */
-            memset(sim5300_internet_settings->password, 0x00, 32);     /* Password */
+            memset(simcom_internet_settings->apn,      0x00, 32);     /* Access Point Name */
+            memset(simcom_internet_settings->username, 0x00, 32);     /* Username */
+            memset(simcom_internet_settings->password, 0x00, 32);     /* Password */
 
             return NO_INTERNET_SETTINGS_FOUND;   
             break;
     } 
-    return SIM5300_OK;
+    return SIMCOM_OK;
 }
 
 /*---------------------------------------------------------------------------*/
 /**
  * @brief       Start internet
  *
- * @param[in]   sim5300_dev                 Device to operate on
+ * @param[in]   simcom_dev                 Device to operate on
  * @param[in]   registration_timeout        Maximum network registration time
- * @param[in]   sim5300_internet_settings   Structure with internet settings
+ * @param[in]   simcom_internet_settings   Structure with internet settings
  * 
  * Start internet
  * 
- * @returns     SIM5300_OK             - OK
- * @returns     res < 0                - ERROR: See sim5300_error
+ * @returns     SIMCOM_OK             - OK
+ * @returns     res < 0                - ERROR: See simcom_error
  */
-int sim5300_start_internet(sim5300_dev_t               *sim5300_dev,
+int simcom_start_internet(simcom_dev_t               *simcom_dev,
                            uint8_t                      registration_timeout,
-                           sim5300_internet_settings_t *sim5300_internet_settings) {
+                           simcom_internet_settings_t *simcom_internet_settings) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     }     
 
     int res;
 
     /* Disabled showing an unsolicited event code */
-    res = sim5300_set_sim_inserted_status_reporting(sim5300_dev, 0);
-    if (res != SIM5300_OK) {
+    res = simcom_set_sim_inserted_status_reporting(simcom_dev, 0);
+    if (res != SIMCOM_OK) {
         return res;
     }
 
     /* Is SIM card inserted? */
-    sim5300_csmins_resp_t sim5300_csmins_resp;
-    res = sim5300_get_sim_inserted_status_reporting(sim5300_dev, &sim5300_csmins_resp);
-    if (res != SIM5300_OK) {
+    simcom_csmins_resp_t simcom_csmins_resp;
+    res = simcom_get_sim_inserted_status_reporting(simcom_dev, &simcom_csmins_resp);
+    if (res != SIMCOM_OK) {
         return res;
     }
 
     /*  */
-    if (sim5300_csmins_resp.sim_inserted != 1) {
+    if (simcom_csmins_resp.sim_inserted != 1) {
         return NO_SIM_CARD;
     }
 
     /* Is there a PIN code? */
-    sim5300_cpin_resp_t sim5300_cpin_resp;
-    res = sim5300_get_pin_status(sim5300_dev, &sim5300_cpin_resp);
+    simcom_cpin_resp_t simcom_cpin_resp;
+    res = simcom_get_pin_status(simcom_dev, &simcom_cpin_resp);
 
     /*  */
-    if (res != SIM5300_OK) {
+    if (res != SIMCOM_OK) {
         return res;
     }
 
     /* Check on req any password */
-    if (sim5300_cpin_resp != READY) {
+    if (simcom_cpin_resp != READY) {
         return NEED_PASSWORD_FOR_SIM_CARD;
     }
 
     /* Print message */
-    puts("[SIM5300] Waiting for registration");
+    puts("[SIMCOM] Waiting for registration");
 
     /* Have you registered in the cellular network? */
     /* Cycle counter */
     uint8_t counter = 0;
 
     /* Response on AT+CREG */
-    sim5300_creg_resp_t sim5300_creg_resp;
+    simcom_creg_resp_t simcom_creg_resp;
     while(1) {
         if (counter >= registration_timeout) {
-            puts("[SIM5300] Registration timeout expired");
+            puts("[SIMCOM] Registration timeout expired");
             return REGISTRATION_TIMEOUT_EXPIRED;
         }
 
         /*  */
-        res = sim5300_get_network_registration(sim5300_dev, &sim5300_creg_resp);
-        if (res == SIM5300_OK) {
-            if (sim5300_creg_resp.stat == 1) {
+        res = simcom_get_network_registration(simcom_dev, &simcom_creg_resp);
+        if (res == SIMCOM_OK) {
+            if (simcom_creg_resp.stat == 1) {
                 break;
             }
         }
@@ -2678,92 +2678,92 @@ int sim5300_start_internet(sim5300_dev_t               *sim5300_dev,
         lptimer_usleep(1000);
         counter++;
     } 
-    puts("[SIM5300] Registration OK");
+    puts("[SIMCOM] Registration OK");
 
     /* Reject Incoming Call */
-    res = sim5300_set_reject_incoming_call(sim5300_dev, 1);
-    if (res != SIM5300_OK) {
+    res = simcom_set_reject_incoming_call(simcom_dev, 1);
+    if (res != SIMCOM_OK) {
         return res;
     }
 
     /* Start up multi-IP connection */
-    res = sim5300_start_up_multi_ip_connection(sim5300_dev, 1);
-    if (res != SIM5300_OK) {
+    res = simcom_start_up_multi_ip_connection(simcom_dev, 1);
+    if (res != SIMCOM_OK) {
         return res;
     }
 
     /* Attach to the network */
-    sim5300_cgatt_resp_t sim5300_cgatt_resp;
-    res = sim5300_get_gprs_service_state(sim5300_dev, &sim5300_cgatt_resp);
-    if (res != SIM5300_OK) {
+    simcom_cgatt_resp_t simcom_cgatt_resp;
+    res = simcom_get_gprs_service_state(simcom_dev, &simcom_cgatt_resp);
+    if (res != SIMCOM_OK) {
         return res;
     }
 
     /* Attach to GPRS */
-    if (sim5300_cgatt_resp.state == 0) {
-        res = sim5300_set_gprs_service_state(sim5300_dev, 1);
-        if (res != SIM5300_OK) {
+    if (simcom_cgatt_resp.state == 0) {
+        res = simcom_set_gprs_service_state(simcom_dev, 1);
+        if (res != SIMCOM_OK) {
             return res;
         }
     }
 
     /* Get data from network manually for multi IP connection */
-    res = sim5300_receive_data_through_multi_ip_connection(sim5300_dev, 1, 1, NULL, 0);
-    if(res != SIM5300_OK) {
-        puts("[SIM5300] Set get data from network manually for multi IP connection ERROR");
+    res = simcom_receive_data_through_multi_ip_connection(simcom_dev, 1, 1, NULL, 0);
+    if(res != SIMCOM_OK) {
+        puts("[SIMCOM] Set get data from network manually for multi IP connection ERROR");
 
         return res;
     } 
 
     /* Have internet settings? */
-    if (sim5300_internet_settings != NULL) {
+    if (simcom_internet_settings != NULL) {
         /* Start Task and Set APN, USER NAME, PASSWORD */
-        res = sim5300_set_network_settings(sim5300_dev, 
-                                           sim5300_internet_settings->apn, 
-                                           sim5300_internet_settings->username, 
-                                           sim5300_internet_settings->password);
-        if (res != SIM5300_OK) {
+        res = simcom_set_network_settings(simcom_dev, 
+                                           simcom_internet_settings->apn, 
+                                           simcom_internet_settings->username, 
+                                           simcom_internet_settings->password);
+        if (res != SIMCOM_OK) {
             return res;
         }
     } else {
         /* Get internet settings from base */
-        sim5300_internet_settings_t sim5300_get_internet_settings;
-        res = sim5300_get_internet_settings_from_base(sim5300_dev,
-                                                      sim5300_get_hni(sim5300_dev),
-                                                      &sim5300_get_internet_settings);
-        if (res != SIM5300_OK) {
+        simcom_internet_settings_t simcom_get_internet_settings;
+        res = simcom_get_internet_settings_from_base(simcom_dev,
+                                                      simcom_get_hni(simcom_dev),
+                                                      &simcom_get_internet_settings);
+        if (res != SIMCOM_OK) {
             return res;
         }
 
         /* Start Task and Set APN, USER NAME, PASSWORD */
-        res = sim5300_set_network_settings(sim5300_dev, 
-                                           sim5300_get_internet_settings.apn, 
-                                           sim5300_get_internet_settings.username, 
-                                           sim5300_get_internet_settings.password);
-        if (res != SIM5300_OK) {
+        res = simcom_set_network_settings(simcom_dev, 
+                                           simcom_get_internet_settings.apn, 
+                                           simcom_get_internet_settings.username, 
+                                           simcom_get_internet_settings.password);
+        if (res != SIMCOM_OK) {
             return res;
         }
     }
 
     /* Bring Up Wireless Connection with GPRS */
-    res = sim5300_bring_up_wireless_connection(sim5300_dev);
-    if (res != SIM5300_OK) {
+    res = simcom_bring_up_wireless_connection(simcom_dev);
+    if (res != SIMCOM_OK) {
         return res;
     }
 
     /* Get local IP address */
-    sim5300_cifsr_resp_t sim5300_cifsr_resp;
-    res = sim5300_get_local_ip_address(sim5300_dev, &sim5300_cifsr_resp);
-    if (res != SIM5300_OK) {
+    simcom_cifsr_resp_t simcom_cifsr_resp;
+    res = simcom_get_local_ip_address(simcom_dev, &simcom_cifsr_resp);
+    if (res != SIMCOM_OK) {
         return res;
     }
 
     /* Check local address */
-    if ((sim5300_cifsr_resp.local_ip_address[0] == 0) && 
-        (sim5300_cifsr_resp.local_ip_address[1] == 0) &&
-        (sim5300_cifsr_resp.local_ip_address[2] == 0) &&
-        (sim5300_cifsr_resp.local_ip_address[3] == 0)) {
-        puts("[SIM5300] Zero IP ERROR");
+    if ((simcom_cifsr_resp.local_ip_address[0] == 0) && 
+        (simcom_cifsr_resp.local_ip_address[1] == 0) &&
+        (simcom_cifsr_resp.local_ip_address[2] == 0) &&
+        (simcom_cifsr_resp.local_ip_address[3] == 0)) {
+        puts("[SIMCOM] Zero IP ERROR");
 
         return NO_LOCAL_IP_ADDRESS;
     }
@@ -2772,16 +2772,16 @@ int sim5300_start_internet(sim5300_dev_t               *sim5300_dev,
 
     /* AT+CIPSTATUS */
     /* Get state connection */
-    // sim5300_set_cipstatus_resp_t sim5300_set_cipstatus_resp;
-    // res = sim5300_set_query_current_connection_status(sim5300_dev,
+    // simcom_set_cipstatus_resp_t simcom_set_cipstatus_resp;
+    // res = simcom_set_query_current_connection_status(simcom_dev,
     //                                                   0,
-    //                                                   &sim5300_set_cipstatus_resp);
+    //                                                   &simcom_set_cipstatus_resp);
     // printf("res: %i\n", res);
 
     /* ping */
-    // sim5300_cipping_resp_t sim5300_cipping_resp[3] = {};
-    // if (sim5300_ping_request(sim5300_dev,
-    //                          sim5300_cipping_resp,
+    // simcom_cipping_resp_t simcom_cipping_resp[3] = {};
+    // if (simcom_ping_request(simcom_dev,
+    //                          simcom_cipping_resp,
     //                          "8.8.8.8",
     //                          "3",
     //                          "32", 
@@ -2790,7 +2790,7 @@ int sim5300_start_internet(sim5300_dev_t               *sim5300_dev,
     //     puts("ping true");
 
     //     for (uint8_t i = 0; i < 3; i++ ) {
-    //         printf("sim5300_cipping_resp[%i].reply_time = %i; sim5300_cipping_resp[%i].ttl = %i\n", i, sim5300_cipping_resp[i].reply_time, i, sim5300_cipping_resp[i].ttl);
+    //         printf("simcom_cipping_resp[%i].reply_time = %i; simcom_cipping_resp[%i].ttl = %i\n", i, simcom_cipping_resp[i].reply_time, i, simcom_cipping_resp[i].ttl);
     //     }
     // } else {
     //     puts("ping false");
@@ -2798,42 +2798,42 @@ int sim5300_start_internet(sim5300_dev_t               *sim5300_dev,
     //     return false;
     // }
 
-    return SIM5300_OK;
+    return SIMCOM_OK;
 }
 
 /*---------------------------------------------------------------------------*/
 /**
- * @brief       Communication test between microcontroller and SIM5300
+ * @brief       Communication test between microcontroller and SIMCOM
  *
- * @param[in]   sim5300_dev         Device to operate on
+ * @param[in]   simcom_dev         Device to operate on
  *
  * Send 5 AT command
  * 
- * @returns     SIM5300_OK             - OK
- * @returns     res < 0                - ERROR: See sim5300_error
+ * @returns     SIMCOM_OK             - OK
+ * @returns     res < 0                - ERROR: See simcom_error
  */
-int sim5300_communication_test(sim5300_dev_t *sim5300_dev) {
+int simcom_communication_test(simcom_dev_t *simcom_dev) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     }     
 
     int res; 
 
-    /* SIM5300 connection */
+    /* SIMCOM connection */
     for(int i = 0; i < 5; i++) {
-        res = sim5300_send_at(sim5300_dev);
-        if (res == SIM5300_OK) {
-            puts("[SIM5300] Connection OK");
+        res = simcom_send_at(simcom_dev);
+        if (res == SIMCOM_OK) {
+            puts("[SIMCOM] Connection OK");
 
-            return SIM5300_OK;
+            return SIMCOM_OK;
         }
         if (i == 4) {
-            puts("[SIM5300] Not answering");
+            puts("[SIMCOM] Not answering");
 
-            return SIM5300_NOT_ANSWERING;
+            return SIMCOM_NOT_ANSWERING;
         }
 
         /* Sleep on 500 ms */
@@ -2845,9 +2845,9 @@ int sim5300_communication_test(sim5300_dev_t *sim5300_dev) {
 
 /*---------------------------------------------------------------------------*/
 /**
- * @brief       Initialize SIM5300 device
+ * @brief       Initialize SIMCOM device
  *
- * @param[in]   sim5300_dev         Struct to initialize 
+ * @param[in]   simcom_dev         Struct to initialize 
  * @param[in]   uart                UART the device is connected to
  * @param[in]   baudrate            Baudrate of the device
  * @param[in]   buf                 Input buffer for AT driver
@@ -2855,10 +2855,10 @@ int sim5300_communication_test(sim5300_dev_t *sim5300_dev) {
  * @param[in]   at_dev_resp         Input buffer for parse response from Iridium
  * @param[in]   at_dev_resp_size    Size of @p at_dev_resp
  *
- * @returns     SIM5300_OK             - OK
- * @returns     res < 0                - ERROR: See sim5300_error
+ * @returns     SIMCOM_OK             - OK
+ * @returns     res < 0                - ERROR: See simcom_error
  */
-int sim5300_init(sim5300_dev_t *sim5300_dev, 
+int simcom_init(simcom_dev_t *simcom_dev, 
                  uart_t         uart, 
                  uint32_t       baudrate, 
                  char          *buf, 
@@ -2866,51 +2866,51 @@ int sim5300_init(sim5300_dev_t *sim5300_dev,
                  char          *at_dev_resp, 
                  uint16_t       at_dev_resp_size) {
     /* Test NULL device */
-    if (sim5300_dev == NULL) {
-        puts("sim5300_dev = NULL");
+    if (simcom_dev == NULL) {
+        puts("simcom_dev = NULL");
 
-        return SIM5300_DEV_ERROR;
+        return SIMCOM_DEV_ERROR;
     } 
 
     int res;
     
-    puts("[SIM5300] Initialization...");
+    puts("[SIMCOM] Initialization...");
     
-    gpio_init(sim5300_dev->power_en_pin, GPIO_OUT);
-    gpio_init(sim5300_dev->gsm_en_pin, GPIO_OUT);
+    gpio_init(simcom_dev->power_en_pin, GPIO_OUT);
+    gpio_init(simcom_dev->gsm_en_pin, GPIO_OUT);
 
-    /* Power on SIM5300 */
-    sim5300_power_on(sim5300_dev);
+    /* Power on SIMCOM */
+    simcom_power_on(simcom_dev);
 
     /* Structure initialization */
-    sim5300_dev->at_dev.uart      = uart;
-    sim5300_dev->at_dev_resp      = at_dev_resp;
-    sim5300_dev->at_dev_resp_size = at_dev_resp_size;
+    simcom_dev->at_dev.uart      = uart;
+    simcom_dev->at_dev_resp      = at_dev_resp;
+    simcom_dev->at_dev_resp_size = at_dev_resp_size;
     for(uint8_t i = 0; i < 8; i++) {
-        sim5300_dev->socketfd[i]  = false;
+        simcom_dev->socketfd[i]  = false;
     }
 
     /* Initialization of UART */
-    res = at_dev_init(&sim5300_dev->at_dev, uart, baudrate, buf, bufsize);
-    if (res != SIM5300_OK) {
-        DEBUG("[SIM5300] at_dev_init() ERROR: %i\n", res);
+    res = at_dev_init(&simcom_dev->at_dev, uart, baudrate, buf, bufsize);
+    if (res != SIMCOM_OK) {
+        DEBUG("[SIMCOM] at_dev_init() ERROR: %i\n", res);
 
         return res;
     }
     
 
 
-    /* SIM5300 connection */
-    res = sim5300_communication_test(sim5300_dev);
-    if(res != SIM5300_OK) {
-        DEBUG("[SIM5300] sim5300_communication_test() ERROR: %i\n", res);
+    /* SIMCOM connection */
+    res = simcom_communication_test(simcom_dev);
+    if(res != SIMCOM_OK) {
+        DEBUG("[SIMCOM] simcom_communication_test() ERROR: %i\n", res);
 
         return res;
     }
 
-    puts("[SIM5300] Init OK");
+    puts("[SIMCOM] Init OK");
 
-    return SIM5300_OK;   
+    return SIMCOM_OK;   
 }
 
 /*---------------------------------------------------------------------------*/

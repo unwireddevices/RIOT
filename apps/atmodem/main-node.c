@@ -65,7 +65,7 @@ extern "C" {
 #include "main.h"
 #include "utils.h"
 
-#include "sim5300.h"
+#include "simcom.h"
 
 #include "MQTTPacket.h"
 
@@ -102,14 +102,14 @@ static char at_dev_buf[AT_DEV_BUF_SIZE];
 #define AT_DEV_RESP_SIZE        (1024)
 static char at_dev_resp[AT_DEV_RESP_SIZE];
 
-#define SIM5300_UART            (1)
-#define SIM5300_BAUDRATE        (115200)
+#define SIMCOM_UART            (1)
+#define SIMCOM_BAUDRATE        (115200)
 
 #define SERVER_ADDRES           "example.com"
 #define SERVER_PORT             "8080"
 #define SERVER_TYPE_CONNECTION  "TCP"
 
-static sim5300_dev_t sim5300_dev;
+static simcom_dev_t simcom_dev;
 
 static node_data_t node_data;
 
@@ -143,16 +143,16 @@ static void *sender_thread(void *arg) {
         if (msg.type == NODE_MSG_SEND) {
             node_data_t *ptr = msg.content.ptr;
 
-            res = sim5300_init(&sim5300_dev, SIM5300_UART, SIM5300_BAUDRATE, at_dev_buf, AT_DEV_BUF_SIZE, at_dev_resp, AT_DEV_RESP_SIZE);
-            if (res != SIM5300_OK) {
+            res = simcom_init(&simcom_dev, SIMCOM_UART, SIMCOM_BAUDRATE, at_dev_buf, AT_DEV_BUF_SIZE, at_dev_resp, AT_DEV_RESP_SIZE);
+            if (res != SIMCOM_OK) {
                 printf("[GSM] Error initializing modem\n");
                 continue;
             } else {
                 printf("[GSM] Modem initialized\n");
             }
 
-            res = sim5300_start_internet(&sim5300_dev, 30, NULL);
-            if (res != SIM5300_OK) {
+            res = simcom_start_internet(&simcom_dev, 30, NULL);
+            if (res != SIMCOM_OK) {
                 printf("[GSM] Error setting up modem\n");
                 continue;
             } else {
@@ -167,21 +167,21 @@ static void *sender_thread(void *arg) {
             }
             */
             
-            int sockfd = sim5300_socket(&sim5300_dev);
+            int sockfd = simcom_socket(&simcom_dev);
             
-            if (sockfd < SIM5300_OK) {
+            if (sockfd < SIMCOM_OK) {
                 DEBUG("[GSM] Socket open error: %i\n", sockfd);
                 continue;
             } else {
                 printf("[GSM] Socket ready\n");
             }
             
-            res = sim5300_connect(&sim5300_dev, 
+            res = simcom_connect(&simcom_dev, 
                                   sockfd, 
                                   SERVER_ADDRES, 
                                   SERVER_PORT, 
                                   SERVER_TYPE_CONNECTION);
-            if (res < SIM5300_OK) {
+            if (res < SIMCOM_OK) {
                 DEBUG("[GSM] Connection error: %i\n", res);
                 continue;
             }  else {
@@ -222,9 +222,9 @@ static void *sender_thread(void *arg) {
                 printf("MCU voltage %d mV\n", voltage);
             }
             
-            sim5300_csq_resp_t sim5300_csq_resp;
-            sim5300_get_signal_quality_report(&sim5300_dev, &sim5300_csq_resp);
-            int rssi = sim5300_csq_resp.rssi;
+            simcom_csq_resp_t simcom_csq_resp;
+            simcom_get_signal_quality_report(&simcom_dev, &simcom_csq_resp);
+            int rssi = simcom_csq_resp.rssi;
             
             snprintf(mqtt_payload, sizeof(mqtt_payload), "{"      \
                     "\"id\": \"%08lu%08lu\","           \
@@ -257,10 +257,10 @@ static void *sender_thread(void *arg) {
             
             printf("%s\n", mqtt_payload);
 
-            res = sim5300_send(&sim5300_dev, sockfd, mqtt_buf, len);
+            res = simcom_send(&simcom_dev, sockfd, mqtt_buf, len);
             
-            res = sim5300_close(&sim5300_dev, sockfd);
-            if (res != SIM5300_OK) {
+            res = simcom_close(&simcom_dev, sockfd);
+            if (res != SIMCOM_OK) {
                 DEBUG("[GSM] Socket close error: %i\n", res);
             }
         }
@@ -282,7 +282,7 @@ static void *receiver_thread(void *arg) {
         /*
         uint8_t server_resp[200];
         
-        int res = sim5300_receive(&sim5300_dev, sockfd, server_resp, sizeof(server_resp));
+        int res = simcom_receive(&simcom_dev, sockfd, server_resp, sizeof(server_resp));
         switch (res) {
             default:
                 printf("[GSM] unknown LoRaMAC response %d\n", res);
@@ -599,10 +599,10 @@ static void unwds_sleep(void) {
 
 void init_normal(shell_command_t *commands)
 {
-    sim5300_dev.power_en_pin    = GPIO_UNDEF;
-    sim5300_dev.power_act_level = HIGH;
-    sim5300_dev.gsm_en_pin      = GPIO_PIN(PORT_A, 11);
-    sim5300_dev.gsm_act_level   = LOW;
+    simcom_dev.power_en_pin    = GPIO_UNDEF;
+    simcom_dev.power_act_level = HIGH;
+    simcom_dev.gsm_en_pin      = GPIO_PIN(PORT_A, 11);
+    simcom_dev.gsm_act_level   = LOW;
     
     bool cfg_valid = unwds_config_load();
     print_config();

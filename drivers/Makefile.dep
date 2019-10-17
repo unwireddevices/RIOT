@@ -478,6 +478,11 @@ ifneq (,$(filter si70%,$(USEMODULE)))
   USEMODULE += si70xx
 endif
 
+ifneq (,$(filter simcom,$(USEMODULE)))
+  USEMODULE += at
+  USEMODULE += lptimer
+endif
+
 ifneq (,$(filter slipdev,$(USEMODULE)))
   USEMODULE += tsrb
   FEATURES_REQUIRED += periph_uart

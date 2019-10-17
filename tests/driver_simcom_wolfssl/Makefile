@@ -18,9 +18,7 @@ USEMODULE += gnrc_sock_udp
 USEMODULE += shell
 USEMODULE += shell_commands
 
-USEMODULE += sim5300
-# USEMODULE += rtctimers-millis
-USEMODULE += at
+USEMODULE += simcom
 
 USEMODULE += od
 

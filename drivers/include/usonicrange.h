@@ -43,7 +43,7 @@
 #define USONICRANGE_MIN_DISTANCE_MM    300
 
 /* ringing suppression period */
-#define USONICRANGE_SUPPRESS_PERIOD_US 300
+#define USONICRANGE_DAMPING_PERIOD_US  300
 
 /* ultrasonic transducer default frequency */
 #define USONICRANGE_DEFAULT_FREQ       40000
@@ -70,24 +70,28 @@ typedef enum {
  * @brief Structure that holds the USONICRANGE driver internal state and parameters
  */
 typedef struct {
-    pwm_t   pwm;
-    uint8_t pwm_channel;
-    adc_t   adc;
-    uint8_t adc_channel;
-    int8_t  temperature;
-    uint32_t frequency;
-    timer_t timer;
-    gpio_t  signal_pin;
-    gpio_t  suppress_pin;
+    pwm_t       pwm;
+    uint8_t     pwm_channel;
+    adc_t       adc;
+    uint32_t    frequency;
+    timer_t     timer;
+    gpio_t      rx_pin;
+    gpio_t      damping_pin;
+    uint32_t    damping_time;
+    gpio_t      power_pin;
+    uint8_t     power_active;
+    int8_t      temperature;
+    usonicrange_mode_t mode;
+
     uint16_t *dmabuffer;    /* USONICRANGE_DMABUF_SIZE elements */
     uint16_t *signalbuffer; /* USONICRANGE_SIGNALBUF_SIZE elements */
-    usonicrange_mode_t mode;
-    uint32_t suppress_time;
 } usonicrange_t;
 
 int  usonicrange_init(usonicrange_t *dev);
 void usonicrange_calibrate(usonicrange_t *dev);
 int  usonicrange_measure(usonicrange_t *dev);
+void usonicrange_poweron(usonicrange_t *dev);
+void usonicrange_poweroff(usonicrange_t *dev);
 
 #endif /* USONICRANGE_H_ */
 

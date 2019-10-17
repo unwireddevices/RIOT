@@ -89,15 +89,13 @@ static bool init_sensor(void) {
 }
 
 static int prepare_result(module_data_t *buf) {
-    gpio_init(GPIO_PIN(PORT_B, 1), GPIO_OUT);
-    gpio_clear(GPIO_PIN(PORT_B, 1));
-    
+    usonicrange_poweron(&usonic_dev);
     lptimer_sleep(500);
     
     //usonicrange_calibrate(&usonic_dev);
     int range = usonicrange_measure(&usonic_dev);
     
-    gpio_set(GPIO_PIN(PORT_B, 1));
+    usonicrange_poweroff(&usonic_dev);
     
     if (range > 0) {
         printf("[umdk-" _UMDK_NAME_ "] Distance %d mm\n", range);
@@ -381,20 +379,25 @@ void umdk_usonic_init(uwnds_cb_t *event_callback) {
         puts("[umdk-" _UMDK_NAME_ "] Signal buffer allocation failed");
 		return;
 	}
-    /*
-    usonic_dev.timer = 1;
-    usonic_dev.pwm = 0;
-    usonic_dev.pwm_channel = 3;
-    usonic_dev.adc = 3;
-    usonic_dev.frequency = 40000;
+
+    usonic_dev.pwm = UMDK_USONIC_PWM_DEV;
+    usonic_dev.pwm_channel = UMDK_USONIC_PWM_CHANNEL;
+    usonic_dev.frequency = UMDK_USONIC_PWM_FREQ;
+
+    usonic_dev.timer = UMDK_USONIC_TIMER;
+    usonic_dev.adc = UMDK_USONIC_ADC_CH;
+    
+    usonic_dev.rx_pin = UMDK_USONIC_RX_PIN;
+    usonic_dev.damping_pin = UMDK_USONIC_DAMPING_PIN;
+    usonic_dev.damping_time = USONICRANGE_DAMPING_PERIOD_US;
+    usonic_dev.power_pin = UMDK_USONIC_POWER_PIN;
+    usonic_dev.power_active = 0;
+    
     usonic_dev.temperature = USONICRANGE_TEMPERATURE_NONE;
     usonic_dev.mode = USONICRANGE_MODE_STRONGEST_ECHO;
-    usonic_dev.signal_pin = GPIO_PIN(PORT_A, 1);
-    usonic_dev.suppress_pin = GPIO_PIN(PORT_A, 2);
-    usonic_dev.suppress_time = USONICRANGE_SUPPRESS_PERIOD_US;
     
     usonicrange_init(&usonic_dev);
-    */
+
     timer_pid = thread_create(stack, UMDK_USONIC_STACK_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, timer_thread, NULL, "usonic thread");
     
     /* Start publishing timer */

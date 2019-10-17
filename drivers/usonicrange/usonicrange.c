@@ -75,14 +75,30 @@ static int mm_to_us(usonicrange_t *dev, int distance) {
 
 /* convert amplitude samples to millimeters */
 static int sample_to_mm(usonicrange_t *dev, int sample) {
-    int us = sample*USONICRANGE_DMABUF_WINDOW_SIZE*USONICRANGE_ADC_PERIOD_US + USONICRANGE_SUPPRESS_PERIOD_US;
+    int us = sample*USONICRANGE_DMABUF_WINDOW_SIZE*USONICRANGE_ADC_PERIOD_US + USONICRANGE_DAMPING_PERIOD_US;
     return us_to_mm(dev, us);
 }
 
 /* convert millimeters to amplitude samples */
 static int mm_to_sample(usonicrange_t *dev, int distance) {
     int us = mm_to_us(dev, distance);
-    return (us - USONICRANGE_SUPPRESS_PERIOD_US)/(USONICRANGE_DMABUF_WINDOW_SIZE*USONICRANGE_ADC_PERIOD_US);
+    return (us - USONICRANGE_DAMPING_PERIOD_US)/(USONICRANGE_DMABUF_WINDOW_SIZE*USONICRANGE_ADC_PERIOD_US);
+}
+
+void usonicrange_poweron(usonicrange_t *dev) {
+    if (dev->power_active) {
+        gpio_set(dev->power_pin);
+    } else {
+        gpio_clear(dev->power_pin);
+    }
+}
+
+void usonicrange_poweroff(usonicrange_t *dev) {
+    if (dev->power_active) {
+        gpio_clear(dev->power_pin);
+    } else {
+        gpio_set(dev->power_pin);
+    }
 }
 
 /* initialize hardware */
@@ -92,19 +108,22 @@ int usonicrange_init(usonicrange_t *dev)
         dev->frequency = USONICRANGE_DEFAULT_FREQ;
     }
     
-    if (dev->suppress_time == 0) {
-        dev->suppress_time = USONICRANGE_SUPPRESS_PERIOD_US;
+    if (dev->damping_time == 0) {
+        dev->damping_time = USONICRANGE_DAMPING_PERIOD_US;
     }
 
     dmabuffer_local = dev->dmabuffer;
     signalbuffer_local = dev->signalbuffer;
 
     /* initialize GPIOs */
-    gpio_init(dev->signal_pin, GPIO_OUT);
-    gpio_set(dev->signal_pin); /* signal to be always on */
+    gpio_init(dev->rx_pin, GPIO_OUT);
+    gpio_set(dev->rx_pin); /* signal to be always on */
 
-    gpio_init(dev->suppress_pin, GPIO_OUT);
-    gpio_clear(dev->suppress_pin);
+    gpio_init(dev->damping_pin, GPIO_OUT);
+    gpio_clear(dev->damping_pin);
+    
+    gpio_init(dev->power_pin, GPIO_OUT);
+    usonicrange_poweroff(dev);
 
     return 0;
 }
@@ -293,9 +312,9 @@ static int usound_measure_distance(usonicrange_t *dev) {
         pwm_pulses(dev->pwm, dev->pwm_channel, range*10 + 5);
 
         /* suppress transducer ringing */
-        gpio_set(dev->suppress_pin);
-        xtimer_usleep(dev->suppress_time);
-        gpio_clear(dev->suppress_pin);
+        gpio_set(dev->damping_pin);
+        xtimer_usleep(dev->damping_time);
+        gpio_clear(dev->damping_pin);
 
         /* start ADC acquisition */
         timer_start(dev->timer);
@@ -391,7 +410,7 @@ static int usound_measure_distance(usonicrange_t *dev) {
 int usonicrange_measure(usonicrange_t *dev)
 {
     assert(dev != NULL);
-
+    
     if (dev->temperature == USONICRANGE_TEMPERATURE_NONE) {
         /* chip temperature in °C */
         if (adc_init(ADC_LINE(ADC_TEMPERATURE_INDEX)) == 0) {

@@ -23,14 +23,14 @@ CFLAGS += -DDISABLE_LORAMAC_DUTYCYCLE
 # subdirectory name in ../../unwired-modules/
 # and no other variable should have umdk-% name
 
-umdk-4btn	        		= 1
-umdk-adc	   				= 1
+umdk-4btn	        		= 0
+umdk-adc	   				= 0
 umdk-config    				= 1
-umdk-counter   				= 1
+umdk-counter   				= 0
 umdk-fdc1004        		= 0
 umdk-gassensor              = 0
-umdk-gpio	        		= 1
-umdk-gps	        		= 1
+umdk-gpio	        		= 0
+umdk-gps	        		= 0
 umdk-hd44780   				= 0
 umdk-hx711          		= 0
 umdk-ibutton   				= 0
@@ -41,18 +41,14 @@ umdk-lmt01	        		= 0
 umdk-meteo     				= 0
 umdk-mhz19     				= 0
 umdk-modbus	   		        = 0
-umdk-parking                = 1
-umdk-pir	   				= 1
-umdk-pwm	   				= 1
-umdk-rssiecho  				= 1
-umdk-soil                   = 1
-umdk-st95	                = 1
-umdk-uart	   				= 1
-# for a while, umdk-usound supports STM32L1 only
-ifneq (,$(findstring unwd-range-l1,$(BOARD)))
-umdk-usonic    				= 1
-endif
-
+umdk-parking                = 0
+umdk-pir	   				= 0
+umdk-pwm	   				= 0
+umdk-rssiecho  				= 0
+umdk-soil                   = 0
+umdk-st95	                = 0
+umdk-uart	   				= 0
+umdk-usonic    				= 0
 
 ####### UMDK MODULES defines and Makefile.include inclusion ############
 

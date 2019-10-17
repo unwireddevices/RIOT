@@ -32,7 +32,7 @@
 /**
  * @brief   Maximum allowed ADC clock speed
  */
-#define MAX_ADC_SPEED           (12000000U)
+#define MAX_ADC_SPEED           (16000000U)
 
 /**
  * @brief   Allocate locks for all three available ADC device
@@ -41,15 +41,31 @@
  */
 static mutex_t lock = MUTEX_INIT;
 
+static bool hsi16_enabled = true;
+
 static inline void prep(void)
 {
     mutex_lock(&lock);
     periph_clk_en(APB2, RCC_APB2ENR_ADCEN);
+    
+    /* ADC clock is HSI16 clock */
+    if (!(RCC->CR & RCC_CR_HSION)) {
+        while (RCC->CR & RCC_CR_HSIRDY) {}
+        hsi16_enabled = false;
+        RCC->CR |= RCC_CR_HSION;
+        /* Wait for HSI to become ready */
+        while (!(RCC->CR & RCC_CR_HSIRDY)) {}
+    }
 }
 
 static inline void done(void)
 {
     periph_clk_dis(APB2, RCC_APB2ENR_ADCEN);
+    
+    if (!hsi16_enabled) {
+        RCC->CR &= ~RCC_CR_HSION;
+    }
+    
     mutex_unlock(&lock);
 }
 
@@ -99,12 +115,20 @@ int adc_init(adc_t line)
     /* no oversampling: Watch out, MSB (CKMODE) MUST not be changed while on
      * (it is zero by default) */
     ADC1->CFGR2 = 0;
-    /* activate VREF, and set prescaler to 4 (4Mhz clock)
+    /* activate VREF, and set prescaler to 0 (16 Mhz clock)
      * activate also temp sensor, so that it will be ready for temp measure */
-    ADC->CCR = ADC_CCR_VREFEN | ADC_CCR_TSEN | ADC_CCR_PRESC_1;
-    /* Sampling time selection: 7 => 160 clocks => 40µs @ 4MHz
-     * (must be 10+10 for ref start and sampling time) */
-    ADC1->SMPR |= ADC_SMPR_SMP;
+    ADC->CCR = ADC_CCR_VREFEN | ADC_CCR_TSEN;
+
+    /* Set 0.47 us sample time */
+    /* Min 10 us needed for temperature sensor measurements */
+    /* Total conversion time is Tsample + 12.5/Fadc, i.e. 1.25 us with 16 MHz and 12.5 cycles sampling */
+    if (adc_config[line].pin != GPIO_UNDEF) {
+        ADC1->SMPR = ADC_SMPR_SMPR_1;
+    } else {
+        /* 160 cycles for 10 us @ 16 MHz minimum sampling time for internal channels */
+        ADC1->SMPR = ADC_SMPR_SMPR_0 | ADC_SMPR_SMPR_1 | ADC_SMPR_SMPR_2;
+    }
+    
     /* clear previous flag */
     ADC1->ISR |= ADC_ISR_EOC;
     

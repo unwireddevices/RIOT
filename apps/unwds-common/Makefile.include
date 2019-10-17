@@ -50,6 +50,10 @@ umdk-st95	                = 0
 umdk-uart	   				= 0
 umdk-usonic    				= 0
 
+ifneq (,$(findstring unwd-usonic,$(BOARD)))
+umdk-usonic    				= 1
+endif
+
 ####### UMDK MODULES defines and Makefile.include inclusion ############
 
 export UMDK_MODULES_ENABLED

@@ -82,25 +82,17 @@ enum simcom_error {
 };
 
 /**
- * @brief SIMCOM enum GPIO level
- */
-typedef enum {
-    LOW  = 0,             /**< Low level */
-    HIGH = 1,             /**< High level */          
-} simcom_gpio_level_t;
-
-/**
  * @brief SIMCOM device structure
  */
 typedef struct {
     at_dev_t             at_dev;           /**< AT device structure */
     char                *at_dev_resp;      /**< Input buffer for parse response from SIMCOM */
     uint16_t             at_dev_resp_size; /**< Size of @p at_dev_resp */
-    bool                 socketfd[8];      /**< Socket status array */
     gpio_t               power_en_pin;     /**< Pin for power enable */
-    simcom_gpio_level_t power_act_level;  /**< Active level for power enable pin */
     gpio_t               gsm_en_pin;       /**< Pin for power enable SIN5300 */
-    simcom_gpio_level_t gsm_act_level;    /**< Active level for power enable SIMCOM pin */
+    bool                 socketfd[8];      /**< Socket status array */
+    uint8_t              power_act_level;  /**< Active level for power enable pin */
+    uint8_t              gsm_act_level;    /**< Active level for power enable SIMCOM pin */
 } simcom_dev_t;
 
 /**

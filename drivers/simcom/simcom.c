@@ -71,28 +71,17 @@ int simcom_power_on(simcom_dev_t *simcom_dev) {
     puts("[SIMCOM] Power on");
 
     /* DC/DC power on */
-    if (simcom_dev->power_act_level == HIGH) {
-        gpio_set(simcom_dev->power_en_pin);
-    } else {
-        gpio_clear(simcom_dev->power_en_pin);
-    }
+    gpio_write(simcom_dev->power_en_pin, simcom_dev->power_act_level);
 
     /* Enable modem */
-    if (simcom_dev->gsm_act_level == HIGH) {
-        gpio_set(simcom_dev->gsm_en_pin);
-    } else {
-        gpio_clear(simcom_dev->gsm_en_pin);
-    }
+    gpio_write(simcom_dev->gsm_en_pin, simcom_dev->gsm_act_level);
 
     /* 500ms sleep */
     lptimer_usleep(SIMCOM_TIME_ON);
 
     /* Set or clear GPIO */
-    if (simcom_dev->gsm_act_level == HIGH) {
-        gpio_clear(simcom_dev->gsm_en_pin);
-    } else {
-        gpio_set(simcom_dev->gsm_en_pin);
-    }
+    gpio_toggle(simcom_dev->gsm_en_pin);
+    
     /* Modem enabled */
 
     /* We wait while SIMCOM is initialized */
@@ -124,7 +113,7 @@ int simcom_power_off(simcom_dev_t *simcom_dev) {
     uart_poweroff(simcom_dev->at_dev.uart);
 
     /* Disable DC/DC */
-    if (simcom_dev->power_act_level == HIGH) {
+    if (simcom_dev->power_act_level) {
         gpio_clear(simcom_dev->power_en_pin);
     } else {
         gpio_set(simcom_dev->power_en_pin);

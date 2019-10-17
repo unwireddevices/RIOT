@@ -53,9 +53,9 @@ int main(void)
 
     /* Init SIMCOM */
     simcom_dev.power_en_pin    = RWCAR_GSM_POWER;
-    simcom_dev.power_act_level = HIGH;
+    simcom_dev.power_act_level = 1;
     simcom_dev.gsm_en_pin      = RWCAR_GSM_ENABLE;
-    simcom_dev.gsm_act_level   = HIGH;
+    simcom_dev.gsm_act_level   = 1;
 
     res = simcom_init(&simcom_dev, SIMCOM_UART, SIMCOM_BAUDRATE, at_dev_buf, AT_DEV_RESP_SIZE, at_dev_resp, AT_DEV_RESP_SIZE);
     if (res != SIMCOM_OK) {

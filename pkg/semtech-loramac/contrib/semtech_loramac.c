@@ -194,6 +194,8 @@ void _init_loramac(semtech_loramac_t *mac,
     primitives->MacMlmeIndication = mlme_indication;
     LoRaMacInitialization(&semtech_loramac_radio_events, primitives, callbacks,
                           LORAMAC_ACTIVE_REGION);
+                          
+    semtech_loramac_radio_events.CadDone = sx127x_lora_cad_done;
 #ifdef DISABLE_LORAMAC_DUTYCYCLE
     LoRaMacTestSetDutyCycleOn(false);
 #endif

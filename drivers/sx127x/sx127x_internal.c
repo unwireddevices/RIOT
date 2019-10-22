@@ -32,6 +32,7 @@
 #include "sx127x_internal.h"
 #include "sx127x_params.h"
 
+#include "lptimer.h"
 #include "xtimer.h"
 
 #define ENABLE_DEBUG (0)
@@ -213,8 +214,28 @@ void sx127x_start_cad(sx127x_t *dev)
     }
 }
 
+#if defined(LORAMAC_CHANNEL_FREE_DETECT_PREAMBLE)
+typedef enum {
+    SX127X_CAD_RUNNING,
+    SX127X_CAD_CHANNEL_FREE,
+    SX127X_CAD_CHANNEL_ACTIVE,
+} sx127x_lora_cad_progress_t;
+
+static sx127x_lora_cad_progress_t sx127x_cad_result;
+
+void sx127x_lora_cad_done(bool activity) {
+    if (activity) {
+        sx127x_cad_result = SX127X_CAD_CHANNEL_ACTIVE;
+    } else {
+        sx127x_cad_result = SX127X_CAD_CHANNEL_FREE;
+    }
+}
+#endif
+
 bool sx127x_is_channel_free(sx127x_t *dev, uint32_t freq, int16_t rssi_threshold)
 {
+#if !defined(LORAMAC_CHANNEL_FREE_DETECT_PREAMBLE)
+    /* using  RSSI value */
     int16_t rssi = 0;
 
     sx127x_set_channel(dev, freq);
@@ -226,4 +247,45 @@ bool sx127x_is_channel_free(sx127x_t *dev, uint32_t freq, int16_t rssi_threshold
     sx127x_set_sleep(dev);
 
     return (rssi <= rssi_threshold);
+#else
+    /* using  RSSI value */
+    int16_t rssi = 0;
+
+    sx127x_set_channel(dev, freq);
+    sx127x_set_op_mode(dev, SX127X_RF_OPMODE_RECEIVER);
+
+    xtimer_spin(xtimer_ticks_from_usec(1000)); /* wait 1 millisecond */
+
+    rssi = sx127x_read_rssi(dev);
+    sx127x_set_sleep(dev);
+
+    if (rssi > rssi_threshold) {
+        DEBUG("[sx127x] RSSI above threshold\n");
+        return false;
+    }
+
+    /* using  LoRa CAD */
+    int delay_ms = 5 + ((100 + 10*dev->settings.lora.datarate) >> dev->settings.lora.datarate);
+    
+    for (int k = 0; k < 10; k++) {
+        sx127x_cad_result = SX127X_CAD_RUNNING;
+
+        sx127x_start_cad(dev);
+        lptimer_sleep(delay_ms);
+
+        if (sx127x_cad_result == SX127X_CAD_CHANNEL_ACTIVE) {
+            DEBUG("[sx127x] channel activity detected\n");
+            sx127x_set_sleep(dev);
+            return false;
+
+            /* otherwise restart CAD after a pause */
+            lptimer_sleep(100);
+        }
+    }
+    
+    DEBUG("[sx127x] channel is free\n");
+
+    sx127x_set_sleep(dev);
+    return true;
+#endif
 }

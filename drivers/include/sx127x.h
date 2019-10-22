@@ -674,6 +674,13 @@ void sx127x_set_iq_invert(sx127x_t *dev, bool iq_invert);
  */
 void sx127x_set_freq_hop(sx127x_t *dev, bool freq_hop_on);
 
+/**
+ * @brief   Callback for the Channel Activity Detection
+ *
+ * @param[in] activity     True if channel activity detected
+ */
+void sx127x_lora_cad_done(bool activity);
+
 #ifdef __cplusplus
 }
 #endif

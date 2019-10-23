@@ -51,7 +51,7 @@ index d32d573..981ea7f 100644
  int32_t randr( int32_t min, int32_t max )
  {
 -    return ( int32_t )rand1( ) % ( max - min + 1 ) + min;
-+    return (int32_t) (random_uint32_range(0,max-min) + min);
++    return (min == max) ? min : (int32_t) (random_uint32_range(0, max - min) + min);
  }
  
  void memcpy1( uint8_t *dst, const uint8_t *src, uint16_t size )

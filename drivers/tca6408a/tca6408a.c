@@ -81,7 +81,7 @@ static int _read(const tca6408a_t *dev, const uint8_t reg, uint8_t *data)
     i2c_release(dev->params.i2c_dev);
 
     DEBUG("TCA6408A [REG %02X]: <- ", reg);
-    PRINTBUFF(data, length);
+    PRINTBUFF(data, 1);
 
     return status;
 }
@@ -91,7 +91,7 @@ static int _write(const tca6408a_t *dev, const uint8_t reg, uint8_t *data)
     int status = 0x00;
 
     DEBUG("TCA6408A [REG %02X]: -> ", reg);
-    PRINTBUFF(data, length);
+    PRINTBUFF(data, 1);
 
     /* Acquire exclusive access to the bus. */
     i2c_acquire(dev->params.i2c_dev);

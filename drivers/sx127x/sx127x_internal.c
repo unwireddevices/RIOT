@@ -35,7 +35,7 @@
 #include "lptimer.h"
 #include "xtimer.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 
@@ -272,20 +272,19 @@ bool sx127x_is_channel_free(sx127x_t *dev, uint32_t freq, int16_t rssi_threshold
 
         sx127x_start_cad(dev);
         lptimer_sleep(delay_ms);
+        sx127x_set_sleep(dev);
 
         if (sx127x_cad_result == SX127X_CAD_CHANNEL_ACTIVE) {
             DEBUG("[sx127x] channel activity detected\n");
-            sx127x_set_sleep(dev);
             return false;
 
             /* otherwise restart CAD after a pause */
             lptimer_sleep(100);
         }
     }
-    
+
     DEBUG("[sx127x] channel is free\n");
 
-    sx127x_set_sleep(dev);
     return true;
 #endif
 }

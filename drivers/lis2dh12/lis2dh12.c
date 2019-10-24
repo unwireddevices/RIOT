@@ -548,6 +548,7 @@ int lis2dh12_power_on(lis2dh12_t *dev)
                         power_on_delay_us = 7000;
                         break;
                 }
+                break;
             }
             case LIS2DH12_NM_10BIT:
                 power_on_delay_us = 1600;

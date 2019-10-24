@@ -163,7 +163,7 @@ static void *sender_thread(void *arg) {
     
     puts("[LoRa] sender thread started");
     
-    last_tx_time = lptimer_now().ticks32;
+    last_tx_time = lptimer_now_msec();
     
     while (1) {
         msg_receive(&msg);
@@ -172,20 +172,15 @@ static void *sender_thread(void *arg) {
         
         /* minimum interval between transmissions */
         uint32_t tx_delay = 0;
-        uint32_t now = lptimer_now().ticks32;
+        uint32_t now = lptimer_now_msec();
 
-        if (last_tx_time + LORAWAN_MIN_TX_DELAY_MS > now) {
+        if ((last_tx_time < now) && (last_tx_time + LORAWAN_MIN_TX_DELAY_MS > now)) {
             tx_delay = last_tx_time + LORAWAN_MIN_TX_DELAY_MS - now;
             printf("[LoRa] delaying TX by %lu ms (now %lu, last %lu)\n", tx_delay, now, last_tx_time);
             lptimer_sleep(tx_delay);
         }
         
         if (msg.type == NODE_MSG_SEND) {
-            if (!lora_joined) {
-                puts("[LoRa] packet delayed: not joined");
-                continue;
-            }
-            
             if (ls_frame_fifo_empty(&fifo_lorapacket)) {
                 puts("[LoRa] FIFO empty, nothing to send");
                 continue;
@@ -195,6 +190,20 @@ static void *sender_thread(void *arg) {
             ls_frame_t frame;
             if (!ls_frame_fifo_peek(&fifo_lorapacket, &frame)) {
                 printf("[LoRa] error getting frame from FIFO\n");
+                continue;
+            }
+            
+            if (!lora_joined) {
+                puts("[LoRa] packet delayed: not joined");
+                
+                if (current_join_retries == 0) {
+                    puts("[LoRa] attempting to rejoin");
+                    msg_send(&msg_join, sender_pid);
+                } else {
+                    puts("[LoRa] waiting for the node to join");
+                }
+                frame.retransmit = false;
+                ls_frame_fifo_replace(&fifo_lorapacket, &frame);
                 continue;
             }
 
@@ -212,29 +221,23 @@ static void *sender_thread(void *arg) {
             switch (res) {
                 case SEMTECH_LORAMAC_BUSY:
                     puts("[LoRa] MAC already busy");
-                    frame.retransmit = true;
+                    frame.retransmit = false;
                     ls_frame_fifo_replace(&fifo_lorapacket, &frame);
                     break;
                 case SEMTECH_LORAMAC_DUTYCYCLE_RESTRICTED:
                     puts("[LoRa] TX duty cycle restricted");
-                    frame.retransmit = true;
+                    frame.retransmit = false;
                     ls_frame_fifo_replace(&fifo_lorapacket, &frame);
                     break;
                 case SEMTECH_LORAMAC_NO_FREE_CHANNEL:
                     puts("[LoRa] LBT no free channels");
-                    frame.retransmit = true;
+                    frame.retransmit = false;
                     ls_frame_fifo_replace(&fifo_lorapacket, &frame);
                     break;
                 case SEMTECH_LORAMAC_NOT_JOINED: {
                     puts("[LoRa] not joined to the network");
-
-                    if (current_join_retries == 0) {
-                        puts("[LoRa] attempting to rejoin");
-                        msg_send(&msg_join, sender_pid);
-                    } else {
-                        puts("[LoRa] waiting for the node to join");
-                    }
-                    frame.retransmit = true;
+                    lora_joined = false;
+                    frame.retransmit = false;
                     ls_frame_fifo_replace(&fifo_lorapacket, &frame);
                     break;
                 }
@@ -500,6 +503,9 @@ static void ls_setup(semtech_loramac_t *ls)
     //semtech_loramac_set_netid(ls, 0xAB130C);
 
     semtech_loramac_set_dr(ls, unwds_get_node_settings().dr);
+    
+    semtech_loramac_set_system_max_rx_error(ls, 20);
+    semtech_loramac_set_min_rx_symbols(ls, 6);
     
     semtech_loramac_set_adr(ls, unwds_get_node_settings().adr);
     semtech_loramac_set_class(ls, unwds_get_node_settings().nodeclass);

@@ -54,7 +54,7 @@ int main(void)
     }
 
     while (1) {
-        lis2dh12_power_on(&lis2dh12);
+        lis2dh12_poweron(&lis2dh12);
 
         /* read sensor data */
         if (lis2dh12_read_xyz(&lis2dh12, &acc) == LIS2DH12_OK) {
@@ -73,7 +73,7 @@ int main(void)
             return 1;
         }
 
-        lis2dh12_power_off(&lis2dh12);
+        lis2dh12_poweroff(&lis2dh12);
 
         lptimer_sleep(SLEEP_DELAY_MS);
     }

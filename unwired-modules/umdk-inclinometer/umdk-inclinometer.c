@@ -161,7 +161,7 @@ static bool init_sensor(void) {
     if (lis2dh12_init(&dev_lis2dh12, &lis2dh12_params) == LIS2DH12_OK) {
         puts("[umdk-" _UMDK_NAME_ "] STMicro LIS2DH12 sensor found");
         active_sensors |= UMDK_INCLINOMETER_LIS2DH12;
-        lis2dh12_power_off(&dev_lis2dh12);
+        lis2dh12_poweroff(&dev_lis2dh12);
         return true;
     }
     
@@ -176,7 +176,7 @@ static bool init_sensor(void) {
     if (lis3dh_init(&dev_lis3dh, &lis3dh_params, NULL, NULL) == 0) {
         puts("[umdk-" _UMDK_NAME_ "] STMicro LIS3DH sensor found");
         active_sensors |= UMDK_INCLINOMETER_LIS3DH;
-        lis3dh_power_off(&dev_lis3dh);
+        lis3dh_poweroff(&dev_lis3dh);
         return true;
     }
 
@@ -286,9 +286,9 @@ static void *measure_thread(void *arg) {
         
         if (active_sensors & UMDK_INCLINOMETER_LIS2DH12) {
             lis2dh12_acc_t lis2dh12_data;
-            lis2dh12_power_on(&dev_lis2dh12);
+            lis2dh12_poweron(&dev_lis2dh12);
             lis2dh12_read_xyz(&dev_lis2dh12, &lis2dh12_data);
-            lis2dh12_power_off(&dev_lis2dh12);
+            lis2dh12_poweroff(&dev_lis2dh12);
             
             x = lis2dh12_data.axis_x;
             y = lis2dh12_data.axis_y;
@@ -297,9 +297,9 @@ static void *measure_thread(void *arg) {
         
         if (active_sensors & UMDK_INCLINOMETER_LIS3DH) {
             lis3dh_acceleration_t lis3dh_data;
-            lis3dh_power_on(&dev_lis3dh);
+            lis3dh_poweron(&dev_lis3dh);
             lis3dh_read_xyz(&dev_lis3dh, &lis3dh_data);
-            lis3dh_power_off(&dev_lis3dh);
+            lis3dh_poweroff(&dev_lis3dh);
             
             x = lis3dh_data.axis_x;
             y = lis3dh_data.axis_y;

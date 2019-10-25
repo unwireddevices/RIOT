@@ -125,32 +125,29 @@ void sx1280_hal_reset(const sx128x_t *dev)
 
 void sx1280_hal_clear_instruction_ram(const sx128x_t *dev)
 {
-    (void)dev;
-//     /* Clearing the instruction RAM is writing 0x00s on every bytes of the
-//      * instruction RAM */
-//     uint16_t hal_size = 3 + SX128X_IRAM_SIZE;
+    /* Clearing the instruction RAM is writing 0x00s on every bytes of the
+     * instruction RAM */
+    uint16_t hal_size = 3 + SX128X_IRAM_SIZE;
 
-//     hal_tx_buffer[0] = SX128X_RADIO_WRITE_REGISTER;
-//     hal_tx_buffer[1] = (SX128X_IRAM_START_ADDRESS >> 8) & 0x00FF;
-//     hal_tx_buffer[2] = SX128X_IRAM_START_ADDRESS & 0x00FF;
+    hal_tx_buffer[0] = SX128X_RADIO_WRITE_REGISTER;
+    hal_tx_buffer[1] = (SX128X_IRAM_START_ADDRESS >> 8) & 0x00FF;
+    hal_tx_buffer[2] = SX128X_IRAM_START_ADDRESS & 0x00FF;
 
-//     for(uint16_t index = 0; index < SX128X_IRAM_SIZE; index++) {
-//         hal_tx_buffer[3 + index] = 0x00;
-//     }
+    memset(&hal_tx_buffer[3], 0x00, SX128X_IRAM_SIZE);
 
-//     sx1280_hal_wait_on_busy(dev);
+    sx1280_hal_wait_on_busy(dev);
 
-//     spi_acquire(dev->params.spi_dev, SPI_CS_UNDEF, dev->params.spi_mode, dev->params.spi_speed);
+    spi_acquire(dev->params.spi_dev, SPI_CS_UNDEF, dev->params.spi_mode, dev->params.spi_speed);
 
-//     gpio_clear(dev->params.nss_pin);
+    gpio_clear(dev->params.nss_pin);
 
-//     spi_transfer_bytes(dev->params.spi_dev, SPI_CS_UNDEF, false, hal_tx_buffer, NULL, hal_size);
+    spi_transfer_bytes(dev->params.spi_dev, SPI_CS_UNDEF, false, hal_tx_buffer, NULL, hal_size);
 
-//     gpio_set(dev->params.nss_pin);
+    gpio_set(dev->params.nss_pin);
 
-//     spi_release(dev->params.spi_dev);
+    spi_release(dev->params.spi_dev);
 
-//     sx1280_hal_wait_on_busy(dev);
+    sx1280_hal_wait_on_busy(dev);
 }
 
 void sx1280_hal_wakeup(const sx128x_t *dev)

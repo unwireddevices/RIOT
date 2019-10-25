@@ -172,7 +172,7 @@ int lis2dh12_read_temp(lis2dh12_t *dev, int16_t *temperature_degC);
  * 
  * @return           Error status
  */
-int lis2dh12_power_on(lis2dh12_t *dev);
+int lis2dh12_poweron(lis2dh12_t *dev);
 
 /**
  * @brief   Power off the given device
@@ -181,7 +181,7 @@ int lis2dh12_power_on(lis2dh12_t *dev);
  *
  * @return  Error status
  */
-int lis2dh12_power_off(lis2dh12_t *dev);
+int lis2dh12_poweroff(lis2dh12_t *dev);
 
 #ifdef __cplusplus
 }

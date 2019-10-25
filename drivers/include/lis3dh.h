@@ -340,7 +340,7 @@ int lis3dh_read_temp(lis3dh_t *dev, int16_t *temperature_degC);
  * 
  * @return           Error status
  */
-int lis3dh_power_on(lis3dh_t *dev);
+int lis3dh_poweron(lis3dh_t *dev);
 
 /**
  * @brief   Power off the given device
@@ -349,7 +349,7 @@ int lis3dh_power_on(lis3dh_t *dev);
  * 
  * @return           Error status
  */
-int lis3dh_power_off(lis3dh_t *dev);
+int lis3dh_poweroff(lis3dh_t *dev);
 
 #ifdef __cplusplus
 }

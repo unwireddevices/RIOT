@@ -492,7 +492,7 @@ int lis2dh12_read_temp(lis2dh12_t *dev, int16_t *temperature_degC)
     return LIS2DH12_OK;
 }
 
-int lis2dh12_power_on(lis2dh12_t *dev) 
+int lis2dh12_poweron(lis2dh12_t *dev) 
 {
     /* Enable all axis */
     uint8_t reg_val = 0x00;
@@ -572,7 +572,7 @@ int lis2dh12_power_on(lis2dh12_t *dev)
     return LIS2DH12_OK;
 }
 
-int lis2dh12_power_off(lis2dh12_t *dev)
+int lis2dh12_poweroff(lis2dh12_t *dev)
 {
     /* Disable all axis */
     uint8_t reg_val = 0x00;

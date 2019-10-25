@@ -20,9 +20,9 @@
  */
 
 /**
- * @defgroup    
- * @ingroup     
- * @brief       
+ * @defgroup
+ * @ingroup
+ * @brief
  * @{
  * @file        umdk-gassensor.h
  * @brief       LMP91000-based gas sensor module
@@ -39,7 +39,6 @@
 
 #define UMDK_GASSENSOR_ADC_LINE                     ADC_LINE(3)
 #define UMDK_GASSENSOR_ADC_RESOLUTION               ADC_RES_12BIT
-#define UMDK_GASSENSOR_CONVERT_TO_MILLIVOLTS        1
 
 #define UMDK_GASSENSOR_I2C                          (I2C_DEV(1))
 #define UMDK_GASSENSOR_I2C_ADDR                     (0x48)
@@ -51,12 +50,40 @@
 #define UMDK_LMP_TEMP_SENSITIVITY                   (8200)              //C/uV
 
 /* Recommended Bias */
+#define UMDK_GASSENSOR_ME2CO_BIAS                   (0)                 //mV
 #define UMDK_GASSENSOR_CO_BIAS                      (20.5)              //mV
-#define UMDK_GASSENSOR_H2S_BIAS                     (0)                 //mV     
-#define UMDK_GASSENSOR_NO2_BIAS                     (205)               //mV     
-#define UMDK_GASSENSOR_SO2_BIAS                     (205)               //mV     
+#define UMDK_GASSENSOR_H2S_BIAS                     (0)                 //mV
+#define UMDK_GASSENSOR_NO2_BIAS                     (205)               //mV
+#define UMDK_GASSENSOR_SO2_BIAS                     (205)               //mV
 #define UMDK_GASSENSOR_O3_BIAS                      (20.5)              //mV
-#define UMDK_GASSENSOR_VOLTAGE_REF                  (3300)              //mV      
+
+#if !defined(UMDK_GASSENSOR_VOLTAGE_REF)
+#define UMDK_GASSENSOR_VOLTAGE_REF                  (3300)              //mV
+#endif
+
+#if !defined(UMDK_GASSENSOR_REF_SOURCE)
+#define UMDK_GASSENSOR_REF_SOURCE                   (LMP91000_REF_SOURCE_INT)
+#endif
+
+#if !defined(UMDK_GASSENSOR_BIAS_SIGN)
+#define UMDK_GASSENSOR_BIAS_SIGN                    (LMP91000_BIAS_SIGN_NEG)
+#endif
+
+#if !defined(UMDK_GASSENSOR_INT_Z)
+#define UMDK_GASSENSOR_INT_Z                        (LMP91000_INT_Z_50PCT)
+#endif
+
+#if !defined(UMDK_GASSENSOR_RLOAD)
+#define UMDK_GASSENSOR_RLOAD                        (LMP91000_RLOAD_10OHM)
+#endif
+
+#if !defined(UMDK_GASSENSOR_MODE)
+#define UMDK_GASSENSOR_MODE                         (LMP91000_OP_MODE_3_LEAD_AMP_CELL)
+#endif
+
+#if !defined(UMDK_GASSENSOR_FET)
+#define UMDK_GASSENSOR_FET                          (LMP91000_FET_SHORT_DISABLED)
+#endif
 
 /* Temperature Coefficient of Span [%/°C] * 10 */
 #define UMDK_GASSENSOR_CO_SPAN_HI                   (3)                 //  10°C to 40 °C
@@ -65,9 +92,9 @@
 #define UMDK_GASSENSOR_H2S_SPAN_HI                  (5)                 //  20 °C to 40 °C
 #define UMDK_GASSENSOR_H2S_SPAN_LO                  (-33)               // -20 °C to 20 °C
 /* Temperature Coefficient of Span [%/°C] * 10 */
-#define UMDK_GASSENSOR_NO2_SPAN                     (3)                 // -20 °C to 50 °C 
+#define UMDK_GASSENSOR_NO2_SPAN                     (3)                 // -20 °C to 50 °C
 /* Temperature Coefficient of Span [%/°C] * 100 */
-#define UMDK_GASSENSOR_SO2_SPAN_HI                  (26)                // 20 °C to 40 °C 
+#define UMDK_GASSENSOR_SO2_SPAN_HI                  (26)                // 20 °C to 40 °C
 #define UMDK_GASSENSOR_SO2_SPAN_LO                  (-33)               // -20 °C to 20 °C
 /* Temperature Coefficient of Span [%/°C] * 10 */
 #define UMDK_GASSENSOR_O3_SPAN                      (3)                 // -20 °C to 50 °C
@@ -94,6 +121,7 @@ typedef enum {
     UMDK_GASSENSOR_NO2     = 3,
     UMDK_GASSENSOR_SO2     = 4,
     UMDK_GASSENSOR_O3      = 5,
+    UMDK_GASSENSOR_ME2CO   = 6,
 } umdk_gassensor_sensor_t;
 
 

@@ -3049,7 +3049,7 @@ int lis3dh_read_temp(lis3dh_t *dev, int16_t *temperature_degC) {
     return LIS3DH_OK;
 }
 
-int lis3dh_power_on(lis3dh_t *dev) 
+int lis3dh_poweron(lis3dh_t *dev) 
 {
     lis3dh_ctrl_reg1_t ctrl_reg1;
     int32_t ret;
@@ -3073,7 +3073,7 @@ int lis3dh_power_on(lis3dh_t *dev)
     return ret;
 }
 
-int lis3dh_power_off(lis3dh_t *dev)
+int lis3dh_poweroff(lis3dh_t *dev)
 {
     lis3dh_ctrl_reg1_t ctrl_reg1;
     int32_t ret;

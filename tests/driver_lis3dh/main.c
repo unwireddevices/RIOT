@@ -79,7 +79,7 @@ int main(void)
     puts("LIS3DH init done.\n");
 
     puts("LIS3DH power on...");
-    if (lis3dh_power_on(&dev) != 0) {
+    if (lis3dh_poweron(&dev) != 0) {
         puts("[Failed]\n");
         return 1;
     }

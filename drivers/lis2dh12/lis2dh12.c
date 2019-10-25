@@ -405,7 +405,7 @@ int lis2dh12_init(lis2dh12_t *dev, const lis2dh12_params_t *params)
     return LIS2DH12_OK;
 }
 
-int lis2dh12_read_xyz(lis2dh12_t *dev, lis2dh12_acc_t *acceleration) {
+int lis2dh12_read_xyz(lis2dh12_t *dev, lis2dh12_data_t *acceleration) {
     uint8_t axl_data_rdy;
     uint8_t axl_data_ovr;
     uint16_t tick = 0xFFFF;

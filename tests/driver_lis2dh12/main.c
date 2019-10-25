@@ -30,7 +30,7 @@ static lis2dh12_t lis2dh12;
 static lis2dh12_params_t lis2dh12_params;
 
 /* Allocate some of the memory to store the output values of the sensor */
-static lis2dh12_acc_t acc;
+static lis2dh12_data_t acc;
 static int16_t deg_celsius;
 
 int main(void)

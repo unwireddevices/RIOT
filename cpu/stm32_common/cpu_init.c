@@ -113,7 +113,11 @@ static void jump_to_bootloader(void) {
 #endif
 
 #ifndef DISABLE_JTAG
-#define DISABLE_JTAG 0
+#define DISABLE_JTAG 1
+#endif
+
+#ifndef DISABLE_SWD
+#define DISABLE_SWD 0
 #endif
 
 /**
@@ -137,7 +141,7 @@ static void _gpio_init_ain(void)
         GPIO_TypeDef *port;
         port = (GPIO_TypeDef *)(GPIOA_BASE + i*(GPIOB_BASE - GPIOA_BASE));
         if (IS_GPIO_ALL_INSTANCE(port) && cpu_check_address((char *)port)) {
-            if (!DISABLE_JTAG) {
+            if ((!DISABLE_JTAG) || (!DISABLE_SWD)) {
 #if defined(CPU_FAM_STM32F1)
                 switch (i) {
                     /* preserve JTAG pins on PORTA and PORTB */
@@ -146,8 +150,11 @@ static void _gpio_init_ain(void)
                         port->CR[1] = GPIO_CRH_CNF & 0x000FFFFF;
                         break;
                     case 1:
-                        port->CR[0] = GPIO_CRL_CNF & 0xFFF00FFF;
-                        port->CR[1] = GPIO_CRH_CNF;
+                        if (DISABLE_JTAG) {
+                            /* preserve SWD pins only */
+                            port->CR[0] = GPIO_CRL_CNF & 0xFFF00FFF;
+                            port->CR[1] = GPIO_CRH_CNF;
+                        }
                         break;
                     default:
                         port->CR[0] = GPIO_CRL_CNF;
@@ -158,10 +165,21 @@ static void _gpio_init_ain(void)
                 switch (i) {
                     /* preserve JTAG pins on PORTA and PORTB */
                     case 0:
-                        port->MODER = 0xABFFFFFF;
+                        if (DISABLE_JTAG) {
+                            /* preserve SWD pins (PA13, PA14) only */
+                            port->MODER = 0xEBFFFFFF;
+                        }
+                        else {
+                            port->MODER = 0xABFFFFFF;
+                        }
                         break;
                     case 1:
-                        port->MODER = 0xFFFFFEBF;
+                        if (DISABLE_JTAG) {
+                            /* preserve SWD pins (PA13, PA14) only */
+                            port->MODER = 0xFFFFFFFF;
+                        } else {
+                            port->MODER = 0xFFFFFEBF;
+                        }
                         break;
                     default:
                         port->MODER = 0xFFFFFFFF;

@@ -285,7 +285,7 @@ static void *measure_thread(void *arg) {
         }
         
         if (active_sensors & UMDK_INCLINOMETER_LIS2DH12) {
-            lis2dh12_acc_t lis2dh12_data;
+            lis2dh12_data_t lis2dh12_data;
             lis2dh12_poweron(&dev_lis2dh12);
             lis2dh12_read_xyz(&dev_lis2dh12, &lis2dh12_data);
             lis2dh12_poweroff(&dev_lis2dh12);

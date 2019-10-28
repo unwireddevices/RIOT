@@ -13,6 +13,8 @@
  * @brief       Test application for the FDC2212 2-Channel Capacitance-to-Digital Converter
  *
  * @author      Alexander Ugorelov <info@unwds.com>
+ * @author      Manchenko Oleg     <man4enkoos@gmail.com>
+ * 
  * @todo        Attention! Works only with channel null.
  *
  * @}
@@ -25,32 +27,27 @@
 #include "lptimer.h"
 #include "fdc2212.h"
 
-#define DELAY                                           (1UL * 1000UL)
+#define DELAY                                   (1UL * 100UL)
 
-#define PROXIMITY_REFCOUNT                              (40000)
-#define PROXIMITY_SETTLECOUNT                           (100)
+#define PROXIMITY_REFCOUNT                      (0xFFFF)
+#define PROXIMITY_SETTLECOUNT                   (100)
 
-#define PROXIMITY_INTEGRAL_THRESHOLD                    (200)
-#define PROXIMITY_INTEGRAL_HYS                          (1.2)
-#define PROXIMITY_DERIVATIVE_THRESHOLD                  (0)
-#define PROXIMITY_LEAKAGE_FACTOR                        (0.99)
+#define DIFFERENCE_MOVING_AVG_THRESHOLD         (100)
+#define DIFFERENCE_MOVING_AVG_SUM_THRESHOLD     (500)
+#define MEASURE_SAMPLE_NUM                      (5)
 
 /* allocate memory for variables */
-static uint32_t prox_meas_sample     = 0;
-static uint32_t moving_avg_prox      = 0;
-static uint32_t prev_moving_avg_prox = 0;
-static int32_t  derivative_prox      = 0;
-static int32_t  integral_prox        = 0;
-static int32_t  prev_integral_prox   = 0;
-
-static uint16_t integral_prox_hys = 0;
+static uint32_t prox_meas_sample      = 0;
+static uint32_t moving_avg_prox       = 0;
+static uint32_t prev_moving_avg_prox  = 0;
+static int32_t  difference_moving_avg = 0;
 
 static bool init_cal = true;
-static bool prox_on = false;
+static bool prox_on  = false;
 
 static void _init_moving_avg(void);
 
-/* allocate devices descriptor */
+/* Allocate devices descriptor */
 static fdc2212_t fdc2212;
 static fdc2212_params_t fdc2212_params;
 
@@ -85,6 +82,11 @@ int main(void)
 
     lptimer_ticks32_t last_wakeup = lptimer_now();
 
+    uint32_t detect_moving_avg    = 0;
+    uint8_t  counter              = 0;
+    bool prox_on_detect_treshhold = false;
+    bool pre_prox_on              = false;
+
     while (1) {
         /* Waiting until the data is ready */
         while (fdc2212_data_ready(&fdc2212) != FDC2212_OK)
@@ -94,41 +96,49 @@ int main(void)
         /* Collect FDC measurements */
         fdc2212_read_raw_data(&fdc2212, 0, &prox_meas_sample);
 
-        /* Process Data using Derivative/Integration Algorithm
-         * Moving Average using IIR filter of 8 samples */
-        prev_moving_avg_prox = moving_avg_prox;
-        moving_avg_prox = ((moving_avg_prox << 2) - moving_avg_prox + prox_meas_sample) >> 2;
+        /* Moving Average using IIR filter of 8 samples */
+        prev_moving_avg_prox  = moving_avg_prox;
+        moving_avg_prox       = ((moving_avg_prox << 3) - moving_avg_prox + prox_meas_sample) >> 3;
 
-        derivative_prox = moving_avg_prox - prev_moving_avg_prox;
+        /* Difference calculation moving AWG */
+        difference_moving_avg = moving_avg_prox - prev_moving_avg_prox;
 
-        /* Channel 0 is used as a proximity sensor */
-        if((abs(derivative_prox) > PROXIMITY_DERIVATIVE_THRESHOLD)) {
-            integral_prox = prev_integral_prox + derivative_prox;
-        } else {
-            integral_prox = prev_integral_prox;
+        /* Threshold trigger test */
+        if((abs(difference_moving_avg) > DIFFERENCE_MOVING_AVG_THRESHOLD) && (prox_on_detect_treshhold == false)) {
+            detect_moving_avg = prev_moving_avg_prox;
+            prox_on_detect_treshhold = true;
+            counter = 0;
+
+            if (difference_moving_avg < 0) {
+                pre_prox_on = true;
+            } else {
+                pre_prox_on = false;
+            }
+        } 
+
+        /* Check state after MEASURE_SAMPLE_NUM samples */
+        if (prox_on_detect_treshhold == true){
+            if (counter == MEASURE_SAMPLE_NUM) {
+                counter = 0;
+                prox_on_detect_treshhold = false;
+
+                /* Event сheck and threshold trigger test */
+                if (pre_prox_on) {
+                    if ((detect_moving_avg - DIFFERENCE_MOVING_AVG_SUM_THRESHOLD) > moving_avg_prox) {
+                        prox_on = true;
+                    } 
+                } else {
+                    if ((detect_moving_avg + DIFFERENCE_MOVING_AVG_SUM_THRESHOLD) < moving_avg_prox) {
+                        prox_on = false;
+                    } 
+                }
+            } else {
+                counter++;
+            }
         }
 
-        if(prox_on) {
-            integral_prox_hys = PROXIMITY_INTEGRAL_THRESHOLD / PROXIMITY_INTEGRAL_HYS;
-        } else {
-            integral_prox_hys = PROXIMITY_INTEGRAL_THRESHOLD * PROXIMITY_INTEGRAL_HYS;
-        }
-
-        if(integral_prox_hys <= -(integral_prox))
-        {
-            /* Object detected for Proximity Sensor */
-            prev_integral_prox = integral_prox;
-            prox_on = true;
-        }
-        else
-        {
-            /* Object not detected */
-            prev_integral_prox = integral_prox * PROXIMITY_LEAKAGE_FACTOR;
-            prox_on = false;
-        }
-        printf("Mov_AVG\tMeasure\tDerivative\tIntegral\n");
-        printf("%"PRIu32"\t""%"PRIu32"\t""%"PRIi32"\t""%"PRIi32"\t ", 
-               moving_avg_prox, prox_meas_sample, derivative_prox, prev_integral_prox);
+        /* Print in log */
+        printf("%"PRIu32"\t""%"PRIu32"\t""%"PRIi32"\t", moving_avg_prox, prox_meas_sample, difference_moving_avg);
         printf("The proximity sensor %s the object.\n", (prox_on == true)?("detected"):("didn't detect"));
 
         lptimer_periodic_wakeup(&last_wakeup, DELAY);
@@ -158,6 +168,7 @@ static void _init_moving_avg(void)
             init_cal = false;
         }
 
-        moving_avg_prox = ((moving_avg_prox << 2) - moving_avg_prox + prox_meas_sample) >> 2;
+        /* Moving Average using IIR filter of 8 samples */
+        moving_avg_prox = ((moving_avg_prox << 3) - moving_avg_prox + prox_meas_sample) >> 3;
     }
 }

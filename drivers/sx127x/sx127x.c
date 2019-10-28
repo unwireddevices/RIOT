@@ -86,7 +86,7 @@ int sx127x_reset(const sx127x_t *dev)
 
     /* Wait 1 ms */
     /* xtimer_spin(xtimer_ticks_from_usec(1000)); */
-    lptimer_sleep(1);
+    lptimer_sleep(10);
 
     /* Put reset pin in High-Z */
     gpio_init(dev->params.reset_pin, GPIO_IN);
@@ -112,9 +112,9 @@ int sx127x_init(sx127x_t *dev)
     }
 
     _init_timers(dev);
-    /* wait 1 millisecond */
-    /* xtimer_spin(xtimer_ticks_from_usec(1000)); */
-    lptimer_sleep(1);
+    /* wait 10 milliseconds */
+    /* xtimer_spin(xtimer_ticks_from_usec(10000)); */
+    lptimer_sleep(10);
     sx127x_reset(dev);
     if (dev->_internal.modem_chip == SX127X_MODEM_SX1276) {
         sx1276_rx_chain_calibration(dev);

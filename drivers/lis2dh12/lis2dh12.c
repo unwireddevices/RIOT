@@ -405,7 +405,7 @@ int lis2dh12_init(lis2dh12_t *dev, const lis2dh12_params_t *params)
     return LIS2DH12_OK;
 }
 
-int lis2dh12_read_xyz(lis2dh12_t *dev, lis2dh12_acc_t *acceleration) {
+int lis2dh12_read_xyz(lis2dh12_t *dev, lis2dh12_data_t *acceleration) {
     uint8_t axl_data_rdy;
     uint8_t axl_data_ovr;
     uint16_t tick = 0xFFFF;
@@ -492,7 +492,7 @@ int lis2dh12_read_temp(lis2dh12_t *dev, int16_t *temperature_degC)
     return LIS2DH12_OK;
 }
 
-int lis2dh12_power_on(lis2dh12_t *dev) 
+int lis2dh12_poweron(lis2dh12_t *dev) 
 {
     /* Enable all axis */
     uint8_t reg_val = 0x00;
@@ -548,6 +548,7 @@ int lis2dh12_power_on(lis2dh12_t *dev)
                         power_on_delay_us = 7000;
                         break;
                 }
+                break;
             }
             case LIS2DH12_NM_10BIT:
                 power_on_delay_us = 1600;
@@ -571,7 +572,7 @@ int lis2dh12_power_on(lis2dh12_t *dev)
     return LIS2DH12_OK;
 }
 
-int lis2dh12_power_off(lis2dh12_t *dev)
+int lis2dh12_poweroff(lis2dh12_t *dev)
 {
     /* Disable all axis */
     uint8_t reg_val = 0x00;

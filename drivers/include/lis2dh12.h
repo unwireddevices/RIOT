@@ -111,8 +111,6 @@ typedef struct {
  */
 typedef struct {
     lis2dh12_params_t params;                           /**<Device initialization parameters */
-    // bool              use_temp;                         /**< Use temperature measurement? */
-    // uint16_t          comp;                             /**< scale compensation factor */
 } lis2dh12_t;
 
 /**
@@ -133,7 +131,7 @@ typedef struct {
     int16_t axis_x;                                     /**< Acceleration in the X direction in milli-G */
     int16_t axis_y;                                     /**< Acceleration in the Y direction in milli-G */
     int16_t axis_z;                                     /**< Acceleration in the Z direction in milli-G */
-} lis2dh12_acc_t;
+} lis2dh12_data_t;
 
 /**
  * @brief   Initialize the given LIS2DH12 sensor device
@@ -153,7 +151,7 @@ int lis2dh12_init(lis2dh12_t *dev, const lis2dh12_params_t *params);
  *
  * @return                    Error status
  */
-int lis2dh12_read_xyz(lis2dh12_t *dev, lis2dh12_acc_t *acceleration);
+int lis2dh12_read_xyz(lis2dh12_t *dev, lis2dh12_data_t *acceleration);
 
 /**
  * @brief   Read temperature from the accelerometer
@@ -172,7 +170,7 @@ int lis2dh12_read_temp(lis2dh12_t *dev, int16_t *temperature_degC);
  * 
  * @return           Error status
  */
-int lis2dh12_power_on(lis2dh12_t *dev);
+int lis2dh12_poweron(lis2dh12_t *dev);
 
 /**
  * @brief   Power off the given device
@@ -181,7 +179,7 @@ int lis2dh12_power_on(lis2dh12_t *dev);
  *
  * @return  Error status
  */
-int lis2dh12_power_off(lis2dh12_t *dev);
+int lis2dh12_poweroff(lis2dh12_t *dev);
 
 #ifdef __cplusplus
 }

@@ -57,13 +57,13 @@ static void _int1_handler(void *arg)
 int main(void)
 {   
     lis3dh_params_t lis3dh_params[] = { 
-        {.i2c      = I2C_DEV(0),   
-        .addr      = LIS3DH_I2C_SAD_L,    
+        {.i2c_dev  = I2C_DEV(0),   
+        .i2c_addr  = LIS3DH_I2C_SAD_L,    
         .int1      = GPIO_PIN(PORT_A, 14),  
         .int1_mode = I1_ZYXDA,  
-        .scale     = LIS3DH_2g,
-        .odr       = LIS3DH_ODR_1Hz,
-        .op_mode   = LIS3DH_HR_12bit},
+        .scale     = LIS3DH_SCALE_2G,
+        .odr       = LIS3DH_ODR_1HZ,
+        .res       = LIS3DH_HR_12BIT},
     };
 
     puts("LIS3DH accelerometer driver test application");

@@ -65,35 +65,35 @@ typedef enum {
  */
 typedef enum {
     LIS3DH_POWER_DOWN                      = 0x00,      /**< Power-down mode */
-    LIS3DH_ODR_1Hz                         = 0x01,      /**< HR / Normal / Low-power mode (1 Hz) */
-    LIS3DH_ODR_10Hz                        = 0x02,      /**< HR / Normal / Low-power mode (10 Hz) */
-    LIS3DH_ODR_25Hz                        = 0x03,      /**< HR / Normal / Low-power mode (25 Hz) */
-    LIS3DH_ODR_50Hz                        = 0x04,      /**< HR / Normal / Low-power mode (50 Hz) */
-    LIS3DH_ODR_100Hz                       = 0x05,      /**< HR / Normal / Low-power mode (100 Hz) */
-    LIS3DH_ODR_200Hz                       = 0x06,      /**< HR / Normal / Low-power mode (200 Hz) */
-    LIS3DH_ODR_400Hz                       = 0x07,      /**< HR / Normal / Low-power mode (400 Hz) */
-    LIS3DH_ODR_1kHz620_LP                  = 0x08,      /**< Low power mode (1.60 kHz) */
-    LIS3DH_ODR_5kHz376_LP_1kHz344_NM_HP    = 0x09,      /**< HR / normal (1.344 kHz); Low-power mode (5.376 kHz) */
+    LIS3DH_ODR_1HZ                         = 0x01,      /**< HR / Normal / Low-power mode (1 Hz) */
+    LIS3DH_ODR_10HZ                        = 0x02,      /**< HR / Normal / Low-power mode (10 Hz) */
+    LIS3DH_ODR_25HZ                        = 0x03,      /**< HR / Normal / Low-power mode (25 Hz) */
+    LIS3DH_ODR_50HZ                        = 0x04,      /**< HR / Normal / Low-power mode (50 Hz) */
+    LIS3DH_ODR_100HZ                       = 0x05,      /**< HR / Normal / Low-power mode (100 Hz) */
+    LIS3DH_ODR_200HZ                       = 0x06,      /**< HR / Normal / Low-power mode (200 Hz) */
+    LIS3DH_ODR_400HZ                       = 0x07,      /**< HR / Normal / Low-power mode (400 Hz) */
+    LIS3DH_ODR_1KHZ620_LP                  = 0x08,      /**< Low power mode (1.60 kHz) */
+    LIS3DH_ODR_5KHZ376_LP_1KHZ344_NM_HP    = 0x09,      /**< HR / normal (1.344 kHz); Low-power mode (5.376 kHz) */
 } lis3dh_odr_t;
 
 /**
  * @brief   Operating mode
  */
 typedef enum {
-    LIS3DH_HR_12bit   = 0,                              /**< High-resolution mode */
-    LIS3DH_NM_10bit   = 1,                              /**< Normal mode */
-    LIS3DH_LP_8bit    = 2,                              /**< Low-power mode */
-} lis3dh_op_md_t;
+    LIS3DH_HR_12BIT   = 0,                              /**< High-resolution mode */
+    LIS3DH_NM_10BIT   = 1,                              /**< Normal mode */
+    LIS3DH_LP_8BIT    = 2,                              /**< Low-power mode */
+} lis3dh_res_t;
 
 /**
  * @brief   Available full-scale values
  */
 typedef enum {
-    LIS3DH_2g   = 0,                                    /**< +- 2g */
-    LIS3DH_4g   = 1,                                    /**< +- 4g */
-    LIS3DH_8g   = 2,                                    /**< +- 8g */
-    LIS3DH_16g  = 3,                                    /**< +- 16g */
-} lis3dh_fs_t;
+    LIS3DH_SCALE_2G   = 0,                              /**< +- 2g */
+    LIS3DH_SCALE_4G   = 1,                              /**< +- 4g */
+    LIS3DH_SCALE_8G   = 2,                              /**< +- 8g */
+    LIS3DH_SCALE_16G  = 3,                              /**< +- 16g */
+} lis3dh_scale_t;
 
 /**
  * @brief   Axes enables
@@ -262,20 +262,20 @@ typedef struct {
     gpio_t              cs;                             /**< Chip select pin */
     gpio_t              int1;                           /**< INT1 pin */
     lis3dh_int1_md_t    int1_mode;                      /**< INT1 mode */
-    lis3dh_fs_t         scale;                          /**< Sensor scale: 2, 4, 8, or 16 (G) */
+    lis3dh_scale_t      scale;                          /**< Sensor scale: 2, 4, 8, or 16 (G) */
     lis3dh_odr_t        odr;                            /**< Sensor ODR setting: LIS3DH_ODR_xxxHz */
-    lis3dh_op_md_t      op_mode;                        /**< Operation mode */
+    lis3dh_res_t        res;                            /**< Operation mode */
     
 } lis3dh_params_t;
 #elif defined (MODULE_LIS3DH_I2C)
 typedef struct {
-    i2c_t               i2c;                            /**< I2C device */
-    uint8_t             addr;                           /**< I2C address */
+    i2c_t               i2c_dev;                        /**< I2C device */
+    uint8_t             i2c_addr;                       /**< I2C address */
     gpio_t              int1;                           /**< INT1 pin */
     lis3dh_int1_md_t    int1_mode;                      /**< INT1 mode */
-    lis3dh_fs_t         scale;                          /**< Ssensor scale: 2, 4, 8, or 16 (G) */
+    lis3dh_scale_t      scale;                          /**< Ssensor scale: 2, 4, 8, or 16 (G) */
     lis3dh_odr_t        odr;                            /**< Sensor ODR setting: LIS3DH_ODR_xxxHz */
-    lis3dh_op_md_t      op_mode;                        /**< Operation mode */
+    lis3dh_res_t        res;                            /**< Operation mode */
     
 } lis3dh_params_t;
 #endif
@@ -287,8 +287,8 @@ typedef struct {
     lis3dh_params_t  params;                            /**< Device initialization parameters */
     lis3dh_int1_cb_t cb;                                /**< alert callback */
     void             *arg;                              /**< alert callback param */
-    lis3dh_fs_t      scale;                             /**< Internal sensor scale */
-    lis3dh_op_md_t   op_mode;                           /**< Internal sensor operation mode */
+    lis3dh_scale_t   scale;                             /**< Internal sensor scale */
+    lis3dh_res_t     res;                               /**< Internal sensor operation mode */
 } lis3dh_t;
 
 /**

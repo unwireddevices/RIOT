@@ -49,7 +49,7 @@ extern "C" {
 #define LIS3DH_PARAM_SCALE          (4)
 #endif
 #ifndef LIS3DH_PARAM_ODR
-#define LIS3DH_PARAM_ODR            (LIS3DH_ODR_100Hz)
+#define LIS3DH_PARAM_ODR            (LIS3DH_ODR_100HZ)
 #endif
 
 #ifndef LIS3DH_PARAMS
@@ -115,24 +115,24 @@ static const saul_reg_info_t lis3dh_saul_info[] =
 #define LIS3DH_PARAM_INT1_MODE      (I1_DISABLE)
 #endif
 #ifndef LIS3DH_PARAM_SCALE
-#define LIS3DH_PARAM_SCALE          (LIS3DH_2g)
+#define LIS3DH_PARAM_SCALE          (LIS3DH_SCALE_2G)
 #endif
 #ifndef LIS3DH_PARAM_ODR
-#define LIS3DH_PARAM_ODR            (LIS3DH_ODR_1Hz)
+#define LIS3DH_PARAM_ODR            (LIS3DH_ODR_1HZ)
 #endif
-#ifndef LIS3DH_PARAM_OP_MODE
-#define LIS3DH_PARAM_OP_MODE        (LIS3DH_HR_12bit)
+#ifndef LIS3DH_PARAM_RES
+#define LIS3DH_PARAM_RES            (LIS3DH_HR_12BIT)
 #endif
 
 
 #ifndef LIS3DH_PARAMS
-#define LIS3DH_PARAMS               { .i2c       = LIS3DH_PARAM_I2C,       \
-                                      .addr      = LIS3DH_PARAM_ADDR,      \
+#define LIS3DH_PARAMS               { .i2c_dev   = LIS3DH_PARAM_I2C,       \
+                                      .i2c_addr  = LIS3DH_PARAM_ADDR,      \
                                       .int1      = LIS3DH_PARAM_INT1,      \
                                       .int1_mode = LIS3DH_PARAM_INT1_MODE, \
                                       .scale     = LIS3DH_PARAM_SCALE,     \
                                       .odr       = LIS3DH_PARAM_ODR,       \
-                                      .op_mode   = LIS3DH_PARAM_OP_MODE}
+                                      .res       = LIS3DH_PARAM_RES}
 #endif
 #ifndef LIS3DH_SAUL_INFO
 #define LIS3DH_SAUL_INFO            { .name = "lis3dh" }

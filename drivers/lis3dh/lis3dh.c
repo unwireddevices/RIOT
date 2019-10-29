@@ -218,7 +218,7 @@ int32_t lis3dh_aux_adc_get(lis3dh_t *dev, lis3dh_temp_en_t *val);
  *                  
  * @return       Error status
  */
-int32_t lis3dh_operating_mode_set(lis3dh_t *dev, lis3dh_op_md_t val);
+int32_t lis3dh_operating_mode_set(lis3dh_t *dev, lis3dh_res_t val);
 
 /**
  * @brief  Operating mode selection.[get]
@@ -229,7 +229,7 @@ int32_t lis3dh_operating_mode_set(lis3dh_t *dev, lis3dh_op_md_t val);
  *
  * @return       Error status
  */
-int32_t lis3dh_operating_mode_get(lis3dh_t *dev, lis3dh_op_md_t *val);
+int32_t lis3dh_operating_mode_get(lis3dh_t *dev, lis3dh_res_t *val);
 
 /**
  * @brief  Output data rate selection.[set]
@@ -333,7 +333,7 @@ int32_t lis3dh_high_pass_mode_get(lis3dh_t *dev, lis3dh_hpm_t *val);
  *
  * @return       Error status
  */
-int32_t lis3dh_full_scale_set(lis3dh_t *dev, lis3dh_fs_t val);
+int32_t lis3dh_full_scale_set(lis3dh_t *dev, lis3dh_scale_t val);
 
 /**
  * @brief  Full-scale configuration.[get]
@@ -343,7 +343,7 @@ int32_t lis3dh_full_scale_set(lis3dh_t *dev, lis3dh_fs_t val);
  *
  * @return       Error status
  */
-int32_t lis3dh_full_scale_get(lis3dh_t *dev, lis3dh_fs_t *val);
+int32_t lis3dh_full_scale_get(lis3dh_t *dev, lis3dh_scale_t *val);
 
 /**
  * @brief  Block Data Update.[set]
@@ -1359,11 +1359,11 @@ static int _read(const lis3dh_t *dev, uint8_t reg, uint8_t *data, uint16_t lengt
     }
 
     /* Acquire exclusive access to the bus. */
-    i2c_acquire(dev->params.i2c);
+    i2c_acquire(dev->params.i2c_dev);
     /* Perform the transaction */
-    status = i2c_read_regs(dev->params.i2c, dev->params.addr, (uint16_t)reg, data, (size_t)length, 0);
+    status = i2c_read_regs(dev->params.i2c_dev, dev->params.i2c_addr, (uint16_t)reg, data, (size_t)length, 0);
     /* Release the bus for other threads. */
-    i2c_release(dev->params.i2c);
+    i2c_release(dev->params.i2c_dev);
 
     DEBUG("LIS3DH [REG %02X]: <- ", (reg & 0x7F));
     PRINTBUFF(data, length);
@@ -1385,12 +1385,12 @@ static int _write(const lis3dh_t *dev, uint8_t reg, uint8_t *data, uint16_t leng
     PRINTBUFF(data, length);
 
     /* Acquire exclusive access to the bus. */
-    i2c_acquire(dev->params.i2c);
+    i2c_acquire(dev->params.i2c_dev);
     /* Perform the transaction */
     // int i2c_write_regs(i2c_t dev, uint16_t address, uint16_t reg, const void *data, size_t length, uint8_t flags)
-    status = i2c_write_regs(dev->params.i2c, dev->params.addr, (uint16_t)reg, data, (size_t)length, 0);
+    status = i2c_write_regs(dev->params.i2c_dev, dev->params.i2c_addr, (uint16_t)reg, data, (size_t)length, 0);
     /* Release the bus for other threads. */
-    i2c_release(dev->params.i2c);
+    i2c_release(dev->params.i2c_dev);
     return status;
 }
 
@@ -1398,13 +1398,13 @@ static void _platform_init(lis3dh_t *dev, const lis3dh_params_t *params) {
     dev->params = *params;
 
     /* Acquire exclusive access to the bus. */
-    i2c_acquire(dev->params.i2c);
+    i2c_acquire(dev->params.i2c_dev);
 
     /* initialize the chip select line */
-    i2c_init(dev->params.i2c);
+    i2c_init(dev->params.i2c_dev);
 
     /* Release the bus for other threads. */
-    i2c_release(dev->params.i2c);
+    i2c_release(dev->params.i2c_dev);
 
 }
 #endif
@@ -1504,7 +1504,7 @@ int32_t lis3dh_aux_adc_get(lis3dh_t *dev, lis3dh_temp_en_t *val)
     return ret;
 }
 
-int32_t lis3dh_operating_mode_set(lis3dh_t *dev, lis3dh_op_md_t val)
+int32_t lis3dh_operating_mode_set(lis3dh_t *dev, lis3dh_res_t val)
 {
     lis3dh_ctrl_reg1_t ctrl_reg1;
     lis3dh_ctrl_reg4_t ctrl_reg4;
@@ -1515,15 +1515,15 @@ int32_t lis3dh_operating_mode_set(lis3dh_t *dev, lis3dh_op_md_t val)
         ret = lis3dh_read_reg(dev, LIS3DH_REG_CTRL_REG4, (uint8_t*)&ctrl_reg4, 1);
     }
     if (ret == 0) {
-        if ( val == LIS3DH_HR_12bit ) {
+        if ( val == LIS3DH_HR_12BIT ) {
             ctrl_reg1.lpen = 0;
             ctrl_reg4.hr   = 1;
         }
-        if (val == LIS3DH_NM_10bit) {
+        if (val == LIS3DH_NM_10BIT) {
             ctrl_reg1.lpen = 0;
             ctrl_reg4.hr   = 0;
         }
-        if (val == LIS3DH_LP_8bit) {
+        if (val == LIS3DH_LP_8BIT) {
             ctrl_reg1.lpen = 1;
             ctrl_reg4.hr   = 0;
         }
@@ -1535,7 +1535,7 @@ int32_t lis3dh_operating_mode_set(lis3dh_t *dev, lis3dh_op_md_t val)
     return ret;
 }
 
-int32_t lis3dh_operating_mode_get(lis3dh_t *dev, lis3dh_op_md_t *val)
+int32_t lis3dh_operating_mode_get(lis3dh_t *dev, lis3dh_res_t *val)
 {
     lis3dh_ctrl_reg1_t ctrl_reg1;
     lis3dh_ctrl_reg4_t ctrl_reg4;
@@ -1545,15 +1545,15 @@ int32_t lis3dh_operating_mode_get(lis3dh_t *dev, lis3dh_op_md_t *val)
     if (ret == 0) {
         ret = lis3dh_read_reg(dev, LIS3DH_REG_CTRL_REG4, (uint8_t*)&ctrl_reg4, 1);
         if ( ctrl_reg1.lpen == PROPERTY_ENABLE ) {
-            *val = LIS3DH_LP_8bit;
-            DEBUG("LIS3DH_LP_8bit\n");
+            *val = LIS3DH_LP_8BIT;
+            DEBUG("LIS3DH_LP_8BIT\n");
         }
         if (ctrl_reg4.hr == PROPERTY_ENABLE ) {
-            *val = LIS3DH_HR_12bit;
-            DEBUG("LIS3DH_HR_12bit\n");
+            *val = LIS3DH_HR_12BIT;
+            DEBUG("LIS3DH_HR_12BIT\n");
         } else {
-            *val = LIS3DH_NM_10bit;
-            DEBUG("LIS3DH_NM_10bit\n");
+            *val = LIS3DH_NM_10BIT;
+            DEBUG("LIS3DH_NM_10BIT\n");
         }
     }
     return ret;
@@ -1582,32 +1582,32 @@ int32_t lis3dh_data_rate_get(lis3dh_t *dev, lis3dh_odr_t *val)
     case LIS3DH_POWER_DOWN:
         *val = LIS3DH_POWER_DOWN;
         break;
-    case LIS3DH_ODR_1Hz:
-        *val = LIS3DH_ODR_1Hz;
+    case LIS3DH_ODR_1HZ:
+        *val = LIS3DH_ODR_1HZ;
         break;
-    case LIS3DH_ODR_10Hz:
-        *val = LIS3DH_ODR_10Hz;
+    case LIS3DH_ODR_10HZ:
+        *val = LIS3DH_ODR_10HZ;
         break;
-    case LIS3DH_ODR_25Hz:
-        *val = LIS3DH_ODR_25Hz;
+    case LIS3DH_ODR_25HZ:
+        *val = LIS3DH_ODR_25HZ;
         break;
-    case LIS3DH_ODR_50Hz:
-        *val = LIS3DH_ODR_50Hz;
+    case LIS3DH_ODR_50HZ:
+        *val = LIS3DH_ODR_50HZ;
         break;
-    case LIS3DH_ODR_100Hz:
-        *val = LIS3DH_ODR_100Hz;
+    case LIS3DH_ODR_100HZ:
+        *val = LIS3DH_ODR_100HZ;
         break;
-    case LIS3DH_ODR_200Hz:
-        *val = LIS3DH_ODR_200Hz;
+    case LIS3DH_ODR_200HZ:
+        *val = LIS3DH_ODR_200HZ;
         break;
-    case LIS3DH_ODR_400Hz:
-        *val = LIS3DH_ODR_400Hz;
+    case LIS3DH_ODR_400HZ:
+        *val = LIS3DH_ODR_400HZ;
         break;
-    case LIS3DH_ODR_1kHz620_LP:
-        *val = LIS3DH_ODR_1kHz620_LP;
+    case LIS3DH_ODR_1KHZ620_LP:
+        *val = LIS3DH_ODR_1KHZ620_LP;
         break;
-    case LIS3DH_ODR_5kHz376_LP_1kHz344_NM_HP:
-        *val = LIS3DH_ODR_5kHz376_LP_1kHz344_NM_HP;
+    case LIS3DH_ODR_5KHZ376_LP_1KHZ344_NM_HP:
+        *val = LIS3DH_ODR_5KHZ376_LP_1KHZ344_NM_HP;
         break;
     default:
         *val = LIS3DH_POWER_DOWN;
@@ -1718,7 +1718,7 @@ int32_t lis3dh_high_pass_mode_get(lis3dh_t *dev, lis3dh_hpm_t *val)
     return ret;
 }
 
-int32_t lis3dh_full_scale_set(lis3dh_t *dev, lis3dh_fs_t val)
+int32_t lis3dh_full_scale_set(lis3dh_t *dev, lis3dh_scale_t val)
 {
     lis3dh_ctrl_reg4_t ctrl_reg4;
     int32_t ret;
@@ -1731,32 +1731,32 @@ int32_t lis3dh_full_scale_set(lis3dh_t *dev, lis3dh_fs_t val)
     return ret;
 }
 
-int32_t lis3dh_full_scale_get(lis3dh_t *dev, lis3dh_fs_t *val)
+int32_t lis3dh_full_scale_get(lis3dh_t *dev, lis3dh_scale_t *val)
 {
     lis3dh_ctrl_reg4_t ctrl_reg4;
     int32_t ret;
 
     ret = lis3dh_read_reg(dev, LIS3DH_REG_CTRL_REG4, (uint8_t*)&ctrl_reg4, 1);
     switch (ctrl_reg4.fs) {
-    case LIS3DH_2g:
-        *val = LIS3DH_2g;
-        DEBUG("LIS3DH_2g\n");
+    case LIS3DH_SCALE_2G:
+        *val = LIS3DH_SCALE_2G;
+        DEBUG("LIS3DH_SCALE_2G\n");
         break;
-    case LIS3DH_4g:
-        *val = LIS3DH_4g;
+    case LIS3DH_SCALE_4G:
+        *val = LIS3DH_SCALE_4G;
         DEBUG("LIS3DH_4g\n");
         break;
-    case LIS3DH_8g:
-        *val = LIS3DH_8g;
-        DEBUG("LIS3DH_8g\n");
+    case LIS3DH_SCALE_8G:
+        *val = LIS3DH_SCALE_8G;
+        DEBUG("LIS3DH_SCALE_8G\n");
         break;
-    case LIS3DH_16g:
-        *val = LIS3DH_16g;
-        DEBUG("LIS3DH_16g\n");
+    case LIS3DH_SCALE_16G:
+        *val = LIS3DH_SCALE_16G;
+        DEBUG("LIS3DH_SCALE_16G\n");
         break;
     default:
-        *val = LIS3DH_2g;
-        DEBUG("Default LIS3DH_2g\n");
+        *val = LIS3DH_SCALE_2G;
+        DEBUG("Default LIS3DH_SCALE_2G\n");
         break;
     }
     return ret;
@@ -2760,11 +2760,11 @@ int32_t lis3dh_axis_get(lis3dh_t *dev, lis3dh_axis_t *val)
 }
 
 int32_t lis3dh_accuracy_get(lis3dh_t *dev) {
-    lis3dh_op_md_t op_mode;
-    lis3dh_fs_t scale;
+    lis3dh_res_t res;
+    lis3dh_scale_t scale;
 
     DEBUG("Get device operation mode\n");
-    if (lis3dh_operating_mode_get(dev, &op_mode) < 0) {
+    if (lis3dh_operating_mode_get(dev, &res) < 0) {
         return LIS3DH_NOCOM;
     }
     DEBUG("Get full scale\n");
@@ -2772,7 +2772,7 @@ int32_t lis3dh_accuracy_get(lis3dh_t *dev) {
         return LIS3DH_NOCOM;
     }
     dev->scale = scale;
-    dev->op_mode = op_mode;
+    dev->res   = res;
 
     return LIS3DH_OK;
 }
@@ -2781,51 +2781,51 @@ int32_t lis3dh_calculation_acceleration(lis3dh_t *dev, int16_t acc_raw) {
 
     DEBUG("acc raw data: %d[%04X]\n", acc_raw, acc_raw);
 
-    switch (dev->op_mode) {
-        case LIS3DH_HR_12bit:
+    switch (dev->res) {
+        case LIS3DH_HR_12BIT:
             switch (dev->scale) {
-                case LIS3DH_2g:
+                case LIS3DH_SCALE_2G:
                     return ((acc_raw / 16) * 1);
                     break;
-                case LIS3DH_4g:
+                case LIS3DH_SCALE_4G:
                     return ((acc_raw / 16) * 2);
                     break;
-                case LIS3DH_8g:
+                case LIS3DH_SCALE_8G:
                     return ((acc_raw / 16) * 4);
                     break;
-                case LIS3DH_16g:
+                case LIS3DH_SCALE_16G:
                     return ((acc_raw / 16) * 12);
                     break;
             } 
             break;
-        case LIS3DH_NM_10bit:
+        case LIS3DH_NM_10BIT:
             switch (dev->scale) {
-                case LIS3DH_2g:
+                case LIS3DH_SCALE_2G:
                     return ((acc_raw / 64) * 4);
                     break;
-                case LIS3DH_4g:
+                case LIS3DH_SCALE_4G:
                     return ((acc_raw / 64) * 8);
                     break;
-                case LIS3DH_8g:
+                case LIS3DH_SCALE_8G:
                     return ((acc_raw / 64) * 16);
                     break;
-                case LIS3DH_16g:
+                case LIS3DH_SCALE_16G:
                     return ((acc_raw / 64) * 48);
                     break;
             }
             break;
-        case LIS3DH_LP_8bit:
+        case LIS3DH_LP_8BIT:
             switch (dev->scale) {
-                case LIS3DH_2g:
+                case LIS3DH_SCALE_2G:
                     return ((acc_raw / 256) * 16);
                     break;
-                case LIS3DH_4g:
+                case LIS3DH_SCALE_4G:
                     return ((acc_raw / 256) * 32);
                     break;
-                case LIS3DH_8g:
+                case LIS3DH_SCALE_8G:
                     return ((acc_raw / 256) * 64);
                     break;
-                case LIS3DH_16g:
+                case LIS3DH_SCALE_16G:
                     return ((acc_raw / 256) * 192);
                     break;
             }
@@ -2836,18 +2836,18 @@ int32_t lis3dh_calculation_acceleration(lis3dh_t *dev, int16_t acc_raw) {
 }
 
 int32_t lis3dh_calculation_temperature(lis3dh_t *dev, int16_t temp_raw) {
-    lis3dh_op_md_t op_mode;
+    lis3dh_res_t res;
 
-    lis3dh_operating_mode_get(dev, &op_mode);
+    lis3dh_operating_mode_get(dev, &res);
 
-    switch (op_mode) {
-        case LIS3DH_HR_12bit:
+    switch (res) {
+        case LIS3DH_HR_12BIT:
             return (((temp_raw / 64) / 4) + 25);
             break;
-        case LIS3DH_NM_10bit:
+        case LIS3DH_NM_10BIT:
             return (((temp_raw / 64) / 4) + 25);
             break;
-        case LIS3DH_LP_8bit:
+        case LIS3DH_LP_8BIT:
             return (((temp_raw / 256 ) * 1) + 25);
             break;
     }
@@ -2915,8 +2915,8 @@ int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params, lis3dh_int1_cb_t c
     }
 
     /* Set device operation mode */
-    DEBUG("Set device operation mode [%d]\n", dev->params.op_mode);
-    if (lis3dh_operating_mode_set(dev, dev->params.op_mode) < 0) {
+    DEBUG("Set device operation mode [%d]\n", dev->params.res);
+    if (lis3dh_operating_mode_set(dev, dev->params.res) < 0) {
         return LIS3DH_NOCOM;
     }
 

@@ -167,11 +167,11 @@ static bool init_sensor(void) {
     
     lis3dh_params_t lis3dh_params;
     
-    lis3dh_params.i2c = I2C_DEV(UMDK_INCLINOMETER_I2C); /**< I2C device */
-    lis3dh_params.addr = LIS3DH_I2C_SAD_L;              /**< Accelerometer I2C address */
-    lis3dh_params.odr = LIS3DH_ODR_50Hz;                /**< Output data rate */
-    lis3dh_params.scale = LIS3DH_2g;                    /**< Scale factor */
-    lis3dh_params.op_mode = LIS3DH_HR_12bit;            /**< Resolution */
+    lis3dh_params.i2c_dev = I2C_DEV(UMDK_INCLINOMETER_I2C); /**< I2C device */
+    lis3dh_params.i2c_addr = LIS3DH_I2C_SAD_L;              /**< Accelerometer I2C address */
+    lis3dh_params.odr   = LIS3DH_ODR_50HZ;                /**< Output data rate */
+    lis3dh_params.scale = LIS3DH_SCALE_2G;                    /**< Scale factor */
+    lis3dh_params.res   = LIS3DH_HR_12BIT;            /**< Resolution */
     
     if (lis3dh_init(&dev_lis3dh, &lis3dh_params, NULL, NULL) == 0) {
         puts("[umdk-" _UMDK_NAME_ "] STMicro LIS3DH sensor found");

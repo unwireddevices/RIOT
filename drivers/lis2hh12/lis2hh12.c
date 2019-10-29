@@ -1,5 +1,5 @@
  /*
- * Copyright (C) 2016-2018 Unwired Devices
+ * Copyright (C) 2016-2019 Unwired Devices
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
@@ -28,7 +28,7 @@
 #define MASK_INT16_NMSB    (0x7FFF)
 
 /* shortcuts for I2C bus parameters */
-#define DEV_I2C            (dev->params.i2c)
+#define DEV_I2C            (dev->params.i2c_dev)
 #define DEV_ADDR           (dev->params.i2c_addr)
 
 /**
@@ -70,7 +70,7 @@ int lis2hh12_init(lis2hh12_t *dev, const lis2hh12_params_t *params)
     tmp = ( LIS2HH12_MASK_CTRL1_BDU_EN |    /* enable block data update (registers not updated until MSB and LSB read) */
             LIS2HH12_MASK_CTRL1_XYZ_EN |    /* enable  x-, y, z-axis  */
             dev->params.odr |               /* set output data rate */
-            dev->params.resolution);        /* set resolution  */
+            dev->params.res);               /* set resolution  */
     
     if (i2c_write_reg(DEV_I2C, DEV_ADDR, LIS2HH12_CTRL1, tmp, 0) < 0)
         return LIS2HH12_NOBUS;

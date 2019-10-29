@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Unwired Devices
+ * Copyright (C) 2016-2019 Unwired Devices
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
@@ -77,19 +77,19 @@ typedef enum {
  * @brief   LIS2HH12 high-res mode
  */
 typedef enum {
-    LIS2HH12_RES_NORMAL = 0x00,     /**< Normal mode    */
-    LIS2HH12_RES_HR     = 0x80,     /**< High resolution mode  */
+    LIS2HH12_RES_NORMAL = 0x00,     /**< Normal mode          */
+    LIS2HH12_RES_HR     = 0x80,     /**< High resolution mode */
 } lis2hh12_res_t;
 
 /**
  * @brief   LIS2HH12 configuration parameters
  */
 typedef struct {
-    i2c_t i2c;                      /**< I2C device                */
-    uint8_t i2c_addr;               /**< I2C address               */
-    lis2hh12_odr_t odr;             /**< Output data range         */
+    i2c_t            i2c_dev;       /**< I2C device                */
+    uint8_t          i2c_addr;      /**< I2C address               */
+    lis2hh12_odr_t   odr;           /**< Output data range         */
     lis2hh12_scale_t scale;         /**< Sampling sensitivity used */
-    lis2hh12_res_t resolution;      /**< Resolution */
+    lis2hh12_res_t   res;           /**< Resolution                */
 } lis2hh12_params_t;
 
 
@@ -104,8 +104,8 @@ typedef struct {
  * @brief   Status and error return codes
  */
 enum {
-    LIS2HH12_OK    =  0,            /**< everything was fine */
-    LIS2HH12_NOBUS = -1,            /**< bus interface error */
+    LIS2HH12_OK    =  0,            /**< everything was fine      */
+    LIS2HH12_NOBUS = -1,            /**< bus interface error      */
     LIS2HH12_NODEV = -2,            /**< unable to talk to device */
 };
 

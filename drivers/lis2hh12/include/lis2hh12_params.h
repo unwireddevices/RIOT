@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Unwired Devices
+ * Copyright (C) 2016-2019 Unwired Devices
  *
  * This file is subject to the terms and conditions of the GNU Lesser General
  * Public License v2.1. See the file LICENSE in the top level directory for more
@@ -52,17 +52,17 @@ extern "C" {
 #define LIS2HH12_PARAM_ADDR         (LIS2HH12_ACC_I2C_SAD_L)
 #endif
 #ifndef LIS2HH12_PARAM_SCALE
-#define LIS2HH12_PARAM_SCALE        LIS2HH12_SCALE_4G
+#define LIS2HH12_PARAM_SCALE        LIS2HH12_SCALE_2G
 #endif
 #ifndef LIS2HH12_PARAM_ODR
 #define LIS2HH12_PARAM_ODR          LIS2HH12_ODR_400HZ
 #endif
 
 #ifndef LIS2HH12_PARAMS
-#define LIS2HH12_PARAMS             { .i2c      = LIS2HH12_PARAM_I2C,  \
+#define LIS2HH12_PARAMS             { .i2c_dev  = LIS2HH12_PARAM_I2C,  \
                                       .i2c_addr = LIS2HH12_PARAM_ADDR, \
                                       .odr      = LIS2HH12_PARAM_ODR,  \
-                                      .scale    = LIS2HH12_SCALE_2G }
+                                      .scale    = LIS2HH12_PARAM_SCALE }
 #endif
 
 #ifndef LIS2HH12_SAULINFO

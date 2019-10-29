@@ -40,7 +40,7 @@ int main(void)
     lis2dh12_params.i2c_dev  = I2C_DEV(0);
     lis2dh12_params.i2c_addr = LIS2DH12_I2C_SAD_L;
     lis2dh12_params.scale    = LIS2DH12_SCALE_2G;
-    lis2dh12_params.rate     = LIS2DH12_RATE_1HZ;
+    lis2dh12_params.odr      = LIS2DH12_ODR_1HZ;
     lis2dh12_params.res      = LIS2DH12_HR_12BIT;
 
     puts("Initializing LIS2DH12 sensor... ");

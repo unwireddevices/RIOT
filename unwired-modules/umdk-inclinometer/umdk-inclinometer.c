@@ -152,11 +152,11 @@ static bool init_sensor(void) {
     
     lis2dh12_params_t lis2dh12_params;
     
-    lis2dh12_params.i2c_dev = I2C_DEV(UMDK_INCLINOMETER_I2C);        /**< I2C device */
-    lis2dh12_params.i2c_addr = LIS2DH12_I2C_SAD_L;      /**< Accelerometer I2C address */
-    lis2dh12_params.rate = LIS2DH12_RATE_50HZ;          /**< Output data rate */
-    lis2dh12_params.scale = LIS2DH12_SCALE_2G;          /**< Scale factor */
-    lis2dh12_params.res = LIS2DH12_HR_12BIT;            /**< Resolution */
+    lis2dh12_params.i2c_dev = I2C_DEV(UMDK_INCLINOMETER_I2C);           /**< I2C device */
+    lis2dh12_params.i2c_addr = LIS2DH12_I2C_SAD_L;                      /**< Accelerometer I2C address */
+    lis2dh12_params.odr   = LIS2DH12_ODR_50HZ;                          /**< Output data rate */
+    lis2dh12_params.scale = LIS2DH12_SCALE_2G;                          /**< Scale factor */
+    lis2dh12_params.res   = LIS2DH12_HR_12BIT;                          /**< Resolution */
     
     if (lis2dh12_init(&dev_lis2dh12, &lis2dh12_params) == LIS2DH12_OK) {
         puts("[umdk-" _UMDK_NAME_ "] STMicro LIS2DH12 sensor found");

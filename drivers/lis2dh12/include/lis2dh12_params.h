@@ -37,8 +37,8 @@ extern "C" {
 #ifndef LIS2DH12_PARAM_SCALE
 #define LIS2DH12_PARAM_SCALE                            (LIS2DH12_SCALE_2G)
 #endif
-#ifndef LIS2DH12_PARAM_RATE
-#define LIS2DH12_PARAM_RATE                             (LIS2DH12_RATE_1HZ)
+#ifndef LIS2DH12_PARAM_ODR
+#define LIS2DH12_PARAM_ODR                             (LIS2DH12_ODR_1HZ)
 #endif
 #ifndef LIS2DH12_PARAM_RES
 #define LIS2DH12_PARAM_RES                              (LIS2DH12_HR_12BIT)
@@ -48,7 +48,7 @@ extern "C" {
 #define LIS2DH12_PARAMS              { .i2c_dev  = LIS2DH12_PARAM_I2C,   \
                                        .i2c_addr = LIS2DH12_PARAM_ADDR,  \
                                        .scale    = LIS2DH12_PARAM_SCALE, \
-                                       .rate     = LIS2DH12_PARAM_RATE,  \
+                                       .odr      = LIS2DH12_PARAM_ODR,   \
                                        .res      = LIS2DH12_PARAM_RES }
 #endif
 

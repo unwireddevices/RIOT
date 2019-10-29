@@ -74,17 +74,17 @@ typedef enum {
  * @brief   Available sampling rates
  */
 typedef enum {
-    LIS2DH12_RATE_POWER_DOWN = 0x00,                    /**< b0000: Power-down mode                       */
-    LIS2DH12_RATE_1HZ        = 0x01,                    /**< b0001: HR / Normal / Low-power mode (1 Hz)   */
-    LIS2DH12_RATE_10HZ       = 0x02,                    /**< b0010: HR / Normal / Low-power mode (10 Hz)  */
-    LIS2DH12_RATE_25HZ       = 0x03,                    /**< b0011: HR / Normal / Low-power mode (25 Hz)  */
-    LIS2DH12_RATE_50HZ       = 0x04,                    /**< b0100: HR / Normal / Low-power mode (50 Hz)  */
-    LIS2DH12_RATE_100HZ      = 0x05,                    /**< b0101: HR / Normal / Low-power mode (100 Hz) */
-    LIS2DH12_RATE_200HZ      = 0x06,                    /**< b0110: HR / Normal / Low-power mode (200 Hz) */
-    LIS2DH12_RATE_400HZ      = 0x07,                    /**< b0111: HR / Normal / Low-power mode (400 Hz) */
-    LIS2DH12_RATE_1620Hz     = 0x08,                    /**< b1000: Low-power mode (1.620 kHz)            */
-    LIS2DH12_RATE_5376Hz     = 0x09,                    /**< b1001: HR/ Normal (1.344 kHz) Low-power mode (5.376 kHz) */
-} lis2dh12_rate_t;
+    LIS2DH12_ODR_POWER_DOWN = 0x00,                    /**< b0000: Power-down mode                       */
+    LIS2DH12_ODR_1HZ        = 0x01,                    /**< b0001: HR / Normal / Low-power mode (1 Hz)   */
+    LIS2DH12_ODR_10HZ       = 0x02,                    /**< b0010: HR / Normal / Low-power mode (10 Hz)  */
+    LIS2DH12_ODR_25HZ       = 0x03,                    /**< b0011: HR / Normal / Low-power mode (25 Hz)  */
+    LIS2DH12_ODR_50HZ       = 0x04,                    /**< b0100: HR / Normal / Low-power mode (50 Hz)  */
+    LIS2DH12_ODR_100HZ      = 0x05,                    /**< b0101: HR / Normal / Low-power mode (100 Hz) */
+    LIS2DH12_ODR_200HZ      = 0x06,                    /**< b0110: HR / Normal / Low-power mode (200 Hz) */
+    LIS2DH12_ODR_400HZ      = 0x07,                    /**< b0111: HR / Normal / Low-power mode (400 Hz) */
+    LIS2DH12_ODR_1620Hz     = 0x08,                    /**< b1000: Low-power mode (1.620 kHz)            */
+    LIS2DH12_ODR_5376Hz     = 0x09,                    /**< b1001: HR/ Normal (1.344 kHz) Low-power mode (5.376 kHz) */
+} lis2dh12_odr_t;
 
 /**
  * @brief   Resolution (operating) modes
@@ -93,17 +93,17 @@ typedef enum {
     LIS2DH12_HR_12BIT   = 0x00,                         /**< High-resolution mode */
     LIS2DH12_NM_10BIT   = 0x01,                         /**< Normal mode */
     LIS2DH12_LP_8BIT    = 0x02,                         /**< Low-power mode */
-} lis2dh12_resolution_t;
+} lis2dh12_res_t;
 
 /**
  * @brief   LIS2DH12 configuration parameters
  */
 typedef struct {
-    i2c_t                 i2c_dev;                      /**< I2C device, clock stretching required (default I2C_DEV(0)) */
-    uint8_t               i2c_addr;                     /**< I2C address (default LIS2DH12_I2C_SAD_L) */
-    lis2dh12_scale_t      scale;                        /**< Sensor scale: 2, 4, 8, or 16 (G) */
-    lis2dh12_rate_t       rate;                         /**< Sensor ODR setting: LIS3DH_ODR_xxxHz */
-    lis2dh12_resolution_t res;                          /**< Resolution (operation mode) */
+    i2c_t               i2c_dev;                        /**< I2C device, clock stretching required (default I2C_DEV(0)) */
+    uint8_t             i2c_addr;                       /**< I2C address (default LIS2DH12_I2C_SAD_L) */
+    lis2dh12_scale_t    scale;                          /**< Sensor scale: 2, 4, 8, or 16 (G) */
+    lis2dh12_odr_t      odr;                            /**< Sensor ODR setting: LIS2DH12_ODR_xxxHz */
+    lis2dh12_res_t      res;                            /**< Resolution (operation mode) */
 } lis2dh12_params_t;
 
 /**

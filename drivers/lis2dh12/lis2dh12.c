@@ -391,13 +391,13 @@ int lis2dh12_init(lis2dh12_t *dev, const lis2dh12_params_t *params)
     }
 
     /* Set Output Data Rate */
-    DEBUG("Set Output Data Rate [%d]\n", dev->params.rate);
+    DEBUG("Set Output Data Rate [%d]\n", dev->params.odr);
     reg_val = 0x00;
     if (_lis2dh12_read_reg(dev, LIS2DH12_CTRL_REG1, &reg_val, 1) < 0) {
         return -LIS2DH12_ERROR_I2C;
     }
     reg_val &= ~(LIS2DH12_CTRL_REG1_ODR_MASK); 
-    reg_val |= (uint8_t)(dev->params.rate << LIS2DH12_CTRL_REG1_ODR_SHIFT);
+    reg_val |= (uint8_t)(dev->params.odr << LIS2DH12_CTRL_REG1_ODR_SHIFT);
     if (_lis2dh12_write_reg(dev, LIS2DH12_CTRL_REG1, &reg_val, 1) < 0) {
         return -LIS2DH12_ERROR_I2C;
     }
@@ -506,42 +506,42 @@ int lis2dh12_poweron(lis2dh12_t *dev)
     }
 
     /* Set Output Data Rate */
-    DEBUG("Set Output Data Rate [%d]\n", dev->params.rate);
+    DEBUG("Set Output Data Rate [%d]\n", dev->params.odr);
     reg_val = 0x00;
     if (_lis2dh12_read_reg(dev, LIS2DH12_CTRL_REG1, &reg_val, 1) < 0) {
         return -LIS2DH12_ERROR_I2C;
     }
     reg_val &= ~(LIS2DH12_CTRL_REG1_ODR_MASK); 
-    reg_val |= (uint8_t)(dev->params.rate << LIS2DH12_CTRL_REG1_ODR_SHIFT);
+    reg_val |= (uint8_t)(dev->params.odr << LIS2DH12_CTRL_REG1_ODR_SHIFT);
     if (_lis2dh12_write_reg(dev, LIS2DH12_CTRL_REG1, &reg_val, 1) < 0) {
         return -LIS2DH12_ERROR_I2C;
     }
 
-    if (dev->params.rate != LIS2DH12_RATE_POWER_DOWN) {
+    if (dev->params.odr != LIS2DH12_ODR_POWER_DOWN) {
         uint32_t power_on_delay_us;
         
         switch (dev->params.res) {
             case LIS2DH12_HR_12BIT: {
-                switch (dev->params.rate) {
-                    case LIS2DH12_RATE_10HZ:
+                switch (dev->params.odr) {
+                    case LIS2DH12_ODR_10HZ:
                         power_on_delay_us = 7000/10;
                         break;
-                    case LIS2DH12_RATE_25HZ:
+                    case LIS2DH12_ODR_25HZ:
                         power_on_delay_us = 7000/25;
                         break;
-                    case LIS2DH12_RATE_50HZ:
+                    case LIS2DH12_ODR_50HZ:
                         power_on_delay_us = 7000/50;
                         break;
-                    case LIS2DH12_RATE_100HZ:
+                    case LIS2DH12_ODR_100HZ:
                         power_on_delay_us = 7000/100;
                         break;
-                    case LIS2DH12_RATE_200HZ:
+                    case LIS2DH12_ODR_200HZ:
                         power_on_delay_us = 7000/200;
                         break;
-                    case LIS2DH12_RATE_400HZ:
+                    case LIS2DH12_ODR_400HZ:
                         power_on_delay_us = 7000/400;
                         break;
-                    case LIS2DH12_RATE_5376Hz:
+                    case LIS2DH12_ODR_5376Hz:
                         power_on_delay_us = 7000/1344;
                         break;
                     default:
@@ -591,7 +591,7 @@ int lis2dh12_poweroff(lis2dh12_t *dev)
         return -LIS2DH12_ERROR_I2C;
     }
     reg_val &= ~(LIS2DH12_CTRL_REG1_ODR_MASK); 
-    reg_val |= (uint8_t)(LIS2DH12_RATE_POWER_DOWN << LIS2DH12_CTRL_REG1_ODR_SHIFT);
+    reg_val |= (uint8_t)(LIS2DH12_ODR_POWER_DOWN << LIS2DH12_CTRL_REG1_ODR_SHIFT);
     if (_lis2dh12_write_reg(dev, LIS2DH12_CTRL_REG1, &reg_val, 1) < 0) {
         return -LIS2DH12_ERROR_I2C;
     }

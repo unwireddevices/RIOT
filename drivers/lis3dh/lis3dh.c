@@ -2959,7 +2959,7 @@ int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params, lis3dh_int1_cb_t c
 
     /* discard first measurement after power-on*/
     if (dev->params.odr != LIS3DH_POWER_DOWN) {
-        lis3dh_acceleration_t data;
+        lis3dh_data_t data;
         if (lis3dh_read_xyz(dev, &data) < 0) {
             DEBUG("Doesn't read ACC raw data (First Start)\n");
             return LIS3DH_NOCOM;
@@ -2969,7 +2969,7 @@ int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params, lis3dh_int1_cb_t c
     return LIS3DH_OK;
 }
 
-int lis3dh_read_xyz(lis3dh_t *dev, lis3dh_acceleration_t *acceleration) {
+int lis3dh_read_xyz(lis3dh_t *dev, lis3dh_data_t *acceleration) {
     lis3dh_reg_t reg_da;
     lis3dh_reg_t reg_ovr;
     uint8_t acc_raw[6] = {0x00};
@@ -3065,7 +3065,7 @@ int lis3dh_poweron(lis3dh_t *dev)
         /* discard first measurement after power-on*/
         if (ret == 0) {
             if (dev->params.odr != LIS3DH_POWER_DOWN) {
-                lis3dh_acceleration_t data;
+                lis3dh_data_t data;
                 lis3dh_read_xyz(dev, &data);
             }
         }

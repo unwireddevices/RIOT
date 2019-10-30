@@ -299,7 +299,7 @@ typedef struct
     int16_t axis_x;                                     /**< Acceleration in the X direction in milli-G */
     int16_t axis_y;                                     /**< Acceleration in the Y direction in milli-G */
     int16_t axis_z;                                     /**< Acceleration in the Z direction in milli-G */
-} __attribute__((packed)) lis3dh_acceleration_t;
+} __attribute__((packed)) lis3dh_data_t;
 
 /**
  * @brief   Initialize a LIS3DH sensor instance
@@ -321,7 +321,7 @@ int lis3dh_init(lis3dh_t *dev, const lis3dh_params_t *params, lis3dh_int1_cb_t c
  *
  * @return                    Error status
  */
-int lis3dh_read_xyz(lis3dh_t *dev, lis3dh_acceleration_t *acceleration);
+int lis3dh_read_xyz(lis3dh_t *dev, lis3dh_data_t *acceleration);
 
 /**
  * @brief   Read temperature from the accelerometer

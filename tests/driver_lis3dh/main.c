@@ -27,7 +27,7 @@
 #include "lis3dh_params.h"
 
 lis3dh_t dev;
-lis3dh_acceleration_t acc_data;
+lis3dh_data_t acc_data;
 int16_t deg_celsius;
 
 static void _int1_handler(void *arg)

@@ -296,7 +296,7 @@ static void *measure_thread(void *arg) {
         }
         
         if (active_sensors & UMDK_INCLINOMETER_LIS3DH) {
-            lis3dh_acceleration_t lis3dh_data;
+            lis3dh_data_t lis3dh_data;
             lis3dh_poweron(&dev_lis3dh);
             lis3dh_read_xyz(&dev_lis3dh, &lis3dh_data);
             lis3dh_poweroff(&dev_lis3dh);

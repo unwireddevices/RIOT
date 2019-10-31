@@ -142,8 +142,10 @@ static bool init_sensor(void) {
     lis2hh12_params.odr   = LIS2HH12_ODR_50HZ;                          /**< Output data rate */
     lis2hh12_params.scale = LIS2HH12_SCALE_2G;                          /**< Scale factor */
     lis2hh12_params.res   = LIS2HH12_RES_HR;                            /**< Resolution */
+    lis2hh12_params.int1_pin   = GPIO_UNDEF;                        /**< Interrupt pin undefined */
+    lis2hh12_params.int1_mode  = INT1_DISABLE;                      /**< Disable all interrupt */
 
-    if (lis2hh12_init(&dev_lis2hh12, &lis2hh12_params) == 0) {
+    if (lis2hh12_init(&dev_lis2hh12, &lis2hh12_params, NULL, NULL) == 0) {
         puts("[umdk-" _UMDK_NAME_ "] STMicro LIS2HH12 sensor found");
         active_sensors |= UMDK_INCLINOMETER_LIS2HH12;
         lis2hh12_poweroff(&dev_lis2hh12);

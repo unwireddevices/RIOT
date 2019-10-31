@@ -57,12 +57,25 @@ extern "C" {
 #ifndef LIS2HH12_PARAM_ODR
 #define LIS2HH12_PARAM_ODR          LIS2HH12_ODR_400HZ
 #endif
+#ifndef LIS2HH12_PARAM_RES
+#define LIS2HH12_PARAM_RES          LIS2HH12_RES_HR
+#endif
+#ifndef LIS2HH12_PARAM_PIN_INT1
+#define LIS2HH12_PARAM_PIN_INT1     GPIO_UNDEF
+#endif
+#ifndef LIS2HH12_PARAM_INT1_MODE
+#define LIS2HH12_PARAM_INT1_MODE    (INT1_DISABLE)
+#endif
 
 #ifndef LIS2HH12_PARAMS
-#define LIS2HH12_PARAMS             { .i2c_dev  = LIS2HH12_PARAM_I2C,  \
-                                      .i2c_addr = LIS2HH12_PARAM_ADDR, \
-                                      .odr      = LIS2HH12_PARAM_ODR,  \
-                                      .scale    = LIS2HH12_PARAM_SCALE }
+#define LIS2HH12_PARAMS             { .i2c_dev    = LIS2HH12_PARAM_I2C,       \
+                                      .i2c_addr   = LIS2HH12_PARAM_ADDR,      \
+                                      .odr        = LIS2HH12_PARAM_ODR,       \
+                                      .scale      = LIS2HH12_PARAM_SCALE,     \
+                                      .res        = LIS2HH12_PARAM_RES,       \
+                                      .int1_pin   = LIS2HH12_PARAM_PIN_INT1,  \
+                                      .int1_mode  = LIS2HH12_PARAM_INT1_MODE, \
+                                    }
 #endif
 
 #ifndef LIS2HH12_SAULINFO

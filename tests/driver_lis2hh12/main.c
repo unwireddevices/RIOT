@@ -35,7 +35,7 @@ int main(void)
     puts("LIS2HH12 accelerometer driver test application\n");
 
     puts("Initializing LIS2HH12 sensor... ");
-    if (lis2hh12_init(&dev, &lis2hh12_params[0]) == LIS2HH12_OK) {
+    if (lis2hh12_init(&dev, &lis2hh12_params[0], NULL, NULL) == LIS2HH12_OK) {
         puts("[OK]");
     }
     else {

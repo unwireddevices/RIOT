@@ -49,7 +49,7 @@ typedef struct {
     int32_t x_axis;                  /**< Data from x-axis */
     int32_t y_axis;                  /**< Data from y_axis */
     int32_t z_axis;                  /**< Data from z_axis */
-} lis2hh12_data_t;
+} __attribute__((packed)) lis2hh12_data_t;
 
 /**
  * @brief   Available scale values
@@ -82,14 +82,53 @@ typedef enum {
 } lis2hh12_res_t;
 
 /**
+ * @brief LIS2HH12 type of pin interrupt
+ */
+typedef enum {
+    LIS2HH12_PUSH_PULL       = 0x00,
+    LIS2HH12_OPEN_DRAIN      = 0x01,
+} lis2hh12_pp_od_t;
+
+/**
+ *  @brief LIS2HH12 type of interrupt signal
+ */
+typedef enum {
+    LIS2HH12_ACTIVE_HIGH     = 0x00,
+    LIS2HH12_ACTIVE_LOW      = 0x02,
+} lis2hh12_pin_pol_t;
+
+/**
+ * @brief   Interrupt 1 pin mode
+ */
+typedef enum {
+    INT1_DISABLE = 0x00,            /**< Disable all on INT1 */
+    INT1_DRDY    = 0x01,            /**< Data Ready signal on INT1 */
+    INT1_FTH     = 0x02,            /**< FIFO threshold signal on INT1*/
+    INT1_OVR     = 0x04,            /**< FIFO overrun signal on INT1 */
+    INT1_IG1     = 0x08,            /**< Interrupt generator 1 on INT1 */
+    INT1_IG2     = 0x10,            /**< Interrupt generator 2 on INT1 */
+    INT1_INACT   = 0x20,            /**< Inactivity interrupt on INT1 */
+} lis2hh12_int1_md_t;
+
+
+
+/**
+ * @brief   LIS2HH12 interrupt callback
+ */
+typedef void (*lis2hh12_int_cb_t)(void *);
+
+
+/**
  * @brief   LIS2HH12 configuration parameters
  */
 typedef struct {
-    i2c_t            i2c_dev;       /**< I2C device                */
-    uint8_t          i2c_addr;      /**< I2C address               */
-    lis2hh12_odr_t   odr;           /**< Output data range         */
-    lis2hh12_scale_t scale;         /**< Sampling sensitivity used */
-    lis2hh12_res_t   res;           /**< Resolution                */
+    i2c_t               i2c_dev;        /**< I2C device                */
+    uint8_t             i2c_addr;       /**< I2C address               */
+    lis2hh12_odr_t      odr;            /**< Output data range         */
+    lis2hh12_scale_t    scale;          /**< Sampling sensitivity used */
+    lis2hh12_res_t      res;            /**< Resolution                */
+    gpio_t              int1_pin;       /**< INT1 pin                  */
+    lis2hh12_int1_md_t  int1_mode;      /**< INT1 mode                 */
 } lis2hh12_params_t;
 
 
@@ -97,16 +136,21 @@ typedef struct {
  * @brief   LIS2HH12 device descriptor
  */
 typedef struct {
-    lis2hh12_params_t params;     /**< device configuration */
+    lis2hh12_params_t  params;      /**< device configuration */
+    lis2hh12_int_cb_t  int1_cb;     /**< alert callback */
+    void               *int1_arg;   /**< alert callback param */
 } lis2hh12_t;
 
 /**
  * @brief   Status and error return codes
  */
 enum {
-    LIS2HH12_OK    =  0,            /**< everything was fine      */
-    LIS2HH12_NOBUS = -1,            /**< bus interface error      */
-    LIS2HH12_NODEV = -2,            /**< unable to talk to device */
+    LIS2HH12_OK     =  0,           /**< everything was fine */
+    LIS2HH12_NOBUS  = -1,           /**< bus interface error */
+    LIS2HH12_NODEV  = -2,           /**< unable to talk to device */
+    LIS2HH12_NOCOM  = -3,           /**< communication failed */
+    LIS2HH12_NODATA = -4,           /**< no data available */
+    LIS2HH12_ERROR  = -5            /**< any error */
 };
 
 /**
@@ -124,7 +168,7 @@ extern const saul_driver_t lis2hh12_saul_driver;
  * @return  LIS2HH12_NOBUS on bus errors
  * @return  LIS2HH12_NODEV if no LIS2HH12 device was found on the bus
  */
-int lis2hh12_init(lis2hh12_t *dev, const lis2hh12_params_t *params);
+int lis2hh12_init(lis2hh12_t *dev, const lis2hh12_params_t *params, lis2hh12_int_cb_t cb, void *arg);
 
 /**
  * @brief   Read acceleration data from the given device

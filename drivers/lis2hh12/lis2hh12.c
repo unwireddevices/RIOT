@@ -50,7 +50,7 @@
     }
 }
 
-int lis2hh12_init(lis2hh12_t *dev, const lis2hh12_params_t *params)
+int lis2hh12_init(lis2hh12_t *dev, const lis2hh12_params_t *params, lis2hh12_int_cb_t cb, void *arg) 
 {
     dev->params = *params;
 
@@ -59,34 +59,81 @@ int lis2hh12_init(lis2hh12_t *dev, const lis2hh12_params_t *params)
     i2c_acquire(DEV_I2C);
     i2c_init(DEV_I2C);
 
-    if (i2c_read_reg(DEV_I2C, DEV_ADDR, LIS2HH12_WHO_AM_I, &tmp, 0) < 0)
-        return LIS2HH12_NOBUS;
-
-    if (tmp != WHO_AM_I_VAL) {
-        DEBUG("LIS2HH12: Identification failed, %02X != %02X\n", tmp, WHO_AM_I_VAL);
+    /* test connection to the device */
+    if (i2c_read_reg(DEV_I2C, DEV_ADDR, LIS2HH12_WHO_AM_I, &tmp, 0) < 0) {
+        i2c_release(DEV_I2C);
         return LIS2HH12_NOBUS;
     }
-    
+
+    if (tmp != WHO_AM_I_VAL) {
+        /* chip is not responding correctly */
+        DEBUG("LIS2HH12: Identification failed, %02X != %02X\n", tmp, WHO_AM_I_VAL);
+        i2c_release(DEV_I2C);
+        return LIS2HH12_NODEV;
+    }    
+
     tmp = ( LIS2HH12_MASK_CTRL1_BDU_EN |    /* enable block data update (registers not updated until MSB and LSB read) */
             LIS2HH12_MASK_CTRL1_XYZ_EN |    /* enable  x-, y, z-axis  */
             dev->params.odr |               /* set output data rate */
             dev->params.res);               /* set resolution  */
     
-    if (i2c_write_reg(DEV_I2C, DEV_ADDR, LIS2HH12_CTRL1, tmp, 0) < 0)
+    if (i2c_write_reg(DEV_I2C, DEV_ADDR, LIS2HH12_CTRL1, tmp, 0) < 0) {
+        i2c_release(DEV_I2C);
         return LIS2HH12_NOBUS;
+    }
     
     /* Disable HP filter */
-    if (i2c_write_reg(DEV_I2C, DEV_ADDR, LIS2HH12_CTRL2, 0x00, 0) < 0)
+    if (i2c_write_reg(DEV_I2C, DEV_ADDR, LIS2HH12_CTRL2, 0x00, 0) < 0) {
+        i2c_release(DEV_I2C);
         return LIS2HH12_NOBUS;
+    }
 
-    /* Disable INT1 interrupt sources */
-    if (i2c_write_reg(DEV_I2C, DEV_ADDR, LIS2HH12_CTRL3, 0x00, 0) < 0)
-        return LIS2HH12_NOBUS;
+     if (dev->params.int1_pin != GPIO_UNDEF) {
+        
+        if (cb == NULL) {
+            i2c_release(DEV_I2C);
+            return LIS2HH12_ERROR;
+        }
+
+        /* Enable interrupt pin 1*/
+        DEBUG("LIS2HH12: Enable interrupt pin 1\n");
+        if (i2c_write_reg(DEV_I2C, DEV_ADDR, LIS2HH12_CTRL3, dev->params.int1_mode, 0) < 0) { 
+            i2c_release(DEV_I2C);
+            return LIS2HH12_NOBUS;
+        }
+
+        /* Type of intrrupt pin and signal */
+        DEBUG("LIS2HH12: Type of intrrupt pin and signal\n");
+        tmp = ( LIS2HH12_PUSH_PULL |                /* set type interrupt pin */
+                LIS2HH12_ACTIVE_HIGH);     /* set type interrupt signal*/
+
+        if (i2c_write_reg(DEV_I2C, DEV_ADDR, LIS2HH12_CTRL5, tmp, 0) < 0) { 
+            i2c_release(DEV_I2C);
+            return LIS2HH12_NOBUS;
+        }
+
+        /* Enable interrupt handler */
+        DEBUG("LIS2HH12: Enable interrupt handler\n");
+        dev->int1_arg = arg;
+        dev->int1_cb = cb;
+        if (gpio_init_int(dev->params.int1_pin, GPIO_IN, GPIO_RISING, cb, arg)) {
+            i2c_release(DEV_I2C);
+            return LIS2HH12_ERROR;
+        }
+    } else {
+        /* Disable INT1 interrupt sources */
+        if (i2c_write_reg(DEV_I2C, DEV_ADDR, LIS2HH12_CTRL3, 0x00, 0) < 0) {
+            i2c_release(DEV_I2C);
+            return LIS2HH12_NOBUS;
+        }
+    }
 
     /* Set Full-scale configuration */
     tmp = (dev->params.scale);
-    if (i2c_write_reg(DEV_I2C, DEV_ADDR, LIS2HH12_CTRL4, tmp, 0) < 0)
+    if (i2c_write_reg(DEV_I2C, DEV_ADDR, LIS2HH12_CTRL4, tmp, 0) < 0) {
+        i2c_release(DEV_I2C);
         return LIS2HH12_NOBUS;
+    }
 
     i2c_release(DEV_I2C);
 
@@ -95,7 +142,8 @@ int lis2hh12_init(lis2hh12_t *dev, const lis2hh12_params_t *params)
 
 int lis2hh12_read_xyz(const lis2hh12_t *dev, lis2hh12_data_t *data)
 {
-    uint8_t tmp[2] = {0, 0};
+    uint8_t  tmp[2] = {0, 0};
+    uint16_t ticks = 0xFFFF;
 
     i2c_acquire(DEV_I2C);
     
@@ -105,11 +153,14 @@ int lis2hh12_read_xyz(const lis2hh12_t *dev, lis2hh12_data_t *data)
             i2c_release(DEV_I2C);
             return LIS2HH12_NOBUS;
         }
-    } while (!(status & LIS2HH12_MASK_ZYXDA));
-    
-    if (i2c_read_reg(DEV_I2C, DEV_ADDR, LIS2HH12_STATUS, &status, 0) < 0) {
-        
+    } while (!(status & LIS2HH12_MASK_ZYXDA) && --ticks);
+
+    if (!ticks) {
+        DEBUG("LIS2HH12: Timeout of data availability exceeded\n");
+        i2c_release(DEV_I2C);
+        return LIS2HH12_ERROR;
     }
+    
 
     if (i2c_read_reg(DEV_I2C, DEV_ADDR, LIS2HH12_OUT_X_L, &tmp[0], 0) < 0) {
         i2c_release(DEV_I2C);
@@ -182,7 +233,7 @@ int lis2hh12_read_temp(const lis2hh12_t *dev, int16_t *value)
     uint8_t tmp[2] = {0, 0};
 
     i2c_acquire(DEV_I2C);
-    
+
     if (i2c_read_reg(DEV_I2C, DEV_ADDR, LIS2HH12_TEMP_L, &tmp[0], 0) < 0) {
         i2c_release(DEV_I2C);
         return LIS2HH12_NOBUS;

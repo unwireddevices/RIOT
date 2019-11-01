@@ -110,6 +110,8 @@ static uint32_t last_tx_time = 0;
 static bool appdata_received(uint8_t *buf, size_t buflen, uint8_t fport);
 static void unwds_callback(module_data_t *buf);
 
+static void ls_setup(semtech_loramac_t *ls);
+
 void radio_init(void)
 {
     sx127x_params_t sx127x_params;
@@ -220,9 +222,20 @@ static void *sender_thread(void *arg) {
 
             switch (res) {
                 case SEMTECH_LORAMAC_BUSY:
+                    /* weird lock-up condition happens sometimes */
                     puts("[LoRa] MAC already busy");
+                    
+                    puts("[LoRa] Re-init LoRaMAC stack");
+                    /* save current frame, 'cause FIFO will be initialized too */
+                    ls_frame_fifo_pop(&fifo_lorapacket, &frame);
                     frame.retransmit = false;
-                    ls_frame_fifo_replace(&fifo_lorapacket, &frame);
+                    
+                    /* re-init MAC, radio, FIFO */
+                    radio_init();
+                    ls_setup(ls);
+
+                    /* restore the frame */
+                    ls_frame_fifo_push(&fifo_lorapacket, &frame);
                     break;
                 case SEMTECH_LORAMAC_DUTYCYCLE_RESTRICTED:
                     puts("[LoRa] TX duty cycle restricted");

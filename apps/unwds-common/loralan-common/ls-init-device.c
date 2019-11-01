@@ -64,6 +64,8 @@ extern "C" {
 #define ENABLE_DEBUG    0
 #include "debug.h"
 
+#define UNWD_IWDG_THREAD_SIZE   (256)
+
 static void init_common(shell_command_t *commands);
 static void init_config(shell_command_t *commands);
 static int init_clear_nvram(int argc, char **argv);
@@ -80,7 +82,8 @@ static uint8_t nwkskey[16] = {};
 
 static uint32_t devnonce = 0;
 
-static lptimer_t iwdg_timer;
+static kernel_pid_t iwdg_pid;
+
 static lptimer_t delayed_setup_timer;
 
 /**
@@ -557,7 +560,6 @@ static void system_on_off (void *arg) {
         /* stop all activity */
         lptimer_remove_all();
         /* restart watchdog timer */
-        lptimer_set(&iwdg_timer, 100);
         pm_unblock(PM_SLEEP);
         void (*board_sleep)(void) = arg;
         board_sleep();
@@ -659,13 +661,14 @@ static void connect_btn_pressed (void *arg) {
     connect_btn_last_press = ms_now;
 }
 
-static void iwdg_reset (void *arg) {
+static void *iwdg_reset (void *arg) {
     (void)arg;
     
-    wdg_reload();
-    lptimer_set(&iwdg_timer, 15000);
-    DEBUG("Watchdog reset\n");
-    return;
+    while (1) {
+        lptimer_sleep(15000UL);
+        wdg_reload();
+    }
+    return NULL;
 }
 
 static void ls_delayed_setup (void *arg) {
@@ -725,11 +728,10 @@ void unwds_device_init(void *unwds_callback, void *unwds_init, void *unwds_join,
         blink_led(LED0_PIN);
     }
     else {
-        /* reset IWDG timer every 15 seconds */
-        /* NB: unwired-module MUST NOT need more than 3 seconds to finish its job */
-        iwdg_timer.callback = iwdg_reset;
-        lptimer_set(&iwdg_timer, 15000);
-        
+        /* IWDG timer reset thread */
+        char *stack = (char *) allocate_stack(UNWD_IWDG_THREAD_SIZE);
+        iwdg_pid = thread_create(stack, UNWD_IWDG_THREAD_SIZE, THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST, iwdg_reset, NULL, "IWDG reset");
+
         /* IWDG period is 18 seconds minimum, 28 seconds typical */
         wdg_set_reload(28);
         wdg_reload();

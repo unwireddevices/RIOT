@@ -233,6 +233,8 @@ static void *sender_thread(void *arg) {
                     /* re-init MAC, radio, FIFO */
                     radio_init();
                     ls_setup(ls);
+                    
+                    lora_joined = false;
 
                     /* restore the frame */
                     ls_frame_fifo_push(&fifo_lorapacket, &frame);

@@ -43,7 +43,7 @@
  * @warning The application must ensure the maximal useful size to be much lower
  *          than the MAX_HAL_BUFFER_SIZE
  */
-#define MAX_HAL_BUFFER_SIZE                             (0xFFF)
+#define MAX_HAL_BUFFER_SIZE                             (0xFFF/2)
 
 static uint8_t hal_tx_buffer[MAX_HAL_BUFFER_SIZE] = {0x00};
 static uint8_t hal_rx_buffer[MAX_HAL_BUFFER_SIZE] = {0x00};

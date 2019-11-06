@@ -32,8 +32,6 @@
 #define ENABLE_DEBUG        (0)
 #include "debug.h"
 
-#include "log.h"
-
 #if ENABLE_DEBUG
     #define PRINTBUFF _printbuff
     static void _printbuff(uint8_t *buff, unsigned len)
@@ -260,7 +258,7 @@ int lis2dh12_init(lis2dh12_t *dev, const lis2dh12_params_t *params)
     /* Sensor availability check */
     DEBUG("Sensor availability check\n");
     if (_lis2dh12_read_reg(dev, LIS2DH12_WHO_AM_I, &dev_id, 1) < 0) {
-        LOG_ERROR("[LIS2DH12] Sensor is not available\n");
+        DEBUG("[LIS2DH12] Sensor is not available\n");
         return -LIS2DH12_ERROR_I2C;
     }
 
@@ -268,7 +266,7 @@ int lis2dh12_init(lis2dh12_t *dev, const lis2dh12_params_t *params)
     DEBUG("Checking the value of the \"Who am I\" register\n");
     if (dev_id != LIS2DH12_WHO_AM_I_RESPONSE) {
         /* the chip responded incorrectly */
-        LOG_ERROR("[LIS2DH12] Error reading chip ID\n");
+        DEBUG("[LIS2DH12] Error reading chip ID\n");
         return -LIS2DH12_ERROR_NO_DEV;
     }
 
@@ -444,7 +442,7 @@ int lis2dh12_read_xyz(lis2dh12_t *dev, lis2dh12_data_t *acceleration) {
     } while(((axl_data_rdy & LIS2DH12_STATUS_REG_ZYXDA_MASK) != LIS2DH12_STATUS_REG_ZYXDA_MASK) && --tick);
 
     if (!tick) {
-        LOG_ERROR("[LIS2DH12] Timeout reading acceleration\n");
+        DEBUG("[LIS2DH12] Timeout reading acceleration\n");
         return -LIS2DH12_ERROR_NO_NEW_DATA;
     }
     return LIS2DH12_OK;
@@ -486,7 +484,7 @@ int lis2dh12_read_temp(lis2dh12_t *dev, int16_t *temperature_degC)
     } while(((temp_data_rdy & LIS2DH12_STATUS_REG_AUX_TDA_MASK) != LIS2DH12_STATUS_REG_AUX_TDA_MASK) && --tick);
 
     if (!tick) {
-        LOG_ERROR("[LIS2DH12] Timeout reading temperature\n");
+        DEBUG("[LIS2DH12] Timeout reading temperature\n");
          return -LIS2DH12_ERROR_NO_NEW_DATA;
     }
     return LIS2DH12_OK;

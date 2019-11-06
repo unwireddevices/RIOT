@@ -1371,7 +1371,7 @@ void sx1280_process_irqs(const sx128x_t *dev)
                 case SX128X_MODE_RX:
                     if((irq_regs & SX128X_IRQ_RANGING_SLAVE_REQUEST_DISCARDED) == SX128X_IRQ_RANGING_SLAVE_REQUEST_DISCARDED) {
                         if((radio_callbacks != NULL) && (radio_callbacks->ranging_done != NULL)) {
-                            radio_callbacks->ranging_done( SX128X_IRQ_RANGING_SLAVE_ERROR_CODE);
+                            radio_callbacks->ranging_done(SX128X_IRQ_RANGING_SLAVE_ERROR_DISCARDED);
                         }
                     }
                     if((irq_regs & SX128X_IRQ_RANGING_SLAVE_REQUEST_VALID) == SX128X_IRQ_RANGING_SLAVE_REQUEST_VALID) {
@@ -1386,7 +1386,7 @@ void sx1280_process_irqs(const sx128x_t *dev)
                     }
                     if((irq_regs & SX128X_IRQ_RX_TX_TIMEOUT) == SX128X_IRQ_RX_TX_TIMEOUT) {
                         if((radio_callbacks != NULL) && (radio_callbacks->ranging_done != NULL)) {
-                            radio_callbacks->ranging_done(SX128X_IRQ_RANGING_SLAVE_ERROR_CODE);
+                            radio_callbacks->ranging_done(SX128X_IRQ_RANGING_SLAVE_ERROR_TIMEOUT);
                         }
                     }
                     if((irq_regs & SX128X_IRQ_HEADER_VALID) == SX128X_IRQ_HEADER_VALID) {

@@ -686,7 +686,8 @@ typedef enum {
  * @brief Structure describing the ranging codes for callback functions
  */
 typedef enum {
-    SX128X_IRQ_RANGING_SLAVE_ERROR_CODE    = 0x00,
+    SX128X_IRQ_RANGING_SLAVE_ERROR_DISCARDED    = 0x00,
+    SX128X_IRQ_RANGING_SLAVE_ERROR_TIMEOUT,
     SX128X_IRQ_RANGING_SLAVE_VALID_CODE,
     SX128X_IRQ_RANGING_MASTER_ERROR_CODE,
     SX128X_IRQ_RANGING_MASTER_VALID_CODE,

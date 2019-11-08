@@ -46,7 +46,9 @@
 #define BIT_APB_PWREN       RCC_APB1ENR_PWREN
 #endif
 
-#if defined(RTC_REGBACKUP_BOOTLOADER)
+#if defined(CPU_JUMP_TO_BOOTLOADER_MAGIC_KEY)
+uint32_t __attribute__((section(".noinit"))) cpu_jump_to_bootloader;
+
 static void jump_to_bootloader(void) __attribute__ ((noreturn));
 
 /* Sets up and jumps to the bootloader */
@@ -55,33 +57,25 @@ static void jump_to_bootloader(void) {
     char *a, *b, *c;
     a = (char *)(OB_BASE - 4);
     b = 0;
-    
+
     /* Here we have System memory top address */
     c = cpu_find_next_valid_address(a, b, 4, true);
-    
+
     /* Here we have System memory bottom address */
     c = cpu_find_next_valid_address(c, b, 4, false) + 4;
-    
+
     if (!c) {
         NVIC_SystemReset();
     }
-    
-    uint32_t boot_addr = (uint32_t)c;
-    
-    uint32_t boot_stack_ptr = *(uint32_t*)(boot_addr);
-    uint32_t dfu_reset_addr = *(uint32_t*)(boot_addr+4);
-
-    void (*dfu_bootloader)(void) = (void (*))(dfu_reset_addr);
-
-    /* Reset the stack pointer */
-    __set_MSP(boot_stack_ptr);
 
 #if defined(LED0_PIN)
     gpio_init(LED0_PIN, GPIO_OUT);
     gpio_set(LED0_PIN);
 #endif
 
-    dfu_bootloader();
+    uint32_t boot_addr = (uint32_t)c;
+    cpu_jump_to_image(boot_addr);
+
     while (1);
 }
 #endif
@@ -207,23 +201,18 @@ void cpu_init(void)
 {
     /* initialize the Cortex-M core */
     cortexm_init();
-       
+
     /* enable PWR module */
     periph_clk_en(APB1, BIT_APB_PWREN);
 
     /* check if we need to update firmware */
-#if defined(RTC_REGBACKUP_BOOTLOADER)
-    rtc_poweron();
-    if (rtc_restore_backup(RTC_REGBACKUP_BOOTLOADER) == RTC_REGBACKUP_BOOTLOADER_VALUE) {
-        /* clear RTC register */
-        rtc_save_backup(0, RTC_REGBACKUP_BOOTLOADER);
-        rtc_poweroff();
-        
+#if defined(CPU_JUMP_TO_BOOTLOADER_MAGIC_KEY)
+    if (cpu_jump_to_bootloader == CPU_JUMP_TO_BOOTLOADER_MAGIC_KEY) {
+        cpu_jump_to_bootloader = 0;
         jump_to_bootloader();
     }
-    rtc_poweroff();
 #endif
-    
+
     /* initialize the system clock as configured in the periph_conf.h */
     stmclk_init_sysclk();
 
@@ -240,6 +229,6 @@ void cpu_init(void)
 #endif
     /* trigger static peripheral initialization */
     periph_init();
-    
+
     cpu_init_status();
 }

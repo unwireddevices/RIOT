@@ -114,6 +114,8 @@ typedef struct {
 
 extern cpu_status_t cpu_status;
 
+extern uint32_t __attribute__((section(".noinit"))) cpu_jump_to_bootloader;
+
 #if defined(MODULE_PERIPH_STATUS_EXTENDED)
 /**
  * @brief   Updates CPU status info
@@ -300,7 +302,7 @@ size_t cpu_find_memory_size(char *base, uint32_t block, uint32_t maxsize);
 static inline void cpu_jump_to_image(uint32_t image_address)
 {
     /* Disable IRQ */
-    __disable_irq();
+    /*__disable_irq();*/ /* breaks STM32 DFU bootloader */
 
     /* set MSP */
     __set_MSP(*(uint32_t*)image_address);

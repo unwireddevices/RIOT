@@ -85,6 +85,8 @@ typedef enum {
     NODE_MSG_SEND,
 } node_message_types_t;
 
+bool lorawan_busy = false;
+
 static msg_t msg_join = { .type = NODE_MSG_JOIN };
 static msg_t msg_data = { .type = NODE_MSG_SEND };
 static kernel_pid_t sender_pid;
@@ -218,7 +220,11 @@ static void *sender_thread(void *arg) {
                 puts("[LoRa] sending new packet");
             }
             
+            lorawan_busy = true;
+            
             res = semtech_loramac_send(ls, frame.data, frame.length);
+            
+            lorawan_busy = false;
 
             switch (res) {
                 case SEMTECH_LORAMAC_BUSY:
@@ -300,7 +306,11 @@ static void *sender_thread(void *arg) {
         }
         
         if (msg.type == NODE_MSG_JOIN) {
+            lorawan_busy = true;
+            
             res = node_join(ls);
+            
+            lorawan_busy = false;
 
             switch (res) {
             case SEMTECH_LORAMAC_JOIN_SUCCEEDED: {

@@ -131,6 +131,8 @@ typedef enum {
     UNWDS_BOOT_MODULES_FAILED = 2,
 } boot_modes_t;
 
+extern bool lorawan_busy;
+
 void unwds_init_modules(uwnds_cb_t *event_callback);
 int unwds_send_to_module(unwds_module_id_t modid, module_data_t *data, module_data_t *reply);
 bool unwds_send_broadcast(unwds_module_id_t modid, module_data_t *data, module_data_t *reply);

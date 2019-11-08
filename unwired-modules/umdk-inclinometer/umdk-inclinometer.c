@@ -135,30 +135,13 @@ static uint8_t active_sensors = 0;
 static bool init_sensor(void) {
     printf("[umdk-" _UMDK_NAME_ "] Initializing INCLINOMETER on I2C #%d\n", I2C_DEV(UMDK_INCLINOMETER_I2C));
     
-	lis2hh12_params_t lis2hh12_params;
-    
-    lis2hh12_params.i2c_dev = I2C_DEV(UMDK_INCLINOMETER_I2C);           /**< I2C device */
-    lis2hh12_params.i2c_addr = 0x1E;                                    /**< Accelerometer I2C address */
-    lis2hh12_params.odr   = LIS2HH12_ODR_50HZ;                          /**< Output data rate */
-    lis2hh12_params.scale = LIS2HH12_SCALE_2G;                          /**< Scale factor */
-    lis2hh12_params.res   = LIS2HH12_RES_HR;                            /**< Resolution */
-    lis2hh12_params.int1_pin   = GPIO_UNDEF;                        /**< Interrupt pin undefined */
-    lis2hh12_params.int1_mode  = INT1_DISABLE;                      /**< Disable all interrupt */
-
-    if (lis2hh12_init(&dev_lis2hh12, &lis2hh12_params, NULL, NULL) == 0) {
-        puts("[umdk-" _UMDK_NAME_ "] STMicro LIS2HH12 sensor found");
-        active_sensors |= UMDK_INCLINOMETER_LIS2HH12;
-        lis2hh12_poweroff(&dev_lis2hh12);
-        return true;
-    }
-    
     lis2dh12_params_t lis2dh12_params;
     
-    lis2dh12_params.i2c_dev = I2C_DEV(UMDK_INCLINOMETER_I2C);           /**< I2C device */
-    lis2dh12_params.i2c_addr = LIS2DH12_I2C_SAD_L;                      /**< Accelerometer I2C address */
-    lis2dh12_params.odr   = LIS2DH12_ODR_50HZ;                          /**< Output data rate */
-    lis2dh12_params.scale = LIS2DH12_SCALE_2G;                          /**< Scale factor */
-    lis2dh12_params.res   = LIS2DH12_HR_12BIT;                          /**< Resolution */
+    lis2dh12_params.i2c_dev = I2C_DEV(UMDK_INCLINOMETER_I2C);       /**< I2C device */
+    lis2dh12_params.i2c_addr = LIS2DH12_I2C_SAD_L;                  /**< Accelerometer I2C address */
+    lis2dh12_params.odr   = LIS2DH12_ODR_5376Hz;                    /**< 1344 Hz in HR mode */
+    lis2dh12_params.scale = LIS2DH12_SCALE_2G;                      /**< Scale factor */
+    lis2dh12_params.res   = LIS2DH12_HR_12BIT;                      /**< Resolution */
     
     if (lis2dh12_init(&dev_lis2dh12, &lis2dh12_params) == LIS2DH12_OK) {
         puts("[umdk-" _UMDK_NAME_ "] STMicro LIS2DH12 sensor found");
@@ -166,14 +149,31 @@ static bool init_sensor(void) {
         lis2dh12_poweroff(&dev_lis2dh12);
         return true;
     }
+
+	lis2hh12_params_t lis2hh12_params;
+
+    lis2hh12_params.i2c_dev    = I2C_DEV(UMDK_INCLINOMETER_I2C);    /**< I2C device */
+    lis2hh12_params.i2c_addr   = 0x1E;                              /**< Accelerometer I2C address */
+    lis2hh12_params.odr        = LIS2HH12_ODR_800HZ;                /**< Output data rate */
+    lis2hh12_params.scale      = LIS2HH12_SCALE_2G;                 /**< Scale factor */
+    lis2hh12_params.res        = LIS2HH12_RES_HR;                   /**< Resolution */
+    lis2hh12_params.int1_pin   = GPIO_UNDEF;                        /**< Interrupt pin undefined */
+    lis2hh12_params.int1_mode  = INT1_DISABLE;                      /**< Disable all interrupt */
+
+    if (lis2hh12_init(&dev_lis2hh12, &lis2hh12_params, NULL, NULL) == LIS2HH12_OK) {
+        puts("[umdk-" _UMDK_NAME_ "] STMicro LIS2HH12 sensor found");
+        active_sensors |= UMDK_INCLINOMETER_LIS2HH12;
+        lis2hh12_poweroff(&dev_lis2hh12);
+        return true;
+    }
     
     lis3dh_params_t lis3dh_params;
     
-    lis3dh_params.i2c_dev = I2C_DEV(UMDK_INCLINOMETER_I2C); /**< I2C device */
-    lis3dh_params.i2c_addr = LIS3DH_I2C_SAD_L;              /**< Accelerometer I2C address */
-    lis3dh_params.odr   = LIS3DH_ODR_50HZ;                /**< Output data rate */
-    lis3dh_params.scale = LIS3DH_SCALE_2G;                    /**< Scale factor */
-    lis3dh_params.res   = LIS3DH_HR_12BIT;            /**< Resolution */
+    lis3dh_params.i2c_dev  = I2C_DEV(UMDK_INCLINOMETER_I2C);        /**< I2C device */
+    lis3dh_params.i2c_addr = LIS3DH_I2C_SAD_L;                      /**< Accelerometer I2C address */
+    lis3dh_params.odr   = LIS3DH_ODR_5KHZ376_LP_1KHZ344_NM_HP;      /**< 1344 Hz in HR mode */
+    lis3dh_params.scale = LIS3DH_SCALE_2G;                          /**< Scale factor */
+    lis3dh_params.res   = LIS3DH_HR_12BIT;                          /**< Resolution */
     
     if (lis3dh_init(&dev_lis3dh, &lis3dh_params, NULL, NULL) == 0) {
         puts("[umdk-" _UMDK_NAME_ "] STMicro LIS3DH sensor found");
@@ -248,21 +248,32 @@ static void *measure_thread(void *arg) {
         
         /* only one of available sensors is enabled */
         if (active_sensors & UMDK_INCLINOMETER_LIS2HH12) {
-            lis2hh12_data_t lis2hh12_data;
-        
+            lis2hh12_data_t lis2hh12_data = { 0 };
+
             lis2hh12_poweron(&dev_lis2hh12);
-            lis2hh12_read_xyz(&dev_lis2hh12, &lis2hh12_data);
+
+            uint32_t start_ms = lptimer_now_msec();
+            const int32_t acc_avg_cycles = 200;
+            for (int a = 0; a < acc_avg_cycles; a++) {
+                while (lis2hh12_read_xyz(&dev_lis2hh12, &lis2hh12_data) != LIS2HH12_ERROR) {
+                    if (lptimer_now_msec() > start_ms + 25) {
+                        break;
+                    }
+                };
+                x += lis2hh12_data.x_axis;
+                y += lis2hh12_data.y_axis;
+                z += lis2hh12_data.z_axis;
+            }
 
             int16_t temp_value;
             lis2hh12_read_temp(&dev_lis2hh12, &temp_value);
             lis2hh12_poweroff(&dev_lis2hh12);
 
-            /* Copy measurements into response */
-            x = lis2hh12_data.x_axis;
-            y = lis2hh12_data.y_axis;
-            z = lis2hh12_data.z_axis;
+            x /= acc_avg_cycles;
+            y /= acc_avg_cycles;
+            z /= acc_avg_cycles;
         }
-        
+
         if (active_sensors & UMDK_INCLINOMETER_ADXL345) {
             adxl345_set_measure(&dev_adxl345);
             lptimer_sleep(12);

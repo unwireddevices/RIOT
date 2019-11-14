@@ -75,10 +75,10 @@ extern "C" {
 
 /** "Connect" Button */
 #define UNWD_USE_CONNECT_BTN	1
-#define UNWD_CONNECT_BTN		GPIO_PIN(PORT_B, 0)
+#define UNWD_CONNECT_BTN		GPIO_PIN(PORT_B, 4)
 
 /** LEDs */
-#define LED0_PIN                GPIO_PIN(PORT_B, 1)
+#define LED0_PIN                GPIO_PIN(PORT_A, 12)
 #define LED1_PIN                GPIO_UNDEF
 /** Ultrasonic rangefinder configuration */
 #define UMDK_USONIC_ADC_CH      3
@@ -95,15 +95,16 @@ extern "C" {
 #define SIMCOM_BAUDRATE         (115200)
 #define SIMCOM_DCDC_PIN         GPIO_UNDEF
 #define SIMCOM_DCDC_LEVEL       (1)
-#define SIMCOM_ENABLE_PIN       GPIO_PIN(PORT_A, 11)
-#define SIMCOM_ENABLE_LEVEL     (0)
+#define SIMCOM_ENABLE_PIN       GPIO_PIN(PORT_A, 8)
+#define SIMCOM_ENABLE_LEVEL     (1)
 
-/** Accelerometer configuration */
+/** GPS configuration */
 #define UMDK_GPS_DEV            (2)
 #define UMDK_GPS_ENABLE_PIN     GPIO_PIN(PORT_A, 12)
 
-/** GPS configuration */
-#define SIMCOM_UART             (1)
+/** Accelerometer configuration */
+#define UMDK_ACCEL_I2C          (1)
+#define UMDK_ACCEL_INT_PIN      GPIO_PIN(PORT_B, 5)
 
 /** GPIO Ports */
 #define UNWD_GPIO_1  GPIO_PIN(PORT_B, 1)

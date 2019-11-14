@@ -78,6 +78,12 @@ typedef enum {
     NODE_MSG_RETX,
 } node_message_types_t;
 
+#define ATMODEM_MQTT_PORT_DEFAULT   1883
+#define ATMODEM_MQTT_ADDR_DEFAULT   "127.0.0.1"
+#define ATMODEM_MQTT_USER_DEFAULT   "test"
+#define ATMODEM_MQTT_PASS_DEFAULT   "password"
+#define ATMODEM_MQTT_TOPIC_DEFAULT  "atmodem"
+
 static struct {
     int32_t     id;
 	uint16_t    upload_period_minutes;
@@ -101,10 +107,6 @@ static char at_dev_buf[AT_DEV_BUF_SIZE];
 
 #define AT_DEV_RESP_SIZE        (1024)
 static char at_dev_resp[AT_DEV_RESP_SIZE];
-
-#define SERVER_ADDRES           "example.com"
-#define SERVER_PORT             "8080"
-#define SERVER_TYPE_CONNECTION  "TCP"
 
 static simcom_dev_t simcom_dev;
 
@@ -151,6 +153,7 @@ static void *sender_thread(void *arg) {
             res = simcom_start_internet(&simcom_dev, 30, NULL);
             if (res != SIMCOM_OK) {
                 printf("[GSM] Error setting up modem\n");
+                simcom_power_off(&simcom_dev);
                 continue;
             } else {
                 printf("[GSM] Modem ready\n");
@@ -168,18 +171,23 @@ static void *sender_thread(void *arg) {
             
             if (sockfd < SIMCOM_OK) {
                 DEBUG("[GSM] Socket open error: %i\n", sockfd);
+                simcom_power_off(&simcom_dev);
                 continue;
             } else {
                 printf("[GSM] Socket ready\n");
             }
             
+            char tcp_port[10];
+            snprintf(tcp_port, 10, "%d", atmodem_mqtt_config.mqtt_port);
+            
             res = simcom_connect(&simcom_dev, 
                                   sockfd, 
-                                  SERVER_ADDRES, 
-                                  SERVER_PORT, 
-                                  SERVER_TYPE_CONNECTION);
+                                  atmodem_mqtt_config.mqtt_address, 
+                                  tcp_port, 
+                                  "TCP");
             if (res < SIMCOM_OK) {
                 DEBUG("[GSM] Connection error: %i\n", res);
+                simcom_power_off(&simcom_dev);
                 continue;
             }  else {
                 printf("[GSM] Modem connected\n");
@@ -219,12 +227,12 @@ static void *sender_thread(void *arg) {
                 printf("MCU voltage %d mV\n", voltage);
             }
             
-            simcom_csq_resp_t simcom_csq_resp;
+            simcom_csq_resp_t simcom_csq_resp = { 0 };
             simcom_get_signal_quality_report(&simcom_dev, &simcom_csq_resp);
             int rssi = simcom_csq_resp.rssi;
             
             snprintf(mqtt_payload, sizeof(mqtt_payload), "{"      \
-                    "\"id\": \"%08lu%08lu\","           \
+                    "\"id\": \"%08lx%08lx\","           \
                     "\"rssi\": \"%d\","                 \
                     "\"temperature\": \"%d\","          \
                     "\"battery\": \"%d\","              \
@@ -601,6 +609,12 @@ void init_normal(shell_command_t *commands)
     simcom_dev.gsm_en_pin      = SIMCOM_ENABLE_PIN;
     simcom_dev.gsm_act_level   = SIMCOM_ENABLE_LEVEL;
     
+    atmodem_mqtt_config.mqtt_port = ATMODEM_MQTT_PORT_DEFAULT;
+    strcpy(atmodem_mqtt_config.mqtt_address, ATMODEM_MQTT_ADDR_DEFAULT);
+    strcpy(atmodem_mqtt_config.mqtt_user, ATMODEM_MQTT_USER_DEFAULT);
+    strcpy(atmodem_mqtt_config.mqtt_password, ATMODEM_MQTT_PASS_DEFAULT);
+    strcpy(atmodem_mqtt_config.mqtt_topic, ATMODEM_MQTT_TOPIC_DEFAULT);
+
     bool cfg_valid = unwds_config_load();
     print_config();
     

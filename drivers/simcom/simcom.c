@@ -107,7 +107,10 @@ int simcom_power_off(simcom_dev_t *simcom_dev) {
         puts("simcom_dev = NULL");
 
         return SIMCOM_DEV_ERROR;
-    } 
+    }
+    
+    /* power off modem */
+    at_send_cmd_get_resp(&simcom_dev->at_dev, "AT+CPOWD=1", simcom_dev->at_dev_resp, simcom_dev->at_dev_resp_size, SIMCOM_MAX_TIMEOUT); 
 
     /* Power off UART for modem */
     uart_poweroff(simcom_dev->at_dev.uart);

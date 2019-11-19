@@ -82,13 +82,16 @@ int __attribute__((weak)) i2c_write_regs(i2c_t dev, uint16_t addr, uint16_t reg,
 }
 
 void i2c_unstuck_sda(i2c_t dev) {
+    int count = 0;
+
     if (gpio_read(i2c_config[dev].sda == 0)) {
         do {
             gpio_clear(i2c_config[dev].scl);
             xtimer_spin(xtimer_ticks_from_usec(5));
             gpio_set(i2c_config[dev].scl);
             xtimer_spin(xtimer_ticks_from_usec(5));
-        } while (gpio_read(i2c_config[dev].sda == 0));
+            count++;
+        } while (gpio_read(i2c_config[dev].sda == 0) && (count < 100));
     }
 }
 

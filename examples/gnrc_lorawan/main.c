@@ -32,29 +32,10 @@
 #include "net/gnrc/netif.h"
 
 #include "net/gnrc/pktbuf.h"
+#include "net/gnrc/pktdump.h"
 #include "net/gnrc/netreg.h"
 
 #define LORAWAN_PORT (2U)
-
-static void _netreg_cb(uint16_t cmd, gnrc_pktsnip_t *pkt, void *ctx)
-{
-    (void) cmd;
-    (void) ctx;
-    puts("Received data:");
-    for(unsigned  i=0; i<pkt->size;i++)
-    {
-        printf("%02x ", ((uint8_t*) pkt->data)[i]);
-    }
-    printf("\n");
-    gnrc_pktbuf_release(pkt);
-}
-
-gnrc_netreg_entry_cbd_t _cbd = {
-    .cb = _netreg_cb,
-    .ctx = NULL
-};
-
-static gnrc_netreg_entry_t _entry = GNRC_NETREG_ENTRY_INIT_CB(LORAWAN_PORT, &_cbd);
 
 static void _usage(void)
 {
@@ -117,7 +98,9 @@ int main(void)
 {
     /* start the shell */
     puts("Initialization successful - starting the shell now");
-    gnrc_netreg_register(GNRC_NETTYPE_LORAWAN, &_entry);
+    gnrc_netreg_entry_t dump = GNRC_NETREG_ENTRY_INIT_PID(LORAWAN_PORT,
+                                                          gnrc_pktdump_pid);
+    gnrc_netreg_register(GNRC_NETTYPE_LORAWAN, &dump);
     char line_buf[SHELL_DEFAULT_BUFSIZE];
 
     shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);

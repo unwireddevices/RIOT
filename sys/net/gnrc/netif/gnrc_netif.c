@@ -67,10 +67,9 @@ gnrc_netif_t *gnrc_netif_create(char *stack, int stacksize, char priority,
     netif->ops = ops;
     assert(netif->dev == NULL);
     netif->dev = netdev;
-    res = thread_create(stack, stacksize, priority, THREAD_CREATE_STACKTEST,
+    netif->dev_pid = thread_create(stack, stacksize, priority, THREAD_CREATE_STACKTEST,
                         _gnrc_netif_thread, (void *)netif, name);
-    (void)res;
-    assert(res > 0);
+    assert(netif->dev_pid > 0);
     return netif;
 }
 

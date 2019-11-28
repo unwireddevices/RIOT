@@ -108,6 +108,7 @@ typedef struct {
     uint8_t cur_hl;                         /**< Current hop-limit for out-going packets */
     uint8_t device_type;                    /**< Device type */
     kernel_pid_t pid;                       /**< PID of the network interface's thread */
+    kernel_pid_t dev_pid;                   /**< PID of the network device thread */
 } gnrc_netif_t;
 
 /**

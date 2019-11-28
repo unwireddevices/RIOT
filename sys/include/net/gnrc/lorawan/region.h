@@ -27,11 +27,26 @@ extern "C" {
 /**
  * @brief Default LoRaWAN channels for current region (EU868)
  */
+#if LORA_REGION == EU868
 static const uint32_t gnrc_lorawan_default_channels[] = {
     868100000UL,
     868300000UL,
     868500000UL
 };
+#elif LORA_REGION == RU864
+static const uint32_t gnrc_lorawan_default_channels[] = {
+    868900000UL,
+    869100000UL
+};
+#elif LORA_REGION == KZ865
+static const uint32_t gnrc_lorawan_default_channels[] = {
+    865100000UL,
+    865300000UL,
+    865500000UL
+};
+#else
+#error LORA_REGION undefined or not supported
+#endif
 
 #define GNRC_LORAWAN_DEFAULT_CHANNELS_NUMOF \
     (sizeof(gnrc_lorawan_default_channels)/sizeof(uint32_t)) /**< Number of default channels */

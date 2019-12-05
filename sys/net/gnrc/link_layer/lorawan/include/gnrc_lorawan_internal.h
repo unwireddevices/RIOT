@@ -24,7 +24,7 @@
 #include "net/lora.h"
 #include "net/lorawan/hdr.h"
 #include "net/gnrc/pktbuf.h"
-#include "xtimer.h"
+#include "lptimer.h"
 #include "msg.h"
 #include "net/netdev.h"
 #include "net/netdev/layer.h"
@@ -65,7 +65,7 @@ extern "C" {
 #define GNRC_LORAWAN_DIR_UPLINK (0U)                    /**< uplink frame direction */
 #define GNRC_LORAWAN_DIR_DOWNLINK (1U)                  /**< downlink frame direction */
 
-#define GNRC_LORAWAN_BACKOFF_WINDOW_TICK (3600000000LL) /**< backoff expire tick in usecs (set to 1 second) */
+#define GNRC_LORAWAN_BACKOFF_WINDOW_TICK (3600000LL)    /**< backoff expire tick in usecs (set to 1 second) */
 
 #define GNRC_LORAWAN_BACKOFF_BUDGET_1   (36000000LL)    /**< budget of time on air during the first hour */
 #define GNRC_LORAWAN_BACKOFF_BUDGET_2   (36000000LL)    /**< budget of time on air between 1-10 hours after boot */
@@ -151,7 +151,7 @@ typedef struct {
  * @brief MLME service access point descriptor
  */
 typedef struct {
-    xtimer_t backoff_timer;     /**< timer used for backoff expiration */
+    lptimer_t backoff_timer;    /**< timer used for backoff expiration */
     msg_t backoff_msg;          /**< msg for backoff expiration */
     uint8_t activation;         /**< Activation mechanism of the MAC layer */
     int pending_mlme_opts;  /**< holds pending mlme opts */
@@ -165,7 +165,7 @@ typedef struct {
  * @brief GNRC LoRaWAN mac descriptor */
 typedef struct {
     netdev_t netdev;                                /**< netdev for the MAC layer */
-    xtimer_t rx;                                    /**< RX timer */
+    lptimer_t rx;                                   /**< RX timer */
     msg_t msg;                                      /**< MAC layer message descriptor */
     gnrc_lorawan_mcps_t mcps;                       /**< MCPS descriptor */
     gnrc_lorawan_mlme_t mlme;                       /**< MLME descriptor */

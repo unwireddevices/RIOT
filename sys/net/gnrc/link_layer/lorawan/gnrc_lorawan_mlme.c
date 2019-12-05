@@ -188,7 +188,7 @@ void gnrc_lorawan_mlme_backoff_expire(gnrc_lorawan_t *mac)
 
     counter--;
     mac->mlme.backoff_state = state << 5 | (counter & 0x1F);
-    xtimer_set_msg(&mac->mlme.backoff_timer,
+    lptimer_set_msg(&mac->mlme.backoff_timer,
                    GNRC_LORAWAN_BACKOFF_WINDOW_TICK,
                    &mac->mlme.backoff_msg, thread_getpid());
 

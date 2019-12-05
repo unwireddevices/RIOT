@@ -52,7 +52,6 @@ gnrc_netif_t *gnrc_netif_create(char *stack, int stacksize, char priority,
                                 const gnrc_netif_ops_t *ops)
 {
     gnrc_netif_t *netif = NULL;
-    int res;
 
     for (int i = 0; i < GNRC_NETIF_NUMOF; i++) {
         if (_netifs[i].dev == netdev) {

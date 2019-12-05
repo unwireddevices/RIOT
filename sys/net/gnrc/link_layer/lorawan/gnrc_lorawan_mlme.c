@@ -91,9 +91,6 @@ static int gnrc_lorawan_send_join_request(gnrc_lorawan_t *mac, uint8_t *deveui,
         return -ENOBUFS;
     }
 
-    /* We need a random delay for join request. Otherwise there might be
-     * network congestion if a group of nodes start at the same time */
-    xtimer_usleep(random_uint32() & GNRC_LORAWAN_JOIN_DELAY_U32_MASK);
     gnrc_lorawan_send_pkt(mac, pkt, dr);
 
     mac->mlme.backoff_budget -= mac->toa;

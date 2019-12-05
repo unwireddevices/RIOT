@@ -28,6 +28,9 @@ CFLAGS += -DLORA_REGION=$(LORA_REGION)
 CFLAGS += -DDISABLE_LORAMAC_DUTYCYCLE
 # CFLAGS += -DLORAMAC_CHANNEL_FREE_DETECT_PREAMBLE
 
+# Control network interfaces from shell
+# USEMODULE += gnrc_netif_shell
+
 ############ UMDK MODULES USED #####################
 # variables in the list below must match modules'
 # subdirectory name in ../../unwired-modules/

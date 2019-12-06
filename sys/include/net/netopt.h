@@ -566,7 +566,115 @@ typedef enum {
      */
     NETOPT_PHY_BUSY,
 
+    /**
+     * @brief   (uint8_t*) LoRaWAN application EUI (8 bytes length)
+     */
+    NETOPT_LORAWAN_APPEUI,
+
+    /**
+     * @brief   (uint8_t*) LoRaWAN application key (16 bytes length)
+     */
+    NETOPT_LORAWAN_APPKEY,
+
+    /**
+     * @brief   (uint8_t*) LoRaWAN network session key (16 bytes length)
+     */
+    NETOPT_LORAWAN_NWKSKEY,
+    /**
+     * @brief   (uint8_t*) LoRaWAN application session key (16 bytes length)
+     */
+    NETOPT_LORAWAN_APPSKEY,
+
+     /**
+     * @brief   (uint8_t) LoRaWAN device class (A, B, C)
+     * - LoRaWAN: @ref loramac_class_t
+     */
+    NETOPT_LORAWAN_DEVICE_CLASS,
+
+    /**
+     * @brief   (uint8_t) LoRaWAN datarate
+     * - LoRaWAN: @ref loramac_dr_idx_t
+     */
+    NETOPT_LORAWAN_DR,
+
+    /**
+     * @brief   (@ref netopt_enable_t) LoRaWAN adaptive datarate
+     */
+    NETOPT_LORAWAN_ADR,
+
+    /**
+     * @brief   (@ref netopt_enable_t) LoRaWAN public network
+     */
+    NETOPT_LORAWAN_PUBLIC_NETWORK,
+
+    /**
+     * @brief   (uint8_t) LoRaWAN TX application port
+     * - LoRaWAN: between 1 and 223 (included)
+     */
+    NETOPT_LORAWAN_TX_PORT,
+
+    /**
+     * @brief   (loramac_dr_idx_t) LoRaWAN datarate for second RX window
+     * - LoRaWAN: @ref loramac_dr_idx_t
+     */
+    NETOPT_LORAWAN_RX2_DR,
+
+    /**
+     * @brief   (uint32_t) LoRaWAN frequency used for second RX window
+     */
+    NETOPT_LORAWAN_RX2_FREQ,
+
+    /**
+     * @brief   (uint32_t) LoRaWAN maximum system overall timing error (ms)
+     */
+    NETOPT_LORAWAN_MAX_RX_ERROR,
+
+    /**
+     * @brief   (uint8_t) LoRaWAN maximum system overall timing error (symbols)
+     */
+    NETOPT_LORAWAN_MIN_RX_SYMBOL,
+
+    /**
+     * @brief   (uint8_t*) phy layer syncword
+     */
+    NETOPT_SYNCWORD,
+
+    /**
+     * @brief  (uint32_t) Get a random value from the device
+     *
+     * Nothing happens when set
+     */
+    NETOPT_RANDOM,
+
+    /**
+     * @brief (uint8_t) Get or set the number of PHY symbols before assuming there's no data
+     */
+    NETOPT_RX_SYMBOL_TIMEOUT,
+
     /* add more options if needed */
+
+    /**
+     * @brief (@ref netopt_enable_t) Enable or disable OTAA activation (LoRaWAN)
+     */
+    NETOPT_OTAA,
+    
+     /**
+     * @brief (uint8_t) Get the demodulation margin of the last Link Check request.
+     */
+    NETOPT_DEMOD_MARGIN,
+
+    /**
+     * @brief (uint8_t) Get the number of gateways of the last Link Check request.
+     */
+    NETOPT_NUM_GATEWAYS,
+
+    /**
+     * @brief (@ref netopt_enable_t) Perform a Link Check request (LoRaWAN)
+     *
+     * When set, the next transmission will request a Link Check and will
+     * be received on the next downlink
+     */
+    NETOPT_LINK_CHECK,
 
     /**
      * @brief   maximum number of options defined here.

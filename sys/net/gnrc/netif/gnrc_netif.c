@@ -45,14 +45,13 @@ static gnrc_netif_t _netifs[GNRC_NETIF_NUMOF];
 static void _update_l2addr_from_dev(gnrc_netif_t *netif);
 static void _configure_netdev(netdev_t *dev);
 static void *_gnrc_netif_thread(void *args);
-static void _event_cb(netdev_t *dev, netdev_event_t event, void *arg);
+static void _event_cb(netdev_t *dev, netdev_event_t event);
 
 gnrc_netif_t *gnrc_netif_create(char *stack, int stacksize, char priority,
                                 const char *name, netdev_t *netdev,
                                 const gnrc_netif_ops_t *ops)
 {
     gnrc_netif_t *netif = NULL;
-    int res;
 
     for (int i = 0; i < GNRC_NETIF_NUMOF; i++) {
         if (_netifs[i].dev == netdev) {
@@ -67,10 +66,9 @@ gnrc_netif_t *gnrc_netif_create(char *stack, int stacksize, char priority,
     netif->ops = ops;
     assert(netif->dev == NULL);
     netif->dev = netdev;
-    res = thread_create(stack, stacksize, priority, THREAD_CREATE_STACKTEST,
+    netif->dev_pid = thread_create(stack, stacksize, priority, THREAD_CREATE_STACKTEST,
                         _gnrc_netif_thread, (void *)netif, name);
-    (void)res;
-    assert(res > 0);
+    assert(netif->dev_pid > 0);
     return netif;
 }
 
@@ -1381,10 +1379,8 @@ static void _pass_on_packet(gnrc_pktsnip_t *pkt)
     }
 }
 
-static void _event_cb(netdev_t *dev, netdev_event_t event, void *arg)
+static void _event_cb(netdev_t *dev, netdev_event_t event)
 {
-    (void)arg;
-
     gnrc_netif_t *netif = (gnrc_netif_t *) dev->context;
 
     if (event == NETDEV_EVENT_ISR) {

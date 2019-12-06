@@ -122,6 +122,11 @@ enum {
  * @brief   Network interface is configured in raw mode
  */
 #define GNRC_NETIF_FLAGS_RAWMODE                   (0x00010000U)
+
+/**
+ * @brief   A Link Check request was scheduled
+ */
+#define GNRC_NETIF_FLAGS_LINK_CHECK                (0x00020000U)
 /** @} */
 
 #ifdef __cplusplus

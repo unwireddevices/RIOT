@@ -10,14 +10,26 @@ RIOTBASE ?= $(CURDIR)/../..
 CFLAGS += -DFIRMWARE_VERSION=\"1.99\"
 
 # Set default LoRa region
-LORA_REGION ?= RU864
+#LORA_REGION ?= RU864
 #LORA_REGION ?= EU868
 #LORA_REGION ?= KZ865
-CFLAGS += -DLORA_REGION=\"$(LORA_REGION)\"
+#CFLAGS += -DLORA_REGION=\"$(LORA_REGION)\"
+
+# EU868
+# LORA_REGION ?= 0
+# RU864
+LORA_REGION ?= 1
+# KZ865
+# LORA_REGION ?= 2
+
+CFLAGS += -DLORA_REGION=$(LORA_REGION)
 
 # Disable LoRaWAN duty cycle restrictions
 CFLAGS += -DDISABLE_LORAMAC_DUTYCYCLE
 # CFLAGS += -DLORAMAC_CHANNEL_FREE_DETECT_PREAMBLE
+
+# Control network interfaces from shell
+# USEMODULE += gnrc_netif_shell
 
 ############ UMDK MODULES USED #####################
 # variables in the list below must match modules'

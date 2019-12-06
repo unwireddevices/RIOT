@@ -262,26 +262,6 @@ static void ls_setup(gnrc_netif_t *ls)
     puts("[LoRa] LoRaWAN MAC ready");
 }
 
-static void node_join(gnrc_netif_t *ls) {
-    /* limit max delay between attempts to 1 hour */
-    if (current_join_retries < 120) {
-        current_join_retries++;
-    }
-
-    blink_led(LED0_PIN);
-
-    if (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A) {
-        printf("[LoRa] Joining (%d of %d)\n", current_join_retries, unwds_get_node_settings().max_retr + 1);
-    } else {
-        puts("[LoRa] Joining");
-    }
-
-    netopt_enable_t join = NETOPT_ENABLE;
-    if (gnrc_netapi_set(ls->dev_pid, NETOPT_LINK_CONNECTED, 0, (void *)&join, sizeof(netopt_enable_t)) < 0) {
-        puts("[LoRa] Unable to join");
-    }
-}
-
 static void *sender_thread(void *arg) {
     (void)arg;
 
@@ -404,7 +384,24 @@ static void *sender_thread(void *arg) {
         }
 
         if (msg.type == NODE_MSG_JOIN) {
-            node_join(ls);
+            /* limit max delay between attempts to 1 hour */
+            if (current_join_retries < 120) {
+                current_join_retries++;
+            }
+
+            blink_led(LED0_PIN);
+
+            if (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A) {
+                printf("[LoRa] Joining (%d of %d)\n", current_join_retries, unwds_get_node_settings().max_retr + 1);
+            } else {
+                puts("[LoRa] Joining");
+            }
+
+            netopt_enable_t join = NETOPT_ENABLE;
+            if (gnrc_netapi_set(ls->dev_pid, NETOPT_LINK_CONNECTED, 0, (void *)&join, sizeof(netopt_enable_t)) < 0) {
+                puts("[LoRa] Unable to join");
+                continue;
+            }
 
             /* wait 10 seconds to join */
             lptimer_sleep(10000);

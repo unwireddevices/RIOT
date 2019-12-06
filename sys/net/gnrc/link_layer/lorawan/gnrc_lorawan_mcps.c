@@ -271,7 +271,7 @@ void gnrc_lorawan_mcps_event(gnrc_lorawan_t *mac, int event, int data)
 
         mac->msg.type = MSG_TYPE_MCPS_ACK_TIMEOUT;
         if (mac->mcps.outgoing_pkt) {
-            xtimer_set_msg(&mac->rx, 1000000 + random_uint32_range(0, 2000000), &mac->msg, thread_getpid());
+            lptimer_set_msg(&mac->rx, 1000 + random_uint32_range(0, 2000), &mac->msg, thread_getpid());
         }
     }
 }

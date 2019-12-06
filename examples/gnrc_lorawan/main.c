@@ -73,6 +73,8 @@ int tx_cmd(int argc, char **argv)
     }
 
     gnrc_netapi_set(interface, NETOPT_LORAWAN_TX_PORT, 0, &port, sizeof(port));
+    uint8_t nb_trials = 3;
+    gnrc_netapi_set(interface, NETOPT_LORAWAN_NBTRIALS, 0, &nb_trials, sizeof(nb_trials));
     gnrc_netapi_send(interface, pkt);
 
     msg_t msg;

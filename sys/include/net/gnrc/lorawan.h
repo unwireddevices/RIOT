@@ -229,6 +229,17 @@ void gnrc_lorawan_recv(gnrc_lorawan_t *mac);
  */
 void gnrc_lorawan_setup(gnrc_lorawan_t *mac, netdev_t *lower);
 
+/**
+ * @brief   Registers the current thread for result of join procedure.
+ *
+ *
+ * @return  0, on success.
+ * @return  EALREADY, if there already someone registered to errors on @p pkt.
+ */
+#ifdef MODULE_GNRC_NETERR
+void lorawan_joinerr_reg(void);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

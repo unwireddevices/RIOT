@@ -54,6 +54,15 @@ static uint8_t _mcps_buffer[sizeof(mcps_confirm_t) > sizeof(mcps_indication_t) ?
 static uint8_t _mlme_buffer[sizeof(mlme_confirm_t) > sizeof(mlme_indication_t) ?
                             sizeof(mlme_confirm_t) : sizeof(mlme_indication_t)];
 
+#ifdef MODULE_GNRC_NETERR
+static kernel_pid_t lorawan_joinerr_pid = KERNEL_PID_UNDEF;
+
+void lorawan_joinerr_reg(void)
+{
+    lorawan_joinerr_pid = sched_active_pid;
+}
+#endif
+
 static void _mlme_confirm(gnrc_netif_t *netif, mlme_confirm_t *confirm)
 {
     if (confirm->type == MLME_JOIN) {
@@ -63,6 +72,15 @@ static void _mlme_confirm(gnrc_netif_t *netif, mlme_confirm_t *confirm)
         else {
             DEBUG("gnrc_lorawan: join failed\n");
         }
+        
+#ifdef MODULE_GNRC_NETERR
+        if (lorawan_joinerr_pid != KERNEL_PID_UNDEF) {
+            msg_t msg;
+            msg.type = GNRC_NETERR_MSG_TYPE;
+            msg.content.value = confirm->status;
+            msg_send(&msg, lorawan_joinerr_pid);
+        }
+#endif
     }
     else if (confirm->type == MLME_LINK_CHECK) {
         netif->flags &= ~GNRC_NETIF_FLAGS_LINK_CHECK;

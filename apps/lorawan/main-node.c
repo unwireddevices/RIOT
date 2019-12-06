@@ -397,80 +397,78 @@ static void *sender_thread(void *arg) {
                 puts("[LoRa] Joining");
             }
 
+            lorawan_joinerr_reg();
+
             netopt_enable_t join = NETOPT_ENABLE;
             if (gnrc_netapi_set(ls->dev_pid, NETOPT_LINK_CONNECTED, 0, (void *)&join, sizeof(netopt_enable_t)) < 0) {
                 puts("[LoRa] Unable to join");
                 continue;
             }
 
-            /* wait 10 seconds to join */
-            lptimer_sleep(10000);
+            msg_t msg;
+            msg_receive(&msg);
+            if ((msg.type == GNRC_NETERR_MSG_TYPE) &&
+                (msg.content.value == GNRC_NETERR_SUCCESS)) {
+                /* joined */
+                current_join_retries = 0;
+                lora_joined = true;
+                puts("[LoRa] Successfully joined");
 
-            uint8_t u8;
-            res = gnrc_netapi_get(ls->dev_pid, NETOPT_LINK_CONNECTED, 0, &u8, sizeof(u8));
-            if (res >= 0) {
-                if ((netopt_enable_t)u8) {
-                    /* joined */
+                last_tx_time = lptimer_now().ticks32;
+
+                /* transmitting a packet with module data */
+                module_data_t data = {};
+
+                /* first byte */
+                data.data[0] = UNWDS_LORAWAN_SYSTEM_MODULE_ID;
+                data.length++;
+
+                /* second byte - device class and settings */
+                /* bits 0-1: device class */
+                switch (unwds_get_node_settings().nodeclass) {
+                    case (LS_ED_CLASS_A):
+                        break;
+                    case (LS_ED_CLASS_B):
+                        data.data[1] = 1 << 0;
+                        break;
+                    case (LS_ED_CLASS_C):
+                        data.data[1] = 1 << 1;
+                        break;
+                    default:
+                        break;
+                }
+
+                /* bit 2: ADR */
+                if (unwds_get_node_settings().adr) {
+                    data.data[1] |= 1 << 2;
+                }
+
+                /* bit 3: CNF */
+                if (unwds_get_node_settings().confirmation) {
+                    data.data[1] |= 1 << 3;
+                }
+
+                /* bit 7: FPort usage for module addressing */
+                data.data[1] |= 1 << 7;
+
+                data.length++;
+
+                unwds_callback(&data);
+            } else {
+                /* not joined */
+                puts("[LoRa] Join failed");
+                if ((current_join_retries > unwds_get_node_settings().max_retr) &&
+                    (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A)) {
+                    /* class A node: go to sleep */
+                    puts("[LoRa] Maximum join retries exceeded, stopping");
                     current_join_retries = 0;
-                    lora_joined = true;
-                    puts("[LoRa] Successfully joined");
-
-                    last_tx_time = lptimer_now().ticks32;
-
-                    /* transmitting a packet with module data */
-                    module_data_t data = {};
-
-                    /* first byte */
-                    data.data[0] = UNWDS_LORAWAN_SYSTEM_MODULE_ID;
-                    data.length++;
-
-                    /* second byte - device class and settings */
-                    /* bits 0-1: device class */
-                    switch (unwds_get_node_settings().nodeclass) {
-                        case (LS_ED_CLASS_A):
-                            break;
-                        case (LS_ED_CLASS_B):
-                            data.data[1] = 1 << 0;
-                            break;
-                        case (LS_ED_CLASS_C):
-                            data.data[1] = 1 << 1;
-                            break;
-                        default:
-                            break;
-                    }
-
-                    /* bit 2: ADR */
-                    if (unwds_get_node_settings().adr) {
-                        data.data[1] |= 1 << 2;
-                    }
-
-                    /* bit 3: CNF */
-                    if (unwds_get_node_settings().confirmation) {
-                        data.data[1] |= 1 << 3;
-                    }
-
-                    /* bit 7: FPort usage for module addressing */
-                    data.data[1] |= 1 << 7;
-
-                    data.length++;
-
-                    unwds_callback(&data);
                 } else {
-                    /* not joined */
-                    printf("[LoRa] Join failed: code %d\n", res);
-                    if ((current_join_retries > unwds_get_node_settings().max_retr) &&
-                        (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A)) {
-                        /* class A node: go to sleep */
-                        puts("[LoRa] Maximum join retries exceeded, stopping");
-                        current_join_retries = 0;
-                    } else {
-                        puts("[LoRa] Join timed out");
+                    puts("[LoRa] Join timed out");
 
-                        /* Pseudorandom delay for collision avoidance */
-                        unsigned int delay = random_uint32_range(30000 + (current_join_retries - 1)*60000, 90000 + (current_join_retries - 1)*60000);
-                        DEBUG("[LoRa] random delay %d s\n", delay/1000);
-                        lptimer_set_msg(&join_retry_timer, delay, &msg_join, sender_pid);
-                    }
+                    /* Pseudorandom delay for collision avoidance */
+                    unsigned int delay = random_uint32_range(30000 + (current_join_retries - 1)*60000, 90000 + (current_join_retries - 1)*60000);
+                    DEBUG("[LoRa] random delay %d s\n", delay/1000);
+                    lptimer_set_msg(&join_retry_timer, delay, &msg_join, sender_pid);
                 }
             }
         }

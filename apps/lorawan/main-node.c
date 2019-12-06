@@ -255,7 +255,7 @@ static void ls_setup(gnrc_netif_t *ls)
     /* initialize FIFO for uplink packets */
     ls_frame_fifo_init(&fifo_lorapacket);
 
-    puts("[LoRa] LoRaWAN MAC values set");
+    puts("[LoRa] LoRaWAN MAC ready");
 }
 
 static void node_join(gnrc_netif_t *ls) {
@@ -267,9 +267,9 @@ static void node_join(gnrc_netif_t *ls) {
     blink_led(LED0_PIN);
 
     if (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A) {
-        printf("[LoRa] joining, attempt %d / %d\n", current_join_retries, unwds_get_node_settings().max_retr + 1);
+        printf("[LoRa] Joining (%d of %d)\n", current_join_retries, unwds_get_node_settings().max_retr + 1);
     } else {
-        puts("[LoRa] joining");
+        puts("[LoRa] Joining");
     }
 
     netopt_enable_t join = NETOPT_ENABLE;
@@ -285,7 +285,7 @@ static void *sender_thread(void *arg) {
     msg_t msg_queue[8];
     msg_init_queue(msg_queue, 8);
 
-    puts("[LoRa] sender thread started");
+    puts("[LoRa] Sender thread started");
 
     last_tx_time = lptimer_now_msec();
 
@@ -300,7 +300,7 @@ static void *sender_thread(void *arg) {
 
         if ((last_tx_time < now) && (last_tx_time + LORAWAN_MIN_TX_DELAY_MS > now)) {
             tx_delay = last_tx_time + LORAWAN_MIN_TX_DELAY_MS - now;
-            printf("[LoRa] delaying TX by %lu ms (now %lu, last %lu)\n", tx_delay, now, last_tx_time);
+            printf("[LoRa] TX delayed by %lu ms\n", tx_delay);
             lptimer_sleep(tx_delay);
         }
 
@@ -317,7 +317,7 @@ static void *sender_thread(void *arg) {
                     /* joined */
                     current_join_retries = 0;
                     lora_joined = true;
-                    puts("[LoRa] successfully joined to the network");
+                    puts("[LoRa] Successfully joined");
 
                     last_tx_time = lptimer_now().ticks32;
 
@@ -361,18 +361,18 @@ static void *sender_thread(void *arg) {
                     unwds_callback(&data);
                 } else {
                     /* not joined */
-                    printf("[LoRa] join failed: code %d\n", res);
+                    printf("[LoRa] Join failed: code %d\n", res);
                     if ((current_join_retries > unwds_get_node_settings().max_retr) &&
                         (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A)) {
                         /* class A node: go to sleep */
-                        puts("[LoRa] maximum join retries exceeded, stopping");
+                        puts("[LoRa] Maximum join retries exceeded, stopping");
                         current_join_retries = 0;
                     } else {
-                        puts("[LoRa] join request timed out, resending");
+                        puts("[LoRa] Join timed out, resending");
 
                         /* Pseudorandom delay for collision avoidance */
                         unsigned int delay = random_uint32_range(30000 + (current_join_retries - 1)*60000, 90000 + (current_join_retries - 1)*60000);
-                        printf("[LoRa] random delay %d s\n", delay/1000);
+                        DEBUG("[LoRa] random delay %d s\n", delay/1000);
                         lptimer_set_msg(&join_retry_timer, delay, &msg_join, sender_pid);
                     }
                 }
@@ -387,7 +387,7 @@ static bool appdata_received(uint8_t *buf, size_t buflen, uint8_t fport)
 #if ENABLE_DEBUG
     char hex[100] = {};
     bytes_to_hex(buf, buflen, hex, false);
-    printf("[LoRa] received data: \"%s\"\n", hex);
+    printf("[LoRa] Received data: \"%s\"\n", hex);
 #endif
 
     blink_led(LED0_PIN);
@@ -596,7 +596,7 @@ int ls_cmd_cmd(int argc, char **argv)
 
     uint8_t modid = atoi(argv[1]);
     if (!unwds_is_module_exists(modid)) {
-        printf("cmd: module with ID %d does not exists\n", modid);
+        printf("[LORa] Module ID %d not found\n", modid);
         return 1;
     }
 
@@ -604,12 +604,12 @@ int ls_cmd_cmd(int argc, char **argv)
 
     int len = strlen(argv[2]);
     if (len % 2 != 0) {
-        puts("cmd: invalid hex number");
+        puts("[LoRa] Invalid hex number");
         return 1;
     }
 
     if (len / 2 > UNWDS_MAX_DATA_LEN) {
-        printf("cmd: command too long. Maximum is %d bytes\n", UNWDS_MAX_DATA_LEN);
+        printf("[LoRa] Command too long (%d > %d bytes)\n", len / 2, UNWDS_MAX_DATA_LEN);
         return 1;
     }
 
@@ -661,12 +661,12 @@ static int ls_module_cmd(int argc, char **argv)
     }
 
     if (modid < 0) {
-        printf("mod: module %s does not exist\n", argv[1]);
+        printf("[LoRa] Module %s not found\n", argv[1]);
         return 1;
     }
 
     if (!unwds_is_module_exists(modid)) {
-        printf("mod: module with ID %d does not exist\n", modid);
+        printf("LoRa] Module %d not found\n", modid);
         return 1;
     }
 
@@ -678,7 +678,7 @@ static int ls_module_cmd(int argc, char **argv)
             modenable = true;
         } else {
             if (strcmp(argv[2], "disable") != 0) {
-                printf("mod: unknown command: %s\n", argv[2]);
+                printf("[LoRa] Unknown command: %s\n", argv[2]);
                 return 1;
             }
         }
@@ -730,12 +730,11 @@ static void unwds_callback(module_data_t *buf)
 
     if (cpu_status.temp.core_temp != INT16_MIN) {
         temperature = cpu_status.temp.core_temp;
-        printf("[LoRa] MCU temperature is %d C\n", temperature);
     }
     if (cpu_status.voltage.vdd != INT16_MIN) {
         voltage = cpu_status.voltage.vdd/50;
-        printf("[LoRa] Battery voltage %d mV\n", voltage * 50);
     }
+    printf("[LoRa] MCU is %d C, battery is %d mV\n", temperature, voltage * 50);
     convert_to_be_sam((void *)&temperature, 1);
 
     mutex_lock(&curr_frame_mutex);
@@ -753,11 +752,11 @@ static void unwds_callback(module_data_t *buf)
     frame.length = buf->length + 1;
 
     if (frame.length > 32) {
-        printf("[LoRa] payload too big (%d bytes)\n", frame.length);
+        printf("[LoRa] Payload too big (%d > 32)\n", frame.length);
         return;
     }
 
-    printf("[LoRa] payload size %d bytes\n", frame.length);
+    printf("[LoRa] Payload %d bytes\n", frame.length);
 
     frame.data[frame.length - 2] = temperature;
     frame.data[frame.length - 1] = voltage;
@@ -796,7 +795,7 @@ static void unwds_callback(module_data_t *buf)
 
     /* register for returned packet status */
     if (gnrc_neterr_reg(pkt) != 0) {
-        puts("[LoRa] Can not register for error reporting");
+        puts("[LoRa] Can't register for error reporting");
         return;
     }
 
@@ -813,7 +812,7 @@ static void unwds_callback(module_data_t *buf)
     msg_receive(&msg);
     if ((msg.type != GNRC_NETERR_MSG_TYPE) ||
         (msg.content.value != GNRC_NETERR_SUCCESS)) {
-        puts("[LoRa] Error sending packet");
+        puts("[LoRa] Error sending data");
 
         uplinks_failed++;
         if (uplinks_failed > unwds_get_node_settings().max_retr) {
@@ -821,11 +820,11 @@ static void unwds_callback(module_data_t *buf)
             current_join_retries = 0;
             uplinks_failed = 0;
             msg_send(&msg_join, sender_pid);
-            puts("[LoRa] too many uplinks failed, rejoining");
+            puts("[LoRa] Too many uplinks failed, rejoining");
         }
     }
     else {
-        puts("[LoRa] Successfully sent packet");
+        puts("[LoRa] Data successfully sent");
         uplinks_failed = 0;
     }
 }

@@ -95,14 +95,16 @@ static char sx127x_stack[SX127X_STACKSIZE];
 
 typedef enum {
     NODE_MSG_JOIN,
-    NODE_MSG_SEND,
+    NODE_MSG_DATA,
 } node_message_types_t;
 
 bool lorawan_busy = false;
 
 static msg_t msg_join = { .type = NODE_MSG_JOIN };
+static msg_t msg_data = { .type = NODE_MSG_DATA };
 static kernel_pid_t sender_pid;
 static lptimer_t join_retry_timer;
+static lptimer_t data_send_timer;
 
 static kernel_pid_t main_thread_pid;
 
@@ -115,7 +117,7 @@ static mutex_t curr_frame_mutex;
 static bool lora_joined = false;
 static uint8_t current_join_retries = 0;
 static uint8_t uplinks_failed = 0;
-/* static uint32_t lora_frm_cnt = 0; */
+static uint32_t lora_frm_cnt = 0;
 static uint32_t last_tx_time = 0;
 
 static bool appdata_received(uint8_t *buf, size_t buflen, uint8_t fport);
@@ -161,7 +163,7 @@ void radio_init(void)
     sx127x_setup(&sx127x_dev, &sx127x_params);
     ls = gnrc_netif_lorawan_create(sx127x_stack, SX127X_STACKSIZE, SX127X_PRIO,
                                    "sx127x", (netdev_t *)&sx127x_dev);
-                                   
+
     gnrc_netreg_register(GNRC_NETTYPE_LORAWAN, &_entry);
 
     printf("[LoRa] LoRaWAN Network Interface created, PID %d\n", ls->dev_pid);
@@ -238,7 +240,7 @@ static void ls_setup(gnrc_netif_t *ls)
     /*
     semtech_loramac_set_retries(ls, 0);
     */
-    
+
     netopt_enable_t otaa = (unwds_get_node_settings().no_join)? (NETOPT_DISABLE):(NETOPT_ENABLE);
     if (gnrc_netapi_set(iface, NETOPT_OTAA, 0, (void *)&otaa, sizeof(netopt_enable_t)) < 0) {
         puts("[LoRa] Unable to set ACK");
@@ -282,7 +284,7 @@ static void node_join(gnrc_netif_t *ls) {
 
 static void *sender_thread(void *arg) {
     (void)arg;
-    
+
     msg_t msg;
     msg_t msg_queue[8];
     msg_init_queue(msg_queue, 8);
@@ -294,6 +296,7 @@ static void *sender_thread(void *arg) {
     while (1) {
         msg_receive(&msg);
 
+        int interface = ls->dev_pid; /* LoRaWAN network interface */
         int res;
 
         /* minimum interval between transmissions */
@@ -306,12 +309,106 @@ static void *sender_thread(void *arg) {
             lptimer_sleep(tx_delay);
         }
 
+        if (msg.type == NODE_MSG_DATA) {
+            if (ls_frame_fifo_empty(&fifo_lorapacket)) {
+                puts("[LoRa] FIFO is empty");
+                continue;
+            }
+
+            /* Get frame from FIFO */
+            ls_frame_t frame;
+            if (!ls_frame_fifo_peek(&fifo_lorapacket, &frame)) {
+                puts("[LoRa] FIFO error");
+                continue;
+            }
+
+            if (!lora_joined) {
+                puts("[LoRa] Packet delayed: not joined");
+
+                if (current_join_retries == 0) {
+                    puts("[LoRa] Attempting to rejoin");
+                    msg_send(&msg_join, sender_pid);
+                } else {
+                    puts("[LoRa] Waiting for the node to join");
+                }
+                frame.retransmit = false;
+                ls_frame_fifo_replace(&fifo_lorapacket, &frame);
+                continue;
+            }
+
+            if (frame.retransmit) {
+                /* retransmissions should have the same frame counter as original package */
+                gnrc_netapi_set(interface, NETOPT_LORAWAN_FRAMECOUNTER, 0, (void *)&lora_frm_cnt, sizeof(lora_frm_cnt));
+                puts("[LoRa] packet retransmission");
+            } else {
+                uint32_t u32;
+                res = gnrc_netapi_get(interface, NETOPT_LORAWAN_FRAMECOUNTER, 0, &u32, sizeof(u32));
+                if (res >= 0) {
+                    lora_frm_cnt = u32;
+                }
+            }
+
+            gnrc_pktsnip_t *pkt;
+
+            pkt = gnrc_pktbuf_add(NULL, frame.data, frame.length, GNRC_NETTYPE_UNDEF);
+
+            /* register for returned packet status */
+            if (gnrc_neterr_reg(pkt) != 0) {
+                puts("[LoRa] Can't register for error reporting");
+                continue;
+            }
+
+            uint8_t port = frame.fport;  /* LoRaWAN FPort */
+
+            gnrc_netapi_set(interface, NETOPT_LORAWAN_TX_PORT, 0, &port, sizeof(port));
+            gnrc_netapi_send(interface, pkt);
+
+            blink_led(LED0_PIN);
+
+            msg_t msg;
+            /* wait for packet status and check */
+            msg_receive(&msg);
+            if ((msg.type != GNRC_NETERR_MSG_TYPE) ||
+                (msg.content.value != GNRC_NETERR_SUCCESS)) {
+                puts("[LoRa] Error sending data");
+
+                uplinks_failed++;
+                if (uplinks_failed > unwds_get_node_settings().max_retr) {
+                    lora_joined = false;
+                    current_join_retries = 0;
+                    uplinks_failed = 0;
+                    frame.retransmit = false;
+                    msg_send(&msg_join, sender_pid);
+                    puts("[LoRa] Too many uplinks failed, rejoining");
+                } else {
+                    frame.retransmit = true;
+                }
+
+                ls_frame_fifo_replace(&fifo_lorapacket, &frame);
+                last_tx_time = lptimer_now().ticks32;
+            }
+            else {
+                puts("[LoRa] Data successfully sent");
+                uplinks_failed = 0;
+                /* remove transmitted frame from FIFO */
+                ls_frame_fifo_pop(&fifo_lorapacket, NULL);
+                last_tx_time = lptimer_now().ticks32;
+            }
+
+            if (!ls_frame_fifo_empty(&fifo_lorapacket)) {
+                printf("[LoRa] Queue not empty, send next packet in %d s\n", LORAWAN_SENDNEXT_DELAY_MS/1000);
+                lptimer_set_msg(&data_send_timer, LORAWAN_SENDNEXT_DELAY_MS, &msg_data, sender_pid);
+            } else {
+                lptimer_remove(&data_send_timer);
+            }
+        }
+
         if (msg.type == NODE_MSG_JOIN) {
             node_join(ls);
-            
+
             /* wait 10 seconds to join */
             lptimer_sleep(10000);
-            
+
             uint8_t u8;
             res = gnrc_netapi_get(ls->dev_pid, NETOPT_LINK_CONNECTED, 0, &u8, sizeof(u8));
             if (res >= 0) {
@@ -771,7 +868,6 @@ static void unwds_callback(module_data_t *buf)
 #endif
 
     /* push frame to FIFO */
-    /*
     if (ls_frame_fifo_full(&fifo_lorapacket)) {
         DEBUG("[LoRa] remove oldest frame from FIFO\n");
         ls_frame_fifo_pop(&fifo_lorapacket, NULL);
@@ -782,53 +878,11 @@ static void unwds_callback(module_data_t *buf)
         DEBUG("[LoRa] FIFO error\n");
         return;
     }
-    */
 
     /* send data */
-    /*
     msg_send(&msg_data, sender_pid);
-    */
 
     mutex_unlock(&curr_frame_mutex);
-    
-    gnrc_pktsnip_t *pkt;
-
-    pkt = gnrc_pktbuf_add(NULL, frame.data, frame.length, GNRC_NETTYPE_UNDEF);
-
-    /* register for returned packet status */
-    if (gnrc_neterr_reg(pkt) != 0) {
-        puts("[LoRa] Can't register for error reporting");
-        return;
-    }
-
-    uint8_t port = frame.fport;  /* LoRaWAN FPort */
-    int interface = ls->dev_pid; /* LoRaWAN network interface */
-
-    gnrc_netapi_set(interface, NETOPT_LORAWAN_TX_PORT, 0, &port, sizeof(port));
-    gnrc_netapi_send(interface, pkt);
-
-    blink_led(LED0_PIN);
-
-    msg_t msg;
-    /* wait for packet status and check */
-    msg_receive(&msg);
-    if ((msg.type != GNRC_NETERR_MSG_TYPE) ||
-        (msg.content.value != GNRC_NETERR_SUCCESS)) {
-        puts("[LoRa] Error sending data");
-
-        uplinks_failed++;
-        if (uplinks_failed > unwds_get_node_settings().max_retr) {
-            lora_joined = false;
-            current_join_retries = 0;
-            uplinks_failed = 0;
-            msg_send(&msg_join, sender_pid);
-            puts("[LoRa] Too many uplinks failed, rejoining");
-        }
-    }
-    else {
-        puts("[LoRa] Data successfully sent");
-        uplinks_failed = 0;
-    }
 }
 
 static int unwds_init(void) {

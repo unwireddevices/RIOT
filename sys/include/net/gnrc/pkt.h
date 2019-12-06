@@ -109,6 +109,7 @@ typedef struct gnrc_pktsnip {
     struct gnrc_pktsnip *next;      /**< next snip in the packet */
     void *data;                     /**< pointer to the data of the snip */
     size_t size;                    /**< the length of the snip in byte */
+    int port;                       /**<
     /**
      * @brief   Counter of threads currently having control over this packet.
      *

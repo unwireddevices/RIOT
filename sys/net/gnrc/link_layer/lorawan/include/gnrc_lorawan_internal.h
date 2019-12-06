@@ -179,6 +179,7 @@ typedef struct {
     int shutdown_req;                               /**< MAC Shutdown request */
     le_uint32_t dev_addr;                           /**< Device address */
     int state;                                      /**< state of MAC layer */
+    uint8_t nb_trials;                              /**< Maximum number of transmissions */
     uint8_t dl_settings;                            /**< downlink settings */
     uint8_t rx_delay;                               /**< Delay of first reception window */
     uint8_t dr_range[GNRC_LORAWAN_MAX_CHANNELS];    /**< Datarate Range for all channels */

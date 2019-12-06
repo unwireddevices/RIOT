@@ -584,6 +584,16 @@ typedef enum {
      * @brief   (uint8_t*) LoRaWAN application session key (16 bytes length)
      */
     NETOPT_LORAWAN_APPSKEY,
+    
+    /**
+     * @brief   (uint8_t*) LoRaWAN frame counter (1 byte length)
+     */
+    NETOPT_LORAWAN_FRAMECOUNTER,
+    
+    /**
+     * @brief   (uint8_t*) LoRaWAN number of trials (1 byte length)
+     */
+    NETOPT_LORAWAN_NBTRIALS,
 
      /**
      * @brief   (uint8_t) LoRaWAN device class (A, B, C)

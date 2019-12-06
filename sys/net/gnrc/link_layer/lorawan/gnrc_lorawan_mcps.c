@@ -320,7 +320,7 @@ void gnrc_lorawan_mcps_request(gnrc_lorawan_t *mac, const mcps_request_t *mcps_r
     mac->mcps.waiting_for_ack = waiting_for_ack;
     mac->mcps.ack_requested = false;
 
-    mac->mcps.nb_trials = LORAMAC_DEFAULT_RETX;
+    mac->mcps.nb_trials = mac->nb_trials;
 
     assert(mac->mcps.outgoing_pkt == NULL);
     mac->mcps.outgoing_pkt = pkt;

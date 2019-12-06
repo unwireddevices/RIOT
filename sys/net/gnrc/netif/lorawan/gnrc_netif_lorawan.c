@@ -256,8 +256,8 @@ static int _get(gnrc_netif_t *netif, gnrc_netapi_opt_t *opt)
             *((uint8_t *) opt->data) = netif->lorawan.num_gateways;
             break;
         case NETOPT_LORAWAN_FRAMECOUNTER:
-            assert(opt->data_len == sizeof(uint8_t));
-            *((uint8_t *) opt->data) = netif->lorawan.mac.mcps.fcnt;
+            assert(opt->data_len == sizeof(uint32_t));
+            *((uint32_t *) opt->data) = netif->lorawan.mac.mcps.fcnt;
             break;
         case NETOPT_LORAWAN_NBTRIALS:
             assert(opt->data_len == sizeof(uint8_t));
@@ -318,8 +318,8 @@ static int _set(gnrc_netif_t *netif, const gnrc_netapi_opt_t *opt)
             memcpy(netif->lorawan.nwkskey, opt->data, LORAMAC_NWKSKEY_LEN);
             break;
         case NETOPT_LORAWAN_FRAMECOUNTER:
-            assert(opt->data_len == sizeof(uint8_t));
-            netif->lorawan.mac.mcps.fcnt = *(uint8_t *)opt->data;
+            assert(opt->data_len == sizeof(uint32_t));
+            netif->lorawan.mac.mcps.fcnt = *(uint32_t *)opt->data;
             break;
         case NETOPT_LORAWAN_NBTRIALS:
             assert(opt->data_len == sizeof(uint8_t));

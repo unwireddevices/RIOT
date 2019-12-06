@@ -339,7 +339,7 @@ static void *sender_thread(void *arg) {
             if (frame.retransmit) {
                 /* retransmissions should have the same frame counter as original package */
                 gnrc_netapi_set(interface, NETOPT_LORAWAN_FRAMECOUNTER, 0, (void *)&lora_frm_cnt, sizeof(lora_frm_cnt));
-                puts("[LoRa] packet retransmission");
+                puts("[LoRa] Packet retransmission");
             } else {
                 uint32_t u32;
                 res = gnrc_netapi_get(interface, NETOPT_LORAWAN_FRAMECOUNTER, 0, &u32, sizeof(u32));
@@ -467,7 +467,7 @@ static void *sender_thread(void *arg) {
                         puts("[LoRa] Maximum join retries exceeded, stopping");
                         current_join_retries = 0;
                     } else {
-                        puts("[LoRa] Join timed out, resending");
+                        puts("[LoRa] Join timed out");
 
                         /* Pseudorandom delay for collision avoidance */
                         unsigned int delay = random_uint32_range(30000 + (current_join_retries - 1)*60000, 90000 + (current_join_retries - 1)*60000);

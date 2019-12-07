@@ -228,7 +228,7 @@ void gnrc_lorawan_send_pkt(gnrc_lorawan_t *mac, gnrc_pktsnip_t *pkt, uint8_t dr)
     uint32_t chan = gnrc_lorawan_pick_channel(mac);
     _config_radio(mac, chan, dr, false);
 
-    /* perfrom RF path calibration before TX */
+    /* perform RF path calibration before TX */
     netopt_state_t state = NETOPT_STATE_CALIBRATE;
     netdev_set_pass((netdev_t *) mac, NETOPT_STATE, &state, sizeof(state));
 

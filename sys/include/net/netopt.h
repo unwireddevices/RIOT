@@ -724,6 +724,7 @@ typedef enum {
     NETOPT_STATE_STANDBY,       /**< standby mode. The devices is awake but
                                  *   not listening to packets. */
     NETOPT_STATE_CAD,           /**< device is performing channel activity detection */
+    NETOPT_STATE_CALIBRATE,     /**< device is performing RF calibration */
     /* add other states if needed */
 } netopt_state_t;
 

@@ -127,10 +127,10 @@ static void unwds_callback(module_data_t *buf);
 static void _netreg_cb(uint16_t cmd, gnrc_pktsnip_t *pkt, void *ctx)
 {
     (void) cmd;
-    (void) ctx;
 
-    printf("[LoRa] Received %d bytes\n", pkt->size);
-    appdata_received(pkt->data, pkt->size, LORAWAN_PORT_DEFAULT);
+    uint8_t port = *(uint8_t *)ctx;
+    printf("[LoRa] Received %d bytes on port %d\n", pkt->size, port);
+    appdata_received(pkt->data, pkt->size, port);
 
     gnrc_pktbuf_release(pkt);
 }
@@ -140,6 +140,7 @@ gnrc_netreg_entry_cbd_t _cbd = {
     .ctx = NULL
 };
 
+/* GNRC_NETREG_DEMUX_CTX_ALL ? */
 static gnrc_netreg_entry_t _entry = GNRC_NETREG_ENTRY_INIT_CB(LORAWAN_PORT_DEFAULT, &_cbd);
 
 void radio_init(void)

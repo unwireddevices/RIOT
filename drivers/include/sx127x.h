@@ -75,7 +75,6 @@ extern "C" {
  */
 #define SX127X_MODEM_DEFAULT             (SX127X_MODEM_LORA)    /**< Use LoRa as default modem */
 #define SX127X_CHANNEL_DEFAULT           (868300000UL)          /**< Default channel frequency, 868.3MHz (Europe) */
-#define SX127X_HF_CHANNEL_DEFAULT        (868000000UL)          /**< Use to calibrate RX chain for LF and HF bands */
 #define SX127X_RF_MID_BAND_THRESH        (525000000UL)          /**< Mid-band threshold */
 #define SX127X_XTAL_FREQ                 (32000000UL)           /**< Internal oscillator frequency, 32MHz */
 #define SX127X_RADIO_WAKEUP_TIME         (1U)                   /**< In milliseconds [us] */
@@ -680,6 +679,13 @@ void sx127x_set_freq_hop(sx127x_t *dev, bool freq_hop_on);
  * @param[in] activity     True if channel activity detected
  */
 void sx127x_lora_cad_done(bool activity);
+
+/**
+ * @brief   Run SX1276 calibration procedure (takes 10 ms)
+ *
+ * @param[in] dev                      The sx127x device descriptor
+ */
+void sx127x_calibrate(sx127x_t *dev);
 
 #ifdef __cplusplus
 }

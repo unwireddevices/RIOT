@@ -68,7 +68,7 @@ static int _send(netdev_t *netdev, const iolist_t *iolist)
             if (!sx127x_get_fixed_header_len_mode(dev)) {
                 sx127x_set_payload_length(dev, size);
             }
-            
+
             /* Full buffer used for Tx */
             sx127x_reg_write(dev, SX127X_REG_LR_FIFOTXBASEADDR, 0x00);
             sx127x_reg_write(dev, SX127X_REG_LR_FIFOADDRPTR, 0x00);
@@ -140,10 +140,10 @@ static int _recv(netdev_t *netdev, void *buf, size_t len, void *info)
                 }
 
                 int16_t rssi = sx127x_reg_read(dev, SX127X_REG_LR_PKTRSSIVALUE);
-                
+
                 packet_info->rssi = rssi + (rssi >> 4);
 
-                if (dev->_internal.modem_chip == SX127X_MODEM_SX1272) {    
+                if (dev->_internal.modem_chip == SX127X_MODEM_SX1272) {
                     packet_info->rssi += SX127X_RSSI_OFFSET;
                 } else {
                     if (dev->settings.channel > SX127X_RF_MID_BAND_THRESH) {
@@ -152,7 +152,7 @@ static int _recv(netdev_t *netdev, void *buf, size_t len, void *info)
                     else {
                         packet_info->rssi += SX127X_RSSI_OFFSET_LF;
                     }
-                } 
+                }
 
                 if (packet_info->snr < 0) {
                     packet_info->rssi += packet_info->snr;
@@ -497,9 +497,13 @@ static int _set_state(sx127x_t *dev, netopt_state_t state)
         case NETOPT_STATE_RESET:
             sx127x_reset(dev);
             break;
-            
+
         case NETOPT_STATE_CAD:
             sx127x_start_cad(dev);
+            break;
+
+        case NETOPT_STATE_CALIBRATE:
+            sx127x_calibrate(dev);
             break;
 
         default:
@@ -697,11 +701,11 @@ static void _on_dio3_irq(void *arg)
                 /* CadDone event */
                 bool cad_success = (sx127x_reg_read(dev, SX127X_REG_LR_IRQFLAGS) & SX127X_RF_LORA_IRQFLAGS_CADDETECTED) == SX127X_RF_LORA_IRQFLAGS_CADDETECTED;
                 sx127x_reg_write(dev, SX127X_REG_LR_IRQFLAGS, SX127X_RF_LORA_IRQFLAGS_CADDETECTED | SX127X_RF_LORA_IRQFLAGS_CADDONE);
-                
+
                 dev->_internal.is_last_cad_success = ((sx127x_reg_read(dev, SX127X_REG_LR_IRQFLAGS) &
                                                        SX127X_RF_LORA_IRQFLAGS_CADDETECTED) ==
                                                        SX127X_RF_LORA_IRQFLAGS_CADDETECTED);
-                
+
                 if (cad_success) {
                     netdev->event_callback(netdev, NETDEV_EVENT_CAD_DETECTED);
                 } else {

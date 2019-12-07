@@ -119,14 +119,13 @@ void sx127x_read_fifo(const sx127x_t *dev, uint8_t *buffer, uint8_t size);
 int16_t sx127x_read_rssi(const sx127x_t *dev);
 
 /**
- * @brief   Performs the Rx chain calibration for LF and HF bands
+ * @brief   Performs the Rx chain calibration for current frequency channel
  *
- *          Must be called just after the reset so all registers are at their
- *          default values
+ *          Should be called after channel change or temperature drift over 10C
  *
  * @param[in] dev                      The sx127x device structure pointer
  */
-void sx1276_rx_chain_calibration(sx127x_t *dev);
+void sx127x_rx_chain_calibration(sx127x_t *dev);
 
 #ifdef __cplusplus
 }

@@ -116,9 +116,7 @@ int sx127x_init(sx127x_t *dev)
     /* xtimer_spin(xtimer_ticks_from_usec(10000)); */
     lptimer_sleep(10);
     sx127x_reset(dev);
-    if (dev->_internal.modem_chip == SX127X_MODEM_SX1276) {
-        sx1276_rx_chain_calibration(dev);
-    }
+    /* put modem to sleep */
     sx127x_set_op_mode(dev, SX127X_RF_OPMODE_SLEEP);
     /* do not check return code as GPIO_UNDEF will produce an error */
     _init_gpios(dev);
@@ -177,6 +175,10 @@ uint32_t sx127x_random(sx127x_t *dev)
     sx127x_set_sleep(dev);
 
     return rnd;
+}
+
+void sx127x_calibrate(sx127x_t *dev) {
+    sx127x_rx_chain_calibration(dev);
 }
 
 /**
@@ -305,7 +307,7 @@ static int _init_spi(sx127x_t *dev)
     int res;
 
     spi_init(dev->params.spi);
-    
+
     /* Setup SPI for SX127X */
     res = spi_init_cs(dev->params.spi, dev->params.nss_pin);
 

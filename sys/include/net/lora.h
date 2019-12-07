@@ -35,7 +35,8 @@ extern "C" {
  */
 /** @brief Frequency resolution in Hz */
 #ifndef LORA_FREQUENCY_RESOLUTION_DEFAULT
-#define LORA_FREQUENCY_RESOLUTION_DEFAULT      (61.03515625)
+/* 61.03515625 rounded to 61.035156 and multipled by 10^6 */
+#define LORA_FREQUENCY_RESOLUTION_DEFAULT      (61035156ULL)
 #endif
 
 /** @brief Preamble length, same for Tx and Rx */

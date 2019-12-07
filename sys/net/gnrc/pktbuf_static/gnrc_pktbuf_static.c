@@ -233,7 +233,7 @@ static void _release_error_locked(gnrc_pktsnip_t *pkt, uint32_t err)
         else {
             pkt->users--;
         }
-        printf("pktbuf: report status code %" PRIu32 "\n", err);
+        DEBUG("pktbuf: report status code %" PRIu32 "\n", err);
         gnrc_neterr_report(pkt, err);
         pkt = tmp;
     }

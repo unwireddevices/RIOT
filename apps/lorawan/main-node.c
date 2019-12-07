@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Unwired Devices LLC <info@unwds.com>
+ * Copyright (C) 2016-2019 Unwired Devices LLC <info@unwds.com>
 
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the "Software"),
@@ -21,11 +21,11 @@
 
 /**
  * @defgroup
- * @ingroup
+ * @ingroup     apps
  * @brief
  * @{
  * @file        main-node.c
- * @brief       LoRaLAN node device
+ * @brief       LoRaWAN node device based on GNRC LoRaWAN stack
  * @author      Evgeniy Ponomarev
  * @author      Oleg Artamonov
  */

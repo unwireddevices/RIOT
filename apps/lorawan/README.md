@@ -1,4 +1,4 @@
-examples/loralan-wan
+examples/lorawan
 ====================
 Universal modular firmware for LoRaWAN end-point devices
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2018 Unwired Devices LLC <info@unwds.com>
+ * Copyright (C) 2016-2019 Unwired Devices LLC <info@unwds.com>
 
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the "Software"),
@@ -20,11 +20,11 @@
  */
 
 /**
- * @ingroup     examples
+ * @ingroup     apps
  * @{
  *
  * @file
- * @brief       Default application that shows a functionality of LoRa-Star gateway
+ * @brief       LoRaWAN node device based on GNRC LoRaWAN stack
  *
  * @author      Eugene Ponomarev
  *

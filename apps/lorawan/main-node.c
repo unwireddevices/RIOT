@@ -366,14 +366,14 @@ static void *sender_thread(void *arg) {
                 }
 
                 ls_frame_fifo_replace(&fifo_lorapacket, &frame);
-                last_tx_time = lptimer_now().ticks32;
+                last_tx_time = lptimer_now_msec();
             }
             else {
                 puts("[LoRa] Data successfully sent");
                 uplinks_failed = 0;
                 /* remove transmitted frame from FIFO */
                 ls_frame_fifo_pop(&fifo_lorapacket, NULL);
-                last_tx_time = lptimer_now().ticks32;
+                last_tx_time = lptimer_now_msec();
             }
 
             if (!ls_frame_fifo_empty(&fifo_lorapacket)) {
@@ -415,7 +415,7 @@ static void *sender_thread(void *arg) {
                 lora_joined = true;
                 puts("[LoRa] Successfully joined");
 
-                last_tx_time = lptimer_now().ticks32;
+                last_tx_time = lptimer_now_msec();
 
                 /* transmitting a packet with module data */
                 module_data_t data = {};
@@ -457,18 +457,17 @@ static void *sender_thread(void *arg) {
                 unwds_callback(&data);
             } else {
                 /* not joined */
-                puts("[LoRa] Join failed");
+                last_tx_time = lptimer_now_msec();
+
                 if ((current_join_retries > unwds_get_node_settings().max_retr) &&
                     (unwds_get_node_settings().nodeclass == LS_ED_CLASS_A)) {
                     /* class A node: go to sleep */
-                    puts("[LoRa] Maximum join retries exceeded, stopping");
+                    puts("[LoRa] Join failed. Maximum join retries exceeded, stopping");
                     current_join_retries = 0;
                 } else {
-                    puts("[LoRa] Join timed out");
-
                     /* Pseudorandom delay for collision avoidance */
                     unsigned int delay = random_uint32_range(30000 + (current_join_retries - 1)*60000, 90000 + (current_join_retries - 1)*60000);
-                    DEBUG("[LoRa] random delay %d s\n", delay/1000);
+                    printf("[LoRa] Join failed, try again in %d s\n", delay/1000);
                     lptimer_set_msg(&join_retry_timer, delay, &msg_join, sender_pid);
                 }
             }

@@ -33,7 +33,6 @@ typedef struct {
     uint8_t appskey[LORAMAC_APPSKEY_LEN];   /**< App SKey buffer */
     uint8_t demod_margin;                   /**< value of last demodulation margin */
     uint8_t num_gateways;                   /**< number of gateways of last link check */
-    uint8_t datarate;                       /**< LoRaWAN datarate for the next transmission */
     uint8_t port;                           /**< LoRaWAN port for the next transmission */
     uint8_t deveui[LORAMAC_DEVEUI_LEN];     /**< Device EUI buffer */
     uint8_t appeui[LORAMAC_APPEUI_LEN];     /**< App EUI buffer */

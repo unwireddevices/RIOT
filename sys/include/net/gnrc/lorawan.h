@@ -80,6 +80,7 @@ typedef enum {
 typedef enum {
     MLME_JOIN,                 /**< join a LoRaWAN network */
     MLME_LINK_CHECK,           /**< perform a Link Check */
+    MLME_ADR_ANS,              /**< acknowledge ADR Request */
     MLME_RESET,                /**< reset the MAC layer */
     MLME_SET,                  /**< set the MIB */
     MLME_GET,                  /**< get the MIB */

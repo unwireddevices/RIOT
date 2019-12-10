@@ -164,7 +164,7 @@ static void _driver_cb(netdev_t *dev, netdev_event_t event)
 static void _reset(gnrc_netif_t *netif)
 {
     netif->lorawan.otaa = LORAMAC_DEFAULT_JOIN_PROCEDURE == LORAMAC_JOIN_OTAA ? NETOPT_ENABLE : NETOPT_DISABLE;
-    netif->lorawan.datarate = LORAMAC_DEFAULT_DR;
+    netif->lorawan.mac.datarate = LORAMAC_DEFAULT_DR;
     netif->lorawan.demod_margin = 0;
     netif->lorawan.num_gateways = 0;
     netif->lorawan.port = LORAMAC_DEFAULT_TX_PORT;
@@ -223,7 +223,7 @@ static int _send(gnrc_netif_t *netif, gnrc_pktsnip_t *payload)
         gnrc_lorawan_mlme_request(&netif->lorawan.mac, &mlme_request, &mlme_confirm);
     }
     mcps_request_t req = { .type = netif->lorawan.ack_req ? MCPS_CONFIRMED : MCPS_UNCONFIRMED, .data.pkt = payload, .data.port = netif->lorawan.port,
-                           .data.dr = netif->lorawan.datarate };
+                           .data.dr = netif->lorawan.mac.datarate };
     mcps_confirm_t conf;
     gnrc_lorawan_mcps_request(&netif->lorawan.mac, &req, &conf);
     return conf.status;
@@ -301,7 +301,7 @@ static int _set(gnrc_netif_t *netif, const gnrc_netapi_opt_t *opt)
     switch (opt->opt) {
         case NETOPT_LORAWAN_DR:
             assert(opt->data_len == sizeof(uint8_t));
-            netif->lorawan.datarate = *((uint8_t *) opt->data);
+            netif->lorawan.mac.datarate = *((uint8_t *) opt->data);
             break;
         case NETOPT_LORAWAN_TX_PORT:
             assert(opt->data_len == sizeof(uint8_t));
@@ -352,7 +352,9 @@ static int _set(gnrc_netif_t *netif, const gnrc_netapi_opt_t *opt)
                     mlme_request.join.deveui = netif->lorawan.deveui;
                     mlme_request.join.appeui = netif->lorawan.appeui;
                     mlme_request.join.appkey = netif->lorawan.appkey;
-                    mlme_request.join.dr = netif->lorawan.datarate;
+                    /* reset to default datarate */
+                    netif->lorawan.mac.datarate = LORAMAC_DEFAULT_DR;
+                    mlme_request.join.dr = netif->lorawan.mac.datarate;
                     gnrc_lorawan_mlme_request(&netif->lorawan.mac, &mlme_request, &mlme_confirm);
                 }
                 else {

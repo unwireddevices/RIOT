@@ -275,6 +275,16 @@ int _fopts_mlme_link_check_req(lorawan_buffer_t *buf)
     return GNRC_LORAWAN_CID_SIZE;
 }
 
+int _fopts_mlme_adr_ans(lorawan_buffer_t *buf)
+{
+    if (buf) {
+        assert(buf->index + GNRC_LORAWAN_CID_SIZE <= buf->size);
+        buf->data[buf->index++] = GNRC_LORAWAN_CID_LINK_ADR_ANS;
+    }
+
+    return GNRC_LORAWAN_CID_SIZE;
+}
+
 static int _mlme_link_check_ans(gnrc_lorawan_t *mac, lorawan_buffer_t *fopt)
 {
     if (fopt->index + GNRC_LORAWAN_FOPT_LINK_ANS_SIZE > fopt->size) {
@@ -295,6 +305,46 @@ static int _mlme_link_check_ans(gnrc_lorawan_t *mac, lorawan_buffer_t *fopt)
     return 0;
 }
 
+static int _mlme_link_adr_req(gnrc_lorawan_t *mac, lorawan_buffer_t *fopt)
+{
+    if (fopt->index + GNRC_LORAWAN_FOPT_LINK_ADR_SIZE > fopt->size) {
+        return -EINVAL;
+    }
+    fopt->index++;
+
+    uint8_t payload[2] = { GNRC_LORAWAN_CID_LINK_ADR_ANS, 0 };
+
+    uint8_t dr = fopt->data[fopt->index] >> 4;
+    payload[1] |= 1 << 1;
+
+    //uint8_t tx_power = fopt->data[fopt->index] & 0x0F;
+    fopt->index++;
+
+    /* ignore ChMask; TODO: implement */
+    fopt->index += 2;
+    /* ignore Redundancy; TODO: implement */
+    fopt->index++;
+
+    gnrc_pktsnip_t *pkt;
+    pkt = gnrc_pktbuf_add(NULL, payload, sizeof(payload), GNRC_NETTYPE_UNDEF);
+    if (!pkt) {
+        return -ENOBUFS;
+    }
+
+    pkt = gnrc_lorawan_build_uplink(mac, pkt, MTYPE_UNCNF_UPLINK, 0);
+    if (!pkt) {
+        return -ENOBUFS;
+    }
+
+    gnrc_lorawan_send_pkt(mac, pkt, mac->datarate);
+    mac->mlme.backoff_budget -= mac->toa;
+    gnrc_pktbuf_release(pkt);
+
+    mac->datarate = dr;
+
+    return 0;
+}
+
 void gnrc_lorawan_process_fopts(gnrc_lorawan_t *mac, uint8_t *fopts, size_t size)
 {
     if (!fopts || !size) {
@@ -307,7 +357,14 @@ void gnrc_lorawan_process_fopts(gnrc_lorawan_t *mac, uint8_t *fopts, size_t size
     while (buf.index < buf.size) {
         switch (*(buf.data)) {
             case GNRC_LORAWAN_CID_LINK_CHECK_REQ_ANS:
+                /* LinkCheckAns gateway response */
                 if (_mlme_link_check_ans(mac, &buf) < 0) {
+                    return;
+                }
+                break;
+            case GNRC_LORAWAN_CID_LINK_ADR_REQ:
+                /* LinkADRReq gateway request */
+                if (_mlme_link_adr_req(mac, &buf) < 0) {
                     return;
                 }
                 break;

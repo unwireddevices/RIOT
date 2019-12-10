@@ -72,11 +72,15 @@ extern "C" {
 #define GNRC_LORAWAN_BACKOFF_BUDGET_3   (8700000LL)     /**< budget of time on air every 24 hours */
 
 #define GNRC_LORAWAN_MLME_OPTS_LINK_CHECK_REQ  (1 << 0) /**< Internal Link Check request flag */
+#define GNRC_LORAWAN_MLME_OPTS_ADR_ANS_REQ  (1 << 1) /**< Internal ADRAns flag */
 
 #define GNRC_LORAWAN_CID_SIZE (1U)                      /**< size of Command ID in FOps */
 #define GNRC_LORAWAN_CID_LINK_CHECK_REQ_ANS (0x02)      /**< Link Check CID */
+#define GNRC_LORAWAN_CID_LINK_ADR_REQ       (0x03)      /**< Requests the end-device to change data rate */
+#define GNRC_LORAWAN_CID_LINK_ADR_ANS       (0x04)      /**< Acknowledges the LinkRateReq */
 
 #define GNRC_LORAWAN_FOPT_LINK_ANS_SIZE (3U)            /**< size of Link check answer */
+#define GNRC_LORAWAN_FOPT_LINK_ADR_SIZE (5U)            /**< size of ADR request */
 
 #define GNRC_LORAWAN_JOIN_DELAY_U32_MASK (0x1FFFFF)     /**< mask for detecting overflow in frame counter */
 
@@ -183,7 +187,8 @@ typedef struct {
     uint8_t dl_settings;                            /**< downlink settings */
     uint8_t rx_delay;                               /**< Delay of first reception window */
     uint8_t dr_range[GNRC_LORAWAN_MAX_CHANNELS];    /**< Datarate Range for all channels */
-    uint8_t last_dr;                                /**< datarate of the last transmission */
+    uint8_t datarate;                               /**< LoRaWAN datarate for the next transmission */
+    uint8_t last_dr;                                /**< LoRaWAN datarate of the last transmission */
 } gnrc_lorawan_t;
 
 /**

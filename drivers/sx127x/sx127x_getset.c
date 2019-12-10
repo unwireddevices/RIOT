@@ -32,6 +32,8 @@
 #include "sx127x_registers.h"
 #include "sx127x_internal.h"
 
+#include "xtimer.h"
+
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
@@ -485,9 +487,15 @@ void sx127x_set_op_mode(const sx127x_t *dev, uint8_t op_mode)
         }
     }
 
+    uint8_t prev_op_mode = sx127x_reg_read(dev, SX127X_REG_OPMODE);
+
     /* Replace previous mode value and setup new mode value */
-    sx127x_reg_write(dev, SX127X_REG_OPMODE,
-                     (sx127x_reg_read(dev, SX127X_REG_OPMODE) & SX127X_RF_OPMODE_MASK) | op_mode);
+    sx127x_reg_write(dev, SX127X_REG_OPMODE, (prev_op_mode & SX127X_RF_OPMODE_MASK) | op_mode);
+
+    /* wait for crystal oscillator to start when going from sleep to standby */
+    if ((op_mode == SX127X_RF_OPMODE_STANDBY) && ((prev_op_mode & ~SX127X_RF_OPMODE_MASK) == SX127X_RF_OPMODE_SLEEP)) {
+        xtimer_spin(xtimer_ticks_from_usec(250));
+    }
 }
 
 uint8_t sx127x_get_bandwidth(const sx127x_t *dev)

@@ -41,8 +41,6 @@
 #define SX127X_SPI_SPEED    (SPI_CLK_1MHZ)
 #define SX127X_SPI_MODE     (SPI_MODE_0)
 
-bool rx_chain_calibrated = false;
-
 int sx127x_check_version(sx127x_t *dev)
 {
     /* Read version number and compare with sx127x assigned revision */
@@ -115,15 +113,6 @@ void sx127x_read_fifo(const sx127x_t *dev, uint8_t *buffer, uint8_t size)
 
 void sx127x_rx_chain_calibration(sx127x_t *dev)
 {
-    /* first calibration when system starts */
-    /* subsequent calibrations if temperature drift > 10C */
-    if (rx_chain_calibrated &&
-      ((sx127x_reg_read(dev, SX127X_REG_IMAGECAL) & SX127X_RF_IMAGECAL_TEMPCHANGE_HIGHER) != SX127X_RF_IMAGECAL_TEMPCHANGE_HIGHER)) {
-        return;
-    }
-
-    rx_chain_calibrated = true;
-
     /* Save transciever operation mode */
     uint8_t reg_opmode = sx127x_reg_read(dev, SX127X_REG_OPMODE);
 
@@ -141,19 +130,48 @@ void sx127x_rx_chain_calibration(sx127x_t *dev)
                          SX127X_RF_LORA_OPMODE_LONGRANGEMODE_OFF);
     }
 
-    /* Calibration must be performed in standby mode */
+    /* Switch to STANDBY mode */
     sx127x_reg_write(dev, SX127X_REG_OPMODE,
                      (reg_opmode & SX127X_RF_OPMODE_MASK) | SX127X_RF_OPMODE_STANDBY);
 
-    /* Launch Rx chain calibration */
+    /* Wait for oscillator startup, TS_OSC = 250 us (datasheet table 7) */
+    xtimer_spin(xtimer_ticks_from_usec(250));
+
+    /* Switch to FSRX mode, PLL lock is not required */
+    sx127x_reg_write(dev, SX127X_REG_OPMODE,
+                     (reg_opmode & SX127X_RF_OPMODE_MASK) | SX127X_RF_LORA_OPMODE_SYNTHESIZER_RX);
+
+    /* Enable temperature monitoring */
     sx127x_reg_write(dev,
                      SX127X_REG_IMAGECAL,
-                     (sx127x_reg_read(dev, SX127X_REG_IMAGECAL) & SX127X_RF_IMAGECAL_IMAGECAL_MASK)
-                     | SX127X_RF_IMAGECAL_IMAGECAL_START);
+                     (sx127x_reg_read(dev, SX127X_REG_IMAGECAL) & SX127X_RF_IMAGECAL_TEMPMONITOR_MASK)
+                     | SX127X_RF_IMAGECAL_TEMPMONITOR_ON);
 
-    /* Wait for calibration to finish */
-    while ((sx127x_reg_read(dev, SX127X_REG_IMAGECAL) & SX127X_RF_IMAGECAL_IMAGECAL_RUNNING)
-           == SX127X_RF_IMAGECAL_IMAGECAL_RUNNING) { }
+    /* Wait 150 us */
+    xtimer_spin(xtimer_ticks_from_usec(150));
+
+    /* Disable temperature monitoring */
+    sx127x_reg_write(dev,
+                     SX127X_REG_IMAGECAL,
+                     (sx127x_reg_read(dev, SX127X_REG_IMAGECAL) & SX127X_RF_IMAGECAL_TEMPMONITOR_MASK)
+                     | SX127X_RF_IMAGECAL_TEMPMONITOR_OFF);
+
+    /* Recalibrate if temperature drift > 10C */
+    if ((sx127x_reg_read(dev, SX127X_REG_IMAGECAL) & SX127X_RF_IMAGECAL_TEMPCHANGE_HIGHER) == SX127X_RF_IMAGECAL_TEMPCHANGE_HIGHER) {
+        /* Back to STANDBY mode */
+        sx127x_reg_write(dev, SX127X_REG_OPMODE,
+                         (reg_opmode & SX127X_RF_OPMODE_MASK) | SX127X_RF_OPMODE_STANDBY);
+
+        /* Launch Rx chain calibration */
+        sx127x_reg_write(dev,
+                         SX127X_REG_IMAGECAL,
+                         (sx127x_reg_read(dev, SX127X_REG_IMAGECAL) & SX127X_RF_IMAGECAL_IMAGECAL_MASK)
+                         | SX127X_RF_IMAGECAL_IMAGECAL_START);
+
+        /* Wait for calibration to finish */
+        while ((sx127x_reg_read(dev, SX127X_REG_IMAGECAL) & SX127X_RF_IMAGECAL_IMAGECAL_RUNNING)
+               == SX127X_RF_IMAGECAL_IMAGECAL_RUNNING) { }
+    }
 
     /* Restore LoRa mode if needed */
     if (mode == SX127X_RF_LORA_OPMODE_LONGRANGEMODE_ON) {
@@ -161,7 +179,7 @@ void sx127x_rx_chain_calibration(sx127x_t *dev)
         sx127x_reg_write(dev, SX127X_REG_OPMODE,
                      (reg_opmode & SX127X_RF_OPMODE_MASK) | SX127X_RF_OPMODE_SLEEP);
 
-        /* Switch to FSK */
+        /* Switch to LoRa */
         sx127x_reg_write(dev, SX127X_REG_OPMODE,
                         (reg_opmode &
                          SX127X_RF_LORA_OPMODE_LONGRANGEMODE_MASK) |
@@ -170,6 +188,11 @@ void sx127x_rx_chain_calibration(sx127x_t *dev)
 
     /* Restore transciever operation mode */
     sx127x_reg_write(dev, SX127X_REG_OPMODE, reg_opmode);
+
+    /* If opmode to restore is not SLEEP, wait for crystal */
+    if ((reg_opmode & ~SX127X_RF_OPMODE_MASK) != SX127X_RF_OPMODE_SLEEP) {
+        xtimer_spin(xtimer_ticks_from_usec(250));
+    }
 }
 
 int16_t sx127x_read_rssi(const sx127x_t *dev)

@@ -149,4 +149,17 @@ ISR_VECTOR(1) const isr_t vector_cpu[CPU_IRQ_NUMOF] = {
     [58] = isr_dma2_channel3,        /* [58] DMA2 Channel 3 global Interrupt */
     [59] = isr_dma2_channel4_5,      /* [59] DMA2 Channel 4 and Channel 5 global Interrupt */
 #endif
+
+#if defined(CPU_LINE_STM32F107xC)
+    [50] = isr_tim5,                 /* [50] TIM5 global Interrupt */
+    [51] = isr_spi3,                 /* [51] SPI3 global Interrupt */
+    [52] = isr_uart4,                /* [52] UART4 global Interrupt */
+    [53] = isr_uart5,                /* [53] UART5 global Interrupt */
+    [54] = isr_tim6,                 /* [54] TIM6 global Interrupt */
+    [55] = isr_tim7,                 /* [55] TIM7 global Interrupt */
+    [56] = isr_dma2_channel1,        /* [56] DMA2 Channel 1 global Interrupt */
+    [57] = isr_dma2_channel2,        /* [57] DMA2 Channel 2 global Interrupt */
+    [58] = isr_dma2_channel3,        /* [58] DMA2 Channel 3 global Interrupt */
+    [59] = isr_dma2_channel4_5,      /* [59] DMA2 Channel 4 and Channel 5 global Interrupt */
+#endif
 };

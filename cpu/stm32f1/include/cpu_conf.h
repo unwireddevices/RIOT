@@ -38,7 +38,7 @@ extern "C" {
  * @{
  */
 #define CPU_DEFAULT_IRQ_PRIO            (1U)
-#if defined(CPU_LINE_STM32F103xE)
+#if defined(CPU_LINE_STM32F103xE) || defined(CPU_LINE_STM32F107xC)
 #define CPU_IRQ_NUMOF                   (60U)
 #else
 #define CPU_IRQ_NUMOF                   (43U)

@@ -348,12 +348,15 @@ static int _set(gnrc_netif_t *netif, const gnrc_netapi_opt_t *opt)
             netopt_enable_t en = *((netopt_enable_t *) opt->data);
             if (en) {
                 if(netif->lorawan.otaa) {
+                    /* reset to default datarate */
+                    netif->lorawan.mac.datarate = LORAMAC_DEFAULT_DR;
+                    /* reset LoRaWAN MAC */
+                    gnrc_lorawan_reset(&netif->lorawan.mac);
+
                     mlme_request.type = MLME_JOIN;
                     mlme_request.join.deveui = netif->lorawan.deveui;
                     mlme_request.join.appeui = netif->lorawan.appeui;
                     mlme_request.join.appkey = netif->lorawan.appkey;
-                    /* reset to default datarate */
-                    netif->lorawan.mac.datarate = LORAMAC_DEFAULT_DR;
                     mlme_request.join.dr = netif->lorawan.mac.datarate;
                     gnrc_lorawan_mlme_request(&netif->lorawan.mac, &mlme_request, &mlme_confirm);
                 }

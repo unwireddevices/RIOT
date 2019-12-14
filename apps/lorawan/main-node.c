@@ -348,9 +348,11 @@ static void *sender_thread(void *arg) {
 
             msg_t msg;
             /* wait for packet status and check */
-            msg_receive(&msg);
-            if ((msg.type != GNRC_NETERR_MSG_TYPE) ||
-                (msg.content.value != GNRC_NETERR_SUCCESS)) {
+            do {
+                msg_receive(&msg);
+            } while (msg.type != GNRC_NETERR_MSG_TYPE);
+
+            if (msg.content.value != GNRC_NETERR_SUCCESS) {
                 puts("[LoRa] Error sending data");
 
                 uplinks_failed++;
@@ -407,9 +409,11 @@ static void *sender_thread(void *arg) {
             }
 
             msg_t msg;
-            msg_receive(&msg);
-            if ((msg.type == GNRC_NETERR_MSG_TYPE) &&
-                (msg.content.value == GNRC_NETERR_SUCCESS)) {
+            do {
+                msg_receive(&msg);
+            } while (msg.type != GNRC_NETERR_MSG_TYPE);
+            
+            if (msg.content.value == GNRC_NETERR_SUCCESS) {
                 /* joined */
                 current_join_retries = 0;
                 lora_joined = true;

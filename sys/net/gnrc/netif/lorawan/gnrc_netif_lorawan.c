@@ -155,6 +155,11 @@ static void _driver_cb(netdev_t *dev, netdev_event_t event)
             case NETDEV_EVENT_RX_TIMEOUT:
                 gnrc_lorawan_event_timeout(mac);
                 break;
+            case NETDEV_EVENT_CRC_ERROR:
+                gnrc_lorawan_event_timeout(mac);
+                break;
+            case NETDEV_EVENT_RX_STARTED:
+                break;
             default:
                 DEBUG("gnrc_netif: warning: unhandled event %u.\n", event);
         }

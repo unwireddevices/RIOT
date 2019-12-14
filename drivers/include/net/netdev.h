@@ -226,28 +226,28 @@ enum {
  *          upper layer
  */
 typedef enum {
-    NETDEV_EVENT_ISR,                       /**< driver needs it's ISR handled */
-    NETDEV_EVENT_RX_STARTED,                /**< started to receive a packet */
-    NETDEV_EVENT_RX_COMPLETE,               /**< finished receiving a packet */
-    NETDEV_EVENT_TX_STARTED,                /**< started to transfer a packet */
-    NETDEV_EVENT_TX_COMPLETE,               /**< transfer packet complete */
-    NETDEV_EVENT_TX_COMPLETE_DATA_PENDING,  /**< transfer packet complete and data pending flag */
-    NETDEV_EVENT_TX_NOACK,                  /**< ACK requested but not received */
-    NETDEV_EVENT_TX_MEDIUM_BUSY,            /**< couldn't transfer packet */
-    NETDEV_EVENT_LINK_UP,                   /**< link established */
-    NETDEV_EVENT_LINK_DOWN,                 /**< link gone */
-    NETDEV_EVENT_TX_TIMEOUT,                /**< timeout when sending */
-    NETDEV_EVENT_RX_TIMEOUT,                /**< timeout when receiving */
-    NETDEV_EVENT_CRC_ERROR,                 /**< wrong CRC */
-    NETDEV_EVENT_FHSS_CHANGE_CHANNEL,       /**< channel changed */
-    NETDEV_EVENT_CAD_DONE,                  /**< channel activity detection done */
-    NETDEV_EVENT_CAD_DETECTED,              /**< channel activity detected */
-    NETDEV_EVENT_MLME_CONFIRM,              /**< MAC MLME confirm event */
-    NETDEV_EVENT_MLME_INDICATION,           /**< MAC MLME indication event */
-    NETDEV_EVENT_MCPS_CONFIRM,              /**< MAC MCPS confirm event */
-    NETDEV_EVENT_MCPS_INDICATION,           /**< MAC MCPS indication event */
-    NETDEV_EVENT_MLME_GET_BUFFER,           /**< MAC layer requests MLME buffer */
-    NETDEV_EVENT_MCPS_GET_BUFFER,           /**< MAC layer requests MCPS buffer */
+    NETDEV_EVENT_ISR,                       /**< 0  driver needs it's ISR handled */
+    NETDEV_EVENT_RX_STARTED,                /**< 1  started to receive a packet */
+    NETDEV_EVENT_RX_COMPLETE,               /**< 2  finished receiving a packet */
+    NETDEV_EVENT_TX_STARTED,                /**< 3  started to transfer a packet */
+    NETDEV_EVENT_TX_COMPLETE,               /**< 4  transfer packet complete */
+    NETDEV_EVENT_TX_COMPLETE_DATA_PENDING,  /**< 5  transfer packet complete and data pending flag */
+    NETDEV_EVENT_TX_NOACK,                  /**< 6  ACK requested but not received */
+    NETDEV_EVENT_TX_MEDIUM_BUSY,            /**< 7  couldn't transfer packet */
+    NETDEV_EVENT_LINK_UP,                   /**< 8  link established */
+    NETDEV_EVENT_LINK_DOWN,                 /**< 9  link gone */
+    NETDEV_EVENT_TX_TIMEOUT,                /**< 10 timeout when sending */
+    NETDEV_EVENT_RX_TIMEOUT,                /**< 11 timeout when receiving */
+    NETDEV_EVENT_CRC_ERROR,                 /**< 12 wrong CRC */
+    NETDEV_EVENT_FHSS_CHANGE_CHANNEL,       /**< 13 channel changed */
+    NETDEV_EVENT_CAD_DONE,                  /**< 14 channel activity detection done */
+    NETDEV_EVENT_CAD_DETECTED,              /**< 15 channel activity detected */
+    NETDEV_EVENT_MLME_CONFIRM,              /**< 16 MAC MLME confirm event */
+    NETDEV_EVENT_MLME_INDICATION,           /**< 17 MAC MLME indication event */
+    NETDEV_EVENT_MCPS_CONFIRM,              /**< 18 MAC MCPS confirm event */
+    NETDEV_EVENT_MCPS_INDICATION,           /**< 19 MAC MCPS indication event */
+    NETDEV_EVENT_MLME_GET_BUFFER,           /**< 20 MAC layer requests MLME buffer */
+    NETDEV_EVENT_MCPS_GET_BUFFER,           /**< 21 MAC layer requests MCPS buffer */
     /* expand this list if needed */
 } netdev_event_t;
 

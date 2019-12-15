@@ -46,6 +46,13 @@ extern "C" {
 #define CONFIG_GNRC_LORAWAN_MIN_SYMBOLS_TIMEOUT 50
 #endif
 
+/**
+ * @brief TX timeout, milliseconds
+ */
+#ifndef CONFIG_GNRC_LORAWAN_TX_TIMEOUT
+#define CONFIG_GNRC_LORAWAN_TX_TIMEOUT 10000
+#endif
+
 #define GNRC_LORAWAN_REQ_STATUS_SUCCESS (0)     /**< MLME or MCPS request successful status */
 #define GNRC_LORAWAN_REQ_STATUS_DEFERRED (1)    /**< the MLME or MCPS confirm message is asynchronous */
 

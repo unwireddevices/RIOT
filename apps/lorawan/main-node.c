@@ -340,7 +340,6 @@ static void *sender_thread(void *arg) {
             }
 
             uint8_t port = frame.fport;  /* LoRaWAN FPort */
-
             gnrc_netapi_set(interface, NETOPT_LORAWAN_TX_PORT, 0, &port, sizeof(port));
             gnrc_netapi_send(interface, pkt);
 
@@ -379,8 +378,10 @@ static void *sender_thread(void *arg) {
             }
 
             if (!ls_frame_fifo_empty(&fifo_lorapacket)) {
-                printf("[LoRa] Queue not empty, send next packet in %d s\n", LORAWAN_SENDNEXT_DELAY_MS/1000);
-                lptimer_set_msg(&data_send_timer, LORAWAN_SENDNEXT_DELAY_MS, &msg_data, sender_pid);
+                int pktleft = ls_frame_fifo_size(&fifo_lorapacket);
+                unsigned int delay = random_uint32_range(LORAWAN_SENDNEXT_DELAY_MS - LORAWAN_SENDNEXT_DELAY_MS/4, LORAWAN_SENDNEXT_DELAY_MS + LORAWAN_SENDNEXT_DELAY_MS/4);
+                printf("[LoRa] %d packet%s left, sending next in %d s\n", pktleft, (pktleft > 1)?"s":"", delay/1000);
+                lptimer_set_msg(&data_send_timer, delay, &msg_data, sender_pid);
             } else {
                 lptimer_remove(&data_send_timer);
             }

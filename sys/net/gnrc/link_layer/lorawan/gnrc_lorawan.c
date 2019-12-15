@@ -122,6 +122,9 @@ static void _config_radio(gnrc_lorawan_t *mac, uint32_t channel_freq, uint8_t dr
         netdev_set_pass(&mac->netdev, NETOPT_SINGLE_RECEIVE, &single, sizeof(single));
         const uint16_t timeout = CONFIG_GNRC_LORAWAN_MIN_SYMBOLS_TIMEOUT;
         netdev_set_pass(&mac->netdev, NETOPT_RX_SYMBOL_TIMEOUT, &timeout, sizeof(timeout));
+    } else {
+        const uint32_t timeout = CONFIG_GNRC_LORAWAN_TX_TIMEOUT;
+        netdev_set_pass(&mac->netdev, NETOPT_TX_TIMEOUT, &timeout, sizeof(timeout));
     }
 }
 
@@ -169,6 +172,7 @@ void gnrc_lorawan_event_timeout(gnrc_lorawan_t *mac)
             mac->state = LORAWAN_STATE_RX_2;
             break;
         case LORAWAN_STATE_RX_2:
+        case LORAWAN_STATE_TX: /* TX timeout */
             gnrc_lorawan_mlme_no_rx(mac);
             gnrc_lorawan_mcps_event(mac, MCPS_EVENT_NO_RX, 0);
             mac->state = LORAWAN_STATE_IDLE;
@@ -242,7 +246,6 @@ void gnrc_lorawan_send_pkt(gnrc_lorawan_t *mac, gnrc_pktsnip_t *pkt, uint8_t dr)
     if (netdev_send_pass(&mac->netdev, &iolist) == -ENOTSUP) {
         DEBUG("gnrc_lorawan: Cannot send: radio is still transmitting");
     }
-
 }
 
 void gnrc_lorawan_process_pkt(gnrc_lorawan_t *mac, gnrc_pktsnip_t *pkt)

@@ -136,6 +136,19 @@ void sx127x_set_channel(sx127x_t *dev, uint32_t channel)
     /* Save current operating mode */
     dev->settings.channel = channel;
 
+    /* SX1276 only: choose frequency band */
+    if (dev->_internal.modem_chip == SX127X_MODEM_SX1276) {
+        uint8_t reg_opmode = sx127x_reg_read(dev, SX127X_REG_OPMODE);
+
+        if (channel >= 779000000) {
+            sx127x_reg_write(dev, SX127X_REG_OPMODE,
+                             reg_opmode & ~SX127X_RF_OPMODE_LOWFREQMODE_ON);
+        } else {
+            sx127x_reg_write(dev, SX127X_REG_OPMODE,
+                             reg_opmode | SX127X_RF_OPMODE_LOWFREQMODE_ON);
+        }
+    }
+
     channel = (1000000ULL*(uint64_t)channel) / LORA_FREQUENCY_RESOLUTION_DEFAULT;
 
     /* Write frequency settings into chip */

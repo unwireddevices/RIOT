@@ -231,15 +231,18 @@ void gnrc_lorawan_mlme_request(gnrc_lorawan_t *mac, const mlme_request_t *mlme_r
         case MLME_JOIN:
             if(mac->mlme.activation != MLME_ACTIVATION_NONE) {
                 mlme_confirm->status = -EINVAL;
+                DEBUG("gnrc_lorawan_mlme_request: MAC already activated\n");
                 return;
             }
             if (!gnrc_lorawan_mac_acquire(mac)) {
                 mlme_confirm->status = -EBUSY;
+                DEBUG("gnrc_lorawan_mlme_request: MAC busy\n");
                 return;
             }
 
             if (mac->mlme.backoff_budget < 0) {
                 mlme_confirm->status = -EDQUOT;
+                DEBUG("gnrc_lorawan_mlme_request: no backoff budget\n");
                 break;
             }
             memcpy(mac->appskey, mlme_request->join.appkey, LORAMAC_APPKEY_LEN);

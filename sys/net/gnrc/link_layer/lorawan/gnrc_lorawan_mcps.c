@@ -289,17 +289,20 @@ void gnrc_lorawan_mcps_request(gnrc_lorawan_t *mac, const mcps_request_t *mcps_r
 
     if (!gnrc_lorawan_mac_acquire(mac)) {
         mcps_confirm->status = -EBUSY;
+        DEBUG("gnrc_lorawan_mcps: MAC busy\n");
         goto out;
     }
 
     if (mcps_request->data.port < LORAMAC_PORT_MIN ||
         mcps_request->data.port > LORAMAC_PORT_MAX) {
         mcps_confirm->status = -EBADMSG;
+        DEBUG("gnrc_lorawan_mcps: port outside range\n");
         goto out;
     }
 
     if (!gnrc_lorawan_validate_dr(mcps_request->data.dr)) {
         mcps_confirm->status = -EINVAL;
+        DEBUG("gnrc_lorawan_mcps: DR incorrect\n");
         goto out;
     }
 
@@ -308,11 +311,13 @@ void gnrc_lorawan_mcps_request(gnrc_lorawan_t *mac, const mcps_request_t *mcps_r
         /* This function releases the pkt if fails */
         release = false;
         mcps_confirm->status = -ENOBUFS;
+        DEBUG("gnrc_lorawan_mcps: uplink failed\n");
         goto out;
     }
 
     if ((gnrc_pkt_len(pkt) - MIC_SIZE - 1) > gnrc_lorawan_region_mac_payload_max(mcps_request->data.dr)) {
         mcps_confirm->status = -EMSGSIZE;
+        DEBUG("gnrc_lorawan_mcps: packet too big\n");
         goto out;
     }
 

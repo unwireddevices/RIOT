@@ -198,6 +198,9 @@ CFLAGS += -DNO_RIOT_BANNER
 CFLAGS += -DAES_NO_DECRYPTION
 CFLAGS += -DCRYPTO_AES
 
+# disable asserts
+# CFLAGS += -DNDEBUG
+
 FEATURES_OPTIONAL += config
 
 include $(RIOTBASE)/Makefile.include

@@ -604,6 +604,9 @@ extern "C" {
 #define SX127X_RF_OPMODE_RECEIVER                                    (0x05)
 #define SX127X_RF_OPMODE_RECEIVER_SINGLE                             (0x06)
 
+/* SX1276 only */
+#define SX127X_RF_OPMODE_LOWFREQMODE_ON                              (0x08)
+
 /* RegBitRate (bits/sec) */
 #define SX127X_RF_BITRATEMSB_1200_BPS                                (0x68)
 #define SX127X_RF_BITRATELSB_1200_BPS                                (0x2B)

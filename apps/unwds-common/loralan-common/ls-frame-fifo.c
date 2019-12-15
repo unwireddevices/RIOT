@@ -134,7 +134,7 @@ int ls_frame_fifo_size(ls_frame_fifo_t *fifo) {
 	if (size < 0)
 		size = -size;
 
-	return size;
+	return (size + 1);
 }
 
 void ls_frame_fifo_clear(ls_frame_fifo_t *fifo) {

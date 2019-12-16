@@ -327,7 +327,11 @@ void gnrc_lorawan_mcps_request(gnrc_lorawan_t *mac, const mcps_request_t *mcps_r
 
     mac->mcps.nb_trials = mac->nb_trials;
 
-    assert(mac->mcps.outgoing_pkt == NULL);
+    /* assert(mac->mcps.outgoing_pkt == NULL); */
+    if (mac->mcps.outgoing_pkt) {
+        gnrc_pktbuf_release_error(mac->mcps.outgoing_pkt, 1);
+        mac->mcps.outgoing_pkt = NULL;
+    }
     mac->mcps.outgoing_pkt = pkt;
 
     gnrc_lorawan_send_pkt(mac, pkt, mcps_request->data.dr);

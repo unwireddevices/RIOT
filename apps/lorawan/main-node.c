@@ -247,6 +247,11 @@ static void ls_setup(gnrc_netif_t *ls)
     semtech_loramac_set_retries(ls, 0);
     */
 
+    netopt_enable_t adr = (unwds_get_node_settings().adr)? (NETOPT_ENABLE):(NETOPT_DISABLE);
+    if (gnrc_netapi_set(iface, NETOPT_LORAWAN_ADR, 0, (void *)&adr, sizeof(netopt_enable_t)) < 0) {
+        puts("[LoRa] Unable to set ADR");
+    }
+
     netopt_enable_t otaa = (unwds_get_node_settings().no_join)? (NETOPT_DISABLE):(NETOPT_ENABLE);
     if (gnrc_netapi_set(iface, NETOPT_OTAA, 0, (void *)&otaa, sizeof(netopt_enable_t)) < 0) {
         puts("[LoRa] Unable to set ACK");
@@ -352,6 +357,7 @@ static void *sender_thread(void *arg) {
 
             msg_t _timeout_msg;
             _timeout_msg.type = GNRC_NETERR_MSG_TYPE;
+            _timeout_msg.content.value = 1; /* Some error */
             lptimer_t _timeout_timer;
             lptimer_set_msg(&_timeout_timer, 10000, &_timeout_msg, sender_pid);
 
@@ -392,7 +398,7 @@ static void *sender_thread(void *arg) {
             if (!ls_frame_fifo_empty(&fifo_lorapacket)) {
                 int pktleft = ls_frame_fifo_size(&fifo_lorapacket);
                 unsigned int delay = random_uint32_range(LORAWAN_SENDNEXT_DELAY_MS - LORAWAN_SENDNEXT_DELAY_MS/4, LORAWAN_SENDNEXT_DELAY_MS + LORAWAN_SENDNEXT_DELAY_MS/4);
-                printf("[LoRa] %d packet%s left, sending next in %d s\n", pktleft, (pktleft > 1)?"s":"", delay/1000);
+                printf("[LoRa] %d packet%s in the queue, sending next in %d s\n", pktleft, (pktleft > 1)?"s":"", delay/1000);
                 lptimer_set_msg(&data_send_timer, delay, &msg_data, sender_pid);
             } else {
                 lptimer_remove(&data_send_timer);
@@ -423,6 +429,7 @@ static void *sender_thread(void *arg) {
 
             msg_t _timeout_msg;
             _timeout_msg.type = GNRC_NETERR_MSG_TYPE;
+            _timeout_msg.content.value = 1; /* Some error */
             lptimer_t _timeout_timer;
             lptimer_set_msg(&_timeout_timer, 10000, &_timeout_msg, sender_pid);
 
@@ -441,44 +448,46 @@ static void *sender_thread(void *arg) {
 
                 last_tx_time = lptimer_now_msec();
 
-                /* transmitting a packet with module data */
-                module_data_t data = {};
+                /* transmitting initial packet with module data for Class C devices */
+                if (unwds_get_node_settings().nodeclass == LS_ED_CLASS_C) {
+                    module_data_t data = {};
 
-                /* first byte */
-                data.data[0] = UNWDS_LORAWAN_SYSTEM_MODULE_ID;
-                data.length++;
+                    /* first byte */
+                    data.data[0] = UNWDS_LORAWAN_SYSTEM_MODULE_ID;
+                    data.length++;
 
-                /* second byte - device class and settings */
-                /* bits 0-1: device class */
-                switch (unwds_get_node_settings().nodeclass) {
-                    case (LS_ED_CLASS_A):
-                        break;
-                    case (LS_ED_CLASS_B):
-                        data.data[1] = 1 << 0;
-                        break;
-                    case (LS_ED_CLASS_C):
-                        data.data[1] = 1 << 1;
-                        break;
-                    default:
-                        break;
+                    /* second byte - device class and settings */
+                    /* bits 0-1: device class */
+                    switch (unwds_get_node_settings().nodeclass) {
+                        case (LS_ED_CLASS_A):
+                            break;
+                        case (LS_ED_CLASS_B):
+                            data.data[1] = 1 << 0;
+                            break;
+                        case (LS_ED_CLASS_C):
+                            data.data[1] = 1 << 1;
+                            break;
+                        default:
+                            break;
+                    }
+
+                    /* bit 2: ADR */
+                    if (unwds_get_node_settings().adr) {
+                        data.data[1] |= 1 << 2;
+                    }
+
+                    /* bit 3: CNF */
+                    if (unwds_get_node_settings().confirmation) {
+                        data.data[1] |= 1 << 3;
+                    }
+
+                    /* bit 7: FPort usage for module addressing */
+                    data.data[1] |= 1 << 7;
+
+                    data.length++;
+
+                    unwds_callback(&data);
                 }
-
-                /* bit 2: ADR */
-                if (unwds_get_node_settings().adr) {
-                    data.data[1] |= 1 << 2;
-                }
-
-                /* bit 3: CNF */
-                if (unwds_get_node_settings().confirmation) {
-                    data.data[1] |= 1 << 3;
-                }
-
-                /* bit 7: FPort usage for module addressing */
-                data.data[1] |= 1 << 7;
-
-                data.length++;
-
-                unwds_callback(&data);
             } else {
                 /* not joined */
                 last_tx_time = lptimer_now_msec();

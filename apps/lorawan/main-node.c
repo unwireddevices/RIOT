@@ -174,6 +174,11 @@ static void ls_setup(gnrc_netif_t *ls)
 {
     kernel_pid_t iface = ls->dev_pid;
 
+    uint8_t region = LORA_REGION;
+    if (gnrc_netapi_set(iface, NETOPT_LORAWAN_REGION, 0, (void *)&region, sizeof(region)) < 0) {
+        puts("[LoRa] Unable to set Region");
+    }
+
     uint64_t id = config_get_nodeid();
     uint8_t deveui[LORAMAC_DEVEUI_LEN];
     memcpy(deveui, &id, LORAMAC_DEVEUI_LEN);
@@ -345,11 +350,18 @@ static void *sender_thread(void *arg) {
 
             blink_led(LED0_PIN);
 
-            msg_t msg;
+            msg_t _timeout_msg;
+            _timeout_msg.type = GNRC_NETERR_MSG_TYPE;
+            lptimer_t _timeout_timer;
+            lptimer_set_msg(&_timeout_timer, 10000, &_timeout_msg, sender_pid);
+
             /* wait for packet status and check */
+            msg_t msg;
             do {
                 msg_receive(&msg);
             } while (msg.type != GNRC_NETERR_MSG_TYPE);
+
+            lptimer_remove(&_timeout_timer);
 
             if (msg.content.value != GNRC_NETERR_SUCCESS) {
                 puts("[LoRa] Error sending data");
@@ -409,11 +421,18 @@ static void *sender_thread(void *arg) {
                 continue;
             }
 
+            msg_t _timeout_msg;
+            _timeout_msg.type = GNRC_NETERR_MSG_TYPE;
+            lptimer_t _timeout_timer;
+            lptimer_set_msg(&_timeout_timer, 10000, &_timeout_msg, sender_pid);
+
             msg_t msg;
             do {
                 msg_receive(&msg);
             } while (msg.type != GNRC_NETERR_MSG_TYPE);
-            
+
+            lptimer_remove(&_timeout_timer);
+
             if (msg.content.value == GNRC_NETERR_SUCCESS) {
                 /* joined */
                 current_join_retries = 0;

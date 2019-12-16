@@ -282,7 +282,7 @@ int _fopts_mlme_adr_ans(lorawan_buffer_t *buf)
 {
     if (buf) {
         assert(buf->index + GNRC_LORAWAN_CID_SIZE <= buf->size);
-        buf->data[buf->index++] = GNRC_LORAWAN_CID_LINK_ADR_ANS;
+        buf->data[buf->index++] = GNRC_LORAWAN_CID_ADR_ANS;
     }
 
     return GNRC_LORAWAN_CID_SIZE;
@@ -310,15 +310,23 @@ static int _mlme_link_check_ans(gnrc_lorawan_t *mac, lorawan_buffer_t *fopt)
 
 static int _mlme_link_adr_req(gnrc_lorawan_t *mac, lorawan_buffer_t *fopt)
 {
-    if (fopt->index + GNRC_LORAWAN_FOPT_LINK_ADR_SIZE > fopt->size) {
+    if (fopt->index + GNRC_LORAWAN_FOPT_ADR_SIZE > fopt->size) {
         return -EINVAL;
     }
     fopt->index++;
 
-    uint8_t payload[2] = { GNRC_LORAWAN_CID_LINK_ADR_ANS, 0 };
+    uint8_t payload[2] = { GNRC_LORAWAN_CID_ADR_ANS, 0 };
 
     uint8_t dr = fopt->data[fopt->index] >> 4;
-    payload[1] |= 1 << 1;
+
+    if (dr != 0xFF) {
+        payload[1] |= 1 << 1;
+        if (dr >= GNRC_LORAWAN_DATARATES_NUMOF) {
+            dr = GNRC_LORAWAN_DATARATES_NUMOF - 1;
+        }
+    } else {
+        dr = mac->datarate;
+    }
 
     //uint8_t tx_power = fopt->data[fopt->index] & 0x0F;
     fopt->index++;
@@ -365,12 +373,15 @@ void gnrc_lorawan_process_fopts(gnrc_lorawan_t *mac, uint8_t *fopts, size_t size
                     return;
                 }
                 break;
-            case GNRC_LORAWAN_CID_LINK_ADR_REQ:
+            case GNRC_LORAWAN_CID_ADR_REQ:
                 /* LinkADRReq gateway request */
                 if (_mlme_link_adr_req(mac, &buf) < 0) {
                     return;
                 }
                 break;
+            case GNRC_LORAWAN_CID_DEV_STATUS:
+                /* Device Status request */
+                return;
             default:
                 return;
         }

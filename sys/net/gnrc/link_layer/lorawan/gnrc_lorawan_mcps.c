@@ -169,7 +169,7 @@ out:
     }
 }
 
-size_t gnrc_lorawan_build_hdr(uint8_t mtype, le_uint32_t *dev_addr, uint32_t fcnt, uint8_t ack, uint8_t fopts_length, lorawan_buffer_t *buf)
+size_t gnrc_lorawan_build_hdr(uint8_t mtype, le_uint32_t *dev_addr, uint32_t fcnt, uint8_t ack, uint8_t adr, uint8_t fopts_length, lorawan_buffer_t *buf)
 {
     assert(fopts_length < 16);
     lorawan_hdr_t *lw_hdr = (lorawan_hdr_t *) buf->data;
@@ -182,6 +182,7 @@ size_t gnrc_lorawan_build_hdr(uint8_t mtype, le_uint32_t *dev_addr, uint32_t fcn
     lw_hdr->fctrl = 0;
 
     lorawan_hdr_set_ack(lw_hdr, ack);
+    lorawan_hdr_set_adr(lw_hdr, adr);
     lorawan_hdr_set_frame_opts_len(lw_hdr, fopts_length);
 
     lw_hdr->fcnt = byteorder_btols(byteorder_htons(fcnt));
@@ -219,7 +220,7 @@ gnrc_pktsnip_t *gnrc_lorawan_build_uplink(gnrc_lorawan_t *mac, gnrc_pktsnip_t *p
     };
 
     gnrc_lorawan_build_hdr(confirmed_data ? MTYPE_CNF_UPLINK : MTYPE_UNCNF_UPLINK,
-                           &mac->dev_addr, mac->mcps.fcnt, mac->mcps.ack_requested, fopts_length, &buf);
+                           &mac->dev_addr, mac->mcps.fcnt, mac->mcps.ack_requested, mac->adr, fopts_length, &buf);
 
     gnrc_lorawan_build_options(mac, &buf);
 

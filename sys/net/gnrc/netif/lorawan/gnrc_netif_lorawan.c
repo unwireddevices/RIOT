@@ -356,6 +356,10 @@ static int _set(gnrc_netif_t *netif, const gnrc_netapi_opt_t *opt)
             assert(opt->data_len == sizeof(uint8_t));
             netif->lorawan.mac.region = *(uint8_t *)opt->data;
             break;
+        case NETOPT_LORAWAN_ADR:
+            assert(opt->data_len == sizeof(netopt_enable_t));
+            netif->lorawan.mac.adr = *((netopt_enable_t *) opt->data);
+            break;
         case NETOPT_LINK_CONNECTED:
         {
             netopt_enable_t en = *((netopt_enable_t *) opt->data);

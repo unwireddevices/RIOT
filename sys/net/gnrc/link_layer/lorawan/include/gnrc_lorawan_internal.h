@@ -65,6 +65,8 @@ extern "C" {
 #define GNRC_LORAWAN_DIR_UPLINK (0U)                    /**< uplink frame direction */
 #define GNRC_LORAWAN_DIR_DOWNLINK (1U)                  /**< downlink frame direction */
 
+#define GNRC_LORAWAN_DATARATES_NUMOF 6                  /**< total number of data rates supported */
+
 #define GNRC_LORAWAN_BACKOFF_WINDOW_TICK (3600000LL)    /**< backoff expire tick in usecs (set to 1 second) */
 
 #define GNRC_LORAWAN_BACKOFF_BUDGET_1   (36000000LL)    /**< budget of time on air during the first hour */
@@ -76,11 +78,13 @@ extern "C" {
 
 #define GNRC_LORAWAN_CID_SIZE (1U)                      /**< size of Command ID in FOps */
 #define GNRC_LORAWAN_CID_LINK_CHECK_REQ_ANS (0x02)      /**< Link Check CID */
-#define GNRC_LORAWAN_CID_LINK_ADR_REQ       (0x03)      /**< Requests the end-device to change data rate */
-#define GNRC_LORAWAN_CID_LINK_ADR_ANS       (0x04)      /**< Acknowledges the LinkRateReq */
+#define GNRC_LORAWAN_CID_ADR_REQ            (0x03)      /**< Requests the end-device to change data rate */
+#define GNRC_LORAWAN_CID_ADR_ANS            (0x04)      /**< Acknowledges the LinkRateReq */
+#define GNRC_LORAWAN_CID_DEV_STATUS         (0x06)      /**< Acknowledges the LinkRateReq */
 
-#define GNRC_LORAWAN_FOPT_LINK_ANS_SIZE (3U)            /**< size of Link check answer */
-#define GNRC_LORAWAN_FOPT_LINK_ADR_SIZE (5U)            /**< size of ADR request */
+#define GNRC_LORAWAN_FOPT_LINK_ANS_SIZE     (3U)        /**< size of Link check answer */
+#define GNRC_LORAWAN_FOPT_ADR_SIZE          (5U)        /**< size of ADR request */
+#define GNRC_LORAWAN_FOPT_DEV_STATUS_SIZE   (3U)        /**< size of Device STatus request */
 
 #define GNRC_LORAWAN_JOIN_DELAY_U32_MASK (0x1FFFFF)     /**< mask for detecting overflow in frame counter */
 
@@ -190,6 +194,7 @@ typedef struct {
     uint8_t datarate;                               /**< LoRaWAN datarate for the next transmission */
     uint8_t last_dr;                                /**< LoRaWAN datarate of the last transmission */
     uint8_t region;                                 /**< LoRaWAN current region */
+    uint8_t adr;                                    /**< LoRaWAN ADR enabled */
 } gnrc_lorawan_t;
 
 /**
@@ -320,12 +325,13 @@ void gnrc_lorawan_calculate_mic(const le_uint32_t *dev_addr, uint32_t fcnt,
  * @param[in] dev_addr the Device Address
  * @param[in] fcnt frame counter
  * @param[in] ack true if ACK bit is set
+ * @param[in] adr true if ADR bit is set
  * @param[in] fopts_length the length of the FOpts field
  * @param[out] buf destination buffer of the hdr
  *
  * @return the size of the header
  */
-size_t gnrc_lorawan_build_hdr(uint8_t mtype, le_uint32_t *dev_addr, uint32_t fcnt, uint8_t ack, uint8_t fopts_length, lorawan_buffer_t *buf);
+size_t gnrc_lorawan_build_hdr(uint8_t mtype, le_uint32_t *dev_addr, uint32_t fcnt, uint8_t ack, uint8_t adr, uint8_t fopts_length, lorawan_buffer_t *buf);
 
 /**
  * @brief Process an MCPS downlink message (confirmable or non comfirmable)

@@ -15,8 +15,6 @@
 #include "net/gnrc/netif.h"
 #include "net/gnrc/lorawan/region.h"
 
-#define GNRC_LORAWAN_DATARATES_NUMOF 6
-
 static const uint8_t dr_sf[GNRC_LORAWAN_DATARATES_NUMOF] = { LORA_SF12, LORA_SF11, LORA_SF10, LORA_SF9, LORA_SF8, LORA_SF7 };
 static const uint8_t dr_bw[GNRC_LORAWAN_DATARATES_NUMOF] = { LORA_BW_125_KHZ, LORA_BW_125_KHZ, LORA_BW_125_KHZ, LORA_BW_125_KHZ, LORA_BW_125_KHZ, LORA_BW_125_KHZ };
 

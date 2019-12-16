@@ -136,7 +136,7 @@ void unwds_config_reset(void) {
     node_settings.region_index = 1;
     node_settings.channel = 0;
     node_settings.dr = LS_DR0;
-    node_settings.max_retr = 3;
+    node_settings.max_retr = 5;
     node_settings.nodeclass = LS_ED_CLASS_C;
     
     memset((void *)node_settings.enabled_mods, 0, sizeof(node_settings.enabled_mods));

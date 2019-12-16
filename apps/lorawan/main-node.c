@@ -232,19 +232,13 @@ static void ls_setup(gnrc_netif_t *ls)
         puts("[LoRa] Unable to set RX2 Data Rate");
     }
 
-    /*
-    semtech_loramac_set_system_max_rx_error(ls, 20);
-    semtech_loramac_set_min_rx_symbols(ls, 6);
-    */
+    uint8_t tx_power = 0; /* 0 for maximum power */
+    if (gnrc_netapi_set(iface, NETOPT_LORAWAN_TX_POWER, 0, (void *)&tx_power, sizeof(tx_power)) < 0) {
+        puts("[LoRa] Unable to set TX power");
+    }
 
     /*
-    semtech_loramac_set_adr(ls, unwds_get_node_settings().adr);
     semtech_loramac_set_class(ls, unwds_get_node_settings().nodeclass);
-    */
-
-    /* Retries will be handled by application */
-    /*
-    semtech_loramac_set_retries(ls, 0);
     */
 
     netopt_enable_t adr = (unwds_get_node_settings().adr)? (NETOPT_ENABLE):(NETOPT_DISABLE);

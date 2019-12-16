@@ -67,6 +67,8 @@ extern "C" {
 
 #define GNRC_LORAWAN_DATARATES_NUMOF 6                  /**< total number of data rates supported */
 
+#define GNRC_LORAWAN_TXPOWER_NUMOF 8                    /**< total number of TX power levels supported */
+
 #define GNRC_LORAWAN_BACKOFF_WINDOW_TICK (3600000LL)    /**< backoff expire tick in usecs (set to 1 second) */
 
 #define GNRC_LORAWAN_BACKOFF_BUDGET_1   (36000000LL)    /**< budget of time on air during the first hour */
@@ -195,6 +197,7 @@ typedef struct {
     uint8_t last_dr;                                /**< LoRaWAN datarate of the last transmission */
     uint8_t region;                                 /**< LoRaWAN current region */
     uint8_t adr;                                    /**< LoRaWAN ADR enabled */
+    uint8_t tx_power;                               /**< TX power index */
 } gnrc_lorawan_t;
 
 /**

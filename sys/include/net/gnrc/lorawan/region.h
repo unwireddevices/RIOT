@@ -38,6 +38,7 @@ typedef struct {
     uint32_t freq[3];
     uint32_t channels;
     uint32_t rx2_freq;
+    uint8_t  tx_power[GNRC_LORAWAN_TXPOWER_NUMOF];
 } lorawan_region_settings_t;
 
 static const lorawan_region_settings_t gnrc_lorawan_region[] = {
@@ -46,18 +47,21 @@ static const lorawan_region_settings_t gnrc_lorawan_region[] = {
         .freq = {868100000UL, 868300000UL, 868500000UL},
         .channels = 3,
         .rx2_freq = 869525000UL,
+        .tx_power = {14, 12, 10, 8, 6, 4, 2, 0},
     },
     {
         /* RU864 */
         .freq = {868900000UL, 869100000UL, 0},
         .channels = 2,
         .rx2_freq = 869100000UL,
+        .tx_power = {14, 12, 10, 8, 6, 4, 2, 0},
     },
     {
         /* KZ865 */
         .freq = {865100000UL, 865300000UL, 865500000UL},
         .channels = 3,
         .rx2_freq = 866700000UL,
+        .tx_power = {14, 12, 10, 8, 6, 4, 2, 0},
     }
 };
 

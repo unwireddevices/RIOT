@@ -608,9 +608,13 @@ typedef enum {
 
     /**
      * @brief   (uint8_t) LoRaWAN datarate
-     * - LoRaWAN: @ref loramac_dr_idx_t
      */
     NETOPT_LORAWAN_DR,
+
+    /**
+     * @brief   (uint8_t) LoRaWAN TX power
+     */
+    NETOPT_LORAWAN_TX_POWER,
 
     /**
      * @brief   (@ref netopt_enable_t) LoRaWAN adaptive datarate

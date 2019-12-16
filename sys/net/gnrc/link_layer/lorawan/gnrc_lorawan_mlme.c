@@ -328,13 +328,20 @@ static int _mlme_link_adr_req(gnrc_lorawan_t *mac, lorawan_buffer_t *fopt)
         dr = mac->datarate;
     }
 
-    //uint8_t tx_power = fopt->data[fopt->index] & 0x0F;
+    uint8_t tx_power = fopt->data[fopt->index] & 0x0F;
     fopt->index++;
+    payload[1] |= 1 << 2;
 
     /* ignore ChMask; TODO: implement */
+    uint16_t chmask = 0;
+    memcpy((void*) &chmask, &fopt->data[fopt->index], sizeof(chmask));
     fopt->index += 2;
+
     /* ignore Redundancy; TODO: implement */
+    uint8_t nbtrans = fopt->data[fopt->index] & 0xF;
+    uint8_t chmaskcntl = (fopt->data[fopt->index] >> 4) & 0x7;
     fopt->index++;
+    payload[1] |= 1 << 3;
 
     gnrc_pktsnip_t *pkt;
     pkt = gnrc_pktbuf_add(NULL, payload, sizeof(payload), GNRC_NETTYPE_UNDEF);
@@ -352,6 +359,7 @@ static int _mlme_link_adr_req(gnrc_lorawan_t *mac, lorawan_buffer_t *fopt)
     gnrc_pktbuf_release(pkt);
 
     mac->datarate = dr;
+    mac->tx_power = tx_power;
 
     return 0;
 }

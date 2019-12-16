@@ -290,6 +290,14 @@ static int _get(gnrc_netif_t *netif, gnrc_netapi_opt_t *opt)
             assert(opt->data_len == sizeof(uint8_t));
             *((uint8_t *) opt->data) = netif->lorawan.mac.nb_trials;
             break;
+        case NETOPT_LORAWAN_TX_POWER:
+            assert(opt->data_len == sizeof(uint8_t));
+            *((uint8_t *) opt->data) = netif->lorawan.mac.tx_power;
+            break;
+        case NETOPT_LORAWAN_DR:
+            assert(opt->data_len == sizeof(uint8_t));
+            *((uint8_t *) opt->data) = netif->lorawan.mac.datarate;
+            break;
         case NETOPT_DEMOD_MARGIN:
             assert(opt->data_len == sizeof(uint8_t));
             *((uint8_t *) opt->data) = netif->lorawan.demod_margin;
@@ -311,6 +319,10 @@ static int _set(gnrc_netif_t *netif, const gnrc_netapi_opt_t *opt)
         case NETOPT_LORAWAN_DR:
             assert(opt->data_len == sizeof(uint8_t));
             netif->lorawan.mac.datarate = *((uint8_t *) opt->data);
+            break;
+        case NETOPT_LORAWAN_TX_POWER:
+            assert(opt->data_len == sizeof(uint8_t));
+            netif->lorawan.mac.tx_power = *((uint8_t *) opt->data);
             break;
         case NETOPT_LORAWAN_TX_PORT:
             assert(opt->data_len == sizeof(uint8_t));
@@ -367,6 +379,7 @@ static int _set(gnrc_netif_t *netif, const gnrc_netapi_opt_t *opt)
                 if(netif->lorawan.otaa) {
                     /* reset to default datarate */
                     netif->lorawan.mac.datarate = LORAMAC_DEFAULT_DR;
+                    netif->lorawan.mac.tx_power = LORAMAC_DEFAULT_TX_POWER;
                     /* reset LoRaWAN MAC */
                     gnrc_lorawan_reset(&netif->lorawan.mac);
 

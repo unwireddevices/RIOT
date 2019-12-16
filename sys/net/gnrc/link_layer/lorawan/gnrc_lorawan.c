@@ -123,6 +123,9 @@ static void _config_radio(gnrc_lorawan_t *mac, uint32_t channel_freq, uint8_t dr
         const uint16_t timeout = CONFIG_GNRC_LORAWAN_MIN_SYMBOLS_TIMEOUT;
         netdev_set_pass(&mac->netdev, NETOPT_RX_SYMBOL_TIMEOUT, &timeout, sizeof(timeout));
     } else {
+        int16_t tx_power = gnrc_lorawan_region[mac->region].tx_power[mac->tx_power];
+        netdev_set_pass(&mac->netdev, NETOPT_TX_POWER, &tx_power, sizeof(tx_power));
+
         const uint32_t timeout = CONFIG_GNRC_LORAWAN_TX_TIMEOUT;
         netdev_set_pass(&mac->netdev, NETOPT_TX_TIMEOUT, &timeout, sizeof(timeout));
     }
@@ -188,7 +191,6 @@ void gnrc_lorawan_event_timeout(gnrc_lorawan_t *mac)
  * using floating point arithmetics */
 static uint32_t lora_time_on_air(size_t payload_size, uint8_t dr, uint8_t cr)
 {
-    assert(dr <= LORAMAC_DR_6);
     uint8_t _K[6][4] = {    { 0, 1, 5, 5 },
                             { 0, 1, 4, 5 },
                             { 1, 5, 5, 5 },
@@ -199,7 +201,7 @@ static uint32_t lora_time_on_air(size_t payload_size, uint8_t dr, uint8_t cr)
     uint32_t t_sym = 1 << (15 - dr);
     uint32_t t_preamble = (t_sym << 3) + (t_sym << 2) + (t_sym >> 2);
 
-    int index = dr < LORAMAC_DR_6 ? dr : LORAMAC_DR_5;
+    int index = dr < GNRC_LORAWAN_DATARATES_NUMOF ? dr : (GNRC_LORAWAN_DATARATES_NUMOF - 1);
     uint8_t n0 = _K[index][0];
     int nb_symbols;
 

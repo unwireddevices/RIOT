@@ -168,7 +168,7 @@ void gnrc_lorawan_event_timeout(gnrc_lorawan_t *mac)
     (void) mac;
     switch (mac->state) {
         case LORAWAN_STATE_RX_1:
-            _configure_rx_window(mac, LORAMAC_DEFAULT_RX2_FREQ, mac->dl_settings & GNRC_LORAWAN_DL_RX2_DR_MASK);
+            _configure_rx_window(mac, gnrc_lorawan_get_rx2_channel(mac), mac->dl_settings & GNRC_LORAWAN_DL_RX2_DR_MASK);
             mac->state = LORAWAN_STATE_RX_2;
             break;
         case LORAWAN_STATE_RX_2:
@@ -233,8 +233,10 @@ void gnrc_lorawan_send_pkt(gnrc_lorawan_t *mac, gnrc_pktsnip_t *pkt, uint8_t dr)
     _config_radio(mac, chan, dr, false);
 
     /* perform RF path calibration before TX */
+    /*
     netopt_state_t state = NETOPT_STATE_CALIBRATE;
     netdev_set_pass((netdev_t *) mac, NETOPT_STATE, &state, sizeof(state));
+    */
 
     mac->last_dr = dr;
 

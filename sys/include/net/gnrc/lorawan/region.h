@@ -25,31 +25,41 @@ extern "C" {
 #endif
 
 /**
- * @brief Default LoRaWAN channels for current region (EU868)
+ * @brief Default LoRaWAN channels for supported regions
  */
-#if LORA_REGION == 0
-static const uint32_t gnrc_lorawan_default_channels[] = {
-    868100000UL,
-    868300000UL,
-    868500000UL
-};
-#elif LORA_REGION == 1
-static const uint32_t gnrc_lorawan_default_channels[] = {
-    868900000UL,
-    869100000UL
-};
-#elif LORA_REGION == 2
-static const uint32_t gnrc_lorawan_default_channels[] = {
-    865100000UL,
-    865300000UL,
-    865500000UL
-};
-#else
-#error LORA_REGION undefined or not supported
-#endif
+ 
+typedef enum {
+    GNRC_LORAWAN_REGION_EU868 = 0,
+    GNRC_LORAWAN_REGION_RU864 = 1,
+    GNRC_LORAWAN_REGION_KZ865 = 2,
+} lorawan_regions_list_t;
 
-#define GNRC_LORAWAN_DEFAULT_CHANNELS_NUMOF \
-    (sizeof(gnrc_lorawan_default_channels)/sizeof(uint32_t)) /**< Number of default channels */
+typedef struct {
+    uint32_t freq[3];
+    uint32_t channels;
+    uint32_t rx2_freq;
+} lorawan_region_settings_t;
+
+static const lorawan_region_settings_t gnrc_lorawan_region[] = {
+    {
+        /* EU868 */
+        .freq = {868100000UL, 868300000UL, 868500000UL},
+        .channels = 3,
+        .rx2_freq = 869525000UL,
+    },
+    {
+        /* RU864 */
+        .freq = {868900000UL, 869100000UL, 0},
+        .channels = 2,
+        .rx2_freq = 869100000UL,
+    },
+    {
+        /* KZ865 */
+        .freq = {865100000UL, 865300000UL, 865500000UL},
+        .channels = 3,
+        .rx2_freq = 866700000UL,
+    }
+};
 
 /**
  * @brief Process Channel Frequency list frame

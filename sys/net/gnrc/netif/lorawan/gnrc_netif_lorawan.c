@@ -173,6 +173,7 @@ static void _reset(gnrc_netif_t *netif)
 {
     netif->lorawan.otaa = LORAMAC_DEFAULT_JOIN_PROCEDURE == LORAMAC_JOIN_OTAA ? NETOPT_ENABLE : NETOPT_DISABLE;
     netif->lorawan.mac.datarate = LORAMAC_DEFAULT_DR;
+    netif->lorawan.mac.region = LORAMAC_DEFAULT_REGION;
     netif->lorawan.demod_margin = 0;
     netif->lorawan.num_gateways = 0;
     netif->lorawan.port = LORAMAC_DEFAULT_TX_PORT;
@@ -350,6 +351,10 @@ static int _set(gnrc_netif_t *netif, const gnrc_netapi_opt_t *opt)
         case NETOPT_LORAWAN_NBTRIALS:
             assert(opt->data_len == sizeof(uint8_t));
             netif->lorawan.mac.nb_trials = *(uint8_t *)opt->data;
+            break;
+        case NETOPT_LORAWAN_REGION:
+            assert(opt->data_len == sizeof(uint8_t));
+            netif->lorawan.mac.region = *(uint8_t *)opt->data;
             break;
         case NETOPT_LINK_CONNECTED:
         {

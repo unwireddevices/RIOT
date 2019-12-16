@@ -189,6 +189,7 @@ typedef struct {
     uint8_t dr_range[GNRC_LORAWAN_MAX_CHANNELS];    /**< Datarate Range for all channels */
     uint8_t datarate;                               /**< LoRaWAN datarate for the next transmission */
     uint8_t last_dr;                                /**< LoRaWAN datarate of the last transmission */
+    uint8_t region;                                 /**< LoRaWAN current region */
 } gnrc_lorawan_t;
 
 /**
@@ -260,6 +261,15 @@ gnrc_pktsnip_t *gnrc_lorawan_build_uplink(gnrc_lorawan_t *mac, gnrc_pktsnip_t *p
  * @return a free channel
  */
 uint32_t gnrc_lorawan_pick_channel(gnrc_lorawan_t *mac);
+
+/**
+ * @brief returns RX2 channel frequency
+ *
+ * @param[in] mac pointer to the MAC descriptor
+ *
+ * @return RX2 channel frequency for the current region
+ */
+uint32_t gnrc_lorawan_get_rx2_channel(gnrc_lorawan_t *mac);
 
 /**
  * @brief Build fopts header

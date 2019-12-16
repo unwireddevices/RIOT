@@ -17,8 +17,8 @@
 
 #define GNRC_LORAWAN_DATARATES_NUMOF 6
 
-static uint8_t dr_sf[GNRC_LORAWAN_DATARATES_NUMOF] = { LORA_SF12, LORA_SF11, LORA_SF10, LORA_SF9, LORA_SF8, LORA_SF7 };
-static uint8_t dr_bw[GNRC_LORAWAN_DATARATES_NUMOF] = { LORA_BW_125_KHZ, LORA_BW_125_KHZ, LORA_BW_125_KHZ, LORA_BW_125_KHZ, LORA_BW_125_KHZ, LORA_BW_125_KHZ };
+static const uint8_t dr_sf[GNRC_LORAWAN_DATARATES_NUMOF] = { LORA_SF12, LORA_SF11, LORA_SF10, LORA_SF9, LORA_SF8, LORA_SF7 };
+static const uint8_t dr_bw[GNRC_LORAWAN_DATARATES_NUMOF] = { LORA_BW_125_KHZ, LORA_BW_125_KHZ, LORA_BW_125_KHZ, LORA_BW_125_KHZ, LORA_BW_125_KHZ, LORA_BW_125_KHZ };
 
 int gnrc_lorawan_set_dr(gnrc_lorawan_t *mac, uint8_t datarate)
 {
@@ -70,11 +70,11 @@ static uint32_t _get_nth_channel(gnrc_lorawan_t *mac, size_t n)
 
 void gnrc_lorawan_channels_init(gnrc_lorawan_t *mac)
 {
-    for(unsigned i = 0; i<GNRC_LORAWAN_DEFAULT_CHANNELS_NUMOF; i++) {
-        mac->channel[i] = gnrc_lorawan_default_channels[i];
+    for(unsigned i = 0; i < gnrc_lorawan_region[mac->region].channels; i++) {
+        mac->channel[i] = gnrc_lorawan_region[mac->region].freq[i];
     }
 
-    for (unsigned i = GNRC_LORAWAN_DEFAULT_CHANNELS_NUMOF; i < GNRC_LORAWAN_MAX_CHANNELS; i++) {
+    for (unsigned i = gnrc_lorawan_region[mac->region].channels; i < GNRC_LORAWAN_MAX_CHANNELS; i++) {
         mac->channel[i] = 0;
     }
 }
@@ -89,10 +89,15 @@ uint32_t gnrc_lorawan_pick_channel(gnrc_lorawan_t *mac)
     return _get_nth_channel(mac, 1 + (random_number % _get_num_used_channels(mac)));
 }
 
+uint32_t gnrc_lorawan_get_rx2_channel(gnrc_lorawan_t *mac)
+{
+    return gnrc_lorawan_region[mac->region].rx2_freq;
+}
+
 void gnrc_lorawan_process_cflist(gnrc_lorawan_t *mac, uint8_t *cflist)
 {
     /* TODO: Check CFListType to 0 */
-    for (unsigned i = GNRC_LORAWAN_DEFAULT_CHANNELS_NUMOF; i < 8; i++) {
+    for (unsigned i = gnrc_lorawan_region[mac->region].channels; i < 8; i++) {
         le_uint32_t cl;
         cl.u32 = 0;
         memcpy(&cl, cflist, GNRC_LORAWAN_CFLIST_ENTRY_SIZE);

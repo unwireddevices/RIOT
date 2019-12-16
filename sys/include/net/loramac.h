@@ -207,10 +207,10 @@ extern "C" {
 #endif
 
 /**
- * @brief   Default second RX window frequency (in Hz)
+ * @brief   Default LoRaWAN region
  */
-#ifndef LORAMAC_DEFAULT_RX2_FREQ
-#define LORAMAC_DEFAULT_RX2_FREQ               (869525000UL)
+#ifndef LORAMAC_DEFAULT_REGION
+#define LORAMAC_DEFAULT_REGION                  (0)
 #endif
 
 /**

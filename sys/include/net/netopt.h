@@ -595,6 +595,11 @@ typedef enum {
      */
     NETOPT_LORAWAN_NBTRIALS,
 
+    /**
+     * @brief   (uint8_t*) LoRaWAN region number (1 byte length)
+     */
+    NETOPT_LORAWAN_REGION,
+
      /**
      * @brief   (uint8_t) LoRaWAN device class (A, B, C)
      * - LoRaWAN: @ref loramac_class_t

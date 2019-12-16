@@ -338,8 +338,10 @@ static int _mlme_link_adr_req(gnrc_lorawan_t *mac, lorawan_buffer_t *fopt)
     fopt->index += 2;
 
     /* ignore Redundancy; TODO: implement */
+    /*
     uint8_t nbtrans = fopt->data[fopt->index] & 0xF;
     uint8_t chmaskcntl = (fopt->data[fopt->index] >> 4) & 0x7;
+    */
     fopt->index++;
     payload[1] |= 1 << 3;
 

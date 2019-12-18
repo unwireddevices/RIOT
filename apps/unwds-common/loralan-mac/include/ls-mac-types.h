@@ -167,7 +167,8 @@ typedef struct {
     uint8_t data[32];              /**< Payload data, 32 bytes max */
     uint8_t length;                /**< Payload length */
     uint8_t fport;                 /**< LoRaWAN FPort */
-    bool    retransmit;            /**< Frame already transmitted, but ACK failed */
+    uint8_t retr_cnt;              /**< Retransmissions counter */
+    bool system;                   /**< This is a system payload frame */
 } ls_frame_t;
 #else
 typedef struct {

@@ -40,10 +40,19 @@ extern "C" {
 #endif
 
 /**
+ * @brief maximum timer delay, milliseconds
+ *
+ * RX window will be opened CONFIG_GNRC_LORAWAN_TIMER_DELAY ms in advance
+ */
+#ifndef CONFIG_GNRC_LORAWAN_TIMER_DELAY
+#define CONFIG_GNRC_LORAWAN_TIMER_DELAY 10
+#endif
+
+/**
  * @brief the minimum symbols to detect a LoRa preamble
  */
 #ifndef CONFIG_GNRC_LORAWAN_MIN_SYMBOLS_TIMEOUT
-#define CONFIG_GNRC_LORAWAN_MIN_SYMBOLS_TIMEOUT 50
+#define CONFIG_GNRC_LORAWAN_MIN_SYMBOLS_TIMEOUT 30
 #endif
 
 /**

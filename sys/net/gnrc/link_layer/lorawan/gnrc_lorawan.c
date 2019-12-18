@@ -99,6 +99,7 @@ void gnrc_lorawan_reset(gnrc_lorawan_t *mac)
 
     _set_rx2_dr(mac, LORAMAC_DEFAULT_RX2_DR);
 
+    mac->adr_ans_received = false;
     mac->toa = 0;
     gnrc_lorawan_mcps_reset(mac);
     gnrc_lorawan_mlme_reset(mac);
@@ -157,7 +158,7 @@ void gnrc_lorawan_event_tx_complete(gnrc_lorawan_t *mac)
     rx_1 = mac->mlme.activation == MLME_ACTIVATION_NONE ?
            LORAMAC_DEFAULT_JOIN_DELAY1 : mac->rx_delay;
 
-    lptimer_set_msg(&mac->rx, rx_1 * _DRIFT_FACTOR, &mac->msg, thread_getpid());
+    lptimer_set_msg(&mac->rx, (rx_1 * _DRIFT_FACTOR) - CONFIG_GNRC_LORAWAN_TIMER_DELAY, &mac->msg, thread_getpid());
 
     uint8_t dr_offset = (mac->dl_settings & GNRC_LORAWAN_DL_DR_OFFSET_MASK) >>
         GNRC_LORAWAN_DL_DR_OFFSET_POS;
@@ -174,8 +175,10 @@ void gnrc_lorawan_event_timeout(gnrc_lorawan_t *mac)
             _configure_rx_window(mac, gnrc_lorawan_get_rx2_channel(mac), mac->dl_settings & GNRC_LORAWAN_DL_RX2_DR_MASK);
             mac->state = LORAWAN_STATE_RX_2;
             break;
-        case LORAWAN_STATE_RX_2:
         case LORAWAN_STATE_TX: /* TX timeout */
+            DEBUG("gnrc_lorawan_event_timeout: TX timeout\n");
+            /* fall-through */
+        case LORAWAN_STATE_RX_2:
             gnrc_lorawan_mlme_no_rx(mac);
             gnrc_lorawan_mcps_event(mac, MCPS_EVENT_NO_RX, 0);
             mac->state = LORAWAN_STATE_IDLE;

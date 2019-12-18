@@ -92,7 +92,6 @@ static int gnrc_lorawan_send_join_request(gnrc_lorawan_t *mac, uint8_t *deveui,
     }
 
     gnrc_lorawan_send_pkt(mac, pkt, dr);
-
     mac->mlme.backoff_budget -= mac->toa;
     gnrc_pktbuf_release(pkt);
 
@@ -266,6 +265,10 @@ void gnrc_lorawan_mlme_request(gnrc_lorawan_t *mac, const mlme_request_t *mlme_r
         default:
             break;
     }
+
+    if (mlme_confirm->status < 0) {
+        gnrc_lorawan_mac_release(mac);
+    }
 }
 
 int _fopts_mlme_link_check_req(lorawan_buffer_t *buf)
@@ -282,7 +285,7 @@ int _fopts_mlme_adr_ans(lorawan_buffer_t *buf)
 {
     if (buf) {
         assert(buf->index + GNRC_LORAWAN_CID_SIZE <= buf->size);
-        buf->data[buf->index++] = GNRC_LORAWAN_CID_ADR_ANS;
+        buf->data[buf->index++] = GNRC_LORAWAN_CID_ADR_REQ_ANS;
     }
 
     return GNRC_LORAWAN_CID_SIZE;
@@ -308,19 +311,19 @@ static int _mlme_link_check_ans(gnrc_lorawan_t *mac, lorawan_buffer_t *fopt)
     return 0;
 }
 
-static int _mlme_link_adr_req(gnrc_lorawan_t *mac, lorawan_buffer_t *fopt)
+static int _mlme_link_adr_ans(gnrc_lorawan_t *mac, lorawan_buffer_t *fopt)
 {
     if (fopt->index + GNRC_LORAWAN_FOPT_ADR_SIZE > fopt->size) {
         return -EINVAL;
     }
     fopt->index++;
 
-    uint8_t payload[2] = { GNRC_LORAWAN_CID_ADR_ANS, 0 };
+    uint8_t payload[2] = { GNRC_LORAWAN_CID_ADR_REQ_ANS, 0 };
 
     uint8_t dr = fopt->data[fopt->index] >> 4;
 
     if (dr != 0xFF) {
-        payload[1] |= 1 << 1;
+        payload[1] |= 1 << 0;
         if (dr >= GNRC_LORAWAN_DATARATES_NUMOF) {
             dr = GNRC_LORAWAN_DATARATES_NUMOF - 1;
         }
@@ -330,7 +333,7 @@ static int _mlme_link_adr_req(gnrc_lorawan_t *mac, lorawan_buffer_t *fopt)
 
     uint8_t tx_power = fopt->data[fopt->index] & 0x0F;
     fopt->index++;
-    payload[1] |= 1 << 2;
+    payload[1] |= 1 << 1;
 
     /* ignore ChMask; TODO: implement */
     uint16_t chmask = 0;
@@ -343,7 +346,7 @@ static int _mlme_link_adr_req(gnrc_lorawan_t *mac, lorawan_buffer_t *fopt)
     uint8_t chmaskcntl = (fopt->data[fopt->index] >> 4) & 0x7;
     */
     fopt->index++;
-    payload[1] |= 1 << 3;
+    payload[1] |= 1 << 2;
 
     gnrc_pktsnip_t *pkt;
     pkt = gnrc_pktbuf_add(NULL, payload, sizeof(payload), GNRC_NETTYPE_UNDEF);
@@ -351,13 +354,17 @@ static int _mlme_link_adr_req(gnrc_lorawan_t *mac, lorawan_buffer_t *fopt)
         return -ENOBUFS;
     }
 
-    pkt = gnrc_lorawan_build_uplink(mac, pkt, MTYPE_UNCNF_UPLINK, 0);
+    mac->adr_ans_received = 1;
+
+    mac->mcps.fcnt += 1;
+    pkt = gnrc_lorawan_build_uplink(mac, pkt, 0, 0);
     if (!pkt) {
         return -ENOBUFS;
     }
 
+    lptimer_sleep(250);
+
     gnrc_lorawan_send_pkt(mac, pkt, mac->datarate);
-    mac->mlme.backoff_budget -= mac->toa;
     gnrc_pktbuf_release(pkt);
 
     mac->datarate = dr;
@@ -383,9 +390,9 @@ void gnrc_lorawan_process_fopts(gnrc_lorawan_t *mac, uint8_t *fopts, size_t size
                     return;
                 }
                 break;
-            case GNRC_LORAWAN_CID_ADR_REQ:
+            case GNRC_LORAWAN_CID_ADR_REQ_ANS:
                 /* LinkADRReq gateway request */
-                if (_mlme_link_adr_req(mac, &buf) < 0) {
+                if (_mlme_link_adr_ans(mac, &buf) < 0) {
                     return;
                 }
                 break;

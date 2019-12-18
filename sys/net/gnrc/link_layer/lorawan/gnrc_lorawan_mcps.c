@@ -219,8 +219,21 @@ gnrc_pktsnip_t *gnrc_lorawan_build_uplink(gnrc_lorawan_t *mac, gnrc_pktsnip_t *p
         .index = 0
     };
 
+    uint8_t adr = false;
+    if (mac->adr && (mac->datarate < (GNRC_LORAWAN_DATARATES_NUMOF - 1))) {
+        /* request ADR if previous request was a long enough time ago */
+        if ((mac->mcps.fcnt - mac->adr_req_fcnt) > GNRC_LORAWAN_ADR_ACK_LIMIT) {
+            mac->adr_ans_received = false;
+        }
+
+        if (!mac->adr_ans_received) {
+            mac->adr_req_fcnt = mac->mcps.fcnt;
+            adr = true;
+        }
+    }
+
     gnrc_lorawan_build_hdr(confirmed_data ? MTYPE_CNF_UPLINK : MTYPE_UNCNF_UPLINK,
-                           &mac->dev_addr, mac->mcps.fcnt, mac->mcps.ack_requested, mac->adr, fopts_length, &buf);
+                           &mac->dev_addr, mac->mcps.fcnt, mac->mcps.ack_requested, adr, fopts_length, &buf);
 
     gnrc_lorawan_build_options(mac, &buf);
 
@@ -335,6 +348,7 @@ void gnrc_lorawan_mcps_request(gnrc_lorawan_t *mac, const mcps_request_t *mcps_r
     }
     mac->mcps.outgoing_pkt = pkt;
 
+    DEBUG("gnrc_lorawan_mcps_request: fcnt = %lu\n", mac->mcps.fcnt);
     gnrc_lorawan_send_pkt(mac, pkt, mcps_request->data.dr);
     mcps_confirm->status = GNRC_LORAWAN_REQ_STATUS_DEFERRED;
 out:

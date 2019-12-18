@@ -69,20 +69,23 @@ extern "C" {
 
 #define GNRC_LORAWAN_TXPOWER_NUMOF 8                    /**< total number of TX power levels supported */
 
-#define GNRC_LORAWAN_BACKOFF_WINDOW_TICK (3600000LL)    /**< backoff expire tick in usecs (set to 1 second) */
+#define GNRC_LORAWAN_ADR_ACK_LIMIT 64                   /**< number of uplinks to set ADRACKReq flag after */
 
-#define GNRC_LORAWAN_BACKOFF_BUDGET_1   (36000000LL)    /**< budget of time on air during the first hour */
-#define GNRC_LORAWAN_BACKOFF_BUDGET_2   (36000000LL)    /**< budget of time on air between 1-10 hours after boot */
-#define GNRC_LORAWAN_BACKOFF_BUDGET_3   (8700000LL)     /**< budget of time on air every 24 hours */
+#define GNRC_LORAWAN_BACKOFF_WINDOW_TICK (3600000UL)    /**< backoff expire tick in msecs (set to 1 hour) */
+
+#define GNRC_LORAWAN_BACKOFF_BUDGET_1   (36000000LL)    /**< budget of time on air during the first hour (36 seconds) */
+#define GNRC_LORAWAN_BACKOFF_BUDGET_2   (36000000LL)    /**< budget of time on air between 1-10 hours after boot (36 seconds) */
+#define GNRC_LORAWAN_BACKOFF_BUDGET_3   (8700000LL)     /**< budget of time on air every 24 hours (8.7 seconds) */
 
 #define GNRC_LORAWAN_MLME_OPTS_LINK_CHECK_REQ  (1 << 0) /**< Internal Link Check request flag */
-#define GNRC_LORAWAN_MLME_OPTS_ADR_ANS_REQ  (1 << 1) /**< Internal ADRAns flag */
+#define GNRC_LORAWAN_MLME_OPTS_ADR_ANS_REQ  (1 << 1)    /**< Internal ADRAns flag */
 
 #define GNRC_LORAWAN_CID_SIZE (1U)                      /**< size of Command ID in FOps */
 #define GNRC_LORAWAN_CID_LINK_CHECK_REQ_ANS (0x02)      /**< Link Check CID */
-#define GNRC_LORAWAN_CID_ADR_REQ            (0x03)      /**< Requests the end-device to change data rate */
-#define GNRC_LORAWAN_CID_ADR_ANS            (0x04)      /**< Acknowledges the LinkRateReq */
-#define GNRC_LORAWAN_CID_DEV_STATUS         (0x06)      /**< Acknowledges the LinkRateReq */
+#define GNRC_LORAWAN_CID_ADR_REQ_ANS        (0x03)      /**< Requests the end-device to change data rate */
+#define GNRC_LORAWAN_CID_DUTY_CYCLE_REQ_ANS (0x04)      /**< Sets aggregated duty cycle on device */
+#define GNRC_LORAWAN_CID_RX_PARAM_REQ_ANS   (0x05)      /**< Sets the reception slots parameters */
+#define GNRC_LORAWAN_CID_DEV_STATUS         (0x06)      /**< Requests the status of the end-device */
 
 #define GNRC_LORAWAN_FOPT_LINK_ANS_SIZE     (3U)        /**< size of Link check answer */
 #define GNRC_LORAWAN_FOPT_ADR_SIZE          (5U)        /**< size of ADR request */
@@ -196,8 +199,10 @@ typedef struct {
     uint8_t datarate;                               /**< LoRaWAN datarate for the next transmission */
     uint8_t last_dr;                                /**< LoRaWAN datarate of the last transmission */
     uint8_t region;                                 /**< LoRaWAN current region */
-    uint8_t adr;                                    /**< LoRaWAN ADR enabled */
     uint8_t tx_power;                               /**< TX power index */
+    uint8_t adr;                                    /**< LoRaWAN ADR enabled */
+    uint8_t adr_ans_received;                       /**< ADRAns was received */
+    uint32_t adr_req_fcnt;                          /**< Fcnt of the frame after which ADRAns was received */
 } gnrc_lorawan_t;
 
 /**

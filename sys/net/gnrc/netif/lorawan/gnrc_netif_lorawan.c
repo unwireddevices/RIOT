@@ -389,6 +389,14 @@ static int _set(gnrc_netif_t *netif, const gnrc_netapi_opt_t *opt)
                     mlme_request.join.appkey = netif->lorawan.appkey;
                     mlme_request.join.dr = netif->lorawan.mac.datarate;
                     gnrc_lorawan_mlme_request(&netif->lorawan.mac, &mlme_request, &mlme_confirm);
+#ifdef MODULE_GNRC_NETERR
+                    if ((mlme_confirm.status < 0) && (lorawan_joinerr_pid != KERNEL_PID_UNDEF)) {
+                        msg_t msg;
+                        msg.type = GNRC_NETERR_MSG_TYPE;
+                        msg.content.value = mlme_confirm.status;
+                        msg_send(&msg, lorawan_joinerr_pid);
+                    }
+#endif
                 }
                 else {
                     mlme_request.type = MLME_SET;

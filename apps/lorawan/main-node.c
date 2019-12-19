@@ -225,12 +225,13 @@ static void ls_setup(gnrc_netif_t *ls)
         puts("[LoRa] Unable to set DevAddr");
     }
 
-    /* disable ADR by default, to be enable on per-packet basis */
+    /* set ADR mode */
     netopt_enable_t adr = (unwds_get_node_settings().adr)? NETOPT_ENABLE:NETOPT_DISABLE;
     if (gnrc_netapi_set(interface, NETOPT_LORAWAN_ADR, 0, (void *)&adr, sizeof(netopt_enable_t)) < 0) {
         puts("[LoRa] Unable to set ADR");
     }
 
+    /* set initial datarate */
     uint8_t dr = unwds_get_node_settings().dr;
     if (gnrc_netapi_set(interface, NETOPT_LORAWAN_DR, 0, (void *)&dr, sizeof(dr)) < 0) {
         puts("[LoRa] Unable to set Data Rate");
@@ -239,25 +240,31 @@ static void ls_setup(gnrc_netif_t *ls)
         puts("[LoRa] Unable to set RX2 Data Rate");
     }
 
+    /* set initial transmit power */
     uint8_t tx_power = 0; /* 0 for maximum power */
     if (gnrc_netapi_set(interface, NETOPT_LORAWAN_TX_POWER, 0, (void *)&tx_power, sizeof(tx_power)) < 0) {
         puts("[LoRa] Unable to set TX power");
     }
 
-    /*
-    semtech_loramac_set_class(ls, unwds_get_node_settings().nodeclass);
-    */
+    /* set device class */
+    loramac_class_t class = unwds_get_node_settings().nodeclass;
+    if (gnrc_netapi_set(interface, NETOPT_LORAWAN_DEVICE_CLASS, 0, (void *)&class, sizeof(loramac_class_t)) < 0) {
+        puts("[LoRa] Unable to set ACK");
+    }
 
+    /* set device activation mode */
     netopt_enable_t otaa = (unwds_get_node_settings().no_join)? (NETOPT_DISABLE):(NETOPT_ENABLE);
     if (gnrc_netapi_set(interface, NETOPT_OTAA, 0, (void *)&otaa, sizeof(netopt_enable_t)) < 0) {
         puts("[LoRa] Unable to set ACK");
     }
 
+    /* set uplink confirmation mode */
     netopt_enable_t ack = (unwds_get_node_settings().confirmation)? (NETOPT_ENABLE):(NETOPT_DISABLE);
     if (gnrc_netapi_set(interface, NETOPT_ACK_REQ, 0, (void *)&ack, sizeof(netopt_enable_t)) < 0) {
         puts("[LoRa] Unable to set ACK");
     }
 
+    /* set default LoRaWAN uplink FPort */
     uint8_t port = 2; /* default TX port */
     if (gnrc_netapi_set(interface, NETOPT_LORAWAN_TX_PORT, 0, (void *)&port, sizeof(port)) < 0) {
         puts("[LoRa] Unable to set TX port");

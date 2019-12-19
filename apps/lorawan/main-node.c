@@ -496,14 +496,10 @@ static void *sender_thread(void *arg) {
 
                 /* move packets from backwaters back to uplink */
                 if (!ls_frame_fifo_empty(&fifo_backwater)) {
-                    if (ls_frame_fifo_full(&fifo_uplink_queue)) {
-                        /* uplink already filled full with new packets */
-                        ls_frame_fifo_clear(&fifo_backwater);
-                    } else {
-                        /* move backwaters to uplink queue */
-                        memcpy((void *)&fifo_uplink_queue, (void *)&fifo_backwater, sizeof(ls_frame_fifo_t));
-                        ls_frame_fifo_clear(&fifo_backwater);
-                    }
+                    memcpy((void *)&fifo_uplink_queue, (void *)&fifo_backwater, sizeof(ls_frame_fifo_t));
+                    ls_frame_fifo_clear(&fifo_backwater);
+
+                    msg_send(&msg_data, sender_pid);
                 }
 
                 /* transmitting initial packet with module data for Class C devices */

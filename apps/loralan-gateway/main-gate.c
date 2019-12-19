@@ -80,21 +80,10 @@ extern "C" {
 static lptimer_t iwdg_timer;
 
 static sx127x_t sx127x;
-static netdev_t netdev;
+static netdev_t *netdev;
 static ls_gate_t ls;
 
-static ls_gate_channel_t channels[1] = {
-    { 
-        .dr = LS_DR6,
-        .frequency = 0,
-        .last_rssi = 0,
-        .state = LS_GATE_CHANNEL_STATE_IDLE,
-        ._internal = {
-                .device = &netdev,
-                .gate = &ls
-        }
-    },        /* DR, frequency, rssi, state, sx127x & LS instance */
-};
+static ls_gate_channel_t channels[1];
 
 /* UART interaction */
 #define UART_BUFSIZE        (255U)
@@ -220,8 +209,8 @@ static void radio_init(void)
     sx127x.settings = settings;
     memcpy(&sx127x.params, &sx127x_params, sizeof(sx127x_params));
     
-    memcpy((void *)&netdev, (void *)&sx127x, sizeof(sx127x));
-    netdev.driver = &sx127x_driver;
+    netdev = (netdev_t*)&sx127x;
+    netdev->driver = &sx127x_driver;
 
     puts("init_radio: sx127x initialization done");
 }
@@ -319,6 +308,10 @@ static void ls_setup(ls_gate_t *ls)
 
     channels[0].frequency = regions[unwds_get_node_settings().region_index].channels[unwds_get_node_settings().channel];
     channels[0].dr = unwds_get_node_settings().dr;
+    channels[0].last_rssi = 0.;
+    channels[0].state = LS_GATE_CHANNEL_STATE_IDLE;
+    channels[0]._internal.device = netdev;
+    channels[0]._internal.gate = &ls;
 
     ls->channels = channels;
     ls->num_channels = 1;

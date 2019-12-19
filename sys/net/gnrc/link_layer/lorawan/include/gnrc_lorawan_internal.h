@@ -203,6 +203,7 @@ typedef struct {
     uint8_t adr;                                    /**< LoRaWAN ADR enabled */
     uint8_t adr_ans_received;                       /**< ADRAns was received */
     uint32_t adr_req_fcnt;                          /**< Fcnt of the frame after which ADRAns was received */
+    loramac_class_t  device_class;                  /**< LoRaWAN device class */
 } gnrc_lorawan_t;
 
 /**

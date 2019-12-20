@@ -117,7 +117,7 @@ int timer_init_periodic(tim_t tim, uint32_t period, timer_cb_t cb, void *arg, bo
     /* set reload value */
     dev(tim)->ARR = ((10 * period * freq_uhz) + 5 ) / (20 * (prescaler + 1)) - 1;
     
-    DEBUG("Freq: %lu, PSC: %lu, ARR: %lu\n", periph_timer_clk(timer_config[tim].bus), (uint32_t)dev(tim)->PSC, dev(tim)->ARR);
+    DEBUG("Freq: %" PRIu32 ", PSC: %" PRIu32 ", ARR: %" PRIu32 "\n", periph_timer_clk(timer_config[tim].bus), (uint32_t)dev(tim)->PSC, dev(tim)->ARR);
 
     /* generate an update event to apply our configuration */
     dev(tim)->EGR = TIM_EGR_UG;

@@ -154,7 +154,7 @@ void gnrc_lorawan_mcps_process_downlink(gnrc_lorawan_t *mac, gnrc_pktsnip_t *pkt
 
     if (lorawan_hdr_get_frame_pending(lw_hdr)) {
         mcps_indication_t *mcps_indication = _mcps_allocate(mac);
-        mcps_indication->type = MLME_SCHEDULE_UPLINK;
+        mcps_indication->type = (mcps_type_t)MLME_SCHEDULE_UPLINK;
         mac->netdev.event_callback((netdev_t *) mac, NETDEV_EVENT_MLME_INDICATION);
     }
 
@@ -348,7 +348,7 @@ void gnrc_lorawan_mcps_request(gnrc_lorawan_t *mac, const mcps_request_t *mcps_r
     }
     mac->mcps.outgoing_pkt = pkt;
 
-    DEBUG("gnrc_lorawan_mcps_request: fcnt = %lu\n", mac->mcps.fcnt);
+    DEBUG("gnrc_lorawan_mcps_request: fcnt = %" PRIu32 "\n", mac->mcps.fcnt);
     gnrc_lorawan_send_pkt(mac, pkt, mcps_request->data.dr);
     mcps_confirm->status = GNRC_LORAWAN_REQ_STATUS_DEFERRED;
 out:

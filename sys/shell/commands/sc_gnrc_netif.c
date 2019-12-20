@@ -654,7 +654,7 @@ static void _netif_list(kernel_pid_t iface)
 static int _netif_set_u32(kernel_pid_t iface, netopt_t opt, uint32_t context,
                           char *u32_str)
 {
-    unsigned long int res;
+    uint32_t res;
     bool hex = false;
 
     if (_is_number(u32_str)) {
@@ -689,7 +689,7 @@ static int _netif_set_u32(kernel_pid_t iface, netopt_t opt, uint32_t context,
     printf(" on interface %" PRIkernel_pid " to ", iface);
 
     if (hex) {
-        printf("0x%04lx\n", res);
+        printf("0x%04" PRIx32 "\n", res);
     }
     else {
         printf("%" PRIu32 "\n", res);
@@ -760,7 +760,7 @@ static int _netif_set_coding_rate(kernel_pid_t iface, char *value)
 static int _netif_set_u16(kernel_pid_t iface, netopt_t opt, uint16_t context,
                           char *u16_str)
 {
-    unsigned long int res;
+    uint32_t res;
     bool hex = false;
 
     if (_is_number(u16_str)) {
@@ -799,7 +799,7 @@ static int _netif_set_u16(kernel_pid_t iface, netopt_t opt, uint16_t context,
     printf(" on interface %" PRIkernel_pid " to ", iface);
 
     if (hex) {
-        printf("0x%04lx\n", res);
+        printf("0x%04" PRIx32 "\n", res);
     }
     else {
         printf("%" PRIu32 "\n", res);

@@ -247,7 +247,7 @@ static void ls_setup(gnrc_netif_t *ls)
     }
 
     /* set device class */
-    loramac_class_t class = unwds_get_node_settings().nodeclass;
+    loramac_class_t class = (loramac_class_t)unwds_get_node_settings().nodeclass;
     if (gnrc_netapi_set(interface, NETOPT_LORAWAN_DEVICE_CLASS, 0, (void *)&class, sizeof(loramac_class_t)) < 0) {
         puts("[LoRa] Unable to set ACK");
     }
@@ -302,7 +302,7 @@ static void *sender_thread(void *arg) {
 
         if ((last_tx_time < now) && (last_tx_time + LORAWAN_MIN_TX_DELAY_MS > now)) {
             tx_delay = last_tx_time + LORAWAN_MIN_TX_DELAY_MS - now;
-            printf("[LoRa] TX delayed by %lu ms\n", tx_delay);
+            printf("[LoRa] TX delayed by %" PRIu32 " ms\n", tx_delay);
             lptimer_sleep(tx_delay);
         }
 

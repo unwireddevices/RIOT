@@ -459,6 +459,10 @@ int unwds_gpio_pins_total(void)
     return (sizeof(unwds_gpio_map) / sizeof(gpio_t));
 }
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+#endif
 void int_to_float_str(char *buf, int decimal, uint8_t precision) {  
     uint32_t i = 0;
     int divider = 1;
@@ -477,9 +481,12 @@ void int_to_float_str(char *buf, int decimal, uint8_t precision) {
 
     snprintf(digits, 3, "%" PRIu32 "d", i);
     strcat(format, digits);
-    
+
     snprintf(buf, 50, format, abs(decimal/divider), abs(decimal%divider));
 }
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 void convert_to_be_sam(void *ptr, size_t size) {
     switch (size) {

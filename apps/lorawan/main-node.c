@@ -81,6 +81,7 @@ extern "C" {
 
 #define LORAWAN_SENDNEXT_DELAY_MS   10000U
 #define LORAWAN_MIN_TX_DELAY_MS     5000U
+#define LORAWAN_GNRC_TIMEOUT_MS     20000U
 
 #define LORAWAN_PORT_DEFAULT    2
 
@@ -371,7 +372,7 @@ static void *sender_thread(void *arg) {
             _timeout_msg.type = GNRC_NETERR_MSG_TYPE;
             _timeout_msg.content.value = 111; /* Some error */
             lptimer_t _timeout_timer;
-            lptimer_set_msg(&_timeout_timer, 10000, &_timeout_msg, sender_pid);
+            lptimer_set_msg(&_timeout_timer, LORAWAN_GNRC_TIMEOUT_MS, &_timeout_msg, sender_pid);
 
             /* wait for packet status and check */
             msg_t msg;
@@ -473,7 +474,7 @@ static void *sender_thread(void *arg) {
             _timeout_msg.type = GNRC_NETERR_MSG_TYPE;
             _timeout_msg.content.value = 111; /* Some error */
             lptimer_t _timeout_timer;
-            lptimer_set_msg(&_timeout_timer, 10000, &_timeout_msg, sender_pid);
+            lptimer_set_msg(&_timeout_timer, LORAWAN_GNRC_TIMEOUT_MS, &_timeout_msg, sender_pid);
 
             msg_t msg;
             do {

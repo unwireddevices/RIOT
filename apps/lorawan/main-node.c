@@ -82,6 +82,7 @@ extern "C" {
 #define LORAWAN_SENDNEXT_DELAY_MS   10000U
 #define LORAWAN_MIN_TX_DELAY_MS     5000U
 #define LORAWAN_GNRC_TIMEOUT_MS     20000U
+#define LORAWAN_GNRC_TIMEOUT_ERROR  111U
 
 #define LORAWAN_PORT_DEFAULT    2
 
@@ -370,7 +371,7 @@ static void *sender_thread(void *arg) {
 
             msg_t _timeout_msg;
             _timeout_msg.type = GNRC_NETERR_MSG_TYPE;
-            _timeout_msg.content.value = 111; /* Some error */
+            _timeout_msg.content.value = LORAWAN_GNRC_TIMEOUT_ERROR; /* Some error */
             lptimer_t _timeout_timer;
             lptimer_set_msg(&_timeout_timer, LORAWAN_GNRC_TIMEOUT_MS, &_timeout_msg, sender_pid);
 
@@ -382,7 +383,7 @@ static void *sender_thread(void *arg) {
 
             lptimer_remove(&_timeout_timer);
 
-            if (msg.content.value == 111) {
+            if (msg.content.value == LORAWAN_GNRC_TIMEOUT_ERROR) {
                 puts("[LoRa] GNRC timeout");
             }
 
@@ -472,7 +473,7 @@ static void *sender_thread(void *arg) {
 
             msg_t _timeout_msg;
             _timeout_msg.type = GNRC_NETERR_MSG_TYPE;
-            _timeout_msg.content.value = 111; /* Some error */
+            _timeout_msg.content.value = LORAWAN_GNRC_TIMEOUT_ERROR; /* Some error */
             lptimer_t _timeout_timer;
             lptimer_set_msg(&_timeout_timer, LORAWAN_GNRC_TIMEOUT_MS, &_timeout_msg, sender_pid);
 
@@ -481,7 +482,7 @@ static void *sender_thread(void *arg) {
                 msg_receive(&msg);
             } while (msg.type != GNRC_NETERR_MSG_TYPE);
 
-            if (msg.content.value == 111) {
+            if (msg.content.value == LORAWAN_GNRC_TIMEOUT_ERROR) {
                 puts("[LoRa] GNRC timeout");
             }
 

@@ -22,6 +22,9 @@
 
 #include "assert.h"
 #include "net/skald/eddystone.h"
+#include "periph/cpuid.h"
+#include "byteorder.h"
+#include "lptimer.h"
 
 #define PREAMBLE_LEN            (11U)
 #define PA_LEN                  (7U)
@@ -30,6 +33,7 @@
 #define URL_HDR_LEN             (6U)
 
 #define UID_LEN                 (23U)
+#define TLM_LEN                 (17U)
 
 typedef struct __attribute__((packed)) {
     uint8_t txadd[BLE_ADDR_LEN];
@@ -54,6 +58,17 @@ typedef struct __attribute__((packed)) {
     uint8_t url[];
 } eddy_url_t;
 
+typedef struct __attribute__((packed)) {
+    pre_t pre;
+    uint8_t version;
+    uint16_t vbatt;
+    uint16_t temp;
+    uint32_t adv_cnt;
+    uint32_t sec_cnt;
+} eddy_tlm_t;
+
+static uint32_t tlm_adv_cnt = 0;
+
 /* ćonstant GAP data preamble parts, containing the following GAP fields:
  * - flags:  BR/EDR not support set
  * - complete list of 16-bit UUIDs: holding the Eddystone UUID only (0xfeaa)
@@ -66,6 +81,7 @@ static void _init_pre ( pre_t *data,
                         uint8_t len)
 {
     skald_generate_random_addr(data->txadd);
+
     memcpy(data->pa, _pa, PA_LEN);
     memcpy(data->pb, _pb, PB_LEN);
     data->service_data_len = len;
@@ -89,6 +105,7 @@ void skald_eddystone_uid_adv(skald_ctx_t *ctx,
     /* start advertising */
     ctx->pkt.len = sizeof(eddy_uid_t);
     skald_adv_start(ctx);
+    tlm_adv_cnt++;
 }
 
 void skald_eddystone_url_adv(skald_ctx_t *ctx,
@@ -111,4 +128,41 @@ void skald_eddystone_url_adv(skald_ctx_t *ctx,
     /* start advertising */
     ctx->pkt.len = (sizeof(pre_t) + 2 + len);
     skald_adv_start(ctx);
+    tlm_adv_cnt++;
+}
+
+void skald_eddystone_tlm_adv(skald_ctx_t *ctx,
+                             uint16_t vbatt,
+                             uint32_t temp)
+{
+    assert(ctx);
+
+    eddy_tlm_t *pdu = (eddy_tlm_t *)ctx->pkt.pdu;
+    _init_pre(&pdu->pre, EDDYSTONE_TLM, TLM_LEN);
+
+    /* set remaining service data fields */
+    pdu->vbatt = vbatt;
+    if (byteorder_is_little_endian()) {
+        byteorder_swap((void*)&pdu->vbatt, sizeof(pdu->vbatt));
+    }
+    
+    pdu->temp = (((temp / 1000) & 0xFF) << 8) | (1000*(temp % 1000))/3907;
+    if (byteorder_is_little_endian()) {
+        byteorder_swap((void*)&pdu->temp, sizeof(pdu->temp));
+    }
+
+    pdu->adv_cnt = tlm_adv_cnt;
+    if (byteorder_is_little_endian()) {
+        byteorder_swap((void*)&pdu->adv_cnt, sizeof(pdu->adv_cnt));
+    }
+    
+    pdu->sec_cnt = lptimer_now_msec()/100;
+    if (byteorder_is_little_endian()) {
+        byteorder_swap((void*)&pdu->sec_cnt, sizeof(pdu->sec_cnt));
+    }
+
+    /* start advertising */
+    ctx->pkt.len = sizeof(eddy_tlm_t);
+    skald_adv_start(ctx);
+    tlm_adv_cnt++;
 }

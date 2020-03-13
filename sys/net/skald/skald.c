@@ -60,7 +60,7 @@ static netdev_t *_radio;
 static void _stop_radio(void);
 static void _sched_next(skald_ctx_t *ctx);
 static void _on_adv_evt(void *arg);
-static void _on_radio_evt(netdev_t *netdev, netdev_event_t event, void *arg);
+static void _on_radio_evt(netdev_t *netdev, netdev_event_t event);
 
 static void _stop_radio(void)
 {
@@ -117,10 +117,9 @@ static void _on_adv_evt(void *arg)
     }
 }
 
-static void _on_radio_evt(netdev_t *netdev, netdev_event_t event, void *arg)
+static void _on_radio_evt(netdev_t *netdev, netdev_event_t event)
 {
     (void)netdev;
-	(void)arg;
 	
     if (event == NETDEV_EVENT_TX_COMPLETE) {
         skald_ctx_t *ctx = _radio->context;
@@ -192,7 +191,7 @@ void skald_generate_random_addr(uint8_t *buf)
 {
     assert(buf);
 
-    luid_get(buf, BLE_ADDR_LEN);
+    luid_custom(buf, BLE_ADDR_LEN, 1);
 
     /* Swap byte 0 and 5, so that the unique byte given by luid does not clash
      * with universal/local and individual/group bits of address */

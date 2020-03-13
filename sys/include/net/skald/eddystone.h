@@ -78,6 +78,19 @@ void skald_eddystone_url_adv(skald_ctx_t *ctx,
                              const char *url, 
                              uint8_t tx_pwr);
 
+/**
+ * @brief   Advertise Eddystone-TLM data
+ *
+ * @see https://github.com/google/eddystone/tree/master/eddystone-tlm
+ *
+ * @param[out] ctx      advertising context
+ * @param[in] vbatt     battery voltage, mV
+ * @param[in] temp      temperature, mC
+ */
+void skald_eddystone_tlm_adv(skald_ctx_t *ctx,
+                             uint16_t vbatt,
+                             uint32_t temp);
+
 #ifdef __cplusplus
 }
 #endif

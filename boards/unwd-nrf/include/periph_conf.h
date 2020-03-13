@@ -101,9 +101,11 @@ static const timer_conf_t timer_config[] = {
 #define RTT_DEV             (1)                 /* NRF_RTC1 */
 #define RTT_MAX_VALUE       (0x00ffffff)        /* 24 bit */  
 #define RTT_FREQUENCY       (1024)
-/** @} */
 
 #define LPTIMER_HZ          RTT_FREQUENCY
+#define LPTIMER_MAX_VALUE   RTT_MAX_VALUE
+#define LPTIMER_WIDTH       (24)
+/** @} */
 
 /**
  * @name    NFC antenna connection pins

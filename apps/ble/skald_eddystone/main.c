@@ -23,6 +23,9 @@
 
 #include "net/skald/eddystone.h"
 #include "periph/pm.h"
+#include "periph/gpio.h"
+#include "cpu.h"
+#include "lptimer.h"
 
 /* Example of an Eddystone URI:
  * - namespace (ASCII): 'supercool!'
@@ -41,22 +44,31 @@
 /* Allocate two advertising contexts, one for Eddystone-URL and one for
  * Eddystone-URI */
 // static skald_ctx_t _ctx_uid;
-static skald_ctx_t _ctx_url;
+// static skald_ctx_t _ctx_url;
+static skald_ctx_t _ctx_tlm;
 
 int main(void)
 {
-    puts("Skald and the tail of Eddystone");
+    puts("Eddystone-TLM beacon test");
+    puts("Every 10 secs it emits 3 to 4 packets with 100 ms interval");
+    puts("Data and packets counter update interval 10 secs");
 
     /* Advertise the defined URI */
     // skald_eddystone_uid_t uid = { URI_NAMESPACE, URI_INSTANCE };
     // skald_eddystone_uid_adv(&_ctx_uid, &uid, TX_PWR);
 
-    /* Also advertise the defined short-URL */
-    skald_eddystone_url_adv(&_ctx_url, EDDYSTONE_URL_HTTPS, URL, TX_PWR);
-
+    /* Also advertise the defined TLM */
+    
     while(1)
     {
-        pm_set(PM_SLEEP);
+        cpu_update_status();
+        printf("VBATT: %d, TEMP: %d\n", cpu_status.voltage.vdd, cpu_status.temp.core_temp);
+        skald_eddystone_tlm_adv(&_ctx_tlm, 3300, cpu_status.temp.core_temp * 1000);
+        gpio_set(LED0_PIN);
+        lptimer_sleep(500);
+        skald_adv_stop(&_ctx_tlm);
+        gpio_clear(LED0_PIN);
+        lptimer_sleep(10000);
     }
 
     return 0;

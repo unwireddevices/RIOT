@@ -174,6 +174,7 @@ void sx1280_set_rx(const sx128x_t *dev, sx128x_tick_time_t timeout)
     buf[2] = (uint8_t)(timeout.nb_steps & 0x00FF);
 
     sx1280_clear_irq_status(dev, SX128X_IRQ_RADIO_ALL);
+    sx1280_set_standby(dev, SX128X_STDBY_XOSC);
 
     // If the radio is doing ranging operations, then apply the specific calls
     // prior to SetRx
@@ -200,6 +201,7 @@ void sx1280_set_rx_duty_cycle(const sx128x_t *dev, sx128x_radio_tick_sizes_t ste
 
 void sx1280_set_cad(const sx128x_t *dev)
 {
+    sx1280_clear_irq_status(dev, SX128X_IRQ_RADIO_ALL);
     sx1280_hal_write_command(dev, SX128X_RADIO_SET_CAD, 0, 0);
     operating_mode = SX128X_MODE_CAD;
 }

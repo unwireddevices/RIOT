@@ -214,11 +214,11 @@ void isr_radio(void)
             else {
                 _ctx->crc &= ~(NETDEV_BLE_CRC_OK);
             }
-            _nrfble_dev.event_callback(&_nrfble_dev, NETDEV_EVENT_RX_COMPLETE, NULL);
+            _nrfble_dev.event_callback(&_nrfble_dev, NETDEV_EVENT_RX_COMPLETE);
         }
         else {  /* on TX done */
             _state = STATE_RX;
-            _nrfble_dev.event_callback(&_nrfble_dev, NETDEV_EVENT_TX_COMPLETE, NULL);
+            _nrfble_dev.event_callback(&_nrfble_dev, NETDEV_EVENT_TX_COMPLETE);
         }
     }
 

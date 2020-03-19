@@ -5,10 +5,14 @@
 #include "sx128x_internal.h"
 #include "ranging_correct.h"
 
+#include "lptimer.h"
+
 #define ENABLE_DEBUG (0)
 #include "debug.h"
 
 #include "log.h"
+
+lptimer_t op_timeout_timer;
 
 /**
  * @brief Radio registers definition
@@ -146,6 +150,17 @@ void sx1280_set_fs(const sx128x_t *dev)
     operating_mode = SX128X_MODE_FS;
 }
 
+void sx1280_timeout_cb(void *arg) {
+    sx128x_t *dev = (sx128x_t *)arg;
+
+    sx1280_clear_irq_status(dev, SX128X_IRQ_RADIO_ALL);
+    sx1280_set_standby(dev, SX128X_STDBY_XOSC);
+
+    if((radio_callbacks != NULL) && (radio_callbacks->rx_timeout != NULL)) {
+        radio_callbacks->rx_timeout();
+    }
+}
+
 void sx1280_set_tx(const sx128x_t *dev, sx128x_tick_time_t timeout)
 {
     uint8_t buf[3];
@@ -163,6 +178,10 @@ void sx1280_set_tx(const sx128x_t *dev, sx128x_tick_time_t timeout)
     }
     sx1280_hal_write_command(dev, SX128X_RADIO_SET_TX, buf, 3);
     operating_mode = SX128X_MODE_TX;
+    
+    op_timeout_timer.arg = (void *)dev;
+    op_timeout_timer.callback = sx1280_timeout_cb;
+    lptimer_set(&op_timeout_timer, 250); /* 250 ms maximum TX timeout */
 }
 
 void sx1280_set_rx(const sx128x_t *dev, sx128x_tick_time_t timeout)
@@ -183,6 +202,29 @@ void sx1280_set_rx(const sx128x_t *dev, sx128x_tick_time_t timeout)
     }
     sx1280_hal_write_command(dev, SX128X_RADIO_SET_RX, buf, 3);
     operating_mode = SX128X_MODE_RX;
+    
+    uint32_t timeout_ms = 0;
+    switch (timeout.step) {
+        case SX128X_RADIO_TICK_SIZE_0015_US:
+            timeout_ms = 5 + (timeout.nb_steps*15)/1000;
+            break;
+        case SX128X_RADIO_TICK_SIZE_0062_US:
+            timeout_ms = 5 + (timeout.nb_steps*62)/1000;
+            break;
+        case SX128X_RADIO_TICK_SIZE_1000_US:
+            timeout_ms = 5 + timeout.nb_steps;
+            break;
+        case SX128X_RADIO_TICK_SIZE_4000_US:
+            timeout_ms = 5 + timeout.nb_steps*4;
+            break;
+        default:
+            timeout_ms = 50;
+            break;
+    }
+
+    op_timeout_timer.arg = (void *)dev;
+    op_timeout_timer.callback = sx1280_timeout_cb;
+    lptimer_set(&op_timeout_timer, timeout_ms);
 }
 
 void sx1280_set_rx_duty_cycle(const sx128x_t *dev, sx128x_radio_tick_sizes_t step, uint16_t nb_step_rx, uint16_t rx_nb_step_sleep)
@@ -1295,6 +1337,7 @@ void sx1280_process_irqs(const sx128x_t *dev)
             switch(operating_mode)
             {
                 case SX128X_MODE_RX:
+                    lptimer_remove(&op_timeout_timer);
                     if((irq_regs & SX128X_IRQ_RX_DONE) == SX128X_IRQ_RX_DONE) {
                         if((irq_regs & SX128X_IRQ_CRC_ERROR) == SX128X_IRQ_CRC_ERROR) {
                             if((radio_callbacks != NULL) && (radio_callbacks->rx_error != NULL)) {
@@ -1333,6 +1376,7 @@ void sx1280_process_irqs(const sx128x_t *dev)
                     }
                     break;
                 case SX128X_MODE_TX:
+                    lptimer_remove(&op_timeout_timer);
                     if((irq_regs & SX128X_IRQ_TX_DONE) == SX128X_IRQ_TX_DONE) {
                         if((radio_callbacks != NULL) && (radio_callbacks->tx_done != NULL)) {
                             radio_callbacks->tx_done( );
@@ -1345,6 +1389,7 @@ void sx1280_process_irqs(const sx128x_t *dev)
                     }
                     break;
                 case SX128X_MODE_CAD:
+                    lptimer_remove(&op_timeout_timer);
                     if((irq_regs & SX128X_IRQ_CAD_DONE) == SX128X_IRQ_CAD_DONE) {
                         if((irq_regs & SX128X_IRQ_CAD_ACTIVITY_DETECTED) == SX128X_IRQ_CAD_ACTIVITY_DETECTED) {
                             if((radio_callbacks != NULL) && (radio_callbacks->cad_done != NULL)) {
@@ -1371,6 +1416,7 @@ void sx1280_process_irqs(const sx128x_t *dev)
             {
                 // SX128X_MODE_RX indicates an IRQ on the Slave side
                 case SX128X_MODE_RX:
+                    lptimer_remove(&op_timeout_timer);
                     if((irq_regs & SX128X_IRQ_RANGING_SLAVE_REQUEST_DISCARDED) == SX128X_IRQ_RANGING_SLAVE_REQUEST_DISCARDED) {
                         if((radio_callbacks != NULL) && (radio_callbacks->ranging_done != NULL)) {
                             radio_callbacks->ranging_done(SX128X_IRQ_RANGING_SLAVE_ERROR_DISCARDED);
@@ -1404,6 +1450,7 @@ void sx1280_process_irqs(const sx128x_t *dev)
                     break;
                 // SX128X_MODE_TX indicates an IRQ on the Master side
                 case SX128X_MODE_TX:
+                    lptimer_remove(&op_timeout_timer);
                     if((irq_regs & SX128X_IRQ_RANGING_MASTER_RESULT_TIMEOUT) == SX128X_IRQ_RANGING_MASTER_RESULT_TIMEOUT) {
                         if((radio_callbacks != NULL) && (radio_callbacks->ranging_done != NULL)) {
                             radio_callbacks->ranging_done( SX128X_IRQ_RANGING_MASTER_ERROR_CODE );
